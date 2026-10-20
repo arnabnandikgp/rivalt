@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** P01 implementation and first offline Surfpool acceptance run pass; clean verification on the committed revision and draft PR publication are being completed. **Active phase: P01.** Financial instructions, makers, services and later acceptance phases remain unimplemented.
+**Current position:** P01 A01 acceptance passes on committed revision `9170a38`; [draft PR #1](https://github.com/arnabnandikgp/rivalt/pull/1) is open. **P01 is Review, not Closed**, pending integration. P02 is next after that integration. Financial instructions, makers, services and later acceptance phases remain unimplemented.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -19,7 +19,7 @@ Do not mark a phase Closed because its PR was opened. Do not mark unattempted fu
 
 | Milestone | Phases | Short description / deliverable | Status | Evidence / blocker |
 |---|---|---|---|---|
-| M1 | P01–P02 | Reproducible stack, economic core and custody | In progress | P01 signed local RPC spine passes; clean committed verification pending; P02 remains Open |
+| M1 | P01–P02 | Reproducible stack, economic core and custody | In progress | P01 clean signed RPC acceptance passes; PR #1 in Review; P02 remains Open |
 | M2 | P03–P04 | Competing makers and atomic execution | Open | Not implemented |
 | M3 | P05–P06 | Real services and full trade lifecycle | Open | Not implemented |
 | M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Open | Not implemented |
@@ -31,7 +31,7 @@ Do not mark a phase Closed because its PR was opened. Do not mark unattempted fu
 
 | Milestone | Phase | PR deliverable | Status | PR / commit | Evidence / next dependency |
 |---|---|---|---|---|---|
-| M1 | P01 | Toolchain, SDK and RPC spine | In progress | `phase/p01-spine`; draft pending | First full local smoke passes; clean committed verification and integration remain |
+| M1 | P01 | Toolchain, SDK and RPC spine | Review | [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1), tested `9170a38` | [A01 evidence](evidence/P01.md); G01/G06 foundations pass; integration pending |
 | M1 | P02 | Financial core and custody | Open | — | After P01 |
 | M2 | P03 | Maker programs and capital authorization | Open | — | After P02 |
 | M2 | P04 | Atomic routes and allocation | Open | — | After P03 |
@@ -52,10 +52,10 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Last completed work: P01 first actual signed deployment/probe, independent decode/signature verification, generated/legacy parity and HTTP/WS/history/rollback checks.
-- Current implementation revision: P01 working tree on `phase/p01-spine`, started at `f7ab14c`; clean committed verification pending.
-- Active phase: P01.
-- Immediate task: run `cargo clean` then `pnpm smoke` on the committed P01 implementation and publish its draft PR.
+- Last completed work: P01 clean locked build and full actual signed deployment/probe, independent decode/signature verification, generated/legacy parity and HTTP/WS/history/rollback checks.
+- Current implementation revision: tested `9170a3862e19b93e6780abf2a245b277c9bdf09a` on `phase/p01-spine`; subsequent evidence/report changes are documentation only. Draft PR #1 is open and unmerged.
+- Active phase: P01 in Review; no next implementation phase started ahead of integration.
+- Immediate task: review and integrate PR #1, then implement P02's G02/G03 independent financial reference, bounded arithmetic and SPL custody.
 - Access needed now: none. GitHub ADMIN access was verified with network access; the sandbox-only authentication failure was not an actual credential failure. No devnet key or external maker is needed for P01.
 - Deferred external needs: secure devnet/feed access at P13; independent maker participation at P15; independent review/funded-pilot decision at P16.
 - Historical archives: optional targeted reference only; not an entry requirement.
@@ -87,16 +87,17 @@ A runtime compatibility failure belongs here with the exact package/command/erro
 - Starting revision / branch: `f7ab14cc361fcd2b194fb1b839e65934af130dd9` on `main`; implementation isolated on `phase/p01-spine`. Initial working tree was clean and contained documentation only.
 - Delivered: exact Rust/npm locks and verified local binary downloads; actual Anchor probe with event-CPI; Codama SDK and asynchronous web3.js v3 signing; isolated legacy conformance client; native offline Surfpool supervisor, signed deployment and independent HTTP/WS acceptance harness.
 - Specifications: README, P01-SPINE, COMPONENTS, STACK-AND-VALIDATION and D16/D17 document the implemented test profile and remaining phase boundaries.
-- Configuration gates: G01 pins and G06 foundations implemented; committed clean acceptance verification pending. No economic configuration gate was invented or closed.
+- Configuration gates: G01 pins and G06 foundations satisfied on the clean committed acceptance revision. No economic configuration gate was invented or closed.
 - Checks actually run: `pnpm install` in both independent roots; `cargo generate-lockfile`; locked SBPF v0 build; locked `anchor idl build`; `pnpm typecheck`; `pnpm test` (7 ABI/wallet-import checks pass); `pnpm generate:check`; `cargo fmt -- --check`; installed graph check (77 packages, modern SDK/wallet versions, no legacy runtime imports).
-- First full `bash ops/smoke.sh`: PASS at `.local/runs/20261020T170408Z-67907`; three successful probes, one failed two-instruction probe, independent Ed25519 verification, live Anchor account/event decode, five WS subscriptions, five history entries and before/until pagination. First probe: 322 bytes, five message accounts, 10,492 simulated CU. This initial result is explicitly from a dirty implementation tree; final committed clean evidence will be appended before closeout.
-- Failures resolved: v1.57 download ENOSPC; installed v1.52 missing SBPF v3 target; Anchor's differing SBF/IDL argument forwarding; renderer's package-root output convention; sandbox TSX CLI IPC restriction (use `node --import tsx`); dependency tree CLI expansion exceeded its output buffer (replaced with visited-set traversal of actual installed manifests).
+- First full `bash ops/smoke.sh`: PASS at `.local/runs/20261020T170408Z-67907`, explicitly a dirty implementation tree. Final authority: `cargo clean` then `source ops/env.sh && pnpm smoke` PASS on `9170a3862e19b93e6780abf2a245b277c9bdf09a`, `sourceDirty: false`, run `.local/runs/20261020T171159Z-71622`. Three successful probes, one failed two-instruction probe with a retained-but-reverted event, independent Ed25519 verification, live Anchor account/event decode, five WS subscriptions, five history entries and before/until pagination all pass. First probe: 322 bytes, five message accounts, 10,492 simulated CU.
+- Failures resolved: v1.57 download ENOSPC; installed v1.52 missing SBPF v3 target; Anchor's differing SBF/IDL argument forwarding; renderer's package-root output convention; sandbox TSX CLI IPC restriction (use `node --import tsx`); dependency tree CLI expansion exceeded its output buffer (replaced with visited-set traversal of actual installed manifests); pnpm lifecycle inherited a relative store into the separate conformance root (fixed with an explicit absolute store and noninteractive repair).
 - Checks not run: P02+ economics/custody/SVM cases, PostgreSQL/service recovery, browser wallet signing, load/24-hour soak, devnet and external review. Those programs/services/phases do not yet exist. Optional legacy native accelerators remain disabled.
 - Evidence / identities: initial runtime reports Surfpool 1.6.1 / solana-core 4.2.1 / feature-set 565236538; program `Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo`; binary SHA-256 `560c7c6bb499cbf406be7e8e4edbae43cca27bdf13f227b17e6480073bc24002`; IDL SHA-256 `195ec9a1ce4f30117fef4e4774b26232f9f60a70166c812293bd169da1f1235f`.
-- PR / integrated commit: pending clean committed verification and draft creation; no merge claimed.
-- Phase status: In progress. Acceptance run on recorded code, review/integration and final evidence closeout remain.
+- Evidence committed: [report](evidence/P01.md) and [actual JSON captures](evidence/p01/); full build/smoke output remains `.local/p01-clean-acceptance.log`. Final `cargo fmt -- --check`, `git diff --check` and clean generated-tree checks pass; no task RPC/WS listener remained.
+- PR / integrated commit: [draft PR #1](https://github.com/arnabnandikgp/rivalt/pull/1); executable commit `9170a38`; evidence closeout is documentation only. No merge or main-baseline integration claimed.
+- Phase status: Review. A01/G01 and G06 foundations pass; integration remains. M1 remains In progress because P02 is Open.
 - Blockers: no current access/product blocker; B01 resolved by the tested profile. GitHub access was rechecked outside the network-restricted sandbox and succeeds.
-- Next concrete action: clean-build and run the full P01 smoke on the committed implementation, then publish the draft phase PR with the recorded evidence.
+- Next concrete action: review and integrate PR #1; then start P02 by freezing and independently testing G02/G03 before adding real SPL custody.
 
 ## Template — append after each run
 
