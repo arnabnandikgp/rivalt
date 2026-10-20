@@ -1,0 +1,24 @@
+{
+  "name": "rivalt",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.23.0",
+  "engines": { "node": "24.22.0" },
+  "scripts": {
+    "generate": "node --import tsx ops/generate-sdk.ts",
+    "generate:check": "node --import tsx ops/generate-sdk.ts --check",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "conformance": "node tests/anchor-conformance/conformance.cjs",
+    "smoke": "bash ops/smoke.sh"
+  },
+  "devDependencies": {
+    "@codama/nodes-from-anchor": "1.5.6",
+    "@codama/renderers-js": "2.8.0",
+    "@types/node": "24.10.1",
+    "codama": "1.11.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "anchor",
+    "url": "https://github.com/otter-sec/anchor/releases/download/v1.2.1/anchor-1.2.1-aarch64-apple-darwin",
+    "sha256": "7b4a31228b531e93d642c0f42bd2eb852a3b110b32c0e9a127ea3ae7674c5cd5"
+  },
+  {
+    "name": "agave",
+    "url": "https://github.com/anza-xyz/agave/releases/download/v4.1.2/solana-release-aarch64-apple-darwin.tar.bz2",
+    "sha256": "51a44318e6fb8be0cfa69cdfdb3252f4c76a5eb2866740694e91de3d2fc5a75b"
+  },
+  {
+    "name": "surfpool",
+    "url": "https://github.com/solana-foundation/surfpool/releases/download/v1.6.1/surfpool-darwin-arm64.tar.gz",
+    "sha256": "fca0a1c75eca7cc848b8ff70f141c6fc6d39c11a781764d4840e001ea90172cc"
+  },
+  {
+    "name": "node",
+    "url": "https://nodejs.org/dist/v24.22.0/node-v24.22.0-darwin-arm64.tar.gz",
+    "sha256": "6a9724d9b50a5f22b4816cded441b5a8d9ddae546191a5e5b7efa5a5e2ee26d5"
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "name": "@rivalt/rpc-contract",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@rivalt/sdk": "workspace:*",
+    "@solana/kit": "8.5.0",
+    "@solana/wallet-adapter": "3.1.1",
+    "@solana/web3.js": "3.1.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}

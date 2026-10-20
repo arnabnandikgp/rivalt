@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
+
+const versions = new Map();
+const visited = new Set();
+function walk(manifestPath) {
+  const path = realpathSync(manifestPath);
+  if (visited.has(path)) return;
+  visited.add(path);
+  const pkg = JSON.parse(readFileSync(path, 'utf8'));
+  assert(!pkg.name.startsWith('@anchor-lang/'), `Legacy Anchor entered runtime graph: ${pkg.name}`);
+  if (pkg.name === '@solana/web3.js') assert.equal(pkg.version, '3.1.1');
+  if (pkg.name === '@solana/kit') assert.equal(pkg.version, '8.5.0');
+  if (['@solana/web3.js', '@solana/kit', '@solana/wallet-adapter', 'react', 'react-dom'].includes(pkg.name)) {
+    versions.set(pkg.name, pkg.version);
+  }
+  const require = createRequire(path);
+  for (const name of Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies, ...pkg.peerDependencies })) {
+    const dependency = require.resolve.paths(name).map(p => `${p}/${name}/package.json`).find(existsSync);
+    if (!dependency) {
+      assert(name in (pkg.optionalDependencies ?? {}) || pkg.peerDependenciesMeta?.[name]?.optional,
+        `Missing required runtime dependency ${name} of ${pkg.name}`);
+      continue;
+    }
+    walk(dependency);
+  }
+}
+for (const root of ['packages/sdk', 'tests/rpc-contract']) walk(resolve(root, 'package.json'));
+assert.equal(versions.get('@solana/kit'), '8.5.0');
+assert.equal(versions.get('@solana/wallet-adapter'), '3.1.1');
+for (const [name, expected] of [['@anchor-lang/core', '1.2.1'], ['@solana/web3.js', '1.99.0']]) {
+  assert.equal(JSON.parse(readFileSync(`tests/anchor-conformance/node_modules/${name}/package.json`)).version, expected);
+}
+console.log(JSON.stringify({ modernRuntime: Object.fromEntries(versions), packagesInspected: visited.size, legacyIsolation: 'pass' }, null, 2));

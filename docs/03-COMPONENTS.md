@@ -154,3 +154,7 @@ The kit supplies only README/AGENTS/SEED-PROMPT and docs. Create code directorie
 
 No research-archive directory is required. New implementation evidence can live in docs/evidence/ as concise reports with commit/config identities; large reproducible runtime output should not bloat Git.
 
+## P01 implemented interface
+
+The initial clearing artifact exposes only the nonfinancial `probe` instruction described in [P01-SPINE](P01-SPINE.md). It establishes the generated SDK and successful event-CPI/RPC contract. None of the financial instruction families above exists yet. P02 owns the financial account/event/error ABI; the test probe does not create participant, cash or market authority.
+

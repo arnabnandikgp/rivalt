@@ -67,3 +67,10 @@ Routine ABI names, exact compatible patches, test-only risk settings and impleme
 
 Changes to fee policy, custody authority, loss bearer, margin model, market scope, order promises or production/funded use need an explicit product decision. Do useful preparatory analysis first and ask only for that concrete decision. Do not silently promote illustrative research values into launch configuration.
 
+## 20 October 2026 — P01 implementation amendments
+
+- **D16 / G01:** Pin host Rust/Cargo 1.97.1, Anchor 1.2.1 (default solana-v3), Agave distribution 4.1.2 (bundled cargo-build-sbf 4.1.0), explicit SBF platform-tools v1.52/rustc 1.89.0-dev/SBPF v0, Surfpool 1.6.1, Node 24.22.0 and pnpm 10.23.0. Archive checksums are in `ops/toolchain-downloads.json`; complete JS pins and runtime distinctions are in [P01-SPINE](P01-SPINE.md). Closure remains subject to the committed clean acceptance run in WORKLOG.
+- **Supersession:** Do not inherit Anchor 1.2.1's platform-tools v1.57 / SBPF v3 defaults. The v1.57 download hit ENOSPC on this host; existing v1.52 failed for v3 because that target is absent, then successfully compiled this program for v0. This is a recorded compatible build profile, not a change to protocol economics or a claim that the tool versions are interchangeable.
+- **D17 / G06 foundation:** The sole initial instruction is an explicitly nonfinancial local probe. Use generated event codecs plus the Anchor event-CPI inner-instruction envelope, successful transaction metadata and run-scoped identity. Its local schema does not freeze future financial account/event layouts. G06's SQL and operational recovery contract remains due in P05.
+- **Dependency isolation:** Production SDK/web3.js 3.1.1/Kit 8.5.0 and wallet-adapter 3.1.1 use their installed modern graph. Legacy Anchor 1.2.1/web3.js 1.99.0 lives in a separate pnpm root/lockfile and process; canonical bytes/address/integer strings alone cross the boundary. No forced overrides. Wallet provider import and dependency compatibility are P01 checks; user wallet behavior is P10.
+
