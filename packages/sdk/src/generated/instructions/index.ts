@@ -6,4 +6,11 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./classifySurplus.js";
+export * from "./deposit.js";
+export * from "./fundInsurance.js";
+export * from "./initializeMarket.js";
 export * from "./probe.js";
+export * from "./registerParticipant.js";
+export * from "./setCustodyPause.js";
+export * from "./withdraw.js";

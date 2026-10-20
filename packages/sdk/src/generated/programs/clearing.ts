@@ -35,22 +35,68 @@ import {
   type SelfPlanAndSendFunctions,
 } from "@solana/kit/program-client-core";
 import {
+  getMarketStateCodec,
+  getParticipantCodec,
+  getParticipantRegistryCodec,
   getProbeRecordCodec,
+  type MarketState,
+  type MarketStateArgs,
+  type Participant,
+  type ParticipantArgs,
+  type ParticipantRegistry,
+  type ParticipantRegistryArgs,
   type ProbeRecord,
   type ProbeRecordArgs,
 } from "../accounts/index.js";
 import {
+  getClassifySurplusInstructionAsync,
+  getDepositInstructionAsync,
+  getFundInsuranceInstructionAsync,
+  getInitializeMarketInstructionAsync,
   getProbeInstructionAsync,
+  getRegisterParticipantInstructionAsync,
+  getSetCustodyPauseInstructionAsync,
+  getWithdrawInstructionAsync,
+  parseClassifySurplusInstruction,
+  parseDepositInstruction,
+  parseFundInsuranceInstruction,
+  parseInitializeMarketInstruction,
   parseProbeInstruction,
+  parseRegisterParticipantInstruction,
+  parseSetCustodyPauseInstruction,
+  parseWithdrawInstruction,
+  type ClassifySurplusAsyncInput,
+  type DepositAsyncInput,
+  type FundInsuranceAsyncInput,
+  type InitializeMarketAsyncInput,
+  type ParsedClassifySurplusInstruction,
+  type ParsedDepositInstruction,
+  type ParsedFundInsuranceInstruction,
+  type ParsedInitializeMarketInstruction,
   type ParsedProbeInstruction,
+  type ParsedRegisterParticipantInstruction,
+  type ParsedSetCustodyPauseInstruction,
+  type ParsedWithdrawInstruction,
   type ProbeAsyncInput,
+  type RegisterParticipantAsyncInput,
+  type SetCustodyPauseAsyncInput,
+  type WithdrawAsyncInput,
 } from "../instructions/index.js";
-import { findRecordPda } from "../pdas/index.js";
+import {
+  findMarketPda,
+  findParticipantPda,
+  findRecordPda,
+  findRegistryPda,
+  findVaultPda,
+} from "../pdas/index.js";
 
 export const CLEARING_PROGRAM_ADDRESS =
   "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo" as Address<"Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo">;
 
 export enum ClearingAccount {
+  MarketState,
+  Participant,
+  ParticipantRegistry,
   ProbeRecord,
 }
 
@@ -58,6 +104,39 @@ export function identifyClearingAccount(
   account: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingAccount {
   const data = "data" in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([0, 125, 123, 215, 95, 96, 164, 194]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.MarketState;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([32, 142, 108, 79, 247, 179, 54, 6]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.Participant;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([230, 90, 135, 85, 212, 177, 130, 197]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.ParticipantRegistry;
+  }
   if (
     containsBytes(
       data,
@@ -76,6 +155,7 @@ export function identifyClearingAccount(
 }
 
 export enum ClearingEvent {
+  CustodyChanged,
   ProbeRecorded,
 }
 
@@ -83,6 +163,17 @@ export function identifyClearingEvent(
   event: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingEvent {
   const data = "data" in event ? event.data : event;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([240, 255, 148, 254, 96, 178, 196, 158]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.CustodyChanged;
+  }
   if (
     containsBytes(
       data,
@@ -100,13 +191,64 @@ export function identifyClearingEvent(
 }
 
 export enum ClearingInstruction {
+  ClassifySurplus,
+  Deposit,
+  FundInsurance,
+  InitializeMarket,
   Probe,
+  RegisterParticipant,
+  SetCustodyPause,
+  Withdraw,
 }
 
 export function identifyClearingInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([233, 161, 140, 11, 133, 238, 233, 139]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ClassifySurplus;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([242, 35, 198, 137, 82, 225, 242, 182]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.Deposit;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([58, 216, 37, 162, 201, 50, 20, 66]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.FundInsurance;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([35, 35, 189, 193, 155, 48, 170, 203]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeMarket;
+  }
   if (
     containsBytes(
       data,
@@ -118,6 +260,39 @@ export function identifyClearingInstruction(
   ) {
     return ClearingInstruction.Probe;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([248, 112, 38, 215, 226, 230, 249, 40]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RegisterParticipant;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([139, 80, 85, 170, 59, 17, 172, 172]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SetCustodyPause;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([183, 18, 70, 156, 148, 109, 161, 34]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.Withdraw;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "clearing" },
@@ -126,20 +301,91 @@ export function identifyClearingInstruction(
 
 export type ParsedClearingInstruction<
   TProgram extends string = "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
-> = {
-  instructionType: ClearingInstruction.Probe;
-} & ParsedProbeInstruction<TProgram>;
+> =
+  | ({
+      instructionType: ClearingInstruction.ClassifySurplus;
+    } & ParsedClassifySurplusInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.Deposit;
+    } & ParsedDepositInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.FundInsurance;
+    } & ParsedFundInsuranceInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.InitializeMarket;
+    } & ParsedInitializeMarketInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.Probe;
+    } & ParsedProbeInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RegisterParticipant;
+    } & ParsedRegisterParticipantInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.SetCustodyPause;
+    } & ParsedSetCustodyPauseInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.Withdraw;
+    } & ParsedWithdrawInstruction<TProgram>);
 
 export function parseClearingInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClearingInstruction<TProgram> {
   const instructionType = identifyClearingInstruction(instruction);
   switch (instructionType) {
+    case ClearingInstruction.ClassifySurplus: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ClassifySurplus,
+        ...parseClassifySurplusInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.Deposit: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.Deposit,
+        ...parseDepositInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.FundInsurance: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.FundInsurance,
+        ...parseFundInsuranceInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.InitializeMarket: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeMarket,
+        ...parseInitializeMarketInstruction(instruction),
+      };
+    }
     case ClearingInstruction.Probe: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.Probe,
         ...parseProbeInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.RegisterParticipant: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RegisterParticipant,
+        ...parseRegisterParticipantInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.SetCustodyPause: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SetCustodyPause,
+        ...parseSetCustodyPauseInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.Withdraw: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.Withdraw,
+        ...parseWithdrawInstruction(instruction),
       };
     }
     default:
@@ -160,18 +406,64 @@ export type ClearingPlugin = {
 };
 
 export type ClearingPluginAccounts = {
+  marketState: ReturnType<typeof getMarketStateCodec> &
+    SelfFetchFunctions<MarketStateArgs, MarketState>;
+  participant: ReturnType<typeof getParticipantCodec> &
+    SelfFetchFunctions<ParticipantArgs, Participant>;
+  participantRegistry: ReturnType<typeof getParticipantRegistryCodec> &
+    SelfFetchFunctions<ParticipantRegistryArgs, ParticipantRegistry>;
   probeRecord: ReturnType<typeof getProbeRecordCodec> &
     SelfFetchFunctions<ProbeRecordArgs, ProbeRecord>;
 };
 
 export type ClearingPluginInstructions = {
+  classifySurplus: (
+    input: ClassifySurplusAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getClassifySurplusInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  deposit: (
+    input: DepositAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getDepositInstructionAsync> & SelfPlanAndSendFunctions;
+  fundInsurance: (
+    input: FundInsuranceAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getFundInsuranceInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  initializeMarket: (
+    input: InitializeMarketAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeMarketInstructionAsync> &
+    SelfPlanAndSendFunctions;
   probe: (
     input: ProbeAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getProbeInstructionAsync> & SelfPlanAndSendFunctions;
+  registerParticipant: (
+    input: RegisterParticipantAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRegisterParticipantInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  setCustodyPause: (
+    input: SetCustodyPauseAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSetCustodyPauseInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  withdraw: (
+    input: WithdrawAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getWithdrawInstructionAsync> &
+    SelfPlanAndSendFunctions;
 };
 
-export type ClearingPluginPdas = { record: typeof findRecordPda };
+export type ClearingPluginPdas = {
+  market: typeof findMarketPda;
+  vault: typeof findVaultPda;
+  participant: typeof findParticipantPda;
+  registry: typeof findRegistryPda;
+  record: typeof findRecordPda;
+};
 
 export type ClearingPluginRequirements = ClientWithRpc<
   GetAccountInfoApi & GetMultipleAccountsApi
@@ -188,9 +480,47 @@ export function clearingProgram(
     return extendClient(client, {
       clearing: <ClearingPlugin>{
         accounts: {
+          marketState: addSelfFetchFunctions(client, getMarketStateCodec()),
+          participant: addSelfFetchFunctions(client, getParticipantCodec()),
+          participantRegistry: addSelfFetchFunctions(
+            client,
+            getParticipantRegistryCodec(),
+          ),
           probeRecord: addSelfFetchFunctions(client, getProbeRecordCodec()),
         },
         instructions: {
+          classifySurplus: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getClassifySurplusInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          deposit: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getDepositInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          fundInsurance: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getFundInsuranceInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          initializeMarket: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeMarketInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           probe: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -199,8 +529,52 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          registerParticipant: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRegisterParticipantInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          setCustodyPause: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetCustodyPauseInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          withdraw: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getWithdrawInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
         },
         pdas: {
+          market: (pdaConfig) =>
+            findMarketPda({
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          vault: (seeds, pdaConfig) =>
+            findVaultPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          participant: (seeds, pdaConfig) =>
+            findParticipantPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          registry: (seeds, pdaConfig) =>
+            findRegistryPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           record: (seeds, pdaConfig) =>
             findRecordPda(seeds, {
               programAddress:

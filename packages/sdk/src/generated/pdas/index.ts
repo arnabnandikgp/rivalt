@@ -6,4 +6,8 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./market.js";
+export * from "./participant.js";
 export * from "./record.js";
+export * from "./registry.js";
+export * from "./vault.js";

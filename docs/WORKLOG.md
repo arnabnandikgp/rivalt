@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** P01 A01 acceptance passes on committed revision `9170a38`; [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1) is ready for review and tracked by `gh stack`. **P01 is Review, not Closed**. Under the user's D18 workflow, P02 proceeds on top of verified P01 commits without waiting for merge. Financial instructions, makers, services and later acceptance phases remain unimplemented.
+**Current position:** P01 remains ready for review in [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1). P02 is implemented on `phase/p02-custody`, stacked above verified P01 by `gh stack`. Preliminary signed LiteSVM/Surfpool custody acceptance passes; final acceptance on the committed revision is next. Neither phase is merged or Closed. Makers, services and later financial instruction families remain unimplemented.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -21,7 +21,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 
 | Milestone | Phases | Short description / deliverable | Status | Evidence / blocker |
 |---|---|---|---|---|
-| M1 | P01–P02 | Reproducible stack, economic core and custody | In progress | P01 acceptance passes; PR #1 ready for review; P02 authorized on the stack without waiting for merge |
+| M1 | P01–P02 | Reproducible stack, economic core and custody | In progress | P01 ready for review; P02 accounting/custody implemented and preliminary acceptance passes; clean committed acceptance pending |
 | M2 | P03–P04 | Competing makers and atomic execution | Open | Not implemented |
 | M3 | P05–P06 | Real services and full trade lifecycle | Open | Not implemented |
 | M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Open | Not implemented |
@@ -34,7 +34,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | Milestone | Phase | PR deliverable | Status | PR / commit | Evidence / next dependency |
 |---|---|---|---|---|---|
 | M1 | P01 | Toolchain, SDK and RPC spine | Review | [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1), tested `9170a38` | [A01 evidence](evidence/P01.md); G01/G06 foundations pass; integration pending |
-| M1 | P02 | Financial core and custody | Open | — | Ready to implement on verified P01 stack; no merge wait |
+| M1 | P02 | Financial core and custody | In progress | `phase/p02-custody`, parent `e060979` | G02/G03 implemented; preliminary A02 passes; clean committed acceptance/publication next |
 | M2 | P03 | Maker programs and capital authorization | Open | — | After P02 |
 | M2 | P04 | Atomic routes and allocation | Open | — | After P03 |
 | M3 | P05 | Indexer, database and read API | Open | — | After P04 |
@@ -54,10 +54,10 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Last completed work: P01 clean locked build and full actual signed deployment/probe, independent decode/signature verification, generated/legacy parity and HTTP/WS/history/rollback checks.
-- Current implementation revision: tested `9170a3862e19b93e6780abf2a245b277c9bdf09a` on `phase/p01-spine`; later evidence/workflow changes are documentation only. PR #1 is ready for review and unmerged.
-- Active phase: P01 in Review; P02 next on the verified stack under D18.
-- Immediate task: `gh stack add phase/p02-custody`, then implement P02's G02/G03 independent financial reference, bounded arithmetic and SPL custody.
+- Last completed work: P02 bounded financial primitives, independent rational tests, real SPL custody, generated/legacy ABI parity, signed compiled-program and RPC custody scenarios.
+- Current implementation revision: P02 working tree above `e060979106a126217dc71619934c3ca656119f11`; final committed acceptance not yet recorded. P01 PR #1 is ready and unmerged.
+- Active phase: P02 In progress; P01 Review is its included verified dependency under D18.
+- Immediate task: commit P02, then run `source ops/env.sh && pnpm smoke` on the clean commit and publish the ready child PR with `gh stack submit --auto --open` after acceptance passes.
 - Access needed now: none. GitHub ADMIN access was verified with network access; the sandbox-only authentication failure was not an actual credential failure. No devnet key or external maker is needed for P01.
 - Deferred external needs: secure devnet/feed access at P13; independent maker participation at P15; independent review/funded-pilot decision at P16.
 - Historical archives: optional targeted reference only; not an entry requirement.
@@ -110,6 +110,20 @@ A runtime compatibility failure belongs here with the exact package/command/erro
 - Tests not rerun: executable code unchanged; P01's recorded acceptance remains applicable.
 - Blockers: none.
 - Next action: create the P02 child with `gh stack add phase/p02-custody` and implement its financial/custody deliverable.
+
+### R003 — 20 October 2026 — P02 — accounting and real SPL custody
+
+- Starting revision / branch: `e060979106a126217dc71619934c3ca656119f11`, clean `phase/p02-custody`, created by `gh stack add` above P01. No unrelated work was present or changed.
+- Delivered: framework-independent checked financial core; exact fees/accrual/risk/reservation/generation and full-cohort default math; versioned synthetic profile; guarded real SPL initialization/registration/deposit/withdraw/insurance/surplus/pause; generated SDK/IDL; shared signed custody scenarios for LiteSVM and Surfpool; isolated legacy conformance for all new instruction families and live accounts/events.
+- Decisions/specifications: D19/G02 precision and fractional allocation, D20/G03 profile and custody authority; README, PROTOCOL, COMPONENTS, STACK-AND-VALIDATION and P02-ACCOUNTING-AND-CUSTODY updated. Later financial paths remain absent/disabled.
+- Actual checks so far: `cargo fmt -- --check`; pinned SBF/IDL generation with fatal stack diagnostics; `pnpm typecheck`; `pnpm test` (8 tests, including all seven custody instruction families); `pnpm test:financial` (11 targeted Rust tests, 1,200 arbitrary-precision allocation cases, 1,200 funding cases, 600 full-default cases, compiled profile check); `pnpm test:svm` (99 signed scenarios, including actual 64-member registration and rejected 65th); installed graph validation (82 packages, legacy isolation).
+- Preliminary full `pnpm smoke`: PASS at `.local/runs/20261020T175331Z-94259`, explicitly dirty/uncommitted. P01 regression plus 33 signed Surfpool custody scenarios, 10 committed custody events, failed-token-CPI rollback/event exclusion and independent live Anchor decode. Final cash C/P/T is zero, vault and insurance exactly 10,007 atoms. The later valuation-headroom test/change separately passed the financial suite; a final combined clean-commit run remains required.
+- Resolved findings: Anchor token `init` derives require the token_2022 helper feature while all actual account/CPI types remain classic Token; Anchor IDL requires a single error definition; fixed-array registry exceeded SBF stack and was replaced with a bounded vector; Anchor rejects aliases with 2040 before the explicit constraint; canonical legacy/generated byte-array JSON shapes normalized; default valuation retains headroom beyond the ordinary stored-v bound and generation exhaustion reserves a final close.
+- Evidence / commit / PR: preliminary `.local/runs/20261020T175331Z-94259`; code commit and final evidence publication pending below. No P02 PR, merge, independent review or deployment outside local Surfpool is claimed yet.
+- Not run: maker execution/route A03–A05, PostgreSQL/services A06 onward, authenticated funding, operational paginated default, browser, load/soak, devnet and external review; those implementations belong to later phases. V05 route/protection checks are model-only, not A04/A12 completion.
+- Phase status: P02 In progress until clean committed A02 and publication; G02/G03 decisions implemented and independently checked, final integrated closure pending.
+- Blockers: none; no credential, participant or product decision needed.
+- Next exact action: commit P02 and run `source ops/env.sh && pnpm smoke` on that clean revision; on pass, record evidence and publish a ready stacked PR, then proceed to P03 without a merge wait.
 
 ## Template — append after each run
 

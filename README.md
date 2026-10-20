@@ -1,7 +1,7 @@
 # Rivalt
 Implementation baseline R1 · 20 October 2026
 
-Rivalt is a new Solana perpetual venue with common clearing, isolated collateral and competing margined perpAMMs. The repository contains the implementation specification and a P01 local toolchain/SDK/RPC spine. The clearing program currently exposes only a nonfinancial ABI probe. Financial instructions and the maker programs arrive in later phases.
+Rivalt is a new Solana perpetual venue with common clearing, isolated collateral and competing margined perpAMMs. The repository contains the implementation specification, local toolchain/SDK/RPC spine, checked financial core and custody-only clearing program. Maker execution, orders, funding and operational settlement/default arrive in later phases.
 
 ## Start here
 
@@ -19,6 +19,7 @@ Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product 
 | [docs/WORKLOG.md](docs/WORKLOG.md) | Sole live status tables, chronological run log, blockers and exact next action |
 | [docs/SOURCE-AUDIT.md](docs/SOURCE-AUDIT.md) | Consistency audit, historical provenance and explicit supersessions |
 | [docs/P01-SPINE.md](docs/P01-SPINE.md) | Reproducible local bootstrap, smoke command and probe contract |
+| [docs/P02-ACCOUNTING-AND-CUSTODY.md](docs/P02-ACCOUNTING-AND-CUSTODY.md) | Exact financial units, fractional default rule, custody authority/ABI and checks |
 
 ## What “finalized” means
 
@@ -37,7 +38,7 @@ source ops/env.sh
 pnpm smoke
 ```
 
-This installs frozen dependencies, builds the actual SBF program and IDL, checks the generated client against isolated legacy Anchor, starts offline Surfpool, deploys with a signed transaction, and verifies signed probe transactions over HTTP/WS. It shuts down only its own runtime. Evidence is written to `.local/runs/`.
+This installs frozen dependencies, builds the actual SBF program and IDL, checks the generated client against isolated legacy Anchor, runs independent financial and compiled-program tests, then starts offline Surfpool and verifies signed deployment, probe and real token custody over HTTP/WS. It shuts down only its own runtime. Evidence is written to `.local/runs/`.
 
 Only WORKLOG owns live phase status. The delivery plan defines scope and acceptance, while DECISIONS owns baseline amendments.
 

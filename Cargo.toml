@@ -1,9 +1,10 @@
 [workspace]
-members = ["programs/clearing"]
+members = ["programs/clearing", "crates/financial-core"]
 resolver = "2"
 
 [workspace.dependencies]
 anchor-lang = { version = "=1.2.1", features = ["event-cpi"] }
+anchor-spl = { version = "=1.2.1", default-features = false, features = ["token", "token_2022", "solana-v3"] }
 
 [profile.release]
 overflow-checks = true

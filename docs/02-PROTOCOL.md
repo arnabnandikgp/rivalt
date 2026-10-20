@@ -3,6 +3,8 @@ Rivalt · baseline R1 · 20 October 2026
 
 This is the normative economic and execution contract for the engineering MVP. It selects behavior, not final machine layouts or production calibration. G02/G03 in [DECISIONS](DECISIONS.md) must be resolved in P02; G08–G10 close before their owning features are marked complete.
 
+P02's concrete precision, bounds, synthetic risk profile and deterministic fractional extension are specified in [ACCOUNTING-AND-CUSTODY](P02-ACCOUNTING-AND-CUSTODY.md). This includes exact scaled-unit insurance/impairment and an explicit zero-sum terminal rounding transfer bounded below one quote atom per participant. Ordinary settlement retains all sub-atom claims. The on-chain phase profile permits custody only; economic model tests do not enable later instructions.
+
 ## 1. State, units and invariants
 
 The equations use exact economic quantities. The implementation must map them to checked integer/fixed-point representations and explicit participant-owned fractional components. Never interpret a display decimal count as a funding precision proof.

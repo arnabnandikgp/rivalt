@@ -24,6 +24,8 @@ Fresh official documentation checks on 20 October confirm Anchor 1.2.1, the lega
 
 P01 implementation addendum: exact installed versions, archive hashes, the isolated legacy workspace and the executable RPC contract are now documented in [P01-SPINE](P01-SPINE.md). The actual host/SBF pins are Rust 1.97.1 and platform-tools v1.52/rustc 1.89.0-dev/SBPF v0 respectively. Agave 4.1.2 bundles cargo-build-sbf 4.1.0; Surfpool 1.6.1 reports solana-core 4.2.1. These are distinct identities. See D16 for the measured build-default incompatibility and WORKLOG for current acceptance evidence; the preceding paragraph records the original documentation audit.
 
+P02 adds exact `anchor-spl` 1.2.1, Node LiteSVM 1.6.1, modern classic token client 0.18.0 and system client 0.16.0. LiteSVM and Surfpool run the same signed custody scenarios, then each environment adds its own relevant checks. Economics use hand-calculated Rust assertions plus an independent Python `Fraction` oracle with a fixed seed and arbitrary-sized integers; this phase does not add a proptest dependency. Oversized SBF stack diagnostics are fatal even when LLVM returns zero. See [ACCOUNTING-AND-CUSTODY](P02-ACCOUNTING-AND-CUSTODY.md) and WORKLOG for actual scope and evidence.
+
 Primary references:
 - [Anchor 1.2.1](https://www.anchor-lang.com/docs/updates/release-notes/1-2-1)
 - [Anchor 1.2.0 CLI recommendation](https://www.anchor-lang.com/docs/updates/release-notes/1-2-0)

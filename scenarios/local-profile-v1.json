@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "profileVersion": 1,
+  "label": "Synthetic local custody and financial-model profile; no production calibration",
+  "market": "BTC",
+  "collateral": { "program": "classic SPL Token", "decimals": 6 },
+  "limits": {
+    "scaledUnitsPerQuoteAtom": "1000000000",
+    "lotsPerBtc": "1000000",
+    "maxParticipantAbsLots": "100000000",
+    "maxMarketGrossLots": "200000000",
+    "maxPriceAtomsPerLot": "1000000",
+    "maxCashAtoms": "1000000000000000",
+    "maxAbsVirtualScaled": "100000000000000000000000000",
+    "maxAbsFundingScaledPerLot": "1000000000000000",
+    "initialMarginBps": "1000",
+    "maintenanceMarginBps": "500",
+    "minNewOrderNotionalAtoms": "1000"
+  },
+  "priceTickAtomsPerLot": "1",
+  "minPriceAtomsPerLot": "1",
+  "minOrderLots": "1",
+  "participants": 64,
+  "orderSlotsPerParticipant": 4,
+  "takerFeeNumerator": "1",
+  "takerFeeDenominator": "5000",
+  "providerFeeNumerator": "0",
+  "enabledOnChain": ["initializeMarket", "registerParticipant", "deposit", "withdraw", "fundInsurance", "classifySurplus", "setCustodyPause", "probe"],
+  "disabledUntilLaterPhases": ["trade", "makers", "settlement", "funding", "orders", "liquidation", "default", "treasuryWithdrawal"]
+}

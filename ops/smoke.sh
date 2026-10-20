@@ -16,6 +16,8 @@ git diff --exit-code HEAD -- packages/sdk/src/generated packages/sdk/idl
 test -z "$(git status --porcelain -- packages/sdk/src/generated packages/sdk/idl)"
 pnpm typecheck
 pnpm test
+pnpm test:financial
+pnpm test:svm
 node ops/check-dependencies.mjs
 test "$(surfpool --version)" = "surfpool 1.6.1"
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18899}"
@@ -24,6 +26,8 @@ export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
 export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
 export RIVALT_RUN_DIR=".local/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$"
 mkdir -p "$RIVALT_RUN_DIR"
+cp .local/p02-financial.json "$RIVALT_RUN_DIR/financial.json"
+cp .local/p02-svm.json "$RIVALT_RUN_DIR/svm.json"
 # Refuse occupied ports rather than connecting to or stopping someone else's runtime.
 python3 - "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" <<'PY'
 import socket, sys
@@ -55,5 +59,6 @@ solana program deploy target/deploy/clearing.so --program-id .local/keys/clearin
   --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" --use-rpc --output json \
   > "$RIVALT_RUN_DIR/deployment.json"
 node --import tsx tests/rpc-contract/smoke.ts
+node --import tsx tests/rpc-contract/custody-rpc.ts
 node ops/record-toolchain.mjs > "$RIVALT_RUN_DIR/toolchain.json"
 printf 'Evidence: %s\n' "$RIVALT_RUN_DIR"

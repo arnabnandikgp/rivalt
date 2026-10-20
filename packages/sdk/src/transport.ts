@@ -3,9 +3,10 @@ import { Connection, Keypair, TransactionMessage, VersionedTransaction } from '@
 
 /** Build and sign a v0 message using web3.js v3's native Kit instruction interoperability. */
 export async function signInstructions(
-  connection: Connection,
+  connection: Pick<Connection, 'getLatestBlockhash'>,
   payer: Keypair,
   instructions: Instruction[],
+  additionalSigners: Keypair[] = [],
 ) {
   const lifetime = await connection.getLatestBlockhash('confirmed');
   const transaction = new VersionedTransaction(new TransactionMessage({
@@ -13,6 +14,6 @@ export async function signInstructions(
     recentBlockhash: lifetime.blockhash,
     instructions,
   }).compileToV0Message());
-  await transaction.sign([payer]);
+  await transaction.sign([payer, ...additionalSigners]);
   return { transaction, lifetime };
 }

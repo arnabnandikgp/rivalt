@@ -1,11 +1,35 @@
 use anchor_lang::prelude::*;
+pub mod custody;
+pub use custody::*;
 
 declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
 
-/// P01 local ABI/RPC probe. No financial instruction is implemented or enabled.
+/// Profile 1 implements custody only. Trade/funding/order/default entrypoints are absent.
 #[program]
 pub mod clearing {
     use super::*;
+
+    pub fn initialize_market(ctx: Context<InitializeMarket>, domain: [u8; 32]) -> Result<()> {
+        custody::initialize(ctx, domain)
+    }
+    pub fn register_participant(ctx: Context<RegisterParticipant>) -> Result<()> {
+        custody::register(ctx)
+    }
+    pub fn deposit(ctx: Context<CashTransfer>, amount: u64) -> Result<()> {
+        custody::process_deposit(ctx, amount)
+    }
+    pub fn withdraw(ctx: Context<CashTransfer>, amount: u64) -> Result<()> {
+        custody::process_withdraw(ctx, amount)
+    }
+    pub fn fund_insurance(ctx: Context<FundInsurance>, amount: u64) -> Result<()> {
+        custody::process_fund_insurance(ctx, amount)
+    }
+    pub fn classify_surplus(ctx: Context<ControlMarket>) -> Result<()> {
+        custody::process_classify_surplus(ctx)
+    }
+    pub fn set_custody_pause(ctx: Context<ControlMarket>, paused: bool) -> Result<()> {
+        custody::set_pause(ctx, paused)
+    }
 
     pub fn probe(
         ctx: Context<Probe>,
@@ -15,7 +39,7 @@ pub mod clearing {
         choice: ProbeChoice,
     ) -> Result<()> {
         // A deterministic rejection lets RPC tests distinguish failed logs from committed state.
-        require!(nonce != u64::MAX, ProbeError::ReservedNonce);
+        require!(nonce != u64::MAX, ClearingError::ReservedNonce);
         let record = &mut ctx.accounts.record;
         record.owner = ctx.accounts.owner.key();
         record.nonce = nonce;
@@ -82,7 +106,27 @@ pub struct ProbeRecorded {
 }
 
 #[error_code]
-pub enum ProbeError {
+pub enum ClearingError {
     #[msg("The maximum nonce is reserved for the local rejection probe")]
     ReservedNonce,
+    #[msg("Custody arithmetic bound or overflow")]
+    Arithmetic = 100,
+    #[msg("Market is paused")]
+    Paused,
+    #[msg("Wrong authority")]
+    Authority,
+    #[msg("Expected classic SPL six-decimal collateral without freeze authority")]
+    Mint,
+    #[msg("Source and destination roles alias")]
+    Alias,
+    #[msg("Participant registry is full")]
+    Capacity,
+    #[msg("Amount must be positive")]
+    Amount,
+    #[msg("Actual vault is below allocated cash or cash totals disagree")]
+    Reconciliation,
+    #[msg("Financial state is outside the implemented custody-only profile")]
+    Profile,
+    #[msg("Domain identity must be nonzero")]
+    Domain,
 }

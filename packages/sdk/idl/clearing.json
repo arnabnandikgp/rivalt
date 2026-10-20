@@ -6,9 +6,453 @@
     "spec": "0.1.0"
   },
   "docs": [
-    "P01 local ABI/RPC probe. No financial instruction is implemented or enabled."
+    "Profile 1 implements custody only. Trade/funding/order/default entrypoints are absent."
   ],
   "instructions": [
+    {
+      "name": "classify_surplus",
+      "discriminator": [
+        233,
+        161,
+        140,
+        11,
+        133,
+        238,
+        233,
+        139
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "quote_mint",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "user_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "fund_insurance",
+      "discriminator": [
+        58,
+        216,
+        37,
+        162,
+        201,
+        50,
+        20,
+        66
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "quote_mint",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "source",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_market",
+      "discriminator": [
+        35,
+        35,
+        189,
+        193,
+        155,
+        48,
+        170,
+        203
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "clearing_program",
+          "address": "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "quote_mint"
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "domain",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
     {
       "name": "probe",
       "discriminator": [
@@ -88,9 +532,386 @@
           }
         }
       ]
+    },
+    {
+      "name": "register_participant",
+      "discriminator": [
+        248,
+        112,
+        38,
+        215,
+        226,
+        230,
+        249,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_custody_pause",
+      "discriminator": [
+        139,
+        80,
+        85,
+        170,
+        59,
+        17,
+        172,
+        172
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "paused",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "quote_mint",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "user_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "MarketState",
+      "discriminator": [
+        0,
+        125,
+        123,
+        215,
+        95,
+        96,
+        164,
+        194
+      ]
+    },
+    {
+      "name": "Participant",
+      "discriminator": [
+        32,
+        142,
+        108,
+        79,
+        247,
+        179,
+        54,
+        6
+      ]
+    },
+    {
+      "name": "ParticipantRegistry",
+      "discriminator": [
+        230,
+        90,
+        135,
+        85,
+        212,
+        177,
+        130,
+        197
+      ]
+    },
     {
       "name": "ProbeRecord",
       "discriminator": [
@@ -106,6 +927,19 @@
     }
   ],
   "events": [
+    {
+      "name": "CustodyChanged",
+      "discriminator": [
+        240,
+        255,
+        148,
+        254,
+        96,
+        178,
+        196,
+        158
+      ]
+    },
     {
       "name": "ProbeRecorded",
       "discriminator": [
@@ -125,9 +959,351 @@
       "code": 6000,
       "name": "ReservedNonce",
       "msg": "The maximum nonce is reserved for the local rejection probe"
+    },
+    {
+      "code": 6100,
+      "name": "Arithmetic",
+      "msg": "Custody arithmetic bound or overflow"
+    },
+    {
+      "code": 6101,
+      "name": "Paused",
+      "msg": "Market is paused"
+    },
+    {
+      "code": 6102,
+      "name": "Authority",
+      "msg": "Wrong authority"
+    },
+    {
+      "code": 6103,
+      "name": "Mint",
+      "msg": "Expected classic SPL six-decimal collateral without freeze authority"
+    },
+    {
+      "code": 6104,
+      "name": "Alias",
+      "msg": "Source and destination roles alias"
+    },
+    {
+      "code": 6105,
+      "name": "Capacity",
+      "msg": "Participant registry is full"
+    },
+    {
+      "code": 6106,
+      "name": "Amount",
+      "msg": "Amount must be positive"
+    },
+    {
+      "code": 6107,
+      "name": "Reconciliation",
+      "msg": "Actual vault is below allocated cash or cash totals disagree"
+    },
+    {
+      "code": 6108,
+      "name": "Profile",
+      "msg": "Financial state is outside the implemented custody-only profile"
+    },
+    {
+      "code": 6109,
+      "name": "Domain",
+      "msg": "Domain identity must be nonzero"
     }
   ],
   "types": [
+    {
+      "name": "CustodyChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "profile_version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "docs": [
+              "0 initialize, 1 register, 2 deposit, 3 withdraw, 4 insurance, 5 surplus, 6 pause."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "actor",
+            "type": "pubkey"
+          },
+          {
+            "name": "participant",
+            "docs": [
+              "Default pubkey means a market-wide event."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "participant_cash",
+            "type": "u64"
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "settlement",
+            "type": "u64"
+          },
+          {
+            "name": "insurance",
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
+          },
+          {
+            "name": "allocated_vault",
+            "type": "u64"
+          },
+          {
+            "name": "actual_vault",
+            "type": "u64"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "profile_version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "mode",
+            "docs": [
+              "Only CustodyOnly (0) exists in this schema."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "settlement",
+            "type": "u64"
+          },
+          {
+            "name": "insurance",
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
+          },
+          {
+            "name": "allocated_vault",
+            "docs": [
+              "Allocated token assets. Actual vault may have separately observable surplus."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Participant",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "i64"
+          },
+          {
+            "name": "virtual_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_checkpoint_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "reserved",
+            "type": "u64"
+          },
+          {
+            "name": "order_ids",
+            "docs": [
+              "Zero means empty. P08 owns order records and the nonzero slot authority."
+            ],
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ParticipantRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "count",
+            "type": "u16"
+          },
+          {
+            "name": "members",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "ProbeChoice",
       "type": {

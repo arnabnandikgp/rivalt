@@ -4,9 +4,12 @@
   "type": "module",
   "dependencies": {
     "@rivalt/sdk": "workspace:*",
+    "@solana-program/system": "0.16.0",
+    "@solana-program/token": "0.18.0",
     "@solana/kit": "8.5.0",
     "@solana/wallet-adapter": "3.1.1",
     "@solana/web3.js": "3.1.1",
+    "litesvm": "1.6.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   }
