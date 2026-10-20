@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** P01 A01 acceptance passes on committed revision `9170a38`; [draft PR #1](https://github.com/arnabnandikgp/rivalt/pull/1) is open. **P01 is Review, not Closed**, pending integration. P02 is next after that integration. Financial instructions, makers, services and later acceptance phases remain unimplemented.
+**Current position:** P01 A01 acceptance passes on committed revision `9170a38`; [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1) is ready for review and tracked by `gh stack`. **P01 is Review, not Closed**. Under the user's D18 workflow, P02 proceeds on top of verified P01 commits without waiting for merge. Financial instructions, makers, services and later acceptance phases remain unimplemented.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -15,11 +15,13 @@ This is the sole implementation roadmap and live status record. The old research
 
 Do not mark a phase Closed because its PR was opened. Do not mark unattempted future phases Blocked merely because they depend on earlier work. At most one primary phase is In progress in the ordinary sequential workflow. Reopen a phase if later evidence invalidates its acceptance.
 
+Under D18, verified Review phases satisfy development dependencies through a stacked branch containing their exact commits. Merge remains necessary for Closed, but does not block the next phase's implementation.
+
 ## Milestone overview
 
 | Milestone | Phases | Short description / deliverable | Status | Evidence / blocker |
 |---|---|---|---|---|
-| M1 | P01–P02 | Reproducible stack, economic core and custody | In progress | P01 clean signed RPC acceptance passes; PR #1 in Review; P02 remains Open |
+| M1 | P01–P02 | Reproducible stack, economic core and custody | In progress | P01 acceptance passes; PR #1 ready for review; P02 authorized on the stack without waiting for merge |
 | M2 | P03–P04 | Competing makers and atomic execution | Open | Not implemented |
 | M3 | P05–P06 | Real services and full trade lifecycle | Open | Not implemented |
 | M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Open | Not implemented |
@@ -32,7 +34,7 @@ Do not mark a phase Closed because its PR was opened. Do not mark unattempted fu
 | Milestone | Phase | PR deliverable | Status | PR / commit | Evidence / next dependency |
 |---|---|---|---|---|---|
 | M1 | P01 | Toolchain, SDK and RPC spine | Review | [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1), tested `9170a38` | [A01 evidence](evidence/P01.md); G01/G06 foundations pass; integration pending |
-| M1 | P02 | Financial core and custody | Open | — | After P01 |
+| M1 | P02 | Financial core and custody | Open | — | Ready to implement on verified P01 stack; no merge wait |
 | M2 | P03 | Maker programs and capital authorization | Open | — | After P02 |
 | M2 | P04 | Atomic routes and allocation | Open | — | After P03 |
 | M3 | P05 | Indexer, database and read API | Open | — | After P04 |
@@ -53,9 +55,9 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 ## Latest checkpoint
 
 - Last completed work: P01 clean locked build and full actual signed deployment/probe, independent decode/signature verification, generated/legacy parity and HTTP/WS/history/rollback checks.
-- Current implementation revision: tested `9170a3862e19b93e6780abf2a245b277c9bdf09a` on `phase/p01-spine`; subsequent evidence/report changes are documentation only. Draft PR #1 is open and unmerged.
-- Active phase: P01 in Review; no next implementation phase started ahead of integration.
-- Immediate task: review and integrate PR #1, then implement P02's G02/G03 independent financial reference, bounded arithmetic and SPL custody.
+- Current implementation revision: tested `9170a3862e19b93e6780abf2a245b277c9bdf09a` on `phase/p01-spine`; later evidence/workflow changes are documentation only. PR #1 is ready for review and unmerged.
+- Active phase: P01 in Review; P02 next on the verified stack under D18.
+- Immediate task: `gh stack add phase/p02-custody`, then implement P02's G02/G03 independent financial reference, bounded arithmetic and SPL custody.
 - Access needed now: none. GitHub ADMIN access was verified with network access; the sandbox-only authentication failure was not an actual credential failure. No devnet key or external maker is needed for P01.
 - Deferred external needs: secure devnet/feed access at P13; independent maker participation at P15; independent review/funded-pilot decision at P16.
 - Historical archives: optional targeted reference only; not an entry requirement.
@@ -98,6 +100,16 @@ A runtime compatibility failure belongs here with the exact package/command/erro
 - Phase status: Review. A01/G01 and G06 foundations pass; integration remains. M1 remains In progress because P02 is Open.
 - Blockers: no current access/product blocker; B01 resolved by the tested profile. GitHub access was rechecked outside the network-restricted sandbox and succeeds.
 - Next concrete action: review and integrate PR #1; then start P02 by freezing and independently testing G02/G03 before adding real SPL custody.
+
+### R002 — 20 October 2026 — review workflow amendment
+
+- Starting revision: `88b6319`, `phase/p01-spine`; clean working tree.
+- Delivered: adopted existing P01 with `gh stack init --base main phase/p01-spine`; `gh stack submit --auto --open` converted PR #1 to ready for review. AGENTS, DELIVERY-PLAN, DECISIONS D18 and live status now allow verified dependent implementation without merge waits.
+- Actual checks: installed `github/gh-stack` v0.1.0 help; `gh stack view --json` reports main → phase/p01-spine, no rebase required; `gh pr view 1` reports OPEN, `isDraft: false`, base main, head `88b6319`.
+- Evidence / PR: [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1); P01 remains Review. No merge, review approval or new financial test claimed.
+- Tests not rerun: executable code unchanged; P01's recorded acceptance remains applicable.
+- Blockers: none.
+- Next action: create the P02 child with `gh stack add phase/p02-custody` and implement its financial/custody deliverable.
 
 ## Template — append after each run
 

@@ -74,3 +74,8 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **D17 / G06 foundation:** The sole initial instruction is an explicitly nonfinancial local probe. Use generated event codecs plus the Anchor event-CPI inner-instruction envelope, successful transaction metadata and run-scoped identity. Its local schema does not freeze future financial account/event layouts. G06's SQL and operational recovery contract remains due in P05.
 - **Dependency isolation:** Production SDK/web3.js 3.1.1/Kit 8.5.0 and wallet-adapter 3.1.1 use their installed modern graph. Legacy Anchor 1.2.1/web3.js 1.99.0 lives in a separate pnpm root/lockfile and process; canonical bytes/address/integer strings alone cross the boundary. No forced overrides. Wallet provider import and dependency compatibility are P01 checks; user wallet behavior is P10.
 
+## 20 October 2026 — user-directed stacked review workflow
+
+- **D18:** Supersede the draft-PR and wait-for-merge workflow. All new phase PRs are ready for review. Use the installed `github/gh-stack` extension to adopt/create branches, publish with `gh stack submit --auto --open`, and maintain parent/base relationships. P01 PR #1 was converted to ready for review.
+- A verified predecessor in Review may be the implementation baseline for its dependent phase, provided the child includes those exact commits and records the dependency. Keep implementing after each verified phase without waiting for merges. Phase/milestone Closed status still requires integration and the applicable acceptance/exit gates; external M6 gates and funded-use authorization are unchanged.
+

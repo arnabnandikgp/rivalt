@@ -40,6 +40,8 @@ M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. 
 
 The main path is sequential. Do not reopen architecture research or ask to start every phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
 
+Workflow amendment, 20 October 2026: submit ready-to-review PRs using `gh stack submit --auto --open`. Once a phase's deliverable and acceptance checks pass, continue its dependent phase on top of those exact commits without waiting for merge. `gh stack` manages the chain and PR bases. An unmerged phase remains Review; this removes a development scheduling barrier, not the integration requirement for Closed.
+
 ## PR contract
 
 A phase PR explains the concrete problem, new behavior, relevant decision/config gates, meaningful executed tests, evidence, operational impact and remaining limitations. Include code, affected specs and WORKLOG together. No “tests pass” without the actual command/result/revision. No assertion that all research is reproduced when only new cases ran.
