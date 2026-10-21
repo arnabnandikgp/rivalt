@@ -1,0 +1,11 @@
+{
+  "name": "rivalt-anchor-conformance",
+  "private": true,
+  "description": "Isolated legacy client. Never a dependency of the production workspace.",
+  "packageManager": "pnpm@10.23.0",
+  "engines": { "node": "24.22.0" },
+  "dependencies": {
+    "@anchor-lang/core": "1.2.1",
+    "@solana/web3.js": "1.99.0"
+  }
+}

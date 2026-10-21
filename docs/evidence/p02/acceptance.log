@@ -1,0 +1,167 @@
+
+> rivalt@ smoke /Users/arnabnandi/rivalt
+> bash ops/smoke.sh
+
+Scope: all 3 workspace projects
+Lockfile is up to date, resolution step is skipped
+Already up to date
+
+Done in 391ms using pnpm v10.23.0
+Lockfile is up to date, resolution step is skipped
+Already up to date
+
+╭ Warning ─────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Ignored build scripts: bufferutil, utf-8-validate.                         │
+│   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+│   to run scripts.                                                            │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+Done in 121ms using pnpm v10.23.0
+   Compiling financial-core v0.1.0 (/Users/arnabnandi/rivalt/crates/financial-core)
+   Compiling clearing v0.1.0 (/Users/arnabnandi/rivalt/programs/clearing)
+    Finished `release` profile [optimized] target(s) in 2.59s
+   Compiling financial-core v0.1.0 (/Users/arnabnandi/rivalt/crates/financial-core)
+   Compiling clearing v0.1.0 (/Users/arnabnandi/rivalt/programs/clearing)
+    Finished `test` profile [unoptimized] target(s) in 2.11s
+     Running unittests src/lib.rs (/Users/arnabnandi/rivalt/target/debug/deps/clearing-60311f94580f5a5b)
+
+> rivalt@ generate /Users/arnabnandi/rivalt
+> node --import tsx ops/generate-sdk.ts
+
+
+> rivalt@ generate:check /Users/arnabnandi/rivalt
+> node --import tsx ops/generate-sdk.ts --check
+
+
+> rivalt@ typecheck /Users/arnabnandi/rivalt
+> tsc --noEmit
+
+
+> rivalt@ test /Users/arnabnandi/rivalt
+> vitest run
+
+
+ RUN  v3.2.4 /Users/arnabnandi/rivalt
+
+ ✓ tests/rpc-contract/custody-abi.test.ts (1 test) 99ms
+ ✓ tests/rpc-contract/abi.test.ts (7 tests) 8ms
+
+ Test Files  2 passed (2)
+      Tests  8 passed (8)
+   Start at  23:27:57
+   Duration  699ms (transform 482ms, setup 0ms, collect 891ms, tests 107ms, environment 0ms, prepare 82ms)
+
+
+> rivalt@ test:financial /Users/arnabnandi/rivalt
+> bash ops/financial.sh
+
+    Finished `test` profile [unoptimized] target(s) in 0.03s
+     Running unittests src/lib.rs (target/debug/deps/financial_core-7c84d6a939f951b7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/reference-driver.rs (target/debug/deps/reference_driver-4f8a937d124ce38c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/economics.rs (target/debug/deps/economics-b746a42accb4d937)
+
+running 11 tests
+test risk_uses_adverse_index_bound_no_positive_profit_credit_and_reservations ... ok
+test invalid_extremes_and_aliases_reject_without_wrap ... ok
+test market_capacity_is_separate_from_reconciliation ... ok
+test v01_cross_maker_close_does_not_create_funded_profit ... ok
+test v02_fee_prefix_survives_partial_execution ... ok
+test default_has_valuation_headroom_and_generation_exhaustion_can_close ... ok
+test fractional_closeout_has_explicit_zero_sum_subatom_transfers ... ok
+test v04_funding_fractions_survive_close_and_reopen ... ok
+test v05_candidates_are_atomic_and_protection_is_generation_scoped ... ok
+test v03_full_cohort_default_uses_insurance_then_unpaid_gains ... ok
+test fee_splits_and_zero_subfills_do_not_invent_extra_atoms ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests financial_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+    Finished `dev` profile [unoptimized] target(s) in 0.02s
+{"revision": "3d9c8c30e5a8299f91b8fca0f22d5dc686e1ae0b", "sourceDirty": false, "seed": "0x524956414c54", "profile": "scenarios/local-profile-v1.json", "allocation_cases": 1200, "funding_cases": 1200, "default_cases": 600, "profile_checks": 1, "result": "pass"}
+
+> rivalt@ test:svm /Users/arnabnandi/rivalt
+> node --import tsx tests/rpc-contract/custody-svm.ts
+
+LiteSVM custody: 99 signed scenarios passed; full 64-member capacity and corruption rejection verified.
+{
+  "modernRuntime": {
+    "@solana/kit": "8.5.0",
+    "@solana/web3.js": "3.1.1",
+    "@solana/wallet-adapter": "3.1.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "custodyTestPackages": {
+    "litesvm": "1.6.1",
+    "@solana-program/token": "0.18.0",
+    "@solana-program/system": "0.16.0"
+  },
+  "packagesInspected": 82,
+  "legacyIsolation": "pass"
+}
+{
+  "startedUtc": "2026-10-20T17:58:08.145Z",
+  "revision": "3d9c8c30e5a8299f91b8fca0f22d5dc686e1ae0b",
+  "sourceDirty": false,
+  "program": "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
+  "binarySha256": "c8e363a5ab84caa9b928ffa12d1cf907099255ad274ff2325cbdb40d0f07abaa",
+  "idlSha256": "5b40a99e003bf51c75744ded87fe308527559ffeb32a3da0b25cf204ca77b522",
+  "cargoLockSha256": "2056b1a5da21e1c55711b8cb20307fe21e787c2b32987a2f57b5869e79bea04e",
+  "pnpmLockSha256": "0e9bb0f3cbb40d0c9364ba0d1b0ec63fa6b6fbc466cb5fa8fb5ed80e7e9c17fe",
+  "runId": "20261020T175800Z-96722",
+  "signatureVerification": true,
+  "blockhashVerification": true,
+  "runtime": {
+    "surfnet-version": "1.6.1",
+    "solana-core": "4.2.1",
+    "feature-set": 565236538
+  },
+  "genesisHash": "5JZ6X746q9jUFU2ps5J6uXeU9LufsANo59sLe6wgZDVy",
+  "blockHeight": 70,
+  "result": "pass",
+  "finishedUtc": "2026-10-20T17:58:21.308Z",
+  "signatures": [
+    "3skEqNzrM9vT2xywxjKErRCAhC46MQ7MqJTyLsPtBdYb3akQ4CR8TJLhJTMg2tmVX962A5JcoJNJ6QeTHSKauELv",
+    "582FrRxkNBBDhnMPtBQ2JBCK77mcngNtjMjU6LyL9pPJRZpRUZuX4u2xi27V2GwgACgvhVeiBVW3wJwSNqCdQXCQ",
+    "LK998uccgGdhL5nMdaFg1GGsLhqsydFnC2xv1ZPqt6EZbByxh6ZSu818FPtdsN4PcVtTSuo7AnkohaVyTUSDByf"
+  ],
+  "failedSignature": "5xRgxkvF2KqmVohqiUcgfRfdZQzQZspmV5aTpoLogSPhtjReJ6GWgkijUMppKVXz3nL3jDXrXvqGhMU63D576rVa",
+  "simulationUnits": 10536,
+  "transactionBytes": 322,
+  "accountCount": 5,
+  "historyEntries": 5,
+  "subscriptions": [
+    "accountSubscribe",
+    "programSubscribe",
+    "logsSubscribe",
+    "slotSubscribe",
+    "signatureSubscribe"
+  ],
+  "independentSignatureVerification": "pass",
+  "legacyLiveDecode": "pass",
+  "failedTransactionRollback": "pass",
+  "limitations": [
+    "Offline Surfpool is not consensus finality evidence.",
+    "Token balance reads begin with actual custody in P02; SQL recovery is P05."
+  ]
+}
+
+Surfpool custody: 33 signed scenarios; 10 committed events; exact vault = insurance = 10007 atoms.
+Evidence: .local/runs/20261020T175800Z-96722

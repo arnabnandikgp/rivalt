@@ -1,0 +1,126 @@
+{
+  "allHistory": [
+    {
+      "signature": "46XWpZCMBT8NYx3de1dZJC7CyLEbkvo5aRAybHXJYqQG8nvpBwWNbGEwneV8RfY3peHonZaFukzuf9vqM2UH8su1",
+      "slot": 162,
+      "err": {
+        "InstructionError": [
+          1,
+          {
+            "Custom": 6000
+          }
+        ]
+      },
+      "memo": null,
+      "blockTime": 1792516332,
+      "confirmationStatus": "finalized"
+    },
+    {
+      "signature": "5PVUx87pgRMiFYGaAyvVoF8tHdqb2QV1y8QUng5m6fDfZ2GF7Qda8utLAdmddB2q5rzR2zBabkwtzs4Cj3PYtcqU",
+      "slot": 131,
+      "err": null,
+      "memo": null,
+      "blockTime": 1792516329,
+      "confirmationStatus": "finalized"
+    },
+    {
+      "signature": "mVxajdFWX9wHnJnVPJdZkRuVeusnq5zZ8rBLhyLTGC2maHbDsAueDMcUcLF3bquYUwUN6BP1YSZQFwDrnbjg2rH",
+      "slot": 100,
+      "err": null,
+      "memo": null,
+      "blockTime": 1792516326,
+      "confirmationStatus": "finalized"
+    },
+    {
+      "signature": "4DA5xBsFHaxvTg3EQqhgrUdwpMyTcSJ9DwkGrkKzXHuTB4bHUKYKA6KfteUiz8Rii8gqhsKVoDWjKCwmvvqitzbB",
+      "slot": 68,
+      "err": null,
+      "memo": null,
+      "blockTime": 1792516323,
+      "confirmationStatus": "finalized"
+    },
+    {
+      "signature": "25uw18JwHMHihBaPtpDfYib9rgH852ApsdKTqTx17fZ7cosouegAc9U4FY5NVY4uvNZmvJK8Gfk2hp8BLRnKJrk4",
+      "slot": 60,
+      "err": null,
+      "memo": null,
+      "blockTime": 1792516322,
+      "confirmationStatus": "finalized"
+    }
+  ],
+  "paginated": [
+    {
+      "signature": "46XWpZCMBT8NYx3de1dZJC7CyLEbkvo5aRAybHXJYqQG8nvpBwWNbGEwneV8RfY3peHonZaFukzuf9vqM2UH8su1",
+      "slot": 162,
+      "err": {
+        "InstructionError": [
+          1,
+          {
+            "Custom": 6000
+          }
+        ]
+      },
+      "memo": null,
+      "blockTime": 1792516332,
+      "confirmationStatus": "finalized"
+    },
+    {
+      "signature": "5PVUx87pgRMiFYGaAyvVoF8tHdqb2QV1y8QUng5m6fDfZ2GF7Qda8utLAdmddB2q5rzR2zBabkwtzs4Cj3PYtcqU",
+      "slot": 131,
+      "err": null,
+      "memo": null,
+      "blockTime": 1792516329,
+      "confirmationStatus": "finalized"
+    },
+    {
+      "signature": "mVxajdFWX9wHnJnVPJdZkRuVeusnq5zZ8rBLhyLTGC2maHbDsAueDMcUcLF3bquYUwUN6BP1YSZQFwDrnbjg2rH",
+      "slot": 100,
+      "err": null,
+      "memo": null,
+      "blockTime": 1792516326,
+      "confirmationStatus": "finalized"
+    },
+    {
+      "signature": "4DA5xBsFHaxvTg3EQqhgrUdwpMyTcSJ9DwkGrkKzXHuTB4bHUKYKA6KfteUiz8Rii8gqhsKVoDWjKCwmvvqitzbB",
+      "slot": 68,
+      "err": null,
+      "memo": null,
+      "blockTime": 1792516323,
+      "confirmationStatus": "finalized"
+    },
+    {
+      "signature": "25uw18JwHMHihBaPtpDfYib9rgH852ApsdKTqTx17fZ7cosouegAc9U4FY5NVY4uvNZmvJK8Gfk2hp8BLRnKJrk4",
+      "slot": 60,
+      "err": null,
+      "memo": null,
+      "blockTime": 1792516322,
+      "confirmationStatus": "finalized"
+    }
+  ],
+  "until": "mVxajdFWX9wHnJnVPJdZkRuVeusnq5zZ8rBLhyLTGC2maHbDsAueDMcUcLF3bquYUwUN6BP1YSZQFwDrnbjg2rH",
+  "bounded": [
+    {
+      "signature": "46XWpZCMBT8NYx3de1dZJC7CyLEbkvo5aRAybHXJYqQG8nvpBwWNbGEwneV8RfY3peHonZaFukzuf9vqM2UH8su1",
+      "slot": 162,
+      "err": {
+        "InstructionError": [
+          1,
+          {
+            "Custom": 6000
+          }
+        ]
+      },
+      "memo": null,
+      "blockTime": 1792516332,
+      "confirmationStatus": "finalized"
+    },
+    {
+      "signature": "5PVUx87pgRMiFYGaAyvVoF8tHdqb2QV1y8QUng5m6fDfZ2GF7Qda8utLAdmddB2q5rzR2zBabkwtzs4Cj3PYtcqU",
+      "slot": 131,
+      "err": null,
+      "memo": null,
+      "blockTime": 1792516329,
+      "confirmationStatus": "finalized"
+    }
+  ]
+}
