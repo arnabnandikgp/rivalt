@@ -1,0 +1,17 @@
+{
+  "context": {
+    "slot": 63,
+    "apiVersion": "4.2.1"
+  },
+  "value": {
+    "lamports": 1468560,
+    "data": [
+      "ZxBuIOOTXzglpYzH31kIoZXD3pz8TNnc4XYLTdwZpSbb+Wl9qxSSHAEAAAAAACAAAAAAAAAAAAAAAAAAAAAAgAH//////////wEBAAAAAAAgAP8=",
+      "base64"
+    ],
+    "owner": "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
+    "executable": false,
+    "rentEpoch": 18446744073709552000,
+    "space": 83
+  }
+}

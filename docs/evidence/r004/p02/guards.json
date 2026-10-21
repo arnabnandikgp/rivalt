@@ -1,0 +1,80 @@
+{
+  "sourceCommit": "16e51e4937890db7fbc53ab09705deec4eb2aacd",
+  "cases": [
+    {
+      "case": "committed output unchanged",
+      "expected": "pass",
+      "exitCode": 0
+    },
+    {
+      "case": "stale committed SDK regenerated",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "staged SDK drift",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "untracked generated SDK",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "IDL drift",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "healthy readiness without ripgrep",
+      "expected": "pass",
+      "exitCode": 0
+    },
+    {
+      "case": "unhealthy readiness timeout",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "HTTP readiness failure",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "Surfpool exits before readiness",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "safe SBF build log",
+      "expected": "pass",
+      "exitCode": 0
+    },
+    {
+      "case": "stack offset diagnostic",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "maximum offset diagnostic",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "frame overwrite diagnostic",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "missing SBF build log",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "SBF checker unavailable",
+      "expected": "reject",
+      "exitCode": 1
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** P01 and P02 acceptance passes on the P02 committed revision `3d9c8c3`. [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1) and its P02 child [PR #2](https://github.com/arnabnandikgp/rivalt/pull/2) are both ready for review, managed by `gh stack`. **M1/P01/P02 are Review, not Closed**: integration is pending. P03 may proceed on these exact verified commits without a merge wait. Makers, services and later financial instruction families remain unimplemented.
+**Current position:** P01/P02 review findings are fixed and all four threads resolved. Fresh acceptance passes on P01 `081d614` and combined P02 `16e51e4`; [R004 evidence](evidence/R004-REVIEW.md) records actual results. [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1) and [PR #2](https://github.com/arnabnandikgp/rivalt/pull/2) remain ready stacked PRs while the user-authorized merge is finalized. **M1/P01/P02 remain Review until integration is verified.** Makers, services and later financial instruction families remain unimplemented.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -21,7 +21,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 
 | Milestone | Phases | Short description / deliverable | Status | Evidence / blocker |
 |---|---|---|---|---|
-| M1 | P01–P02 | Reproducible stack, economic core and custody | Review | Combined A01/A02 and M1 engineering exit check pass on `3d9c8c3`; ready stacked review/integration pending |
+| M1 | P01–P02 | Reproducible stack, economic core and custody | Review | Review fixes and fresh combined A01/A02/M1 exit check pass on `16e51e4`; integration pending |
 | M2 | P03–P04 | Competing makers and atomic execution | Open | Not implemented |
 | M3 | P05–P06 | Real services and full trade lifecycle | Open | Not implemented |
 | M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Open | Not implemented |
@@ -33,8 +33,8 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 
 | Milestone | Phase | PR deliverable | Status | PR / commit | Evidence / next dependency |
 |---|---|---|---|---|---|
-| M1 | P01 | Toolchain, SDK and RPC spine | Review | [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1), tested `9170a38` | [A01 evidence](evidence/P01.md); G01/G06 foundations pass; integration pending |
-| M1 | P02 | Financial core and custody | Review | [PR #2](https://github.com/arnabnandikgp/rivalt/pull/2), tested `3d9c8c3` | [A02 evidence](evidence/P02.md); G02/G03 verified; integration pending |
+| M1 | P01 | Toolchain, SDK and RPC spine | Review | [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1), tested `081d614` | [R004 acceptance](evidence/R004-REVIEW.md); three review findings resolved; integration pending |
+| M1 | P02 | Financial core and custody | Review | [PR #2](https://github.com/arnabnandikgp/rivalt/pull/2), tested `16e51e4` | [R004 acceptance](evidence/R004-REVIEW.md); G02/G03 verified, review finding resolved; integration pending |
 | M2 | P03 | Maker programs and capital authorization | Open | — | Ready on verified P02 stack; no merge wait |
 | M2 | P04 | Atomic routes and allocation | Open | — | After P03 |
 | M3 | P05 | Indexer, database and read API | Open | — | After P04 |
@@ -54,10 +54,10 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Last completed work: P02 bounded financial primitives, independent rational tests, real SPL custody, generated/legacy ABI parity, signed compiled-program and RPC custody scenarios.
-- Current implementation revision: `3d9c8c30e5a8299f91b8fca0f22d5dc686e1ae0b`; clean full acceptance `.local/runs/20261020T175800Z-96722`, all source identity records `sourceDirty: false`. Later evidence-only documentation does not change executable code.
-- Active checkpoint: P01/P02 Review; P03 is the next implementation phase under D18.
-- Immediate task: `gh stack add phase/p03-makers`, then implement P03's G04 maker quote interface and funded-capital authorization above ready PR #2; no merge wait.
+- Last completed work: all four P01/P02 review findings fixed, 15 targeted guard checks and fresh full acceptance passed; review threads replied to and resolved.
+- Current implementation revision: `16e51e4937890db7fbc53ab09705deec4eb2aacd`; clean full acceptance `.local/runs/20261021T063416Z-59770`, all source identity records `sourceDirty: false`. P01 was separately verified on `081d614c927046408ec0eb6777cf8ae21e8bfda8`.
+- Active checkpoint: P01/P02 Review; user explicitly authorized merging both after addressing reviews.
+- Immediate task: verify latest remote checks, then `gh stack merge --yes --merge` and verify the integrated tree before closing M1/P01/P02. P03 follows integration.
 - Access needed now: none. GitHub ADMIN access was verified with network access; the sandbox-only authentication failure was not an actual credential failure. No devnet key or external maker is needed for P03.
 - Deferred external needs: secure devnet/feed access at P13; independent maker participation at P15; independent review/funded-pilot decision at P16.
 - Historical archives: optional targeted reference only; not an entry requirement.
@@ -124,6 +124,19 @@ A runtime compatibility failure belongs here with the exact package/command/erro
 - Phase status: P02 Review; G02/G03 and A02 verified on the committed branch. Combined A01/A02 meets the M1 engineering exit check. M1 remains Review until both PRs integrate.
 - Blockers: none; no credential, participant or product decision needed.
 - Next exact action: `gh stack add phase/p03-makers`, then implement G04's maker interface/curves and capital authorization on verified P02 without waiting for merge.
+
+### R004 — 21 October 2026 — P01/P02 — address reviews and integrate
+
+- Starting revision / branch: clean `d9aff94d4fe1337e09c59d4e1da2c09201e90842`, `phase/p02-custody`. Read both PRs' review summaries and all four inline findings. No unrelated changes were present.
+- Delivered: P01 `081d614` fixes committed SDK/IDL drift detection, explicit bounded Surfpool readiness failure and stale draft status. P02 `16e51e4` replaces the undeclared ripgrep SBF check with system grep and rejects checker failures. `gh stack rebase --no-trunk` cleanly restacked P02; `gh stack submit --auto --open` pushed both ready PRs.
+- Specifications: P01-SPINE, STACK-AND-VALIDATION and D21 record the strengthened acceptance contract. Economics, program ABI, dependencies and G02/G03 profile are unchanged.
+- Actual checks: P01 `source ops/env.sh && pnpm smoke` PASS on clean `081d614` at `.local/runs/20261021T063225Z-56957`; 7 ABI tests, signed deployment/probes, independent RPC decode/signature verification, five WS subscriptions, history and rollback. Combined P01/P02 `pnpm smoke` PASS on clean `16e51e4` at `.local/runs/20261021T063416Z-59770`; 8 ABI tests, 11 Rust tests, 3,000 independent reference cases plus profile check, 99 signed LiteSVM scenarios (81 accepted / 18 expected rejections), 33 signed Surfpool custody scenarios (18 accepted / 15 expected rejections), 10 committed custody events and exact final vault/insurance 10,007 atoms. All source identity records are clean. Shell syntax, Rust formatting and whitespace checks pass.
+- Targeted failures: 15 shell guard fixtures pass, covering committed/staged/untracked SDK drift, IDL drift, startup timeout/HTTP error/process death, each unsafe SBF pattern, missing log and missing checker. These synthetic harness checks are separate from real signed RPC acceptance.
+- Evidence: [review verification report](evidence/R004-REVIEW.md) and [captured logs/JSON](evidence/r004/). Program/IDL hashes match the earlier phase artifacts. Replies identify fixes and verification; all four original review threads are resolved. Automated review is not M6 independent review.
+- Checks not run: later-phase makers/routes, PostgreSQL/services, oracle/funding/orders/operational default, browser, load/soak, devnet and independent/funded gates; those implementations do not exist yet.
+- Integration: pending final remote checks and the explicitly authorized stack merge; M1/P01/P02 remain Review in this checkpoint.
+- Blockers: none.
+- Next exact action: verify current remote checks, merge both PRs with `gh stack merge --yes --merge`, then verify main's executable tree and record actual merge commits.
 
 ## Template — append after each run
 

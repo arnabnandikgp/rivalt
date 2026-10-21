@@ -86,3 +86,7 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **Scope of these decisions:** Numeric limits are engineering fixtures, not M6 calibration. G08 source/funding policy, G09 order reservation policy, G10 operational default and G11 deployment identity checks remain due in their owning phases. No funded deployment is authorized by these decisions.
 - **Evidence:** [Clean committed P02 acceptance](evidence/P02.md) verifies G02/G03 on `3d9c8c3`; phase/milestone integration status remains in WORKLOG.
 
+
+## 21 October 2026 — review-driven acceptance amendment
+
+- **D21 / G01 verification:** Deterministic generation alone is insufficient after a build overwrites generated files. Acceptance also compares the regenerated SDK/IDL against Git HEAD and rejects staged, unstaged and untracked output changes. Surfpool readiness fails explicitly after bounded HTTP attempts or early process exit. The SBF stack guard uses system grep and treats checker errors as rejection. This strengthens D16/D17 verification without changing pins or protocol behavior; [fresh review evidence](evidence/R004-REVIEW.md) records both passing paths and failure checks.

@@ -1,0 +1,50 @@
+{
+  "sourceCommit": "081d614c927046408ec0eb6777cf8ae21e8bfda8",
+  "cases": [
+    {
+      "case": "committed output unchanged",
+      "expected": "pass",
+      "exitCode": 0
+    },
+    {
+      "case": "stale committed SDK regenerated",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "staged SDK drift",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "untracked generated SDK",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "IDL drift",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "healthy readiness without ripgrep",
+      "expected": "pass",
+      "exitCode": 0
+    },
+    {
+      "case": "unhealthy readiness timeout",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "HTTP readiness failure",
+      "expected": "reject",
+      "exitCode": 1
+    },
+    {
+      "case": "Surfpool exits before readiness",
+      "expected": "reject",
+      "exitCode": 1
+    }
+  ]
+}
