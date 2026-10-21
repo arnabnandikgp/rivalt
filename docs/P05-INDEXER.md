@@ -1,6 +1,6 @@
 # P05 indexer and read contract
 
-The implemented profile is the P02 custody/P03 makers/P04 synthetic-risk venue. `packages/indexer` owns a separately restartable Node service; it does not sign transactions or enable settlement, funding, orders or authenticated oracle inputs. Current acceptance status belongs to WORKLOG.
+The implemented profile is the P02 custody/P03 makers/P04 synthetic-risk venue. `packages/indexer` owns a separately restartable Node service; it does not sign transactions or enable settlement, funding, orders or authenticated oracle inputs. Current acceptance status belongs to WORKLOG; [clean acceptance evidence](evidence/P05.md) records A06/G06 verification.
 
 ## Exact runtime and local operation
 
@@ -22,7 +22,7 @@ The explicit run name is bound to genesis hash, clearing program, market, domain
 
 The schema is [`schema.sql`](../packages/indexer/src/schema.sql). `runs` contains the immutable binding, bounded participant/maker projection snapshot and checkpoint. Monetary JSONB fields are decimal strings, sequence columns are `numeric(20,0)` and slots are PostgreSQL bigint. `observations` records immutable confirmed-WS and finalized-RPC inputs. `transactions` retains canonical successful/failed metadata. `events` is unique by `(run, signature, outer instruction, inner instruction, ordinal)` and separately by `(run, sequence)`. SQL triggers reject journal/outbox updates or deletes.
 
-One SQL transaction commits canonical transactions, deduplicated events, all projection changes, outbox records and checkpoint. A rollback retains observations but none of those effects. A PostgreSQL advisory lease permits one indexer per run; the checkpoint row is also locked. Every event's outbox entry is the durable read-stream record. `jobs` holds observed signatures and pending/finalized/failed/unresolved finality state, retry attempts and next attempt time. Missing status stays unresolved; it is never treated as proof of nonexecution or a fork. A finalized observation missing from the canonical scan blocks readiness. Submission bytes, economic intent, quote candidates and execution retry policy belong to P06/G07 and have no success-returning placeholder endpoints here.
+One SQL transaction commits canonical transactions, deduplicated events, all projection changes, outbox records and checkpoint. A rollback retains observations but none of those effects. A PostgreSQL advisory lease permits one indexer per run; a lost lease fails closed and requires a service restart; the checkpoint row is also locked. Every event's outbox entry is the durable read-stream record. `jobs` holds observed signatures and pending/finalized/failed/unresolved finality state, retry attempts and next attempt time. Missing status stays unresolved; it is never treated as proof of nonexecution or a fork. A finalized observation missing from the canonical scan blocks readiness. Submission bytes, economic intent, quote candidates and execution retry policy belong to P06/G07 and have no success-returning placeholder endpoints here.
 
 ## Read API version 1
 
