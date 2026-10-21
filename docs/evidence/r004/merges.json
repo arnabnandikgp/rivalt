@@ -1,0 +1,24 @@
+[
+  {
+    "baseRefName": "main",
+    "headRefOid": "081d614c927046408ec0eb6777cf8ae21e8bfda8",
+    "mergeCommit": {
+      "oid": "3c1aae1d85b86829d0f921612c1b7e834d4fcf76"
+    },
+    "mergedAt": "2026-10-21T06:41:52Z",
+    "number": 1,
+    "state": "MERGED",
+    "url": "https://github.com/arnabnandikgp/rivalt/pull/1"
+  },
+  {
+    "baseRefName": "phase/p01-spine",
+    "headRefOid": "a19c79c6499ce6391141b78dbdbc9c3c01edf55e",
+    "mergeCommit": {
+      "oid": "3c1aae1d85b86829d0f921612c1b7e834d4fcf76"
+    },
+    "mergedAt": "2026-10-21T06:41:53Z",
+    "number": 2,
+    "state": "MERGED",
+    "url": "https://github.com/arnabnandikgp/rivalt/pull/2"
+  }
+]

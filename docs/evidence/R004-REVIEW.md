@@ -24,3 +24,9 @@ Command on each clean fix commit: `source ops/env.sh && pnpm smoke`.
 P01 SBF/IDL hashes remain `560c7c6bb499cbf406be7e8e4edbae43cca27bdf13f227b17e6480073bc24002` / `195ec9a1ce4f30117fef4e4774b26232f9f60a70166c812293bd169da1f1235f`. P02 SBF/IDL hashes remain `c8e363a5ab84caa9b928ffa12d1cf907099255ad274ff2325cbdb40d0f07abaa` / `5b40a99e003bf51c75744ded87fe308527559ffeb32a3da0b25cf204ca77b522`. The fixes change acceptance orchestration, not the deployed program bytes.
 
 Not run: maker/routes, PostgreSQL/services, oracle/funding/orders/operational default, browser, load/soak, devnet, independent external review or funded deployment. Those belong to later unimplemented phases. These runs establish A01/A02 and the M1 engineering exit check only.
+
+## Integration
+
+`gh stack merge --yes --merge` merged both PRs atomically into `3c1aae1d85b86829d0f921612c1b7e834d4fcf76`. GitHub reports #1 merged at 2026-10-21T06:41:52Z and #2 at 2026-10-21T06:41:53Z. The user explicitly requested proceeding without waiting for P01's automated re-review; its last observed check was pending. All four original findings were already fixed and resolved.
+
+Fetched main is byte-for-byte tree-identical to reviewed head `a19c79c6499ce6391141b78dbdbc9c3c01edf55e` (`git diff --exit-code` passed); that head changes only documentation from tested `16e51e4`. No semantic integration changes require another acceptance run. M1/P01/P02 are Closed. The next branch is `phase/p03-makers`, initialized by gh stack from this merged baseline.
