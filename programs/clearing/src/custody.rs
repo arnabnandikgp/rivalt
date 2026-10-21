@@ -184,8 +184,7 @@ pub(crate) fn profile(m: &MarketState) -> Result<()> {
             && m.profile_version == PROFILE_VERSION
             && m.mode <= 1
             && m.funding_index_scaled == 0
-            && m.settlement == 0
-            && (m.mode == 1 || m.fees == 0),
+            && (m.mode == 1 || (m.fees == 0 && m.settlement == 0)),
         ClearingError::Profile
     );
     Ok(())

@@ -59,6 +59,10 @@ export const CLEARING_ERROR__RISK_OBSERVATION = 0x17e6; // 6118
 export const CLEARING_ERROR__ROUTE_LIMIT = 0x17e7; // 6119
 /** RouteHealth: Post-fee health or exposure capacity fails */
 export const CLEARING_ERROR__ROUTE_HEALTH = 0x17e8; // 6120
+/** ExitCohort: Exit cohort is incomplete, insolvent, foreign or stale */
+export const CLEARING_ERROR__EXIT_COHORT = 0x17e9; // 6121
+/** FinancialSequence: Financial action is bound to a different market sequence */
+export const CLEARING_ERROR__FINANCIAL_SEQUENCE = 0x17ea; // 6122
 
 export type ClearingError =
   | typeof CLEARING_ERROR__ALIAS
@@ -67,6 +71,8 @@ export type ClearingError =
   | typeof CLEARING_ERROR__AUTHORITY
   | typeof CLEARING_ERROR__CAPACITY
   | typeof CLEARING_ERROR__DOMAIN
+  | typeof CLEARING_ERROR__EXIT_COHORT
+  | typeof CLEARING_ERROR__FINANCIAL_SEQUENCE
   | typeof CLEARING_ERROR__MAKER_BINDING
   | typeof CLEARING_ERROR__MAKER_CAPITAL
   | typeof CLEARING_ERROR__MAKER_EPOCH
@@ -93,6 +99,8 @@ if (process.env["NODE_ENV"] !== "production") {
     [CLEARING_ERROR__AUTHORITY]: `Wrong authority`,
     [CLEARING_ERROR__CAPACITY]: `Participant registry is full`,
     [CLEARING_ERROR__DOMAIN]: `Domain identity must be nonzero`,
+    [CLEARING_ERROR__EXIT_COHORT]: `Exit cohort is incomplete, insolvent, foreign or stale`,
+    [CLEARING_ERROR__FINANCIAL_SEQUENCE]: `Financial action is bound to a different market sequence`,
     [CLEARING_ERROR__MAKER_BINDING]: `Maker program, config or capital binding mismatch`,
     [CLEARING_ERROR__MAKER_CAPITAL]: `Maker capital is unfunded or outside the implemented profile`,
     [CLEARING_ERROR__MAKER_EPOCH]: `Maker or market epoch mismatch or expired quote`,

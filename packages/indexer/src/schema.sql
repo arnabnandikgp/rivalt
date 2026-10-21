@@ -1,4 +1,5 @@
 BEGIN;
+SELECT pg_advisory_xact_lock(hashtextextended('rivalt/schema',0));
 CREATE TABLE IF NOT EXISTS schema_version (version integer PRIMARY KEY CHECK (version = 1));
 INSERT INTO schema_version VALUES (1) ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS runs (

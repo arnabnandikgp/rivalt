@@ -58,6 +58,28 @@ importers:
         specifier: 3.1.1
         version: 3.1.1(typescript@5.9.3)
 
+  packages/services:
+    dependencies:
+      '@rivalt/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@solana/kit':
+        specifier: 8.5.0
+        version: 8.5.0(typescript@5.9.3)
+      '@solana/web3.js':
+        specifier: 3.1.1
+        version: 3.1.1(typescript@5.9.3)
+      fastify:
+        specifier: 5.12.7
+        version: 5.12.7
+      pg:
+        specifier: 8.23.1
+        version: 8.23.1
+    devDependencies:
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+
   tests/rpc-contract:
     dependencies:
       '@rivalt/sdk':

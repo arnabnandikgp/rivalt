@@ -7,10 +7,13 @@
  */
 
 export * from "./approveMaker.js";
+export * from "./checkExitCohort.js";
 export * from "./classifySurplus.js";
+export * from "./collectLoss.js";
 export * from "./deposit.js";
 export * from "./executeRoute.js";
 export * from "./fundInsurance.js";
+export * from "./initializeExitGuard.js";
 export * from "./initializeMarket.js";
 export * from "./initializeTestRoutes.js";
 export * from "./previewMaker.js";
@@ -20,5 +23,7 @@ export * from "./quarantineMaker.js";
 export * from "./registerMaker.js";
 export * from "./registerParticipant.js";
 export * from "./setCustodyPause.js";
+export * from "./settleGain.js";
 export * from "./syncMakerEpoch.js";
 export * from "./withdraw.js";
+export * from "./withdrawTrading.js";

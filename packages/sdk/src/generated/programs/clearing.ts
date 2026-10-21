@@ -17,6 +17,7 @@ import {
   SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
   SolanaError,
   type Address,
+  type ClientWithPayer,
   type ClientWithRpc,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
@@ -36,6 +37,7 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   getCapitalBindingCodec,
+  getExitGuardCodec,
   getMakerRegistrationCodec,
   getMarketStateCodec,
   getParticipantCodec,
@@ -44,6 +46,8 @@ import {
   getTestRouteStateCodec,
   type CapitalBinding,
   type CapitalBindingArgs,
+  type ExitGuard,
+  type ExitGuardArgs,
   type MakerRegistration,
   type MakerRegistrationArgs,
   type MarketState,
@@ -59,10 +63,13 @@ import {
 } from "../accounts/index.js";
 import {
   getApproveMakerInstructionAsync,
+  getCheckExitCohortInstructionAsync,
   getClassifySurplusInstructionAsync,
+  getCollectLossInstructionAsync,
   getDepositInstructionAsync,
   getExecuteRouteInstructionAsync,
   getFundInsuranceInstructionAsync,
+  getInitializeExitGuardInstructionAsync,
   getInitializeMarketInstructionAsync,
   getInitializeTestRoutesInstructionAsync,
   getPreviewMakerInstructionAsync,
@@ -72,13 +79,18 @@ import {
   getRegisterMakerInstructionAsync,
   getRegisterParticipantInstructionAsync,
   getSetCustodyPauseInstructionAsync,
+  getSettleGainInstructionAsync,
   getSyncMakerEpochInstructionAsync,
   getWithdrawInstructionAsync,
+  getWithdrawTradingInstructionAsync,
   parseApproveMakerInstruction,
+  parseCheckExitCohortInstruction,
   parseClassifySurplusInstruction,
+  parseCollectLossInstruction,
   parseDepositInstruction,
   parseExecuteRouteInstruction,
   parseFundInsuranceInstruction,
+  parseInitializeExitGuardInstruction,
   parseInitializeMarketInstruction,
   parseInitializeTestRoutesInstruction,
   parsePreviewMakerInstruction,
@@ -88,20 +100,28 @@ import {
   parseRegisterMakerInstruction,
   parseRegisterParticipantInstruction,
   parseSetCustodyPauseInstruction,
+  parseSettleGainInstruction,
   parseSyncMakerEpochInstruction,
   parseWithdrawInstruction,
+  parseWithdrawTradingInstruction,
   type ApproveMakerAsyncInput,
+  type CheckExitCohortAsyncInput,
   type ClassifySurplusAsyncInput,
+  type CollectLossAsyncInput,
   type DepositAsyncInput,
   type ExecuteRouteAsyncInput,
   type FundInsuranceAsyncInput,
+  type InitializeExitGuardAsyncInput,
   type InitializeMarketAsyncInput,
   type InitializeTestRoutesAsyncInput,
   type ParsedApproveMakerInstruction,
+  type ParsedCheckExitCohortInstruction,
   type ParsedClassifySurplusInstruction,
+  type ParsedCollectLossInstruction,
   type ParsedDepositInstruction,
   type ParsedExecuteRouteInstruction,
   type ParsedFundInsuranceInstruction,
+  type ParsedInitializeExitGuardInstruction,
   type ParsedInitializeMarketInstruction,
   type ParsedInitializeTestRoutesInstruction,
   type ParsedPreviewMakerInstruction,
@@ -111,8 +131,10 @@ import {
   type ParsedRegisterMakerInstruction,
   type ParsedRegisterParticipantInstruction,
   type ParsedSetCustodyPauseInstruction,
+  type ParsedSettleGainInstruction,
   type ParsedSyncMakerEpochInstruction,
   type ParsedWithdrawInstruction,
+  type ParsedWithdrawTradingInstruction,
   type PreviewMakerAsyncInput,
   type ProbeAsyncInput,
   type PublishTestRiskAsyncInput,
@@ -120,12 +142,15 @@ import {
   type RegisterMakerAsyncInput,
   type RegisterParticipantAsyncInput,
   type SetCustodyPauseAsyncInput,
+  type SettleGainAsyncInput,
   type SyncMakerEpochAsyncInput,
   type WithdrawAsyncInput,
+  type WithdrawTradingAsyncInput,
 } from "../instructions/index.js";
 import {
   findBindingPda,
   findCapitalPda,
+  findGuardPda,
   findMarketPda,
   findRecordPda,
   findRegistryPda,
@@ -138,6 +163,7 @@ export const CLEARING_PROGRAM_ADDRESS =
 
 export enum ClearingAccount {
   CapitalBinding,
+  ExitGuard,
   MakerRegistration,
   MarketState,
   Participant,
@@ -160,6 +186,17 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.CapitalBinding;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([199, 210, 148, 192, 93, 253, 196, 218]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.ExitGuard;
   }
   if (
     containsBytes(
@@ -238,6 +275,7 @@ export enum ClearingEvent {
   MakerChanged,
   ProbeRecorded,
   RouteExecuted,
+  SettlementChanged,
   TestRiskPublished,
 }
 
@@ -293,6 +331,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([245, 182, 67, 134, 121, 92, 221, 133]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.SettlementChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([108, 25, 154, 69, 185, 245, 237, 196]),
       ),
       0,
@@ -307,10 +356,13 @@ export function identifyClearingEvent(
 
 export enum ClearingInstruction {
   ApproveMaker,
+  CheckExitCohort,
   ClassifySurplus,
+  CollectLoss,
   Deposit,
   ExecuteRoute,
   FundInsurance,
+  InitializeExitGuard,
   InitializeMarket,
   InitializeTestRoutes,
   PreviewMaker,
@@ -320,8 +372,10 @@ export enum ClearingInstruction {
   RegisterMaker,
   RegisterParticipant,
   SetCustodyPause,
+  SettleGain,
   SyncMakerEpoch,
   Withdraw,
+  WithdrawTrading,
 }
 
 export function identifyClearingInstruction(
@@ -343,12 +397,34 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([218, 218, 53, 17, 248, 121, 117, 186]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CheckExitCohort;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([233, 161, 140, 11, 133, 238, 233, 139]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.ClassifySurplus;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([47, 245, 158, 140, 104, 252, 109, 86]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CollectLoss;
   }
   if (
     containsBytes(
@@ -382,6 +458,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.FundInsurance;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([119, 141, 64, 241, 210, 16, 221, 137]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeExitGuard;
   }
   if (
     containsBytes(
@@ -486,6 +573,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([36, 171, 80, 119, 51, 41, 156, 177]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SettleGain;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([176, 197, 132, 132, 121, 222, 151, 188]),
       ),
       0,
@@ -504,6 +602,17 @@ export function identifyClearingInstruction(
   ) {
     return ClearingInstruction.Withdraw;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([78, 233, 115, 42, 209, 223, 53, 166]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.WithdrawTrading;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "clearing" },
@@ -517,8 +626,14 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ApproveMaker;
     } & ParsedApproveMakerInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.CheckExitCohort;
+    } & ParsedCheckExitCohortInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ClassifySurplus;
     } & ParsedClassifySurplusInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CollectLoss;
+    } & ParsedCollectLossInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.Deposit;
     } & ParsedDepositInstruction<TProgram>)
@@ -528,6 +643,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.FundInsurance;
     } & ParsedFundInsuranceInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.InitializeExitGuard;
+    } & ParsedInitializeExitGuardInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.InitializeMarket;
     } & ParsedInitializeMarketInstruction<TProgram>)
@@ -556,11 +674,17 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.SetCustodyPause;
     } & ParsedSetCustodyPauseInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.SettleGain;
+    } & ParsedSettleGainInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.SyncMakerEpoch;
     } & ParsedSyncMakerEpochInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.Withdraw;
-    } & ParsedWithdrawInstruction<TProgram>);
+    } & ParsedWithdrawInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.WithdrawTrading;
+    } & ParsedWithdrawTradingInstruction<TProgram>);
 
 export function parseClearingInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -574,11 +698,25 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseApproveMakerInstruction(instruction),
       };
     }
+    case ClearingInstruction.CheckExitCohort: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CheckExitCohort,
+        ...parseCheckExitCohortInstruction(instruction),
+      };
+    }
     case ClearingInstruction.ClassifySurplus: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.ClassifySurplus,
         ...parseClassifySurplusInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CollectLoss: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CollectLoss,
+        ...parseCollectLossInstruction(instruction),
       };
     }
     case ClearingInstruction.Deposit: {
@@ -600,6 +738,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.FundInsurance,
         ...parseFundInsuranceInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.InitializeExitGuard: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeExitGuard,
+        ...parseInitializeExitGuardInstruction(instruction),
       };
     }
     case ClearingInstruction.InitializeMarket: {
@@ -665,6 +810,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseSetCustodyPauseInstruction(instruction),
       };
     }
+    case ClearingInstruction.SettleGain: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SettleGain,
+        ...parseSettleGainInstruction(instruction),
+      };
+    }
     case ClearingInstruction.SyncMakerEpoch: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -677,6 +829,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.Withdraw,
         ...parseWithdrawInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.WithdrawTrading: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.WithdrawTrading,
+        ...parseWithdrawTradingInstruction(instruction),
       };
     }
     default:
@@ -699,6 +858,8 @@ export type ClearingPlugin = {
 export type ClearingPluginAccounts = {
   capitalBinding: ReturnType<typeof getCapitalBindingCodec> &
     SelfFetchFunctions<CapitalBindingArgs, CapitalBinding>;
+  exitGuard: ReturnType<typeof getExitGuardCodec> &
+    SelfFetchFunctions<ExitGuardArgs, ExitGuard>;
   makerRegistration: ReturnType<typeof getMakerRegistrationCodec> &
     SelfFetchFunctions<MakerRegistrationArgs, MakerRegistration>;
   marketState: ReturnType<typeof getMarketStateCodec> &
@@ -719,10 +880,20 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getApproveMakerInstructionAsync> &
     SelfPlanAndSendFunctions;
+  checkExitCohort: (
+    input: CheckExitCohortAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCheckExitCohortInstructionAsync> &
+    SelfPlanAndSendFunctions;
   classifySurplus: (
     input: ClassifySurplusAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getClassifySurplusInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  collectLoss: (
+    input: CollectLossAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCollectLossInstructionAsync> &
     SelfPlanAndSendFunctions;
   deposit: (
     input: DepositAsyncInput,
@@ -737,6 +908,11 @@ export type ClearingPluginInstructions = {
     input: FundInsuranceAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getFundInsuranceInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  initializeExitGuard: (
+    input: MakeOptional<InitializeExitGuardAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeExitGuardInstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeMarket: (
     input: InitializeMarketAsyncInput,
@@ -782,6 +958,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSetCustodyPauseInstructionAsync> &
     SelfPlanAndSendFunctions;
+  settleGain: (
+    input: SettleGainAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSettleGainInstructionAsync> &
+    SelfPlanAndSendFunctions;
   syncMakerEpoch: (
     input: SyncMakerEpochAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -792,14 +973,20 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getWithdrawInstructionAsync> &
     SelfPlanAndSendFunctions;
+  withdrawTrading: (
+    input: WithdrawTradingAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getWithdrawTradingInstructionAsync> &
+    SelfPlanAndSendFunctions;
 };
 
 export type ClearingPluginPdas = {
   market: typeof findMarketPda;
   capital: typeof findCapitalPda;
-  vault: typeof findVaultPda;
   routeState: typeof findRouteStatePda;
   registry: typeof findRegistryPda;
+  guard: typeof findGuardPda;
+  vault: typeof findVaultPda;
   record: typeof findRecordPda;
   binding: typeof findBindingPda;
 };
@@ -807,6 +994,7 @@ export type ClearingPluginPdas = {
 export type ClearingPluginRequirements = ClientWithRpc<
   GetAccountInfoApi & GetMultipleAccountsApi
 > &
+  ClientWithPayer &
   ClientWithTransactionPlanning &
   ClientWithTransactionSending;
 
@@ -823,6 +1011,7 @@ export function clearingProgram(
             client,
             getCapitalBindingCodec(),
           ),
+          exitGuard: addSelfFetchFunctions(client, getExitGuardCodec()),
           makerRegistration: addSelfFetchFunctions(
             client,
             getMakerRegistrationCodec(),
@@ -848,10 +1037,26 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          checkExitCohort: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCheckExitCohortInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           classifySurplus: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getClassifySurplusInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          collectLoss: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCollectLossInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -879,6 +1084,17 @@ export function clearingProgram(
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
+            ),
+          initializeExitGuard: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeExitGuardInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
             ),
           initializeMarket: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
@@ -952,6 +1168,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          settleGain: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSettleGainInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           syncMakerEpoch: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -968,6 +1192,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          withdrawTrading: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getWithdrawTradingInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
         },
         pdas: {
           market: (pdaConfig) =>
@@ -980,11 +1212,6 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          vault: (seeds, pdaConfig) =>
-            findVaultPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
           routeState: (seeds, pdaConfig) =>
             findRouteStatePda(seeds, {
               programAddress:
@@ -992,6 +1219,16 @@ export function clearingProgram(
             }),
           registry: (seeds, pdaConfig) =>
             findRegistryPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          guard: (seeds, pdaConfig) =>
+            findGuardPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          vault: (seeds, pdaConfig) =>
+            findVaultPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
@@ -1013,3 +1250,5 @@ export function clearingProgram(
     });
   };
 }
+
+type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

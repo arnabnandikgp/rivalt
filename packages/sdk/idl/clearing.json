@@ -134,6 +134,168 @@
       "args": []
     },
     {
+      "name": "check_exit_cohort",
+      "discriminator": [
+        218,
+        218,
+        53,
+        17,
+        248,
+        121,
+        117,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state",
+            "registry",
+            "guard"
+          ]
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "start",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "classify_surplus",
       "discriminator": [
         233,
@@ -212,6 +374,183 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "collect_loss",
+      "discriminator": [
+        47,
+        245,
+        158,
+        140,
+        104,
+        252,
+        109,
+        86
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant",
+            "route_state",
+            "guard"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "participant.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     },
     {
       "name": "deposit",
@@ -639,6 +978,84 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "initialize_exit_guard",
+      "discriminator": [
+        119,
+        141,
+        64,
+        241,
+        210,
+        16,
+        221,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "initialize_market",
@@ -1580,6 +1997,183 @@
       ]
     },
     {
+      "name": "settle_gain",
+      "discriminator": [
+        36,
+        171,
+        80,
+        119,
+        51,
+        41,
+        156,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant",
+            "route_state",
+            "guard"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "participant.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "sync_maker_epoch",
       "discriminator": [
         176,
@@ -1823,6 +2417,204 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "withdraw_trading",
+      "discriminator": [
+        78,
+        233,
+        115,
+        42,
+        209,
+        223,
+        53,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant",
+            "route_state",
+            "guard"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "quote_mint",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "user_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1837,6 +2629,19 @@
         158,
         6,
         18
+      ]
+    },
+    {
+      "name": "ExitGuard",
+      "discriminator": [
+        199,
+        210,
+        148,
+        192,
+        93,
+        253,
+        196,
+        218
       ]
     },
     {
@@ -1972,6 +2777,19 @@
       ]
     },
     {
+      "name": "SettlementChanged",
+      "discriminator": [
+        245,
+        182,
+        67,
+        134,
+        121,
+        92,
+        221,
+        133
+      ]
+    },
+    {
       "name": "TestRiskPublished",
       "discriminator": [
         108,
@@ -2095,6 +2913,16 @@
       "code": 6120,
       "name": "RouteHealth",
       "msg": "Post-fee health or exposure capacity fails"
+    },
+    {
+      "code": 6121,
+      "name": "ExitCohort",
+      "msg": "Exit cohort is incomplete, insolvent, foreign or stale"
+    },
+    {
+      "code": 6122,
+      "name": "FinancialSequence",
+      "msg": "Financial action is bound to a different market sequence"
     }
   ],
   "types": [
@@ -2261,6 +3089,50 @@
           {
             "name": "generation_after",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExitGuard",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "observation",
+            "type": "u64"
+          },
+          {
+            "name": "count",
+            "type": "u16"
+          },
+          {
+            "name": "next",
+            "type": "u16"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "i128"
+          },
+          {
+            "name": "unpaid",
+            "type": "i128"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -3018,6 +3890,82 @@
           },
           {
             "name": "authority_epoch",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettlementChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "observation",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "docs": [
+              "0 collect loss, 1 settle gain, 2 withdraw funded cash."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "participant",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "participant_cash",
+            "type": "u64"
+          },
+          {
+            "name": "participant_virtual",
+            "type": "i128"
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "settlement",
+            "type": "u64"
+          },
+          {
+            "name": "allocated_vault",
+            "type": "u64"
+          },
+          {
+            "name": "actual_vault",
             "type": "u64"
           }
         ]

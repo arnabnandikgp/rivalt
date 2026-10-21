@@ -3,7 +3,7 @@ Rivalt · baseline R1 · 20 October 2026
 
 This is the normative economic and execution contract for the engineering MVP. It selects behavior, not final machine layouts or production calibration. G02/G03 in [DECISIONS](DECISIONS.md) must be resolved in P02; G08–G10 close before their owning features are marked complete.
 
-P02's concrete precision, bounds, synthetic risk profile and deterministic fractional extension are specified in [ACCOUNTING-AND-CUSTODY](P02-ACCOUNTING-AND-CUSTODY.md). This includes exact scaled-unit insurance/impairment and an explicit zero-sum terminal rounding transfer bounded below one quote atom per participant. Ordinary settlement retains all sub-atom claims. P02 originally permits custody only. [P04 routes](P04-ATOMIC-ROUTES.md) extend the local build through an explicit synthetic observation profile; authenticated G08 sources, operational settlement/default and orders remain disabled.
+P02's concrete precision, bounds, synthetic risk profile and deterministic fractional extension are specified in [ACCOUNTING-AND-CUSTODY](P02-ACCOUNTING-AND-CUSTODY.md). This includes exact scaled-unit insurance/impairment and an explicit zero-sum terminal rounding transfer bounded below one quote atom per participant. Ordinary settlement retains all sub-atom claims. P02 originally permits custody only. [P04 routes](P04-ATOMIC-ROUTES.md) extend the local build through an explicit synthetic observation profile; [P06 ordinary settlement/exits](P06-LIFECYCLE.md) add whole-atom collection, funded settlement and complete-cohort guarded withdrawals. Authenticated G08 sources, exceptional default and orders remain disabled.
 
 ## 1. State, units and invariants
 

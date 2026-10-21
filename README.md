@@ -1,7 +1,7 @@
 # Rivalt
 Implementation baseline R1 · 20 October 2026
 
-Rivalt is a new Solana perpetual venue with common clearing, isolated collateral and competing margined perpAMMs. The repository contains the implementation specification, local toolchain/SDK/RPC spine, checked financial core, clearing custody, separate A/B maker programs with funded-capital registration, and atomic routes under an explicit synthetic local risk profile. A PostgreSQL-backed indexer and read API rebuild finalized custody and route state over standard RPC/WS. Orders, authenticated sources/funding and operational settlement/default arrive in later phases.
+Rivalt is a new Solana perpetual venue with common clearing, isolated collateral and competing margined perpAMMs. The repository contains the implementation specification, local toolchain/SDK/RPC spine, checked financial core, clearing custody, separate A/B maker programs with funded-capital registration, and atomic routes under an explicit synthetic local risk profile. A PostgreSQL-backed indexer and read API rebuild finalized custody and route state over standard RPC/WS. Maker daemons, durable signed execution and guarded ordinary settlement/withdrawal complete the local service lifecycle. Orders, authenticated sources/funding and exceptional default arrive in later phases.
 
 ## Start here
 
@@ -21,6 +21,7 @@ Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product 
 | [docs/P01-SPINE.md](docs/P01-SPINE.md) | Reproducible local bootstrap, smoke command and probe contract |
 | [docs/P02-ACCOUNTING-AND-CUSTODY.md](docs/P02-ACCOUNTING-AND-CUSTODY.md) | Exact financial units, fractional default rule, custody authority/ABI and checks |
 | [docs/P04-ATOMIC-ROUTES.md](docs/P04-ATOMIC-ROUTES.md) | Atomic route authority, synthetic risk boundary, allocation and measured budget contract |
+| [docs/P06-LIFECYCLE.md](docs/P06-LIFECYCLE.md) | Ordinary settlement/exit guard, maker/executor services, explicit fee budgets and durable retries |
 | [docs/P05-INDEXER.md](docs/P05-INDEXER.md) | PostgreSQL journal/recovery, read endpoints, exact service pins and local operations |
 | [docs/P03-MAKER-CONTRACT.md](docs/P03-MAKER-CONTRACT.md) | Maker curves, capital binding, bounded read-only CPI, epochs and upgrade controls |
 
@@ -41,7 +42,7 @@ source ops/env.sh
 RIVALT_SLOT_TIME=20 pnpm smoke
 ```
 
-This installs frozen dependencies, builds all three SBF programs and IDLs, checks the generated client against isolated legacy Anchor, runs independent financial and compiled-program tests, then starts offline Surfpool and verifies signed deployment, probe, real token custody, maker controls and atomic routes/hostile-CPI rollback over HTTP/WS. It also verifies PostgreSQL rollback, disconnect recovery, fresh database rebuild and real chain-reset isolation, then shuts down only its own runtime/container. Evidence is written to `.local/runs/`. `RIVALT_SLOT_TIME` selects the local slot cadence in milliseconds (default 100); 20 keeps the real exclusive-expiry fixture short. This changes local wall time, not on-chain slot lifetimes.
+This installs frozen dependencies, builds all three SBF programs and IDLs, checks the generated client against isolated legacy Anchor, runs independent financial and compiled-program tests, then starts offline Surfpool and verifies signed deployment, probe, real token custody, maker controls and atomic routes/hostile-CPI rollback over HTTP/WS. It also verifies PostgreSQL rollback, disconnect recovery, fresh database rebuild and real chain-reset isolation, then runs separate maker/executor/settlement processes through deposit → split → cross-maker close → funded settlement → withdrawal, including acknowledgement loss, worker kills, expiry and fee reconciliation. It shuts down only its own runtimes/containers. Evidence is written to `.local/runs/`. `RIVALT_SLOT_TIME` selects the local slot cadence in milliseconds (default 100); 20 keeps the real exclusive-expiry fixture short. This changes local wall time, not on-chain slot lifetimes.
 
 Only WORKLOG owns live phase status. The delivery plan defines scope and acceptance, while DECISIONS owns baseline amendments.
 

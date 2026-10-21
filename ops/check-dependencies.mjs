@@ -27,7 +27,7 @@ function walk(manifestPath) {
     walk(dependency);
   }
 }
-for (const root of ['packages/sdk', 'packages/indexer', 'tests/rpc-contract']) walk(resolve(root, 'package.json'));
+for (const root of ['packages/sdk', 'packages/indexer', 'packages/services', 'tests/rpc-contract']) walk(resolve(root, 'package.json'));
 assert.equal(versions.get('@solana/kit'), '8.5.0');
 assert.equal(versions.get('@solana/wallet-adapter'), '3.1.1');
 for (const [name, expected] of [['@anchor-lang/core', '1.2.1'], ['@solana/web3.js', '1.99.0']]) {

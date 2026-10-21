@@ -8,6 +8,7 @@
 
 export * from "./binding.js";
 export * from "./capital.js";
+export * from "./guard.js";
 export * from "./market.js";
 export * from "./record.js";
 export * from "./registry.js";

@@ -24,5 +24,7 @@ pnpm test:financial
 pnpm test:svm
 pnpm test:makers
 pnpm test:routes
+pnpm test:settlement
 node ops/check-dependencies.mjs
 bash ops/rpc-smoke.sh
+bash ops/lifecycle-smoke.sh

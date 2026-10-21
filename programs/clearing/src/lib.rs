@@ -6,6 +6,8 @@ use maker_interface::QuoteResponse;
 pub use makers::*;
 pub mod routes;
 pub use routes::*;
+pub mod settlement;
+pub use settlement::*;
 
 declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
 
@@ -13,6 +15,42 @@ declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
 #[program]
 pub mod clearing {
     use super::*;
+
+    pub fn initialize_exit_guard(ctx: Context<InitializeExitGuard>) -> Result<()> {
+        settlement::initialize(ctx)
+    }
+    pub fn check_exit_cohort(
+        ctx: Context<CheckExitCohort>,
+        sequence: u64,
+        observation: u64,
+        start: u16,
+    ) -> Result<()> {
+        settlement::check(ctx, sequence, observation, start)
+    }
+    pub fn collect_loss(
+        ctx: Context<LedgerChange>,
+        sequence: u64,
+        observation: u64,
+        amount: u64,
+    ) -> Result<()> {
+        settlement::change(ctx, sequence, observation, amount, false)
+    }
+    pub fn settle_gain(
+        ctx: Context<LedgerChange>,
+        sequence: u64,
+        observation: u64,
+        amount: u64,
+    ) -> Result<()> {
+        settlement::change(ctx, sequence, observation, amount, true)
+    }
+    pub fn withdraw_trading(
+        ctx: Context<WithdrawTrading>,
+        sequence: u64,
+        observation: u64,
+        amount: u64,
+    ) -> Result<()> {
+        settlement::withdraw(ctx, sequence, observation, amount)
+    }
 
     pub fn initialize_test_routes(
         ctx: Context<InitializeTestRoutes>,
@@ -193,4 +231,8 @@ pub enum ClearingError {
     RouteLimit,
     #[msg("Post-fee health or exposure capacity fails")]
     RouteHealth,
+    #[msg("Exit cohort is incomplete, insolvent, foreign or stale")]
+    ExitCohort,
+    #[msg("Financial action is bound to a different market sequence")]
+    FinancialSequence,
 }

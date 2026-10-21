@@ -142,7 +142,7 @@ Milestone: **M3**. Depends on: **P05**.
 
 **Acceptance:** A07/A08 and relevant A05 pass through production SDK/services/RPC/PostgreSQL: deposit, split trade, cross-maker close, funded settlement and withdraw. Ambiguous acknowledgement, expiry and worker restart do not duplicate economic effects. Maker outage/return is visible.
 
-**Runnable demonstration:** One reproducible full-service command runs the lifecycle and produces an independently reconciled report.
+**Runnable demonstration:** `source ops/env.sh && RIVALT_SLOT_TIME=20 pnpm smoke` rebuilds/regresses the baseline and runs separate service processes through the independently reconciled lifecycle. [LIFECYCLE](P06-LIFECYCLE.md) specifies guarded ordinary exits, role configuration and G07.
 
 **Expected artifacts:** Maker daemon launcher/configs; executor/quote API; settlement scheduler; full-service smoke scenarios.
 

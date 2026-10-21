@@ -10,4 +10,5 @@ export * from "./custodyChanged.js";
 export * from "./makerChanged.js";
 export * from "./probeRecorded.js";
 export * from "./routeExecuted.js";
+export * from "./settlementChanged.js";
 export * from "./testRiskPublished.js";

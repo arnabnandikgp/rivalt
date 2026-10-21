@@ -7,6 +7,7 @@
  */
 
 export * from "./capitalBinding.js";
+export * from "./exitGuard.js";
 export * from "./makerRegistration.js";
 export * from "./marketState.js";
 export * from "./participant.js";

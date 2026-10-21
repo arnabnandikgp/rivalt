@@ -43,6 +43,12 @@ export function project(state: State, event: Event, market: string, domain: stri
   } else if (event.type === 'risk') {
     const m = requireValue(state.market, 'market');
     m.mode = 1; m.termsEpoch = e.termsEpoch; m.configEpoch = e.configEpoch; state.risk = e;
+  } else if (event.type === 'settlement') {
+    if (![0, 1, 2].includes(e.kind)) throw new Error('Unknown settlement operation');
+    const m = requireValue(state.market, 'market');
+    const p = requireValue(state.participants[e.participant], 'participant');
+    Object.assign(p, { cash: e.participantCash, virtualScaled: e.participantVirtual });
+    Object.assign(m, { totalCash: e.totalCash, settlement: e.settlement, allocatedVault: e.allocatedVault });
   } else {
     const m = requireValue(state.market, 'market');
     const trader = requireValue(state.participants[e.trader], 'trader');
@@ -63,6 +69,7 @@ export function project(state: State, event: Event, market: string, domain: stri
   const participants = Object.values(state.participants);
   if (m && participants.reduce((n, p) => n + BigInt(p.cash), 0n) !== BigInt(m.totalCash)) throw new Error('Participant cash mismatch');
   if (participants.reduce((n, p) => n + BigInt(p.lots), 0n) !== 0n) throw new Error('Net position mismatch');
+  if (m && participants.reduce((n,p) => n + BigInt(p.virtualScaled),0n) !== BigInt(m.settlement)*1_000_000_000n) throw new Error('Claims conservation failure');
 }
 
 export function balance(p: Participant, state: State, slot: bigint) {
@@ -76,6 +83,8 @@ export function balance(p: Participant, state: State, slot: bigint) {
   return { ...p, unpaidPnlScaled: unpaid?.toString() ?? null, negativeUnpaidLiability: liability?.toString() ?? null,
     riskEquity: liability === null ? null : (cash - liability).toString(), initialMargin: im?.toString() ?? null,
     positiveUnpaidMarginCredit: '0', withdrawableCash: state.market?.mode === 0 && !state.market.paused ? p.cash : '0',
+    exitRequirement: state.market?.mode === 1 ? 'FreshCompleteCohortCertificateAndPostWithdrawalMargin' : null,
+    settlementAvailable: state.market?.settlement ?? '0',
     valuationStatus: risk ? fresh ? 'FreshTestObservation' : 'ExpiredTestObservation' : 'NoObservation',
     evaluatedAtSlot: slot.toString() };
 }
