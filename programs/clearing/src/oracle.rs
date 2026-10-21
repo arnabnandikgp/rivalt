@@ -158,7 +158,7 @@ pub fn initialize(ctx: Context<InitializeOracle>, primary: Pubkey, guard: Pubkey
     emit_cpi!(ev);
     Ok(())
 }
-fn source(
+pub(crate) fn source(
     info: &AccountInfo,
     expected: Pubkey,
     index: usize,
@@ -605,6 +605,10 @@ pub fn sample(ctx: Context<SampleOracle>) -> Result<()> {
         sources: old.sources,
         source_sequences: sequences,
         sampled_at: now,
+        // A restrictive sample must not erase the last credible deadline and
+        // indefinitely prevent the authority's source-emergency grace proof.
+        // status=0 and valid_until=0 still prohibit every priced action.
+        source_deadline: old.source_deadline,
         funding_base: f,
         held_epoch: a.market.config_epoch,
         covered_seconds: old

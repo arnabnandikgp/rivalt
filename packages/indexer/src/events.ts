@@ -9,8 +9,10 @@ export const json = (value: unknown): string => JSON.stringify(value, (_, x) =>
     x?.type === 'Buffer' && Array.isArray(x.data) ? Buffer.from(x.data).toString('hex') : x);
 export const hash = (value: unknown) => createHash('sha256').update(json(value)).digest('hex');
 export type Event = { signature: string; outer: number; inner: number; ordinal: number; slot: number;
-  blockTime: number | null; type: 'custody' | 'maker' | 'risk' | 'route' | 'settlement' | 'oracle' | 'order'; data: any; bytes: string };
+  blockTime: number | null; type: 'custody' | 'maker' | 'risk' | 'route' | 'settlement' | 'oracle' | 'order' | 'liquidation' | 'resolution'; data: any; bytes: string };
 const decoders = [
+  ['liquidation', sdk.LIQUIDATION_APPLIED_EVENT_DISCRIMINATOR, sdk.getLiquidationAppliedEventDecoder()],
+  ['resolution', sdk.RESOLUTION_PROGRESS_EVENT_DISCRIMINATOR, sdk.getResolutionProgressEventDecoder()],
   ['order', sdk.ORDER_CHANGED_EVENT_DISCRIMINATOR, sdk.getOrderChangedEventDecoder()],
   ['custody', sdk.CUSTODY_CHANGED_EVENT_DISCRIMINATOR, sdk.getCustodyChangedEventDecoder()],
   ['maker', sdk.MAKER_CHANGED_EVENT_DISCRIMINATOR, sdk.getMakerChangedEventDecoder()],

@@ -73,7 +73,7 @@ export type MarketState = {
   configEpoch: bigint;
   sequence: bigint;
   paused: boolean;
-  /** 0 CustodyOnly, 1 explicitly compiled synthetic TestRoutes. */
+  /** 0 CustodyOnly, 1 synthetic TestRoutes, 2 oracle profile, 3 frozen resolution. */
   mode: number;
   fundingIndexScaled: bigint;
   fundingTime: bigint;
@@ -98,7 +98,7 @@ export type MarketStateArgs = {
   configEpoch: number | bigint;
   sequence: number | bigint;
   paused: boolean;
-  /** 0 CustodyOnly, 1 explicitly compiled synthetic TestRoutes. */
+  /** 0 CustodyOnly, 1 synthetic TestRoutes, 2 oracle profile, 3 frozen resolution. */
   mode: number;
   fundingIndexScaled: number | bigint;
   fundingTime: number | bigint;

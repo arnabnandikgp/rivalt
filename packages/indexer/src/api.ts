@@ -25,14 +25,15 @@ export function api(indexer: Indexer) {
   const envelope = (row: Awaited<ReturnType<typeof indexer.store.snapshot>>) => ({schemaVersion:1,runId:indexer.config.runId,
     market:indexer.config.market,asOf:{commitment:'finalized',sequence:row.state.sequence,signature:row.checkpoint,slot:row.checkpoint_slot},
     units:{cash:'collateral atoms (1e6/token)',lots:'1e6/BTC',price:'collateral atoms/lot',scaled:'1e9'},
-    capabilities:{routes:row.state.market?.mode>0 ? 'local-test-profile' : 'disabled',funding:row.state.market?.mode===2,orders:row.state.market?.mode===2,settlement:row.state.market?.mode>0}});
+    capabilities:{routes:[1,2].includes(row.state.market?.mode)&&!row.state.market?.paused ? 'local-test-profile' : 'disabled',funding:row.state.market?.mode===2,orders:row.state.market?.mode===2,settlement:[1,2].includes(row.state.market?.mode)&&!row.state.market?.paused,resolution:row.state.market?.mode===3}});
+  app.get('/v1/resolution',async()=>{const row=await indexer.store.snapshot();return {...envelope(row),frozen:row.state.market?.mode===3,resolution:row.state.resolution??null};});
   app.get('/v1/market', async () => {
     const row = await indexer.store.snapshot();
     const slot = integer(await indexer.rpc.call('getSlot',[{commitment:'processed'}]));
     const risk = row.state.risk;
     const now=BigInt(Math.floor(Date.now()/1000)),mode=oracleMode(row.state.market,risk,now,BigInt(slot));
     return {...envelope(row),state:row.state.market,risk,makers:row.state.makers,evaluatedAtSlot:String(slot),sourceMode:mode,clockSource:'host-wall-clock-preview',fundingIndexScaled:effectiveFunding(row.state.market,risk,now,BigInt(slot)).toString(),
-      valuationStatus:risk ? BigInt(slot)>=BigInt(risk.validFrom)&&BigInt(slot)<BigInt(risk.validUntil) ? 'FreshTestObservation':'ExpiredTestObservation':'NoObservation'};
+      valuationStatus:row.state.market?.mode===3?'FrozenResolution':risk ? BigInt(slot)>=BigInt(risk.validFrom)&&BigInt(slot)<BigInt(risk.validUntil) ? 'FreshTestObservation':'ExpiredTestObservation':'NoObservation'};
   });
   app.get<{Params:{participant:string}}>('/v1/balances/:participant', {
     schema:{params:{type:'object',required:['participant'],additionalProperties:false,properties:{participant:{type:'string',pattern:'^[1-9A-HJ-NP-Za-km-z]{32,44}$'}}}},

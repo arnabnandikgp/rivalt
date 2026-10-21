@@ -1,10 +1,10 @@
-import { effectiveFunding, oracleMode, emptyOrderBook, orderReserve } from '@rivalt/sdk';
+import { effectiveFunding, oracleMode, emptyOrderBook, orderReserve, reconcileResolution, resolutionBalance, getResolutionRowDecoder } from '@rivalt/sdk';
 import { json,type Event } from './events.js';
 
 export type Participant = { owner: string; id: number; cash: string; lots: string; virtualScaled: string;
   fundingCheckpointScaled: string; generation: string; nonce: string; reserved: string; orderIds: string[]; book:any };
 export type State = { sequence: string; market: any | null; risk: any | null;
-  participants: Record<string, Participant>; makers: Record<string, any> };
+  participants: Record<string, Participant>; makers: Record<string, any>; resolution?: any | null };
 export const empty = (): State => ({ sequence: '0', market: null, risk: null, participants: {}, makers: {} });
 const zero = '11111111111111111111111111111111';
 const requireValue = <T>(value: T | undefined | null, label: string): T => {
@@ -48,6 +48,37 @@ export function project(state: State, event: Event, market: string, domain: stri
   } else if (event.type === 'risk') {
     const m = requireValue(state.market, 'market');
     m.mode = 1; m.termsEpoch = e.termsEpoch; m.configEpoch = e.configEpoch; state.risk = e;
+  } else if (event.type === 'liquidation' || event.type === 'resolution') {
+    const m=requireValue(state.market,'market'),r=requireValue(state.risk,'risk');
+    const updates=event.type==='liquidation'?[e.target,e.receiver]:e.participants;
+    if(updates.length>(event.type==='liquidation'?2:4)||new Set(updates.map((x:any)=>x.participant)).size!==updates.length)throw new Error('Risk participant shape');
+    for(const x of updates){const p=requireValue(state.participants[x.participant],'risk participant');
+      if(p.id!==x.id)throw new Error('Risk participant identity');
+      for(const k of ['cash','lots','virtualScaled','fundingCheckpointScaled','generation']) (p as any)[k]=x[k];
+      if(event.type==='liquidation')for(const k of ['nonce','reserved','orderIds','book'])(p as any)[k]=x[k];
+      else if(x.finalized){p.reserved='0';p.orderIds=['0','0','0','0'];
+        for(const o of p.book.orders){if(o.state===1||o.state===2)o.state=6;o.reserve='0';}
+        for(const g of p.book.groups)g.remaining='0';
+      }
+    }
+    for(const k of ['termsEpoch','configEpoch','fundingIndexScaled','fundingTime','grossLots'])m[k]=e[k];
+    r.grossLots=e.grossLots;
+    if(event.type==='resolution'){
+      if(![0,1,2,3].includes(e.kind))throw new Error('Unknown resolution operation');
+      for(const k of ['mode','paused','totalCash','settlement','insurance','fees','allocatedVault'])m[k]=e[k];
+      r.oracle=e.oracle;if(e.kind===3)r.validUntil='0';
+      if(e.kind===0){
+        if(e.header.count!==Object.keys(state.participants).length||e.header.epoch!==(BigInt(state.resolution?.header.epoch??0)+1n).toString())throw new Error('Resolution reset identity');
+        const decoder=getResolutionRowDecoder();
+        state.resolution={header:e.header,rows:Array.from({length:e.header.count},()=>JSON.parse(json(decoder.decode(new Uint8Array(decoder.fixedSize)))))};
+      } else {
+        const resolution=requireValue(state.resolution,'resolution');
+        if(e.header.epoch!==resolution.header.epoch||e.header.count!==resolution.header.count)throw new Error('Resolution epoch/cohort mismatch');
+        resolution.header=e.header;
+      }
+      if(e.rows.length>4||new Set(e.rows.map((x:any)=>x.id)).size!==e.rows.length)throw new Error('Resolution page shape');
+      for(const x of e.rows){if(x.id<0||x.id>=e.header.count)throw new Error('Resolution member ID');state.resolution.rows[x.id]=x.row;}
+    }
   } else if (event.type === 'order') {
     if(![0,1,2,3,4,5].includes(e.kind))throw new Error('Unknown order operation');
     const p=requireValue(state.participants[e.participant],'participant');
@@ -88,11 +119,19 @@ export function project(state: State, event: Event, market: string, domain: stri
     if(reserve!==BigInt(p.reserved))throw new Error('Order reservation mismatch');
   }
   if (m && participants.reduce((n, p) => n + BigInt(p.cash), 0n) !== BigInt(m.totalCash)) throw new Error('Participant cash mismatch');
+  if(m?.mode===3){reconcileResolution(m,state.risk,state.participants,state.resolution);return;}
   if (participants.reduce((n, p) => n + BigInt(p.lots), 0n) !== 0n) throw new Error('Net position mismatch');
   if (m && participants.reduce((n,p) => n + BigInt(p.virtualScaled) + BigInt(p.lots)*BigInt(p.fundingCheckpointScaled),0n) !== BigInt(m.settlement)*1_000_000_000n) throw new Error('Claims conservation failure');
 }
 
 export function balance(p: Participant, state: State, slot: bigint, now=BigInt(Math.floor(Date.now()/1000))) {
+  if(state.market?.mode===3){
+    const resolution=resolutionBalance(p,state.resolution);
+    return {...p,resolution,unpaidPnlScaled:resolution.paymentApplied?'0':resolution.claimAfterCollectionScaled,negativeUnpaidLiability:null,
+      riskEquity:null,initialMargin:null,positiveUnpaidMarginCredit:'0',withdrawableCash:'0',
+      exitRequirement:'CompleteCohortResolutionAndAuthorizedRecovery',settlementAvailable:'0',currentRequiredReserve:'0',
+      fundingIndexScaled:state.market.fundingIndexScaled,sourceMode:'Frozen',valuationStatus:resolution.valued?'PinnedResolutionValuation':'AwaitingCohortValuation',evaluatedAtSlot:slot.toString()};
+  }
   const q = BigInt(p.lots), f = effectiveFunding(state.market,state.risk,now,slot), v = BigInt(p.virtualScaled)-q*(f-BigInt(p.fundingCheckpointScaled)), cash = BigInt(p.cash), scale = 1_000_000_000n;
   const risk = state.risk;
   const mode=oracleMode(state.market,risk,now,slot);

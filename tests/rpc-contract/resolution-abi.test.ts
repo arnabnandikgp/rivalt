@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {writeFileSync} from 'node:fs';
+import {it} from 'vitest';
+import * as sdk from '@rivalt/sdk';
+import {addresses,payerKey,fixtureKey} from './custody-cases.js';
+import {feedAddress} from './oracle-fixture.js';
+it('matches liquidation and every resolution authority family with isolated legacy Anchor',async()=>{
+  const a=await addresses(),payer=await payerKey(),owner=await fixtureKey('trader'),receiverOwner=await fixtureKey('p09-receiver');
+  const [target]=await sdk.findParticipantPda({market:a.market,owner:owner.address}),[receiver]=await sdk.findParticipantPda({market:a.market,owner:receiverOwner.address});
+  const [receiverBinding]=await sdk.findReceiverBindingPda({receiver}),[routeState]=await sdk.findRouteStatePda({market:a.market}),[resolution]=await sdk.findResolutionPda({market:a.market});
+  const f=await Promise.all([0,1,2,3].map(feedAddress));
+  const sources={primaryBtc:f[0].feed,primaryCollateral:f[1].feed,guardBtc:f[2].feed,guardCollateral:f[3].feed};
+  const page={market:a.market,routeState,registry:a.registry,resolution,vault:a.vault,eventAuthority:a.eventAuthority,program:a.program};
+  const init={authority:payer.address,market:a.market,resolution,systemProgram:'11111111111111111111111111111111'};
+  const freeze={caller:payer.address,market:a.market,target,routeState,registry:a.registry,resolution,vault:a.vault,...sources,eventAuthority:a.eventAuthority,program:a.program};
+  const recover={caller:payer.address,...page,...sources};
+  const liq={receiverOwner:receiverOwner.address,market:a.market,target,receiver,receiverBinding,routeState,vault:a.vault,eventAuthority:a.eventAuthority,program:a.program};
+  const modern=[await sdk.getInitializeResolutionInstructionAsync({...a,authority:payer,resolution}),await sdk.getLiquidateInstructionAsync({...liq,receiverOwner,sequence:123n,observation:4n,lots:5n,price:58000n}),await sdk.getFreezeMarketInstructionAsync({...freeze,caller:payer,sequence:123n,observation:4n,emergency:false}),await sdk.getAdvanceResolutionInstructionAsync({...page,epoch:2n,stage:7,start:12}),await sdk.getRecoverResolutionInstructionAsync({...recover,caller:payer,epoch:2n,resume:true})];
+  const instructions=[['initializeResolution',[],init],['liquidate',[123n,4n,5n,58000n],liq],['freezeMarket',[123n,4n,false],freeze],['advanceResolution',[2n,7,12],page],['recoverResolution',[2n,true],recover]].map(([name,args,accounts])=>({program:'clearing',name,args,accounts}));
+  writeFileSync('.local/p09-abi.json',JSON.stringify({instructions},(_,v)=>typeof v==='bigint'?{$integer:v.toString()}:v));
+  const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/makers.cjs','.local/p09-abi.json'],{encoding:'utf8'}));
+  modern.forEach((ix,i)=>{assert.equal(Buffer.from(ix.data!).toString('hex'),legacy.instructions[i].data);assert.deepEqual(ix.accounts!.map(a=>({address:a.address,signer:(a.role&2)!==0,writable:(a.role&1)!==0})),legacy.instructions[i].accounts);});
+});

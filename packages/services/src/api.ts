@@ -25,6 +25,7 @@ export function api(runtime:Runtime){
   app.get<{Params:{id:string}}>('/v1/submissions/:id',async(request,reply)=>{
     const r=await runtime.queue.get(request.params.id);return r??reply.code(404).send({error:'Unknown submission'});
   });
+  app.get('/v1/resolution',async()=>{const s=await runtime.snapshot();return{slot:s.slot,sequence:s.m.sequence,frozen:s.m.mode===3,resolution:s.resolutionState};});
   app.get('/v1/orders',async()=>{
     const s=await runtime.snapshot();
     return {slot:s.slot,sequence:s.m.sequence,sourceMode:s.sourceMode,orders:Object.entries(s.participants).flatMap(([participant,p])=>p.book.orders.filter(o=>o.id>0n).map(o=>({participant,...o,

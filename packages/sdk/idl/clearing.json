@@ -10,6 +10,176 @@
   ],
   "instructions": [
     {
+      "name": "advance_resolution",
+      "discriminator": [
+        112,
+        155,
+        208,
+        72,
+        177,
+        155,
+        63,
+        181
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state",
+            "registry",
+            "resolution"
+          ]
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "stage",
+          "type": "u8"
+        },
+        {
+          "name": "start",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "approve_maker",
       "discriminator": [
         182,
@@ -1355,6 +1525,225 @@
       ]
     },
     {
+      "name": "freeze_market",
+      "discriminator": [
+        184,
+        154,
+        237,
+        98,
+        127,
+        82,
+        217,
+        180
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "target",
+            "route_state",
+            "registry",
+            "resolution"
+          ]
+        },
+        {
+          "name": "target",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "target.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "primary_btc"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_btc"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "emergency",
+          "type": "bool"
+        }
+      ]
+    },
+    {
       "name": "fund_insurance",
       "discriminator": [
         58,
@@ -1758,6 +2147,87 @@
       ]
     },
     {
+      "name": "initialize_resolution",
+      "discriminator": [
+        114,
+        234,
+        73,
+        65,
+        38,
+        194,
+        180,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initialize_test_routes",
       "discriminator": [
         16,
@@ -1851,6 +2321,230 @@
         },
         {
           "name": "duration",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "liquidate",
+      "discriminator": [
+        223,
+        179,
+        226,
+        125,
+        48,
+        46,
+        39,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "receiver_owner",
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "target",
+            "receiver",
+            "route_state"
+          ]
+        },
+        {
+          "name": "target",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "target.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "receiver",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "receiver_owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "receiver_binding",
+          "docs": [
+            "transfer cannot disqualify it; an initialized maker binding always does."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114,
+                  45,
+                  99,
+                  97,
+                  112,
+                  105,
+                  116,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "receiver"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "lots",
+          "type": "u64"
+        },
+        {
+          "name": "price",
           "type": "u64"
         }
       ]
@@ -2481,6 +3175,188 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "recover_resolution",
+      "discriminator": [
+        160,
+        117,
+        82,
+        167,
+        208,
+        168,
+        218,
+        196
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state",
+            "registry",
+            "resolution"
+          ]
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "primary_btc"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_btc"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "resume",
+          "type": "bool"
+        }
+      ]
     },
     {
       "name": "register_maker",
@@ -3873,6 +4749,19 @@
       ]
     },
     {
+      "name": "ResolutionState",
+      "discriminator": [
+        79,
+        128,
+        50,
+        21,
+        72,
+        199,
+        254,
+        128
+      ]
+    },
+    {
       "name": "TestRouteState",
       "discriminator": [
         27,
@@ -3898,6 +4787,19 @@
         178,
         196,
         158
+      ]
+    },
+    {
+      "name": "LiquidationApplied",
+      "discriminator": [
+        36,
+        102,
+        222,
+        145,
+        192,
+        150,
+        20,
+        41
       ]
     },
     {
@@ -3950,6 +4852,19 @@
         158,
         27,
         151
+      ]
+    },
+    {
+      "name": "ResolutionProgress",
+      "discriminator": [
+        164,
+        124,
+        164,
+        77,
+        35,
+        136,
+        138,
+        141
       ]
     },
     {
@@ -4142,6 +5057,16 @@
       "code": 6128,
       "name": "OrderTrigger",
       "msg": "Current central index does not satisfy stored trigger"
+    },
+    {
+      "code": 6129,
+      "name": "Liquidation",
+      "msg": "Liquidation receiver, funded fee or strict risk progress check failed"
+    },
+    {
+      "code": 6130,
+      "name": "Resolution",
+      "msg": "Resolution epoch, stage, cursor, cohort or accounting check failed"
     }
   ],
   "types": [
@@ -4382,6 +5307,99 @@
       }
     },
     {
+      "name": "LiquidationApplied",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "observation",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "deficit_before",
+            "type": "i128"
+          },
+          {
+            "name": "deficit_after",
+            "type": "i128"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "gross_lots",
+            "type": "u64"
+          },
+          {
+            "name": "target",
+            "type": {
+              "defined": {
+                "name": "RiskParticipant"
+              }
+            }
+          },
+          {
+            "name": "receiver",
+            "type": {
+              "defined": {
+                "name": "RiskParticipant"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "MakerChanged",
       "type": {
         "kind": "struct",
@@ -4596,7 +5614,7 @@
           {
             "name": "mode",
             "docs": [
-              "0 CustodyOnly, 1 explicitly compiled synthetic TestRoutes."
+              "0 CustodyOnly, 1 synthetic TestRoutes, 2 oracle profile, 3 frozen resolution."
             ],
             "type": "u8"
           },
@@ -5359,6 +6377,481 @@
           {
             "name": "reference_price",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionHeader",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          },
+          {
+            "name": "cursor",
+            "type": "u16"
+          },
+          {
+            "name": "count",
+            "type": "u16"
+          },
+          {
+            "name": "registry_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "funding",
+            "type": "i128"
+          },
+          {
+            "name": "frozen_at",
+            "type": "i64"
+          },
+          {
+            "name": "initial_cash",
+            "type": "u64"
+          },
+          {
+            "name": "initial_pool",
+            "type": "u64"
+          },
+          {
+            "name": "initial_insurance",
+            "type": "u64"
+          },
+          {
+            "name": "initial_fees",
+            "type": "u64"
+          },
+          {
+            "name": "initial_vault",
+            "type": "u64"
+          },
+          {
+            "name": "scanned_cash",
+            "type": "u64"
+          },
+          {
+            "name": "scanned_lots",
+            "type": "i128"
+          },
+          {
+            "name": "scanned_gross",
+            "type": "u64"
+          },
+          {
+            "name": "claim_sum",
+            "type": "i128"
+          },
+          {
+            "name": "remaining_lots",
+            "type": "i128"
+          },
+          {
+            "name": "remaining_gross",
+            "type": "u64"
+          },
+          {
+            "name": "debt",
+            "type": "u128"
+          },
+          {
+            "name": "positive",
+            "type": "u128"
+          },
+          {
+            "name": "insured_atoms",
+            "type": "u64"
+          },
+          {
+            "name": "plan_pool",
+            "type": "u64"
+          },
+          {
+            "name": "assigned",
+            "type": "u128"
+          },
+          {
+            "name": "extra",
+            "type": "u16"
+          },
+          {
+            "name": "rounding_sum",
+            "type": "i128"
+          },
+          {
+            "name": "collected_total",
+            "type": "u64"
+          },
+          {
+            "name": "paid_applied",
+            "type": "u64"
+          },
+          {
+            "name": "insurance_moved",
+            "type": "bool"
+          },
+          {
+            "name": "recovery_since",
+            "type": "i64"
+          },
+          {
+            "name": "recovery_last",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionParticipant",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "participant",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "i64"
+          },
+          {
+            "name": "virtual_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_checkpoint_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "finalized",
+            "docs": [
+              "Apply invalidates all active orders, zeros reserves/IDs and group allowance.",
+              "Collection leaves the full existing book and nonce unchanged."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionProgress",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "docs": [
+              "0 freeze/reset rows, 1 page, 2 valuation/recovery check, 3 resume."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "mode",
+            "type": "u8"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "settlement",
+            "type": "u64"
+          },
+          {
+            "name": "insurance",
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
+          },
+          {
+            "name": "allocated_vault",
+            "type": "u64"
+          },
+          {
+            "name": "gross_lots",
+            "type": "u64"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "OracleState"
+              }
+            }
+          },
+          {
+            "name": "header",
+            "type": {
+              "defined": {
+                "name": "ResolutionHeader"
+              }
+            }
+          },
+          {
+            "name": "rows",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ResolutionUpdate"
+                }
+              }
+            }
+          },
+          {
+            "name": "participants",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ResolutionParticipant"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionRow",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cash_before",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "i64"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "claim",
+            "docs": [
+              "Valued claim plus collected*SCALE. Ordinary v remains frozen until Apply."
+            ],
+            "type": "i128"
+          },
+          {
+            "name": "collected",
+            "type": "u64"
+          },
+          {
+            "name": "insured_scaled",
+            "type": "u128"
+          },
+          {
+            "name": "impaired_scaled",
+            "type": "u128"
+          },
+          {
+            "name": "paid",
+            "type": "u64"
+          },
+          {
+            "name": "rounding_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "remainder",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "header",
+            "type": {
+              "defined": {
+                "name": "ResolutionHeader"
+              }
+            }
+          },
+          {
+            "name": "rows",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ResolutionRow"
+                }
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionUpdate",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "row",
+            "type": {
+              "defined": {
+                "name": "ResolutionRow"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RiskParticipant",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "participant",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "i64"
+          },
+          {
+            "name": "virtual_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_checkpoint_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "reserved",
+            "type": "u64"
+          },
+          {
+            "name": "order_ids",
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "book",
+            "type": {
+              "defined": {
+                "name": "OrderBook"
+              }
+            }
           }
         ]
       }

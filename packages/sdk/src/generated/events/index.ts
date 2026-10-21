@@ -7,10 +7,12 @@
  */
 
 export * from "./custodyChanged.js";
+export * from "./liquidationApplied.js";
 export * from "./makerChanged.js";
 export * from "./oracleObserved.js";
 export * from "./orderChanged.js";
 export * from "./probeRecorded.js";
+export * from "./resolutionProgress.js";
 export * from "./routeExecuted.js";
 export * from "./settlementChanged.js";
 export * from "./testRiskPublished.js";

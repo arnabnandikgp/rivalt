@@ -368,6 +368,7 @@ pub fn sync(ctx: Context<SyncMaker>) -> Result<()> {
     Ok(())
 }
 pub fn quarantine(ctx: Context<QuarantineMaker>) -> Result<()> {
+    require!(ctx.accounts.market.mode != 3, ClearingError::Resolution);
     let r = &mut ctx.accounts.registration;
     r.quarantined = true;
     r.authority_epoch = r

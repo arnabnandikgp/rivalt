@@ -21,7 +21,8 @@
     "test:settlement": "node --import tsx tests/rpc-contract/settlement-svm.ts",
     "services": "node --import tsx packages/services/src/main.ts",
     "test:oracle": "node --import tsx tests/rpc-contract/oracle-svm.ts",
-    "test:orders": "node --import tsx tests/rpc-contract/order-svm.ts"
+    "test:orders": "node --import tsx tests/rpc-contract/order-svm.ts",
+    "test:resolution": "bash ops/resolution-tests.sh"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "1.5.6",

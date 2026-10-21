@@ -341,7 +341,7 @@ pub(crate) fn participant_model(p: &Participant) -> Result<math::Participant> {
         .map_err(|_| error!(ClearingError::Arithmetic))?;
     Ok(model)
 }
-fn commit(p: &mut Participant, m: math::Participant) {
+pub(crate) fn commit(p: &mut Participant, m: math::Participant) {
     p.cash = m.cash;
     p.lots = m.lots;
     p.virtual_scaled = m.virtual_scaled;

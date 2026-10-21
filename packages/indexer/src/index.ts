@@ -107,8 +107,9 @@ export class Indexer {
     const [registry] = await sdk.findRegistryPda({market});
     const [route] = await sdk.findRouteStatePda({market});
     const [vault] = await sdk.findVaultPda({market});
+    const [resolution] = await sdk.findResolutionPda({market});
     const participants = Object.keys(state.participants), makers = Object.keys(state.makers);
-    const keys = [market,registry,vault,...participants,...makers,...(state.risk ? [route] : [])];
+    const keys = [market,registry,vault,...participants,...makers,...(state.risk ? [route] : []),...(state.resolution ? [resolution] : [])];
     const response = await this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized'}]);
     integer(response.context.slot);
     const data = (i:number, owner:string = PROGRAM) => {
@@ -137,10 +138,15 @@ export class Indexer {
       for (const [field,value] of Object.entries(state.makers[key])) assert.equal(json((maker as any)[field]),json(value),`Maker ${field}`);
     });
     if (state.risk) {
-      const risk = sdk.getTestRouteStateDecoder().decode(data(keys.length-1));
+      const risk = sdk.getTestRouteStateDecoder().decode(data(keys.indexOf(route)));
       for (const key of ['observationSequence','referencePrice','lower','upper','validFrom','validUntil'] as const) assert.equal(String(risk[key]),state.risk[key],`Risk ${key}`);
       assert.equal(String(risk.grossLots),m.grossLots);
-      if(m.mode===2) assert.deepEqual(JSON.parse(json(risk.oracle)),state.risk.oracle,'Oracle/funding state');
+      if(m.mode>=2) assert.deepEqual(JSON.parse(json(risk.oracle)),state.risk.oracle,'Oracle/funding state');
+    }
+    if(state.resolution){
+      const value=sdk.getResolutionStateDecoder().decode(data(keys.indexOf(resolution)));
+      assert.equal(value.version,1);assert.equal(value.market,market);
+      assert.deepEqual(JSON.parse(json({header:value.header,rows:value.rows})),state.resolution,'Resolution ledger');
     }
     return {slot:response.context.slot.toString(),sequence:state.sequence,actualVault:actualVault.toString(),allocatedVault:chain.allocatedVault.toString(),unallocatedSurplus:(actualVault-chain.allocatedVault).toString(),participants:participants.length};
   }

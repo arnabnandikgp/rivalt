@@ -139,3 +139,16 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **Boundary:** No economic fee, margin-credit, loss-bearer, custody or order-type expansion. Cancellation/cleanup remains independent of pricing availability. Default build and later liquidation/default remain disabled. Configuration selection is not acceptance; A11/A12 and measured ABI/resource evidence are still required.
 
 - **G09 evidence:** [P08 acceptance](evidence/P08.md) verifies A11/A12/G09 across clean `1f27fa8` and harness-only child `cd2b8fa`, with identical financial/service trees. 203 signed P08 transactions plus 45 setup transactions and ten real RPC/WS/PostgreSQL checks pass. The fully populated split uses 298,776 CU / 824 bytes / 18 accounts. P08 remains Review until integration; no full-wrapper exit-zero, load, devnet or external-review claim follows.
+
+
+## 21 October 2026 — P09 risk/default configuration (implementation in progress)
+
+- **D30 / G10:** Select the finite local liquidation, default-entry, 1–4-member page, staged rounding and recovery policy in [RESOLUTION](P09-RESOLUTION.md). Liquidation pays a capped 5 bps funded fee to a consenting non-maker receiver, with no duplicate ordinary taker fee; current index-derived bands, strict post-fee deficit/exposure improvement and receiver IM/reservations remain mandatory.
+- **Complete cohort:** Preserve D19's exact scaled insurance/impairment and terminal rounding. Persist bounded floor/remainder/award passes and a complete payout plan before payment; explicitly reconcile mixed applied/unapplied frozen representations. No new cash asset, selected haircut cohort, stale discretionary mark or liquidation-capital assumption is introduced.
+- **Status:** G10 selections are implementation choices, not acceptance or M6 calibration. Measured signed/RPC resource limits, A13/A14 and recovery evidence remain required. Unimplemented financial paths stay disabled.
+
+- **D30 implementation refinement:** Preserve the last credible source deadline through restrictive samples for the 30-second emergency grace proof; status/validity continue blocking pricing. Freeze rereads immutable authenticated sources. Resolution collection keeps ordinary v frozen and uses explicit collected adjustments, preserving P02 derived-claim headroom. Compact page events specify deterministic final book cleanup; fresh signed/account reconstruction remains required.
+
+- **D30 representation supersession:** PROTOCOL §10's former shorthand physically zeroed q while valuing each account. P09 instead stores those exact valued claims in its frozen ledger and delays physical q/v finalization until the complete plan is applied. This preserves D19's payout/rounding semantics, supports derived-claim headroom and makes partially applied cohorts explicitly reconcilable. It does not introduce another loss-bearer or margin-credit rule.
+
+- **D30 funding coverage:** Close the prior sampler's diagnostic interval at freeze and count the full frozen interval as skipped at resume. Preserve exactly the materialized F and original charges. Resetting sampler state must not silently discard coverage counters or backfill funding across resolution.

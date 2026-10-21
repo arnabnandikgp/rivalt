@@ -26,29 +26,34 @@ export class Runtime {
   async snapshot(){
     const b=await this.environment(),row=await this.store.snapshot(),market=address(b.market);
     const [registry]=await sdk.findRegistryPda({market}),[routeState]=await sdk.findRouteStatePda({market}),[guard]=await sdk.findGuardPda({market}),[vault]=await sdk.findVaultPda({market});
+    const [resolution]=await sdk.findResolutionPda({market});
     const [eventAuthority]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('__event_authority')]});
     const pkeys=Object.keys(row.state.participants).sort((a,b)=>row.state.participants[a].id-row.state.participants[b].id).map(address),rkeys=Object.keys(row.state.makers).map(address);
     // Discover bindings, then refetch every value from a single finalized bank.
     const discovered=await this.rpc.call('getMultipleAccounts',[rkeys,{encoding:'base64',commitment:'finalized'}]);
     const regs=discovered.value.map((x:any)=>{if(x?.owner!==sdk.CLEARING_PROGRAM_ADDRESS)throw new Error('Maker missing');return sdk.getMakerRegistrationDecoder().decode(Buffer.from(x.data[0],'base64'));}) as sdk.MakerRegistration[];
     const clock=address('SysvarC1ock11111111111111111111111111111111');
-    const keys=[clock,market,registry,routeState,guard,vault,...pkeys,...rkeys,...regs.flatMap(r=>[r.config,r.programData])];
+    const keys=[clock,market,registry,routeState,guard,vault,...pkeys,...rkeys,...regs.flatMap(r=>[r.config,r.programData]),resolution];
     const response=await this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized'}]);
     const slot=BigInt(integer(response.context.slot));
     const raw=(key:Address,owner:string=sdk.CLEARING_PROGRAM_ADDRESS)=>{const a=response.value[keys.indexOf(key)];if(!a || a.owner!==owner)throw new Error('Missing/foreign snapshot account');return Buffer.from(a.data[0],'base64');};
     const m=sdk.getMarketStateDecoder().decode(raw(market)),reg=sdk.getParticipantRegistryDecoder().decode(raw(registry));
-    if(Buffer.from(m.domain).toString('hex')!==b.domain || m.schemaVersion!==1 || m.profileVersion!==1 || ![1,2].includes(m.mode) || (m.mode===1 && m.fundingIndexScaled!==0n))throw new Error('Unsupported service profile');
+    if(Buffer.from(m.domain).toString('hex')!==b.domain || m.schemaVersion!==1 || m.profileVersion!==1 || ![1,2,3].includes(m.mode) || (m.mode===1 && m.fundingIndexScaled!==0n))throw new Error('Unsupported service profile');
     assert.deepEqual(reg.members,pkeys);assert.equal(reg.count,pkeys.length);
     const risk=sdk.getTestRouteStateDecoder().decode(raw(routeState));
     const participants=Object.fromEntries(pkeys.map(k=>[k,sdk.getParticipantDecoder().decode(raw(k))]));
     pkeys.forEach((k,id)=>{const p=participants[k];if(p.market!==market || p.schemaVersion!==1 || p.id!==id)throw new Error('Unsupported participant profile');});
     const total=Object.values(participants).reduce((n,p)=>n+p.cash,0n),claims=Object.values(participants).reduce((n,p)=>n+p.virtualScaled+p.lots*p.fundingCheckpointScaled,0n);
-    if(total!==m.totalCash || claims!==m.settlement*1_000_000_000n || Object.values(participants).reduce((n,p)=>n+p.lots,0n)!==0n)throw new Error('Snapshot ledger mismatch');
+    const resolutionAccount=response.value[keys.indexOf(resolution)];
+    const resolutionState=resolutionAccount?sdk.getResolutionStateDecoder().decode(raw(resolution)):null;
+    if(resolutionState&&(resolutionState.market!==market||resolutionState.version!==1))throw new Error('Resolution binding');
+    if(m.mode===3)sdk.reconcileResolution(m,risk,participants,resolutionState);
+    else if(total!==m.totalCash || claims!==m.settlement*1_000_000_000n || Object.values(participants).reduce((n,p)=>n+p.lots,0n)!==0n)throw new Error('Snapshot ledger mismatch');
     const actual=raw(vault,'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').readBigUInt64LE(64);
     if(m.allocatedVault!==m.totalCash+m.settlement+m.insurance+m.fees || actual<m.allocatedVault)throw new Error('Snapshot vault mismatch');
     const now=raw(clock,'Sysvar1111111111111111111111111111111111111').readBigInt64LE(32);
     const funding=sdk.effectiveFunding(m,risk,now,slot),sourceMode=sdk.oracleMode(m,risk,now,slot);
-    for(const key of pkeys){
+    if(m.mode!==3)for(const key of pkeys){
       const p=sdk.accruedBalance(participants[key],funding);
       p.reserved=sdk.orderReserve(p,m.termsEpoch,slot,sourceMode==='NoCredibleBounds'?1n:risk.lower,sourceMode==='NoCredibleBounds'?1_000_000n:risk.upper);
       participants[key]=p;
@@ -61,7 +66,7 @@ export class Runtime {
       const heartbeat=heartbeats.find(h=>h.maker_id===r.makerId && h.owner===r.owner);
       return {registration,r,state,approved,online:heartbeat?.online===true,balance:participants[r.capital]};
     });
-    return {market,registry,routeState,guard,vault,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS,m,risk,slot,now,funding,sourceMode,participants,members:reg.members,makers,
+    return {market,registry,routeState,guard,vault,resolution,resolutionState,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS,m,risk,slot,now,funding,sourceMode,participants,members:reg.members,makers,
       certificate:sdk.getExitGuardDecoder().decode(raw(guard)),actual};
   }
   async quote(owner:Address,side:number,lots:bigint,stored?:{id:bigint;version:bigint;filled:bigint},keeper?:Keypair){
@@ -93,10 +98,12 @@ export class Runtime {
     return {available:true,snapshotSlot:s.slot,sequence:s.m.sequence,observation:s.risk.observationSequence,nonce:p.nonce,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation,
       instructions:[sdk.routeComputeBudget(),ix].map(i=>({programAddress:i.programAddress,accounts:i.accounts?.map(a=>({address:a.address,role:a.role})),data:Buffer.from(i.data??[]).toString('base64')}))};
   }
-  async enqueue(id:string,ixs:Instruction[],payer:Keypair,budget:string,authority:Authority|null){
+  async enqueue(id:string,ixs:Instruction[],payer:Keypair,budget:string,authority:Authority|null,preflight=false){
     if(await this.queue.get(id))return;
     const {transaction}=await sdk.signInstructions(this.connection,payer,ixs);
-    await this.queue.put(id,Buffer.from(transaction.serialize()).toString('base64'),authority,budget);
+    const wire=Buffer.from(transaction.serialize()).toString('base64');
+    if(preflight){const simulation=await this.rpc.call('simulateTransaction',[wire,{encoding:'base64',sigVerify:true,commitment:'confirmed'}]);if(simulation.value.err)throw new Error('Risk action presently unavailable');}
+    await this.queue.put(id,wire,authority,budget);
   }
   async maker(id:number,key:Keypair){
     const s=await this.snapshot(),x=s.makers.find(x=>x.r.makerId===id);if(!x || x.r.owner!==key.address)throw new Error('Maker key binding');
@@ -171,6 +178,46 @@ export class Runtime {
         const instructions=q.instructions!.map(i=>({programAddress:i.programAddress,accounts:i.accounts,data:Buffer.from(i.data,'base64')}));
         await this.enqueue(`order:${p.id}:${o.id}:${o.version}:${o.filled}:${q.sequence}`,instructions,key,'orders',{kind:'nonce',account:participant,value:q.nonce!.toString()});
         return;
+      }
+    }
+  }
+  async riskWork(key:Keypair){
+    await this.queue.budget('risk',key.address,OPERATOR_CAP);
+    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'risk:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
+    const s=await this.snapshot();if(!s.resolutionState)throw new Error('Resolution not initialized');
+    const o=s.risk.oracle,sources={primaryBtc:o.sources[0],primaryCollateral:o.sources[1],guardBtc:o.sources[2],guardCollateral:o.sources[3]};
+    const authority:Authority={kind:'sequence',account:s.market,value:s.m.sequence.toString()};
+    const enqueue=async(id:string,ix:Instruction)=>this.enqueue(`risk:${id}:${s.m.sequence}`,[sdk.resolutionComputeBudget(),ix],key,'risk',authority,true);
+    if(s.m.mode===3){
+      const h=s.resolutionState.header;
+      if(h.stage===1||h.stage===12){
+        if(h.stage===12&&s.now-h.recoveryLast<2n)return;
+        // Permissionless checks cannot resume. Only a separate explicit authority action can.
+        await enqueue(`check:${h.epoch}:${h.stage}:${s.now}`,await sdk.getRecoverResolutionInstructionAsync({...s,...sources,caller:key,epoch:h.epoch,resume:false}));return;
+      }
+      if(h.stage>=2&&h.stage<=11){
+        const ix=await sdk.getAdvanceResolutionInstructionAsync({...s,epoch:h.epoch,stage:h.stage,start:h.cursor});
+        const page={...ix,accounts:[...ix.accounts,...s.members.slice(h.cursor,h.cursor+4).map(address=>({address,role:[3,10].includes(h.stage)?AccountRole.WRITABLE:AccountRole.READONLY}))]};
+        await enqueue(`page:${h.epoch}:${h.stage}:${h.cursor}`,page);
+      }
+      return;
+    }
+    if(s.m.mode!==2||s.m.paused||s.sourceMode==='NoCredibleBounds')return;
+    // Bankruptcy proof is independent of liquidation receiver capacity.
+    for(const target of s.members){const p=s.participants[target];
+      if(p.cash*1_000_000_000n+p.virtualScaled+p.lots*s.risk.referencePrice*1_000_000_000n<0n){
+        await enqueue(`freeze:${p.id}`,await sdk.getFreezeMarketInstructionAsync({...s,...sources,caller:key,target,sequence:s.m.sequence,observation:s.risk.observationSequence,emergency:false}));return;
+      }
+    }
+    const [receiver]=await sdk.findParticipantPda({market:s.market,owner:key.address}),capital=s.participants[receiver];
+    if(!capital||capital.cash===0n||s.makers.some(x=>x.r.capital===receiver))return;
+    for(const target of s.members){const p=s.participants[target];if(target===receiver||sdk.maintenanceDeficit(p,s.risk.lower,s.risk.upper)===0n)continue;
+      const exposure=p.lots<0n?-p.lots:p.lots;
+      let lots=exposure<64n?exposure:64n;
+      while(lots>0n){
+        const candidate=sdk.liquidationCandidate(p,capital,lots,s.risk.referencePrice,s.risk.referencePrice,s.risk.lower,s.risk.upper,s.m.termsEpoch,s.slot,s.risk.grossLots);
+        if(candidate){await enqueue(`liquidate:${p.id}`,await sdk.getLiquidateInstructionAsync({...s,receiverOwner:key,target,receiver,sequence:s.m.sequence,observation:s.risk.observationSequence,lots,price:s.risk.referencePrice}));return;}
+        lots/=2n;
       }
     }
   }

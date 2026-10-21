@@ -8,7 +8,8 @@ export function effectiveFunding(m:any,r:any,now:bigint,slot:bigint):bigint {
   if(BigInt(o.heldEpoch)!==BigInt(m.configEpoch)||end<=start||slot>=BigInt(o.heldSlot)||now<start||now-start>30n)return base;
   return BigInt(o.fundingBase)+BigInt(o.premiumScaled)*((now<end?now:end)-start)/3600n;
 }
-export function oracleMode(m:any,r:any,now:bigint,slot:bigint):'Normal'|'Degraded'|'NoCredibleBounds'{
+export function oracleMode(m:any,r:any,now:bigint,slot:bigint):'Normal'|'Degraded'|'NoCredibleBounds'|'Frozen'{
+  if(m?.mode===3)return 'Frozen';
   if(!r || slot<BigInt(r.validFrom)||slot>=BigInt(r.validUntil))return 'NoCredibleBounds';
   if(m?.mode!==2)return 'Normal';
   const o=r.oracle;

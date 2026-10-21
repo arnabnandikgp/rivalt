@@ -75,6 +75,10 @@ export const CLEARING_ERROR__ORDER_TERMS = 0x17ee; // 6126
 export const CLEARING_ERROR__ORDER_SLOTS = 0x17ef; // 6127
 /** OrderTrigger: Current central index does not satisfy stored trigger */
 export const CLEARING_ERROR__ORDER_TRIGGER = 0x17f0; // 6128
+/** Liquidation: Liquidation receiver, funded fee or strict risk progress check failed */
+export const CLEARING_ERROR__LIQUIDATION = 0x17f1; // 6129
+/** Resolution: Resolution epoch, stage, cursor, cohort or accounting check failed */
+export const CLEARING_ERROR__RESOLUTION = 0x17f2; // 6130
 
 export type ClearingError =
   | typeof CLEARING_ERROR__ALIAS
@@ -85,6 +89,7 @@ export type ClearingError =
   | typeof CLEARING_ERROR__DOMAIN
   | typeof CLEARING_ERROR__EXIT_COHORT
   | typeof CLEARING_ERROR__FINANCIAL_SEQUENCE
+  | typeof CLEARING_ERROR__LIQUIDATION
   | typeof CLEARING_ERROR__MAKER_BINDING
   | typeof CLEARING_ERROR__MAKER_CAPITAL
   | typeof CLEARING_ERROR__MAKER_EPOCH
@@ -103,6 +108,7 @@ export type ClearingError =
   | typeof CLEARING_ERROR__PROFILE
   | typeof CLEARING_ERROR__RECONCILIATION
   | typeof CLEARING_ERROR__RESERVED_NONCE
+  | typeof CLEARING_ERROR__RESOLUTION
   | typeof CLEARING_ERROR__RISK_OBSERVATION
   | typeof CLEARING_ERROR__ROUTE_HEALTH
   | typeof CLEARING_ERROR__ROUTE_INTENT
@@ -119,6 +125,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [CLEARING_ERROR__DOMAIN]: `Domain identity must be nonzero`,
     [CLEARING_ERROR__EXIT_COHORT]: `Exit cohort is incomplete, insolvent, foreign or stale`,
     [CLEARING_ERROR__FINANCIAL_SEQUENCE]: `Financial action is bound to a different market sequence`,
+    [CLEARING_ERROR__LIQUIDATION]: `Liquidation receiver, funded fee or strict risk progress check failed`,
     [CLEARING_ERROR__MAKER_BINDING]: `Maker program, config or capital binding mismatch`,
     [CLEARING_ERROR__MAKER_CAPITAL]: `Maker capital is unfunded or outside the implemented profile`,
     [CLEARING_ERROR__MAKER_EPOCH]: `Maker or market epoch mismatch or expired quote`,
@@ -137,6 +144,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [CLEARING_ERROR__PROFILE]: `Financial state is outside the implemented phase profile`,
     [CLEARING_ERROR__RECONCILIATION]: `Actual vault is below allocated cash or cash totals disagree`,
     [CLEARING_ERROR__RESERVED_NONCE]: `The maximum nonce is reserved for the local rejection probe`,
+    [CLEARING_ERROR__RESOLUTION]: `Resolution epoch, stage, cursor, cohort or accounting check failed`,
     [CLEARING_ERROR__RISK_OBSERVATION]: `Synthetic observation is unavailable, stale or mismatched`,
     [CLEARING_ERROR__ROUTE_HEALTH]: `Post-fee health or exposure capacity fails`,
     [CLEARING_ERROR__ROUTE_INTENT]: `Route authority, quantity, lifetime, nonce or generation mismatch`,

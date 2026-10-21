@@ -6,6 +6,7 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./advanceResolution.js";
 export * from "./approveMaker.js";
 export * from "./cancelOrder.js";
 export * from "./cancelProtection.js";
@@ -16,17 +17,21 @@ export * from "./collectLoss.js";
 export * from "./deposit.js";
 export * from "./executeOrder.js";
 export * from "./executeRoute.js";
+export * from "./freezeMarket.js";
 export * from "./fundInsurance.js";
 export * from "./initializeExitGuard.js";
 export * from "./initializeMarket.js";
 export * from "./initializeOracle.js";
+export * from "./initializeResolution.js";
 export * from "./initializeTestRoutes.js";
+export * from "./liquidate.js";
 export * from "./placeOrder.js";
 export * from "./placeProtection.js";
 export * from "./previewMaker.js";
 export * from "./probe.js";
 export * from "./publishTestRisk.js";
 export * from "./quarantineMaker.js";
+export * from "./recoverResolution.js";
 export * from "./registerMaker.js";
 export * from "./registerParticipant.js";
 export * from "./replaceOrder.js";

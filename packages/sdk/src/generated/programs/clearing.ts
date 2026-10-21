@@ -43,6 +43,7 @@ import {
   getParticipantCodec,
   getParticipantRegistryCodec,
   getProbeRecordCodec,
+  getResolutionStateCodec,
   getTestRouteStateCodec,
   type CapitalBinding,
   type CapitalBindingArgs,
@@ -58,10 +59,13 @@ import {
   type ParticipantRegistryArgs,
   type ProbeRecord,
   type ProbeRecordArgs,
+  type ResolutionState,
+  type ResolutionStateArgs,
   type TestRouteState,
   type TestRouteStateArgs,
 } from "../accounts/index.js";
 import {
+  getAdvanceResolutionInstructionAsync,
   getApproveMakerInstructionAsync,
   getCancelOrderInstructionAsync,
   getCancelProtectionInstructionAsync,
@@ -72,17 +76,21 @@ import {
   getDepositInstructionAsync,
   getExecuteOrderInstructionAsync,
   getExecuteRouteInstructionAsync,
+  getFreezeMarketInstructionAsync,
   getFundInsuranceInstructionAsync,
   getInitializeExitGuardInstructionAsync,
   getInitializeMarketInstructionAsync,
   getInitializeOracleInstructionAsync,
+  getInitializeResolutionInstructionAsync,
   getInitializeTestRoutesInstructionAsync,
+  getLiquidateInstructionAsync,
   getPlaceOrderInstructionAsync,
   getPlaceProtectionInstructionAsync,
   getPreviewMakerInstructionAsync,
   getProbeInstructionAsync,
   getPublishTestRiskInstructionAsync,
   getQuarantineMakerInstructionAsync,
+  getRecoverResolutionInstructionAsync,
   getRegisterMakerInstructionAsync,
   getRegisterParticipantInstructionAsync,
   getReplaceOrderInstructionAsync,
@@ -92,6 +100,7 @@ import {
   getSyncMakerEpochInstructionAsync,
   getWithdrawInstructionAsync,
   getWithdrawTradingInstructionAsync,
+  parseAdvanceResolutionInstruction,
   parseApproveMakerInstruction,
   parseCancelOrderInstruction,
   parseCancelProtectionInstruction,
@@ -102,17 +111,21 @@ import {
   parseDepositInstruction,
   parseExecuteOrderInstruction,
   parseExecuteRouteInstruction,
+  parseFreezeMarketInstruction,
   parseFundInsuranceInstruction,
   parseInitializeExitGuardInstruction,
   parseInitializeMarketInstruction,
   parseInitializeOracleInstruction,
+  parseInitializeResolutionInstruction,
   parseInitializeTestRoutesInstruction,
+  parseLiquidateInstruction,
   parsePlaceOrderInstruction,
   parsePlaceProtectionInstruction,
   parsePreviewMakerInstruction,
   parseProbeInstruction,
   parsePublishTestRiskInstruction,
   parseQuarantineMakerInstruction,
+  parseRecoverResolutionInstruction,
   parseRegisterMakerInstruction,
   parseRegisterParticipantInstruction,
   parseReplaceOrderInstruction,
@@ -122,6 +135,7 @@ import {
   parseSyncMakerEpochInstruction,
   parseWithdrawInstruction,
   parseWithdrawTradingInstruction,
+  type AdvanceResolutionAsyncInput,
   type ApproveMakerAsyncInput,
   type CancelOrderAsyncInput,
   type CancelProtectionAsyncInput,
@@ -132,11 +146,15 @@ import {
   type DepositAsyncInput,
   type ExecuteOrderAsyncInput,
   type ExecuteRouteAsyncInput,
+  type FreezeMarketAsyncInput,
   type FundInsuranceAsyncInput,
   type InitializeExitGuardAsyncInput,
   type InitializeMarketAsyncInput,
   type InitializeOracleAsyncInput,
+  type InitializeResolutionAsyncInput,
   type InitializeTestRoutesAsyncInput,
+  type LiquidateAsyncInput,
+  type ParsedAdvanceResolutionInstruction,
   type ParsedApproveMakerInstruction,
   type ParsedCancelOrderInstruction,
   type ParsedCancelProtectionInstruction,
@@ -147,17 +165,21 @@ import {
   type ParsedDepositInstruction,
   type ParsedExecuteOrderInstruction,
   type ParsedExecuteRouteInstruction,
+  type ParsedFreezeMarketInstruction,
   type ParsedFundInsuranceInstruction,
   type ParsedInitializeExitGuardInstruction,
   type ParsedInitializeMarketInstruction,
   type ParsedInitializeOracleInstruction,
+  type ParsedInitializeResolutionInstruction,
   type ParsedInitializeTestRoutesInstruction,
+  type ParsedLiquidateInstruction,
   type ParsedPlaceOrderInstruction,
   type ParsedPlaceProtectionInstruction,
   type ParsedPreviewMakerInstruction,
   type ParsedProbeInstruction,
   type ParsedPublishTestRiskInstruction,
   type ParsedQuarantineMakerInstruction,
+  type ParsedRecoverResolutionInstruction,
   type ParsedRegisterMakerInstruction,
   type ParsedRegisterParticipantInstruction,
   type ParsedReplaceOrderInstruction,
@@ -173,6 +195,7 @@ import {
   type ProbeAsyncInput,
   type PublishTestRiskAsyncInput,
   type QuarantineMakerAsyncInput,
+  type RecoverResolutionAsyncInput,
   type RegisterMakerAsyncInput,
   type RegisterParticipantAsyncInput,
   type ReplaceOrderAsyncInput,
@@ -188,8 +211,11 @@ import {
   findCapitalPda,
   findGuardPda,
   findMarketPda,
+  findReceiverBindingPda,
+  findReceiverPda,
   findRecordPda,
   findRegistryPda,
+  findResolutionPda,
   findRouteStatePda,
   findVaultPda,
 } from "../pdas/index.js";
@@ -205,6 +231,7 @@ export enum ClearingAccount {
   Participant,
   ParticipantRegistry,
   ProbeRecord,
+  ResolutionState,
   TestRouteState,
 }
 
@@ -293,6 +320,17 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([79, 128, 50, 21, 72, 199, 254, 128]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.ResolutionState;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([27, 89, 110, 243, 98, 85, 236, 58]),
       ),
       0,
@@ -308,10 +346,12 @@ export function identifyClearingAccount(
 
 export enum ClearingEvent {
   CustodyChanged,
+  LiquidationApplied,
   MakerChanged,
   OracleObserved,
   OrderChanged,
   ProbeRecorded,
+  ResolutionProgress,
   RouteExecuted,
   SettlementChanged,
   TestRiskPublished,
@@ -331,6 +371,17 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.CustodyChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([36, 102, 222, 145, 192, 150, 20, 41]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.LiquidationApplied;
   }
   if (
     containsBytes(
@@ -380,6 +431,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([164, 124, 164, 77, 35, 136, 138, 141]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.ResolutionProgress;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([223, 139, 136, 123, 11, 101, 183, 17]),
       ),
       0,
@@ -415,6 +477,7 @@ export function identifyClearingEvent(
 }
 
 export enum ClearingInstruction {
+  AdvanceResolution,
   ApproveMaker,
   CancelOrder,
   CancelProtection,
@@ -425,17 +488,21 @@ export enum ClearingInstruction {
   Deposit,
   ExecuteOrder,
   ExecuteRoute,
+  FreezeMarket,
   FundInsurance,
   InitializeExitGuard,
   InitializeMarket,
   InitializeOracle,
+  InitializeResolution,
   InitializeTestRoutes,
+  Liquidate,
   PlaceOrder,
   PlaceProtection,
   PreviewMaker,
   Probe,
   PublishTestRisk,
   QuarantineMaker,
+  RecoverResolution,
   RegisterMaker,
   RegisterParticipant,
   ReplaceOrder,
@@ -451,6 +518,17 @@ export function identifyClearingInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([112, 155, 208, 72, 177, 155, 63, 181]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AdvanceResolution;
+  }
   if (
     containsBytes(
       data,
@@ -565,6 +643,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([184, 154, 237, 98, 127, 82, 217, 180]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.FreezeMarket;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([58, 216, 37, 162, 201, 50, 20, 66]),
       ),
       0,
@@ -609,12 +698,34 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([114, 234, 73, 65, 38, 194, 180, 145]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeResolution;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([16, 190, 103, 220, 65, 98, 245, 241]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.InitializeTestRoutes;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([223, 179, 226, 125, 48, 46, 39, 74]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.Liquidate;
   }
   if (
     containsBytes(
@@ -681,6 +792,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.QuarantineMaker;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([160, 117, 82, 167, 208, 168, 218, 196]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RecoverResolution;
   }
   if (
     containsBytes(
@@ -791,6 +913,9 @@ export type ParsedClearingInstruction<
   TProgram extends string = "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
 > =
   | ({
+      instructionType: ClearingInstruction.AdvanceResolution;
+    } & ParsedAdvanceResolutionInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ApproveMaker;
     } & ParsedApproveMakerInstruction<TProgram>)
   | ({
@@ -821,6 +946,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ExecuteRoute;
     } & ParsedExecuteRouteInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.FreezeMarket;
+    } & ParsedFreezeMarketInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.FundInsurance;
     } & ParsedFundInsuranceInstruction<TProgram>)
   | ({
@@ -833,8 +961,14 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.InitializeOracle;
     } & ParsedInitializeOracleInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.InitializeResolution;
+    } & ParsedInitializeResolutionInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.InitializeTestRoutes;
     } & ParsedInitializeTestRoutesInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.Liquidate;
+    } & ParsedLiquidateInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.PlaceOrder;
     } & ParsedPlaceOrderInstruction<TProgram>)
@@ -853,6 +987,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.QuarantineMaker;
     } & ParsedQuarantineMakerInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RecoverResolution;
+    } & ParsedRecoverResolutionInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.RegisterMaker;
     } & ParsedRegisterMakerInstruction<TProgram>)
@@ -886,6 +1023,13 @@ export function parseClearingInstruction<TProgram extends string>(
 ): ParsedClearingInstruction<TProgram> {
   const instructionType = identifyClearingInstruction(instruction);
   switch (instructionType) {
+    case ClearingInstruction.AdvanceResolution: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AdvanceResolution,
+        ...parseAdvanceResolutionInstruction(instruction),
+      };
+    }
     case ClearingInstruction.ApproveMaker: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -956,6 +1100,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseExecuteRouteInstruction(instruction),
       };
     }
+    case ClearingInstruction.FreezeMarket: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.FreezeMarket,
+        ...parseFreezeMarketInstruction(instruction),
+      };
+    }
     case ClearingInstruction.FundInsurance: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -984,11 +1135,25 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeOracleInstruction(instruction),
       };
     }
+    case ClearingInstruction.InitializeResolution: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeResolution,
+        ...parseInitializeResolutionInstruction(instruction),
+      };
+    }
     case ClearingInstruction.InitializeTestRoutes: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.InitializeTestRoutes,
         ...parseInitializeTestRoutesInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.Liquidate: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.Liquidate,
+        ...parseLiquidateInstruction(instruction),
       };
     }
     case ClearingInstruction.PlaceOrder: {
@@ -1031,6 +1196,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.QuarantineMaker,
         ...parseQuarantineMakerInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.RecoverResolution: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RecoverResolution,
+        ...parseRecoverResolutionInstruction(instruction),
       };
     }
     case ClearingInstruction.RegisterMaker: {
@@ -1128,11 +1300,18 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<ParticipantRegistryArgs, ParticipantRegistry>;
   probeRecord: ReturnType<typeof getProbeRecordCodec> &
     SelfFetchFunctions<ProbeRecordArgs, ProbeRecord>;
+  resolutionState: ReturnType<typeof getResolutionStateCodec> &
+    SelfFetchFunctions<ResolutionStateArgs, ResolutionState>;
   testRouteState: ReturnType<typeof getTestRouteStateCodec> &
     SelfFetchFunctions<TestRouteStateArgs, TestRouteState>;
 };
 
 export type ClearingPluginInstructions = {
+  advanceResolution: (
+    input: AdvanceResolutionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAdvanceResolutionInstructionAsync> &
+    SelfPlanAndSendFunctions;
   approveMaker: (
     input: ApproveMakerAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -1182,6 +1361,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getExecuteRouteInstructionAsync> &
     SelfPlanAndSendFunctions;
+  freezeMarket: (
+    input: FreezeMarketAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getFreezeMarketInstructionAsync> &
+    SelfPlanAndSendFunctions;
   fundInsurance: (
     input: FundInsuranceAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -1202,10 +1386,20 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeOracleInstructionAsync> &
     SelfPlanAndSendFunctions;
+  initializeResolution: (
+    input: InitializeResolutionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeResolutionInstructionAsync> &
+    SelfPlanAndSendFunctions;
   initializeTestRoutes: (
     input: InitializeTestRoutesAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeTestRoutesInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  liquidate: (
+    input: LiquidateAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getLiquidateInstructionAsync> &
     SelfPlanAndSendFunctions;
   placeOrder: (
     input: PlaceOrderAsyncInput,
@@ -1235,6 +1429,11 @@ export type ClearingPluginInstructions = {
     input: QuarantineMakerAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getQuarantineMakerInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  recoverResolution: (
+    input: RecoverResolutionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRecoverResolutionInstructionAsync> &
     SelfPlanAndSendFunctions;
   registerMaker: (
     input: RegisterMakerAsyncInput,
@@ -1285,11 +1484,14 @@ export type ClearingPluginInstructions = {
 
 export type ClearingPluginPdas = {
   market: typeof findMarketPda;
-  capital: typeof findCapitalPda;
   routeState: typeof findRouteStatePda;
   registry: typeof findRegistryPda;
-  guard: typeof findGuardPda;
+  resolution: typeof findResolutionPda;
   vault: typeof findVaultPda;
+  capital: typeof findCapitalPda;
+  guard: typeof findGuardPda;
+  receiver: typeof findReceiverPda;
+  receiverBinding: typeof findReceiverBindingPda;
   record: typeof findRecordPda;
   binding: typeof findBindingPda;
 };
@@ -1326,12 +1528,24 @@ export function clearingProgram(
             getParticipantRegistryCodec(),
           ),
           probeRecord: addSelfFetchFunctions(client, getProbeRecordCodec()),
+          resolutionState: addSelfFetchFunctions(
+            client,
+            getResolutionStateCodec(),
+          ),
           testRouteState: addSelfFetchFunctions(
             client,
             getTestRouteStateCodec(),
           ),
         },
         instructions: {
+          advanceResolution: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAdvanceResolutionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           approveMaker: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -1412,6 +1626,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          freezeMarket: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getFreezeMarketInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           fundInsurance: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -1447,10 +1669,26 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          initializeResolution: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeResolutionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           initializeTestRoutes: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getInitializeTestRoutesInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          liquidate: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getLiquidateInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -1499,6 +1737,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getQuarantineMakerInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          recoverResolution: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRecoverResolutionInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -1582,11 +1828,6 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          capital: (seeds, pdaConfig) =>
-            findCapitalPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
           routeState: (seeds, pdaConfig) =>
             findRouteStatePda(seeds, {
               programAddress:
@@ -1597,13 +1838,33 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          guard: (seeds, pdaConfig) =>
-            findGuardPda(seeds, {
+          resolution: (seeds, pdaConfig) =>
+            findResolutionPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
           vault: (seeds, pdaConfig) =>
             findVaultPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          capital: (seeds, pdaConfig) =>
+            findCapitalPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          guard: (seeds, pdaConfig) =>
+            findGuardPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          receiver: (seeds, pdaConfig) =>
+            findReceiverPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          receiverBinding: (seeds, pdaConfig) =>
+            findReceiverBindingPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

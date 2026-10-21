@@ -1,4 +1,8 @@
 use anchor_lang::prelude::*;
+pub mod resolution;
+pub use resolution::*;
+pub mod risk;
+pub use risk::*;
 pub mod orders;
 pub use orders::*;
 pub mod custody;
@@ -20,6 +24,41 @@ declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
 pub mod clearing {
     use super::*;
 
+    pub fn initialize_resolution(ctx: Context<InitializeResolution>) -> Result<()> {
+        resolution::initialize(ctx)
+    }
+    pub fn freeze_market(
+        ctx: Context<FreezeMarket>,
+        sequence: u64,
+        observation: u64,
+        emergency: bool,
+    ) -> Result<()> {
+        resolution::freeze(ctx, sequence, observation, emergency)
+    }
+    pub fn advance_resolution(
+        ctx: Context<AdvanceResolution>,
+        epoch: u64,
+        stage: u8,
+        start: u16,
+    ) -> Result<()> {
+        resolution::advance(ctx, epoch, stage, start)
+    }
+    pub fn recover_resolution(
+        ctx: Context<RecoverResolution>,
+        epoch: u64,
+        resume: bool,
+    ) -> Result<()> {
+        resolution::recover(ctx, epoch, resume)
+    }
+    pub fn liquidate(
+        ctx: Context<Liquidate>,
+        sequence: u64,
+        observation: u64,
+        lots: u64,
+        price: u64,
+    ) -> Result<()> {
+        risk::liquidate(ctx, sequence, observation, lots, price)
+    }
     pub fn place_order(
         ctx: Context<ManageOrder>,
         expected_id: u64,
@@ -298,4 +337,8 @@ pub enum ClearingError {
     OrderSlots,
     #[msg("Current central index does not satisfy stored trigger")]
     OrderTrigger,
+    #[msg("Liquidation receiver, funded fee or strict risk progress check failed")]
+    Liquidation,
+    #[msg("Resolution epoch, stage, cursor, cohort or accounting check failed")]
+    Resolution,
 }

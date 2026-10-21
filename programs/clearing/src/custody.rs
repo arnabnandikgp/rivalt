@@ -20,7 +20,7 @@ pub struct MarketState {
     pub config_epoch: u64,
     pub sequence: u64,
     pub paused: bool,
-    /// 0 CustodyOnly, 1 explicitly compiled synthetic TestRoutes.
+    /// 0 CustodyOnly, 1 synthetic TestRoutes, 2 oracle profile, 3 frozen resolution.
     pub mode: u8,
     pub funding_index_scaled: i128,
     pub funding_time: i64,
@@ -184,8 +184,8 @@ pub(crate) fn profile(m: &MarketState) -> Result<()> {
     require!(
         m.schema_version == SCHEMA_VERSION
             && m.profile_version == PROFILE_VERSION
-            && m.mode <= 2
-            && (m.mode == 2 || m.funding_index_scaled == 0)
+            && m.mode <= 3
+            && (m.mode >= 2 || m.funding_index_scaled == 0)
             && (m.mode > 0 || (m.fees == 0 && m.settlement == 0)),
         ClearingError::Profile
     );
@@ -444,6 +444,7 @@ pub fn process_fund_insurance(ctx: Context<FundInsurance>, amount: u64) -> Resul
 pub fn process_classify_surplus(ctx: Context<ControlMarket>) -> Result<()> {
     let m = &mut ctx.accounts.market;
     profile(m)?;
+    require!(m.mode != 3, ClearingError::Resolution);
     reconciled(m, ctx.accounts.vault.amount)?;
     let amount = ctx
         .accounts
@@ -468,6 +469,7 @@ pub fn process_classify_surplus(ctx: Context<ControlMarket>) -> Result<()> {
 pub fn set_pause(ctx: Context<ControlMarket>, paused: bool) -> Result<()> {
     let m = &mut ctx.accounts.market;
     profile(m)?;
+    require!(m.mode != 3, ClearingError::Resolution);
     reconciled(m, ctx.accounts.vault.amount)?;
     m.paused = paused;
     m.config_epoch = m

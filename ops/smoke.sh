@@ -30,6 +30,7 @@ pnpm test:routes
 pnpm test:settlement
 pnpm test:oracle
 pnpm test:orders
+pnpm test:resolution
 node ops/check-dependencies.mjs
 bash ops/rpc-smoke.sh
 bash ops/lifecycle-smoke.sh
@@ -37,3 +38,5 @@ bash ops/lifecycle-smoke.sh
 bash ops/oracle-smoke.sh
 
 bash ops/orders-smoke.sh
+
+bash ops/resolution-smoke.sh

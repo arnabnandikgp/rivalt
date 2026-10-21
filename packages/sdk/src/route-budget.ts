@@ -11,3 +11,9 @@ export function fundingComputeBudget(): Instruction {
   const ix = ComputeBudgetProgram.setComputeUnitLimit({units:1_200_000});
   return {programAddress:address(ix.programId.toBase58()),accounts:[],data:ix.data};
 }
+
+/** G10 page ceiling; acceptance requires at least 20% measured headroom. */
+export function resolutionComputeBudget(): Instruction {
+  const ix=ComputeBudgetProgram.setComputeUnitLimit({units:1_200_000});
+  return {programAddress:address(ix.programId.toBase58()),accounts:[],data:ix.data};
+}

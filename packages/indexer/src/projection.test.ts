@@ -30,3 +30,13 @@ describe('independent financial read vectors',()=>{
     expect(()=>project(state,{...init,data:{...init.data,sequence:'2',kind:4,insurance:'1'}},'market','domain')).toThrow(/conservation/);
   });
 });
+
+it('keeps planned default payout separate from cash and clears unpaid claims after application',()=>{
+  const state=empty();state.market={mode:3,paused:true,fundingIndexScaled:'0'};
+  state.resolution={header:{epoch:'2',stage:10,cursor:0,count:2,price:'60000',funding:'0'},
+    rows:[{claim:'15000000000',collected:'0',paid:'5',impairedScaled:'10000000000',roundingScaled:'0'}]};
+  const pending=balance(participant({cash:'3'}),state,100n);
+  expect(pending).toMatchObject({cash:'3',unpaidPnlScaled:'15000000000',withdrawableCash:'0',sourceMode:'Frozen',resolution:{plannedPayment:'5',paymentApplied:false,appliedPayment:'0'}});
+  state.resolution.header.cursor=1;
+  expect(balance(participant({cash:'8'}),state,101n)).toMatchObject({cash:'8',unpaidPnlScaled:'0',withdrawableCash:'0',resolution:{plannedPayment:'5',paymentApplied:true,appliedPayment:'5'}});
+});
