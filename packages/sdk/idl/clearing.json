@@ -3029,6 +3029,14 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
             "name": "domain",
             "type": {
               "array": [

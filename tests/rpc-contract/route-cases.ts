@@ -90,6 +90,7 @@ export async function routeCases(h:RouteHarness) {
   const stale=await input(0,[[0,10n]]);
   await fill('consume current A prefix',0,[[0,10n]]);
   await rejected('reject stale price after another fill consumes prefix',await sdk.getExecuteRouteInstructionAsync({...stale.args,nonce:2n}),6119);
+  const fresh=async()=> (await input(0,[[0,1n],[1,1n]])).args;
   const base=await input(0,[[0,1n],[1,1n]]);
   for(const [label,patch,error] of [
     ['wrong domain',{domain:new Uint8Array(32)},6117],['wrong terms',{termsEpoch:99n},6117],['wrong config',{configEpoch:99n},6117],
@@ -97,23 +98,33 @@ export async function routeCases(h:RouteHarness) {
     ['exclusive expiry',{startSlot:0n,expirySlot:1n},6117],['oversized route',{lots:4609n},6117],['inexact FOK sum',{lots:3n},6117],
     ['fee budget',{maxFee:0n},6119],['all-in buy limit',{allInLimit:base.args.allInLimit-1n},6119],
     ['old generation',{generation:0n},6117],['risk-increasing reduce-only',{reduceOnly:true,generation:1n},6117],
-  ] as const) await rejected(`reject ${label}`,await sdk.getExecuteRouteInstructionAsync({...base.args,...patch}),error);
-  await rejected('reject owner mismatch',await sdk.getExecuteRouteInstructionAsync({...base.args,owner:payer}),2006,[]);
-  await rejected('reject same maker/capital twice',await sdk.getExecuteRouteInstructionAsync({...base.args,secondCapital:makers[0].capital,secondRegistration:makers[0].registration,secondProgram:makers[0].pricingProgram,secondProgramData:makers[0].programData,secondConfig:makers[0].config}), 'reject');
-  await rejected('reject trader as maker capital',await sdk.getExecuteRouteInstructionAsync({...base.args,firstCapital:trader}),'reject');
-  await rejected('reject wrong bound maker config',await sdk.getExecuteRouteInstructionAsync({...base.args,secondConfig:makers[0].config}),6110);
-  await rejected('second maker stale epoch rolls back complete route',await sdk.getExecuteRouteInstructionAsync({...base.args,legs:[base.args.legs[0],{...base.args.legs[1],quoteEpoch:99n}]}),6112);
+  ] as const) {
+    const current=await fresh();
+    const update=label==='future start'?{startSlot:current.startSlot+100n,expirySlot:current.startSlot+150n}:patch;
+    await rejected(`reject ${label}`,await sdk.getExecuteRouteInstructionAsync({...current,...update}),error);
+  }
+  await rejected('reject owner mismatch',await sdk.getExecuteRouteInstructionAsync({...(await fresh()),owner:payer}),2006,[]);
+  await rejected('reject same maker/capital twice',await sdk.getExecuteRouteInstructionAsync({...(await fresh()),secondCapital:makers[0].capital,secondRegistration:makers[0].registration,secondProgram:makers[0].pricingProgram,secondProgramData:makers[0].programData,secondConfig:makers[0].config}), 'reject');
+  await rejected('reject trader as maker capital',await sdk.getExecuteRouteInstructionAsync({...(await fresh()),firstCapital:trader}),'reject');
+  await rejected('reject wrong bound maker config',await sdk.getExecuteRouteInstructionAsync({...(await fresh()),secondConfig:makers[0].config}),6110);
+  await rejected('second maker stale epoch rolls back complete route',await sdk.getExecuteRouteInstructionAsync({...(await fresh()),legs:[base.args.legs[0],{...base.args.legs[1],quoteEpoch:99n}]}),6112);
   const beforeQuarantine=await input(0,[[0,1n],[1,1n]]);
   await h.send('quarantine second route maker',[await sdk.getQuarantineMakerInstructionAsync({...makers[1],authority:payer})]);
   await rejected('second maker quarantine rolls back complete route',await sdk.getExecuteRouteInstructionAsync(beforeQuarantine.args),6113);
   await h.send('jointly restore B standing authority',[await sdk.getApproveMakerInstructionAsync({...makers[1],authority:payer})],[makers[1].owner]);
-  await rejected('old second-maker authority after approval',await sdk.getExecuteRouteInstructionAsync(beforeQuarantine.args),6112);
+  await rejected('old second-maker authority after approval',await sdk.getExecuteRouteInstructionAsync({...await fresh(),legs:beforeQuarantine.args.legs}),6112);
   await rejected('withdrawal remains disabled in test trading mode',await sdk.getWithdrawInstructionAsync({...cash,amount:1n}),6108);
   // Cross-maker close retains an unpaid claim; no settlement cash is fabricated.
+  const sellLimit=(await input(1,[[1,1n]])).args;
+  await rejected('reject all-in sell limit',await sdk.getExecuteRouteInstructionAsync({...sellLimit,allInLimit:sellLimit.allInLimit+1n}),6119);
+  const longLifetime=await fresh();
+  await rejected('reject intent longer than 150 slots',await sdk.getExecuteRouteInstructionAsync({...longLifetime,expirySlot:longLifetime.startSlot+151n}),6117);
+  await publish(61_000n);
   const position=await balance();
   await fill('reduce-only cross-maker close with generation',1,[[1,110n]],{reduceOnly:true,generation:position.generation});
-  assert.equal((await balance()).lots,0n);assert.notEqual((await balance()).virtualScaled,0n);
+  assert.equal((await balance()).lots,0n);assert((await balance()).virtualScaled>0n,'flat profit remains unpaid');
   await rejected('old protection cannot reopen flat exposure',await sdk.getExecuteRouteInstructionAsync({...((await input(1,[[1,1n]])).args),reduceOnly:true,generation:position.generation}),6117);
+  await publish(60_000n);
   await fill('split required by size beyond either single maker',0,[[0,100n],[1,3997n]]);
   await rejected('current consumed capacity cannot be reused',await sdk.getExecuteRouteInstructionAsync((await input(0,[[1,21n]])).args),6115);
   await publish(100_000n);
@@ -131,9 +142,8 @@ export async function routeCases(h:RouteHarness) {
   await rejected('index-derived execution band rejects deep sell terms',await sdk.getExecuteRouteInstructionAsync((await input(1,[[1,10n]])).args),6119);
   await publish(60_000n);
   // Hostile deployment uses the real fixed B identity and actual joint approval.
-  const approvedBefore=await input(1,[[0,1n],[1,1n]]);
   await h.replaceMaker(true);
-  await rejected('unapproved hostile binary rejects before CPI',await sdk.getExecuteRouteInstructionAsync(approvedBefore.args),6114);
+  await rejected('unapproved hostile binary rejects before CPI',await sdk.getExecuteRouteInstructionAsync((await input(1,[[0,1n],[1,1n]])).args),6114);
   await h.send('jointly approve hostile fixture for adversarial qualification',[await sdk.getApproveMakerInstructionAsync({...makers[1],authority:payer})],[makers[1].owner]);
   for(const [n,error,label] of [[1n,6116,'wrong gross return'],[2n,6116,'oversized return'],[3n,'reject','read-only config write'],[4n,6000,'explicit second CPI rejection']] as const)
     await rejected(`hostile ${label}: no venue residue`,await sdk.getExecuteRouteInstructionAsync((await input(1,[[0,1n],[1,n]])).args),error);

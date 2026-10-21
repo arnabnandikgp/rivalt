@@ -21,6 +21,8 @@ import {
   getHiddenPrefixEncoder,
   getStructDecoder,
   getStructEncoder,
+  getU16Decoder,
+  getU16Encoder,
   getU64Decoder,
   getU64Encoder,
   type Address,
@@ -41,6 +43,8 @@ export function getTestRiskPublishedEventDiscriminatorBytes(): ReadonlyUint8Arra
 }
 
 export type TestRiskPublishedEvent = {
+  version: number;
+  termsEpoch: bigint;
   domain: ReadonlyUint8Array;
   market: Address;
   sequence: bigint;
@@ -54,6 +58,8 @@ export type TestRiskPublishedEvent = {
 };
 
 export type TestRiskPublishedEventArgs = {
+  version: number;
+  termsEpoch: number | bigint;
   domain: ReadonlyUint8Array;
   market: Address | HasAddress;
   sequence: number | bigint;
@@ -70,6 +76,8 @@ export type TestRiskPublishedEventArgs = {
 export function getTestRiskPublishedEventEncoder(): FixedSizeEncoder<TestRiskPublishedEventArgs> {
   return getHiddenPrefixEncoder(
     getStructEncoder([
+      ["version", getU16Encoder()],
+      ["termsEpoch", getU64Encoder()],
       ["domain", fixEncoderSize(getBytesEncoder(), 32)],
       ["market", getAddressEncoder()],
       ["sequence", getU64Encoder()],
@@ -89,6 +97,8 @@ export function getTestRiskPublishedEventEncoder(): FixedSizeEncoder<TestRiskPub
 export function getTestRiskPublishedEventDecoder(): FixedSizeDecoder<TestRiskPublishedEvent> {
   return getHiddenPrefixDecoder(
     getStructDecoder([
+      ["version", getU16Decoder()],
+      ["termsEpoch", getU64Decoder()],
       ["domain", fixDecoderSize(getBytesDecoder(), 32)],
       ["market", getAddressDecoder()],
       ["sequence", getU64Decoder()],

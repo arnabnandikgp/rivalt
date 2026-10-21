@@ -44,6 +44,8 @@ pub struct PublishTestRisk<'info> {
 }
 #[event]
 pub struct TestRiskPublished {
+    pub version: u16,
+    pub terms_epoch: u64,
     pub domain: [u8; 32],
     pub market: Pubkey,
     pub sequence: u64,
@@ -82,6 +84,8 @@ fn publish(
         .ok_or(ClearingError::Arithmetic)?;
     m.sequence = m.sequence.checked_add(1).ok_or(ClearingError::Arithmetic)?;
     Ok(TestRiskPublished {
+        version: 1,
+        terms_epoch: m.terms_epoch,
         domain: m.domain,
         market: m.key(),
         sequence: m.sequence,
