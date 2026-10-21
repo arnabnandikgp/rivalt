@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** M1/P01/P02 are Closed. P03–P09 and M2/M3 are Review; M4 remains In progress. **P09 A13/A14/G10 and the full P01–P09 acceptance pass on clean `8e8f371`.** [P09 evidence](evidence/P09.md) records all legal resolution page sizes, the 64-member cohort and seven actual RPC/WS/PostgreSQL risk checks, including reconstruction after nonzero collection. The first clean run's event-aliasing defect is fixed and its failure retained. `phase/p09-resolution` contains exact P08 PR #10 head `b9e6115`; ready PR publication is next. Default builds reject these financial paths. P10 is next without a merge wait.
+**Current position:** M1/P01/P02 are Closed. P03–P09 and M2/M3 are Review; M4 remains In progress. **P09 A13/A14/G10 and the full P01–P09 acceptance pass on clean `8e8f371`.** [P09 evidence](evidence/P09.md) records all legal resolution page sizes, the 64-member cohort and seven actual RPC/WS/PostgreSQL risk checks, including reconstruction after nonzero collection. The first clean run's event-aliasing defect is fixed and its failure retained. `phase/p09-resolution` contains exact P08 PR #10 head `b9e6115`; ready [PR #11](https://github.com/arnabnandikgp/rivalt/pull/11) is published above #10. Default builds reject these financial paths. P10 is next without a merge wait.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M3 | P06 | Maker daemons and complete service lifecycle | Review | [PR #8](https://github.com/arnabnandikgp/rivalt/pull/8), tested `2578327`, stacked above #7 | [A05/A07/A08/G07 and M3 exit evidence](evidence/P06.md); integration pending |
 | M4 | P07 | Oracle policy and authenticated funding | Review | [PR #9](https://github.com/arnabnandikgp/rivalt/pull/9), tested `83f70d4`, above #8 | [A09/A10/G08 evidence](evidence/P07.md); integration pending |
 | M4 | P08 | Persistent orders and TP/SL | Review | [PR #10](https://github.com/arnabnandikgp/rivalt/pull/10), tested `cd2b8fa`, above #9 | [A11/A12/G09 evidence](evidence/P08.md); integration pending |
-| M4 | P09 | Liquidation and resumable default | Review | Tested `8e8f371`, `phase/p09-resolution` above exact #10 head `b9e6115`; publication next | [A13/A14/G10 evidence](evidence/P09.md); integration pending |
+| M4 | P09 | Liquidation and resumable default | Review | [PR #11](https://github.com/arnabnandikgp/rivalt/pull/11), tested `8e8f371`, above exact #10 head `b9e6115` | [A13/A14/G10 evidence](evidence/P09.md); integration pending |
 | M4 | P10 | Trading UI and direct exit experience | Open | — | After P09 |
 | M5a | P11 | Integrated fault and reconciliation matrix | Open | — | After P10 |
 | M5a | P12 | Resource budgets, load and 24-hour soak | Open | — | After P11 |
@@ -57,7 +57,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Last completed work: funded liquidation, frozen complete-cohort resolution, deterministic allocation/rounding, risk-worker restart and frozen/final database reconstruction.
 - Verified implementation: clean `8e8f3716135fdcd7548271c5c508ddf4d4ac9740`; full `RIVALT_SLOT_TIME=50 pnpm smoke` exits zero across all P01–P09 suites. The first failed clean run and replay correction are retained in [P09 evidence](evidence/P09.md).
 - Status: P03–P09/M2/M3 Review pending integration; M1/P01/P02 Closed; M4 In progress.
-- Immediate task: publish P09 ready above #10, then create `phase/p10-ui` with `gh stack add` and implement the real browser/direct-exit phase without a merge wait.
+- Immediate task: create `phase/p10-ui` above ready P09 PR #11 with `gh stack add` and implement the real browser/direct-exit phase without a merge wait.
 - Access/product decisions needed now: none. No devnet key or external maker is needed.
 - Deferred external needs: secure devnet/feed access at P13; independent maker at P15; independent review/funded-pilot decision at P16.
 - Historical archives remain optional targeted reference only.
@@ -338,3 +338,6 @@ Update Latest checkpoint and the two overview tables as well as appending the en
 - G10 resource/profile closure: all four legal page sizes agree with independent Python; the 64-member/source-emergency run passes. Largest signed page 255,514 CU / 561 bytes / 13 accounts, resolution account 8,031 bytes, default financial activation rejected. [Report](evidence/P09.md) and [manifest](evidence/p09/manifest.json) capture 54 public files and 26 clean identities, including the first failed run and red regression. Credentials/keys/volumes excluded; actual run passwords checked absent.
 - Both tables now mark P09 Review and M4 In progress; G10 verified. Not run: browser wallets, integrated P11 matrix, load/24h soak, devnet/upstream verification, independent makers/review, external hedging or funded deployment. Completed corrected-run scratch databases were reclaimed only after container absence checks; all reports/logs remain and exact paths are retained in `.local/p09-disposable-volumes.json`.
 - Blockers: none. Next exact action: commit public evidence, publish P09 via `gh stack submit --auto --open`, verify OPEN/non-draft/base/head, then create `phase/p10-ui` and continue immediately.
+
+- Publication: `gh stack submit --auto --open` created ready [PR #11](https://github.com/arnabnandikgp/rivalt/pull/11), base `phase/p08-orders`. `gh pr view` and `git ls-remote` verify OPEN / `isDraft: false`, exact published evidence head `3f93609a7449acc5e0b6ab5e3f2ad08573636e05` and unchanged P08 parent `b9e6115`. Manifest hashes, 26 clean identities, changed documentation links, Rust formatting and executable-tree parity with tested `8e8f371` pass. All task containers are shut down; unrelated `buildkit` remains untouched. This link-only closeout does not change executable code. P09 remains Review; no merge or review approval is claimed.
+- Next exact action: push this link-only closeout, create `phase/p10-ui` with `gh stack add`, and implement P10 browser/direct-exit acceptance on the verified P09 baseline.
