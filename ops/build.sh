@@ -14,8 +14,11 @@ cp .local/keys/clearing.json target/deploy/clearing-keypair.json
 mkdir -p .local
 NO_DNA=1 anchor build --no-idl --tools-version v1.52 --arch v0 -- -- --locked 2>&1 | tee .local/sbf-build.log
 # LLVM can print these diagnostics yet return success. Never accept such an artifact.
-if rg -q 'Stack offset .* exceeded|max offset of 4096|overwrites values in the frame' .local/sbf-build.log; then
+if grep -Eq 'Stack offset .* exceeded|max offset of 4096|overwrites values in the frame' .local/sbf-build.log; then
   echo 'Rejected unsafe SBF stack frame; see .local/sbf-build.log' >&2
+  exit 1
+elif [[ $? != 1 ]]; then
+  echo 'Could not validate SBF stack frames; see .local/sbf-build.log' >&2
   exit 1
 fi
 mkdir -p packages/sdk/idl
