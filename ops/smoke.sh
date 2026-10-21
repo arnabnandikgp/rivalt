@@ -11,6 +11,9 @@ cp packages/sdk/idl/clearing.json .local/expected-clearing-idl.json
 bash ops/build.sh
 cmp packages/sdk/idl/clearing.json .local/expected-clearing-idl.json
 pnpm generate:check
+# build.sh regenerates the SDK; determinism alone cannot detect stale commits.
+git diff --exit-code HEAD -- packages/sdk/src/generated packages/sdk/idl
+test -z "$(git status --porcelain -- packages/sdk/src/generated packages/sdk/idl)"
 pnpm typecheck
 pnpm test
 node ops/check-dependencies.mjs
@@ -34,12 +37,20 @@ surfpool start --offline --no-deploy --no-tui --no-studio \
   --log-path "$RIVALT_RUN_DIR/logs" > "$RIVALT_RUN_DIR/surfpool.log" 2>&1 &
 RIVALT_SURFPOOL_PID=$!
 trap 'kill "$RIVALT_SURFPOOL_PID" 2>/dev/null || true; wait "$RIVALT_SURFPOOL_PID" 2>/dev/null || true' EXIT
-for attempt in {1..100}; do
-  kill -0 "$RIVALT_SURFPOOL_PID"
-  if curl -fsS "$RIVALT_RPC_URL" -H 'content-type: application/json' \
-    -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' 2>/dev/null | rg -q '"ok"'; then break; fi
+ready=0
+for _ in {1..100}; do
+  if ! kill -0 "$RIVALT_SURFPOOL_PID" 2>/dev/null; then
+    echo "Surfpool exited before readiness; see $RIVALT_RUN_DIR/surfpool.log" >&2
+    exit 1
+  fi
+  if curl -fsS --connect-timeout 1 --max-time 2 "$RIVALT_RPC_URL" -H 'content-type: application/json' \
+    -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' 2>/dev/null | grep -q '"ok"'; then ready=1; break; fi
   sleep 0.1
 done
+if [[ "$ready" != 1 ]]; then
+  echo "Surfpool did not become healthy; see $RIVALT_RUN_DIR/surfpool.log" >&2
+  exit 1
+fi
 solana program deploy target/deploy/clearing.so --program-id .local/keys/clearing.json \
   --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" --use-rpc --output json \
   > "$RIVALT_RUN_DIR/deployment.json"
