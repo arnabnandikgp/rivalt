@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** M1/P01/P02 are Closed. P03–P08 and M2/M3 are Review; M4 remains In progress. **P08 A11/A12/G09 pass on clean `cd2b8fa`, with identical financial/service implementation to the fresh full regression at `1f27fa8`.** [P08 evidence](evidence/P08.md) records 203 signed P08 transactions plus 45 setup transactions and ten actual RPC/WS/PostgreSQL checks. `phase/p08-orders` contains exact P07 PR #9 head `efc1278`; its ready PR is being published. Liquidation/default remains disabled.
+**Current position:** M1/P01/P02 are Closed. P03–P08 and M2/M3 are Review; M4 remains In progress. **P08 A11/A12/G09 pass on clean `cd2b8fa`, with identical financial/service implementation to the fresh full regression at `1f27fa8`.** [P08 evidence](evidence/P08.md) records 203 signed P08 transactions plus 45 setup transactions and ten actual RPC/WS/PostgreSQL checks. `phase/p08-orders` contains exact P07 PR #9 head `efc1278`; ready [PR #10](https://github.com/arnabnandikgp/rivalt/pull/10) is published above #9. Liquidation/default remains disabled.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -24,7 +24,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M1 | P01–P02 | Reproducible stack, economic core and custody | Closed | Fresh A01/A02/M1 exit check on `16e51e4`; integrated unchanged at `3c1aae1` |
 | M2 | P03–P04 | Competing makers and atomic execution | Review | Fresh A03–A05/G04/G05 and cross-phase exit pass on `b8e5fb8`; ready PRs #4/#5 await integration |
 | M3 | P05–P06 | Real services and full trade lifecycle | Review | Fresh A05–A08/G07 and complete service exit pass on `2578327`; ready PRs #7/#8 await integration |
-| M4 | P07–P10 | Funding, orders, risk recovery and usable UI | In progress | P07 and P08 gates verified; P08 ready-PR publication pending; P09–P10 Open |
+| M4 | P07–P10 | Funding, orders, risk recovery and usable UI | In progress | P07 and P08 gates verified; ready P08 PR #10 above #9; P09–P10 Open |
 | M5a | P11–P12 | Complete local engineering evidence | Open | Not implemented |
 | M5b | P13–P14 | Focused real-cluster parity | Open | Not implemented |
 | M6 | P15–P16 | Independent commercial/pilot readiness | Open | Not implemented |
@@ -40,7 +40,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M3 | P05 | Indexer, database and read API | Review | [PR #7](https://github.com/arnabnandikgp/rivalt/pull/7), tested `fb2606f`, stacked above #5 | [A06/G06 evidence](evidence/P05.md); integration pending |
 | M3 | P06 | Maker daemons and complete service lifecycle | Review | [PR #8](https://github.com/arnabnandikgp/rivalt/pull/8), tested `2578327`, stacked above #7 | [A05/A07/A08/G07 and M3 exit evidence](evidence/P06.md); integration pending |
 | M4 | P07 | Oracle policy and authenticated funding | Review | [PR #9](https://github.com/arnabnandikgp/rivalt/pull/9), tested `83f70d4`, above #8 | [A09/A10/G08 evidence](evidence/P07.md); integration pending |
-| M4 | P08 | Persistent orders and TP/SL | Review | Tested `cd2b8fa`; `phase/p08-orders` above exact #9 head `efc1278`; ready PR pending | [A11/A12/G09 evidence](evidence/P08.md); integration pending |
+| M4 | P08 | Persistent orders and TP/SL | Review | [PR #10](https://github.com/arnabnandikgp/rivalt/pull/10), tested `cd2b8fa`, above #9 | [A11/A12/G09 evidence](evidence/P08.md); integration pending |
 | M4 | P09 | Liquidation and resumable default | Open | — | After P08 |
 | M4 | P10 | Trading UI and direct exit experience | Open | — | After P09 |
 | M5a | P11 | Integrated fault and reconciliation matrix | Open | — | After P10 |
@@ -57,7 +57,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Last completed work: P08 persistent limits/stops, conservative remaining reservations, versioned authority, cumulative partial fees and existing-position TP/SL; separate durable keeper and full-book projection.
 - Verified implementation: clean `cd2b8fa7c886d75b7f81cf654ab0cc2171a962fc`, targeted P08 run `.local/runs/20261021T135143Z-53292` exits zero. Fresh full regression at `1f27fa8` passes P01–P07 and all fast gates; its P08 wrapper failure is corrected only in the harness. Financial/service trees are identical; no full-wrapper exit-zero claim.
 - Status: P03–P08/M2/M3 Review pending integration; M1/P01/P02 Closed; M4 In progress.
-- Immediate task: publish P08 ready for review above PR #9, verify remote head/base, then create the P09 child and implement G10 funded liquidation and complete-cohort resolution.
+- Immediate task: create P09 above the verified ready PR #10 head and implement G10 funded liquidation and complete-cohort resolution without waiting for merge.
 - Access/product decisions needed now: none. Existing Apple container runtime's PostgreSQL 18.6 loopback/volume/restart behavior is verified. No devnet key or external maker is needed.
 - Deferred external needs: secure devnet/feed access at P13; independent maker at P15; independent review/funded-pilot decision at P16.
 - Historical archives remain optional targeted reference only.
@@ -296,3 +296,5 @@ Update Latest checkpoint and the two overview tables as well as appending the en
 - Disk upkeep: with 162 MiB available, confirmed no failed-run containers remained and removed only the four failed P08 runs' disposable PostgreSQL volumes, recovering about 225 MiB. Their logs/reports remain. No unrelated files or services were removed.
 - Specs/decisions: P08-ORDERS, protocol, components, validation, README and D29/G09 updated with implemented authority, reservations, finite resources and actual acceptance. P08 is Review; M4 remains In progress. No deployment/soak/external review is claimed. Browser wallets, liquidation/default, load/24h soak and devnet were not run in this phase.
 - Blockers: none. Next exact action: commit the evidence, use `gh stack submit --auto --open` to publish P08 ready for review above #9, verify the remote head, then begin the P09 child without waiting for merge.
+
+- Publication: `gh stack submit --auto --open` created ready [PR #10](https://github.com/arnabnandikgp/rivalt/pull/10), base `phase/p07-oracle-funding`. `gh pr view` and `git ls-remote` verified OPEN / `isDraft: false`, exact published evidence head `baccbf4` and unchanged P07 parent `efc1278`. This documentation link update does not change the tested implementation. P08 stays Review; no merge/review approval is claimed.
