@@ -41,6 +41,7 @@ import {
   getParticipantCodec,
   getParticipantRegistryCodec,
   getProbeRecordCodec,
+  getTestRouteStateCodec,
   type CapitalBinding,
   type CapitalBindingArgs,
   type MakerRegistration,
@@ -53,15 +54,20 @@ import {
   type ParticipantRegistryArgs,
   type ProbeRecord,
   type ProbeRecordArgs,
+  type TestRouteState,
+  type TestRouteStateArgs,
 } from "../accounts/index.js";
 import {
   getApproveMakerInstructionAsync,
   getClassifySurplusInstructionAsync,
   getDepositInstructionAsync,
+  getExecuteRouteInstructionAsync,
   getFundInsuranceInstructionAsync,
   getInitializeMarketInstructionAsync,
+  getInitializeTestRoutesInstructionAsync,
   getPreviewMakerInstructionAsync,
   getProbeInstructionAsync,
+  getPublishTestRiskInstructionAsync,
   getQuarantineMakerInstructionAsync,
   getRegisterMakerInstructionAsync,
   getRegisterParticipantInstructionAsync,
@@ -71,10 +77,13 @@ import {
   parseApproveMakerInstruction,
   parseClassifySurplusInstruction,
   parseDepositInstruction,
+  parseExecuteRouteInstruction,
   parseFundInsuranceInstruction,
   parseInitializeMarketInstruction,
+  parseInitializeTestRoutesInstruction,
   parsePreviewMakerInstruction,
   parseProbeInstruction,
+  parsePublishTestRiskInstruction,
   parseQuarantineMakerInstruction,
   parseRegisterMakerInstruction,
   parseRegisterParticipantInstruction,
@@ -84,15 +93,20 @@ import {
   type ApproveMakerAsyncInput,
   type ClassifySurplusAsyncInput,
   type DepositAsyncInput,
+  type ExecuteRouteAsyncInput,
   type FundInsuranceAsyncInput,
   type InitializeMarketAsyncInput,
+  type InitializeTestRoutesAsyncInput,
   type ParsedApproveMakerInstruction,
   type ParsedClassifySurplusInstruction,
   type ParsedDepositInstruction,
+  type ParsedExecuteRouteInstruction,
   type ParsedFundInsuranceInstruction,
   type ParsedInitializeMarketInstruction,
+  type ParsedInitializeTestRoutesInstruction,
   type ParsedPreviewMakerInstruction,
   type ParsedProbeInstruction,
+  type ParsedPublishTestRiskInstruction,
   type ParsedQuarantineMakerInstruction,
   type ParsedRegisterMakerInstruction,
   type ParsedRegisterParticipantInstruction,
@@ -101,6 +115,7 @@ import {
   type ParsedWithdrawInstruction,
   type PreviewMakerAsyncInput,
   type ProbeAsyncInput,
+  type PublishTestRiskAsyncInput,
   type QuarantineMakerAsyncInput,
   type RegisterMakerAsyncInput,
   type RegisterParticipantAsyncInput,
@@ -114,6 +129,7 @@ import {
   findMarketPda,
   findRecordPda,
   findRegistryPda,
+  findRouteStatePda,
   findVaultPda,
 } from "../pdas/index.js";
 
@@ -127,6 +143,7 @@ export enum ClearingAccount {
   Participant,
   ParticipantRegistry,
   ProbeRecord,
+  TestRouteState,
 }
 
 export function identifyClearingAccount(
@@ -199,6 +216,17 @@ export function identifyClearingAccount(
   ) {
     return ClearingAccount.ProbeRecord;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([27, 89, 110, 243, 98, 85, 236, 58]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.TestRouteState;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
     { accountData: data, programName: "clearing" },
@@ -209,6 +237,8 @@ export enum ClearingEvent {
   CustodyChanged,
   MakerChanged,
   ProbeRecorded,
+  RouteExecuted,
+  TestRiskPublished,
 }
 
 export function identifyClearingEvent(
@@ -248,6 +278,28 @@ export function identifyClearingEvent(
   ) {
     return ClearingEvent.ProbeRecorded;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([223, 139, 136, 123, 11, 101, 183, 17]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.RouteExecuted;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([108, 25, 154, 69, 185, 245, 237, 196]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.TestRiskPublished;
+  }
   throw new Error(
     "The provided event could not be identified as a clearing event.",
   );
@@ -257,10 +309,13 @@ export enum ClearingInstruction {
   ApproveMaker,
   ClassifySurplus,
   Deposit,
+  ExecuteRoute,
   FundInsurance,
   InitializeMarket,
+  InitializeTestRoutes,
   PreviewMaker,
   Probe,
+  PublishTestRisk,
   QuarantineMaker,
   RegisterMaker,
   RegisterParticipant,
@@ -310,6 +365,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([246, 14, 81, 121, 140, 237, 86, 23]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteRoute;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([58, 216, 37, 162, 201, 50, 20, 66]),
       ),
       0,
@@ -332,6 +398,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([16, 190, 103, 220, 65, 98, 245, 241]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeTestRoutes;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([30, 210, 207, 120, 189, 100, 226, 6]),
       ),
       0,
@@ -349,6 +426,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.Probe;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([46, 208, 112, 198, 93, 161, 13, 246]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PublishTestRisk;
   }
   if (
     containsBytes(
@@ -435,17 +523,26 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.Deposit;
     } & ParsedDepositInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ExecuteRoute;
+    } & ParsedExecuteRouteInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.FundInsurance;
     } & ParsedFundInsuranceInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.InitializeMarket;
     } & ParsedInitializeMarketInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.InitializeTestRoutes;
+    } & ParsedInitializeTestRoutesInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.PreviewMaker;
     } & ParsedPreviewMakerInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.Probe;
     } & ParsedProbeInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.PublishTestRisk;
+    } & ParsedPublishTestRiskInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.QuarantineMaker;
     } & ParsedQuarantineMakerInstruction<TProgram>)
@@ -491,6 +588,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseDepositInstruction(instruction),
       };
     }
+    case ClearingInstruction.ExecuteRoute: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteRoute,
+        ...parseExecuteRouteInstruction(instruction),
+      };
+    }
     case ClearingInstruction.FundInsurance: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -505,6 +609,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeMarketInstruction(instruction),
       };
     }
+    case ClearingInstruction.InitializeTestRoutes: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeTestRoutes,
+        ...parseInitializeTestRoutesInstruction(instruction),
+      };
+    }
     case ClearingInstruction.PreviewMaker: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -517,6 +628,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.Probe,
         ...parseProbeInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.PublishTestRisk: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PublishTestRisk,
+        ...parsePublishTestRiskInstruction(instruction),
       };
     }
     case ClearingInstruction.QuarantineMaker: {
@@ -591,6 +709,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<ParticipantRegistryArgs, ParticipantRegistry>;
   probeRecord: ReturnType<typeof getProbeRecordCodec> &
     SelfFetchFunctions<ProbeRecordArgs, ProbeRecord>;
+  testRouteState: ReturnType<typeof getTestRouteStateCodec> &
+    SelfFetchFunctions<TestRouteStateArgs, TestRouteState>;
 };
 
 export type ClearingPluginInstructions = {
@@ -608,6 +728,11 @@ export type ClearingPluginInstructions = {
     input: DepositAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getDepositInstructionAsync> & SelfPlanAndSendFunctions;
+  executeRoute: (
+    input: ExecuteRouteAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteRouteInstructionAsync> &
+    SelfPlanAndSendFunctions;
   fundInsurance: (
     input: FundInsuranceAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -618,6 +743,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeMarketInstructionAsync> &
     SelfPlanAndSendFunctions;
+  initializeTestRoutes: (
+    input: InitializeTestRoutesAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeTestRoutesInstructionAsync> &
+    SelfPlanAndSendFunctions;
   previewMaker: (
     input: PreviewMakerAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -627,6 +757,11 @@ export type ClearingPluginInstructions = {
     input: ProbeAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getProbeInstructionAsync> & SelfPlanAndSendFunctions;
+  publishTestRisk: (
+    input: PublishTestRiskAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPublishTestRiskInstructionAsync> &
+    SelfPlanAndSendFunctions;
   quarantineMaker: (
     input: QuarantineMakerAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -663,6 +798,7 @@ export type ClearingPluginPdas = {
   market: typeof findMarketPda;
   capital: typeof findCapitalPda;
   vault: typeof findVaultPda;
+  routeState: typeof findRouteStatePda;
   registry: typeof findRegistryPda;
   record: typeof findRecordPda;
   binding: typeof findBindingPda;
@@ -698,6 +834,10 @@ export function clearingProgram(
             getParticipantRegistryCodec(),
           ),
           probeRecord: addSelfFetchFunctions(client, getProbeRecordCodec()),
+          testRouteState: addSelfFetchFunctions(
+            client,
+            getTestRouteStateCodec(),
+          ),
         },
         instructions: {
           approveMaker: (input, instructionConfig) =>
@@ -724,6 +864,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          executeRoute: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteRouteInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           fundInsurance: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -740,6 +888,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          initializeTestRoutes: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeTestRoutesInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           previewMaker: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -752,6 +908,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getProbeInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          publishTestRisk: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPublishTestRiskInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -818,6 +982,11 @@ export function clearingProgram(
             }),
           vault: (seeds, pdaConfig) =>
             findVaultPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          routeState: (seeds, pdaConfig) =>
+            findRouteStatePda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

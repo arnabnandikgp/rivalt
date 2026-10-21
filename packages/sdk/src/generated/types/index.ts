@@ -6,5 +6,7 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./executedLeg.js";
 export * from "./probeChoice.js";
 export * from "./quoteResponse.js";
+export * from "./routeLeg.js";

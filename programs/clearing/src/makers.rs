@@ -1,4 +1,4 @@
-//! Standing maker authorization and read-only pricing. No fill entrypoint exists in P03.
+//! Standing maker authorization and bounded read-only pricing.
 use crate::{ClearingError, MarketState, Participant};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
@@ -154,30 +154,13 @@ pub struct MakerChanged {
     pub approved_hash: [u8; 32],
 }
 fn active(m: &MarketState) -> Result<()> {
-    require!(
-        m.schema_version == 1
-            && m.profile_version == 1
-            && m.mode == 0
-            && m.funding_index_scaled == 0
-            && m.settlement == 0
-            && m.fees == 0,
-        ClearingError::Profile
-    );
+    crate::custody::profile(m)?;
     require!(!m.paused, ClearingError::Paused);
     Ok(())
 }
 fn capital_ready(p: &Participant) -> Result<()> {
-    require!(
-        p.schema_version == 1
-            && p.cash > 0
-            && p.cash <= financial_core::MAX_CASH
-            && p.lots == 0
-            && p.virtual_scaled == 0
-            && p.funding_checkpoint_scaled == 0
-            && p.reserved == 0
-            && p.order_ids == [0; 4],
-        ClearingError::MakerCapital
-    );
+    crate::routes::participant_model(p)?;
+    require!(p.cash > 0, ClearingError::MakerCapital);
     Ok(())
 }
 fn config_state(
@@ -393,10 +376,28 @@ pub fn quarantine(ctx: Context<QuarantineMaker>) -> Result<()> {
 pub fn preview(ctx: Context<PreviewMaker>, args: PreviewArgs) -> Result<QuoteResponse> {
     active(&ctx.accounts.market)?;
     capital_ready(&ctx.accounts.capital)?;
-    approved(&ctx.accounts.registration, &ctx.accounts.program_data)?;
-    let r = &ctx.accounts.registration;
-    let m = &ctx.accounts.market;
-    let p = &ctx.accounts.capital;
+    quote_checked(
+        &ctx.accounts.market,
+        &ctx.accounts.capital,
+        &ctx.accounts.registration,
+        &ctx.accounts.pricing_program,
+        &ctx.accounts.program_data,
+        &ctx.accounts.config,
+        args,
+    )
+}
+
+pub(crate) fn quote_checked<'info>(
+    m: &Account<'info, MarketState>,
+    p: &Account<'info, Participant>,
+    r: &Account<'info, MakerRegistration>,
+    pricing_program: &Program<'info>,
+    program_data: &Account<'info, ProgramData>,
+    config: &UncheckedAccount<'info>,
+    args: PreviewArgs,
+) -> Result<QuoteResponse> {
+    capital_ready(p)?;
+    approved(r, program_data)?;
     require!(
         args.quote_epoch == r.quote_epoch
             && args.authority_epoch == r.authority_epoch
@@ -404,13 +405,7 @@ pub fn preview(ctx: Context<PreviewMaker>, args: PreviewArgs) -> Result<QuoteRes
             && args.config_epoch == m.config_epoch,
         ClearingError::MakerEpoch
     );
-    let state = config_state(
-        &ctx.accounts.config,
-        ctx.accounts.pricing_program.key(),
-        r.maker_id,
-        m,
-        p,
-    )?;
+    let state = config_state(config, pricing_program.key(), r.maker_id, m, p)?;
     require!(
         state.quote_epoch == r.quote_epoch
             && state.start_slot == r.start_slot
@@ -450,10 +445,7 @@ pub fn preview(ctx: Context<PreviewMaker>, args: PreviewArgs) -> Result<QuoteRes
             accounts: vec![AccountMeta::new_readonly(r.config, false)],
             data,
         },
-        &[
-            ctx.accounts.config.to_account_info(),
-            ctx.accounts.pricing_program.to_account_info(),
-        ],
+        &[config.to_account_info(), pricing_program.to_account_info()],
     )?;
     let (producer, bytes) = get_return_data().ok_or(ClearingError::MakerResponse)?;
     maker_interface::validate_response(&r.pricing_program, &producer, &bytes, &expected)

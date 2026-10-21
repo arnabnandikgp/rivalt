@@ -15,7 +15,8 @@
     "test:svm": "node --import tsx tests/rpc-contract/custody-svm.ts",
     "conformance": "node tests/anchor-conformance/conformance.cjs",
     "smoke": "bash ops/smoke.sh",
-    "test:makers": "bash ops/makers.sh"
+    "test:makers": "bash ops/makers.sh",
+    "test:routes": "node --import tsx tests/rpc-contract/route-svm.ts"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "1.5.6",

@@ -71,7 +71,7 @@ export type MarketState = {
   configEpoch: bigint;
   sequence: bigint;
   paused: boolean;
-  /** Only CustodyOnly (0) exists in this schema. */
+  /** 0 CustodyOnly, 1 explicitly compiled synthetic TestRoutes. */
   mode: number;
   fundingIndexScaled: bigint;
   totalCash: bigint;
@@ -95,7 +95,7 @@ export type MarketStateArgs = {
   configEpoch: number | bigint;
   sequence: number | bigint;
   paused: boolean;
-  /** Only CustodyOnly (0) exists in this schema. */
+  /** 0 CustodyOnly, 1 explicitly compiled synthetic TestRoutes. */
   mode: number;
   fundingIndexScaled: number | bigint;
   totalCash: number | bigint;

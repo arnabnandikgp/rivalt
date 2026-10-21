@@ -23,6 +23,7 @@ pnpm test
 pnpm test:financial
 pnpm test:svm
 pnpm test:makers
+pnpm test:routes
 node ops/check-dependencies.mjs
 test "$(surfpool --version)" = "surfpool 1.6.1"
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18899}"
@@ -34,6 +35,7 @@ mkdir -p "$RIVALT_RUN_DIR"
 cp .local/p02-financial.json "$RIVALT_RUN_DIR/financial.json"
 cp .local/p02-svm.json "$RIVALT_RUN_DIR/svm.json"
 cp .local/p03-svm.json "$RIVALT_RUN_DIR/maker-svm.json"
+cp .local/p04-svm.json "$RIVALT_RUN_DIR/route-svm.json"
 # Refuse occupied ports rather than connecting to or stopping someone else's runtime.
 python3 - "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" <<'PY'
 import socket, sys
@@ -72,5 +74,6 @@ done
 node --import tsx tests/rpc-contract/smoke.ts
 node --import tsx tests/rpc-contract/custody-rpc.ts
 node --import tsx tests/rpc-contract/maker-rpc.ts
+node --import tsx tests/rpc-contract/route-rpc.ts
 node ops/record-toolchain.mjs > "$RIVALT_RUN_DIR/toolchain.json"
 printf 'Evidence: %s\n' "$RIVALT_RUN_DIR"

@@ -4,14 +4,33 @@ pub use custody::*;
 pub mod makers;
 use maker_interface::QuoteResponse;
 pub use makers::*;
+pub mod routes;
+pub use routes::*;
 
 declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
 
-/// Profile 1 implements custody only. Trade/funding/order/default entrypoints are absent.
+/// Synthetic local routes require the explicit local-test-profile build feature.
 #[program]
 pub mod clearing {
     use super::*;
 
+    pub fn initialize_test_routes(
+        ctx: Context<InitializeTestRoutes>,
+        reference: u64,
+        duration: u64,
+    ) -> Result<()> {
+        routes::initialize(ctx, reference, duration)
+    }
+    pub fn publish_test_risk(
+        ctx: Context<PublishTestRisk>,
+        reference: u64,
+        duration: u64,
+    ) -> Result<()> {
+        routes::publish_risk(ctx, reference, duration)
+    }
+    pub fn execute_route(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
+        routes::execute(ctx, intent)
+    }
     pub fn register_maker(
         ctx: Context<RegisterMaker>,
         maker_id: u8,
@@ -148,7 +167,7 @@ pub enum ClearingError {
     Amount,
     #[msg("Actual vault is below allocated cash or cash totals disagree")]
     Reconciliation,
-    #[msg("Financial state is outside the implemented custody-only profile")]
+    #[msg("Financial state is outside the implemented phase profile")]
     Profile,
     #[msg("Domain identity must be nonzero")]
     Domain,
@@ -166,4 +185,12 @@ pub enum ClearingError {
     MakerQuote,
     #[msg("Maker response producer, encoding or terms mismatch")]
     MakerResponse,
+    #[msg("Route authority, quantity, lifetime, nonce or generation mismatch")]
+    RouteIntent,
+    #[msg("Synthetic observation is unavailable, stale or mismatched")]
+    RiskObservation,
+    #[msg("Route exceeds all-in, fee or execution bounds")]
+    RouteLimit,
+    #[msg("Post-fee health or exposure capacity fails")]
+    RouteHealth,
 }

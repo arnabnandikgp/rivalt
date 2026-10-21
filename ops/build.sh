@@ -14,7 +14,15 @@ cp .local/keys/clearing.json target/deploy/clearing-keypair.json
 cp .local/keys/maker-a.json target/deploy/maker_a-keypair.json
 cp .local/keys/maker-b.json target/deploy/maker_b-keypair.json
 mkdir -p .local
-NO_DNA=1 anchor build --no-idl --tools-version v1.52 --arch v0 -- -- --locked 2>&1 | tee .local/sbf-build.log
+{
+  NO_DNA=1 anchor build -p clearing --no-idl --tools-version v1.52 --arch v0 -- -- --locked
+  cp target/deploy/clearing.so .local/clearing-no-routes.so
+  NO_DNA=1 anchor build -p clearing --no-idl --tools-version v1.52 --arch v0 -- -- --locked --features local-test-profile
+  for program in maker_a maker_b; do
+    NO_DNA=1 anchor build -p "$program" --no-idl --tools-version v1.52 --arch v0 -- -- --locked
+  done
+  cargo build-sbf --manifest-path tests/fixtures/hostile-maker/Cargo.toml --tools-version v1.52 --arch v0 -- --locked
+} 2>&1 | tee .local/sbf-build.log
 # LLVM can print these diagnostics yet return success. Never accept such an artifact.
 if grep -Eq 'Stack offset .* exceeded|max offset of 4096|overwrites values in the frame' .local/sbf-build.log; then
   echo 'Rejected unsafe SBF stack frame; see .local/sbf-build.log' >&2

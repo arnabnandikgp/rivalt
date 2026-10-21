@@ -3,7 +3,7 @@ Rivalt · baseline R1 · 20 October 2026
 
 This is the normative economic and execution contract for the engineering MVP. It selects behavior, not final machine layouts or production calibration. G02/G03 in [DECISIONS](DECISIONS.md) must be resolved in P02; G08–G10 close before their owning features are marked complete.
 
-P02's concrete precision, bounds, synthetic risk profile and deterministic fractional extension are specified in [ACCOUNTING-AND-CUSTODY](P02-ACCOUNTING-AND-CUSTODY.md). This includes exact scaled-unit insurance/impairment and an explicit zero-sum terminal rounding transfer bounded below one quote atom per participant. Ordinary settlement retains all sub-atom claims. The on-chain phase profile permits custody only; economic model tests do not enable later instructions.
+P02's concrete precision, bounds, synthetic risk profile and deterministic fractional extension are specified in [ACCOUNTING-AND-CUSTODY](P02-ACCOUNTING-AND-CUSTODY.md). This includes exact scaled-unit insurance/impairment and an explicit zero-sum terminal rounding transfer bounded below one quote atom per participant. Ordinary settlement retains all sub-atom claims. P02 originally permits custody only. [P04 routes](P04-ATOMIC-ROUTES.md) extend the local build through an explicit synthetic observation profile; authenticated G08 sources, operational settlement/default and orders remain disabled.
 
 ## 1. State, units and invariants
 
@@ -120,7 +120,7 @@ A failed second leg reverts first-leg exposure, fees, orders and curve consumpti
 
 For each maker side/quote epoch, let K(f) be cumulative gross quote cost/proceeds after f lots. Additional d uses K(f+d)-K(f), with one specified integer rounding convention. Fills cannot repeatedly reset f to take the cheapest segment. Read current inventory for skew; epoch resets and validity are bound to the authenticated config. Return-data arithmetic is untrusted until clearing validates it.
 
-P03 pins the bounded curves, expiry/reset policy, unique funded-capital binding and module approval rules in [MAKER-CONTRACT](P03-MAKER-CONTRACT.md). Its previews cannot consume liquidity or mutate financial state; P04 must make consumption atomic with the route.
+P03 pins the bounded curves, expiry/reset policy, unique funded-capital binding and module approval rules in [MAKER-CONTRACT](P03-MAKER-CONTRACT.md). Its previews cannot consume liquidity or mutate financial state; P04 makes consumption atomic with the route, as specified in [ATOMIC-ROUTES](P04-ATOMIC-ROUTES.md).
 
 Registration is standing maker authority for the admitted pricing program and capital scope. No maker co-signature is required per fill on this path. Signed private RFQs are deferred. Distinct addresses alone are not evidence of economically independent ownership.
 

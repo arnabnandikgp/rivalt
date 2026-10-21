@@ -20,7 +20,7 @@ pub struct MarketState {
     pub config_epoch: u64,
     pub sequence: u64,
     pub paused: bool,
-    /// Only CustodyOnly (0) exists in this schema.
+    /// 0 CustodyOnly, 1 explicitly compiled synthetic TestRoutes.
     pub mode: u8,
     pub funding_index_scaled: i128,
     pub total_cash: u64,
@@ -178,14 +178,14 @@ pub struct CustodyChanged {
 fn arithmetic<T>(value: financial_core::Result<T>) -> Result<T> {
     value.map_err(|_| error!(ClearingError::Arithmetic))
 }
-fn profile(m: &MarketState) -> Result<()> {
+pub(crate) fn profile(m: &MarketState) -> Result<()> {
     require!(
         m.schema_version == SCHEMA_VERSION
             && m.profile_version == PROFILE_VERSION
-            && m.mode == 0
+            && m.mode <= 1
             && m.funding_index_scaled == 0
             && m.settlement == 0
-            && m.fees == 0,
+            && (m.mode == 1 || m.fees == 0),
         ClearingError::Profile
     );
     Ok(())
@@ -195,7 +195,7 @@ fn active(m: &MarketState) -> Result<()> {
     require!(!m.paused, ClearingError::Paused);
     Ok(())
 }
-fn reconciled(m: &MarketState, actual: u64) -> Result<()> {
+pub(crate) fn reconciled(m: &MarketState, actual: u64) -> Result<()> {
     let sum = u128::from(m.total_cash)
         + u128::from(m.settlement)
         + u128::from(m.insurance)
@@ -331,7 +331,7 @@ pub fn register(ctx: Context<RegisterParticipant>) -> Result<()> {
 pub fn process_deposit(ctx: Context<CashTransfer>, amount: u64) -> Result<()> {
     let m = &mut ctx.accounts.market;
     active(m)?;
-    flat(&ctx.accounts.participant)?;
+    crate::routes::participant_model(&ctx.accounts.participant)?;
     require!(amount > 0, ClearingError::Amount);
     reconciled(m, ctx.accounts.vault.amount)?;
     let p = &mut ctx.accounts.participant;
@@ -367,6 +367,8 @@ pub fn process_deposit(ctx: Context<CashTransfer>, amount: u64) -> Result<()> {
 pub fn process_withdraw(ctx: Context<CashTransfer>, amount: u64) -> Result<()> {
     let m = &mut ctx.accounts.market;
     active(m)?;
+    // P06 adds guarded exits with settlement/whole-market policy.
+    require!(m.mode == 0, ClearingError::Profile);
     flat(&ctx.accounts.participant)?;
     require!(amount > 0, ClearingError::Amount);
     reconciled(m, ctx.accounts.vault.amount)?;

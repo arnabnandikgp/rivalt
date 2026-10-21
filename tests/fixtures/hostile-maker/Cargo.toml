@@ -1,0 +1,20 @@
+[package]
+name = "hostile-maker"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "hostile_maker"
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+[dependencies]
+anchor-lang = { workspace = true }
+maker-interface = { path = "../../../crates/maker-interface" }

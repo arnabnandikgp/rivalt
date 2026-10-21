@@ -157,3 +157,7 @@ Initial engineering objectives retained from the build specification:
 
 These are targets, not achieved measurements or promises. Report failed/unfilled attempts, unpaid profits and degraded intervals. Do not combine local/devnet latency populations. Tune one measured bottleneck at a time after correctness.
 
+
+## P04 validation extension
+
+The build additionally creates the default clearing artifact (activation must reject), explicit local-test-profile clearing artifact and a clearly labeled hostile B replacement fixture. Existing external package versions remain pinned; the installed web3.js 3.1.1 ComputeBudgetProgram constructs the 400,000-CU instruction without a new client dependency. Route acceptance requires ≤320,000 measured CU, ≤1,232 serialized bytes and ≤20 message accounts for the declared fixtures. New independent tests compare all legal partitions against per-lot prefix sums with separate health checks. Shared signed scenarios run in LiteSVM and Surfpool; RPC uses actual hostile upgrade/reapproval, real slot expiry, HTTP transaction retrieval and WS notifications, with isolated legacy live event/account decoding. Failed-route event metadata must never count as committed fills. See [P04 contract](P04-ATOMIC-ROUTES.md) and WORKLOG for actual evidence.

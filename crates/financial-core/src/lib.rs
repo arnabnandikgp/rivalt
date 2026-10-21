@@ -1,5 +1,6 @@
 //! Rivalt synthetic profile 1. All quote amounts are atoms unless named `scaled`.
 //! No runtime, oracle, token, or authority assumptions are supplied by this crate.
+pub mod route;
 
 pub const SCALE: i128 = 1_000_000_000;
 pub const LOTS_PER_BTC: i64 = 1_000_000;

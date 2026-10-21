@@ -11,4 +11,5 @@ export * from "./capital.js";
 export * from "./market.js";
 export * from "./record.js";
 export * from "./registry.js";
+export * from "./routeState.js";
 export * from "./vault.js";

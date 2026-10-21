@@ -26,7 +26,7 @@ const canonical = v => JSON.parse(JSON.stringify(v, function(k,x) {
   const instructions=[];
   for (const x of input.instructions ?? []) {
     const ix=await programs[x.program].methods[x.name](...x.args.map(value))
-      .accountsStrict(Object.fromEntries(Object.entries(x.accounts).map(([k,v])=>[k,new PublicKey(v)]))).instruction();
+      .accountsStrict(Object.fromEntries(Object.entries(x.accounts).map(([k,v])=>[k,v===null?null:new PublicKey(v)]))).instruction();
     instructions.push({data:ix.data.toString('hex'),accounts:ix.keys.map(k=>({address:k.pubkey.toBase58(),signer:k.isSigner,writable:k.isWritable}))});
   }
   const accounts=(input.accounts ?? []).map(x=>canonical(programs[x.program].coder.accounts.decode(x.name,Buffer.from(x.data,'base64'))));

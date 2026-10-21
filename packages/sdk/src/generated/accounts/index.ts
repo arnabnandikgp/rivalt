@@ -12,3 +12,4 @@ export * from "./marketState.js";
 export * from "./participant.js";
 export * from "./participantRegistry.js";
 export * from "./probeRecord.js";
+export * from "./testRouteState.js";

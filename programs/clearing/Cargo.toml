@@ -10,6 +10,7 @@ name = "clearing"
 
 [features]
 default = []
+local-test-profile = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

@@ -741,6 +741,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hostile-maker"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "maker-interface",
+]
+
+[[package]]
 name = "hybrid-array"
 version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"

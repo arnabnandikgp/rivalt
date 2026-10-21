@@ -33,7 +33,7 @@ export const CLEARING_ERROR__CAPACITY = 0x17d9; // 6105
 export const CLEARING_ERROR__AMOUNT = 0x17da; // 6106
 /** Reconciliation: Actual vault is below allocated cash or cash totals disagree */
 export const CLEARING_ERROR__RECONCILIATION = 0x17db; // 6107
-/** Profile: Financial state is outside the implemented custody-only profile */
+/** Profile: Financial state is outside the implemented phase profile */
 export const CLEARING_ERROR__PROFILE = 0x17dc; // 6108
 /** Domain: Domain identity must be nonzero */
 export const CLEARING_ERROR__DOMAIN = 0x17dd; // 6109
@@ -51,6 +51,14 @@ export const CLEARING_ERROR__MAKER_UPGRADE = 0x17e2; // 6114
 export const CLEARING_ERROR__MAKER_QUOTE = 0x17e3; // 6115
 /** MakerResponse: Maker response producer, encoding or terms mismatch */
 export const CLEARING_ERROR__MAKER_RESPONSE = 0x17e4; // 6116
+/** RouteIntent: Route authority, quantity, lifetime, nonce or generation mismatch */
+export const CLEARING_ERROR__ROUTE_INTENT = 0x17e5; // 6117
+/** RiskObservation: Synthetic observation is unavailable, stale or mismatched */
+export const CLEARING_ERROR__RISK_OBSERVATION = 0x17e6; // 6118
+/** RouteLimit: Route exceeds all-in, fee or execution bounds */
+export const CLEARING_ERROR__ROUTE_LIMIT = 0x17e7; // 6119
+/** RouteHealth: Post-fee health or exposure capacity fails */
+export const CLEARING_ERROR__ROUTE_HEALTH = 0x17e8; // 6120
 
 export type ClearingError =
   | typeof CLEARING_ERROR__ALIAS
@@ -70,7 +78,11 @@ export type ClearingError =
   | typeof CLEARING_ERROR__PAUSED
   | typeof CLEARING_ERROR__PROFILE
   | typeof CLEARING_ERROR__RECONCILIATION
-  | typeof CLEARING_ERROR__RESERVED_NONCE;
+  | typeof CLEARING_ERROR__RESERVED_NONCE
+  | typeof CLEARING_ERROR__RISK_OBSERVATION
+  | typeof CLEARING_ERROR__ROUTE_HEALTH
+  | typeof CLEARING_ERROR__ROUTE_INTENT
+  | typeof CLEARING_ERROR__ROUTE_LIMIT;
 
 let clearingErrorMessages: Record<ClearingError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
@@ -90,9 +102,13 @@ if (process.env["NODE_ENV"] !== "production") {
     [CLEARING_ERROR__MAKER_UPGRADE]: `Maker deployment differs from approved ProgramData hash`,
     [CLEARING_ERROR__MINT]: `Expected classic SPL six-decimal collateral without freeze authority`,
     [CLEARING_ERROR__PAUSED]: `Market is paused`,
-    [CLEARING_ERROR__PROFILE]: `Financial state is outside the implemented custody-only profile`,
+    [CLEARING_ERROR__PROFILE]: `Financial state is outside the implemented phase profile`,
     [CLEARING_ERROR__RECONCILIATION]: `Actual vault is below allocated cash or cash totals disagree`,
     [CLEARING_ERROR__RESERVED_NONCE]: `The maximum nonce is reserved for the local rejection probe`,
+    [CLEARING_ERROR__RISK_OBSERVATION]: `Synthetic observation is unavailable, stale or mismatched`,
+    [CLEARING_ERROR__ROUTE_HEALTH]: `Post-fee health or exposure capacity fails`,
+    [CLEARING_ERROR__ROUTE_INTENT]: `Route authority, quantity, lifetime, nonce or generation mismatch`,
+    [CLEARING_ERROR__ROUTE_LIMIT]: `Route exceeds all-in, fee or execution bounds`,
   };
 }
 
