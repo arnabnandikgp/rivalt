@@ -31,6 +31,7 @@ const rpc = new WireRpc(url),
 const custody = JSON.parse(readFileSync(`${dir}/custody.json`, 'utf8')),
   anchor = custody.checks.find((x: any) => x.label === 'initialize custody market').signature;
 const unsignedRejections: { label: string; message: string }[] = [];
+const signedRejections: { label: string; signature: string; code: number; fee: number }[] = [];
 const childRoles = new Map<ChildProcess, string>();
 const checks: string[] = [],
   transactions: any[] = [],
@@ -58,7 +59,9 @@ async function wait<T>(
     }
     await delay(100);
   }
-  throw new Error(`${label}: ${last instanceof Error ? last.message : json(last)}`);
+  throw new Error(
+    `${label}: ${last instanceof Error ? last.message : JSON.stringify(last, (key, value) => (key === 'wire' ? '[saved signed bytes omitted]' : typeof value === 'bigint' ? value.toString() : value))}`,
+  );
 }
 const read = async (key: string) => {
   const x = await rpc.call('getAccountInfo', [key, { encoding: 'base64', commitment: 'finalized' }]);
@@ -274,7 +277,7 @@ async function uiReady() {
     'API and wallet ready',
   );
 }
-async function signedAction(button: string, label: string, proofPages = 0): Promise<sdk.SignedIntent> {
+async function reviewAction(button: string, label: string) {
   const before = walletSigned.length;
   for (let attempt = 0; attempt < 8; attempt++) {
     await page.getByRole('button', { name: button, exact: true }).click();
@@ -304,6 +307,18 @@ async function signedAction(button: string, label: string, proofPages = 0): Prom
   assert(await page.getByRole('dialog').isVisible(), 'no valid preview within eight explicit attempts');
   const actualLabel = (await page.getByRole('dialog').getByRole('heading').textContent())!;
   assert(actualLabel === label || actualLabel === 'Verify exit cohort');
+  return actualLabel;
+}
+async function signedAction(
+  button: string,
+  label: string,
+  proofPages = 0,
+  failedAttempts = 0,
+): Promise<sdk.SignedIntent> {
+  const before = walletSigned.length,
+    actualLabel = await reviewAction(button, label);
+  const effectKeys = [a.vault, setup.trader, ...makers.map((m) => m.capital)],
+    beforeEffect = await Promise.all(effectKeys.map(read));
   await page.getByRole('button', { name: 'Sign transaction', exact: true }).click();
   const receipt = await wait(
     receipts,
@@ -311,7 +326,7 @@ async function signedAction(button: string, label: string, proofPages = 0): Prom
       x.some(
         (r) =>
           r.label === actualLabel &&
-          r.status === 'finalized' &&
+          ['finalized', 'failed'].includes(r.status) &&
           !transactions.some((t) => t.signature === r.signature),
       ),
     `${label} final receipt`,
@@ -319,14 +334,32 @@ async function signedAction(button: string, label: string, proofPages = 0): Prom
   const r = receipt.find(
     (r) =>
       r.label === actualLabel &&
-      r.status === 'finalized' &&
+      ['finalized', 'failed'].includes(r.status) &&
       !transactions.some((t) => t.signature === r.signature),
   )!;
   assert.equal(walletSigned.length, before + 1);
-  assert.equal((await fetched(r.signature)).meta.err, null);
+  const tx = await fetched(r.signature);
+  if (r.status === 'failed') {
+    const code = tx.meta.err?.InstructionError?.[1]?.Custom;
+    assert(
+      [6118, 6122, 6124].includes(code),
+      `unexpected finalized rejection ${JSON.stringify(tx.meta.err)}`,
+    );
+    assert.deepEqual(
+      await Promise.all(effectKeys.map(read)),
+      beforeEffect,
+      'rejected action leaves the actual vault and funded participants unchanged',
+    );
+    signedRejections.push({ label: actualLabel, signature: r.signature, code, fee: tx.meta.fee });
+    assert(failedAttempts < 3, 'too many finalized races for this action');
+    // Explicit user retry only after independently proving final failure and no
+    // financial effect. Missing/expired/ambiguous outcomes never enter this path.
+    return signedAction(button, label, proofPages, failedAttempts + 1);
+  }
+  assert.equal(tx.meta.err, null);
   if (actualLabel === 'Verify exit cohort') {
     assert(proofPages < 8, 'exit proof must advance');
-    return signedAction(button, label, proofPages + 1);
+    return signedAction(button, label, proofPages + 1, failedAttempts);
   }
   return r;
 }
@@ -596,18 +629,27 @@ try {
     'lost relay acknowledgement and browser reload reconcile the original signed deposit without a second signature',
   );
   // A prepared quote becomes stale while the user reviews it. No automatic replacement is signed.
-  await page.getByRole('button', { name: 'Get quote', exact: true }).click();
-  await page.getByRole('dialog').waitFor();
+  await reviewAction('Get quote', 'Buy BTC');
   const positionBefore = (await t.participant()).lots;
   const reviewedSlot = await slot();
   await wait(slot, (n) => n > reviewedSlot + 160n, 'actual stale quote lifetime');
-  const beforeStale = walletSigned.length;
+  const beforeStale = walletSigned.length,
+    previousReceipts = new Set((await receipts()).map((r) => r.id));
   await page.getByRole('button', { name: 'Sign transaction', exact: true }).click();
   await wait(
     receipts,
-    (x) => x.some((r) => r.label === 'Buy BTC' && ['failed', 'unresolved'].includes(r.status)),
+    (x) =>
+      x.some(
+        (r) =>
+          !previousReceipts.has(r.id) && r.label === 'Buy BTC' && ['failed', 'unresolved'].includes(r.status),
+      ),
     'stale quote visibly rejected or unresolved',
     60000,
+  );
+  await wait(
+    () => page.locator('.announcements [role=status]').first().textContent(),
+    (x) => Boolean(x && /Buy BTC (failed|remains unresolved)/.test(x)),
+    'stale outcome notice',
   );
   assert.equal((await t.participant()).lots, positionBefore);
   assert.equal(walletSigned.length, beforeStale + 1);
@@ -750,6 +792,7 @@ try {
       fixture: 'instrumented Wallet Standard; private keys stay in Node; no external provider claim',
       checks,
       unsignedRejections,
+      signedRejections,
       fundingIntervalSeconds: 5,
       config,
       walletSignatures: saved.map(({ wire, ...r }) => ({

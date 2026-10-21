@@ -156,7 +156,22 @@ export function useVenue(config: TraderConfig) {
           previous.map(async (x) => (terminal(x) ? x : client.reconcile(x).catch(() => x))),
         );
         if (epoch === current.current.epoch && JSON.stringify(next) !== JSON.stringify(previous)) {
-          save(mergeReconciled(recordsRef.current, previous, next), target);
+          const merged = mergeReconciled(recordsRef.current, previous, next);
+          save(merged, target);
+          const latest = [...merged].sort((a, b) => b.createdAt - a.createdAt)[0],
+            before = previous.find((x) => x.id === latest?.id);
+          if (latest && before && latest.status !== before.status) {
+            if (latest.status === 'finalized')
+              setNotice(
+                `${latest.label} finalized. The saved transaction was independently fetched over RPC.`,
+              );
+            else if (latest.status === 'failed')
+              setNotice(`${latest.label} failed. Check its saved result before preparing a new transaction.`);
+            else if (latest.status === 'unresolved')
+              setNotice(
+                `${latest.label} remains unresolved. Check the saved signature before repeating this action.`,
+              );
+          }
           void refresh();
         }
       } finally {
