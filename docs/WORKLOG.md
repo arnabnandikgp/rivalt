@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** M1/P01/P02 are Closed; P03/P04/M2 remain Review in ready PRs [#4](https://github.com/arnabnandikgp/rivalt/pull/4)/[#5](https://github.com/arnabnandikgp/rivalt/pull/5). **P05 A06/G06 pass on clean `fb2606f`; P05 is Review on `phase/p05-indexer`, stacked above exact P04 head `ddd1dc0`.** [P05 evidence](evidence/P05.md) records real RPC/WS/PostgreSQL recovery, rebuild, chain-reset isolation and HTTP reads. Ready PR publication is in progress. Later financial paths remain disabled.
+**Current position:** M1/P01/P02 are Closed; P03/P04/M2 remain Review in ready PRs [#4](https://github.com/arnabnandikgp/rivalt/pull/4)/[#5](https://github.com/arnabnandikgp/rivalt/pull/5). **P05 A06/G06 pass on clean `fb2606f`; P05 is Review on `phase/p05-indexer`, stacked above exact P04 head `ddd1dc0`.** [P05 evidence](evidence/P05.md) records real RPC/WS/PostgreSQL recovery, rebuild, chain-reset isolation and HTTP reads. Ready [PR #7](https://github.com/arnabnandikgp/rivalt/pull/7) is stacked above #5 through `gh stack`. Later financial paths remain disabled.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -37,7 +37,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M1 | P02 | Financial core and custody | Closed | [PR #2](https://github.com/arnabnandikgp/rivalt/pull/2), tested `16e51e4` | [R004 acceptance](evidence/R004-REVIEW.md); G02/G03 pass; merged `3c1aae1` |
 | M2 | P03 | Maker programs and capital authorization | Review | [PR #4](https://github.com/arnabnandikgp/rivalt/pull/4), tested `e05a20e` | [A03 evidence](evidence/P03.md); G04 verified; integration pending |
 | M2 | P04 | Atomic routes and allocation | Review | [PR #5](https://github.com/arnabnandikgp/rivalt/pull/5), tested `b8e5fb8`, stacked above #4 | [A04/A05/G05 evidence](evidence/P04.md); integration pending |
-| M3 | P05 | Indexer, database and read API | Review | Tested `fb2606f`, stacked above #5; PR publication pending | [A06/G06 evidence](evidence/P05.md); integration pending |
+| M3 | P05 | Indexer, database and read API | Review | [PR #7](https://github.com/arnabnandikgp/rivalt/pull/7), tested `fb2606f`, stacked above #5 | [A06/G06 evidence](evidence/P05.md); integration pending |
 | M3 | P06 | Maker daemons and complete service lifecycle | Open | — | After P05 |
 | M4 | P07 | Oracle policy and authenticated funding | Open | — | After P06 |
 | M4 | P08 | Persistent orders and TP/SL | Open | — | After P07 |
@@ -57,7 +57,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Last completed work: P05 canonical finalized indexer, PostgreSQL journal/projections/checkpoints, read API and actual disconnect/rebuild/reset acceptance.
 - Verified implementation: `fb2606f54a77b4fef3c4e327d357ada59e634050`; clean full run `.local/runs/20261021T093232Z-28371`. All eleven source identity records are clean.
 - Status: M1/P01/P02 Closed; P03/P04/P05 and M2 Review pending integration; M3 In progress because P06 is Open.
-- Immediate task: publish ready P05 above #5 with `gh stack`, then create `phase/p06-lifecycle` and implement G07/service lifecycle without waiting for merges.
+- Immediate task: `gh stack add phase/p06-lifecycle`, then implement G07 and the maker/executor/settlement service lifecycle above ready PR #7 without waiting for merges.
 - Access/product decisions needed now: none. Existing Apple container runtime's PostgreSQL 18.6 loopback/volume/restart behavior is verified. No devnet key or external maker is needed.
 - Deferred external needs: secure devnet/feed access at P13; independent maker at P15; independent review/funded-pilot decision at P16.
 - Historical archives remain optional targeted reference only.
@@ -203,5 +203,5 @@ Update Latest checkpoint and the two overview tables as well as appending the en
 - Actual recovery results: 44 live WS observations; missing-tail and SQL rollback faults preserve the checkpoint; 136 post-route canonical transactions include 71 failures whose events are excluded; 51 events become 52 after the offline pause. Fresh PostgreSQL database rebuild fetches 137 transactions over 46 pages and matches all three participants, both makers, risk/market and vault. Vault = allocated = 200,010,008 atoms, surplus zero. PostgreSQL process/volume restart and genuine new-Surfpool isolation pass; real HTTP reads/candles and standalone CLI readiness/metrics/SIGTERM pass. All six task listeners and the task container are released.
 - Evidence: [P05 report](evidence/P05.md), [captured JSON/logs and hashes](evidence/p05/manifest.json), `.local/p05-clean-acceptance.log`. Program/IDL artifacts match P04; current results are new execution, not inherited test counts. Evidence excludes credentials and database data. Only documentation/evidence changes follow the tested implementation.
 - Configuration/status: A06/G06 verified; P05 Review pending integration. M3 remains In progress for P06; P03/P04 remain Review. No blocker or product decision.
-- PR: ready P05 publication above #5 is the remaining closeout action; no PR number or merge claimed yet.
-- Next exact action: publish the verified P05 ready PR through `gh stack`; then `gh stack add phase/p06-lifecycle` and implement G07 plus real maker/executor/settlement lifecycle.
+- PR / commits: implementation `fb2606f`, evidence `d38708c`; ready [PR #7](https://github.com/arnabnandikgp/rivalt/pull/7) opened with base `phase/p04-routes`, then registered via `gh stack submit --auto --open`. The stack reports #4 → #5 → #7, no rebase required. Final follow-up changes are documentation only; executable/lockfile parity with the tested commit is verified. No merge or external review is claimed.
+- Next exact action: `gh stack add phase/p06-lifecycle`, then implement G07 plus the real maker/executor/settlement lifecycle above #7.
