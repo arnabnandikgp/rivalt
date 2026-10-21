@@ -1,0 +1,169 @@
+{
+  "revision": "cd2b8fa7c886d75b7f81cf654ab0cc2171a962fc",
+  "sourceDirty": false,
+  "regressionRevision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+  "parentRevision": "efc1278414d722759b1785af13f4986a784c6fd2",
+  "parentPr": "https://github.com/arnabnandikgp/rivalt/pull/9",
+  "commands": [
+    {
+      "command": "source ops/env.sh && RIVALT_SLOT_TIME=50 pnpm smoke",
+      "exit": 1,
+      "outcome": "Build/unit/SVM and all P01-P07 RPC gates pass; P08 reaches restarted 64+6 fills then harness competes with funding sampler"
+    },
+    {
+      "command": "source ops/env.sh && RIVALT_SLOT_TIME=50 bash ops/orders-smoke.sh",
+      "exit": 0,
+      "outcome": "Complete P08 actual RPC/WS/PostgreSQL acceptance passes after isolated harness correction"
+    }
+  ],
+  "result": "All P08 gates pass across two clean revisions with identical financial and service implementation; no full-wrapper exit-zero claim",
+  "runs": {
+    "regression": ".local/runs/20261021T132105Z-44134",
+    "lifecycle": ".local/runs/20261021T133300Z-47934",
+    "oracle": ".local/runs/20261021T133642Z-49108",
+    "orders": ".local/runs/20261021T135143Z-53292"
+  },
+  "identities": [
+    {
+      "file": "regression-summary.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "regression-custody.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "regression-financial.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "regression-svm.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "regression-maker-svm.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "regression-maker-rpc.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "regression-route-svm.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "regression-route-rpc.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "regression-indexer-rpc.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "regression-indexer-reset.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "regression-reset-custody.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "lifecycle-custody.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "lifecycle-lifecycle.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "lifecycle-settlement-svm.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "oracle-oracle.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "oracle-oracle-svm.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "orders.json",
+      "revision": "cd2b8fa7c886d75b7f81cf654ab0cc2171a962fc",
+      "sourceDirty": false
+    },
+    {
+      "file": "order-svm.json",
+      "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+      "sourceDirty": false
+    },
+    {
+      "file": "custody.json",
+      "revision": "cd2b8fa7c886d75b7f81cf654ab0cc2171a962fc",
+      "sourceDirty": false
+    }
+  ],
+  "files": {
+    "container-version.txt": "78d7b2f3d061b337d01308d8e5553cceb11524d7022c3706dde2fb2db18324d3",
+    "custody.json": "6cf90dfede9c0417442db501b41daaedc6a1eb7b60f1e1cdb910446e3c46b009",
+    "deployment-maker-a.json": "7b97f181f35996e4c9cb2e43ec5d6f7cddb323bce962deb0396b3b18116db87b",
+    "deployment-maker-b.json": "5300423cb3a73bb9979208733017fe1de8d6f44b65e534fac44b7d515ae3f80e",
+    "deployment-oracle-fixture.json": "efee86256121dfec1aa09e203081371e2bfbbd4c9ed5c6435a72e9de2b01bd1f",
+    "deployment.json": "60f655b1c655921c2c6d77ca08b89f1e792a848c9a058a9d9fa04e14389e2ec8",
+    "lifecycle-custody.json": "8023dbcaea9f6411241fec2e290087eaeb637228a93f58afc406457320a0da71",
+    "lifecycle-lifecycle.json": "095570f35da55e0e48ea1d9567e8d1a149c16d0fe11889db86de766cb0686e67",
+    "lifecycle-settlement-svm.json": "9feffcf0c89919122ccd7d26eebdc8e4abcfe08c8941faac496bea63d20dc60c",
+    "lifecycle-toolchain.json": "1fd6eca2e575854fcd05e2378e4c85478d4a8938b5cfb2b9b4782920366906e1",
+    "oracle-oracle-conformance.json": "d07329af7bc0df3a3587156467d0de459cdc8b296cbf8f43273c07f64b1940d5",
+    "oracle-oracle-svm.json": "b2c7a36992d11376b7a89271b35391499cb2111279fb1f404ab510453f5116c5",
+    "oracle-oracle.json": "bc2dce7ae992509946c76b4b875a416321f83f2ad81df876a09740a7463b5abe",
+    "oracle-toolchain.json": "2bdeb40451c94dd41a05746ac68ecd15eccec563da55ab7392476ad734ed728a",
+    "order-svm.json": "653445c88de435e0d79c893e440a8b84c2c9aa02594707c50c8ba98060852046",
+    "orders-acceptance.txt": "347f193d8d870efba3c1f0bf3f5afd77c91c7de73deada0ba82809286798cf0c",
+    "orders-conformance.json": "838cced7c85dede67567fdd3d65eeee255123eb3e022cac5b0a4bcb38deb518f",
+    "orders.json": "7ba5a282a90413f85a4d73083066a5cc6d724c14517aa89a3ad1d732c50bb6d4",
+    "postgres-image.json": "bd36ca635f7c05def7ab610dd086f4b02aae884514eb1fcf54f82111c92f5e71",
+    "postgres-version.txt": "66cbaae4250f039f92200da1428bbd0f3f0850da18716bb1ce501a178c259711",
+    "regression-acceptance.txt": "636d9e167f4e2b4dbf30d55135dd643ace4a5960f5f9dc0b14658745b0b03fb4",
+    "regression-custody.json": "8ca857b4a7b333d0667b96b4d8d95c8ce8f972b15001baf03ce4540f8a04a646",
+    "regression-financial.json": "125b9b478891307aaa03dd950cfbd6196e3cfaf7b1236bfb9a097a052c00f6d4",
+    "regression-indexer-reset.json": "d7c99e103f6693254ec3360a4375322940ff7f064712b528d53681710aa3e18e",
+    "regression-indexer-rpc.json": "8db7e3c48044a7941bae611a936a333882478df225f036847541ead5e3d6ed9d",
+    "regression-maker-rpc.json": "252fad8d9cd3ae68562941f38deb5fb9d6d03625425ff96587c7b1007947387a",
+    "regression-maker-svm.json": "b0189b1e058bc88653841f0962f6f866ae5bf6a974dfdca05aac68cf028df005",
+    "regression-reset-custody.json": "f3df043d1827040ca147cb07507e5690c757625c02919a14a96383790fc4605e",
+    "regression-route-rpc.json": "8358ab8014e9a024a5aee0649139093511018ab208ea7cc70c884fd61a4f404f",
+    "regression-route-svm.json": "157f074efff2fdfab161b3c1c266164202b5af4db1dd061011f0e40178f8b22c",
+    "regression-summary.json": "0a59b6059080ea39e9e502546c240111a2489b3816e02f4aa84357c56d5a3cbe",
+    "regression-svm.json": "1da6cde7159013b2068ec0e1c9b25e4224ad3ab51c0e025fe560a347dc69f71e",
+    "regression-toolchain.json": "321d04962d4cda7edac04a3fcadfbc4d6e31dad45aef3e2d63ffc57e47bb676e",
+    "service-api-4.txt": "d9f8f5afd7967f0a0f78d9464e269c343d1ce2af03963c6987b5322fc85fd770",
+    "service-executor-1.txt": "b7f96af6af79ed480db3d734fcc01170113e2d6ad302b6ff3077e495c71d6731",
+    "service-executor-9.txt": "02c30fab6df712df93143d7963a4bb4b9328badcc9c5f6f1ca86e828e7a82300",
+    "service-funding-5.txt": "27fab3bde36a43bc1f78c0637b698fe4854f83229757b54a3673bb7ca3d0b197",
+    "service-maker-a-2.txt": "1e46c0c3b73db23893693cacfe63fe660197d99b6b003ce5992f2ce0af9e360d",
+    "service-maker-b-3.txt": "0e79acb8d89d92ed450e07c56a80c2601d52f41ad88d03370d87293eb9b027e0",
+    "service-orders-10.txt": "d801152815357a994fa636fac982012361b2d1d8251f2aae301b6d29a1ecc6bc",
+    "service-orders-6.txt": "1cdccf5a56ff89ac3094163eb7a3736f20a8c35d3bdb48930ce2dc81683df2eb",
+    "service-orders-7.txt": "cb3e6f3941318e0ee89bd8d2140e69f809472f054a2939a4e54bb5fde3935ebb",
+    "service-orders-8.txt": "1dea9d658758094a51bf55023183a04e3844bb5e5b16e82abd295fd65babef53",
+    "toolchain.json": "980fdeaeff69743a4e4f1ce1b8f5746f321a578d9bd7830cf9d0d31977f82f55"
+  }
+}

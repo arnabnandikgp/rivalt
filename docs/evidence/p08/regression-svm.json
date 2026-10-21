@@ -1,0 +1,735 @@
+{
+  "runtime": "litesvm node 1.6.1",
+  "signatureVerification": true,
+  "blockhashVerification": true,
+  "revision": "1f27fa810675eb12185c518b67f0604b4cd2619a",
+  "sourceDirty": false,
+  "binarySha256": "917c4ab75799fafdd3ad1410ca1623e767fff92aff95710ad367c62f5617f770",
+  "checks": [
+    {
+      "label": "fixture SOL rent funding",
+      "status": "pass",
+      "computeUnits": "300"
+    },
+    {
+      "label": "fixture mint 6 decimals",
+      "status": "pass",
+      "computeUnits": "351"
+    },
+    {
+      "label": "fixture mint 9 decimals",
+      "status": "pass",
+      "computeUnits": "351"
+    },
+    {
+      "label": "fixture token account and mint",
+      "status": "pass",
+      "computeUnits": "504"
+    },
+    {
+      "label": "fixture token account and mint",
+      "status": "pass",
+      "computeUnits": "514"
+    },
+    {
+      "label": "fixture token account and mint",
+      "status": "pass",
+      "computeUnits": "514"
+    },
+    {
+      "label": "fixture token account and mint",
+      "status": "pass",
+      "computeUnits": "504"
+    },
+    {
+      "label": "reject unauthorized initialization",
+      "status": "rejected",
+      "error": 6102
+    },
+    {
+      "label": "reject wrong collateral precision",
+      "status": "rejected",
+      "error": 6103
+    },
+    {
+      "label": "initialize custody market",
+      "status": "pass",
+      "computeUnits": "33779"
+    },
+    {
+      "label": "register trader",
+      "status": "pass",
+      "computeUnits": "27947"
+    },
+    {
+      "label": "deposit real test collateral",
+      "status": "pass",
+      "computeUnits": "27776"
+    },
+    {
+      "label": "reject wrong participant owner",
+      "status": "rejected",
+      "error": 2006
+    },
+    {
+      "label": "reject wrong destination owner",
+      "status": "rejected",
+      "error": 2015
+    },
+    {
+      "label": "reject wrong token mint",
+      "status": "rejected",
+      "error": 2014
+    },
+    {
+      "label": "reject vault/source alias",
+      "status": "rejected",
+      "error": 2040
+    },
+    {
+      "label": "reject overdraw",
+      "status": "rejected",
+      "error": 6100
+    },
+    {
+      "label": "reject zero amount",
+      "status": "rejected",
+      "error": 6106
+    },
+    {
+      "label": "reject arithmetic maximum",
+      "status": "rejected",
+      "error": 6100
+    },
+    {
+      "label": "rollback earlier successful token CPI and event",
+      "status": "rejected",
+      "error": 6100
+    },
+    {
+      "label": "reject missing owner signature",
+      "status": "rejected",
+      "error": 3010
+    },
+    {
+      "label": "withdraw admissible cash",
+      "status": "pass",
+      "computeUnits": "27573"
+    },
+    {
+      "label": "fund insurance by real token CPI",
+      "status": "pass",
+      "computeUnits": "17180"
+    },
+    {
+      "label": "unsolicited token transfer fixture",
+      "status": "pass",
+      "computeUnits": "105"
+    },
+    {
+      "label": "deposit preserves unassigned surplus",
+      "status": "pass",
+      "computeUnits": "27776"
+    },
+    {
+      "label": "reject unauthorized surplus classification",
+      "status": "rejected",
+      "error": 2001
+    },
+    {
+      "label": "classify surplus explicitly to insurance",
+      "status": "pass",
+      "computeUnits": "12166"
+    },
+    {
+      "label": "pause custody",
+      "status": "pass",
+      "computeUnits": "12165"
+    },
+    {
+      "label": "paused withdrawal",
+      "status": "rejected",
+      "error": 6101
+    },
+    {
+      "label": "paused deposit",
+      "status": "rejected",
+      "error": 6101
+    },
+    {
+      "label": "paused registration",
+      "status": "rejected",
+      "error": 6101
+    },
+    {
+      "label": "unpause reconciled custody",
+      "status": "pass",
+      "computeUnits": "12164"
+    },
+    {
+      "label": "withdraw remaining funded cash",
+      "status": "pass",
+      "computeUnits": "27573"
+    },
+    {
+      "label": "register capacity member 1",
+      "status": "pass",
+      "computeUnits": "25255"
+    },
+    {
+      "label": "register capacity member 2",
+      "status": "pass",
+      "computeUnits": "26849"
+    },
+    {
+      "label": "register capacity member 3",
+      "status": "pass",
+      "computeUnits": "25442"
+    },
+    {
+      "label": "register capacity member 4",
+      "status": "pass",
+      "computeUnits": "27036"
+    },
+    {
+      "label": "register capacity member 5",
+      "status": "pass",
+      "computeUnits": "27130"
+    },
+    {
+      "label": "register capacity member 6",
+      "status": "pass",
+      "computeUnits": "25724"
+    },
+    {
+      "label": "register capacity member 7",
+      "status": "pass",
+      "computeUnits": "25818"
+    },
+    {
+      "label": "register capacity member 8",
+      "status": "pass",
+      "computeUnits": "25912"
+    },
+    {
+      "label": "register capacity member 9",
+      "status": "pass",
+      "computeUnits": "26006"
+    },
+    {
+      "label": "register capacity member 10",
+      "status": "pass",
+      "computeUnits": "27600"
+    },
+    {
+      "label": "register capacity member 11",
+      "status": "pass",
+      "computeUnits": "32194"
+    },
+    {
+      "label": "register capacity member 12",
+      "status": "pass",
+      "computeUnits": "27788"
+    },
+    {
+      "label": "register capacity member 13",
+      "status": "pass",
+      "computeUnits": "26382"
+    },
+    {
+      "label": "register capacity member 14",
+      "status": "pass",
+      "computeUnits": "26476"
+    },
+    {
+      "label": "register capacity member 15",
+      "status": "pass",
+      "computeUnits": "28070"
+    },
+    {
+      "label": "register capacity member 16",
+      "status": "pass",
+      "computeUnits": "26664"
+    },
+    {
+      "label": "register capacity member 17",
+      "status": "pass",
+      "computeUnits": "26758"
+    },
+    {
+      "label": "register capacity member 18",
+      "status": "pass",
+      "computeUnits": "31352"
+    },
+    {
+      "label": "register capacity member 19",
+      "status": "pass",
+      "computeUnits": "26946"
+    },
+    {
+      "label": "register capacity member 20",
+      "status": "pass",
+      "computeUnits": "28540"
+    },
+    {
+      "label": "register capacity member 21",
+      "status": "pass",
+      "computeUnits": "27134"
+    },
+    {
+      "label": "register capacity member 22",
+      "status": "pass",
+      "computeUnits": "28728"
+    },
+    {
+      "label": "register capacity member 23",
+      "status": "pass",
+      "computeUnits": "27322"
+    },
+    {
+      "label": "register capacity member 24",
+      "status": "pass",
+      "computeUnits": "27416"
+    },
+    {
+      "label": "register capacity member 25",
+      "status": "pass",
+      "computeUnits": "29010"
+    },
+    {
+      "label": "register capacity member 26",
+      "status": "pass",
+      "computeUnits": "32104"
+    },
+    {
+      "label": "register capacity member 27",
+      "status": "pass",
+      "computeUnits": "27698"
+    },
+    {
+      "label": "register capacity member 28",
+      "status": "pass",
+      "computeUnits": "29292"
+    },
+    {
+      "label": "register capacity member 29",
+      "status": "pass",
+      "computeUnits": "29386"
+    },
+    {
+      "label": "register capacity member 30",
+      "status": "pass",
+      "computeUnits": "32480"
+    },
+    {
+      "label": "register capacity member 31",
+      "status": "pass",
+      "computeUnits": "31074"
+    },
+    {
+      "label": "register capacity member 32",
+      "status": "pass",
+      "computeUnits": "38668"
+    },
+    {
+      "label": "register capacity member 33",
+      "status": "pass",
+      "computeUnits": "28262"
+    },
+    {
+      "label": "register capacity member 34",
+      "status": "pass",
+      "computeUnits": "28356"
+    },
+    {
+      "label": "register capacity member 35",
+      "status": "pass",
+      "computeUnits": "28450"
+    },
+    {
+      "label": "register capacity member 36",
+      "status": "pass",
+      "computeUnits": "30044"
+    },
+    {
+      "label": "register capacity member 37",
+      "status": "pass",
+      "computeUnits": "28638"
+    },
+    {
+      "label": "register capacity member 38",
+      "status": "pass",
+      "computeUnits": "28732"
+    },
+    {
+      "label": "register capacity member 39",
+      "status": "pass",
+      "computeUnits": "33326"
+    },
+    {
+      "label": "register capacity member 40",
+      "status": "pass",
+      "computeUnits": "30420"
+    },
+    {
+      "label": "register capacity member 41",
+      "status": "pass",
+      "computeUnits": "29014"
+    },
+    {
+      "label": "register capacity member 42",
+      "status": "pass",
+      "computeUnits": "29108"
+    },
+    {
+      "label": "register capacity member 43",
+      "status": "pass",
+      "computeUnits": "29202"
+    },
+    {
+      "label": "register capacity member 44",
+      "status": "pass",
+      "computeUnits": "29296"
+    },
+    {
+      "label": "register capacity member 45",
+      "status": "pass",
+      "computeUnits": "36890"
+    },
+    {
+      "label": "register capacity member 46",
+      "status": "pass",
+      "computeUnits": "29484"
+    },
+    {
+      "label": "register capacity member 47",
+      "status": "pass",
+      "computeUnits": "29578"
+    },
+    {
+      "label": "register capacity member 48",
+      "status": "pass",
+      "computeUnits": "29672"
+    },
+    {
+      "label": "register capacity member 49",
+      "status": "pass",
+      "computeUnits": "29766"
+    },
+    {
+      "label": "register capacity member 50",
+      "status": "pass",
+      "computeUnits": "29860"
+    },
+    {
+      "label": "register capacity member 51",
+      "status": "pass",
+      "computeUnits": "32954"
+    },
+    {
+      "label": "register capacity member 52",
+      "status": "pass",
+      "computeUnits": "30048"
+    },
+    {
+      "label": "register capacity member 53",
+      "status": "pass",
+      "computeUnits": "40642"
+    },
+    {
+      "label": "register capacity member 54",
+      "status": "pass",
+      "computeUnits": "31736"
+    },
+    {
+      "label": "register capacity member 55",
+      "status": "pass",
+      "computeUnits": "30330"
+    },
+    {
+      "label": "register capacity member 56",
+      "status": "pass",
+      "computeUnits": "30424"
+    },
+    {
+      "label": "register capacity member 57",
+      "status": "pass",
+      "computeUnits": "30518"
+    },
+    {
+      "label": "register capacity member 58",
+      "status": "pass",
+      "computeUnits": "30612"
+    },
+    {
+      "label": "register capacity member 59",
+      "status": "pass",
+      "computeUnits": "32206"
+    },
+    {
+      "label": "register capacity member 60",
+      "status": "pass",
+      "computeUnits": "32300"
+    },
+    {
+      "label": "register capacity member 61",
+      "status": "pass",
+      "computeUnits": "33894"
+    },
+    {
+      "label": "register capacity member 62",
+      "status": "pass",
+      "computeUnits": "33988"
+    },
+    {
+      "label": "register capacity member 63",
+      "status": "pass",
+      "computeUnits": "31083"
+    },
+    {
+      "label": "reject 65th member atomically",
+      "status": "rejected",
+      "error": 6105
+    },
+    {
+      "label": "reject detected vault deficit",
+      "status": "rejected",
+      "error": 6107
+    },
+    {
+      "label": "reject withdrawal outside custody profile",
+      "status": "rejected",
+      "error": 6108
+    }
+  ],
+  "result": {
+    "addresses": {
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "registry": "21oG3gzHPD4kpUMyBv6up6bR4TCsBEfn21tGUTARQZ2A",
+      "vault": "6PUKc9FixAwjp5GGRYzRt9r9Rkb5FHo5xASRBoPdh4m6",
+      "eventAuthority": "FhxU7xoWaUApXWRmTPfNmUfSErkTfrx919zsmqZS3L7G",
+      "program": "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
+      "programData": "DZuGdvBNUZomeQnm3i3igEmK46SygyesD35M8mJgJxsu",
+      "participant": "8YFZTQ9S6hpL8FLZuzCWuY52YNMc9xTYyDVzqhxGEntV",
+      "quoteMint": "DnSJnW7BNQ3pyW1LcXNvhKuEWiYdqCXVF1Mx94CtKkXj"
+    },
+    "finalMarket": {
+      "discriminator": {
+        "type": "Buffer",
+        "data": [
+          0,
+          125,
+          123,
+          215,
+          95,
+          96,
+          164,
+          194
+        ]
+      },
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": {
+        "type": "Buffer",
+        "data": [
+          105,
+          248,
+          213,
+          135,
+          95,
+          160,
+          15,
+          213,
+          216,
+          125,
+          176,
+          219,
+          28,
+          82,
+          5,
+          128,
+          90,
+          54,
+          151,
+          61,
+          86,
+          129,
+          207,
+          163,
+          33,
+          21,
+          187,
+          76,
+          94,
+          30,
+          68,
+          59
+        ]
+      },
+      "authority": "3XxVtJi6gjvRL2JBJye78uWMEopWHW7P1DdLRpkdRYAP",
+      "quoteMint": "DnSJnW7BNQ3pyW1LcXNvhKuEWiYdqCXVF1Mx94CtKkXj",
+      "vault": "6PUKc9FixAwjp5GGRYzRt9r9Rkb5FHo5xASRBoPdh4m6",
+      "termsEpoch": "1",
+      "configEpoch": "3",
+      "sequence": "10",
+      "paused": false,
+      "mode": 0,
+      "fundingIndexScaled": "0",
+      "fundingTime": "0",
+      "totalCash": "0",
+      "settlement": "0",
+      "insurance": "10007",
+      "fees": "0",
+      "allocatedVault": "10007",
+      "bump": 255,
+      "vaultBump": 253
+    },
+    "finalParticipant": {
+      "discriminator": {
+        "type": "Buffer",
+        "data": [
+          32,
+          142,
+          108,
+          79,
+          247,
+          179,
+          54,
+          6
+        ]
+      },
+      "schemaVersion": 1,
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "owner": "A4Es4MfmWfYXUKYCPf4E46651pEUya3Ri4uAuzGmdJ7C",
+      "id": 0,
+      "cash": "0",
+      "lots": "0",
+      "virtualScaled": "0",
+      "fundingCheckpointScaled": "0",
+      "generation": "0",
+      "nonce": "0",
+      "reserved": "0",
+      "orderIds": [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "book": {
+        "lastOrderId": "0",
+        "lastGroupId": "0",
+        "reserveObservation": "0",
+        "orders": [
+          {
+            "id": "0",
+            "version": "0",
+            "state": 0,
+            "side": 0,
+            "originalLots": "0",
+            "lots": "0",
+            "filled": "0",
+            "notional": "0",
+            "feeCharged": "0",
+            "feeBudget": "0",
+            "limit": "0",
+            "startSlot": "0",
+            "expirySlot": "0",
+            "trigger": 0,
+            "threshold": "0",
+            "reduceOnly": false,
+            "generation": "0",
+            "groupId": "0",
+            "termsEpoch": "0",
+            "reserve": "0"
+          },
+          {
+            "id": "0",
+            "version": "0",
+            "state": 0,
+            "side": 0,
+            "originalLots": "0",
+            "lots": "0",
+            "filled": "0",
+            "notional": "0",
+            "feeCharged": "0",
+            "feeBudget": "0",
+            "limit": "0",
+            "startSlot": "0",
+            "expirySlot": "0",
+            "trigger": 0,
+            "threshold": "0",
+            "reduceOnly": false,
+            "generation": "0",
+            "groupId": "0",
+            "termsEpoch": "0",
+            "reserve": "0"
+          },
+          {
+            "id": "0",
+            "version": "0",
+            "state": 0,
+            "side": 0,
+            "originalLots": "0",
+            "lots": "0",
+            "filled": "0",
+            "notional": "0",
+            "feeCharged": "0",
+            "feeBudget": "0",
+            "limit": "0",
+            "startSlot": "0",
+            "expirySlot": "0",
+            "trigger": 0,
+            "threshold": "0",
+            "reduceOnly": false,
+            "generation": "0",
+            "groupId": "0",
+            "termsEpoch": "0",
+            "reserve": "0"
+          },
+          {
+            "id": "0",
+            "version": "0",
+            "state": 0,
+            "side": 0,
+            "originalLots": "0",
+            "lots": "0",
+            "filled": "0",
+            "notional": "0",
+            "feeCharged": "0",
+            "feeBudget": "0",
+            "limit": "0",
+            "startSlot": "0",
+            "expirySlot": "0",
+            "trigger": 0,
+            "threshold": "0",
+            "reduceOnly": false,
+            "generation": "0",
+            "groupId": "0",
+            "termsEpoch": "0",
+            "reserve": "0"
+          }
+        ],
+        "groups": [
+          {
+            "id": "0",
+            "version": "0",
+            "original": "0",
+            "remaining": "0",
+            "generation": "0",
+            "side": 0
+          },
+          {
+            "id": "0",
+            "version": "0",
+            "original": "0",
+            "remaining": "0",
+            "generation": "0",
+            "side": 0
+          }
+        ]
+      },
+      "bump": 253
+    },
+    "actualVault": "10007"
+  }
+}
