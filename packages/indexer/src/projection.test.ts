@@ -40,3 +40,25 @@ it('keeps planned default payout separate from cash and clears unpaid claims aft
   state.resolution.header.cursor=1;
   expect(balance(participant({cash:'8'}),state,101n)).toMatchObject({cash:'8',unpaidPnlScaled:'0',withdrawableCash:'0',resolution:{plannedPayment:'5',paymentApplied:true,appliedPayment:'5'}});
 });
+
+it('keeps canonical order payloads immutable across candidate cleanup and journal replay',()=>{
+  const state=empty();
+  state.market={mode:2,totalCash:'1000000',settlement:'0',insurance:'0',fees:'0',allocatedVault:'1000000'};
+  state.participants.trader=participant();
+  const book=JSON.parse(json(emptyOrderBook()));book.lastOrderId='7';
+  Object.assign(book.orders[0],{id:'7',state:1,lots:'10',filled:'0',notional:'0',feeCharged:'0',reserve:'100'});
+  const event:Event={type:'order',signature:'order',outer:0,inner:0,ordinal:0,slot:1,blockTime:1,bytes:'canonical-order-bytes',
+    data:{market:'market',domain:'domain',sequence:'1',kind:0,participant:'trader',reserved:'100',orderIds:['7','0','0','0'],book}};
+  const original=json(event);
+  project(state,event,'market','domain');
+  // A later default invalidates the candidate's retained book in place. The
+  // journal must still contain the original active order with its 100 reserve.
+  state.participants.trader.book.orders[0].state=6;
+  state.participants.trader.book.orders[0].reserve='0';
+  state.participants.trader.book.groups[0].remaining='0';
+  state.participants.trader.orderIds[0]='0';
+  expect(json(event)).toBe(original);
+  const committed=empty();committed.market=structuredClone(state.market);committed.participants.trader=participant();
+  project(committed,event,'market','domain');
+  expect(committed.participants.trader).toMatchObject({reserved:'100',orderIds:['7','0','0','0'],book:{orders:[expect.objectContaining({id:'7',state:1,reserve:'100'}),expect.anything(),expect.anything(),expect.anything()]}});
+});

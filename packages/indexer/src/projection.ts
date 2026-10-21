@@ -12,7 +12,10 @@ const requireValue = <T>(value: T | undefined | null, label: string): T => {
 };
 
 export function project(state: State, event: Event, market: string, domain: string) {
-  const e = event.data;
+  // Candidate validation and the SQL commit replay the same canonical events.
+  // The projection owns its nested books/headers: later resolution cleanup must
+  // never mutate an earlier event's payload before that event is journaled.
+  const e = structuredClone(event.data);
   if (e.market !== market || e.domain !== domain) throw new Error('Event environment mismatch');
   if (BigInt(e.sequence) !== BigInt(state.sequence) + 1n) throw new Error('Critical sequence gap');
   if (event.type === 'custody') {
