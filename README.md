@@ -23,6 +23,7 @@ Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product 
 | [docs/P04-ATOMIC-ROUTES.md](docs/P04-ATOMIC-ROUTES.md) | Atomic route authority, synthetic risk boundary, allocation and measured budget contract |
 | [docs/P08-ORDERS.md](docs/P08-ORDERS.md) | Durable order authority, remaining reservations, fee prefixes and shared TP/SL allowance |
 | [docs/P09-RESOLUTION.md](docs/P09-RESOLUTION.md) | Funded liquidation, frozen cohort ledger, deterministic pages and authorized recovery |
+| [docs/P10-TRADER.md](docs/P10-TRADER.md) | Wallet UI, exact balance/order views, saved signatures and direct RPC recovery |
 | [docs/P07-ORACLE-AND-FUNDING.md](docs/P07-ORACLE-AND-FUNDING.md) | Controlled source policy, authenticated common funding, action modes and participant fractions |
 | [docs/P06-LIFECYCLE.md](docs/P06-LIFECYCLE.md) | Ordinary settlement/exit guard, maker/executor services, explicit fee budgets and durable retries |
 | [docs/P05-INDEXER.md](docs/P05-INDEXER.md) | PostgreSQL journal/recovery, read endpoints, exact service pins and local operations |

@@ -4,6 +4,8 @@ import { Runtime } from './runtime.js';
 import { api } from './api.js';
 const required=(name:string)=>{const value=process.env[name];if(!value)throw new Error(`Missing ${name}`);return value;};
 const role=required('RIVALT_SERVICE_ROLE'),url=required('RIVALT_RPC_URL');
+const sampleCadence=process.env.RIVALT_FUNDING_INTERVAL_SECONDS??'2';
+if(!/^[2-5]$/.test(sampleCadence))throw new Error('Local funding cadence must be 2–5 seconds');
 if(!['api','executor','settlement','maker-a','maker-b','funding','orders','risk'].includes(role))throw new Error('Unknown service role');
 if(new URL(url).hostname!=='127.0.0.1')throw new Error('P06 services are local test profile only');
 const runtime=new Runtime(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),url);await runtime.open();
@@ -18,7 +20,7 @@ while(!stop){
     if(role==='executor')await runtime.execute();
     else if(role==='risk')await runtime.riskWork(key!);
     else if(role==='orders')await runtime.orders(key!);
-    else if(role==='funding')await runtime.funding(key!);
+    else if(role==='funding')await runtime.funding(key!,BigInt(sampleCadence));
     else if(role==='settlement')await runtime.settle(key!);
     else if(role.startsWith('maker-'))await runtime.maker(role==='maker-a'?0:1,key!);
     if(lastError)console.log(JSON.stringify({role,status:'recovered'}));lastError=false;

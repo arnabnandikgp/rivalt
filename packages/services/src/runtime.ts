@@ -150,11 +150,12 @@ export class Runtime {
       await this.enqueue(`${base}:settle:${p.id}`,[await sdk.getSettleGainInstructionAsync({...s,...stamp,participant,amount})],key,'keeper',authority);return;
     }
   }
-  async funding(key:Keypair){
+  async funding(key:Keypair,intervalSeconds=2n){
+    if(intervalSeconds<2n||intervalSeconds>5n)throw new Error('Local funding cadence must be 2–5 seconds');
     await this.queue.budget('funding',key.address,OPERATOR_CAP);
     const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'funding:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
     const s=await this.snapshot(),o=s.risk.oracle;
-    if(s.m.mode!==2 || s.m.paused || s.now-o.sampledAt<2n)return;
+    if(s.m.mode!==2 || s.m.paused || s.now-o.sampledAt<intervalSeconds)return;
     const [a,b]=[0,1].map(id=>s.makers.find(x=>x.r.makerId===id));if(!a||!b)return;
     const ix=await sdk.getSampleOracleInstructionAsync({...s,primaryBtc:o.sources[0],primaryCollateral:o.sources[1],guardBtc:o.sources[2],guardCollateral:o.sources[3],
       firstCapital:a.r.capital,firstRegistration:a.registration,firstProgram:a.r.pricingProgram,firstProgramData:a.r.programData,firstConfig:a.r.config,

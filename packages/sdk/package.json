@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "dependencies": {
     "@solana/kit": "8.5.0",
-    "@solana/web3.js": "3.1.1"
+    "@solana/web3.js": "3.1.1",
+    "@solana-program/token": "0.18.0"
   }
 }

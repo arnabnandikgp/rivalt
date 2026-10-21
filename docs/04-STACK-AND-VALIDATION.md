@@ -30,6 +30,8 @@ P03 retains the same external dependency versions; it explicitly uses the alread
 
 P05 pins Fastify 5.12.7, pg/@types/pg 8.23.1 and PostgreSQL 18.6. The official arm64 image is pinned by digest and runs through existing Apple container CLI 1.4.1 with loopback publishing and a bound per-run data volume; the host PostgreSQL 14 installation is untouched. [INDEXER](P05-INDEXER.md) specifies SQL atomicity, runtime configuration and the actual restart/rebuild/reset acceptance contract. `ops/rpc-smoke.sh` is the targeted service harness; full `pnpm smoke` still rebuilds and verifies all inherited code.
 
+P10 pins React/react-dom and their types to 19.3.0, Vite to the existing locked 7.3.7, and Playwright core to 1.64.1. It retains wallet-adapter 3.1.1 and the modern SDK graph. Browser acceptance uses the installed Chrome executable in an isolated headless profile against actual Surfpool/WS/PostgreSQL and real signed Wallet Standard requests. The private test keys stay in the Node fixture. Browser version and source identity are captured per run; installed-browser behavior is not an external-provider/devnet claim. [TRADER](P10-TRADER.md) defines the public configuration and direct exit contract; WORKLOG owns actual acceptance status.
+
 Primary references:
 - [PostgreSQL macOS distributions](https://www.postgresql.org/download/macosx/)
 - [node-postgres transaction contract](https://node-postgres.com/features/transactions)

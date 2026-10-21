@@ -1,5 +1,7 @@
 packages:
   - packages/*
+  - apps/*
+  - tests/browser
   - tests/rpc-contract
 onlyBuiltDependencies:
   - esbuild

@@ -23,7 +23,7 @@ export function api(indexer: Indexer) {
       return reply.code(503).send({error:'ProjectionUnavailable',reason:row.error,sequence:row.state.sequence});
   });
   const envelope = (row: Awaited<ReturnType<typeof indexer.store.snapshot>>) => ({schemaVersion:1,runId:indexer.config.runId,
-    market:indexer.config.market,asOf:{commitment:'finalized',sequence:row.state.sequence,signature:row.checkpoint,slot:row.checkpoint_slot},
+    market:indexer.config.market,deployment:{anchor:row.binding.anchor,genesis:row.binding.genesis,domain:row.binding.domain},asOf:{commitment:'finalized',sequence:row.state.sequence,signature:row.checkpoint,slot:row.checkpoint_slot},
     units:{cash:'collateral atoms (1e6/token)',lots:'1e6/BTC',price:'collateral atoms/lot',scaled:'1e9'},
     capabilities:{routes:[1,2].includes(row.state.market?.mode)&&!row.state.market?.paused ? 'local-test-profile' : 'disabled',funding:row.state.market?.mode===2,orders:row.state.market?.mode===2,settlement:[1,2].includes(row.state.market?.mode)&&!row.state.market?.paused,resolution:row.state.market?.mode===3}});
   app.get('/v1/resolution',async()=>{const row=await indexer.store.snapshot();return {...envelope(row),frozen:row.state.market?.mode===3,resolution:row.state.resolution??null};});
@@ -80,17 +80,18 @@ export function api(indexer: Indexer) {
         missingBuckets:'no-trades; never forward-filled',unplacedTrades,items:[...buckets.values()].sort((a,b)=>Number(a.start)-Number(b.start))};
     }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
   });
-  for (const endpoint of ['trades','events'] as const) app.get<{Querystring:{after?:string;limit?:number}}>(`/v1/${endpoint}`,{schema:{querystring:cursorSchema}},async request => {
+  for (const endpoint of ['trades','events'] as const) app.get<{Querystring:{after?:string;limit?:number;latest?:boolean}}>(`/v1/${endpoint}`,{schema:{querystring:{...cursorSchema,properties:{...cursorSchema.properties,latest:{type:'boolean'}}}}},async (request,reply) => {
+    if(request.query.latest&&request.query.after!==undefined)return reply.code(400).send({error:'LatestCannotUseAfter'});
     // Snapshot and rows share one SQL snapshot, even while a backfill commits.
     const client = await indexer.store.pool.connect();
     try {
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       const row = (await client.query('SELECT * FROM runs WHERE run_id=$1',[indexer.config.runId])).rows[0];
       const result = await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,payload FROM events
-        WHERE run_id=$1 AND sequence>$2 ${endpoint==='trades' ? "AND kind='route'" : ''} ORDER BY sequence LIMIT $3`,
+        WHERE run_id=$1 AND sequence>$2 ${endpoint==='trades' ? "AND kind='route'" : ''} ORDER BY sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`,
       [indexer.config.runId,request.query.after??'0',request.query.limit??50]);
       await client.query('COMMIT');
-      return {...envelope(row),items:result.rows,next:result.rows.at(-1)?.sequence ?? null};
+      return {...envelope(row),items:request.query.latest?result.rows.reverse():result.rows,next:request.query.latest?null:result.rows.at(-1)?.sequence ?? null};
     } catch(error) {await client.query('ROLLBACK');throw error;} finally {client.release();}
   });
   app.setErrorHandler((error, _, reply) => {

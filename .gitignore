@@ -10,3 +10,5 @@ target/
 !.env.example
 __pycache__/
 
+
+apps/trader/dist/

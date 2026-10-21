@@ -15,3 +15,6 @@ export * from './order-policy.js';
 export * from './resolution-policy.js';
 
 export * from './liquidation-policy.js';
+
+export * from './balance-view.js';
+export * from './user-client.js';
