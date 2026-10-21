@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** M1/P01/P02 are Closed. P03 remains Review in ready [PR #4](https://github.com/arnabnandikgp/rivalt/pull/4). **P04 A04/A05/G05 and the M2 cross-phase engineering exit pass on clean `b8e5fb8`; P04/M2 are Review pending integration.** [P04 acceptance](evidence/P04.md) records real signed atomic routes, independent allocation, hostile rollback and RPC/WS resource evidence. Ready [PR #5](https://github.com/arnabnandikgp/rivalt/pull/5) is stacked above #4 through `gh stack` and includes the exact verified P03 commits. Later financial paths remain disabled.
+**Current position:** M1/P01/P02 are Closed; P03/P04/M2 remain Review in ready PRs [#4](https://github.com/arnabnandikgp/rivalt/pull/4)/[#5](https://github.com/arnabnandikgp/rivalt/pull/5). P05 is In progress on `phase/p05-indexer`, created through `gh stack` above exact P04 head `ddd1dc0`. PostgreSQL journal/recovery and the read API are implemented; clean final A06/G06 acceptance is pending. Later financial paths remain disabled.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -23,7 +23,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 |---|---|---|---|---|
 | M1 | P01–P02 | Reproducible stack, economic core and custody | Closed | Fresh A01/A02/M1 exit check on `16e51e4`; integrated unchanged at `3c1aae1` |
 | M2 | P03–P04 | Competing makers and atomic execution | Review | Fresh A03–A05/G04/G05 and cross-phase exit pass on `b8e5fb8`; ready PRs #4/#5 await integration |
-| M3 | P05–P06 | Real services and full trade lifecycle | Open | Not implemented |
+| M3 | P05–P06 | Real services and full trade lifecycle | In progress | P05 implementation/verification active above #5; P06 remains Open |
 | M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Open | Not implemented |
 | M5a | P11–P12 | Complete local engineering evidence | Open | Not implemented |
 | M5b | P13–P14 | Focused real-cluster parity | Open | Not implemented |
@@ -37,7 +37,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M1 | P02 | Financial core and custody | Closed | [PR #2](https://github.com/arnabnandikgp/rivalt/pull/2), tested `16e51e4` | [R004 acceptance](evidence/R004-REVIEW.md); G02/G03 pass; merged `3c1aae1` |
 | M2 | P03 | Maker programs and capital authorization | Review | [PR #4](https://github.com/arnabnandikgp/rivalt/pull/4), tested `e05a20e` | [A03 evidence](evidence/P03.md); G04 verified; integration pending |
 | M2 | P04 | Atomic routes and allocation | Review | [PR #5](https://github.com/arnabnandikgp/rivalt/pull/5), tested `b8e5fb8`, stacked above #4 | [A04/A05/G05 evidence](evidence/P04.md); integration pending |
-| M3 | P05 | Indexer, database and read API | Open | — | After P04 |
+| M3 | P05 | Indexer, database and read API | In progress | `phase/p05-indexer`, stacked above #5 | G06/A06 implementation; final acceptance pending |
 | M3 | P06 | Maker daemons and complete service lifecycle | Open | — | After P05 |
 | M4 | P07 | Oracle policy and authenticated funding | Open | — | After P06 |
 | M4 | P08 | Persistent orders and TP/SL | Open | — | After P07 |
@@ -54,14 +54,13 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Last completed work: P04 immediate atomic one/two-maker routes, independent bounded allocation, synthetic observation gating, hostile CPI rollback, exact reconciliation and full clean acceptance.
-- Current implementation revision: `b8e5fb8c14662be7e55aa5126c07efee3be7330d`; clean full acceptance `.local/runs/20261021T083205Z-9450`. Every source identity reports `sourceDirty: false`.
-- Active checkpoint: M1/P01/P02 Closed; P03/P04 and M2 Review with required engineering checks verified; phase integration pending.
-- Immediate task: `gh stack add phase/p05-indexer`, then implement G06 indexer/PostgreSQL/read API acceptance above ready PR #5 without waiting for merge.
-- Access needed now: none. GitHub ADMIN access was verified with network access; the sandbox-only authentication failure was not an actual credential failure. No devnet key or external maker is needed for P04.
-- Deferred external needs: secure devnet/feed access at P13; independent maker participation at P15; independent review/funded-pilot decision at P16.
-- Historical archives: optional targeted reference only; not an entry requirement.
-- Product decisions required now: none. Rivalt is the selected name.
+- Last verified predecessor: P04 `b8e5fb8`, integrated unchanged into ready PR #5 head `ddd1dc0`; [acceptance](evidence/P04.md).
+- Active work: P05/G06 indexer, PostgreSQL and read API, stacked above #5. M3 In progress; P06 Open.
+- Current verification: 18 Vitest tests/typecheck/144-package installed graph pass; preliminary real RPC/PostgreSQL recovery checks have passed individually but are not final phase acceptance.
+- Immediate task: finish the clean committed full `RIVALT_SLOT_TIME=20 pnpm smoke` acceptance, then publish one ready P05 PR through `gh stack`.
+- Access/product decisions needed now: none. Existing Apple container runtime supports isolated PostgreSQL 18.6. No devnet key or external maker is needed.
+- Deferred external needs: secure devnet/feed access at P13; independent maker at P15; independent review/funded-pilot decision at P16.
+- Historical archives remain optional targeted reference only.
 
 ## Blocker register
 
@@ -189,3 +188,15 @@ A runtime compatibility failure belongs here with the exact package/command/erro
 
 Update Latest checkpoint and the two overview tables as well as appending the entry. UTC timestamps belong in machine evidence; dates/times shown to Arnab can use Asia/Kolkata. Use explicit zones for long runs.
 
+
+### R007 — 21 October 2026 — P05 — canonical indexer and read API
+
+- Starting revision / branch: clean `ddd1dc003b7f02dbc4899f80e6d65d5d68323013`, ready PR #5. `gh stack add phase/p05-indexer` created its child; no parent merge required or performed. Unrelated work was absent.
+- Delivered: pinned Fastify/pg/PostgreSQL runtime; append-only event/transaction/observation journal; confirmed WS buffering and finalized paginated RPC recovery; immutable chain/run binding; atomic projection/outbox/checkpoint writes; participant/maker/risk/vault reconciliation; bounded read API, actual-fill candles and service health/metrics. Existing programs/IDLs/economics are unchanged and later financial paths stay disabled.
+- Specs: P05-INDEXER, README, COMPONENTS, STACK, delivery artifacts and D25/G06 define the implemented schema, endpoints, operational limits and phase boundary.
+- Checks so far: exact frozen-compatible dependency resolution, strict typecheck, 18 Vitest tests (six new decoder/independent risk-read checks), installed graph (144 packages; legacy isolation), shell syntax and whitespace. Preliminary RPC suites exercised actual signed custody/makers/routes plus PostgreSQL rollback, live WS, offline backfill, duplicate/reordered replay, failed-event exclusion and HTTP reads. A complete clean final run is still pending; no A06 completion claimed yet.
+- Resolved development failures: unrestricted multi-platform image pull exhausted disk; removed only the newly incomplete PostgreSQL image (3.6 GB reclaimed) and pulled its 112.4 MB arm64 variant. Buffer-to-JSON shape caused an initial binding mismatch; canonical hex bytes fixed it. An extra test submission used RPC default preflight against a newer confirmed blockhash; aligned with existing skip-preflight signed runtime harness and explicit finalized success check. Review also moved chain reconciliation before checkpoint advancement so a missing tail event cannot strand the cursor.
+- Evidence in progress: `.local/p05-rpc-development*.log`; source trees are explicitly dirty and these are not final acceptance records. The third development run was intentionally stopped at its own route child after the final checkpoint-reconciliation/identity changes superseded the loaded source. Full evidence/revision/PR to be appended after the clean run.
+- Not run/claimed: P06 full settlement/withdrawal and ambiguous economic execution, authenticated funding/orders/default, browser wallet, load/24-hour soak, devnet, independent review or funded deployment.
+- Status: P05/M3 In progress; no blocker or product decision. P03/P04 remain Review awaiting integration.
+- Next exact action: complete clean full acceptance, record results, and publish ready P05 above #5 with `gh stack`.

@@ -92,7 +92,7 @@ All monetary/quantity fields use decimal integer strings over JSON, plus explici
 | Market data | actual fills/candles, index/risk/funding series separately labeled, source freshness and valid coverage |
 | Operations | dependency health, worker lag, reconciliation discrepancies, retry queues and resolution stage/progress |
 
-P05 freezes actual endpoint names/pagination/errors; P06 freezes submission reconciliation. SDK is usable without API/UI for deposits, cancels and admissible withdrawals. The direct path must respect the same chain rules.
+P05 freezes actual endpoint names/pagination/errors in [INDEXER](P05-INDEXER.md); P06 freezes submission reconciliation. SDK is usable without API/UI for deposits, cancels and admissible withdrawals. The direct path must respect the same chain rules.
 
 ## Events and indexer
 
@@ -112,6 +112,8 @@ Store:
 - quote candidates, rejected alternatives, source times and measurements.
 
 Use SQL uniqueness and transactions to enforce idempotency. Recovery must reconcile accounts/vault against projections. A Surfpool reset starts a new run identity; never mix a fresh chain with old database history. Snapshot history retention must be tested, not assumed.
+
+P05 implementation: `packages/indexer` is the separately runnable workspace service. Its schema-1 journal, finalized-only projections, initialization binding, 10,000-transaction bounded local recovery and HTTP contracts are specified in [INDEXER](P05-INDEXER.md). Confirmed observations remain provisional; unknown finality stays unresolved. Current funding/reservations/order slots reflect their implemented zero state. P06 owns submission identity, quote candidates and economic retry jobs; P07/P08 add real funding/order projections.
 
 ## Executor and operational workers
 
@@ -145,7 +147,7 @@ The kit supplies only README/AGENTS/SEED-PROMPT and docs. Create code directorie
 | tests/rpc-contract/ | Standard RPC/WS contract | P01 |
 | tests/e2e/, tests/browser/ | Service lifecycle and actual UI flows | P06/P10 |
 | services/api/, services/quote-router/ | Read/trading API and allocation | P04–P06 |
-| services/indexer/, services/workers/ | Chain projection and maintenance execution | P05–P09 |
+| packages/indexer/, services/workers/ | Chain projection and maintenance execution | P05–P09 |
 | makers/daemon/ | Shared daemon code with distinct A/B configs/processes | P06 |
 | apps/trader/ | React/Vite trading and operations UI | P10 |
 | scenarios/ | Versioned deterministic/local/devnet scenarios | P02 onward |

@@ -128,7 +128,7 @@ Milestone: **M3**. Depends on: **P04**.
 
 **Runnable demonstration:** Stop the indexer while real local transactions execute, restart it and compare recovered API balances with chain state.
 
-**Expected artifacts:** services/indexer, PostgreSQL migrations, read API and RPC history/recovery evidence.
+**Expected artifacts:** packages/indexer (separately runnable workspace service), PostgreSQL migration, read API and RPC history/recovery evidence. Exact P05 contract: [INDEXER](P05-INDEXER.md).
 
 ## P06 — Maker daemons and complete service lifecycle
 

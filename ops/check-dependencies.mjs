@@ -27,7 +27,7 @@ function walk(manifestPath) {
     walk(dependency);
   }
 }
-for (const root of ['packages/sdk', 'tests/rpc-contract']) walk(resolve(root, 'package.json'));
+for (const root of ['packages/sdk', 'packages/indexer', 'tests/rpc-contract']) walk(resolve(root, 'package.json'));
 assert.equal(versions.get('@solana/kit'), '8.5.0');
 assert.equal(versions.get('@solana/wallet-adapter'), '3.1.1');
 for (const [name, expected] of [['@anchor-lang/core', '1.2.1'], ['@solana/web3.js', '1.99.0']]) {
@@ -40,4 +40,9 @@ const custodyTestPackages = Object.fromEntries([
   assert.equal(actual, expected);
   return [name, actual];
 }));
-console.log(JSON.stringify({ modernRuntime: Object.fromEntries(versions), custodyTestPackages, packagesInspected: visited.size, legacyIsolation: 'pass' }, null, 2));
+for (const [name, expected] of [['fastify','5.12.7'],['pg','8.23.1']]) {
+  assert.equal(JSON.parse(readFileSync(`packages/indexer/node_modules/${name}/package.json`)).version,expected);
+}
+console.log(JSON.stringify({ modernRuntime: Object.fromEntries(versions), custodyTestPackages,
+  serviceRuntime: Object.fromEntries(['fastify','pg'].map(name=>[name,JSON.parse(readFileSync(`packages/indexer/node_modules/${name}/package.json`)).version])),
+  packagesInspected: visited.size, legacyIsolation: 'pass' }, null, 2));

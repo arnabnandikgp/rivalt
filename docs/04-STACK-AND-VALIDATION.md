@@ -28,7 +28,12 @@ P02 adds exact `anchor-spl` 1.2.1, Node LiteSVM 1.6.1, modern classic token clie
 
 P03 retains the same external dependency versions; it explicitly uses the already locked solana-sha256-hasher 3.1.0 for full ProgramData approval hashes. The three IDLs/SDKs have independent legacy parity, and Rust/TypeScript quote evaluation is checked against enumerated marginal-lot prices. Signed LiteSVM and Surfpool scenarios test capital bindings, read-only quote CPI, epochs and upgrade rejection. `RIVALT_SLOT_TIME=20 pnpm smoke` uses an explicitly recorded 20 ms local cadence; default remains 100 ms. Expiry still advances through actual slots over standard RPC, with no simulated financial effects.
 
+P05 pins Fastify 5.12.7, pg/@types/pg 8.23.1 and PostgreSQL 18.6. The official arm64 image is pinned by digest and runs through existing Apple container CLI 1.4.1 with loopback publishing and a bound per-run data volume; the host PostgreSQL 14 installation is untouched. [INDEXER](P05-INDEXER.md) specifies SQL atomicity, runtime configuration and the actual restart/rebuild/reset acceptance contract. `ops/rpc-smoke.sh` is the targeted service harness; full `pnpm smoke` still rebuilds and verifies all inherited code.
+
 Primary references:
+- [PostgreSQL macOS distributions](https://www.postgresql.org/download/macosx/)
+- [node-postgres transaction contract](https://node-postgres.com/features/transactions)
+- [Fastify validation](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/)
 - [Anchor 1.2.1](https://www.anchor-lang.com/docs/updates/release-notes/1-2-1)
 - [Anchor 1.2.0 CLI recommendation](https://www.anchor-lang.com/docs/updates/release-notes/1-2-0)
 - [Stable Anchor TS compatibility](https://www.anchor-lang.com/docs/clients/typescript)
