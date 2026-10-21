@@ -73,7 +73,10 @@ try{
   // Sequential finalized race demonstrations deliberately leave sampling gaps.
   // Respect the six-second recovery policy instead of treating a fresh source
   // publication as instant permission to increase risk.
-  const fresh=async()=>{const r=await t.risk();if(r.oracle.status!==2||await now()-r.oracle.sampledAt>=8n)await t.recover(r.referencePrice);};
+  const fresh=async()=>{
+    if(sourceLoop&&sourceRunning){await wait(()=>runtime.snapshot(),s=>s.sourceMode==='Normal'&&s.now-s.risk.oracle.sampledAt<=3n,'fresh worker-owned observation');return;}
+    const r=await t.risk();if(r.oracle.status!==2||await now()-r.oracle.sampledAt>=8n)await t.recover(r.referencePrice);
+  };
   const place=t.place,fillOrder=t.fill,manual=t.manual;
   t.place=async(...args)=>{await fresh();return place(...args);};
   t.fill=async(...args)=>{await fresh();return fillOrder(...args);};
