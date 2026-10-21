@@ -437,8 +437,8 @@ fn impact(a: &SampleOracle, b: policy::Bounds, f: i128) -> Result<(u64, u64, u64
             // A lot can add at most ceil(upper/10) IM and this adverse execution loss.
             // Positive unpaid profit supplies no capacity. This bound is deliberately
             // conservative, and guarantees every quantity from zero through the cap.
-            let price_low = b.reference * 9 / 10;
-            let price_high = (b.reference * 11).div_ceil(10);
+            let (price_low, price_high) = policy::execution_band(b.reference)
+                .map_err(|_| error!(ClearingError::OraclePolicy))?;
             let loss = (price_high.saturating_sub(b.lower)).max(b.upper.saturating_sub(price_low));
             let per_lot = b.upper.div_ceil(10) + loss;
             let mut cap = quantity.min(

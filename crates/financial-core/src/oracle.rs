@@ -131,3 +131,11 @@ pub fn endpoint(base: i128, premium: i128, start: i64, end: i64, now: i64) -> Re
     }
     Ok(next)
 }
+
+/// Integer marginal prices whose exact route cross-products remain in band.
+pub fn execution_band(reference: u64) -> Result<(u64, u64)> {
+    if !(10_000..=100_000).contains(&reference) {
+        return Err(Error::Bounds);
+    }
+    Ok(((reference * 9).div_ceil(10), reference * 11 / 10))
+}

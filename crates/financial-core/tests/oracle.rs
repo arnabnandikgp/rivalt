@@ -128,3 +128,13 @@ fn extreme_endpoint_inputs_reject_without_panicking() {
     assert!(endpoint(0, i128::MIN, 100, 106, 103).is_err());
     assert!(endpoint(0, 0, i64::MIN, i64::MAX, 100).is_err());
 }
+
+#[test]
+fn marginal_funding_band_matches_exact_route_cross_products() {
+    assert_eq!(execution_band(60_001).unwrap(), (54_001, 66_001));
+    for m in 10_000..=100_000 {
+        let (lo, hi) = execution_band(m).unwrap();
+        assert!(lo * 10 >= m * 9 && (lo - 1) * 10 < m * 9);
+        assert!(hi * 10 <= m * 11 && (hi + 1) * 10 > m * 11);
+    }
+}
