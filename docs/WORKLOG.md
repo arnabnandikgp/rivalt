@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** M1/P01/P02 are Closed after both reviewed PRs merged into `3c1aae1`. P03's separate A/B programs, capital authorization and read-only quote contract pass A03/G04 on clean `e05a20e`; [acceptance evidence](evidence/P03.md) records the actual RPC/WS and independent checks. **P03 is Review pending PR integration; M2 is In progress.** Atomic routes and later financial paths remain disabled. P04 may build on this verified branch without waiting for merge.
+**Current position:** M1/P01/P02 are Closed after both reviewed PRs merged into `3c1aae1`. P03's separate A/B programs, capital authorization and read-only quote contract pass A03/G04 on clean `e05a20e`; [acceptance evidence](evidence/P03.md) records the actual RPC/WS and independent checks. **P03 is Review in ready [PR #4](https://github.com/arnabnandikgp/rivalt/pull/4); M2 is In progress.** Atomic routes and later financial paths remain disabled. P04 may build on this verified branch without waiting for merge.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -22,7 +22,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | Milestone | Phases | Short description / deliverable | Status | Evidence / blocker |
 |---|---|---|---|---|
 | M1 | P01–P02 | Reproducible stack, economic core and custody | Closed | Fresh A01/A02/M1 exit check on `16e51e4`; integrated unchanged at `3c1aae1` |
-| M2 | P03–P04 | Competing makers and atomic execution | In progress | P03 A03/G04 verified on `e05a20e`; P04 and cross-phase exit remain Open |
+| M2 | P03–P04 | Competing makers and atomic execution | In progress | P03 A03/G04 verified on `e05a20e`, ready [PR #4](https://github.com/arnabnandikgp/rivalt/pull/4); P04/cross-phase exit remain Open |
 | M3 | P05–P06 | Real services and full trade lifecycle | Open | Not implemented |
 | M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Open | Not implemented |
 | M5a | P11–P12 | Complete local engineering evidence | Open | Not implemented |
@@ -35,7 +35,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 |---|---|---|---|---|---|
 | M1 | P01 | Toolchain, SDK and RPC spine | Closed | [PR #1](https://github.com/arnabnandikgp/rivalt/pull/1), tested `081d614` | [R004 acceptance](evidence/R004-REVIEW.md); G01/G06 foundations pass; merged `3c1aae1` |
 | M1 | P02 | Financial core and custody | Closed | [PR #2](https://github.com/arnabnandikgp/rivalt/pull/2), tested `16e51e4` | [R004 acceptance](evidence/R004-REVIEW.md); G02/G03 pass; merged `3c1aae1` |
-| M2 | P03 | Maker programs and capital authorization | Review | `phase/p03-makers`, tested `e05a20e`; PR publication pending | [A03 evidence](evidence/P03.md); G04 verified; integration pending |
+| M2 | P03 | Maker programs and capital authorization | Review | [PR #4](https://github.com/arnabnandikgp/rivalt/pull/4), tested `e05a20e` | [A03 evidence](evidence/P03.md); G04 verified; integration pending |
 | M2 | P04 | Atomic routes and allocation | Open | — | Ready on verified P03 stack; no merge wait |
 | M3 | P05 | Indexer, database and read API | Open | — | After P04 |
 | M3 | P06 | Maker daemons and complete service lifecycle | Open | — | After P05 |
@@ -57,8 +57,8 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Last completed work: P03 maker qualification, exact A/B quotes, unique owner-funded capital authorization, read-only CPI, epoch/quarantine/upgrade controls and fresh combined acceptance.
 - Current implementation revision: `e05a20e69fb5dedb23734881d88137b2dcb986e7`; clean full acceptance `.local/runs/20261021T072031Z-79492`. All probe, financial, custody and maker source identities report `sourceDirty: false`.
 - Active checkpoint: M1/P01/P02 Closed; P03 Review with G04/A03 verified; M2 In progress, P04 Open.
-- Immediate task: publish P03 ready using `gh stack submit --auto --open`, then `gh stack add phase/p04-routes` to implement G05 without waiting for merge.
-- Access needed now: none. GitHub ADMIN access was verified with network access; the sandbox-only authentication failure was not an actual credential failure. No devnet key or external maker is needed for P03.
+- Immediate task: `gh stack add phase/p04-routes`, then implement G05 atomic one/two-maker routes and independent allocation checks above ready PR #4 without waiting for merge.
+- Access needed now: none. GitHub ADMIN access was verified with network access; the sandbox-only authentication failure was not an actual credential failure. No devnet key or external maker is needed for P04.
 - Deferred external needs: secure devnet/feed access at P13; independent maker participation at P15; independent review/funded-pilot decision at P16.
 - Historical archives: optional targeted reference only; not an entry requirement.
 - Product decisions required now: none. Rivalt is the selected name.
@@ -150,9 +150,10 @@ A runtime compatibility failure belongs here with the exact package/command/erro
 - Final acceptance authority: `source ops/env.sh && RIVALT_SLOT_TIME=20 pnpm smoke` PASS on clean `e05a20e69fb5dedb23734881d88137b2dcb986e7`, run `.local/runs/20261021T072031Z-79492`. All three pinned SBF/IDL builds, generated drift/type checks, 10 Vitest tests, 5 Rust maker tests with 4,000 independently enumerated vectors (also checked in TypeScript), 11 Rust financial tests and 3,000 Python reference cases plus profile comparison pass. P03 has 54 signed LiteSVM scenarios and 54 signed RPC scenarios (each 34 accepted / 20 expected rejections; the runtime-specific four cases differ). LiteSVM also uses 33 actual custody setup scenarios. P01/P02 regression passes on the same new artifacts, including 99 P02 SVM and 33 P02 RPC scenarios. Twelve committed clearing events, 18 legacy-decoded quote returns, real local upgrade rejection/joint reapproval and raw token-balance reconciliation pass. Final vault=allocated=1,000,010,007 atoms; maker C totals 1,000,000,000, I=10,007 and P/T=0.
 - Resources / evidence: [report](evidence/P03.md), [manifest and actual captures](evidence/p03/); preview 426 bytes / eight message accounts / at most 113,216 CU, one read-only config in CPI, 92-byte return. Full output and all failed-transaction metadata remain in the named run directory. Final formatting/whitespace checks pass. These are finite local fixtures, not throughput/soak or external review.
 - Not run: atomic routes, PostgreSQL/service lifecycle, authenticated sources/funding, orders/default, browser, soak, devnet and external/funded gates, which belong to later phases.
-- Status: P03 Review; A03/G04 verified, ready PR publication/integration pending at this checkpoint. M2 In progress until P04 and the cross-phase exit pass. M1/P01/P02 remain Closed with recorded integration evidence.
+- PR publication: `gh stack push`, `gh pr create` with an explicit title/body (no draft), then `gh stack submit --auto --open`. GitHub confirms [PR #4](https://github.com/arnabnandikgp/rivalt/pull/4) OPEN, `isDraft: false`, base main, branch `phase/p03-makers`; gh stack records the correct parent. Final closeout changes only documentation from tested `e05a20e`; formatting, documentation links, executable-tree parity and released RPC/WS ports pass.
+- Status: P03 Review; A03/G04 verified, ready PR #4 awaits integration. M2 In progress until P04 and the cross-phase exit pass. M1/P01/P02 remain Closed with recorded integration evidence.
 - Blockers: none.
-- Next exact action: publish the verified P03 branch ready via `gh stack submit --auto --open`, then create `phase/p04-routes` above it with `gh stack add` and implement G05.
+- Next exact action: `gh stack add phase/p04-routes`, then implement G05 atomic one/two-maker execution and independent allocation on the verified P03 baseline; no merge wait.
 
 ## Template — append after each run
 
