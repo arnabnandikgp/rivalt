@@ -1,0 +1,214 @@
+{
+  "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+  "sourceDirty": false,
+  "parentRevision": "b9e61151938a3d19a0add374195cf506ee21e899",
+  "parentPr": "https://github.com/arnabnandikgp/rivalt/pull/10",
+  "commands": [
+    {
+      "command": "source ops/env.sh && RIVALT_SLOT_TIME=50 pnpm smoke",
+      "revision": "ef6e4bb9e1467ab8f242ba9dc9bebbd7c2f1956c",
+      "exit": 1,
+      "failure": "canonical historical order payload aliased candidate state; frozen database rebuild rejected"
+    },
+    {
+      "command": "source ops/env.sh && RIVALT_SLOT_TIME=50 pnpm smoke",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "exit": 0
+    }
+  ],
+  "result": "Clean P01\u2013P09 acceptance passes; no browser/soak/devnet/external review claim",
+  "runs": {
+    "regression": ".local/runs/20261021T160226Z-7061",
+    "lifecycle": ".local/runs/20261021T161515Z-11294",
+    "oracle": ".local/runs/20261021T161928Z-12698",
+    "orders": ".local/runs/20261021T162450Z-14523",
+    "resolution": ".local/runs/20261021T163430Z-17140"
+  },
+  "identities": [
+    {
+      "path": "regression-summary.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-custody.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-financial.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-svm.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-maker-svm.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-maker-rpc.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-route-svm.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-route-rpc.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-indexer-rpc.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-indexer-reset.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-reset-custody.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "lifecycle-custody.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "lifecycle-lifecycle.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "lifecycle-settlement-svm.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "oracle-oracle.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "oracle-oracle-svm.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "orders-orders.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "orders-order-svm.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "resolution.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "resolution-svm.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "resolution-svm.json/results/0",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "resolution-svm.json/results/1",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "resolution-svm.json/results/2",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "resolution-svm.json/results/3",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "resolution-svm.json/results/4",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    },
+    {
+      "path": "custody.json",
+      "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+      "sourceDirty": false
+    }
+  ],
+  "files": {
+    "acceptance.txt": "753a949f4977ec43fe42c827aa92d31ad57a5324986c526f1f5fab0bb7479314",
+    "container-version.txt": "78d7b2f3d061b337d01308d8e5553cceb11524d7022c3706dde2fb2db18324d3",
+    "custody.json": "881c3234670a20fd5e52b6645916869f8a8c46a592d5b787e92d3a6dd6fb7da7",
+    "deployment-maker-a.json": "e5bb69014f2696360343486c6c0c99b6d9aab666dc241084fb3cd7185d4cae97",
+    "deployment-maker-b.json": "bd3fbe502e6a19e3ddc514d79047efc02c484f5f013b91cf2a9332bad3f13b97",
+    "deployment-oracle-fixture.json": "a30b9578c9203a1c48942d0a6ca7abd5cd5ee269ecf016e1393e410ef8922bb1",
+    "deployment.json": "b7e7dd0205960e392d12ed518967338338467481cad3c451c70e5b2cfad6b29f",
+    "event-replay-regression-red.txt": "8d5ad2eee16ade4e60d552a74cc980e5b19f9e90bc469a751d800a7154dd5e2a",
+    "failed-acceptance-ef6e4bb.txt": "34eb3023a815b6ab78543c7bc4b3301ac5cba4e7a6ce141c3b6c59bd5191c408",
+    "legacy-instruction-input.json": "d21ea1acc150371532deb221ce91e8420b5970b4ce2902782c8f2fabed344e82",
+    "lifecycle-custody.json": "b80fdf84bdac1107db633ee150b873abb22a058647f865cd5ba4ba72bdaae651",
+    "lifecycle-lifecycle.json": "75fd187165a7a62eb1e81f061e80d43e7ebcb634e0fc321834adfe45eb435a3e",
+    "lifecycle-settlement-svm.json": "ab3a35cfa622a640d13401272c9e75a57943aa8f87dde6fdc73e2a7f9064172a",
+    "lifecycle-toolchain.json": "42f20ca91b9782960d65c2082d4ba4d00e9f8cf13f521a3442fb2cba248558c7",
+    "oracle-oracle-conformance.json": "c8365fc05c9eff89864bfd9188646dced574920804d9644b6a2b8ecee885bc0f",
+    "oracle-oracle-svm.json": "b65dcfeb3ea013216f16ae1dd799c9da331fcaf7b461a698272b0c7e4f49b484",
+    "oracle-oracle.json": "d3c741b043c1d3cb1aef0a964eb0692936b23dbc118cfecb1a200d934be26e2b",
+    "oracle-toolchain.json": "566b0b5c0db94847f1b2ec08e2b647a8cac844a579ee2886bfecf8c13891cd5c",
+    "orders-order-svm.json": "772ced58520885f0f906c8456ff429c4a081bb0a6e3918c8091aced55fcfd077",
+    "orders-orders-conformance.json": "51d35ef32723ad8e4ab9ff292a98d58d0efdb0d9c3d173a5140299f9cce6bc0a",
+    "orders-orders.json": "cc3d1b270fec1e296b635aaa7c296565b60d142f7361b1d7826aae2ae0f71397",
+    "orders-toolchain.json": "7909170a1dd7870e87bc7f9c19b6648d35c7d0e5fd74c4206a0b93d5fca55bbe",
+    "postgres-image.json": "bd36ca635f7c05def7ab610dd086f4b02aae884514eb1fcf54f82111c92f5e71",
+    "postgres-version.txt": "66cbaae4250f039f92200da1428bbd0f3f0850da18716bb1ce501a178c259711",
+    "regression-custody.json": "df5187b007d69175ec4984799eb89424762517f6b6bafaf013938fd84ef47927",
+    "regression-financial.json": "30619ff3aa572c3a8c14c86a94929fc0aaffc6ce2d7ab643e0fa7b88b7cc53d7",
+    "regression-indexer-reset.json": "39b364c62342fc240bc7e133e020b78ae21d66c422e8dac8e6f16c318bccf7ba",
+    "regression-indexer-rpc.json": "831f9d3c7a6ae39411248902be60b76989b6d44fb5f77f3aa9c8298d7b366576",
+    "regression-maker-rpc.json": "cad548141afdc6913d3b0880caa841bfc90fce4318ab126c294b2a8b2421dc51",
+    "regression-maker-svm.json": "57221e05189888e1f6b26c515a324cda9ca361a34b3fec2eca693f8d842b3a6d",
+    "regression-reset-custody.json": "fbb90e28acda4789382d13c6fabfc2d24a8376a6786c272a74e1e9882d73bb4e",
+    "regression-route-rpc.json": "5c74d150b9cdd3ce8a2f75ac913a79b722de0c73273c9f863363895e9c6d24d6",
+    "regression-route-svm.json": "8cc0458895c241d02984ba7a95177020f90f5169e35033554701484e4f64ef12",
+    "regression-summary.json": "f1235e22d40aa135b384fe7ec9713c390c8e1a22d3807a0e60dd498c70318d4a",
+    "regression-svm.json": "331550f0f485eff7733156a161c6d899270a9977bb57ed39ff90ddd69583b35b",
+    "regression-toolchain.json": "c0dd285495687734b79d1f706425d32e4791c20d566c4256eb72ab64e520f796",
+    "resolution-conformance.json": "efde722cde80df29d85d2714da618b918a82dbbe493ec52ceeafb2ac98fa66a6",
+    "resolution-svm.json": "c2e3d08dfe2ddffe0cab58cd31b765207ec64086b91f4b4f692228a43ca8a162",
+    "resolution.json": "b171fde0e1712ef1a2c14016f1e3658a32e0c817bc8499c203fb5858d6fb4752",
+    "service-api-3.txt": "0073046569edc3c6af912400da7346e0933d94956b8805d822d20cff1b5475d5",
+    "service-executor-1.txt": "d0fee407a364e676d6f681967987283617a0f9962bf1920d0926221a55844147",
+    "service-executor-11.txt": "050fdd7414e4d4a571a031489a5473e451a6e32a3ed722f3398b4be115dd5ccb",
+    "service-executor-13.txt": "50bb470a5fd06193cbb5dc8619bb006db38eeaaf4d139e93b84b6d8eac11f31f",
+    "service-executor-8.txt": "2c1634560885de0aace67bf852e13d9520d440ff3b2d41c7424030da4b259b95",
+    "service-funding-2.txt": "8314ab29e6a5d5c7836402c7a20830d4fda7bd74d9dbaefcedcc4bc5c1b6eed8",
+    "service-risk-10.txt": "a7dd2f354b5b01669c63a61146f8cf8b9c52f1e9547bd0a5522a2925aaf54829",
+    "service-risk-12.txt": "b1d275f6759a7a3c7d591d1ca5201c44b541d3665a71940ea21c01dd4c82734c",
+    "service-risk-4.txt": "1936ff413b4f26ccbd40a63bd3d4ac6ce1345ca91b3312dbd859e2df3609a8c2",
+    "service-risk-5.txt": "a9a25f962d7026825ea67bb1480eb944030f38737d653da7b590a02b335a0831",
+    "service-risk-6.txt": "afa6bdb78aa8ca9d37c19d1d73246a85f4b7c2f3c6fc7e326ca64e5592f4ec48",
+    "service-risk-7.txt": "142035d050839bd515e81c6fbc8f6ed3fa0fa6f0883c323fa770e869e90c6d85",
+    "service-risk-9.txt": "fbaa84b2b69d15e2535427ab4dfd8919e33ce49aeac7c135df938d662332e5cc",
+    "toolchain.json": "ef2ba8dd725325ebf404f5dd1ced1eb46bf189fd6e3034064421cfaf8fdb078e"
+  }
+}

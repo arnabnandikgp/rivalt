@@ -1,0 +1,1202 @@
+{
+  "runtime": {
+    "surfnet-version": "1.6.1",
+    "solana-core": "4.2.1",
+    "feature-set": 565236538
+  },
+  "genesisHash": "4qj5h2MbVqrKNXCuB1SQkVw8JZqwRBV5fqjTbZGsxng6",
+  "revision": "8e8f3716135fdcd7548271c5c508ddf4d4ac9740",
+  "sourceDirty": false,
+  "binarySha256": "bb1c0912caadb39567dc6f8aa6baac149d9e0277dad687383f3f3a3d4f642904",
+  "idlSha256": "49da60cf89946d1a63c257c523cac8bd2ad96270588b302582d1d4b5896cd83e",
+  "checks": [
+    {
+      "label": "fixture SOL rent funding",
+      "signature": "2qCdXEiNaGS1NGvX5BzLTdAipe23BazqEy8DV8aQSyH4v6csC4jUTVxYVzNz7oSsdxRbm3pNcpMuetSmwv4ZPTkC",
+      "status": "pass",
+      "error": null,
+      "bytes": 266,
+      "simulationComputeUnits": 300,
+      "eventCount": 0
+    },
+    {
+      "label": "fixture mint 6 decimals",
+      "signature": "2J1FiRVi12CDEMjZrcPjwPuD4meiywqypWXhqKoFb4QM9p9KkRa1Wn1pbqMAs9JWBgEYmcWPnvRrSXQGMEJuaJ6u",
+      "status": "pass",
+      "error": null,
+      "bytes": 392,
+      "simulationComputeUnits": 351,
+      "eventCount": 0
+    },
+    {
+      "label": "fixture mint 9 decimals",
+      "signature": "5CRSqAGo8dUaFUAuxnxuirVh3v52UWe2jmaEor4imbMMwECbm5Lp7XQwKaA8JsfFaoeDs74dEASwDo3zBoRmKSie",
+      "status": "pass",
+      "error": null,
+      "bytes": 392,
+      "simulationComputeUnits": 351,
+      "eventCount": 0
+    },
+    {
+      "label": "fixture token account and mint",
+      "signature": "4QSKHuyFDSvUKZdh95zycpiMXFmcLErZ1DnBKZvSa4NCVtUcJdFgx74Pr9WLKz7AwkyGd8LrdEjJg1eHg1QMHNig",
+      "status": "pass",
+      "error": null,
+      "bytes": 438,
+      "simulationComputeUnits": 504,
+      "eventCount": 0
+    },
+    {
+      "label": "fixture token account and mint",
+      "signature": "5Q3y9e7C7sZA6gHT41YJvJEvwPFrU2Z5tdppD7xkfkhMhgXMG8JikbH4PGJ2PbgpMJKeEbZgRA3N17Y4WPFABP5e",
+      "status": "pass",
+      "error": null,
+      "bytes": 438,
+      "simulationComputeUnits": 514,
+      "eventCount": 0
+    },
+    {
+      "label": "fixture token account and mint",
+      "signature": "52uA7YxEdC7Bgk4FY4ggzRJQYoX6a6tYwiVC2jmhykiKsrPNcguY3BApnWo7bitibtuQ6UXtn4yxhGVj9TnGyH7Q",
+      "status": "pass",
+      "error": null,
+      "bytes": 438,
+      "simulationComputeUnits": 514,
+      "eventCount": 0
+    },
+    {
+      "label": "fixture token account and mint",
+      "signature": "27WqRunXYDNxTdzuCSffsnvmd3wwLxZKH6U78ScuzbPzKhtNDrgW1B1iNuMPnttSCMbQu3LxxBD1oCwudqeNnDDa",
+      "status": "pass",
+      "error": null,
+      "bytes": 438,
+      "simulationComputeUnits": 504,
+      "eventCount": 0
+    },
+    {
+      "label": "reject unauthorized initialization",
+      "signature": "gx2gaPtRmApcAoGqkFf6JEeNBXbjFNkwGssGQ2Yv9W3yCLxG3F9ktmMZLYD6dDKgaQMLU6xEhNxHxuGWj3AMvRt",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6102
+          }
+        ]
+      },
+      "bytes": 574,
+      "simulationComputeUnits": 29214,
+      "eventCount": 0
+    },
+    {
+      "label": "reject wrong collateral precision",
+      "signature": "579AABV17mY74aYx55EiH7d8scGyG8LUS5AETmoGLcbTBLmvnqfqqkBFPbDf1uoZHbFE7GFV5yoD31vdPVXaEqZi",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6103
+          }
+        ]
+      },
+      "bytes": 478,
+      "simulationComputeUnits": 29381,
+      "eventCount": 0
+    },
+    {
+      "label": "initialize custody market",
+      "signature": "4k9Mp3kY5RX2cnsBqthnMh31BzYPQXMgrhMKEVTEzrwrtYSLKDzY9mos3LTSdCcSCdRNZrNYiix2BNwwkXjfHKV1",
+      "status": "pass",
+      "error": null,
+      "bytes": 478,
+      "simulationComputeUnits": 33809,
+      "eventCount": 1
+    },
+    {
+      "label": "register trader",
+      "signature": "4c2xfenAP8wLDr5Rg889NWwjfJ9ZuR2TN68T7R6KZ9WphLrRbWNPvTg9K8Qj54RQBkQZzDsbXSzc1JJyaRxpCeZB",
+      "status": "pass",
+      "error": null,
+      "bytes": 442,
+      "simulationComputeUnits": 27977,
+      "eventCount": 1
+    },
+    {
+      "label": "deposit real test collateral",
+      "signature": "5ayQYLwWYAJVZBSqFJgLjujeFyMmBxJbhLhUXRJfpQGNVap7XgZp4ujeEKqdAznydpkj36W1NMwLs3WzhBd3N5YJ",
+      "status": "pass",
+      "error": null,
+      "bytes": 516,
+      "simulationComputeUnits": 27806,
+      "eventCount": 1
+    },
+    {
+      "label": "reject wrong participant owner",
+      "signature": "2gy2GwN2vBgT92nVio5KuiZ1CVszsm4nJDsWVV5WuDd3aXaGHw5MEeAvyHvGRbkyJBFmVWFK4hDeZjsuixoDXo1R",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 2006
+          }
+        ]
+      },
+      "bytes": 516,
+      "simulationComputeUnits": 14615,
+      "eventCount": 0
+    },
+    {
+      "label": "reject wrong destination owner",
+      "signature": "3ySAfn6jeQVBiVPv2fz7HYbvadskkKaVSfkGu5P882BDSSHvi4tVnNBndPCMzfS2oaZS3Bmxkz6p7QwrZH5rEkno",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 2015
+          }
+        ]
+      },
+      "bytes": 516,
+      "simulationComputeUnits": 16367,
+      "eventCount": 0
+    },
+    {
+      "label": "reject wrong token mint",
+      "signature": "3PjLTJNfYUh24frxnFx2MkEUHUCQbDqsF6yMswnUa3WShh7CfAGAVGvHxLPPCZRfR7hxJ9JWSzZj4jkAjMvbBUQs",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 2014
+          }
+        ]
+      },
+      "bytes": 516,
+      "simulationComputeUnits": 16394,
+      "eventCount": 0
+    },
+    {
+      "label": "reject vault/source alias",
+      "signature": "2BZHhsS3LTkBSFhWcurbbRT3bWnn978zeBMDkKyem9z6za7sFZ9ovoLRGjDTaREpksP7GwScMeXDkFsgr6jhfUDJ",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 2040
+          }
+        ]
+      },
+      "bytes": 484,
+      "simulationComputeUnits": 10798,
+      "eventCount": 0
+    },
+    {
+      "label": "reject overdraw",
+      "signature": "2hesfXJUHvzGEiRgBZPoV25QZDqxiQXdPEjEsK8LSRZar8XzGtgWpiS6H2oMkSV8q8fQpqyVkFVwLeyug4i2kRgf",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6100
+          }
+        ]
+      },
+      "bytes": 516,
+      "simulationComputeUnits": 16380,
+      "eventCount": 0
+    },
+    {
+      "label": "reject zero amount",
+      "signature": "2xNjFyHZ7oL48Ymut6UeWLLczUbk8MdJY3roBF11CbqwuVYMxjcGUPP8fHv7DJd9fJJZxwqbK9PQKeusoJjucu3C",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6106
+          }
+        ]
+      },
+      "bytes": 516,
+      "simulationComputeUnits": 16373,
+      "eventCount": 0
+    },
+    {
+      "label": "reject arithmetic maximum",
+      "signature": "63FVu3ZhoJsE8Wh7PXjPrVRviZSx1MpQZpJxwXx61ddFrhUkTrRMhk2HvYQL8JsNiJAUWaRRRQ7gAcoZ7DDd8ELD",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6100
+          }
+        ]
+      },
+      "bytes": 516,
+      "simulationComputeUnits": 16565,
+      "eventCount": 0
+    },
+    {
+      "label": "rollback earlier successful token CPI and event",
+      "signature": "2V3iBuExo38nZAdkz4HrMGQSuBvfCgaMacCpzk3YoP8DM9VREyWzLvZBQGap8nkhrSyzGCG3uYGSmAV5sbh5o1AN",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          1,
+          {
+            "Custom": 6100
+          }
+        ]
+      },
+      "bytes": 544,
+      "simulationComputeUnits": 44186,
+      "eventCount": 1
+    },
+    {
+      "label": "reject missing owner signature",
+      "signature": "5VsjtZhNRL8BX4Q45VXUjYNCVJ7DSiAzrawio9kPgpZQQkKhdnSdAMHkqzdZFQaTMw2WfFePp3vKyawHXPbRwYzH",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 3010
+          }
+        ]
+      },
+      "bytes": 452,
+      "simulationComputeUnits": 4549,
+      "eventCount": 0
+    },
+    {
+      "label": "withdraw admissible cash",
+      "signature": "5CyuhDJBJza36z7nPz5NRswdjwBSDrD6cae7YzuHAAG97AaQbBR7bzXPzNndkKPq9nYFZWgtEDrC6AeFHt6d7hQV",
+      "status": "pass",
+      "error": null,
+      "bytes": 516,
+      "simulationComputeUnits": 27603,
+      "eventCount": 1
+    },
+    {
+      "label": "fund insurance by real token CPI",
+      "signature": "5KrPgvBxLogQ5nSFzBUd66mv98pLuVUQqu9LuomgM1mtsYKitZLhTZRzdQKRmTjj8aDDtYWVod1NTnY4TUPdvvGi",
+      "status": "pass",
+      "error": null,
+      "bytes": 387,
+      "simulationComputeUnits": 17210,
+      "eventCount": 1
+    },
+    {
+      "label": "unsolicited token transfer fixture",
+      "signature": "5M5CAdxQJYXP6rQQTnRJgazQXGqv1n8EQM6moRk7pK7UvwkrvsXFCxWVuGL7DbZBmh5XXkD7cBkx42gzbx8Hrix9",
+      "status": "pass",
+      "error": null,
+      "bytes": 377,
+      "simulationComputeUnits": 105,
+      "eventCount": 0
+    },
+    {
+      "label": "deposit preserves unassigned surplus",
+      "signature": "2LXTTuBeHiwYHPaMLruMc8EdAvwoZCRTvpqh4ir7TGTsgXsg2CCYjW6DJDrfvzsnB6xcWKGRfATgCd1qgVBa8Bte",
+      "status": "pass",
+      "error": null,
+      "bytes": 516,
+      "simulationComputeUnits": 27806,
+      "eventCount": 1
+    },
+    {
+      "label": "reject unauthorized surplus classification",
+      "signature": "24tb6Fcz7znkwhiPkBstw6qcfMGJMd75FHaJqp1PAoUf7RA6Qz18XiosqSS6HcN2YWWG4YDodYqt1tXJ1HYEdzYo",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 2001
+          }
+        ]
+      },
+      "bytes": 376,
+      "simulationComputeUnits": 6834,
+      "eventCount": 0
+    },
+    {
+      "label": "classify surplus explicitly to insurance",
+      "signature": "5TvVSdaj4N821Boa7gTtTQAjGXRpRxcKArKyAo7SK4iKWDGngQ2Aixuvs37nEx3xK7uz88qJhywvzFg1vGGAWw4F",
+      "status": "pass",
+      "error": null,
+      "bytes": 280,
+      "simulationComputeUnits": 12198,
+      "eventCount": 1
+    },
+    {
+      "label": "pause custody",
+      "signature": "2ornWgPLELfEywRLvXeVbDrckNPKCvi3oQBhCDbr98sf8ytmqHvQsomB335opyQehjQ7zsBPJ2RnAnd3zvTEyew5",
+      "status": "pass",
+      "error": null,
+      "bytes": 281,
+      "simulationComputeUnits": 12199,
+      "eventCount": 1
+    },
+    {
+      "label": "paused withdrawal",
+      "signature": "4og28hAK1jrfDYrHE1Zrzg7i35RQTasUd5ok7JF3H6wYRBRBdtk8ZLu3wRicFZtsjXbSjGJRz7ccjZGVejGYyPbr",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6101
+          }
+        ]
+      },
+      "bytes": 516,
+      "simulationComputeUnits": 16154,
+      "eventCount": 0
+    },
+    {
+      "label": "paused deposit",
+      "signature": "TpULTs1sAxi8jdrNYPSTFCugsaQLLnZ9tnxdPgaCH7qEHw7dxtMu2w3fYjkNDbUKfoE9A8vaRarTuAhpspHjFcy",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6101
+          }
+        ]
+      },
+      "bytes": 516,
+      "simulationComputeUnits": 16151,
+      "eventCount": 0
+    },
+    {
+      "label": "paused registration",
+      "signature": "4DWJFLzfFbJaLCWZoBy9pZfnDny4WRjSUUpXQdVbjP1JLxupymQFQ5tCWgv8YjS43XFM3f2NhTGUbEuqKKm4kDe8",
+      "status": "rejected",
+      "error": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6101
+          }
+        ]
+      },
+      "bytes": 442,
+      "simulationComputeUnits": 16994,
+      "eventCount": 0
+    },
+    {
+      "label": "unpause reconciled custody",
+      "signature": "2ie6a5EeALSxa9xLsDiG9J4tokaK2CUkHB12VQobdJ29SKjy6vUHmmraqnfdEtg4tPMuZfxAwUkozZLPwuLwPWwC",
+      "status": "pass",
+      "error": null,
+      "bytes": 281,
+      "simulationComputeUnits": 12198,
+      "eventCount": 1
+    },
+    {
+      "label": "withdraw remaining funded cash",
+      "signature": "3B3NsuE2k7VeCAiXtXDbyoqdzFac9scC3w8HohYDPnFQShSETChgiBTCQKNT5Hr7sLHACGVM2HfM3upkhsuYDAm3",
+      "status": "pass",
+      "error": null,
+      "bytes": 516,
+      "simulationComputeUnits": 27603,
+      "eventCount": 1
+    }
+  ],
+  "successfulEvents": [
+    {
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "termsEpoch": "1",
+      "configEpoch": "1",
+      "sequence": "1",
+      "slot": "1946",
+      "kind": 0,
+      "actor": "3XxVtJi6gjvRL2JBJye78uWMEopWHW7P1DdLRpkdRYAP",
+      "participant": "11111111111111111111111111111111",
+      "amount": "0",
+      "participantCash": "0",
+      "totalCash": "0",
+      "settlement": "0",
+      "insurance": "0",
+      "fees": "0",
+      "allocatedVault": "0",
+      "actualVault": "0",
+      "paused": false
+    },
+    {
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "termsEpoch": "1",
+      "configEpoch": "1",
+      "sequence": "2",
+      "slot": "1979",
+      "kind": 1,
+      "actor": "A4Es4MfmWfYXUKYCPf4E46651pEUya3Ri4uAuzGmdJ7C",
+      "participant": "8YFZTQ9S6hpL8FLZuzCWuY52YNMc9xTYyDVzqhxGEntV",
+      "amount": "0",
+      "participantCash": "0",
+      "totalCash": "0",
+      "settlement": "0",
+      "insurance": "0",
+      "fees": "0",
+      "allocatedVault": "0",
+      "actualVault": "0",
+      "paused": false
+    },
+    {
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "termsEpoch": "1",
+      "configEpoch": "1",
+      "sequence": "3",
+      "slot": "2010",
+      "kind": 2,
+      "actor": "A4Es4MfmWfYXUKYCPf4E46651pEUya3Ri4uAuzGmdJ7C",
+      "participant": "8YFZTQ9S6hpL8FLZuzCWuY52YNMc9xTYyDVzqhxGEntV",
+      "amount": "1000000",
+      "participantCash": "1000000",
+      "totalCash": "1000000",
+      "settlement": "0",
+      "insurance": "0",
+      "fees": "0",
+      "allocatedVault": "1000000",
+      "actualVault": "1000000",
+      "paused": false
+    },
+    {
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "termsEpoch": "1",
+      "configEpoch": "1",
+      "sequence": "4",
+      "slot": "2329",
+      "kind": 3,
+      "actor": "A4Es4MfmWfYXUKYCPf4E46651pEUya3Ri4uAuzGmdJ7C",
+      "participant": "8YFZTQ9S6hpL8FLZuzCWuY52YNMc9xTYyDVzqhxGEntV",
+      "amount": "400000",
+      "participantCash": "600000",
+      "totalCash": "600000",
+      "settlement": "0",
+      "insurance": "0",
+      "fees": "0",
+      "allocatedVault": "600000",
+      "actualVault": "600000",
+      "paused": false
+    },
+    {
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "termsEpoch": "1",
+      "configEpoch": "1",
+      "sequence": "5",
+      "slot": "2362",
+      "kind": 4,
+      "actor": "3XxVtJi6gjvRL2JBJye78uWMEopWHW7P1DdLRpkdRYAP",
+      "participant": "11111111111111111111111111111111",
+      "amount": "10000",
+      "participantCash": "0",
+      "totalCash": "600000",
+      "settlement": "0",
+      "insurance": "10000",
+      "fees": "0",
+      "allocatedVault": "610000",
+      "actualVault": "610000",
+      "paused": false
+    },
+    {
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "termsEpoch": "1",
+      "configEpoch": "1",
+      "sequence": "6",
+      "slot": "2426",
+      "kind": 2,
+      "actor": "A4Es4MfmWfYXUKYCPf4E46651pEUya3Ri4uAuzGmdJ7C",
+      "participant": "8YFZTQ9S6hpL8FLZuzCWuY52YNMc9xTYyDVzqhxGEntV",
+      "amount": "37",
+      "participantCash": "600037",
+      "totalCash": "600037",
+      "settlement": "0",
+      "insurance": "10000",
+      "fees": "0",
+      "allocatedVault": "610037",
+      "actualVault": "610044",
+      "paused": false
+    },
+    {
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "termsEpoch": "1",
+      "configEpoch": "1",
+      "sequence": "7",
+      "slot": "2490",
+      "kind": 5,
+      "actor": "3XxVtJi6gjvRL2JBJye78uWMEopWHW7P1DdLRpkdRYAP",
+      "participant": "11111111111111111111111111111111",
+      "amount": "7",
+      "participantCash": "0",
+      "totalCash": "600037",
+      "settlement": "0",
+      "insurance": "10007",
+      "fees": "0",
+      "allocatedVault": "610044",
+      "actualVault": "610044",
+      "paused": false
+    },
+    {
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "termsEpoch": "1",
+      "configEpoch": "2",
+      "sequence": "8",
+      "slot": "2523",
+      "kind": 6,
+      "actor": "3XxVtJi6gjvRL2JBJye78uWMEopWHW7P1DdLRpkdRYAP",
+      "participant": "11111111111111111111111111111111",
+      "amount": "0",
+      "participantCash": "0",
+      "totalCash": "600037",
+      "settlement": "0",
+      "insurance": "10007",
+      "fees": "0",
+      "allocatedVault": "610044",
+      "actualVault": "610044",
+      "paused": true
+    },
+    {
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "termsEpoch": "1",
+      "configEpoch": "3",
+      "sequence": "9",
+      "slot": "2650",
+      "kind": 6,
+      "actor": "3XxVtJi6gjvRL2JBJye78uWMEopWHW7P1DdLRpkdRYAP",
+      "participant": "11111111111111111111111111111111",
+      "amount": "0",
+      "participantCash": "0",
+      "totalCash": "600037",
+      "settlement": "0",
+      "insurance": "10007",
+      "fees": "0",
+      "allocatedVault": "610044",
+      "actualVault": "610044",
+      "paused": false
+    },
+    {
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "termsEpoch": "1",
+      "configEpoch": "3",
+      "sequence": "10",
+      "slot": "2682",
+      "kind": 3,
+      "actor": "A4Es4MfmWfYXUKYCPf4E46651pEUya3Ri4uAuzGmdJ7C",
+      "participant": "8YFZTQ9S6hpL8FLZuzCWuY52YNMc9xTYyDVzqhxGEntV",
+      "amount": "600037",
+      "participantCash": "0",
+      "totalCash": "0",
+      "settlement": "0",
+      "insurance": "10007",
+      "fees": "0",
+      "allocatedVault": "10007",
+      "actualVault": "10007",
+      "paused": false
+    }
+  ],
+  "result": {
+    "addresses": {
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "registry": "21oG3gzHPD4kpUMyBv6up6bR4TCsBEfn21tGUTARQZ2A",
+      "vault": "6PUKc9FixAwjp5GGRYzRt9r9Rkb5FHo5xASRBoPdh4m6",
+      "eventAuthority": "FhxU7xoWaUApXWRmTPfNmUfSErkTfrx919zsmqZS3L7G",
+      "program": "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
+      "programData": "DZuGdvBNUZomeQnm3i3igEmK46SygyesD35M8mJgJxsu",
+      "participant": "8YFZTQ9S6hpL8FLZuzCWuY52YNMc9xTYyDVzqhxGEntV",
+      "quoteMint": "DnSJnW7BNQ3pyW1LcXNvhKuEWiYdqCXVF1Mx94CtKkXj"
+    },
+    "finalMarket": {
+      "discriminator": [
+        0,
+        125,
+        123,
+        215,
+        95,
+        96,
+        164,
+        194
+      ],
+      "schemaVersion": 1,
+      "profileVersion": 1,
+      "domain": [
+        105,
+        248,
+        213,
+        135,
+        95,
+        160,
+        15,
+        213,
+        216,
+        125,
+        176,
+        219,
+        28,
+        82,
+        5,
+        128,
+        90,
+        54,
+        151,
+        61,
+        86,
+        129,
+        207,
+        163,
+        33,
+        21,
+        187,
+        76,
+        94,
+        30,
+        68,
+        59
+      ],
+      "authority": "3XxVtJi6gjvRL2JBJye78uWMEopWHW7P1DdLRpkdRYAP",
+      "quoteMint": "DnSJnW7BNQ3pyW1LcXNvhKuEWiYdqCXVF1Mx94CtKkXj",
+      "vault": "6PUKc9FixAwjp5GGRYzRt9r9Rkb5FHo5xASRBoPdh4m6",
+      "termsEpoch": "1",
+      "configEpoch": "3",
+      "sequence": "10",
+      "paused": false,
+      "mode": 0,
+      "fundingIndexScaled": "0",
+      "fundingTime": "0",
+      "totalCash": "0",
+      "settlement": "0",
+      "insurance": "10007",
+      "fees": "0",
+      "allocatedVault": "10007",
+      "bump": 255,
+      "vaultBump": 253
+    },
+    "finalParticipant": {
+      "discriminator": [
+        32,
+        142,
+        108,
+        79,
+        247,
+        179,
+        54,
+        6
+      ],
+      "schemaVersion": 1,
+      "market": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs",
+      "owner": "A4Es4MfmWfYXUKYCPf4E46651pEUya3Ri4uAuzGmdJ7C",
+      "id": 0,
+      "cash": "0",
+      "lots": "0",
+      "virtualScaled": "0",
+      "fundingCheckpointScaled": "0",
+      "generation": "0",
+      "nonce": "0",
+      "reserved": "0",
+      "orderIds": [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "book": {
+        "lastOrderId": "0",
+        "lastGroupId": "0",
+        "reserveObservation": "0",
+        "orders": [
+          {
+            "id": "0",
+            "version": "0",
+            "state": 0,
+            "side": 0,
+            "originalLots": "0",
+            "lots": "0",
+            "filled": "0",
+            "notional": "0",
+            "feeCharged": "0",
+            "feeBudget": "0",
+            "limit": "0",
+            "startSlot": "0",
+            "expirySlot": "0",
+            "trigger": 0,
+            "threshold": "0",
+            "reduceOnly": false,
+            "generation": "0",
+            "groupId": "0",
+            "termsEpoch": "0",
+            "reserve": "0"
+          },
+          {
+            "id": "0",
+            "version": "0",
+            "state": 0,
+            "side": 0,
+            "originalLots": "0",
+            "lots": "0",
+            "filled": "0",
+            "notional": "0",
+            "feeCharged": "0",
+            "feeBudget": "0",
+            "limit": "0",
+            "startSlot": "0",
+            "expirySlot": "0",
+            "trigger": 0,
+            "threshold": "0",
+            "reduceOnly": false,
+            "generation": "0",
+            "groupId": "0",
+            "termsEpoch": "0",
+            "reserve": "0"
+          },
+          {
+            "id": "0",
+            "version": "0",
+            "state": 0,
+            "side": 0,
+            "originalLots": "0",
+            "lots": "0",
+            "filled": "0",
+            "notional": "0",
+            "feeCharged": "0",
+            "feeBudget": "0",
+            "limit": "0",
+            "startSlot": "0",
+            "expirySlot": "0",
+            "trigger": 0,
+            "threshold": "0",
+            "reduceOnly": false,
+            "generation": "0",
+            "groupId": "0",
+            "termsEpoch": "0",
+            "reserve": "0"
+          },
+          {
+            "id": "0",
+            "version": "0",
+            "state": 0,
+            "side": 0,
+            "originalLots": "0",
+            "lots": "0",
+            "filled": "0",
+            "notional": "0",
+            "feeCharged": "0",
+            "feeBudget": "0",
+            "limit": "0",
+            "startSlot": "0",
+            "expirySlot": "0",
+            "trigger": 0,
+            "threshold": "0",
+            "reduceOnly": false,
+            "generation": "0",
+            "groupId": "0",
+            "termsEpoch": "0",
+            "reserve": "0"
+          }
+        ],
+        "groups": [
+          {
+            "id": "0",
+            "version": "0",
+            "original": "0",
+            "remaining": "0",
+            "generation": "0",
+            "side": 0
+          },
+          {
+            "id": "0",
+            "version": "0",
+            "original": "0",
+            "remaining": "0",
+            "generation": "0",
+            "side": 0
+          }
+        ]
+      },
+      "bump": 253
+    },
+    "actualVault": "10007"
+  },
+  "tokenBalance": {
+    "context": {
+      "slot": 2713,
+      "apiVersion": "4.2.1"
+    },
+    "value": {
+      "uiAmount": 0.010007,
+      "decimals": 6,
+      "amount": "10007",
+      "uiAmountString": "0.010007"
+    }
+  },
+  "logsNotifications": 25
+}

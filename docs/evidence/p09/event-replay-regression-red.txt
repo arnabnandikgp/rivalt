@@ -1,0 +1,35 @@
+
+ RUN  v3.2.4 /Users/arnabnandi/rivalt
+
+ ❯ packages/indexer/src/projection.test.ts (5 tests | 1 failed) 7ms
+   ✓ independent financial read vectors > distinguishes cash, marked unpaid profit, adverse loss, margin and disabled withdrawals 2ms
+   ✓ independent financial read vectors > rounds negative unpaid liability upward and never turns a fraction into cash 0ms
+   ✓ independent financial read vectors > enforces complete sequence/environment and conservation independently of event post-state 1ms
+   ✓ keeps planned default payout separate from cash and clears unpaid claims after application 0ms
+   × keeps canonical order payloads immutable across candidate cleanup and journal replay 3ms
+     → expected '{"type":"order","signature":"order","…' to be '{"type":"order","signature":"order","…' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/indexer/src/projection.test.ts > keeps canonical order payloads immutable across candidate cleanup and journal replay
+AssertionError: expected '{"type":"order","signature":"order","…' to be '{"type":"order","signature":"order","…' // Object.is equality
+
+Expected: "{"type":"order","signature":"order","outer":0,"inner":0,"ordinal":0,"slot":1,"blockTime":1,"bytes":"canonical-order-bytes","data":{"market":"market","domain":"domain","sequence":"1","kind":0,"participant":"trader","reserved":"100","orderIds":["7","0","0","0"],"book":{"lastOrderId":"0","lastGroupId":"0","reserveObservation":"0","orders":[{"id":"7","version":"0","state":1,"side":0,"originalLots":"0","lots":"10","filled":"0","notional":"0","feeCharged":"0","feeBudget":"0","limit":"0","startSlot":"0","expirySlot":"0","trigger":0,"threshold":"0","reduceOnly":false,"generation":"0","groupId":"0","termsEpoch":"0","reserve":"100"},{"id":"0","version":"0","state":0,"side":0,"originalLots":"0","lots":"0","filled":"0","notional":"0","feeCharged":"0","feeBudget":"0","limit":"0","startSlot":"0","expirySlot":"0","trigger":0,"threshold":"0","reduceOnly":false,"generation":"0","groupId":"0","termsEpoch":"0","reserve":"0"},{"id":"0","version":"0","state":0,"side":0,"originalLots":"0","lots":"0","filled":"0","notional":"0","feeCharged":"0","feeBudget":"0","limit":"0","startSlot":"0","expirySlot":"0","trigger":0,"threshold":"0","reduceOnly":false,"generation":"0","groupId":"0","termsEpoch":"0","reserve":"0"},{"id":"0","version":"0","state":0,"side":0,"originalLots":"0","lots":"0","filled":"0","notional":"0","feeCharged":"0","feeBudget":"0","limit":"0","startSlot":"0","expirySlot":"0","trigger":0,"threshold":"0","reduceOnly":false,"generation":"0","groupId":"0","termsEpoch":"0","reserve":"0"}],"groups":[{"id":"0","version":"0","original":"0","remaining":"0","generation":"0","side":0},{"id":"0","version":"0","original":"0","remaining":"0","generation":"0","side":0}]}}}"
+Received: "{"type":"order","signature":"order","outer":0,"inner":0,"ordinal":0,"slot":1,"blockTime":1,"bytes":"canonical-order-bytes","data":{"market":"market","domain":"domain","sequence":"1","kind":0,"participant":"trader","reserved":"100","orderIds":["0","0","0","0"],"book":{"lastOrderId":"0","lastGroupId":"0","reserveObservation":"0","orders":[{"id":"7","version":"0","state":6,"side":0,"originalLots":"0","lots":"10","filled":"0","notional":"0","feeCharged":"0","feeBudget":"0","limit":"0","startSlot":"0","expirySlot":"0","trigger":0,"threshold":"0","reduceOnly":false,"generation":"0","groupId":"0","termsEpoch":"0","reserve":"0"},{"id":"0","version":"0","state":0,"side":0,"originalLots":"0","lots":"0","filled":"0","notional":"0","feeCharged":"0","feeBudget":"0","limit":"0","startSlot":"0","expirySlot":"0","trigger":0,"threshold":"0","reduceOnly":false,"generation":"0","groupId":"0","termsEpoch":"0","reserve":"0"},{"id":"0","version":"0","state":0,"side":0,"originalLots":"0","lots":"0","filled":"0","notional":"0","feeCharged":"0","feeBudget":"0","limit":"0","startSlot":"0","expirySlot":"0","trigger":0,"threshold":"0","reduceOnly":false,"generation":"0","groupId":"0","termsEpoch":"0","reserve":"0"},{"id":"0","version":"0","state":0,"side":0,"originalLots":"0","lots":"0","filled":"0","notional":"0","feeCharged":"0","feeBudget":"0","limit":"0","startSlot":"0","expirySlot":"0","trigger":0,"threshold":"0","reduceOnly":false,"generation":"0","groupId":"0","termsEpoch":"0","reserve":"0"}],"groups":[{"id":"0","version":"0","original":"0","remaining":"0","generation":"0","side":0},{"id":"0","version":"0","original":"0","remaining":"0","generation":"0","side":0}]}}}"
+
+ ❯ packages/indexer/src/projection.test.ts:60:23
+     58|   state.participants.trader.book.groups[0].remaining='0';
+     59|   state.participants.trader.orderIds[0]='0';
+     60|   expect(json(event)).toBe(original);
+       |                       ^
+     61|   const committed=empty();committed.market=structuredClone(state.marke…
+     62|   project(committed,event,'market','domain');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  21:30:11
+   Duration  550ms (transform 200ms, setup 0ms, collect 366ms, tests 7ms, environment 0ms, prepare 32ms)
+

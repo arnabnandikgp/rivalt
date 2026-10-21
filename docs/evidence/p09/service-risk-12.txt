@@ -1,0 +1,4 @@
+{"role":"risk","pid":19409,"status":"started"}
+{"role":"risk","status":"unavailable"}
+{"role":"risk","status":"recovered"}
+{"role":"risk","status":"stopped"}

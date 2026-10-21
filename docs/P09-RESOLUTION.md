@@ -1,6 +1,6 @@
 # P09 liquidation and complete-cohort resolution
 
-Implementation in progress; G10 selections below require independent arithmetic, signed program and actual RPC/WS/PostgreSQL acceptance. Only the explicit local-test-profile is eligible. No M6 risk calibration or funded deployment is implied.
+A13/A14/G10 local acceptance is verified on clean `8e8f371`; [actual evidence](evidence/P09.md) records independent arithmetic, signed programs and real RPC/WS/PostgreSQL recovery. P09 remains Review until integration. Only the explicit local-test-profile is eligible. No M6 risk calibration or funded deployment is implied.
 
 ## G10 local policy
 
@@ -48,9 +48,9 @@ The P02 exact closeout rule is unchanged. Operational execution must match an in
 
 A13: receiver consent/alias/binding/capital limits, fee caps and funded transfers, strict post-fee deficit improvement, unhealthy/non-improving rejection, current source/observation constraints and order-generation interactions.
 
-A14: real bankruptcy and source-emergency freezes, no invented valuation, disabled ordinary financial paths, full-cohort page authentication, duplicate/concurrent progress, exact insurance/impairment/rounding, restart equivalence, complete reconciliation and authorized recovery into a new epoch. Actual risk-worker RPC/WS and PostgreSQL reconstruction are required before Review. All implementation, resource measurements and acceptance remain pending.
+A14: real bankruptcy and source-emergency freezes, no invented valuation, disabled ordinary financial paths, full-cohort page authentication, duplicate/concurrent progress, exact insurance/impairment/rounding, restart equivalence, complete reconciliation and authorized recovery into a new epoch. Actual risk-worker RPC/WS and PostgreSQL reconstruction are required before Review. The clean acceptance and measured resource bounds are recorded in [P09 evidence](evidence/P09.md).
 
-Resolution progress events carry exact per-ID plan records and compact changed balances. Collect leaves order books and nonces unchanged; Apply deterministically invalidates all active orders, zeros reservations/order IDs and group allowances, and preserves retained IDs/prefix history. The indexer applies that explicit transition and compares its entire reconstructed participant book to the actual account. Copying four complete unchanged books into every event exceeded the standard SBF heap in the first 64-member developmental test; this representation must pass the same resource test before G10 acceptance.
+Resolution progress events carry exact per-ID plan records and compact changed balances. Collect leaves order books and nonces unchanged; Apply deterministically invalidates all active orders, zeros reservations/order IDs and group allowances, and preserves retained IDs/prefix history. The indexer applies that explicit transition and compares its entire reconstructed participant book to the actual account. Copying four complete unchanged books into every event exceeded the standard SBF heap in the first 64-member developmental test; the compact representation passes the same 64-member test at 255,514 CU, below the declared ceiling.
 
 A restrictive oracle sample retains the last credible source deadline while status/validity still reject priced actions. Erasing that deadline would let a continuing failed-source sampler prevent the emergency grace proof indefinitely. Freeze also rereads authenticated sources, so a caller cannot use an old restrictive observation to freeze after credible source recovery.
 

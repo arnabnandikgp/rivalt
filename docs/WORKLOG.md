@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** M1/P01/P02 are Closed. P03–P08 and M2/M3 are Review; M4 remains In progress. **P08 A11/A12/G09 pass on clean `cd2b8fa`, with identical financial/service implementation to the fresh full regression at `1f27fa8`.** [P08 evidence](evidence/P08.md) records 203 signed P08 transactions plus 45 setup transactions and ten actual RPC/WS/PostgreSQL checks. `phase/p08-orders` contains exact P07 PR #9 head `efc1278`; ready [PR #10](https://github.com/arnabnandikgp/rivalt/pull/10) is published above #9. P09 implementation is In progress: local-profile handlers and signed developmental checks exist; the first clean RPC acceptance found and corrected a historical-event aliasing defect during frozen database reconstruction; fresh acceptance is pending. The default build rejects all new financial paths.
+**Current position:** M1/P01/P02 are Closed. P03–P09 and M2/M3 are Review; M4 remains In progress. **P09 A13/A14/G10 and the full P01–P09 acceptance pass on clean `8e8f371`.** [P09 evidence](evidence/P09.md) records all legal resolution page sizes, the 64-member cohort and seven actual RPC/WS/PostgreSQL risk checks, including reconstruction after nonzero collection. The first clean run's event-aliasing defect is fixed and its failure retained. `phase/p09-resolution` contains exact P08 PR #10 head `b9e6115`; ready PR publication is next. Default builds reject these financial paths. P10 is next without a merge wait.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -24,7 +24,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M1 | P01–P02 | Reproducible stack, economic core and custody | Closed | Fresh A01/A02/M1 exit check on `16e51e4`; integrated unchanged at `3c1aae1` |
 | M2 | P03–P04 | Competing makers and atomic execution | Review | Fresh A03–A05/G04/G05 and cross-phase exit pass on `b8e5fb8`; ready PRs #4/#5 await integration |
 | M3 | P05–P06 | Real services and full trade lifecycle | Review | Fresh A05–A08/G07 and complete service exit pass on `2578327`; ready PRs #7/#8 await integration |
-| M4 | P07–P10 | Funding, orders, risk recovery and usable UI | In progress | P07 and P08 gates verified; ready P08 PR #10 above #9; P09 signed G10 checks pass; frozen-rebuild replay defect corrected, fresh clean acceptance pending; P10 Open |
+| M4 | P07–P10 | Funding, orders, risk recovery and usable UI | In progress | P07–P09 gates verified; P09 full regression and A13/A14 pass on clean `8e8f371`; P10 Open; integration pending |
 | M5a | P11–P12 | Complete local engineering evidence | Open | Not implemented |
 | M5b | P13–P14 | Focused real-cluster parity | Open | Not implemented |
 | M6 | P15–P16 | Independent commercial/pilot readiness | Open | Not implemented |
@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M3 | P06 | Maker daemons and complete service lifecycle | Review | [PR #8](https://github.com/arnabnandikgp/rivalt/pull/8), tested `2578327`, stacked above #7 | [A05/A07/A08/G07 and M3 exit evidence](evidence/P06.md); integration pending |
 | M4 | P07 | Oracle policy and authenticated funding | Review | [PR #9](https://github.com/arnabnandikgp/rivalt/pull/9), tested `83f70d4`, above #8 | [A09/A10/G08 evidence](evidence/P07.md); integration pending |
 | M4 | P08 | Persistent orders and TP/SL | Review | [PR #10](https://github.com/arnabnandikgp/rivalt/pull/10), tested `cd2b8fa`, above #9 | [A11/A12/G09 evidence](evidence/P08.md); integration pending |
-| M4 | P09 | Liquidation and resumable default | In progress | `phase/p09-resolution`, above exact #10 head `b9e6115` | G10 selected; clean signed/page checks pass; frozen-rebuild replay defect corrected, A13/A14 rerun pending |
+| M4 | P09 | Liquidation and resumable default | Review | Tested `8e8f371`, `phase/p09-resolution` above exact #10 head `b9e6115`; publication next | [A13/A14/G10 evidence](evidence/P09.md); integration pending |
 | M4 | P10 | Trading UI and direct exit experience | Open | — | After P09 |
 | M5a | P11 | Integrated fault and reconciliation matrix | Open | — | After P10 |
 | M5a | P12 | Resource budgets, load and 24-hour soak | Open | — | After P11 |
@@ -54,11 +54,11 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Last completed work: P08 persistent limits/stops, conservative remaining reservations, versioned authority, cumulative partial fees and existing-position TP/SL; separate durable keeper and full-book projection.
-- Verified implementation: clean `cd2b8fa7c886d75b7f81cf654ab0cc2171a962fc`, targeted P08 run `.local/runs/20261021T135143Z-53292` exits zero. Fresh full regression at `1f27fa8` passes P01–P07 and all fast gates; its P08 wrapper failure is corrected only in the harness. Financial/service trees are identical; no full-wrapper exit-zero claim.
-- Status: P03–P08/M2/M3 Review pending integration; M1/P01/P02 Closed; M4 In progress.
-- Immediate task: complete actual P09 risk-worker crash/recovery and frozen PostgreSQL reconstruction, then run clean committed A13/A14 acceptance and publish the next ready stacked PR.
-- Access/product decisions needed now: none. Existing Apple container runtime's PostgreSQL 18.6 loopback/volume/restart behavior is verified. No devnet key or external maker is needed.
+- Last completed work: funded liquidation, frozen complete-cohort resolution, deterministic allocation/rounding, risk-worker restart and frozen/final database reconstruction.
+- Verified implementation: clean `8e8f3716135fdcd7548271c5c508ddf4d4ac9740`; full `RIVALT_SLOT_TIME=50 pnpm smoke` exits zero across all P01–P09 suites. The first failed clean run and replay correction are retained in [P09 evidence](evidence/P09.md).
+- Status: P03–P09/M2/M3 Review pending integration; M1/P01/P02 Closed; M4 In progress.
+- Immediate task: publish P09 ready above #10, then create `phase/p10-ui` with `gh stack add` and implement the real browser/direct-exit phase without a merge wait.
+- Access/product decisions needed now: none. No devnet key or external maker is needed.
 - Deferred external needs: secure devnet/feed access at P13; independent maker at P15; independent review/funded-pilot decision at P16.
 - Historical archives remain optional targeted reference only.
 
@@ -330,3 +330,11 @@ Update Latest checkpoint and the two overview tables as well as appending the en
 - Evidence: failed full log `.local/p09-clean-acceptance-ef6e4bb-failed.log`, red regression `.local/p09-replay-regression-red.log`; failed P09 database/logs retained. No full exit-zero or A13/A14 completion is claimed. Both status tables remain P09/M4 In progress.
 - Disk upkeep: confirmed completed containers were gone before removing the first four completed acceptance scratch databases and nine earlier completed Rivalt scratch databases with public reports. All reports/logs remain; exact paths are in `.local/p09-disposable-volumes.json`. Active containers and unrelated services were untouched.
 - Blockers: none. Next exact action: commit the replay correction and rerun clean `source ops/env.sh && RIVALT_SLOT_TIME=50 pnpm smoke`, then capture and publish P09 only after all gates pass.
+
+- Final clean acceptance: `source ops/env.sh && RIVALT_SLOT_TIME=50 pnpm smoke` exits **0** on `8e8f3716135fdcd7548271c5c508ddf4d4ac9740`. Builds/IDL/generated parity, typecheck, 30 Vitest checks, 24 financial-core tests with 3,000 fresh Python cases, five maker tests and three resolution-state tests pass. The same clean revision passes every inherited compiled-program suite and all five real RPC/WS/PostgreSQL environments: regression `20261021T160226Z-7061`, lifecycle `20261021T161515Z-11294`, oracle `20261021T161928Z-12698`, orders `20261021T162450Z-14523`, resolution `20261021T163430Z-17140` under `.local/runs/`.
+- Actual P09 outcome: all seven checks pass. Real ten-lot liquidation falls back to five funded lots with a 105-atom fee; signed freeze survives discovery kill. Two keepers stop at Collect/cursor 4 of 6 after 199,774 atoms collected and zero paid. Fresh frozen reconstruction now passes, restarted workers complete the independent two-debtor/two-maker allocation, and a 104-second actual outage/recovery exercise retains zero valuation until authenticated sources recover. Separate authority resumes only after full payout/reconciliation and source qualification.
+- Actual final state: all participant q/v/R and P are zero; C=1,001,449,872, I=0, T=242, allocated/actual V=1,001,450,114. The service cohort collects 229,879 and uses 10,007 insurance atoms; maker payouts are 119,921/119,965 atoms with terminal adjustments −419,324,699/+419,324,699 scaled units. These actual-time values are independently computed, not copied from SVM fixtures.
+- Actual service resources: 81 critical liquidation/resolution events, 51 successful risk-worker transactions; maxima 216,278 CU / 601 bytes / 14 accounts. Risk spends 255,000 lamports and funding 20,000, each with zero outstanding reservations and exact fetched fee reconciliation. Live WS and fresh final PostgreSQL reconstruction pass; five transient indexer cycles recover. Legacy Anchor independently decodes the actual resolution account and all critical risk events.
+- G10 resource/profile closure: all four legal page sizes agree with independent Python; the 64-member/source-emergency run passes. Largest signed page 255,514 CU / 561 bytes / 13 accounts, resolution account 8,031 bytes, default financial activation rejected. [Report](evidence/P09.md) and [manifest](evidence/p09/manifest.json) capture 54 public files and 26 clean identities, including the first failed run and red regression. Credentials/keys/volumes excluded; actual run passwords checked absent.
+- Both tables now mark P09 Review and M4 In progress; G10 verified. Not run: browser wallets, integrated P11 matrix, load/24h soak, devnet/upstream verification, independent makers/review, external hedging or funded deployment. Completed corrected-run scratch databases were reclaimed only after container absence checks; all reports/logs remain and exact paths are retained in `.local/p09-disposable-volumes.json`.
+- Blockers: none. Next exact action: commit public evidence, publish P09 via `gh stack submit --auto --open`, verify OPEN/non-draft/base/head, then create `phase/p10-ui` and continue immediately.
