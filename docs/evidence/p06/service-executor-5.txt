@@ -1,0 +1,2 @@
+{"role":"executor","pid":55706,"status":"started"}
+{"role":"executor","status":"stopped"}

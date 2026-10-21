@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** M1/P01/P02 are Closed; P03/P04/P05 and M2 remain Review in ready PRs #4/#5/#7. **P06 is In progress on `phase/p06-lifecycle`, stacked above exact P05 head `03f96d1`.** Ordinary settlement/cohort exits, distinct maker processes, durable executor, quote/submission API and settlement workers are implemented. Development service acceptance passes; final clean full acceptance and ready PR publication remain pending. Later oracle/funding/order/default paths remain disabled.
+**Current position:** M1/P01/P02 are Closed; P03/P04/P05 and M2 remain Review in ready PRs #4/#5/#7. **P06 A05/A07/A08/G07 and the M3 engineering exit pass on clean `2578327`; P06/M3 are Review pending integration.** [P06 evidence](evidence/P06.md) records actual service deposit → split → cross-maker close → funded settlement → withdrawal, durable recovery and fee reconciliation. `phase/p06-lifecycle` contains exact P05 head `03f96d1`; ready PR publication above #7 is pending. Later oracle/funding/order/default paths remain disabled.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -23,7 +23,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 |---|---|---|---|---|
 | M1 | P01–P02 | Reproducible stack, economic core and custody | Closed | Fresh A01/A02/M1 exit check on `16e51e4`; integrated unchanged at `3c1aae1` |
 | M2 | P03–P04 | Competing makers and atomic execution | Review | Fresh A03–A05/G04/G05 and cross-phase exit pass on `b8e5fb8`; ready PRs #4/#5 await integration |
-| M3 | P05–P06 | Real services and full trade lifecycle | In progress | P05 verified/Review; P06 lifecycle implementation and development acceptance complete, clean full gate pending |
+| M3 | P05–P06 | Real services and full trade lifecycle | Review | Fresh A05–A08/G07 and complete service exit pass on `2578327`; P05/P06 integration pending |
 | M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Open | Not implemented |
 | M5a | P11–P12 | Complete local engineering evidence | Open | Not implemented |
 | M5b | P13–P14 | Focused real-cluster parity | Open | Not implemented |
@@ -38,7 +38,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M2 | P03 | Maker programs and capital authorization | Review | [PR #4](https://github.com/arnabnandikgp/rivalt/pull/4), tested `e05a20e` | [A03 evidence](evidence/P03.md); G04 verified; integration pending |
 | M2 | P04 | Atomic routes and allocation | Review | [PR #5](https://github.com/arnabnandikgp/rivalt/pull/5), tested `b8e5fb8`, stacked above #4 | [A04/A05/G05 evidence](evidence/P04.md); integration pending |
 | M3 | P05 | Indexer, database and read API | Review | [PR #7](https://github.com/arnabnandikgp/rivalt/pull/7), tested `fb2606f`, stacked above #5 | [A06/G06 evidence](evidence/P05.md); integration pending |
-| M3 | P06 | Maker daemons and complete service lifecycle | In progress | `phase/p06-lifecycle` above #7 | Clean A05/A07/A08/G07/M3 exit run and publication pending |
+| M3 | P06 | Maker daemons and complete service lifecycle | Review | Tested `2578327`; `phase/p06-lifecycle` above #7, PR publication pending | [A05/A07/A08/G07 and M3 exit evidence](evidence/P06.md); integration pending |
 | M4 | P07 | Oracle policy and authenticated funding | Open | — | After P06 |
 | M4 | P08 | Persistent orders and TP/SL | Open | — | After P07 |
 | M4 | P09 | Liquidation and resumable default | Open | — | After P08 |
@@ -54,10 +54,10 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Last completed work: P06 implementation, 49 signed settlement/cohort/default-build SVM scenarios and 14 real service lifecycle development checks, in addition to inherited setup/regressions.
-- Verified predecessor: P05 `03f96d1597f592a34a92b9311f74a8e3e56f84ed`; ready PR #7 is the P06 stack base. Development P06 run `.local/runs/20261021T101945Z-46682` is explicitly dirty and not final acceptance authority.
-- Status: P06/M3 In progress; earlier unmerged phases remain Review.
-- Immediate task: commit the coherent P06 implementation and run `source ops/env.sh && RIVALT_SLOT_TIME=20 pnpm smoke` on that clean revision, then publish one ready PR above #7.
+- Last completed work: P06 ordinary settlement/cohort exits, distinct maker processes, quote/submission API, durable executor/settlement workers and full service recovery acceptance.
+- Verified implementation: `2578327a74d53191b26e61950c2829ebeef8529f`; clean full regression `.local/runs/20261021T102650Z-52948` and lifecycle `.local/runs/20261021T103231Z-55155`. All 14 source identity records are clean; full command exits zero.
+- Status: P03/P04/P05/P06 and M2/M3 Review pending integration; M1/P01/P02 Closed. Ready P06 publication is the current closeout step.
+- Immediate task: publish this verified phase ready for review above #7 with `gh stack`; then `gh stack add phase/p07-oracle-funding` and implement G08 authenticated-source policy/common funding above P06 without waiting for merges.
 - Access/product decisions needed now: none. Existing Apple container runtime's PostgreSQL 18.6 loopback/volume/restart behavior is verified. No devnet key or external maker is needed.
 - Deferred external needs: secure devnet/feed access at P13; independent maker at P15; independent review/funded-pilot decision at P16.
 - Historical archives remain optional targeted reference only.
@@ -216,3 +216,9 @@ Update Latest checkpoint and the two overview tables as well as appending the en
 - Not run/claimed: final clean full gate is pending below; authenticated sources/funding, TP/SL, liquidation/default, UI/browser wallet, load/24-hour soak, devnet, independent-maker economics/review, external hedging and funded deployment remain later work.
 - Evidence/publication: development logs `.local/p06-lifecycle*.log`, `.local/p06-svm-development.log`; final report/commit/ready PR recorded below when verified. No unresolved access/product decision. P06/M3 remain In progress; predecessors stay Review.
 - Next exact action: commit this implementation, then run `source ops/env.sh && RIVALT_SLOT_TIME=20 pnpm smoke` on the clean commit and publish a ready PR above #7 using `gh stack`.
+
+- Final acceptance: `source ops/env.sh && RIVALT_SLOT_TIME=20 pnpm smoke` PASS on clean `2578327a74d53191b26e61950c2829ebeef8529f`; regression `.local/runs/20261021T102650Z-52948`, lifecycle `.local/runs/20261021T103231Z-55155`. All 14 captured identity records report that revision and `sourceDirty: false`. Fresh build/generated parity/typecheck/19 Vitest/13 Rust financial/3,000 Python/five Rust maker tests pass; 99 custody, 54 maker, 74 route and 49 P06 SVM scenarios plus real setups pass. RPC regressions freshly execute 33 custody, 54 maker, 73 route, 18 indexer recovery and five chain-reset/CLI checks, with 33 more custody cases on the reset chain. P06 adds 33 real custody setup scenarios and 15 full-service checks.
+- Actual P06 outcomes: 21/79 split gross 6,002,790 / fee 1,201; B-only close gross 6,097,000 / fee 1,220; keeper collects 20,580+73,630 atoms, funds 94,210 gain, and wallet withdraws all 100,091,789 funded atoms. A later explicit 10,000,000 redeposit supports expiry testing. Dropped ack plus executor SIGKILL, keeper restart/competition, stale quote, maker outage/return, actual blockhash expiry, unresolved deposit history and hidden failed-fee recovery all pass. Final sequence 28: C=109,905,790, P=0, I=10,007, T=2,421, actual/allocated vault=109,918,218, three participants, no surplus. Fifteen WS notices and finalized RPC reconcile two fills/four settlement events. Maker fees are 5,000 lamports each; keeper fees 30,000 including the real failed probe; no remaining reservations. P06 successful signed SVM scenarios measure at most 41,053 CU / 626 bytes.
+- Evidence: [P06 acceptance report](evidence/P06.md), [capture/identity/hash manifest](evidence/p06/manifest.json), `.local/p06-clean-acceptance.log`. Captures omit all local signing keys, credentials and database data; actual password absence is checked. All seven task listeners are released. Only documentation/evidence changes follow the tested implementation.
+- Configuration/status: A05/A07/A08/G07 and M3 engineering cross-phase exit verified. P06/M3 are Review pending integration; predecessors remain Review. No unresolved product/access blocker. Ready PR publication is pending below.
+- Next exact action after publication: `gh stack add phase/p07-oracle-funding`, then implement G08 and authenticated common funding above the P06 PR.
