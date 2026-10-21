@@ -41,14 +41,18 @@ export class Runtime {
     assert.deepEqual(reg.members,pkeys);assert.equal(reg.count,pkeys.length);
     const risk=sdk.getTestRouteStateDecoder().decode(raw(routeState));
     const participants=Object.fromEntries(pkeys.map(k=>[k,sdk.getParticipantDecoder().decode(raw(k))]));
-    pkeys.forEach((k,id)=>{const p=participants[k];if(p.market!==market || p.schemaVersion!==1 || p.id!==id || p.reserved!==0n || p.orderIds.some(n=>n!==0n))throw new Error('Unsupported participant profile');});
+    pkeys.forEach((k,id)=>{const p=participants[k];if(p.market!==market || p.schemaVersion!==1 || p.id!==id)throw new Error('Unsupported participant profile');});
     const total=Object.values(participants).reduce((n,p)=>n+p.cash,0n),claims=Object.values(participants).reduce((n,p)=>n+p.virtualScaled+p.lots*p.fundingCheckpointScaled,0n);
     if(total!==m.totalCash || claims!==m.settlement*1_000_000_000n || Object.values(participants).reduce((n,p)=>n+p.lots,0n)!==0n)throw new Error('Snapshot ledger mismatch');
     const actual=raw(vault,'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').readBigUInt64LE(64);
     if(m.allocatedVault!==m.totalCash+m.settlement+m.insurance+m.fees || actual<m.allocatedVault)throw new Error('Snapshot vault mismatch');
     const now=raw(clock,'Sysvar1111111111111111111111111111111111111').readBigInt64LE(32);
     const funding=sdk.effectiveFunding(m,risk,now,slot),sourceMode=sdk.oracleMode(m,risk,now,slot);
-    for(const key of pkeys)participants[key]=sdk.accruedBalance(participants[key],funding);
+    for(const key of pkeys){
+      const p=sdk.accruedBalance(participants[key],funding);
+      p.reserved=sdk.orderReserve(p,m.termsEpoch,slot,sourceMode==='NoCredibleBounds'?1n:risk.lower,sourceMode==='NoCredibleBounds'?1_000_000n:risk.upper);
+      participants[key]=p;
+    }
     const heartbeats=(await this.store.pool.query('SELECT *,seen_at>now()-($2::int*interval \'1 millisecond\') AS online FROM maker_heartbeats WHERE run_id=$1',[this.runId,HEARTBEAT_MS])).rows;
     const makers=rkeys.map((registration,i)=>{
       const r=sdk.getMakerRegistrationDecoder().decode(raw(registration));assert.equal(r.config,regs[i].config);assert.equal(r.programData,regs[i].programData);
@@ -60,24 +64,33 @@ export class Runtime {
     return {market,registry,routeState,guard,vault,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS,m,risk,slot,now,funding,sourceMode,participants,members:reg.members,makers,
       certificate:sdk.getExitGuardDecoder().decode(raw(guard)),actual};
   }
-  async quote(owner:Address,side:number,lots:bigint){
+  async quote(owner:Address,side:number,lots:bigint,stored?:{id:bigint;version:bigint;filled:bigint},keeper?:Keypair){
     const s=await this.snapshot(),[trader]=await sdk.findParticipantPda({market:s.market,owner}),p=s.participants[trader];
     if(!p || p.owner!==owner || s.m.paused || s.slot<s.risk.validFrom || s.slot>=s.risk.validUntil || s.sourceMode==='NoCredibleBounds')throw new Error('Quote unavailable');
-    const reduceOnly=(side===1 && p.lots>=lots)||(side===0 && -p.lots>=lots);
+    const order=stored?p.book.orders.find(o=>o.id===stored.id&&o.version===stored.version&&o.filled===stored.filled):undefined;
+    if(stored&&(!order||order.side!==side||sdk.orderRemaining(p,order,s.m.termsEpoch,s.slot)<lots||!sdk.orderTriggered(order,s.risk.referencePrice,s.slot)))throw new Error('Stored order unavailable');
+    const reduceOnly=order?order.reduceOnly:(side===1 && p.lots>=lots)||(side===0 && -p.lots>=lots);
     if(s.sourceMode!=='Normal' && !reduceOnly)throw new Error('Risk increase blocked by oracle mode');
-    const eligible=s.makers.filter(x=>x.online && x.approved && !x.r.quarantined && x.r.quoteEpoch===x.state.quoteEpoch);
+    const eligible=s.makers.filter(x=>x.r.capital!==trader && x.online && x.approved && !x.r.quarantined && x.r.quoteEpoch===x.state.quoteEpoch);
     const candidates=eligible.map(x=>({state:x.state,balance:x.balance,request:{version:1,domain:s.m.domain,market:s.market,capital:x.r.capital,quoteEpoch:x.r.quoteEpoch,authorityEpoch:x.r.authorityEpoch,termsEpoch:s.m.termsEpoch,marketConfigEpoch:s.m.configEpoch,side,lots,inventory:x.balance.lots,cash:x.balance.cash,inventoryLimit:x.r.inventoryLimit,consumed:side===0?x.r.buyConsumed:x.r.sellConsumed,referencePrice:s.risk.referencePrice,slot:s.slot}}));
-    const allocation=candidates.length?sdk.allocateRoute({snapshotSlot:s.slot,side,lots,lower:s.risk.lower,upper:s.risk.upper,trader:p,candidates,grossLots:s.risk.grossLots,maxFee:1_000_000_000n,allInLimit:side===0?1_000_000_000_000_000n:0n}):null;
+    const allocation=candidates.length?sdk.allocateRoute({snapshotSlot:s.slot,side,lots,lower:s.risk.lower,upper:s.risk.upper,trader:p,candidates,grossLots:s.risk.grossLots,maxFee:order?order.feeBudget-order.feeCharged:1_000_000_000n,allInLimit:order?order.limit*lots:side===0?1_000_000_000_000_000n:0n,
+      notionalPrefix:order?.notional,postReserve:(before,after,gross,fee)=>{
+        const original=Object.values(s.participants).find(p=>p.id===before.id)!;
+        return sdk.postOrderReserve(original,after,s.m.termsEpoch,s.slot,s.risk.lower,s.risk.upper,
+          order&&before.id===p.id?{id:order.id,lots,gross,fee}:undefined);
+      }}):null;
     if(!allocation)return {available:false,snapshotSlot:s.slot,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation:null};
     const selected=allocation.legs.map(l=>eligible.find(x=>x.r.makerId===l.makerId)!);const [first,second]=selected;
     const expiry=[s.slot+150n,s.risk.validUntil,...selected.map(x=>x.state.expirySlot)].reduce((a,b)=>a<b?a:b);
-    const ix=await sdk.getExecuteRouteInstructionAsync({...s,owner:createNoopSigner(owner),trader,
+    const accounts={...s,trader,
       firstCapital:first.r.capital,firstRegistration:first.registration,firstProgram:first.r.pricingProgram,firstProgramData:first.r.programData,firstConfig:first.r.config,
-      secondCapital:second?.r.capital,secondRegistration:second?.registration,secondProgram:second?.r.pricingProgram,secondProgramData:second?.r.programData,secondConfig:second?.r.config,
+      secondCapital:second?.r.capital,secondRegistration:second?.registration,secondProgram:second?.r.pricingProgram,secondProgramData:second?.r.programData,secondConfig:second?.r.config};
+    const legs=allocation.legs.map((l,i)=>({lots:l.lots,quoteEpoch:selected[i].r.quoteEpoch,authorityEpoch:selected[i].r.authorityEpoch}));
+    const ix=order?await sdk.getExecuteOrderInstructionAsync({...accounts,keeper:keeper!,id:order.id,version:order.version,filled:order.filled,observationSequence:s.risk.observationSequence,startSlot:s.slot,expirySlot:expiry,lots,legs}):await sdk.getExecuteRouteInstructionAsync({...accounts,owner:createNoopSigner(owner),
       domain:s.m.domain,termsEpoch:s.m.termsEpoch,configEpoch:s.m.configEpoch,observationSequence:s.risk.observationSequence,nonce:p.nonce,startSlot:s.slot,expirySlot:expiry,
       side,lots,maxFee:allocation.fee,allInLimit:allocation.allIn,reduceOnly,generation:p.generation,
-      legs:allocation.legs.map((l,i)=>({lots:l.lots,quoteEpoch:selected[i].r.quoteEpoch,authorityEpoch:selected[i].r.authorityEpoch}))});
-    return {available:true,snapshotSlot:s.slot,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation,
+      legs});
+    return {available:true,snapshotSlot:s.slot,sequence:s.m.sequence,observation:s.risk.observationSequence,nonce:p.nonce,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation,
       instructions:[sdk.routeComputeBudget(),ix].map(i=>({programAddress:i.programAddress,accounts:i.accounts?.map(a=>({address:a.address,role:a.role})),data:Buffer.from(i.data??[]).toString('base64')}))};
   }
   async enqueue(id:string,ixs:Instruction[],payer:Keypair,budget:string,authority:Authority|null){
@@ -140,6 +153,26 @@ export class Runtime {
       firstCapital:a.r.capital,firstRegistration:a.registration,firstProgram:a.r.pricingProgram,firstProgramData:a.r.programData,firstConfig:a.r.config,
       secondCapital:b.r.capital,secondRegistration:b.registration,secondProgram:b.r.pricingProgram,secondProgramData:b.r.programData,secondConfig:b.r.config});
     await this.enqueue(`funding:${s.risk.observationSequence}`,[sdk.fundingComputeBudget(),ix],key,'funding',{kind:'sequence',account:s.market,value:s.m.sequence.toString()});
+  }
+  async orders(key:Keypair){
+    await this.queue.budget('orders',key.address,OPERATOR_CAP);
+    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'order:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
+    const s=await this.snapshot();if(s.m.mode!==2||s.m.paused||s.sourceMode==='NoCredibleBounds')return;
+    for(const participant of s.members){const p=s.participants[participant];
+      for(const o of p.book.orders){
+        const remaining=sdk.orderRemaining(p,o,s.m.termsEpoch,s.slot);
+        if(remaining===0n||!sdk.orderTriggered(o,s.risk.referencePrice,s.slot)||(!o.reduceOnly&&s.sourceMode!=='Normal'))continue;
+        let lots=remaining<64n?remaining:64n;
+        let q=await this.quote(p.owner,o.side,lots,{id:o.id,version:o.version,filled:o.filled},key);
+        // Bounded search for a smaller admissible atomic subfill when preferred
+        // size exceeds current price, capacity or the unspent lifetime fee cap.
+        while(!q.available&&lots>1n){lots/=2n;q=await this.quote(p.owner,o.side,lots,{id:o.id,version:o.version,filled:o.filled},key);}
+        if(!q.available)continue;
+        const instructions=q.instructions!.map(i=>({programAddress:i.programAddress,accounts:i.accounts,data:Buffer.from(i.data,'base64')}));
+        await this.enqueue(`order:${p.id}:${o.id}:${o.version}:${o.filled}:${q.sequence}`,instructions,key,'orders',{kind:'nonce',account:participant,value:q.nonce!.toString()});
+        return;
+      }
+    }
   }
   async execute(){await this.environment();for(const id of await this.queue.pending())await this.queue.step(id);}
   async close(){await this.store.close();}

@@ -63,22 +63,29 @@ import {
 } from "../accounts/index.js";
 import {
   getApproveMakerInstructionAsync,
+  getCancelOrderInstructionAsync,
+  getCancelProtectionInstructionAsync,
   getCheckExitCohortInstructionAsync,
   getClassifySurplusInstructionAsync,
+  getCleanupOrdersInstructionAsync,
   getCollectLossInstructionAsync,
   getDepositInstructionAsync,
+  getExecuteOrderInstructionAsync,
   getExecuteRouteInstructionAsync,
   getFundInsuranceInstructionAsync,
   getInitializeExitGuardInstructionAsync,
   getInitializeMarketInstructionAsync,
   getInitializeOracleInstructionAsync,
   getInitializeTestRoutesInstructionAsync,
+  getPlaceOrderInstructionAsync,
+  getPlaceProtectionInstructionAsync,
   getPreviewMakerInstructionAsync,
   getProbeInstructionAsync,
   getPublishTestRiskInstructionAsync,
   getQuarantineMakerInstructionAsync,
   getRegisterMakerInstructionAsync,
   getRegisterParticipantInstructionAsync,
+  getReplaceOrderInstructionAsync,
   getSampleOracleInstructionAsync,
   getSetCustodyPauseInstructionAsync,
   getSettleGainInstructionAsync,
@@ -86,22 +93,29 @@ import {
   getWithdrawInstructionAsync,
   getWithdrawTradingInstructionAsync,
   parseApproveMakerInstruction,
+  parseCancelOrderInstruction,
+  parseCancelProtectionInstruction,
   parseCheckExitCohortInstruction,
   parseClassifySurplusInstruction,
+  parseCleanupOrdersInstruction,
   parseCollectLossInstruction,
   parseDepositInstruction,
+  parseExecuteOrderInstruction,
   parseExecuteRouteInstruction,
   parseFundInsuranceInstruction,
   parseInitializeExitGuardInstruction,
   parseInitializeMarketInstruction,
   parseInitializeOracleInstruction,
   parseInitializeTestRoutesInstruction,
+  parsePlaceOrderInstruction,
+  parsePlaceProtectionInstruction,
   parsePreviewMakerInstruction,
   parseProbeInstruction,
   parsePublishTestRiskInstruction,
   parseQuarantineMakerInstruction,
   parseRegisterMakerInstruction,
   parseRegisterParticipantInstruction,
+  parseReplaceOrderInstruction,
   parseSampleOracleInstruction,
   parseSetCustodyPauseInstruction,
   parseSettleGainInstruction,
@@ -109,10 +123,14 @@ import {
   parseWithdrawInstruction,
   parseWithdrawTradingInstruction,
   type ApproveMakerAsyncInput,
+  type CancelOrderAsyncInput,
+  type CancelProtectionAsyncInput,
   type CheckExitCohortAsyncInput,
   type ClassifySurplusAsyncInput,
+  type CleanupOrdersAsyncInput,
   type CollectLossAsyncInput,
   type DepositAsyncInput,
+  type ExecuteOrderAsyncInput,
   type ExecuteRouteAsyncInput,
   type FundInsuranceAsyncInput,
   type InitializeExitGuardAsyncInput,
@@ -120,34 +138,44 @@ import {
   type InitializeOracleAsyncInput,
   type InitializeTestRoutesAsyncInput,
   type ParsedApproveMakerInstruction,
+  type ParsedCancelOrderInstruction,
+  type ParsedCancelProtectionInstruction,
   type ParsedCheckExitCohortInstruction,
   type ParsedClassifySurplusInstruction,
+  type ParsedCleanupOrdersInstruction,
   type ParsedCollectLossInstruction,
   type ParsedDepositInstruction,
+  type ParsedExecuteOrderInstruction,
   type ParsedExecuteRouteInstruction,
   type ParsedFundInsuranceInstruction,
   type ParsedInitializeExitGuardInstruction,
   type ParsedInitializeMarketInstruction,
   type ParsedInitializeOracleInstruction,
   type ParsedInitializeTestRoutesInstruction,
+  type ParsedPlaceOrderInstruction,
+  type ParsedPlaceProtectionInstruction,
   type ParsedPreviewMakerInstruction,
   type ParsedProbeInstruction,
   type ParsedPublishTestRiskInstruction,
   type ParsedQuarantineMakerInstruction,
   type ParsedRegisterMakerInstruction,
   type ParsedRegisterParticipantInstruction,
+  type ParsedReplaceOrderInstruction,
   type ParsedSampleOracleInstruction,
   type ParsedSetCustodyPauseInstruction,
   type ParsedSettleGainInstruction,
   type ParsedSyncMakerEpochInstruction,
   type ParsedWithdrawInstruction,
   type ParsedWithdrawTradingInstruction,
+  type PlaceOrderAsyncInput,
+  type PlaceProtectionAsyncInput,
   type PreviewMakerAsyncInput,
   type ProbeAsyncInput,
   type PublishTestRiskAsyncInput,
   type QuarantineMakerAsyncInput,
   type RegisterMakerAsyncInput,
   type RegisterParticipantAsyncInput,
+  type ReplaceOrderAsyncInput,
   type SampleOracleAsyncInput,
   type SetCustodyPauseAsyncInput,
   type SettleGainAsyncInput,
@@ -282,6 +310,7 @@ export enum ClearingEvent {
   CustodyChanged,
   MakerChanged,
   OracleObserved,
+  OrderChanged,
   ProbeRecorded,
   RouteExecuted,
   SettlementChanged,
@@ -324,6 +353,17 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.OracleObserved;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([159, 192, 209, 208, 211, 229, 147, 199]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.OrderChanged;
   }
   if (
     containsBytes(
@@ -376,22 +416,29 @@ export function identifyClearingEvent(
 
 export enum ClearingInstruction {
   ApproveMaker,
+  CancelOrder,
+  CancelProtection,
   CheckExitCohort,
   ClassifySurplus,
+  CleanupOrders,
   CollectLoss,
   Deposit,
+  ExecuteOrder,
   ExecuteRoute,
   FundInsurance,
   InitializeExitGuard,
   InitializeMarket,
   InitializeOracle,
   InitializeTestRoutes,
+  PlaceOrder,
+  PlaceProtection,
   PreviewMaker,
   Probe,
   PublishTestRisk,
   QuarantineMaker,
   RegisterMaker,
   RegisterParticipant,
+  ReplaceOrder,
   SampleOracle,
   SetCustodyPause,
   SettleGain,
@@ -419,6 +466,28 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([95, 129, 237, 240, 8, 49, 223, 132]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CancelOrder;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([237, 169, 181, 11, 241, 193, 117, 4]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CancelProtection;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([218, 218, 53, 17, 248, 121, 117, 186]),
       ),
       0,
@@ -441,6 +510,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([231, 52, 245, 91, 29, 84, 160, 33]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CleanupOrders;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([47, 245, 158, 140, 104, 252, 109, 86]),
       ),
       0,
@@ -458,6 +538,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.Deposit;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([115, 61, 180, 24, 168, 32, 215, 20]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteOrder;
   }
   if (
     containsBytes(
@@ -529,6 +620,28 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([51, 194, 155, 175, 109, 130, 96, 106]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PlaceOrder;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([101, 184, 4, 139, 113, 214, 10, 1]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PlaceProtection;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([30, 210, 207, 120, 189, 100, 226, 6]),
       ),
       0,
@@ -590,6 +703,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.RegisterParticipant;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([196, 148, 255, 192, 194, 68, 104, 91]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ReplaceOrder;
   }
   if (
     containsBytes(
@@ -670,17 +794,29 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ApproveMaker;
     } & ParsedApproveMakerInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.CancelOrder;
+    } & ParsedCancelOrderInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CancelProtection;
+    } & ParsedCancelProtectionInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.CheckExitCohort;
     } & ParsedCheckExitCohortInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ClassifySurplus;
     } & ParsedClassifySurplusInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.CleanupOrders;
+    } & ParsedCleanupOrdersInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.CollectLoss;
     } & ParsedCollectLossInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.Deposit;
     } & ParsedDepositInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ExecuteOrder;
+    } & ParsedExecuteOrderInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ExecuteRoute;
     } & ParsedExecuteRouteInstruction<TProgram>)
@@ -700,6 +836,12 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.InitializeTestRoutes;
     } & ParsedInitializeTestRoutesInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.PlaceOrder;
+    } & ParsedPlaceOrderInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.PlaceProtection;
+    } & ParsedPlaceProtectionInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.PreviewMaker;
     } & ParsedPreviewMakerInstruction<TProgram>)
   | ({
@@ -717,6 +859,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.RegisterParticipant;
     } & ParsedRegisterParticipantInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ReplaceOrder;
+    } & ParsedReplaceOrderInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.SampleOracle;
     } & ParsedSampleOracleInstruction<TProgram>)
@@ -748,6 +893,20 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseApproveMakerInstruction(instruction),
       };
     }
+    case ClearingInstruction.CancelOrder: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CancelOrder,
+        ...parseCancelOrderInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CancelProtection: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CancelProtection,
+        ...parseCancelProtectionInstruction(instruction),
+      };
+    }
     case ClearingInstruction.CheckExitCohort: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -762,6 +921,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseClassifySurplusInstruction(instruction),
       };
     }
+    case ClearingInstruction.CleanupOrders: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CleanupOrders,
+        ...parseCleanupOrdersInstruction(instruction),
+      };
+    }
     case ClearingInstruction.CollectLoss: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -774,6 +940,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.Deposit,
         ...parseDepositInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteOrder: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteOrder,
+        ...parseExecuteOrderInstruction(instruction),
       };
     }
     case ClearingInstruction.ExecuteRoute: {
@@ -818,6 +991,20 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeTestRoutesInstruction(instruction),
       };
     }
+    case ClearingInstruction.PlaceOrder: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PlaceOrder,
+        ...parsePlaceOrderInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.PlaceProtection: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PlaceProtection,
+        ...parsePlaceProtectionInstruction(instruction),
+      };
+    }
     case ClearingInstruction.PreviewMaker: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -858,6 +1045,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.RegisterParticipant,
         ...parseRegisterParticipantInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ReplaceOrder: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ReplaceOrder,
+        ...parseReplaceOrderInstruction(instruction),
       };
     }
     case ClearingInstruction.SampleOracle: {
@@ -944,6 +1138,16 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getApproveMakerInstructionAsync> &
     SelfPlanAndSendFunctions;
+  cancelOrder: (
+    input: CancelOrderAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCancelOrderInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  cancelProtection: (
+    input: CancelProtectionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCancelProtectionInstructionAsync> &
+    SelfPlanAndSendFunctions;
   checkExitCohort: (
     input: CheckExitCohortAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -954,6 +1158,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getClassifySurplusInstructionAsync> &
     SelfPlanAndSendFunctions;
+  cleanupOrders: (
+    input: CleanupOrdersAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCleanupOrdersInstructionAsync> &
+    SelfPlanAndSendFunctions;
   collectLoss: (
     input: CollectLossAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -963,6 +1172,11 @@ export type ClearingPluginInstructions = {
     input: DepositAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getDepositInstructionAsync> & SelfPlanAndSendFunctions;
+  executeOrder: (
+    input: ExecuteOrderAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteOrderInstructionAsync> &
+    SelfPlanAndSendFunctions;
   executeRoute: (
     input: ExecuteRouteAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -993,6 +1207,16 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeTestRoutesInstructionAsync> &
     SelfPlanAndSendFunctions;
+  placeOrder: (
+    input: PlaceOrderAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPlaceOrderInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  placeProtection: (
+    input: PlaceProtectionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPlaceProtectionInstructionAsync> &
+    SelfPlanAndSendFunctions;
   previewMaker: (
     input: PreviewMakerAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -1021,6 +1245,11 @@ export type ClearingPluginInstructions = {
     input: RegisterParticipantAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRegisterParticipantInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  replaceOrder: (
+    input: ReplaceOrderAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getReplaceOrderInstructionAsync> &
     SelfPlanAndSendFunctions;
   sampleOracle: (
     input: SampleOracleAsyncInput,
@@ -1111,6 +1340,22 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          cancelOrder: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCancelOrderInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          cancelProtection: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCancelProtectionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           checkExitCohort: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -1127,6 +1372,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          cleanupOrders: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCleanupOrdersInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           collectLoss: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -1139,6 +1392,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getDepositInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeOrder: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteOrderInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -1194,6 +1455,22 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          placeOrder: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPlaceOrderInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          placeProtection: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPlaceProtectionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           previewMaker: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -1238,6 +1515,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getRegisterParticipantInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          replaceOrder: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getReplaceOrderInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

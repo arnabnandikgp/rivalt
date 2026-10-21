@@ -10,6 +10,24 @@ pub fn apply(
     upper: u64,
     funding: i128,
 ) -> Result<(Participant, Vec<Participant>, u64)> {
+    let (t, next, fee) = candidate(trader, makers, legs, side, funding, 0)?;
+    t.admissible(lower, upper, funding)?;
+    for m in &next {
+        m.admissible(lower, upper, funding)?;
+    }
+    Ok((t, next, fee))
+}
+
+/// Checked paired arithmetic only. Callers MUST recompute post-order reserves
+/// and admit every candidate before committing any financial state.
+pub fn candidate(
+    trader: Participant,
+    makers: &[Participant],
+    legs: &[(u64, u64)],
+    side: u8,
+    funding: i128,
+    notional_prefix: u64,
+) -> Result<(Participant, Vec<Participant>, u64)> {
     if makers.is_empty() || makers.len() > 2 || makers.len() != legs.len() || side > 1 {
         return Err(Error::Bounds);
     }
@@ -27,7 +45,6 @@ pub fn apply(
         } else {
             fill(*maker, trader, lots, gross, funding)?.0
         };
-        m.admissible(lower, upper, funding)?;
         next.push(m);
         quantity = quantity.checked_add(lots).ok_or(Error::Overflow)?;
         notional = cash_add(notional, gross)?;
@@ -47,9 +64,8 @@ pub fn apply(
     } else {
         add(t.virtual_scaled, quote)?
     };
-    let fee = fee_total(notional)?;
+    let (_, fee) = fee_increment(notional_prefix, notional)?;
     t.cash = cash_sub(t.cash, fee)?;
-    t.admissible(lower, upper, funding)?;
     Ok((t, next, fee))
 }
 

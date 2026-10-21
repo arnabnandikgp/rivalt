@@ -1,7 +1,9 @@
+import {emptyOrderBook} from '@rivalt/sdk';
+import {json} from './events.js';
 import { describe, expect, it } from 'vitest';
 import { balance, empty, project, type Participant } from './projection.js';
 import type { Event } from './events.js';
-const participant=(changes:Partial<Participant>={}):Participant=>({owner:'owner',id:0,cash:'1000000',lots:'0',virtualScaled:'0',fundingCheckpointScaled:'0',generation:'0',nonce:'0',reserved:'0',orderIds:['0','0','0','0'],...changes});
+const participant=(changes:Partial<Participant>={}):Participant=>({owner:'owner',id:0,cash:'1000000',lots:'0',virtualScaled:'0',fundingCheckpointScaled:'0',generation:'0',nonce:'0',reserved:'0',orderIds:['0','0','0','0'],book:JSON.parse(json(emptyOrderBook())),...changes});
 describe('independent financial read vectors',()=>{
   it('distinguishes cash, marked unpaid profit, adverse loss, margin and disabled withdrawals',()=>{
     const state=empty();state.market={mode:1,paused:false};

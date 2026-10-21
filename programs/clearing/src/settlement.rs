@@ -27,7 +27,7 @@ pub struct InitializeExitGuard<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(init,payer=payer,space=8+ExitGuard::INIT_SPACE,seeds=[b"exit-guard",market.key().as_ref()],bump)]
     pub guard: Account<'info, ExitGuard>,
     pub system_program: Program<'info, System>,
@@ -35,7 +35,7 @@ pub struct InitializeExitGuard<'info> {
 #[derive(Accounts)]
 pub struct CheckExitCohort<'info> {
     #[account(seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump,has_one=vault)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(seeds=[b"test-routes",market.key().as_ref()],bump=route_state.bump,has_one=market)]
     pub route_state: Box<Account<'info, TestRouteState>>,
     #[account(seeds=[b"registry",market.key().as_ref()],bump=registry.bump,has_one=market)]
@@ -45,15 +45,15 @@ pub struct CheckExitCohort<'info> {
     #[account(seeds=[b"vault",market.key().as_ref()],bump=market.vault_bump,
         constraint=vault.mint==market.quote_mint @ ClearingError::Mint,
         constraint=vault.owner==market.key() @ ClearingError::Authority)]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: Box<Account<'info, TokenAccount>>,
 }
 #[event_cpi]
 #[derive(Accounts)]
 pub struct LedgerChange<'info> {
     #[account(mut,seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump,has_one=vault)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(mut,seeds=[b"participant",market.key().as_ref(),participant.owner.as_ref()],bump=participant.bump,has_one=market)]
-    pub participant: Account<'info, Participant>,
+    pub participant: Box<Account<'info, Participant>>,
     #[account(seeds=[b"test-routes",market.key().as_ref()],bump=route_state.bump,has_one=market)]
     pub route_state: Box<Account<'info, TestRouteState>>,
     #[account(seeds=[b"exit-guard",market.key().as_ref()],bump=guard.bump,has_one=market)]
@@ -61,7 +61,7 @@ pub struct LedgerChange<'info> {
     #[account(seeds=[b"vault",market.key().as_ref()],bump=market.vault_bump,
         constraint=vault.mint==market.quote_mint @ ClearingError::Mint,
         constraint=vault.owner==market.key() @ ClearingError::Authority)]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: Box<Account<'info, TokenAccount>>,
 }
 #[event_cpi]
 #[derive(Accounts)]
@@ -75,13 +75,13 @@ pub struct WithdrawTrading<'info> {
     pub route_state: Box<Account<'info, TestRouteState>>,
     #[account(seeds=[b"exit-guard",market.key().as_ref()],bump=guard.bump,has_one=market)]
     pub guard: Box<Account<'info, ExitGuard>>,
-    pub quote_mint: Account<'info, Mint>,
+    pub quote_mint: Box<Account<'info, Mint>>,
     #[account(mut,seeds=[b"vault",market.key().as_ref()],bump=market.vault_bump,
         token::mint=quote_mint,token::authority=market)]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: Box<Account<'info, TokenAccount>>,
     #[account(mut,constraint=user_token.key()!=vault.key() @ ClearingError::Alias,
         token::mint=quote_mint,token::authority=owner)]
-    pub user_token: Account<'info, TokenAccount>,
+    pub user_token: Box<Account<'info, TokenAccount>>,
     pub token_program: Program<'info, Token>,
 }
 #[event]
@@ -98,6 +98,9 @@ pub struct SettlementChanged {
     pub amount: u64,
     pub participant_cash: u64,
     pub participant_virtual: i128,
+    pub participant_reserved: u64,
+    pub participant_order_ids: [u64; 4],
+    pub participant_book: crate::orders::OrderBook,
     pub funding_index_scaled: i128,
     pub funding_time: i64,
     pub total_cash: u64,
@@ -271,6 +274,9 @@ fn event(
         amount,
         participant_cash: p.cash,
         participant_virtual: p.virtual_scaled,
+        participant_reserved: p.reserved,
+        participant_order_ids: p.order_ids,
+        participant_book: p.book,
         funding_index_scaled: m.funding_index_scaled,
         funding_time: m.funding_time,
         total_cash: m.total_cash,
@@ -298,6 +304,7 @@ pub fn change(
         ClearingError::RiskObservation
     );
     crate::oracle::materialize(&mut a.market, &a.route_state)?;
+    crate::orders::refresh(&mut a.participant, &a.market, &a.route_state)?;
     let mut p = routes::participant_model(&a.participant)?;
     let mut pools = math::Pools {
         vault: a.market.allocated_vault,
@@ -355,6 +362,7 @@ pub fn withdraw(
     require!(credible || a.guard.exposed == 0, ClearingError::ExitCohort);
     crate::oracle::materialize(&mut a.market, &a.route_state)?;
     custody::reconciled(&a.market, a.vault.amount)?;
+    crate::orders::refresh(&mut a.participant, &a.market, &a.route_state)?;
     let p = routes::participant_model(&a.participant)?;
     let p = checked(p.withdraw(
         amount,

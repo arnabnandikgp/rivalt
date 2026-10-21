@@ -45,6 +45,8 @@ export function userAuthority(wire:string,market:string):Authority|null {
     return {kind:'sequence',account:market,value:d.sequence.toString()};
   }
   if(disc.equals(Buffer.from(sdk.DEPOSIT_DISCRIMINATOR))) { sdk.getDepositInstructionDataDecoder().decode(ix.data);return null; }
+  const orders=[sdk.PLACE_ORDER_DISCRIMINATOR,sdk.REPLACE_ORDER_DISCRIMINATOR,sdk.CANCEL_ORDER_DISCRIMINATOR,sdk.PLACE_PROTECTION_DISCRIMINATOR,sdk.CANCEL_PROTECTION_DISCRIMINATOR];
+  if(orders.some(d=>disc.equals(Buffer.from(d))))return null; // Chain versions bind authority; never infer nonexecution from missing history.
   throw new Error('Unsupported financial action');
 }
 export class Queue {

@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import {oracleMode,effectiveFunding} from '@rivalt/sdk';
+import {oracleMode,effectiveFunding,orderRemaining,orderTriggered} from '@rivalt/sdk';
 import type { Indexer } from './index.js';
 import { balance } from './projection.js';
 import { integer } from './rpc.js';
@@ -25,7 +25,7 @@ export function api(indexer: Indexer) {
   const envelope = (row: Awaited<ReturnType<typeof indexer.store.snapshot>>) => ({schemaVersion:1,runId:indexer.config.runId,
     market:indexer.config.market,asOf:{commitment:'finalized',sequence:row.state.sequence,signature:row.checkpoint,slot:row.checkpoint_slot},
     units:{cash:'collateral atoms (1e6/token)',lots:'1e6/BTC',price:'collateral atoms/lot',scaled:'1e9'},
-    capabilities:{routes:row.state.market?.mode>0 ? 'local-test-profile' : 'disabled',funding:row.state.market?.mode===2,orders:false,settlement:row.state.market?.mode>0}});
+    capabilities:{routes:row.state.market?.mode>0 ? 'local-test-profile' : 'disabled',funding:row.state.market?.mode===2,orders:row.state.market?.mode===2,settlement:row.state.market?.mode>0}});
   app.get('/v1/market', async () => {
     const row = await indexer.store.snapshot();
     const slot = integer(await indexer.rpc.call('getSlot',[{commitment:'processed'}]));
@@ -42,8 +42,16 @@ export function api(indexer: Indexer) {
     const slot = integer(await indexer.rpc.call('getSlot',[{commitment:'processed'}]));
     return {...envelope(row),participant:request.params.participant,...balance(p,row.state,BigInt(slot))};
   });
-  app.get('/v1/orders', async () => {
-    const row = await indexer.store.snapshot(); return {...envelope(row),supported:false,reason:'P08 not implemented',orders:[]};
+  app.get<{Querystring:{after?:string;limit?:number;participant?:string}}>('/v1/orders',{schema:{querystring:{...cursorSchema,properties:{...cursorSchema.properties,participant:{type:'string',pattern:'^[1-9A-HJ-NP-Za-km-z]{32,44}$'}}}}},async request=>{
+    const row=await indexer.store.snapshot(),slot=BigInt(integer(await indexer.rpc.call('getSlot',[{commitment:'finalized'}]))),risk=row.state.risk;
+    const supported=row.state.market?.mode===2,mode=oracleMode(row.state.market,risk,BigInt(Math.floor(Date.now()/1000)),slot);
+    const orders=Object.entries(row.state.participants).flatMap(([participant,p])=>p.book.orders.map((o:any,i:number)=>({participant,slotIndex:i,cursor:String(p.id*4+i+1),...o,
+      effectiveRemaining:orderRemaining(p,o,BigInt(row.state.market.termsEpoch),slot).toString(),
+      triggerEligible:orderRemaining(p,o,BigInt(row.state.market.termsEpoch),slot)>0n&&(mode==='Normal'||(mode==='Degraded'&&o.reduceOnly))&&orderTriggered(o,BigInt(risk?.referencePrice??0),slot),
+      group:BigInt(o.groupId)>0n?p.book.groups.find((g:any)=>g.id===o.groupId):null})))
+      .filter(o=>o.id!=='0'&&BigInt(o.cursor)>BigInt(request.query.after??0)&&(!request.query.participant||o.participant===request.query.participant))
+      .sort((a,b)=>Number(a.cursor)-Number(b.cursor)).slice(0,request.query.limit??50);
+    return {...envelope(row),supported,sourceMode:mode,orders,next:orders.at(-1)?.cursor??null,history:'/v1/events',evaluatedAtSlot:slot.toString()};
   });
   app.get<{Querystring:{from:number;to:number}}>('/v1/candles', {schema:{querystring:{type:'object',required:['from','to'],additionalProperties:false,
     properties:{from:{type:'integer',minimum:0,maximum:9007199254740991},to:{type:'integer',minimum:0,maximum:9007199254740991}}}}}, async(request,reply)=>{

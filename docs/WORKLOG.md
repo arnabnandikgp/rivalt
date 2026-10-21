@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** M1/P01/P02 are Closed. P03–P07 and M2/M3 are Review; M4 remains In progress. **P07 A09/A10/G08 pass on clean `83f70d4`, with unchanged financial implementation from the P01–P06 regression at `f072147`.** [P07 evidence](evidence/P07.md) records 258 signed SVM scenarios, 11 actual RPC/WS/PostgreSQL checks and exact resource/fee/claim reconciliation. Ready [PR #9](https://github.com/arnabnandikgp/rivalt/pull/9) is stacked above #8; P08 follows immediately on its exact head. Orders and exceptional default remain disabled.
+**Current position:** M1/P01/P02 are Closed. P03–P07 and M2/M3 are Review; M4 remains In progress. **P07 A09/A10/G08 pass on clean `83f70d4`, with unchanged financial implementation from the P01–P06 regression at `f072147`.** [P07 evidence](evidence/P07.md) records 258 signed SVM scenarios, 11 actual RPC/WS/PostgreSQL checks and exact resource/fee/claim reconciliation. Ready [PR #9](https://github.com/arnabnandikgp/rivalt/pull/9) is stacked above #8; P08 is In progress on `phase/p08-orders`, above exact PR #9 head `efc1278`. P08 order code is implemented in the local profile, with live acceptance still pending; exceptional default remains disabled.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -24,7 +24,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M1 | P01–P02 | Reproducible stack, economic core and custody | Closed | Fresh A01/A02/M1 exit check on `16e51e4`; integrated unchanged at `3c1aae1` |
 | M2 | P03–P04 | Competing makers and atomic execution | Review | Fresh A03–A05/G04/G05 and cross-phase exit pass on `b8e5fb8`; ready PRs #4/#5 await integration |
 | M3 | P05–P06 | Real services and full trade lifecycle | Review | Fresh A05–A08/G07 and complete service exit pass on `2578327`; ready PRs #7/#8 await integration |
-| M4 | P07–P10 | Funding, orders, risk recovery and usable UI | In progress | P07 A09/A10/G08 verified on `83f70d4`; P08–P10 remain Open |
+| M4 | P07–P10 | Funding, orders, risk recovery and usable UI | In progress | P07 A09/A10/G08 verified; P08 P08 implementation complete; clean A11/A12 acceptance pending; P09–P10 Open |
 | M5a | P11–P12 | Complete local engineering evidence | Open | Not implemented |
 | M5b | P13–P14 | Focused real-cluster parity | Open | Not implemented |
 | M6 | P15–P16 | Independent commercial/pilot readiness | Open | Not implemented |
@@ -40,7 +40,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M3 | P05 | Indexer, database and read API | Review | [PR #7](https://github.com/arnabnandikgp/rivalt/pull/7), tested `fb2606f`, stacked above #5 | [A06/G06 evidence](evidence/P05.md); integration pending |
 | M3 | P06 | Maker daemons and complete service lifecycle | Review | [PR #8](https://github.com/arnabnandikgp/rivalt/pull/8), tested `2578327`, stacked above #7 | [A05/A07/A08/G07 and M3 exit evidence](evidence/P06.md); integration pending |
 | M4 | P07 | Oracle policy and authenticated funding | Review | [PR #9](https://github.com/arnabnandikgp/rivalt/pull/9), tested `83f70d4`, above #8 | [A09/A10/G08 evidence](evidence/P07.md); integration pending |
-| M4 | P08 | Persistent orders and TP/SL | Open | — | After P07 |
+| M4 | P08 | Persistent orders and TP/SL | In progress | `phase/p08-orders`, above exact #9 head `efc1278` | G09 implemented; 203 signed P08 scenarios pass in development; clean RPC acceptance pending |
 | M4 | P09 | Liquidation and resumable default | Open | — | After P08 |
 | M4 | P10 | Trading UI and direct exit experience | Open | — | After P09 |
 | M5a | P11 | Integrated fault and reconciliation matrix | Open | — | After P10 |
@@ -57,7 +57,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Last completed work: P07 authenticated controlled sources, complete-maker funding, participant fractions, conservative exits and exact indexer/service reconstruction.
 - Verified implementation: `83f70d43f1cff43622310362b4d5307e6fed4bac`; clean P07 RPC `.local/runs/20261021T122928Z-20487` and fresh fast gates pass. P01–P06 regression runs at `f072147` have identical financial trees; the wrapper stopped at TCP preflight before P07. No full-wrapper exit-zero claim.
 - Status: P03–P07/M2/M3 Review pending integration; M1/P01/P02 Closed. Ready PR #9 is published above #8.
-- Immediate task: `gh stack add phase/p08-orders` above exact verified P07 head, then implement G09/A11/A12 without waiting for merge.
+- Immediate task: verify the committed P08 implementation through complete clean regression and actual RPC/WS/PostgreSQL order/keeper reconstruction before publishing its ready PR.
 - Access/product decisions needed now: none. Existing Apple container runtime's PostgreSQL 18.6 loopback/volume/restart behavior is verified. No devnet key or external maker is needed.
 - Deferred external needs: secure devnet/feed access at P13; independent maker at P15; independent review/funded-pilot decision at P16.
 - Historical archives remain optional targeted reference only.
@@ -254,3 +254,26 @@ Update Latest checkpoint and the two overview tables as well as appending the en
 - Next exact action: publish this verified P07 branch ready above #8 through `gh stack`, record its actual URL/head, then create `phase/p08-orders` and implement G09 immediately.
 
 - Publication: `gh stack push`, explicit ready `gh pr create`, and `gh stack submit --auto --open` publish [PR #9](https://github.com/arnabnandikgp/rivalt/pull/9) above #8. GitHub confirms OPEN / `isDraft: false` with base `phase/p06-lifecycle`. Closeout changes only documentation/evidence from tested `83f70d4`; artifact hashes, local documentation links, unchanged executable trees and all seven task listeners pass. Next exact action: create `phase/p08-orders` above this verified ready PR and implement G09/A11/A12.
+
+### R010 — 21 October 2026 — P08 — persistent orders and TP/SL
+
+- Starting baseline: exact local/remote P07 ready PR #9 head `efc1278414d722759b1785af13f4986a784c6fd2`; `gh stack add phase/p08-orders` creates the next child without a merge wait.
+- Scope: G09 bounded stored authority/reservations, cumulative-fee partial subfills, cancel/replace, standalone stop-limit and existing-position shared TP/SL; separate keeper and canonical projection. G09 values and authority boundaries are selected in P08-ORDERS; acceptance remains pending.
+- Status: P08/M4 In progress; P07 and predecessors remain Review; M1 remains Closed. No access/product blocker. No P08 implementation test is claimed yet.
+- Next exact action: implement the bounded order state and independent reserve/fee arithmetic, then integrate guarded route/withdrawal paths and generated ABI.
+
+
+#### R010 development checkpoint
+
+- Implemented bounded wallet order/group state, versioned cancel/replace, exact partial fee prefixes, independent remaining-reserve arithmetic, guarded keeper execution and direct source-independent cleanup. Regenerated IDL/SDK; added full-book canonical projections and discovery service with a separate operator budget. Updated protocol/component/validation specifications together.
+- Actual developmental checks: locked host/SBF builds and strict type checks pass. Initial 22 baseline Vitest checks grew to 26 passing checks, including isolated legacy order ABI and literal reserve/trigger previews. Two new independent Rust order tests pass. Signed SVM grew through 181, 219 and 265 P08 scenarios plus 45 setup scenarios; final resource fixtures are still being exercised. Existing 99 custody, 74 route and 258 oracle signed scenarios pass against the changed development artifact.
+- Corrections during development: boxed enlarged Anchor accounts and split the route finish function to satisfy SBF stack limits; changed placement start validation to permit already-started authority at landing; checked funding reservations against newly derived bounds; versioned protective group cancellation after child replacement. A new negative test initially expected the wrong error number (6116); actual RouteLimit is 6119 and the assertion was corrected.
+- Real Surfpool/WS/PostgreSQL acceptance is running; no P08 live-service result or clean acceptance is yet claimed. No browser/soak/devnet/external work run. No access/product blocker.
+- Next exact action: finish the P08 RPC order/keeper/rebuild acceptance, commit the coherent implementation, then run the complete clean regression before publishing a ready PR above #9.
+
+- Further developmental evidence: all twelve bounded trader/maker order slots populated in the signed split fixture use 298,776 CU, 824 bytes and 18 accounts, below the unchanged 320,000-CU/1,232-byte/20-account gates. Final SVM harness batches each four-feed signed publication, yielding 203 P08 transactions plus 45 setup transactions (the earlier 287 count used four separate source transactions). Assertions and economic scenarios are retained; these are actual transaction counts, not independent proof counts.
+- Live harness findings: the first 100 ms run failed sustained recovery after serial source publication; a 50 ms rerun correctly rejected new risk when a manual sample followed a gap beyond the six-second recovery hold. Batched fixture updates and explicit sustained recovery/real maker renewal address the test timing without changing source policy. Final live acceptance remains pending.
+
+- Third live development run passed cancel/fill, both cancel/replace, duplicate-keeper and withdrawal/fill races, then the harness attempted early maker renewal. The maker correctly rejected its still-active lease with Lifetime 6002. The harness now waits for the actual expiry slot before signed renewal; no maker lifetime rule is weakened.
+
+- Implementation checkpoint: 26 Vitest checks, 20 Rust financial tests, fresh 3,000-case Python reference, final 203 signed P08 transactions plus 45 setup transactions, strict type checks, generated determinism and formatting pass in development. The remaining work is clean integration verification; P08/M4 remain In progress. Next exact action: run `source ops/env.sh && RIVALT_SLOT_TIME=50 pnpm smoke` on the committed P08 implementation and resolve any actual failures before Review.

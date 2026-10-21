@@ -1,6 +1,7 @@
 //! Rivalt synthetic profile 1. All quote amounts are atoms unless named `scaled`.
 //! No runtime, oracle, token, or authority assumptions are supplied by this crate.
 pub mod oracle;
+pub mod orders;
 pub mod route;
 
 pub const SCALE: i128 = 1_000_000_000;

@@ -132,3 +132,8 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **Status:** Selected configuration is not acceptance. Actual G08/A09/A10 results, source identities and measured resources must be recorded before P07 becomes Review.
 
 - **G08 evidence:** [P07 acceptance](evidence/P07.md) verifies A09/A10/G08 on clean `83f70d4`, with unchanged financial trees from the passing P01–P06 regression at `f072147`. All 258 signed P07 SVM scenarios and 11 real RPC/WS/PostgreSQL checks pass; maximum sampling cost is 660,691 CU / 781 bytes / 20 accounts. The full wrapper stopped at a subsequently fixed TCP preflight; targeted P07 acceptance exits zero. P07 remains Review pending integration.
+
+## 21 October 2026 — P08 order configuration (implementation in progress)
+
+- **D29 / G09:** Select [ORDERS](P08-ORDERS.md)'s embedded four-slot/two-group authority, 216,000-slot lifetime, finite all-in prices/fee budgets, conservative reserve sums, exact cumulative fee prefix and generation-bound existing-position TP/SL. Keep immediate owner signatures and use a separate stored-authority keeper instruction. Maker renewals revalidate current commitments without resetting user budgets.
+- **Boundary:** No economic fee, margin-credit, loss-bearer, custody or order-type expansion. Cancellation/cleanup remains independent of pricing availability. Default build and later liquidation/default remain disabled. Configuration selection is not acceptance; A11/A12 and measured ABI/resource evidence are still required.

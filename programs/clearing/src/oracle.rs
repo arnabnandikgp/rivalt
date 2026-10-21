@@ -366,11 +366,12 @@ fn impact(a: &SampleOracle, b: policy::Bounds, f: i128) -> Result<(u64, u64, u64
                 &a.market,
                 p,
             )?);
-            models.push(
-                routes::participant_model(p)?
-                    .accrued(f)
-                    .map_err(|_| error!(ClearingError::Arithmetic))?,
-            );
+            let mut model = routes::participant_model(p)?
+                .accrued(f)
+                .map_err(|_| error!(ClearingError::Arithmetic))?;
+            model.reserved =
+                crate::orders::required_at(p, a.market.terms_epoch, b.lower, b.upper, slot)?;
+            models.push(model);
             requests.push(maker_interface::QuoteRequest {
                 version: 1,
                 domain: a.market.domain,

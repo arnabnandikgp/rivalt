@@ -13,6 +13,8 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
+  getArrayDecoder,
+  getArrayEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getConstantDecoder,
@@ -38,6 +40,12 @@ import {
   type HasAddress,
   type ReadonlyUint8Array,
 } from "@solana/kit";
+import {
+  getOrderBookDecoder,
+  getOrderBookEncoder,
+  type OrderBook,
+  type OrderBookArgs,
+} from "../types/index.js";
 
 export const SETTLEMENT_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([245, 182, 67, 134, 121, 92, 221, 133]);
@@ -61,6 +69,9 @@ export type SettlementChangedEvent = {
   amount: bigint;
   participantCash: bigint;
   participantVirtual: bigint;
+  participantReserved: bigint;
+  participantOrderIds: Array<bigint>;
+  participantBook: OrderBook;
   fundingIndexScaled: bigint;
   fundingTime: bigint;
   totalCash: bigint;
@@ -82,6 +93,9 @@ export type SettlementChangedEventArgs = {
   amount: number | bigint;
   participantCash: number | bigint;
   participantVirtual: number | bigint;
+  participantReserved: number | bigint;
+  participantOrderIds: Array<number | bigint>;
+  participantBook: OrderBookArgs;
   fundingIndexScaled: number | bigint;
   fundingTime: number | bigint;
   totalCash: number | bigint;
@@ -105,6 +119,9 @@ export function getSettlementChangedEventEncoder(): FixedSizeEncoder<SettlementC
       ["amount", getU64Encoder()],
       ["participantCash", getU64Encoder()],
       ["participantVirtual", getI128Encoder()],
+      ["participantReserved", getU64Encoder()],
+      ["participantOrderIds", getArrayEncoder(getU64Encoder(), { size: 4 })],
+      ["participantBook", getOrderBookEncoder()],
       ["fundingIndexScaled", getI128Encoder()],
       ["fundingTime", getI64Encoder()],
       ["totalCash", getU64Encoder()],
@@ -131,6 +148,9 @@ export function getSettlementChangedEventDecoder(): FixedSizeDecoder<SettlementC
       ["amount", getU64Decoder()],
       ["participantCash", getU64Decoder()],
       ["participantVirtual", getI128Decoder()],
+      ["participantReserved", getU64Decoder()],
+      ["participantOrderIds", getArrayDecoder(getU64Decoder(), { size: 4 })],
+      ["participantBook", getOrderBookDecoder()],
       ["fundingIndexScaled", getI128Decoder()],
       ["fundingTime", getI64Decoder()],
       ["totalCash", getU64Decoder()],

@@ -67,6 +67,14 @@ export const CLEARING_ERROR__FINANCIAL_SEQUENCE = 0x17ea; // 6122
 export const CLEARING_ERROR__ORACLE_SOURCE = 0x17eb; // 6123
 /** OraclePolicy: Oracle action mode, sample timing or source policy rejects action */
 export const CLEARING_ERROR__ORACLE_POLICY = 0x17ec; // 6124
+/** OrderState: Stored order identity, version, prefix or state mismatch */
+export const CLEARING_ERROR__ORDER_STATE = 0x17ed; // 6125
+/** OrderTerms: Order quantity, limits, lifetime, trigger or generation rejected */
+export const CLEARING_ERROR__ORDER_TERMS = 0x17ee; // 6126
+/** OrderSlots: No free bounded order/protective-group slot */
+export const CLEARING_ERROR__ORDER_SLOTS = 0x17ef; // 6127
+/** OrderTrigger: Current central index does not satisfy stored trigger */
+export const CLEARING_ERROR__ORDER_TRIGGER = 0x17f0; // 6128
 
 export type ClearingError =
   | typeof CLEARING_ERROR__ALIAS
@@ -87,6 +95,10 @@ export type ClearingError =
   | typeof CLEARING_ERROR__MINT
   | typeof CLEARING_ERROR__ORACLE_POLICY
   | typeof CLEARING_ERROR__ORACLE_SOURCE
+  | typeof CLEARING_ERROR__ORDER_SLOTS
+  | typeof CLEARING_ERROR__ORDER_STATE
+  | typeof CLEARING_ERROR__ORDER_TERMS
+  | typeof CLEARING_ERROR__ORDER_TRIGGER
   | typeof CLEARING_ERROR__PAUSED
   | typeof CLEARING_ERROR__PROFILE
   | typeof CLEARING_ERROR__RECONCILIATION
@@ -117,6 +129,10 @@ if (process.env["NODE_ENV"] !== "production") {
     [CLEARING_ERROR__MINT]: `Expected classic SPL six-decimal collateral without freeze authority`,
     [CLEARING_ERROR__ORACLE_POLICY]: `Oracle action mode, sample timing or source policy rejects action`,
     [CLEARING_ERROR__ORACLE_SOURCE]: `Oracle source identity, verification or schema mismatch`,
+    [CLEARING_ERROR__ORDER_SLOTS]: `No free bounded order/protective-group slot`,
+    [CLEARING_ERROR__ORDER_STATE]: `Stored order identity, version, prefix or state mismatch`,
+    [CLEARING_ERROR__ORDER_TERMS]: `Order quantity, limits, lifetime, trigger or generation rejected`,
+    [CLEARING_ERROR__ORDER_TRIGGER]: `Current central index does not satisfy stored trigger`,
     [CLEARING_ERROR__PAUSED]: `Market is paused`,
     [CLEARING_ERROR__PROFILE]: `Financial state is outside the implemented phase profile`,
     [CLEARING_ERROR__RECONCILIATION]: `Actual vault is below allocated cash or cash totals disagree`,

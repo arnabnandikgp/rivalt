@@ -1,8 +1,8 @@
-import { effectiveFunding, oracleMode } from '@rivalt/sdk';
-import type { Event } from './events.js';
+import { effectiveFunding, oracleMode, emptyOrderBook, orderReserve } from '@rivalt/sdk';
+import { json,type Event } from './events.js';
 
 export type Participant = { owner: string; id: number; cash: string; lots: string; virtualScaled: string;
-  fundingCheckpointScaled: string; generation: string; nonce: string; reserved: string; orderIds: string[] };
+  fundingCheckpointScaled: string; generation: string; nonce: string; reserved: string; orderIds: string[]; book:any };
 export type State = { sequence: string; market: any | null; risk: any | null;
   participants: Record<string, Participant>; makers: Record<string, any> };
 export const empty = (): State => ({ sequence: '0', market: null, risk: null, participants: {}, makers: {} });
@@ -28,7 +28,7 @@ export function project(state: State, event: Event, market: string, domain: stri
       const id = Object.keys(state.participants).length;
       if (id >= 64) throw new Error('Registry limit');
       state.participants[e.participant] = { owner: e.actor, id, cash: '0', lots: '0', virtualScaled: '0',
-        fundingCheckpointScaled: '0', generation: '0', nonce: '0', reserved: '0', orderIds: ['0','0','0','0'] };
+        fundingCheckpointScaled: '0', generation: '0', nonce: '0', reserved: '0', orderIds: ['0','0','0','0'],book:JSON.parse(json(emptyOrderBook())) };
     }
     if (e.participant !== zero) requireValue(state.participants[e.participant], 'participant').cash = e.participantCash;
   } else if (event.type === 'maker') {
@@ -48,11 +48,15 @@ export function project(state: State, event: Event, market: string, domain: stri
   } else if (event.type === 'risk') {
     const m = requireValue(state.market, 'market');
     m.mode = 1; m.termsEpoch = e.termsEpoch; m.configEpoch = e.configEpoch; state.risk = e;
+  } else if (event.type === 'order') {
+    if(![0,1,2,3,4,5].includes(e.kind))throw new Error('Unknown order operation');
+    const p=requireValue(state.participants[e.participant],'participant');
+    Object.assign(p,{reserved:e.reserved,orderIds:e.orderIds,book:e.book});
   } else if (event.type === 'settlement') {
     if (![0, 1, 2].includes(e.kind)) throw new Error('Unknown settlement operation');
     const m = requireValue(state.market, 'market');
     const p = requireValue(state.participants[e.participant], 'participant');
-    Object.assign(p, { cash: e.participantCash, virtualScaled: e.participantVirtual, fundingCheckpointScaled:e.fundingIndexScaled });
+    Object.assign(p, { cash: e.participantCash, virtualScaled: e.participantVirtual, fundingCheckpointScaled:e.fundingIndexScaled, reserved:e.participantReserved,orderIds:e.participantOrderIds,book:e.participantBook });
     m.fundingIndexScaled=e.fundingIndexScaled; m.fundingTime=e.fundingTime;
     Object.assign(m, { totalCash: e.totalCash, settlement: e.settlement, allocatedVault: e.allocatedVault });
   } else {
@@ -60,10 +64,10 @@ export function project(state: State, event: Event, market: string, domain: stri
     const trader = requireValue(state.participants[e.trader], 'trader');
     if (e.nonce !== trader.nonce || ![0, 1].includes(e.side) || ![1, 2].includes(e.legs.length)) throw new Error('Route authority/shape mismatch');
     Object.assign(trader, { cash: e.traderCash, lots: e.traderLots, virtualScaled: e.traderVirtual,
-      generation: e.traderGeneration, fundingCheckpointScaled:e.fundingIndexScaled, nonce: (BigInt(e.nonce) + 1n).toString() });
+      generation: e.traderGeneration, reserved:e.traderReserved,orderIds:e.traderOrderIds,book:e.traderBook,fundingCheckpointScaled:e.fundingIndexScaled, nonce: (BigInt(e.nonce) + 1n).toString() });
     for (const leg of e.legs) {
       const capital = requireValue(state.participants[leg.capital], 'capital');
-      Object.assign(capital, { lots: leg.positionAfter, virtualScaled: leg.virtualAfter, generation: leg.generationAfter, fundingCheckpointScaled:e.fundingIndexScaled });
+      Object.assign(capital, { lots: leg.positionAfter, virtualScaled: leg.virtualAfter, generation: leg.generationAfter, reserved:leg.reservedAfter,orderIds:leg.orderIdsAfter,book:leg.bookAfter,fundingCheckpointScaled:e.fundingIndexScaled });
       const maker = requireValue(Object.values(state.makers).find(m => m.capital === leg.capital && m.makerId === leg.makerId), 'maker');
       maker[e.side === 0 ? 'buyConsumed' : 'sellConsumed'] = leg.consumedAfter;
     }
@@ -74,6 +78,15 @@ export function project(state: State, event: Event, market: string, domain: stri
   const m = state.market;
   if (m && BigInt(m.allocatedVault) !== BigInt(m.totalCash) + BigInt(m.settlement) + BigInt(m.insurance) + BigInt(m.fees)) throw new Error('Cash conservation failure');
   const participants = Object.values(state.participants);
+  for(const p of participants){
+    if(!p.book||p.book.orders.length!==4||p.book.groups.length!==2)throw new Error('Missing bounded order state');
+    let reserve=0n;
+    p.book.orders.forEach((o:any,i:number)=>{const active=o.state===1||o.state===2;
+      if(p.orderIds[i]!== (active?o.id:'0') || (!active&&BigInt(o.reserve)!==0n))throw new Error('Order slot/reserve mismatch');
+      if(active){if(BigInt(o.filled)>=BigInt(o.lots)||BigInt(o.feeCharged)!==(BigInt(o.notional)+4999n)/5000n)throw new Error('Order prefix mismatch');reserve+=BigInt(o.reserve);}
+    });
+    if(reserve!==BigInt(p.reserved))throw new Error('Order reservation mismatch');
+  }
   if (m && participants.reduce((n, p) => n + BigInt(p.cash), 0n) !== BigInt(m.totalCash)) throw new Error('Participant cash mismatch');
   if (participants.reduce((n, p) => n + BigInt(p.lots), 0n) !== 0n) throw new Error('Net position mismatch');
   if (m && participants.reduce((n,p) => n + BigInt(p.virtualScaled) + BigInt(p.lots)*BigInt(p.fundingCheckpointScaled),0n) !== BigInt(m.settlement)*1_000_000_000n) throw new Error('Claims conservation failure');
@@ -93,6 +106,7 @@ export function balance(p: Participant, state: State, slot: bigint, now=BigInt(M
     positiveUnpaidMarginCredit: '0', withdrawableCash: state.market?.mode === 0 && !state.market.paused ? p.cash : '0',
     exitRequirement: state.market?.mode > 0 ? 'FreshCompleteCohortCertificateAndPostWithdrawalMargin' : null,
     settlementAvailable: state.market?.settlement ?? '0',
+    currentRequiredReserve:orderReserve(p,BigInt(state.market?.termsEpoch??1),slot,fresh?BigInt(risk.lower):1n,fresh?BigInt(risk.upper):1_000_000n).toString(),
     fundingIndexScaled:f.toString(), sourceMode:mode,
     valuationStatus: risk ? fresh ? state.market?.mode===2 ? 'ControlledLocalOracle' : 'FreshTestObservation' : 'ExpiredTestObservation' : 'NoObservation',
     evaluatedAtSlot: slot.toString() };

@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import * as sdk from '@rivalt/sdk';
 import { address } from '@solana/kit';
 import { Runtime } from './runtime.js';
 import { userAuthority } from './queue.js';
@@ -23,6 +24,12 @@ export function api(runtime:Runtime){
   });
   app.get<{Params:{id:string}}>('/v1/submissions/:id',async(request,reply)=>{
     const r=await runtime.queue.get(request.params.id);return r??reply.code(404).send({error:'Unknown submission'});
+  });
+  app.get('/v1/orders',async()=>{
+    const s=await runtime.snapshot();
+    return {slot:s.slot,sequence:s.m.sequence,sourceMode:s.sourceMode,orders:Object.entries(s.participants).flatMap(([participant,p])=>p.book.orders.filter(o=>o.id>0n).map(o=>({participant,...o,
+      effectiveRemaining:sdk.orderRemaining(p,o,s.m.termsEpoch,s.slot),triggerEligible:sdk.orderRemaining(p,o,s.m.termsEpoch,s.slot)>0n&&(s.sourceMode==='Normal'||(s.sourceMode==='Degraded'&&o.reduceOnly))&&sdk.orderTriggered(o,s.risk.referencePrice,s.slot),
+      group:o.groupId>0n?p.book.groups.find(g=>g.id===o.groupId):null})))};
   });
   app.get('/v1/operators',async()=>{
     const s=await runtime.snapshot();

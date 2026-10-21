@@ -50,6 +50,12 @@ import {
   type MaybeEncodedAccount,
   type ReadonlyUint8Array,
 } from "@solana/kit";
+import {
+  getOrderBookDecoder,
+  getOrderBookEncoder,
+  type OrderBook,
+  type OrderBookArgs,
+} from "../types/index.js";
 
 export const PARTICIPANT_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
   32, 142, 108, 79, 247, 179, 54, 6,
@@ -72,8 +78,9 @@ export type Participant = {
   generation: bigint;
   nonce: bigint;
   reserved: bigint;
-  /** Zero means empty. P08 owns order records and the nonzero slot authority. */
+  /** Zero means inactive; IDs never repeat when a bounded slot is reused. */
   orderIds: Array<bigint>;
+  book: OrderBook;
   bump: number;
 };
 
@@ -89,8 +96,9 @@ export type ParticipantArgs = {
   generation: number | bigint;
   nonce: number | bigint;
   reserved: number | bigint;
-  /** Zero means empty. P08 owns order records and the nonzero slot authority. */
+  /** Zero means inactive; IDs never repeat when a bounded slot is reused. */
   orderIds: Array<number | bigint>;
+  book: OrderBookArgs;
   bump: number;
 };
 
@@ -111,6 +119,7 @@ export function getParticipantEncoder(): FixedSizeEncoder<ParticipantArgs> {
       ["nonce", getU64Encoder()],
       ["reserved", getU64Encoder()],
       ["orderIds", getArrayEncoder(getU64Encoder(), { size: 4 })],
+      ["book", getOrderBookEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: PARTICIPANT_DISCRIMINATOR }),
@@ -133,6 +142,7 @@ export function getParticipantDecoder(): FixedSizeDecoder<Participant> {
     ["nonce", getU64Decoder()],
     ["reserved", getU64Decoder()],
     ["orderIds", getArrayDecoder(getU64Decoder(), { size: 4 })],
+    ["book", getOrderBookDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -215,5 +225,5 @@ export async function fetchAllMaybeParticipant(
 }
 
 export function getParticipantSize(): number {
-  return 181;
+  return 815;
 }

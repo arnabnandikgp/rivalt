@@ -20,17 +20,18 @@ function healthy(p: RouteBalance, lower: bigint, upper: bigint): boolean {
 export function allocateRoute(input: {
   snapshotSlot: bigint; side: number; lots: bigint; lower: bigint; upper: bigint;
   trader: RouteBalance; candidates: RouteCandidate[]; grossLots: bigint;
-  maxFee: bigint; allInLimit: bigint;
+  maxFee: bigint; allInLimit: bigint; notionalPrefix?:bigint;
+  postReserve?:(before:RouteBalance,after:RouteBalance,gross:bigint,fee:bigint)=>bigint;
 }): Allocation | null {
   const { side, lots, lower, upper, trader, candidates, snapshotSlot } = input;
   if (![0, 1].includes(side) || lots < 1n || lots > 4608n || lower < 1n || upper < lower || upper > 1_000_000n ||
     candidates.length < 1 || candidates.length > 2 || input.maxFee < 0n || input.allInLimit < 0n ||
-    trader.reserved !== 0n || input.grossLots < 0n || input.grossLots > 200_000_000n) throw new Error('route bounds');
+    trader.reserved < 0n || input.grossLots < 0n || input.grossLots > 200_000_000n) throw new Error('route bounds');
   const seen = new Set<number>(), participants = new Set([trader.id]);
   for (const c of candidates) {
     if (seen.has(c.state.makerId) || ![0, 1].includes(c.state.makerId) || participants.has(c.balance.id) ||
       c.request.side !== side || c.request.slot !== snapshotSlot || c.request.inventory !== c.balance.lots || c.request.cash !== c.balance.cash ||
-      c.balance.reserved !== 0n) throw new Error('candidate binding');
+      c.balance.reserved < 0n) throw new Error('candidate binding');
     seen.add(c.state.makerId);participants.add(c.balance.id);
   }
   if (candidates.length === 2) {
@@ -55,14 +56,18 @@ export function allocateRoute(input: {
         if (q.grossQuote * 10n < quantity * ref * 9n || q.grossQuote * 10n > quantity * ref * 11n) { valid = false;break; }
         const direction = side === 0 ? -1n : 1n, before = candidate.balance;
         const after = { ...before, lots: before.lots + direction * quantity, virtualScaled: before.virtualScaled - direction * q.grossQuote * scale };
+        if(input.postReserve)after.reserved=input.postReserve(before,after,q.grossQuote,0n);
         if (!healthy(after, lower, upper) || abs(after.lots) > candidate.request.inventoryLimit) { valid = false;break; }
         deltaGross += abs(after.lots) - abs(before.lots);
         total += q.grossQuote;legs.push({ makerId: candidate.state.makerId, lots: quantity, grossQuote: q.grossQuote });
       } catch { valid = false;break; }
     }
     if (!valid || total < 1000n) continue;
-    const fee = feeFor(total), allIn = side === 0 ? total + fee : total - fee, sign = side === 0 ? 1n : -1n;
+    const prefix=input.notionalPrefix??0n;
+    if(prefix<0n||prefix+total>1_000_000_000_000_000n)throw new Error('fee prefix bounds');
+    const fee = feeFor(prefix+total)-feeFor(prefix), allIn = side === 0 ? total + fee : total - fee, sign = side === 0 ? 1n : -1n;
     const after = { ...trader, cash: trader.cash - fee, lots: trader.lots + sign * lots, virtualScaled: trader.virtualScaled - sign * total * scale };
+    if(input.postReserve)after.reserved=input.postReserve(trader,after,total,fee);
     const gross = input.grossLots + deltaGross + abs(after.lots) - abs(trader.lots);
     if (!healthy(after, lower, upper) || gross < 0n || gross > 200_000_000n || fee > input.maxFee ||
       (side === 0 ? allIn > input.allInLimit : allIn < input.allInLimit)) continue;

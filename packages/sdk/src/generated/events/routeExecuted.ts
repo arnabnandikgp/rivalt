@@ -43,8 +43,12 @@ import {
 import {
   getExecutedLegDecoder,
   getExecutedLegEncoder,
+  getOrderBookDecoder,
+  getOrderBookEncoder,
   type ExecutedLeg,
   type ExecutedLegArgs,
+  type OrderBook,
+  type OrderBookArgs,
 } from "../types/index.js";
 
 export const ROUTE_EXECUTED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
@@ -75,6 +79,11 @@ export type RouteExecutedEvent = {
   traderLots: bigint;
   traderVirtual: bigint;
   traderGeneration: bigint;
+  traderReserved: bigint;
+  traderOrderIds: Array<bigint>;
+  traderBook: OrderBook;
+  orderId: bigint;
+  orderVersion: bigint;
   fundingIndexScaled: bigint;
   fundingTime: bigint;
   totalCash: bigint;
@@ -102,6 +111,11 @@ export type RouteExecutedEventArgs = {
   traderLots: number | bigint;
   traderVirtual: number | bigint;
   traderGeneration: number | bigint;
+  traderReserved: number | bigint;
+  traderOrderIds: Array<number | bigint>;
+  traderBook: OrderBookArgs;
+  orderId: number | bigint;
+  orderVersion: number | bigint;
   fundingIndexScaled: number | bigint;
   fundingTime: number | bigint;
   totalCash: number | bigint;
@@ -132,6 +146,11 @@ export function getRouteExecutedEventEncoder(): Encoder<RouteExecutedEventArgs> 
       ["traderLots", getI64Encoder()],
       ["traderVirtual", getI128Encoder()],
       ["traderGeneration", getU64Encoder()],
+      ["traderReserved", getU64Encoder()],
+      ["traderOrderIds", getArrayEncoder(getU64Encoder(), { size: 4 })],
+      ["traderBook", getOrderBookEncoder()],
+      ["orderId", getU64Encoder()],
+      ["orderVersion", getU64Encoder()],
       ["fundingIndexScaled", getI128Encoder()],
       ["fundingTime", getI64Encoder()],
       ["totalCash", getU64Encoder()],
@@ -165,6 +184,11 @@ export function getRouteExecutedEventDecoder(): Decoder<RouteExecutedEvent> {
       ["traderLots", getI64Decoder()],
       ["traderVirtual", getI128Decoder()],
       ["traderGeneration", getU64Decoder()],
+      ["traderReserved", getU64Decoder()],
+      ["traderOrderIds", getArrayDecoder(getU64Decoder(), { size: 4 })],
+      ["traderBook", getOrderBookDecoder()],
+      ["orderId", getU64Decoder()],
+      ["orderVersion", getU64Decoder()],
       ["fundingIndexScaled", getI128Decoder()],
       ["fundingTime", getI64Decoder()],
       ["totalCash", getU64Decoder()],

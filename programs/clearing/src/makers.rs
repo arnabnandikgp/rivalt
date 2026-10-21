@@ -50,16 +50,16 @@ pub struct RegisterMaker<'info> {
     pub owner: Signer<'info>,
     pub authority: Signer<'info>,
     #[account(mut, seeds=[b"market".as_ref(),b"BTC".as_ref()], bump=market.bump, has_one=authority)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(seeds=[b"participant",market.key().as_ref(),owner.key().as_ref()], bump=capital.bump, has_one=market, has_one=owner)]
-    pub capital: Account<'info, Participant>,
+    pub capital: Box<Account<'info, Participant>>,
     #[account(init,payer=owner,space=8+MakerRegistration::INIT_SPACE,seeds=[b"maker",market.key().as_ref(),&[maker_id]],bump)]
-    pub registration: Account<'info, MakerRegistration>,
+    pub registration: Box<Account<'info, MakerRegistration>>,
     #[account(init,payer=owner,space=8+CapitalBinding::INIT_SPACE,seeds=[b"maker-capital",capital.key().as_ref()],bump)]
     pub binding: Account<'info, CapitalBinding>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
-    pub program_data: Account<'info, ProgramData>,
+    pub program_data: Box<Account<'info, ProgramData>>,
     /// CHECK: Exact owner, PDA, discriminator, length and stored bindings validated by config_state.
     pub config: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
@@ -71,15 +71,15 @@ pub struct ApproveMaker<'info> {
     pub owner: Signer<'info>,
     pub authority: Signer<'info>,
     #[account(mut,seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump,has_one=authority)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(seeds=[b"participant",market.key().as_ref(),owner.key().as_ref()],bump=capital.bump,has_one=market,has_one=owner)]
-    pub capital: Account<'info, Participant>,
+    pub capital: Box<Account<'info, Participant>>,
     #[account(mut,seeds=[b"maker",market.key().as_ref(),&[registration.maker_id]],bump=registration.bump,
         has_one=market,has_one=capital,has_one=owner,has_one=pricing_program,has_one=program_data,has_one=config)]
-    pub registration: Account<'info, MakerRegistration>,
+    pub registration: Box<Account<'info, MakerRegistration>>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
-    pub program_data: Account<'info, ProgramData>,
+    pub program_data: Box<Account<'info, ProgramData>>,
     /// CHECK: Validated by config_state before approval.
     pub config: UncheckedAccount<'info>,
 }
@@ -88,15 +88,15 @@ pub struct ApproveMaker<'info> {
 #[derive(Accounts)]
 pub struct SyncMaker<'info> {
     #[account(mut,seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(seeds=[b"participant",market.key().as_ref(),capital.owner.as_ref()],bump=capital.bump,has_one=market)]
-    pub capital: Account<'info, Participant>,
+    pub capital: Box<Account<'info, Participant>>,
     #[account(mut,seeds=[b"maker",market.key().as_ref(),&[registration.maker_id]],bump=registration.bump,
         has_one=market,has_one=capital,has_one=pricing_program,has_one=program_data,has_one=config)]
-    pub registration: Account<'info, MakerRegistration>,
+    pub registration: Box<Account<'info, MakerRegistration>>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
-    pub program_data: Account<'info, ProgramData>,
+    pub program_data: Box<Account<'info, ProgramData>>,
     /// CHECK: Validated by config_state; only an owner-signed expired-epoch publication can advance.
     pub config: UncheckedAccount<'info>,
 }
@@ -106,23 +106,23 @@ pub struct SyncMaker<'info> {
 pub struct QuarantineMaker<'info> {
     pub authority: Signer<'info>,
     #[account(mut,seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump,has_one=authority)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(mut,seeds=[b"maker",market.key().as_ref(),&[registration.maker_id]],bump=registration.bump,has_one=market)]
-    pub registration: Account<'info, MakerRegistration>,
+    pub registration: Box<Account<'info, MakerRegistration>>,
 }
 
 #[derive(Accounts)]
 pub struct PreviewMaker<'info> {
     #[account(seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(seeds=[b"participant",market.key().as_ref(),capital.owner.as_ref()],bump=capital.bump,has_one=market)]
-    pub capital: Account<'info, Participant>,
+    pub capital: Box<Account<'info, Participant>>,
     #[account(seeds=[b"maker",market.key().as_ref(),&[registration.maker_id]],bump=registration.bump,
         has_one=market,has_one=capital,has_one=pricing_program,has_one=program_data,has_one=config)]
-    pub registration: Account<'info, MakerRegistration>,
+    pub registration: Box<Account<'info, MakerRegistration>>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
-    pub program_data: Account<'info, ProgramData>,
+    pub program_data: Box<Account<'info, ProgramData>>,
     /// CHECK: Validated by config_state; only this read-only account crosses maker CPI.
     pub config: UncheckedAccount<'info>,
 }

@@ -8,6 +8,10 @@
 
 export * from "./executedLeg.js";
 export * from "./oracleState.js";
+export * from "./orderBook.js";
+export * from "./orderTerms.js";
 export * from "./probeChoice.js";
+export * from "./protectiveGroup.js";
 export * from "./quoteResponse.js";
 export * from "./routeLeg.js";
+export * from "./storedOrder.js";

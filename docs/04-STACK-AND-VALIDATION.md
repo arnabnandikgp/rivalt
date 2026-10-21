@@ -176,3 +176,8 @@ The same pinned stack builds the new clearing cohort/settlement instructions and
 ## P07 validation extension
 
 The pinned build adds a local signed oracle fixture dependency, with no new npm/crate release pins. `pnpm test:oracle` runs real signed SBF source, funding, turnover, coverage and direct-exit cases. `ops/oracle-smoke.sh` deploys that fixture and the three first-party programs, then runs separate funding/executor/maker services, signed fixture publication, HTTP wallet routes and real RPC/WS/PostgreSQL recovery. The local oracle profile declares its source and module trust limits; no upstream verification or guard independence follows. Acceptance requires clean committed full regression, isolated legacy ABI/account/event parity, largest reference quantity resource measurements and exact reconstruction; WORKLOG owns results.
+
+
+## P08 validation extension
+
+`pnpm test:orders` executes signed SBF authority, partial-prefix, all-in/fee, both race orderings, protective-generation and price-shock reservation cases. Independent literal arithmetic and partition bounds test reserve conservatism. `ops/orders-smoke.sh` deploys the real local programs, then exercises order races over RPC and restarts a discovery worker after persistence and before broadcast. Competing discovery processes share exact durable identities. PostgreSQL reconstruction, actual payer fees and isolated legacy decoding of the live Participant/order/route events must reconcile. The 400,000-CU route declaration retains the ≤320,000 measured CU / ≤1,232 bytes / ≤20 accounts acceptance gate, including both makers with all bounded order records populated. Funding retains its separate P07 budget. No real-wallet browser, soak or devnet claim follows from these tests.

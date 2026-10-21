@@ -1,6 +1,7 @@
 //! Immediate FOK execution under an explicitly synthetic, expiring local observation.
 use crate::{
-    custody, makers, ClearingError, MakerRegistration, MarketState, Participant, PreviewArgs,
+    custody, makers, oracle, ClearingError, MakerRegistration, MarketState, Participant,
+    PreviewArgs,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token::TokenAccount;
@@ -29,7 +30,7 @@ pub struct InitializeTestRoutes<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(mut,seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump,has_one=authority)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(init,payer=authority,space=8+TestRouteState::INIT_SPACE,seeds=[b"test-routes",market.key().as_ref()],bump)]
     pub route_state: Account<'info, TestRouteState>,
     pub system_program: Program<'info, System>,
@@ -39,7 +40,7 @@ pub struct InitializeTestRoutes<'info> {
 pub struct PublishTestRisk<'info> {
     pub authority: Signer<'info>,
     #[account(mut,seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump,has_one=authority)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(mut,seeds=[b"test-routes",market.key().as_ref()],bump=route_state.bump,has_one=market)]
     pub route_state: Account<'info, TestRouteState>,
 }
@@ -153,7 +154,7 @@ pub struct ExecuteRoute<'info> {
     #[account(seeds=[b"vault",market.key().as_ref()],bump=market.vault_bump,
         constraint=vault.mint == market.quote_mint @ ClearingError::Mint,
         constraint=vault.owner == market.key() @ ClearingError::Authority)]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub first_capital: Box<Account<'info, Participant>>,
     #[account(mut)]
@@ -170,6 +171,84 @@ pub struct ExecuteRoute<'info> {
     pub second_program_data: Option<Box<Account<'info, ProgramData>>>,
     /// CHECK: Validated by bound_quote before CPI.
     pub second_config: Option<UncheckedAccount<'info>>,
+}
+#[event_cpi]
+#[derive(Accounts)]
+pub struct ExecuteOrder<'info> {
+    pub keeper: Signer<'info>,
+    #[account(mut,seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump,has_one=vault)]
+    pub market: Box<Account<'info, MarketState>>,
+    #[account(mut,seeds=[b"participant",market.key().as_ref(),trader.owner.as_ref()],bump=trader.bump,has_one=market)]
+    pub trader: Box<Account<'info, Participant>>,
+    #[account(mut,seeds=[b"test-routes",market.key().as_ref()],bump=route_state.bump,has_one=market)]
+    pub route_state: Box<Account<'info, TestRouteState>>,
+    #[account(seeds=[b"vault",market.key().as_ref()],bump=market.vault_bump,
+        constraint=vault.mint == market.quote_mint @ ClearingError::Mint,
+        constraint=vault.owner == market.key() @ ClearingError::Authority)]
+    pub vault: Box<Account<'info, TokenAccount>>,
+    #[account(mut)]
+    pub first_capital: Box<Account<'info, Participant>>,
+    #[account(mut)]
+    pub first_registration: Box<Account<'info, MakerRegistration>>,
+    pub first_program: Program<'info>,
+    pub first_program_data: Box<Account<'info, ProgramData>>,
+    /// CHECK: Validated by bound_quote before CPI.
+    pub first_config: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub second_capital: Option<Box<Account<'info, Participant>>>,
+    #[account(mut)]
+    pub second_registration: Option<Box<Account<'info, MakerRegistration>>>,
+    pub second_program: Option<Program<'info>>,
+    pub second_program_data: Option<Box<Account<'info, ProgramData>>>,
+    /// CHECK: Validated by bound_quote before CPI.
+    pub second_config: Option<UncheckedAccount<'info>>,
+}
+pub struct RouteAccounts<'a, 'info> {
+    pub market: &'a mut Account<'info, MarketState>,
+    pub trader: &'a mut Account<'info, Participant>,
+    pub route_state: &'a mut Account<'info, TestRouteState>,
+    pub vault: &'a Account<'info, TokenAccount>,
+    pub first_capital: &'a mut Account<'info, Participant>,
+    pub first_registration: &'a mut Account<'info, MakerRegistration>,
+    pub first_program: &'a Program<'info>,
+    pub first_program_data: &'a Account<'info, ProgramData>,
+    pub first_config: &'a UncheckedAccount<'info>,
+    pub second_capital: &'a mut Option<Box<Account<'info, Participant>>>,
+    pub second_registration: &'a mut Option<Box<Account<'info, MakerRegistration>>>,
+    pub second_program: &'a Option<Program<'info>>,
+    pub second_program_data: &'a Option<Box<Account<'info, ProgramData>>>,
+    pub second_config: &'a Option<UncheckedAccount<'info>>,
+}
+macro_rules! route_accounts {
+    ($a:expr) => {
+        RouteAccounts {
+            market: &mut $a.market,
+            trader: &mut $a.trader,
+            route_state: &mut $a.route_state,
+            vault: &$a.vault,
+            first_capital: &mut $a.first_capital,
+            first_registration: &mut $a.first_registration,
+            first_program: &$a.first_program,
+            first_program_data: &$a.first_program_data,
+            first_config: &$a.first_config,
+            second_capital: &mut $a.second_capital,
+            second_registration: &mut $a.second_registration,
+            second_program: &$a.second_program,
+            second_program_data: &$a.second_program_data,
+            second_config: &$a.second_config,
+        }
+    };
+}
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct OrderExecution {
+    pub id: u64,
+    pub version: u64,
+    pub filled: u64,
+    pub observation_sequence: u64,
+    pub start_slot: u64,
+    pub expiry_slot: u64,
+    pub lots: u64,
+    pub legs: Vec<RouteLeg>,
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct RouteLeg {
@@ -207,6 +286,9 @@ pub struct ExecutedLeg {
     pub position_after: i64,
     pub virtual_after: i128,
     pub generation_after: u64,
+    pub reserved_after: u64,
+    pub order_ids_after: [u64; 4],
+    pub book_after: crate::orders::OrderBook,
 }
 #[event]
 pub struct RouteExecuted {
@@ -228,6 +310,11 @@ pub struct RouteExecuted {
     pub trader_lots: i64,
     pub trader_virtual: i128,
     pub trader_generation: u64,
+    pub trader_reserved: u64,
+    pub trader_order_ids: [u64; 4],
+    pub trader_book: crate::orders::OrderBook,
+    pub order_id: u64,
+    pub order_version: u64,
     pub funding_index_scaled: i128,
     pub funding_time: i64,
     pub total_cash: u64,
@@ -237,7 +324,7 @@ pub struct RouteExecuted {
 }
 pub(crate) fn participant_model(p: &Participant) -> Result<math::Participant> {
     require!(
-        p.schema_version == 1 && p.reserved == 0 && p.order_ids == [0; 4],
+        p.schema_version == 1 && crate::orders::validate(p).is_ok(),
         ClearingError::Profile
     );
     let model = math::Participant {
@@ -350,15 +437,83 @@ fn consume(
         position_after: p.lots,
         virtual_after: p.virtual_scaled,
         generation_after: p.generation,
+        reserved_after: p.reserved,
+        order_ids_after: p.order_ids,
+        book_after: p.book,
     })
 }
 pub fn execute(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
-    require!(cfg!(feature = "local-test-profile"), ClearingError::Profile);
+    require!(
+        ctx.remaining_accounts.is_empty(),
+        ClearingError::RouteIntent
+    );
+    let event = execute_core(route_accounts!(ctx.accounts), intent, None)?;
+    emit_cpi!(event);
+    Ok(())
+}
+pub fn execute_order(ctx: Context<ExecuteOrder>, args: OrderExecution) -> Result<()> {
+    require!(
+        cfg!(feature = "local-test-profile") && ctx.accounts.market.mode == 2,
+        ClearingError::Profile
+    );
     require!(
         ctx.remaining_accounts.is_empty(),
         ClearingError::RouteIntent
     );
     let a = &mut *ctx.accounts;
+    crate::orders::validate(&a.trader)?;
+    let index = crate::orders::find(&a.trader, args.id, args.version)?;
+    let o = a.trader.book.orders[index];
+    let slot = Clock::get()?.slot;
+    require!(
+        o.filled == args.filled
+            && o.terms_epoch == a.market.terms_epoch
+            && slot >= o.start_slot
+            && slot < o.expiry_slot
+            && args.lots > 0
+            && args.lots <= crate::orders::eligible(&a.trader.book, &o, a.trader.lots)?,
+        ClearingError::OrderState
+    );
+    oracle::action(&a.market, &a.route_state, !o.reduce_only)?;
+    require!(
+        o.trigger == 0
+            || (o.trigger == 1 && a.route_state.reference_price >= o.threshold)
+            || (o.trigger == 2 && a.route_state.reference_price <= o.threshold),
+        ClearingError::OrderTrigger
+    );
+    let intent = RouteIntent {
+        domain: a.market.domain,
+        terms_epoch: o.terms_epoch,
+        config_epoch: a.market.config_epoch,
+        observation_sequence: args.observation_sequence,
+        nonce: a.trader.nonce,
+        start_slot: args.start_slot,
+        expiry_slot: args.expiry_slot,
+        side: o.side,
+        lots: args.lots,
+        all_in_limit: o
+            .limit
+            .checked_mul(args.lots)
+            .ok_or(ClearingError::Arithmetic)?,
+        max_fee: o.fee_budget - o.fee_charged,
+        reduce_only: o.reduce_only,
+        generation: if o.reduce_only {
+            Some(o.generation)
+        } else {
+            None
+        },
+        legs: args.legs,
+    };
+    let event = execute_core(route_accounts!(a), intent, Some(index))?;
+    emit_cpi!(event);
+    Ok(())
+}
+fn execute_core(
+    mut a: RouteAccounts,
+    intent: RouteIntent,
+    order_index: Option<usize>,
+) -> Result<RouteExecuted> {
+    require!(cfg!(feature = "local-test-profile"), ClearingError::Profile);
     custody::profile(&a.market)?;
     require!(
         a.market.mode == 1 || a.market.mode == 2,
@@ -476,14 +631,16 @@ pub fn execute(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
             ClearingError::RouteLimit
         );
     }
-    let (next, maker_next, fee) = math::route::apply(
+    let prefix = order_index
+        .map(|i| a.trader.book.orders[i].notional)
+        .unwrap_or(0);
+    let (next, maker_next, fee) = math::route::candidate(
         trader,
         &makers,
         &legs,
         intent.side,
-        a.route_state.lower,
-        a.route_state.upper,
         a.market.funding_index_scaled,
+        prefix,
     )
     .map_err(|_| error!(ClearingError::RouteHealth))?;
     require!(
@@ -523,13 +680,110 @@ pub fn execute(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
         gross_lots <= math::MAX_GROSS_LOTS,
         ClearingError::RouteHealth
     );
+    finish(
+        a,
+        FillPlan {
+            intent,
+            order_index,
+            quotes,
+            next,
+            maker_next,
+            fee,
+            gross,
+            gross_lots,
+            slot,
+        },
+    )
+}
+struct FillPlan {
+    intent: RouteIntent,
+    order_index: Option<usize>,
+    quotes: Vec<maker_interface::QuoteResponse>,
+    next: math::Participant,
+    maker_next: Vec<math::Participant>,
+    fee: u64,
+    gross: u64,
+    gross_lots: u64,
+    slot: u64,
+}
+#[inline(never)]
+fn finish(mut a: RouteAccounts, plan: FillPlan) -> Result<RouteExecuted> {
+    let FillPlan {
+        intent,
+        order_index,
+        quotes,
+        next,
+        maker_next,
+        fee,
+        gross,
+        gross_lots,
+        slot,
+    } = plan;
+    let count = quotes.len();
+    let (order_id, order_version) = if let Some(i) = order_index {
+        let o = &mut a.trader.book.orders[i];
+        o.filled = o
+            .filled
+            .checked_add(intent.lots)
+            .ok_or(ClearingError::Arithmetic)?;
+        o.notional = o
+            .notional
+            .checked_add(gross)
+            .ok_or(ClearingError::Arithmetic)?;
+        o.fee_charged = o
+            .fee_charged
+            .checked_add(fee)
+            .ok_or(ClearingError::Arithmetic)?;
+        require!(
+            o.filled <= o.lots && o.fee_charged <= o.fee_budget,
+            ClearingError::OrderState
+        );
+        if o.filled == o.lots {
+            o.state = crate::orders::FILLED;
+        } else {
+            o.state = crate::orders::PARTIAL;
+        }
+        let (id, version, group) = (o.id, o.version, o.group_id);
+        if group > 0 {
+            let g = a
+                .trader
+                .book
+                .groups
+                .iter_mut()
+                .find(|g| g.id == group)
+                .ok_or(ClearingError::OrderState)?;
+            g.remaining = g
+                .remaining
+                .checked_sub(intent.lots)
+                .ok_or(ClearingError::OrderState)?;
+        }
+        (id, version)
+    } else {
+        (0, 0)
+    };
     a.trader.nonce = a
         .trader
         .nonce
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
     commit(&mut a.trader, next);
+    crate::orders::refresh(&mut a.trader, &a.market, &a.route_state)?;
+    participant_model(&a.trader)?
+        .admissible(
+            a.route_state.lower,
+            a.route_state.upper,
+            a.market.funding_index_scaled,
+        )
+        .map_err(|_| error!(ClearingError::RouteHealth))?;
     commit(&mut a.first_capital, maker_next[0]);
+    crate::orders::refresh(&mut a.first_capital, &a.market, &a.route_state)?;
+    participant_model(&a.first_capital)?
+        .admissible(
+            a.route_state.lower,
+            a.route_state.upper,
+            a.market.funding_index_scaled,
+        )
+        .map_err(|_| error!(ClearingError::RouteHealth))?;
     let mut events = vec![consume(
         &mut a.first_registration,
         &quotes[0],
@@ -538,6 +792,14 @@ pub fn execute(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
     if count == 2 {
         let p = a.second_capital.as_mut().unwrap();
         commit(p, maker_next[1]);
+        crate::orders::refresh(p, &a.market, &a.route_state)?;
+        participant_model(p)?
+            .admissible(
+                a.route_state.lower,
+                a.route_state.upper,
+                a.market.funding_index_scaled,
+            )
+            .map_err(|_| error!(ClearingError::RouteHealth))?;
         events.push(consume(
             a.second_registration.as_mut().unwrap(),
             &quotes[1],
@@ -574,6 +836,11 @@ pub fn execute(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
         trader_lots: next.lots,
         trader_virtual: next.virtual_scaled,
         trader_generation: next.generation,
+        trader_reserved: a.trader.reserved,
+        trader_order_ids: a.trader.order_ids,
+        trader_book: a.trader.book,
+        order_id,
+        order_version,
         funding_index_scaled: a.market.funding_index_scaled,
         funding_time: a.market.funding_time,
         total_cash: a.market.total_cash,
@@ -581,6 +848,5 @@ pub fn execute(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
         gross_lots,
         legs: events,
     };
-    emit_cpi!(event);
-    Ok(())
+    Ok(event)
 }

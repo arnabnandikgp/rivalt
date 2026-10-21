@@ -127,7 +127,7 @@ export class Indexer {
     participants.forEach((key,i) => {
       const p = sdk.getParticipantDecoder().decode(data(3+i));
       assert.equal(p.market,market); assert.equal(p.schemaVersion,1);
-      for (const [field,value] of Object.entries(state.participants[key])) assert.equal(json((p as any)[field]),json(value),`Participant ${field}`);
+      for (const [field,value] of Object.entries(state.participants[key])) assert.deepEqual(JSON.parse(json((p as any)[field])),JSON.parse(json(value)),`Participant ${field}`);
     });
     const token = data(2,'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
     assert.equal(token.length,165); const actualVault=token.readBigUInt64LE(64);

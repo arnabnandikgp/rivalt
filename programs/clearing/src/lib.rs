@@ -1,4 +1,6 @@
 use anchor_lang::prelude::*;
+pub mod orders;
+pub use orders::*;
 pub mod custody;
 pub use custody::*;
 pub mod makers;
@@ -17,6 +19,39 @@ declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
 #[program]
 pub mod clearing {
     use super::*;
+
+    pub fn place_order(
+        ctx: Context<ManageOrder>,
+        expected_id: u64,
+        terms: OrderTerms,
+    ) -> Result<()> {
+        orders::place(ctx, expected_id, terms)
+    }
+    pub fn replace_order(
+        ctx: Context<ManageOrder>,
+        id: u64,
+        version: u64,
+        terms: OrderTerms,
+    ) -> Result<()> {
+        orders::replace(ctx, id, version, terms)
+    }
+    pub fn cancel_order(ctx: Context<CancelOrder>, id: u64, version: u64) -> Result<()> {
+        orders::cancel(ctx, id, version)
+    }
+    pub fn place_protection(
+        ctx: Context<ManageOrder>,
+        expected_id: u64,
+        tp: OrderTerms,
+        sl: OrderTerms,
+    ) -> Result<()> {
+        orders::protect(ctx, expected_id, tp, sl)
+    }
+    pub fn cancel_protection(ctx: Context<CancelOrder>, group_id: u64, version: u64) -> Result<()> {
+        orders::cancel_group(ctx, group_id, version)
+    }
+    pub fn cleanup_orders(ctx: Context<CleanupOrders>) -> Result<()> {
+        orders::cleanup(ctx)
+    }
 
     pub fn initialize_oracle(
         ctx: Context<InitializeOracle>,
@@ -78,6 +113,9 @@ pub mod clearing {
         duration: u64,
     ) -> Result<()> {
         routes::publish_risk(ctx, reference, duration)
+    }
+    pub fn execute_order(ctx: Context<ExecuteOrder>, args: OrderExecution) -> Result<()> {
+        routes::execute_order(ctx, args)
     }
     pub fn execute_route(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
         routes::execute(ctx, intent)
@@ -252,4 +290,12 @@ pub enum ClearingError {
     OracleSource,
     #[msg("Oracle action mode, sample timing or source policy rejects action")]
     OraclePolicy,
+    #[msg("Stored order identity, version, prefix or state mismatch")]
+    OrderState,
+    #[msg("Order quantity, limits, lifetime, trigger or generation rejected")]
+    OrderTerms,
+    #[msg("No free bounded order/protective-group slot")]
+    OrderSlots,
+    #[msg("Current central index does not satisfy stored trigger")]
+    OrderTrigger,
 }
