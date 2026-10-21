@@ -111,6 +111,18 @@ export async function oracleCases(h:OracleHarness){
   await h.send('complete flat solvent cohort can certify without current prices',[await cohort()]);
   await h.send('direct owner funded cash exit survives source outage',[await sdk.getWithdrawTradingInstructionAsync({...a,participant:trader,quoteMint:a.mint.address,userToken:a.token.address,sequence:(await market()).sequence,observation:(await risk()).observationSequence,amount:1n})],[owner]);
 
+  // Exercise actual collect/settle with retained nonzero funding checkpoints.
+  const debtor=await participant(),loss=(-debtor.virtualScaled)/1_000_000_000n;
+  assert(loss>0n&&loss<debtor.cash);
+  const poolBefore=(await market()).settlement;
+  await h.send('collect whole loss while retaining participant-owned funding fraction',[await sdk.getCollectLossInstructionAsync({...a,participant:trader,sequence:(await market()).sequence,observation:(await risk()).observationSequence,amount:loss})]);
+  assert.equal((await participant()).virtualScaled,debtor.virtualScaled+loss*1_000_000_000n);assert.equal((await participant()).cash,debtor.cash-loss);assert.equal((await market()).settlement,poolBefore+loss);
+  for(const x of makers){
+    const p=await participant(x.capital),gain=p.virtualScaled/1_000_000_000n;assert(gain>0n);
+    await h.send('certify checkpoint-adjusted flat cohort for funded fractional settlement',[await cohort()]);
+    await h.send('settle whole funded gain without transferring or rounding up fractional claim',[await sdk.getSettleGainInstructionAsync({...a,participant:x.capital,sequence:(await market()).sequence,observation:(await risk()).observationSequence,amount:gain})]);
+    assert.equal((await participant(x.capital)).virtualScaled,p.virtualScaled-gain*1_000_000_000n);assert.equal((await participant(x.capital)).cash,p.cash+gain);
+  }
   await h.send('recertify flat cohort before maker funded cash exit',[await cohort()]);
   const makerCash=(await participant(makers[0].capital)).cash;
   await h.send('maker can withdraw own funded cash while retaining unpaid claims',[await sdk.getWithdrawTradingInstructionAsync({...a,owner:makers[0].owner,participant:makers[0].capital,quoteMint:a.mint.address,userToken:makers[0].token.address,sequence:(await market()).sequence,observation:(await risk()).observationSequence,amount:makerCash})],[makers[0].owner]);

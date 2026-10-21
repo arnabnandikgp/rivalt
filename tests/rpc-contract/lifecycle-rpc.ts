@@ -96,7 +96,7 @@ try{
   const api=start('api');executor=start('executor',{RIVALT_RPC_URL:proxyUrl});
   let makerA=start('maker-a',{RIVALT_SIGNER_PATH:paths.a}),makerB=start('maker-b',{RIVALT_SIGNER_PATH:paths.b});
   await wait(()=>get('/ready'),x=>x.ready,'service readiness');
-  await wait(()=>get('/v1/operators'),x=>x.makers.length===2 && x.makers.every((m:any)=>m.online && BigInt(m.quoteEpoch)>=2n),'distinct maker daemons publish expired epochs');
+  await wait(()=>get('/v1/operators'),x=>x.makers.length===2 && x.makers.every((m:any)=>m.online && BigInt(m.quoteEpoch)>=2n),'distinct maker daemons publish expired epochs',20_000+512*Number(process.env.RIVALT_SLOT_TIME??100));
   assert.notEqual(makerA.pid,makerB.pid);assert.notEqual(makers[0].owner.address,makers[1].owner.address);
   record('separate A/B keypairs and processes publish/sync real expired epochs; funded fee budgets visible');
   drop=true;

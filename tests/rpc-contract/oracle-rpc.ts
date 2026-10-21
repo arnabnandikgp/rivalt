@@ -16,7 +16,7 @@ import {publishFeed,feedAddress,type SourceChange} from './oracle-fixture.js';
 import {WireRpc} from './wire.js';
 const dir=process.env.RIVALT_RUN_DIR!,url=process.env.RIVALT_RPC_URL!,database=process.env.RIVALT_DATABASE_URL!,runId=dir.split('/').at(-1)!;
 const rpc=new WireRpc(url),connection=new Connection(url,'confirmed'),payer=await payerKey(),a=await addresses();
-const custody=JSON.parse(readFileSync(`${dir}/custody.json`,'utf8')),checks:string[]=[],transactions:any[]=[],children:ChildProcess[]=[];
+const custody=JSON.parse(readFileSync(`${dir}/custody.json`,'utf8')),checks:string[]=[],transactions:any[]=[],children:ChildProcess[]=[],roles=new Map<ChildProcess,string>();
 const record=(name:string)=>{checks.push(name);console.log(`Oracle RPC: ${name}`);};
 async function wait<T>(read:()=>Promise<T>,accept:(v:T)=>boolean,label:string,timeout=30000){const end=Date.now()+timeout;let last:any;while(Date.now()<end){try{last=await read();if(accept(last))return last;}catch(e){last=e;}await delay(150);}throw new Error(`${label}: ${last instanceof Error?last.message:json(last)}`);}
 const read=async(key:string)=>{const x=await rpc.call('getAccountInfo',[key,{encoding:'base64',commitment:'finalized'}]);return x.value?Buffer.from(x.value.data[0],'base64'):null;};
@@ -40,7 +40,7 @@ const keyPath=(name:string,key:Keypair)=>{const path=`${dir}/${name}.json`;write
 const paths={funding:keyPath('funding-key',fundingKey),a:keyPath('maker-a-key',makers[0].owner),b:keyPath('maker-b-key',makers[1].owner)};
 const indexer=new Indexer({rpcUrl:url,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl:database,runId,market:a.market,anchor:custody.checks.find((x:any)=>x.label==='initialize custody market').signature}),runtime=new Runtime(database,runId,url);
 let running=true,sourceRunning=true,sourceEnabled=true,changes:Record<number,SourceChange>={},indexLoop:Promise<void>|undefined,sourceLoop:Promise<void>|undefined,number=0;
-function start(role:string,path?:string){const fd=openSync(`${dir}/service-${role}-${++number}.log`,'w');const p=spawn(process.execPath,['--import','tsx','packages/services/src/main.ts'],{env:{...process.env,RIVALT_RUN_ID:runId,RIVALT_SERVICE_ROLE:role,...(path?{RIVALT_SIGNER_PATH:path}:{})},stdio:['ignore',fd,fd]});closeSync(fd);children.push(p);return p;}
+function start(role:string,path?:string){const fd=openSync(`${dir}/service-${role}-${++number}.log`,'w');const p=spawn(process.execPath,['--import','tsx','packages/services/src/main.ts'],{env:{...process.env,RIVALT_RUN_ID:runId,RIVALT_SERVICE_ROLE:role,...(path?{RIVALT_SIGNER_PATH:path}:{})},stdio:['ignore',fd,fd]});closeSync(fd);children.push(p);roles.set(p,role);return p;}
 async function stop(p:ChildProcess){if(p.exitCode!==null||p.signalCode!==null)return;const done=new Promise<void>(resolve=>p.once('exit',()=>resolve()));p.kill('SIGTERM');await Promise.race([done,delay(10000).then(()=>{if(p.exitCode===null&&p.signalCode===null){p.kill('SIGKILL');throw new Error('Worker stop timeout');}})]);}
 async function publish(){const time=await now(),ixs=await Promise.all([0,1,2,3].map(i=>publishFeed(i,time,changes[i])));await send('signed controlled local dependency updates',ixs,[setup.primary,setup.guardKey]);}
 const api='http://127.0.0.1:18081';
@@ -94,7 +94,10 @@ try{
   await send('deposit remains independent of failing funding sources',[await sdk.getDepositInstructionAsync({...a,owner,participant:trader,quoteMint:setup.mint.address,userToken:setup.token.address,amount:1n})],[owner]);
   record('stale authenticated sources block valuation while ordinary deposit remains available');
   sourceEnabled=true;await publish();await wait(()=>runtime.snapshot(),s=>s.sourceMode==='Normal','final source recovery');
-  await stop(worker);sourceRunning=false;await sourceLoop;await wait(()=>runtime.store.pool.query("SELECT count(*)::int AS n FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[runId]),r=>r.rows[0].n===0,'durable jobs reconciled');
+  await stop(worker);
+  for(const p of children.filter(p=>['maker-a','maker-b'].includes(roles.get(p)??'')))await stop(p);
+  sourceRunning=false;await sourceLoop;await wait(()=>runtime.store.pool.query("SELECT count(*)::int AS n FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[runId]),r=>r.rows[0].n===0,'durable jobs reconciled');
+  for(const p of children)await stop(p);
   running=false;await indexLoop;await indexer.cycle();const snapshot=await runtime.snapshot(),row=await indexer.store.snapshot();assert.equal(row.state.sequence,snapshot.m.sequence.toString());
   const rebuild=new Indexer({rpcUrl:url,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl:database,runId:runId+'-rebuild',market:a.market,anchor:custody.checks.find((x:any)=>x.label==='initialize custody market').signature});
   try{await rebuild.open();await rebuild.cycle();assert.deepEqual((await rebuild.store.snapshot()).state,row.state);}finally{await rebuild.close();}
