@@ -45,6 +45,11 @@ const m = sdk.getMarketStateDecoder().decode((await h.read(a.market))!), r = sdk
 const ix = await sdk.getPreviewMakerInstructionAsync({ ...x, side:0,lots:10n,referencePrice:60_000n,quoteEpoch:r.quoteEpoch,authorityEpoch:r.authorityEpoch,termsEpoch:m.termsEpoch,configEpoch:m.configEpoch });
 await h.send('reject unapproved ProgramData metadata change', [ix], [], 6114);
 svm.setAccount(module);await h.quote('quote after exact deployment fixture restoration', ix);
+const config = svm.getAccount(x.config);assert(config.exists);
+const badVersion = Buffer.from(config.data);badVersion.writeUInt16LE(2, 8);
+svm.setAccount({ ...config, data: badVersion });
+await h.send('reject unsupported maker config version', [ix], [], 6110);
+svm.setAccount(config);await h.quote('quote after exact config fixture restoration', ix);
 const evidence = { revision: execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),sourceDirty:execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim()!=='',runtime:'litesvm node 1.6.1',setupCount,checks,result,
   binaries:Object.fromEntries(['clearing','maker_a','maker_b'].map(n=>[n,createHash('sha256').update(readFileSync(`target/deploy/${n}.so`)).digest('hex')])) };
 writeFileSync('.local/p03-svm.json',JSON.stringify(evidence,(_,v)=>typeof v==='bigint'?v.toString():v,2)+'\n');

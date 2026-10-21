@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { getAddressEncoder, getProgramDerivedAddress, type Address, type Instruction } from '@solana/kit';
 import { Keypair } from '@solana/web3.js';
 import { getCreateAccountInstruction, getTransferSolInstruction } from '@solana-program/system';
-import { TOKEN_PROGRAM_ADDRESS, getInitializeAccount3Instruction, getMintToInstruction } from '@solana-program/token';
+import { TOKEN_PROGRAM_ADDRESS, getInitializeAccount3Instruction, getMintToInstruction, getTokenDecoder } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import { addresses, fixtureKey, LOADER, payerKey, type Harness } from './custody-cases.js';
 
@@ -38,6 +38,10 @@ export async function makerCases(h: MakerHarness) {
       getMintToInstruction({ mint: mint.address, token: a.token.address, mintAuthority: payer, amount: 1_000_000_000n }),
     ], [a.owner, a.token]);
     const api = id === 0 ? sdk.makerA : sdk.makerB;
+    if (id === 0) {
+      await h.send('reject maker epoch shorter than profile minimum', [await api.getInitializeConfigInstructionAsync({ ...a, domain, duration:63n })], [a.owner], 6002);
+      assert.equal(await h.read(a.config), null);
+    }
     await h.send(`initialize maker ${id} config`, [await api.getInitializeConfigInstructionAsync({ ...a, domain, duration: 3600n })], [a.owner]);
   }
   const [a, b] = makers;
@@ -116,6 +120,10 @@ export async function makerCases(h: MakerHarness) {
   await h.send('reject replayed epoch sync', [await sdk.getSyncMakerEpochInstructionAsync(a)], [], 6112);
   const finalMarket = await market();
   assert.equal(finalMarket.totalCash, 1_000_000_000n);assert.equal(finalMarket.settlement, 0n);assert.equal(finalMarket.fees, 0n);
+  const vault = getTokenDecoder().decode((await h.read(a.vault))!);
+  assert.equal(vault.owner, a.market); assert.equal(vault.mint, mint.address);
+  assert.equal(vault.amount, finalMarket.allocatedVault);
+  assert.equal(vault.amount, finalMarket.totalCash + finalMarket.settlement + finalMarket.insurance + finalMarket.fees);
   for (const x of makers) { const p = sdk.getParticipantDecoder().decode((await h.read(x.capital))!);assert.equal(p.cash,500_000_000n);assert.equal(p.lots,0n);assert.equal(p.virtualScaled,0n); }
-  return { quoted, registrations: await Promise.all([0, 1].map(registration)), configs: await Promise.all([0, 1].map(state)), finalMarket };
+  return { quoted, registrations: await Promise.all([0, 1].map(registration)), configs: await Promise.all([0, 1].map(state)), finalMarket, actualVaultAtoms: vault.amount };
 }

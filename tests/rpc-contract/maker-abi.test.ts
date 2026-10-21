@@ -51,7 +51,7 @@ describe('P03 maker ABI and exact quote contracts', () => {
     for(let i=0;i<4000;i++) {
       seed=(seed*6364136223846793005n+1n)&((1n<<64n)-1n);
       const id=Number(seed%2n),side=Number((seed>>7n)%2n),inventory=(seed>>9n)%2049n-1024n;
-      const consumed=(seed>>23n)%400n,lots=1n+(seed>>31n)%100n;
+      const consumed=(seed>>23n)%(id===0?400n:3996n),lots=1n+(seed>>31n)%100n;
       const state={version:1,makerId:id,owner:a.owner.address,market:a.market,capital:a.capital,domain,quoteEpoch:1n,startSlot:100n,expirySlot:500n,bump:255};
       const req={version:1,domain,market:a.market,capital:a.capital,quoteEpoch:1n,authorityEpoch:1n,termsEpoch:1n,marketConfigEpoch:1n,side,lots,inventory,cash:1_000_000_000n,inventoryLimit:100_000n,consumed,referencePrice:60_000n,slot:100n};
       let expected=0n;

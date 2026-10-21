@@ -44,7 +44,14 @@ fn small_and_large_orders_have_different_winners() {
     x.lots = 100;
     assert_eq!(quote(&a, &x).unwrap().gross_quote, 6_005_950);
     assert_eq!(quote(&b, &x).unwrap().gross_quote, 6_003_000);
+    x.lots = 512;
+    assert_eq!(quote(&a, &x).unwrap().gross_quote, 30_855_936);
+    x.lots = 4096;
+    assert_eq!(quote(&b, &x).unwrap().gross_quote, 253_253_760);
     x.side = 1;
+    assert_eq!(quote(&b, &x).unwrap().gross_quote, 238_266_240);
+    x.lots = 512;
+    assert_eq!(quote(&a, &x).unwrap().gross_quote, 30_584_064);
     x.lots = 10;
     assert_eq!(quote(&a, &x).unwrap().gross_quote, 599_855);
     assert_eq!(quote(&b, &x).unwrap().gross_quote, 599_700);
@@ -62,7 +69,7 @@ fn independent_per_lot_oracle_checks_both_curves() {
         let (s, mut r) = fixture(id);
         r.side = ((seed >> 7) % 2) as u8;
         r.inventory = ((seed >> 9) % 2049) as i64 - 1024;
-        r.consumed = (seed >> 23) % 400;
+        r.consumed = (seed >> 23) % if id == 0 { 400 } else { 3_996 };
         r.lots = 1 + (seed >> 31) % 100;
         let center = 60_000
             - if id == 0 {

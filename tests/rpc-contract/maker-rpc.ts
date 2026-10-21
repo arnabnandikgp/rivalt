@@ -82,8 +82,11 @@ try {
   eventBytes.forEach((x,i)=>assert.deepEqual(legacy.events[i].data,canonical(sdk.parseMakerChangedEvent(Buffer.from(x,'base64')))));
   const finalMarket=sdk.getMarketStateDecoder().decode((await h.read(a.market))!);
   assert.equal(finalMarket.sequence,starting+BigInt(events.length));
+  const tokenBalance=await rpc.call('getTokenAccountBalance',[a.vault,{commitment:'finalized'}]);
+  assert.equal(tokenBalance.value.amount,'1000010007');assert.equal(tokenBalance.value.decimals,6);
+  assert.equal(finalMarket.allocatedVault,BigInt(tokenBalance.value.amount));
   const evidence={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),sourceDirty:execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim()!=='',
-    runtime:await rpc.call('getVersion'),runId:dir,slotTimeMs:process.env.RIVALT_SLOT_TIME??'100',checks,events,result,finalMarket,deployment,logsNotifications:ws.notifications.length,
+    runtime:await rpc.call('getVersion'),runId:dir,slotTimeMs:process.env.RIVALT_SLOT_TIME??'100',checks,events,result,finalMarket,tokenBalance,deployment,logsNotifications:ws.notifications.length,
     binaries:Object.fromEntries(['clearing','maker_a','maker_b'].map(n=>[n,createHash('sha256').update(readFileSync(`target/deploy/${n}.so`)).digest('hex')]))};
   writeFileSync(`${dir}/maker-rpc.json`,serial(evidence));writeFileSync(`${dir}/maker-failed-transactions.json`,serial(failed));
   console.log(`Maker Surfpool: ${checks.length} signed scenarios; ${events.length} committed clearing events; ${returns.length} independently decoded returns; actual upgrade rejection/reapproval passed.`);
