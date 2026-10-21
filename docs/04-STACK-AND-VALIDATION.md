@@ -26,6 +26,8 @@ P01 implementation addendum: exact installed versions, archive hashes, the isola
 
 P02 adds exact `anchor-spl` 1.2.1, Node LiteSVM 1.6.1, modern classic token client 0.18.0 and system client 0.16.0. LiteSVM and Surfpool run the same signed custody scenarios, then each environment adds its own relevant checks. Economics use hand-calculated Rust assertions plus an independent Python `Fraction` oracle with a fixed seed and arbitrary-sized integers; this phase does not add a proptest dependency. Oversized SBF stack diagnostics are fatal even when LLVM returns zero. The guard uses system `grep` and also rejects an unreadable log or a failed checker. See [ACCOUNTING-AND-CUSTODY](P02-ACCOUNTING-AND-CUSTODY.md) and WORKLOG for actual scope and evidence.
 
+P03 retains the same external dependency versions; it explicitly uses the already locked solana-sha256-hasher 3.1.0 for full ProgramData approval hashes. The three IDLs/SDKs have independent legacy parity, and Rust/TypeScript quote evaluation is checked against enumerated marginal-lot prices. Signed LiteSVM and Surfpool scenarios test capital bindings, read-only quote CPI, epochs and upgrade rejection. `RIVALT_SLOT_TIME=20 pnpm smoke` uses an explicitly recorded 20 ms local cadence; default remains 100 ms. Expiry still advances through actual slots over standard RPC, with no simulated financial effects.
+
 Primary references:
 - [Anchor 1.2.1](https://www.anchor-lang.com/docs/updates/release-notes/1-2-1)
 - [Anchor 1.2.0 CLI recommendation](https://www.anchor-lang.com/docs/updates/release-notes/1-2-0)

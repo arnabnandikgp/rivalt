@@ -1,7 +1,7 @@
 # Rivalt
 Implementation baseline R1 · 20 October 2026
 
-Rivalt is a new Solana perpetual venue with common clearing, isolated collateral and competing margined perpAMMs. The repository contains the implementation specification, local toolchain/SDK/RPC spine, checked financial core and custody-only clearing program. Maker execution, orders, funding and operational settlement/default arrive in later phases.
+Rivalt is a new Solana perpetual venue with common clearing, isolated collateral and competing margined perpAMMs. The repository contains the implementation specification, local toolchain/SDK/RPC spine, checked financial core, custody-only clearing, and separate A/B maker quote programs with funded-capital registration. Atomic fills, orders, funding and operational settlement/default arrive in later phases.
 
 ## Start here
 
@@ -21,6 +21,8 @@ Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product 
 | [docs/P01-SPINE.md](docs/P01-SPINE.md) | Reproducible local bootstrap, smoke command and probe contract |
 | [docs/P02-ACCOUNTING-AND-CUSTODY.md](docs/P02-ACCOUNTING-AND-CUSTODY.md) | Exact financial units, fractional default rule, custody authority/ABI and checks |
 
+| [docs/P03-MAKER-CONTRACT.md](docs/P03-MAKER-CONTRACT.md) | Maker curves, capital binding, bounded read-only CPI, epochs and upgrade controls |
+
 ## What “finalized” means
 
 The product architecture, economic contract, scope and delivery order are selected for implementation. Exact financial layouts, arithmetic bounds and synthetic risk parameters are phase deliverables with explicit deadlines in DECISIONS. The pinned P01 stack has its own executable checks; it does not validate later economic behavior.
@@ -35,10 +37,10 @@ The verified bootstrap profile is macOS arm64, using native processes. Install P
 
 ```sh
 source ops/env.sh
-pnpm smoke
+RIVALT_SLOT_TIME=20 pnpm smoke
 ```
 
-This installs frozen dependencies, builds the actual SBF program and IDL, checks the generated client against isolated legacy Anchor, runs independent financial and compiled-program tests, then starts offline Surfpool and verifies signed deployment, probe and real token custody over HTTP/WS. It shuts down only its own runtime. Evidence is written to `.local/runs/`.
+This installs frozen dependencies, builds all three SBF programs and IDLs, checks the generated client against isolated legacy Anchor, runs independent financial and compiled-program tests, then starts offline Surfpool and verifies signed deployment, probe, real token custody and maker quotes/epoch/upgrade controls over HTTP/WS. It shuts down only its own runtime. Evidence is written to `.local/runs/`. `RIVALT_SLOT_TIME` selects the local slot cadence in milliseconds (default 100); 20 keeps the real exclusive-expiry fixture short. This changes local wall time, not on-chain slot lifetimes.
 
 Only WORKLOG owns live phase status. The delivery plan defines scope and acceptance, while DECISIONS owns baseline amendments.
 

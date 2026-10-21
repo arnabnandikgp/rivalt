@@ -4,7 +4,6 @@ import { createFromRoot } from 'codama';
 import { rootNodeFromAnchor } from '@codama/nodes-from-anchor';
 import { renderVisitor } from '@codama/renderers-js';
 
-const idl = JSON.parse(readFileSync('packages/sdk/idl/clearing.json', 'utf8'));
 function snapshot(path: string): Record<string, string> {
   return Object.fromEntries(readdirSync(path, { recursive: true, withFileTypes: true })
     .filter(entry => entry.isFile())
@@ -13,11 +12,16 @@ function snapshot(path: string): Record<string, string> {
       return [file, readFileSync(file, 'utf8')];
     }).sort(([a], [b]) => a.localeCompare(b)));
 }
-const before = process.argv.includes('--check') ? snapshot('packages/sdk/src/generated') : undefined;
-const codama = createFromRoot(rootNodeFromAnchor(idl));
-await codama.accept(renderVisitor('packages/sdk', {
-  kitImportStrategy: 'rootOnly',
-  importExtension: 'js',
-  syncPackageJson: false,
-}));
-if (before) assert.deepEqual(snapshot('packages/sdk/src/generated'), before, 'Generated SDK differs from the checked-in files');
+for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generatedMakerA'], ['maker_b', 'generatedMakerB']]) {
+  const path = `packages/sdk/src/${folder}`;
+  const before = process.argv.includes('--check') ? snapshot(path) : undefined;
+  const idl = JSON.parse(readFileSync(`packages/sdk/idl/${program}.json`, 'utf8'));
+  const codama = createFromRoot(rootNodeFromAnchor(idl));
+  await codama.accept(renderVisitor('packages/sdk', {
+    generatedFolder: `src/${folder}`,
+    kitImportStrategy: 'rootOnly',
+    importExtension: 'js',
+    syncPackageJson: false,
+  }));
+  if (before) assert.deepEqual(snapshot(path), before, `Generated ${program} SDK differs from the checked-in files`);
+}

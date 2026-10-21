@@ -42,11 +42,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import {
-  findMarketPda,
-  findParticipantPda,
-  findVaultPda,
-} from "../pdas/index.js";
+import { findCapitalPda, findMarketPda, findVaultPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const DEPOSIT_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
@@ -292,7 +288,7 @@ export async function getDepositInstructionAsync<
     accounts.market.value = await findMarketPda({ programAddress });
   }
   if (!accounts.participant.value) {
-    accounts.participant.value = await findParticipantPda(
+    accounts.participant.value = await findCapitalPda(
       {
         market: getAddressFromResolvedInstructionAccount(
           "market",

@@ -10,6 +10,130 @@
   ],
   "instructions": [
     {
+      "name": "approve_maker",
+      "discriminator": [
+        182,
+        108,
+        6,
+        26,
+        13,
+        52,
+        208,
+        158
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "capital",
+            "registration"
+          ]
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "capital",
+            "registration"
+          ]
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          },
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "pricing_program",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "program_data",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "config",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "classify_surplus",
       "discriminator": [
         233,
@@ -454,6 +578,122 @@
       ]
     },
     {
+      "name": "preview_maker",
+      "discriminator": [
+        30,
+        210,
+        207,
+        120,
+        189,
+        100,
+        226,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "capital",
+            "registration"
+          ]
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "capital.owner",
+                "account": "Participant"
+              }
+            ]
+          },
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "registration"
+        },
+        {
+          "name": "pricing_program",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "program_data",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "config",
+          "relations": [
+            "registration"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "PreviewArgs"
+            }
+          }
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QuoteResponse"
+        }
+      }
+    },
+    {
       "name": "probe",
       "discriminator": [
         9,
@@ -530,6 +770,223 @@
               "name": "ProbeChoice"
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "quarantine_maker",
+      "discriminator": [
+        153,
+        18,
+        69,
+        131,
+        41,
+        154,
+        187,
+        101
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "register_maker",
+      "discriminator": [
+        148,
+        253,
+        56,
+        234,
+        31,
+        33,
+        225,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "capital"
+          ]
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "capital"
+          ]
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114,
+                  45,
+                  99,
+                  97,
+                  112,
+                  105,
+                  116,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pricing_program"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "config"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "maker_id",
+          "type": "u8"
+        },
+        {
+          "name": "inventory_limit",
+          "type": "u64"
         }
       ]
     },
@@ -737,6 +1194,116 @@
       ]
     },
     {
+      "name": "sync_maker_epoch",
+      "discriminator": [
+        176,
+        197,
+        132,
+        132,
+        121,
+        222,
+        151,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "capital",
+            "registration"
+          ]
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "capital.owner",
+                "account": "Participant"
+              }
+            ]
+          },
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "pricing_program",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "program_data",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "config",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "withdraw",
       "discriminator": [
         183,
@@ -874,6 +1441,32 @@
   ],
   "accounts": [
     {
+      "name": "CapitalBinding",
+      "discriminator": [
+        176,
+        183,
+        79,
+        146,
+        172,
+        158,
+        6,
+        18
+      ]
+    },
+    {
+      "name": "MakerRegistration",
+      "discriminator": [
+        231,
+        196,
+        106,
+        151,
+        199,
+        213,
+        13,
+        66
+      ]
+    },
+    {
       "name": "MarketState",
       "discriminator": [
         0,
@@ -938,6 +1531,19 @@
         178,
         196,
         158
+      ]
+    },
+    {
+      "name": "MakerChanged",
+      "discriminator": [
+        208,
+        85,
+        87,
+        120,
+        6,
+        221,
+        0,
+        171
       ]
     },
     {
@@ -1009,9 +1615,64 @@
       "code": 6109,
       "name": "Domain",
       "msg": "Domain identity must be nonzero"
+    },
+    {
+      "code": 6110,
+      "name": "MakerBinding",
+      "msg": "Maker program, config or capital binding mismatch"
+    },
+    {
+      "code": 6111,
+      "name": "MakerCapital",
+      "msg": "Maker capital is unfunded or outside the implemented profile"
+    },
+    {
+      "code": 6112,
+      "name": "MakerEpoch",
+      "msg": "Maker or market epoch mismatch or expired quote"
+    },
+    {
+      "code": 6113,
+      "name": "MakerQuarantined",
+      "msg": "Maker registration is quarantined"
+    },
+    {
+      "code": 6114,
+      "name": "MakerUpgrade",
+      "msg": "Maker deployment differs from approved ProgramData hash"
+    },
+    {
+      "code": 6115,
+      "name": "MakerQuote",
+      "msg": "Maker quote exceeds price, size or capacity bounds"
+    },
+    {
+      "code": 6116,
+      "name": "MakerResponse",
+      "msg": "Maker response producer, encoding or terms mismatch"
     }
   ],
   "types": [
+    {
+      "name": "CapitalBinding",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "registration",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
     {
       "name": "CustodyChanged",
       "type": {
@@ -1107,6 +1768,164 @@
           {
             "name": "paused",
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "registration",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "quarantined",
+            "type": "bool"
+          },
+          {
+            "name": "approved_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerRegistration",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pricing_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "program_data",
+            "type": "pubkey"
+          },
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "approved_hash",
+            "docs": [
+              "Entire loader ProgramData, including deployment slot, authority and code."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "inventory_limit",
+            "type": "u64"
+          },
+          {
+            "name": "buy_consumed",
+            "type": "u64"
+          },
+          {
+            "name": "sell_consumed",
+            "type": "u64"
+          },
+          {
+            "name": "quarantined",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -1305,6 +2124,42 @@
       }
     },
     {
+      "name": "PreviewArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "ProbeChoice",
       "type": {
         "kind": "enum",
@@ -1400,6 +2255,70 @@
                 "name": "ProbeChoice"
               }
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "QuoteResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross_quote",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "market_config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "consumed_before",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
           }
         ]
       }

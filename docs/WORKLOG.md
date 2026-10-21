@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** Both reviewed PRs are merged through `gh stack` into main at `3c1aae1d85b86829d0f921612c1b7e834d4fcf76`. All four findings are resolved; [fresh R004 acceptance](evidence/R004-REVIEW.md) and exact merged-tree parity close **M1/P01/P02**. P03 maker programs and capital authorization are now **In progress** on `phase/p03-makers`. Later financial instruction families remain disabled.
+**Current position:** Both reviewed PRs are merged through `gh stack` into main at `3c1aae1d85b86829d0f921612c1b7e834d4fcf76`. All four findings are resolved; [fresh R004 acceptance](evidence/R004-REVIEW.md) and exact merged-tree parity close **M1/P01/P02**. P03 maker programs and capital authorization are **In progress** on `phase/p03-makers`; compiled math/ABI/LiteSVM checks pass and full RPC acceptance is next. Later financial instruction families remain disabled.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -57,7 +57,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Last completed work: all four P01/P02 review findings fixed, 15 targeted guard checks and fresh full acceptance passed; review threads replied to and resolved.
 - Current implementation revision: `16e51e4937890db7fbc53ab09705deec4eb2aacd`; clean full acceptance `.local/runs/20261021T063416Z-59770`, all source identity records `sourceDirty: false`. P01 was separately verified on `081d614c927046408ec0eb6777cf8ae21e8bfda8`.
 - Active checkpoint: M1/P01/P02 Closed; P03 In progress on a new gh stack rooted at merged main.
-- Immediate task: implement P03 G04 maker pricing, distinct funded capital bindings and qualification tests on `phase/p03-makers`; publish ready for review after its executable acceptance.
+- Immediate task: run `source ops/env.sh && RIVALT_SLOT_TIME=20 pnpm smoke` on committed P03, resolve actual RPC findings, then publish its ready PR through gh stack.
 - Access needed now: none. GitHub ADMIN access was verified with network access; the sandbox-only authentication failure was not an actual credential failure. No devnet key or external maker is needed for P03.
 - Deferred external needs: secure devnet/feed access at P13; independent maker participation at P15; independent review/funded-pilot decision at P16.
 - Historical archives: optional targeted reference only; not an entry requirement.
@@ -137,6 +137,19 @@ A runtime compatibility failure belongs here with the exact package/command/erro
 - Integration: user explicitly directed proceeding without waiting for the automated re-review. `gh stack merge --yes --merge` atomically merged #1/#2 into `3c1aae1d85b86829d0f921612c1b7e834d4fcf76`; GitHub reports MERGED at 2026-10-21T06:41:52Z / 2026-10-21T06:41:53Z. P01 re-review was still pending at the last premerge check; no completed re-review is claimed. Fetched main and `git diff --exit-code a19c79c 3c1aae1d85b86829d0f921612c1b7e834d4fcf76` passed for the entire tree; executable content also equals tested `16e51e4`. M1/P01/P02 Closed. Documentation links, clean evidence identities and released loopback ports also pass. No further full rerun was needed after the content-identical merge.
 - Blockers: none.
 - Next exact action: implement G04 on `phase/p03-makers`, created with `gh stack init --base main phase/p03-makers`; open the next phase PR ready for review.
+
+### R005 — 21 October 2026 — P03 — maker programs and capital authorization
+
+- Starting baseline: verified merged main `3c1aae1d85b86829d0f921612c1b7e834d4fcf76`; branch created with `gh stack init --base main phase/p03-makers` after the user's instruction to merge and start the next PR.
+- Delivered so far: separate A/B deployments and owner-bound configs; shared bounded pricing contract; distinct owner-funded clearing registrations and anti-alias capital bindings; read-only CPI/return validation; checked expired-epoch publication/sync; quarantine and whole-ProgramData hash approval; three generated clients and bigint off-chain pricing. Financial fills remain absent.
+- Configuration/specifications: D22/G04 and P03-MAKER-CONTRACT pin exact curves, capacity, duration, reset, control, hash and return contracts. README, PROTOCOL, COMPONENTS and STACK-AND-VALIDATION updated. Existing participant PDA SDK entry point preserved as an alias after Codama's new capital-role naming.
+- Actual preliminary checks: locked SBF/IDL build for all three programs; 5 Rust maker tests with 4,000 independently enumerated marginal-lot vectors; typecheck; 10 Vitest tests including all eleven new instruction families against isolated legacy Anchor and the same 4,000 vectors in bigint TypeScript; 51 signed P03 LiteSVM scenarios plus 33 real custody setup scenarios. Wrong/unfunded/withdrawn capital, alias reuse, wrong module/config, stale/expired epochs, early/same-epoch reset, quarantine, wrong approval owner and unapproved ProgramData metadata reject. Quotes preserve actual balances and consumption. Full RPC acceptance remains pending at this checkpoint.
+- Failures resolved during implementation: Borsh 1.8 serialization uses serialize into Vec rather than removed try_to_vec; Codama flattens request structs and renames the shared participant PDA after the capital role; explicit common instruction typing preserves separate program IDs in cross-client tests. No external dependency versions changed.
+- Evidence so far: `.local/p03-build.log`, `.local/p03-math.log`, `.local/p03-abi.log`, `.local/p03-makers.log`, `.local/p03-svm.json` are preliminary dirty-tree results, not final acceptance authority.
+- Not run yet: combined clean-commit RPC/WS and actual local upgrade/reapproval acceptance. Not applicable: atomic routes, PostgreSQL/service lifecycle, authenticated sources/funding, orders/default, browser, soak, devnet and external/funded gates, which belong to later phases.
+- Status: P03/M2 In progress; A03/G04 full verification and ready PR publication pending. M1/P01/P02 remain Closed with recorded integration evidence.
+- Blockers: none.
+- Next exact action: commit the executable P03 checkpoint, run `source ops/env.sh && RIVALT_SLOT_TIME=20 pnpm smoke`, then record fresh acceptance and submit ready via gh stack.
 
 ## Template — append after each run
 

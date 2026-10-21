@@ -11,6 +11,8 @@ export CARGO_PROFILE_TEST_DEBUG=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
 node ops/local-keys.mjs
 mkdir -p target/deploy
 cp .local/keys/clearing.json target/deploy/clearing-keypair.json
+cp .local/keys/maker-a.json target/deploy/maker_a-keypair.json
+cp .local/keys/maker-b.json target/deploy/maker_b-keypair.json
 mkdir -p .local
 NO_DNA=1 anchor build --no-idl --tools-version v1.52 --arch v0 -- -- --locked 2>&1 | tee .local/sbf-build.log
 # LLVM can print these diagnostics yet return success. Never accept such an artifact.
@@ -22,5 +24,7 @@ elif [[ $? != 1 ]]; then
   exit 1
 fi
 mkdir -p packages/sdk/idl
-anchor idl build -p clearing -o packages/sdk/idl/clearing.json -- --locked
+for program in clearing maker_a maker_b; do
+  anchor idl build -p "$program" -o "packages/sdk/idl/$program.json" -- --locked
+done
 pnpm generate

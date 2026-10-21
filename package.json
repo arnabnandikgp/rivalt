@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.23.0",
-  "engines": { "node": "24.22.0" },
+  "engines": {
+    "node": "24.22.0"
+  },
   "scripts": {
     "generate": "node --import tsx ops/generate-sdk.ts",
     "generate:check": "node --import tsx ops/generate-sdk.ts --check",
@@ -12,7 +14,8 @@
     "test:financial": "bash ops/financial.sh",
     "test:svm": "node --import tsx tests/rpc-contract/custody-svm.ts",
     "conformance": "node tests/anchor-conformance/conformance.cjs",
-    "smoke": "bash ops/smoke.sh"
+    "smoke": "bash ops/smoke.sh",
+    "test:makers": "bash ops/makers.sh"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "1.5.6",

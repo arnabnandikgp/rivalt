@@ -1,6 +1,9 @@
 use anchor_lang::prelude::*;
 pub mod custody;
 pub use custody::*;
+pub mod makers;
+use maker_interface::QuoteResponse;
+pub use makers::*;
 
 declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
 
@@ -8,6 +11,26 @@ declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
 #[program]
 pub mod clearing {
     use super::*;
+
+    pub fn register_maker(
+        ctx: Context<RegisterMaker>,
+        maker_id: u8,
+        inventory_limit: u64,
+    ) -> Result<()> {
+        makers::register(ctx, maker_id, inventory_limit)
+    }
+    pub fn approve_maker(ctx: Context<ApproveMaker>) -> Result<()> {
+        makers::approve(ctx)
+    }
+    pub fn sync_maker_epoch(ctx: Context<SyncMaker>) -> Result<()> {
+        makers::sync(ctx)
+    }
+    pub fn quarantine_maker(ctx: Context<QuarantineMaker>) -> Result<()> {
+        makers::quarantine(ctx)
+    }
+    pub fn preview_maker(ctx: Context<PreviewMaker>, args: PreviewArgs) -> Result<QuoteResponse> {
+        makers::preview(ctx, args)
+    }
 
     pub fn initialize_market(ctx: Context<InitializeMarket>, domain: [u8; 32]) -> Result<()> {
         custody::initialize(ctx, domain)
@@ -129,4 +152,18 @@ pub enum ClearingError {
     Profile,
     #[msg("Domain identity must be nonzero")]
     Domain,
+    #[msg("Maker program, config or capital binding mismatch")]
+    MakerBinding,
+    #[msg("Maker capital is unfunded or outside the implemented profile")]
+    MakerCapital,
+    #[msg("Maker or market epoch mismatch or expired quote")]
+    MakerEpoch,
+    #[msg("Maker registration is quarantined")]
+    MakerQuarantined,
+    #[msg("Maker deployment differs from approved ProgramData hash")]
+    MakerUpgrade,
+    #[msg("Maker quote exceeds price, size or capacity bounds")]
+    MakerQuote,
+    #[msg("Maker response producer, encoding or terms mismatch")]
+    MakerResponse,
 }

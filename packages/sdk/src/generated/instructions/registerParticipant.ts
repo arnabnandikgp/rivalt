@@ -41,8 +41,8 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import {
+  findCapitalPda,
   findMarketPda,
-  findParticipantPda,
   findRegistryPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
@@ -266,7 +266,7 @@ export async function getRegisterParticipantInstructionAsync<
     );
   }
   if (!accounts.participant.value) {
-    accounts.participant.value = await findParticipantPda(
+    accounts.participant.value = await findCapitalPda(
       {
         market: getAddressFromResolvedInstructionAccount(
           "market",

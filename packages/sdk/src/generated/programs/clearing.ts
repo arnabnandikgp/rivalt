@@ -35,10 +35,16 @@ import {
   type SelfPlanAndSendFunctions,
 } from "@solana/kit/program-client-core";
 import {
+  getCapitalBindingCodec,
+  getMakerRegistrationCodec,
   getMarketStateCodec,
   getParticipantCodec,
   getParticipantRegistryCodec,
   getProbeRecordCodec,
+  type CapitalBinding,
+  type CapitalBindingArgs,
+  type MakerRegistration,
+  type MakerRegistrationArgs,
   type MarketState,
   type MarketStateArgs,
   type Participant,
@@ -49,42 +55,63 @@ import {
   type ProbeRecordArgs,
 } from "../accounts/index.js";
 import {
+  getApproveMakerInstructionAsync,
   getClassifySurplusInstructionAsync,
   getDepositInstructionAsync,
   getFundInsuranceInstructionAsync,
   getInitializeMarketInstructionAsync,
+  getPreviewMakerInstructionAsync,
   getProbeInstructionAsync,
+  getQuarantineMakerInstructionAsync,
+  getRegisterMakerInstructionAsync,
   getRegisterParticipantInstructionAsync,
   getSetCustodyPauseInstructionAsync,
+  getSyncMakerEpochInstructionAsync,
   getWithdrawInstructionAsync,
+  parseApproveMakerInstruction,
   parseClassifySurplusInstruction,
   parseDepositInstruction,
   parseFundInsuranceInstruction,
   parseInitializeMarketInstruction,
+  parsePreviewMakerInstruction,
   parseProbeInstruction,
+  parseQuarantineMakerInstruction,
+  parseRegisterMakerInstruction,
   parseRegisterParticipantInstruction,
   parseSetCustodyPauseInstruction,
+  parseSyncMakerEpochInstruction,
   parseWithdrawInstruction,
+  type ApproveMakerAsyncInput,
   type ClassifySurplusAsyncInput,
   type DepositAsyncInput,
   type FundInsuranceAsyncInput,
   type InitializeMarketAsyncInput,
+  type ParsedApproveMakerInstruction,
   type ParsedClassifySurplusInstruction,
   type ParsedDepositInstruction,
   type ParsedFundInsuranceInstruction,
   type ParsedInitializeMarketInstruction,
+  type ParsedPreviewMakerInstruction,
   type ParsedProbeInstruction,
+  type ParsedQuarantineMakerInstruction,
+  type ParsedRegisterMakerInstruction,
   type ParsedRegisterParticipantInstruction,
   type ParsedSetCustodyPauseInstruction,
+  type ParsedSyncMakerEpochInstruction,
   type ParsedWithdrawInstruction,
+  type PreviewMakerAsyncInput,
   type ProbeAsyncInput,
+  type QuarantineMakerAsyncInput,
+  type RegisterMakerAsyncInput,
   type RegisterParticipantAsyncInput,
   type SetCustodyPauseAsyncInput,
+  type SyncMakerEpochAsyncInput,
   type WithdrawAsyncInput,
 } from "../instructions/index.js";
 import {
+  findBindingPda,
+  findCapitalPda,
   findMarketPda,
-  findParticipantPda,
   findRecordPda,
   findRegistryPda,
   findVaultPda,
@@ -94,6 +121,8 @@ export const CLEARING_PROGRAM_ADDRESS =
   "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo" as Address<"Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo">;
 
 export enum ClearingAccount {
+  CapitalBinding,
+  MakerRegistration,
   MarketState,
   Participant,
   ParticipantRegistry,
@@ -104,6 +133,28 @@ export function identifyClearingAccount(
   account: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingAccount {
   const data = "data" in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([176, 183, 79, 146, 172, 158, 6, 18]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.CapitalBinding;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([231, 196, 106, 151, 199, 213, 13, 66]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.MakerRegistration;
+  }
   if (
     containsBytes(
       data,
@@ -156,6 +207,7 @@ export function identifyClearingAccount(
 
 export enum ClearingEvent {
   CustodyChanged,
+  MakerChanged,
   ProbeRecorded,
 }
 
@@ -178,6 +230,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([208, 85, 87, 120, 6, 221, 0, 171]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MakerChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([63, 158, 201, 180, 143, 158, 27, 151]),
       ),
       0,
@@ -191,13 +254,18 @@ export function identifyClearingEvent(
 }
 
 export enum ClearingInstruction {
+  ApproveMaker,
   ClassifySurplus,
   Deposit,
   FundInsurance,
   InitializeMarket,
+  PreviewMaker,
   Probe,
+  QuarantineMaker,
+  RegisterMaker,
   RegisterParticipant,
   SetCustodyPause,
+  SyncMakerEpoch,
   Withdraw,
 }
 
@@ -205,6 +273,17 @@ export function identifyClearingInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([182, 108, 6, 26, 13, 52, 208, 158]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ApproveMaker;
+  }
   if (
     containsBytes(
       data,
@@ -253,12 +332,45 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([30, 210, 207, 120, 189, 100, 226, 6]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PreviewMaker;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([9, 126, 79, 73, 106, 229, 245, 221]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.Probe;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([153, 18, 69, 131, 41, 154, 187, 101]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.QuarantineMaker;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([148, 253, 56, 234, 31, 33, 225, 11]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RegisterMaker;
   }
   if (
     containsBytes(
@@ -286,6 +398,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([176, 197, 132, 132, 121, 222, 151, 188]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SyncMakerEpoch;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([183, 18, 70, 156, 148, 109, 161, 34]),
       ),
       0,
@@ -303,6 +426,9 @@ export type ParsedClearingInstruction<
   TProgram extends string = "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
 > =
   | ({
+      instructionType: ClearingInstruction.ApproveMaker;
+    } & ParsedApproveMakerInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ClassifySurplus;
     } & ParsedClassifySurplusInstruction<TProgram>)
   | ({
@@ -315,14 +441,26 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.InitializeMarket;
     } & ParsedInitializeMarketInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.PreviewMaker;
+    } & ParsedPreviewMakerInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.Probe;
     } & ParsedProbeInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.QuarantineMaker;
+    } & ParsedQuarantineMakerInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RegisterMaker;
+    } & ParsedRegisterMakerInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.RegisterParticipant;
     } & ParsedRegisterParticipantInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.SetCustodyPause;
     } & ParsedSetCustodyPauseInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.SyncMakerEpoch;
+    } & ParsedSyncMakerEpochInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.Withdraw;
     } & ParsedWithdrawInstruction<TProgram>);
@@ -332,6 +470,13 @@ export function parseClearingInstruction<TProgram extends string>(
 ): ParsedClearingInstruction<TProgram> {
   const instructionType = identifyClearingInstruction(instruction);
   switch (instructionType) {
+    case ClearingInstruction.ApproveMaker: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ApproveMaker,
+        ...parseApproveMakerInstruction(instruction),
+      };
+    }
     case ClearingInstruction.ClassifySurplus: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -360,11 +505,32 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeMarketInstruction(instruction),
       };
     }
+    case ClearingInstruction.PreviewMaker: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PreviewMaker,
+        ...parsePreviewMakerInstruction(instruction),
+      };
+    }
     case ClearingInstruction.Probe: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.Probe,
         ...parseProbeInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.QuarantineMaker: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.QuarantineMaker,
+        ...parseQuarantineMakerInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.RegisterMaker: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RegisterMaker,
+        ...parseRegisterMakerInstruction(instruction),
       };
     }
     case ClearingInstruction.RegisterParticipant: {
@@ -379,6 +545,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.SetCustodyPause,
         ...parseSetCustodyPauseInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.SyncMakerEpoch: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SyncMakerEpoch,
+        ...parseSyncMakerEpochInstruction(instruction),
       };
     }
     case ClearingInstruction.Withdraw: {
@@ -406,6 +579,10 @@ export type ClearingPlugin = {
 };
 
 export type ClearingPluginAccounts = {
+  capitalBinding: ReturnType<typeof getCapitalBindingCodec> &
+    SelfFetchFunctions<CapitalBindingArgs, CapitalBinding>;
+  makerRegistration: ReturnType<typeof getMakerRegistrationCodec> &
+    SelfFetchFunctions<MakerRegistrationArgs, MakerRegistration>;
   marketState: ReturnType<typeof getMarketStateCodec> &
     SelfFetchFunctions<MarketStateArgs, MarketState>;
   participant: ReturnType<typeof getParticipantCodec> &
@@ -417,6 +594,11 @@ export type ClearingPluginAccounts = {
 };
 
 export type ClearingPluginInstructions = {
+  approveMaker: (
+    input: ApproveMakerAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getApproveMakerInstructionAsync> &
+    SelfPlanAndSendFunctions;
   classifySurplus: (
     input: ClassifySurplusAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -436,10 +618,25 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeMarketInstructionAsync> &
     SelfPlanAndSendFunctions;
+  previewMaker: (
+    input: PreviewMakerAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPreviewMakerInstructionAsync> &
+    SelfPlanAndSendFunctions;
   probe: (
     input: ProbeAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getProbeInstructionAsync> & SelfPlanAndSendFunctions;
+  quarantineMaker: (
+    input: QuarantineMakerAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getQuarantineMakerInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  registerMaker: (
+    input: RegisterMakerAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRegisterMakerInstructionAsync> &
+    SelfPlanAndSendFunctions;
   registerParticipant: (
     input: RegisterParticipantAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -450,6 +647,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSetCustodyPauseInstructionAsync> &
     SelfPlanAndSendFunctions;
+  syncMakerEpoch: (
+    input: SyncMakerEpochAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSyncMakerEpochInstructionAsync> &
+    SelfPlanAndSendFunctions;
   withdraw: (
     input: WithdrawAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -459,10 +661,11 @@ export type ClearingPluginInstructions = {
 
 export type ClearingPluginPdas = {
   market: typeof findMarketPda;
+  capital: typeof findCapitalPda;
   vault: typeof findVaultPda;
-  participant: typeof findParticipantPda;
   registry: typeof findRegistryPda;
   record: typeof findRecordPda;
+  binding: typeof findBindingPda;
 };
 
 export type ClearingPluginRequirements = ClientWithRpc<
@@ -480,6 +683,14 @@ export function clearingProgram(
     return extendClient(client, {
       clearing: <ClearingPlugin>{
         accounts: {
+          capitalBinding: addSelfFetchFunctions(
+            client,
+            getCapitalBindingCodec(),
+          ),
+          makerRegistration: addSelfFetchFunctions(
+            client,
+            getMakerRegistrationCodec(),
+          ),
           marketState: addSelfFetchFunctions(client, getMarketStateCodec()),
           participant: addSelfFetchFunctions(client, getParticipantCodec()),
           participantRegistry: addSelfFetchFunctions(
@@ -489,6 +700,14 @@ export function clearingProgram(
           probeRecord: addSelfFetchFunctions(client, getProbeRecordCodec()),
         },
         instructions: {
+          approveMaker: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getApproveMakerInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           classifySurplus: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -521,10 +740,34 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          previewMaker: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPreviewMakerInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           probe: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getProbeInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          quarantineMaker: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getQuarantineMakerInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          registerMaker: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRegisterMakerInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -545,6 +788,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          syncMakerEpoch: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSyncMakerEpochInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           withdraw: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -560,13 +811,13 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          vault: (seeds, pdaConfig) =>
-            findVaultPda(seeds, {
+          capital: (seeds, pdaConfig) =>
+            findCapitalPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          participant: (seeds, pdaConfig) =>
-            findParticipantPda(seeds, {
+          vault: (seeds, pdaConfig) =>
+            findVaultPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
@@ -577,6 +828,11 @@ export function clearingProgram(
             }),
           record: (seeds, pdaConfig) =>
             findRecordPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          binding: (seeds, pdaConfig) =>
+            findBindingPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

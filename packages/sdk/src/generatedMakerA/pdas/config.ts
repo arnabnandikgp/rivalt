@@ -15,18 +15,17 @@ import {
   type ProgramDerivedAddress,
 } from "@solana/kit";
 
-export type ParticipantSeeds = {
-  market: Address | HasAddress;
-  owner: Address | HasAddress;
+export type ConfigSeeds = {
+  capital: Address | HasAddress;
 };
 
-export async function findParticipantPda(
-  seeds: ParticipantSeeds,
+export async function findConfigPda(
+  seeds: ConfigSeeds,
   config: { programAddress?: Address | HasAddress | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
     programAddress:
-      programAddressInput = "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo" as Address<"Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo">,
+      programAddressInput = "7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU" as Address<"7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU">,
   } = config;
   const programAddress =
     typeof programAddressInput === "string"
@@ -35,11 +34,8 @@ export async function findParticipantPda(
   return await getProgramDerivedAddress({
     programAddress,
     seeds: [
-      getBytesEncoder().encode(
-        new Uint8Array([112, 97, 114, 116, 105, 99, 105, 112, 97, 110, 116]),
-      ),
-      getAddressEncoder().encode(seeds.market),
-      getAddressEncoder().encode(seeds.owner),
+      getBytesEncoder().encode(new Uint8Array([109, 97, 107, 101, 114])),
+      getAddressEncoder().encode(seeds.capital),
     ],
   });
 }

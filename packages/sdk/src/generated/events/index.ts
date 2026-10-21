@@ -7,4 +7,5 @@
  */
 
 export * from "./custodyChanged.js";
+export * from "./makerChanged.js";
 export * from "./probeRecorded.js";

@@ -9,6 +9,9 @@ skip-lint = false
 [programs.localnet]
 clearing = "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo"
 
+maker_a = "7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU"
+maker_b = "F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc"
+
 [provider]
 cluster = "http://127.0.0.1:8899"
 wallet = ".local/keys/payer.json"

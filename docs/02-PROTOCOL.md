@@ -120,6 +120,8 @@ A failed second leg reverts first-leg exposure, fees, orders and curve consumpti
 
 For each maker side/quote epoch, let K(f) be cumulative gross quote cost/proceeds after f lots. Additional d uses K(f+d)-K(f), with one specified integer rounding convention. Fills cannot repeatedly reset f to take the cheapest segment. Read current inventory for skew; epoch resets and validity are bound to the authenticated config. Return-data arithmetic is untrusted until clearing validates it.
 
+P03 pins the bounded curves, expiry/reset policy, unique funded-capital binding and module approval rules in [MAKER-CONTRACT](P03-MAKER-CONTRACT.md). Its previews cannot consume liquidity or mutate financial state; P04 must make consumption atomic with the route.
+
 Registration is standing maker authority for the admitted pricing program and capital scope. No maker co-signature is required per fill on this path. Signed private RFQs are deferred. Distinct addresses alone are not evidence of economically independent ownership.
 
 ## 7. Orders and races

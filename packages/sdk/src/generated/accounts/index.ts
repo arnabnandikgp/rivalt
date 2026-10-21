@@ -6,6 +6,8 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./capitalBinding.js";
+export * from "./makerRegistration.js";
 export * from "./marketState.js";
 export * from "./participant.js";
 export * from "./participantRegistry.js";

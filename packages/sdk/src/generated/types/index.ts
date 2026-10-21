@@ -7,3 +7,4 @@
  */
 
 export * from "./probeChoice.js";
+export * from "./quoteResponse.js";
