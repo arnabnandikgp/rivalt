@@ -10,7 +10,7 @@ const root=process.env.RIVALT_RUN_DIR!,dir=`${root}/reset`;
 mkdirSync(dir,{recursive:true});
 const report=JSON.parse(readFileSync(`${root}/indexer-rpc.json`,'utf8'));
 const oldCustody=JSON.parse(readFileSync(`${root}/custody.json`,'utf8'));
-const ports=[18897,18898,18080];
+const ports=[18897,18898,Number(process.env.RIVALT_RESET_API_PORT??18082)];
 for(const port of ports)await new Promise<void>((resolve,reject)=>{const s=createServer();s.once('error',reject);s.listen(port,'127.0.0.1',()=>s.close(()=>resolve()));});
 const rpcUrl=`http://127.0.0.1:${ports[0]}`,wsUrl=`ws://127.0.0.1:${ports[1]}`;
 const rpc=new WireRpc(rpcUrl);
