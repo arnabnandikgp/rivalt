@@ -42,7 +42,19 @@ const indexer=new Indexer({rpcUrl:url,wsUrl:process.env.RIVALT_WS_URL!,databaseU
 let running=true,sourceRunning=true,sourceEnabled=true,changes:Record<number,SourceChange>={},indexLoop:Promise<void>|undefined,sourceLoop:Promise<void>|undefined,number=0;
 function start(role:string,path?:string){const fd=openSync(`${dir}/service-${role}-${++number}.log`,'w');const p=spawn(process.execPath,['--import','tsx','packages/services/src/main.ts'],{env:{...process.env,RIVALT_RUN_ID:runId,RIVALT_SERVICE_ROLE:role,...(path?{RIVALT_SIGNER_PATH:path}:{})},stdio:['ignore',fd,fd]});closeSync(fd);children.push(p);roles.set(p,role);return p;}
 async function stop(p:ChildProcess){if(p.exitCode!==null||p.signalCode!==null)return;const done=new Promise<void>(resolve=>p.once('exit',()=>resolve()));p.kill('SIGTERM');await Promise.race([done,delay(10000).then(()=>{if(p.exitCode===null&&p.signalCode===null){p.kill('SIGKILL');throw new Error('Worker stop timeout');}})]);}
-async function publish(){const time=await now(),ixs=await Promise.all([0,1,2,3].map(i=>publishFeed(i,time,changes[i])));await send('signed controlled local dependency updates',ixs,[setup.primary,setup.guardKey]);}
+let publication=Promise.resolve(),publishedAt=0n;
+function publish(){
+  // Periodic and explicit fault updates share one signed source publisher.
+  // Distinct actual chain timestamps also prevent identical transaction bytes
+  // when two publications obtain the same recent blockhash.
+  const values=changes;
+  const next=publication.then(async()=>{
+    const time=await wait(now,t=>t>publishedAt,'next source publication second');
+    const ixs=await Promise.all([0,1,2,3].map(i=>publishFeed(i,time,values[i])));
+    await send('signed controlled local dependency updates',ixs,[setup.primary,setup.guardKey]);publishedAt=time;
+  });
+  publication=next;return next;
+}
 const api='http://127.0.0.1:18081';
 async function post(path:string,body:unknown){const r=await fetch(api+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});const value=await r.json();assert(r.ok,json(value));return value;}
 async function trade(id:string,side:number,lots='3'){
@@ -64,6 +76,7 @@ const risk=async()=>sdk.getTestRouteStateDecoder().decode((await read(routeState
 try{
   await indexer.open();await indexer.cycle();await runtime.open();indexLoop=(async()=>{while(running){try{await indexer.cycle();}catch{}await delay(100);}})();
   await publish();sourceLoop=(async()=>{while(sourceRunning){await delay(1500);if(sourceRunning&&sourceEnabled)await publish();}})();
+  void sourceLoop.catch(()=>{}); // Await the original promise at shutdown; never report a failed publisher as passing.
   start('executor');start('maker-a',paths.a);start('maker-b',paths.b);start('api');let worker=start('funding',paths.funding);
   await wait(()=>runtime.snapshot(),s=>s.sourceMode==='Normal'&&s.makers.every(m=>m.online),'normal authenticated policy');
   record('distinct funding/executor/maker processes recover only after sustained valid sources');

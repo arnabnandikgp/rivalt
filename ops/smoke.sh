@@ -4,12 +4,7 @@ cd "$(dirname "$0")/.."
 source ops/env.sh
 # Check every declared acceptance listener before the long builds/slot waits.
 # Never stop another workspace's service to make these ports available.
-python3 - "${RIVALT_RPC_PORT:-18899}" "${RIVALT_WS_PORT:-18900}" 18897 18898 15432 18081 "${RIVALT_RESET_API_PORT:-18082}" <<'PY'
-import socket, sys
-for port in sys.argv[1:]:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", int(port)))
-PY
+python3 ops/check-ports.py "${RIVALT_RPC_PORT:-18899}" "${RIVALT_WS_PORT:-18900}" 18897 18898 15432 18081 "${RIVALT_RESET_API_PORT:-18082}"
 # An absolute store keeps npm lifecycle-inherited config from resolving differently
 # inside the independent legacy root. CI permits noninteractive node_modules repair.
 CI=true pnpm install --frozen-lockfile --store-dir "$PWD/.local/pnpm-store"
