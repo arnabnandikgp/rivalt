@@ -1,0 +1,2 @@
+{"role":"maker-a","pid":21315,"status":"started"}
+{"role":"maker-a","status":"stopped"}

@@ -1,0 +1,23 @@
+Surfpool custody: 33 signed scenarios; 10 committed events; exact vault = insurance = 10007 atoms.
+[0/6] [0s]
+[1/6] Fetching image [0s]
+[2/6] Unpacking image [0s]
+[3/6] Fetching kernel [0s]
+[4/6] Fetching init image [0s]
+[5/6] Unpacking init image [0s]
+[6/6] Starting container [0s]
+[6/6] Starting container [1s]
+[6/6] Starting container [2s]
+[6/6] Starting container [2s]
+Oracle RPC: distinct funding/executor/maker processes recover only after sustained valid sources
+Oracle RPC: independent two-maker bid/ask midpoint and unchanged consumption
+Oracle RPC: HTTP wallet routes accrue the prior sample causally and preserve flat/reopen fractions
+Oracle RPC: authenticated invalid guard allows credible restrictive mode and blocks new risk
+Oracle RPC: collateral depeg is converted instead of assuming dollar parity
+Oracle RPC: required-maker outage records invalid observations with zero new interval accrual
+Oracle RPC: worker outage derives restrictive mode from time and skips unverified catch-up
+Oracle RPC: stale authenticated sources block valuation while ordinary deposit remains available
+Oracle RPC: RPC/WS PostgreSQL checkpoint and fresh reconstruction reconcile exact accrued claims and explicit worker fees
+Oracle RPC: independently fetched funding transactions meet CU/account limits and exactly reconcile payer fees
+Oracle RPC: isolated legacy Anchor decodes actual observation events and funding accounts byte-for-byte
+P07 evidence: .local/runs/20261021T122928Z-20487

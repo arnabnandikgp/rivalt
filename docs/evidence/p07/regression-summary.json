@@ -1,0 +1,46 @@
+{
+  "startedUtc": "2026-10-21T12:06:16.553Z",
+  "revision": "f07214707e4ac2c2da5d56a649b43c564e5f312b",
+  "sourceDirty": false,
+  "program": "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
+  "binarySha256": "f84011c319afe08ead29b52abf50102326636f6dad80678985179d11577c66f4",
+  "idlSha256": "c1fcfb316b223a85b07d4aedc965f135212fe1e06341760f45068bf65d3f4228",
+  "cargoLockSha256": "3b61857a2e6083806224397b29a44fc57e39d3270345434abc06e91117fab568",
+  "pnpmLockSha256": "ddfe4f5549823e277abcccde6f318b67ebc0282075a5db495ab36ebb78e7cb6c",
+  "runId": "20261021T120540Z-10115",
+  "signatureVerification": true,
+  "blockhashVerification": true,
+  "runtime": {
+    "surfnet-version": "1.6.1",
+    "solana-core": "4.2.1",
+    "feature-set": 565236538
+  },
+  "genesisHash": "cbFnjv4LeHch1WYgXcZbSV4Ln5JegiM2mHsEVi2fbgz",
+  "blockHeight": 655,
+  "result": "pass",
+  "finishedUtc": "2026-10-21T12:06:23.611Z",
+  "signatures": [
+    "4G9nNPdwSJaHuwrBm9oiSvFWHT5MxfdifKdRwh1Lof4rUArqBYpXjoEmG1GXr479aNTMNwzMkLGhrrhixmieHRSH",
+    "TdZ2sp2Y2Npn9uPHwC766NpxAKq3vaQu8Q2J4SeHtrydpfUqqoX5vFtQkUvGT7d9yeGCSGoFCVTBVU9eSMLrPuJ",
+    "2wT8YncKBi3LNnZ3k9mat5g9FYhaydsRqfVFd4YEpP3VLrGm5dxCveTdNgaze31FHoNV5LwZfkWZeaLfK6o2Pifa"
+  ],
+  "failedSignature": "fQnPChS1nqYUB8HDFDWQz1tSNm71RH8R7wCdHpu4KvU2kKMivm77HFKKHF2y4pWCHPUArXzzfWM2BhTUkhMfT9g",
+  "simulationUnits": 10626,
+  "transactionBytes": 322,
+  "accountCount": 5,
+  "historyEntries": 5,
+  "subscriptions": [
+    "accountSubscribe",
+    "programSubscribe",
+    "logsSubscribe",
+    "slotSubscribe",
+    "signatureSubscribe"
+  ],
+  "independentSignatureVerification": "pass",
+  "legacyLiveDecode": "pass",
+  "failedTransactionRollback": "pass",
+  "limitations": [
+    "Offline Surfpool is not consensus finality evidence.",
+    "Token balance reads begin with actual custody in P02; SQL recovery is P05."
+  ]
+}

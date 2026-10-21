@@ -1,7 +1,7 @@
 # Rivalt
 Implementation baseline R1 · 20 October 2026
 
-Rivalt is a new Solana perpetual venue with common clearing, isolated collateral and competing margined perpAMMs. The repository contains the implementation specification, local toolchain/SDK/RPC spine, checked financial core, clearing custody, separate A/B maker programs with funded-capital registration, and atomic routes under an explicit synthetic local risk profile. A PostgreSQL-backed indexer and read API rebuild finalized custody and route state over standard RPC/WS. Maker daemons, durable signed execution and guarded ordinary settlement/withdrawal complete the local service lifecycle. Orders, authenticated sources/funding and exceptional default arrive in later phases.
+Rivalt is a new Solana perpetual venue with common clearing, isolated collateral and competing margined perpAMMs. The repository contains the implementation specification, local toolchain/SDK/RPC spine, checked financial core, clearing custody, separate A/B maker programs with funded-capital registration, and atomic routes under an explicit synthetic local risk profile. A PostgreSQL-backed indexer and read API rebuild finalized custody and route state over standard RPC/WS. Maker daemons, durable signed execution and guarded ordinary settlement/withdrawal complete the local service lifecycle. Authenticated controlled local sources, causal common funding and a separately budgeted funding worker now extend that profile. Persistent orders and exceptional default arrive in later phases.
 
 ## Start here
 

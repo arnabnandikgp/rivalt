@@ -124,9 +124,11 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **G07 evidence:** [P06 clean acceptance](evidence/P06.md) passes on `2578327`: 49 signed cohort/settlement cases and 15 actual RPC/WS/PostgreSQL service checks, including explicit payer/cap accounting, unknown failed-transaction fees, real expiry and worker recovery. G07 and M3's engineering exit are verified; integration remains Review in WORKLOG.
 
 
-## 21 October 2026 — P07 source policy and funding (acceptance in progress)
+## 21 October 2026 — P07 source policy and funding
 
 - **D28 / G08:** Select the finite controlled source, mark, trigger-reference, funding coverage/cap/time/recovery profile in [ORACLE-AND-FUNDING](P07-ORACLE-AND-FUNDING.md). Four immutable signed local fixture feeds provide primary/guard BTC and collateral conversion. No upstream verifier or economic source independence is claimed; G11/G12 remain later gates. Market mode 2 disables the earlier ad hoc setter.
 - **Causal accounting:** Prior qualified observations alone determine covered funding. Accrue before q changes, retain exact participant fractions through flat/reopen, preserve materialized obligations when discarding unverified pending intervals, and expose coverage gaps. Complete-cohort exits check conservative held-index endpoints and fully checkpoint-adjusted claims. No fee, loss-bearer or collateral authority changes.
 - **Bounded sampling:** Qualify both required modules on both sides and derive a conservative funded depth prefix before exact fixed-curve impact search. This limits compute and can intentionally reject marginal funding coverage while a reducing ordinary route remains possible. Reuse module authentication only within the same read-only transaction; every quoted response remains checked.
 - **Status:** Selected configuration is not acceptance. Actual G08/A09/A10 results, source identities and measured resources must be recorded before P07 becomes Review.
+
+- **G08 evidence:** [P07 acceptance](evidence/P07.md) verifies A09/A10/G08 on clean `83f70d4`, with unchanged financial trees from the passing P01–P06 regression at `f072147`. All 258 signed P07 SVM scenarios and 11 real RPC/WS/PostgreSQL checks pass; maximum sampling cost is 660,691 CU / 781 bytes / 20 accounts. The full wrapper stopped at a subsequently fixed TCP preflight; targeted P07 acceptance exits zero. P07 remains Review pending integration.

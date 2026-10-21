@@ -49,4 +49,4 @@ ExitGuard checks every member against the extrema of last materialized, current 
 
 ## Validation status
 
-Implementation and acceptance are in progress. Development tests are not clean committed acceptance. See WORKLOG for actual runs, revisions and remaining gates. Real upstream dependency verification, browser wallet, soak, devnet, independent-maker and funded-pilot evidence remain later phases.
+A09/A10/G08 pass on the clean revisions and unchanged financial trees recorded in [P07 evidence](evidence/P07.md). P07 remains Review pending integration; WORKLOG records actual commands, the wrapper/preflight failure, targeted acceptance and publication status. Real upstream dependency verification, browser wallet, soak, devnet, independent-maker and funded-pilot evidence remain later phases.
