@@ -6,6 +6,8 @@ use maker_interface::QuoteResponse;
 pub use makers::*;
 pub mod routes;
 pub use routes::*;
+pub mod oracle;
+pub use oracle::*;
 pub mod settlement;
 pub use settlement::*;
 
@@ -15,6 +17,17 @@ declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
 #[program]
 pub mod clearing {
     use super::*;
+
+    pub fn initialize_oracle(
+        ctx: Context<InitializeOracle>,
+        primary: Pubkey,
+        guard: Pubkey,
+    ) -> Result<()> {
+        oracle::initialize(ctx, primary, guard)
+    }
+    pub fn sample_oracle(ctx: Context<SampleOracle>) -> Result<()> {
+        oracle::sample(ctx)
+    }
 
     pub fn initialize_exit_guard(ctx: Context<InitializeExitGuard>) -> Result<()> {
         settlement::initialize(ctx)
@@ -235,4 +248,8 @@ pub enum ClearingError {
     ExitCohort,
     #[msg("Financial action is bound to a different market sequence")]
     FinancialSequence,
+    #[msg("Oracle source identity, verification or schema mismatch")]
+    OracleSource,
+    #[msg("Oracle action mode, sample timing or source policy rejects action")]
+    OraclePolicy,
 }

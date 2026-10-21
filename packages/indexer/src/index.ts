@@ -119,7 +119,7 @@ export class Indexer {
     if (chain.sequence !== BigInt(state.sequence)) throw new Error('Reconciliation sequence differs; backfill required');
     const m = state.market;
     assert.equal(Buffer.from(chain.domain).toString('hex'),binding.domain);
-    for (const key of ['termsEpoch','configEpoch','totalCash','settlement','insurance','fees','allocatedVault','paused','mode','fundingIndexScaled'] as const)
+    for (const key of ['termsEpoch','configEpoch','totalCash','settlement','insurance','fees','allocatedVault','paused','mode','fundingIndexScaled','fundingTime'] as const)
       assert.equal(String(chain[key]),String(m[key]),`Market ${key}`);
     const reg = sdk.getParticipantRegistryDecoder().decode(data(1));
     assert.equal(reg.count,participants.length);
@@ -140,6 +140,7 @@ export class Indexer {
       const risk = sdk.getTestRouteStateDecoder().decode(data(keys.length-1));
       for (const key of ['observationSequence','referencePrice','lower','upper','validFrom','validUntil'] as const) assert.equal(String(risk[key]),state.risk[key],`Risk ${key}`);
       assert.equal(String(risk.grossLots),m.grossLots);
+      if(m.mode===2) assert.deepEqual(JSON.parse(json(risk.oracle)),state.risk.oracle,'Oracle/funding state');
     }
     return {slot:response.context.slot.toString(),sequence:state.sequence,actualVault:actualVault.toString(),allocatedVault:chain.allocatedVault.toString(),unallocatedSurplus:(actualVault-chain.allocatedVault).toString(),participants:participants.length};
   }

@@ -60,6 +60,7 @@ export type MakerChangedEvent = {
   quoteEpoch: bigint;
   quarantined: boolean;
   approvedHash: ReadonlyUint8Array;
+  configEpoch: bigint;
 };
 
 export type MakerChangedEventArgs = {
@@ -76,6 +77,7 @@ export type MakerChangedEventArgs = {
   quoteEpoch: number | bigint;
   quarantined: boolean;
   approvedHash: ReadonlyUint8Array;
+  configEpoch: number | bigint;
 };
 
 /** Gets the encoder for {@link MakerChangedEventArgs} event data. */
@@ -95,6 +97,7 @@ export function getMakerChangedEventEncoder(): FixedSizeEncoder<MakerChangedEven
       ["quoteEpoch", getU64Encoder()],
       ["quarantined", getBooleanEncoder()],
       ["approvedHash", fixEncoderSize(getBytesEncoder(), 32)],
+      ["configEpoch", getU64Encoder()],
     ]),
     [getConstantEncoder(MAKER_CHANGED_EVENT_DISCRIMINATOR)],
   );
@@ -117,6 +120,7 @@ export function getMakerChangedEventDecoder(): FixedSizeDecoder<MakerChangedEven
       ["quoteEpoch", getU64Decoder()],
       ["quarantined", getBooleanDecoder()],
       ["approvedHash", fixDecoderSize(getBytesDecoder(), 32)],
+      ["configEpoch", getU64Decoder()],
     ]),
     [getConstantDecoder(MAKER_CHANGED_EVENT_DISCRIMINATOR)],
   );

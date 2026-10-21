@@ -23,6 +23,7 @@ pub struct MarketState {
     /// 0 CustodyOnly, 1 explicitly compiled synthetic TestRoutes.
     pub mode: u8,
     pub funding_index_scaled: i128,
+    pub funding_time: i64,
     pub total_cash: u64,
     pub settlement: u64,
     pub insurance: u64,
@@ -182,9 +183,9 @@ pub(crate) fn profile(m: &MarketState) -> Result<()> {
     require!(
         m.schema_version == SCHEMA_VERSION
             && m.profile_version == PROFILE_VERSION
-            && m.mode <= 1
-            && m.funding_index_scaled == 0
-            && (m.mode == 1 || (m.fees == 0 && m.settlement == 0)),
+            && m.mode <= 2
+            && (m.mode == 2 || m.funding_index_scaled == 0)
+            && (m.mode > 0 || (m.fees == 0 && m.settlement == 0)),
         ClearingError::Profile
     );
     Ok(())
@@ -267,6 +268,7 @@ pub fn initialize(ctx: Context<InitializeMarket>, domain: [u8; 32]) -> Result<()
         paused: false,
         mode: 0,
         funding_index_scaled: 0,
+        funding_time: 0,
         total_cash: 0,
         settlement: 0,
         insurance: 0,

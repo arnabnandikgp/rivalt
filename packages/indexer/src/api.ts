@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import {oracleMode,effectiveFunding} from '@rivalt/sdk';
 import type { Indexer } from './index.js';
 import { balance } from './projection.js';
 import { integer } from './rpc.js';
@@ -24,12 +25,13 @@ export function api(indexer: Indexer) {
   const envelope = (row: Awaited<ReturnType<typeof indexer.store.snapshot>>) => ({schemaVersion:1,runId:indexer.config.runId,
     market:indexer.config.market,asOf:{commitment:'finalized',sequence:row.state.sequence,signature:row.checkpoint,slot:row.checkpoint_slot},
     units:{cash:'collateral atoms (1e6/token)',lots:'1e6/BTC',price:'collateral atoms/lot',scaled:'1e9'},
-    capabilities:{routes:row.state.market?.mode===1 ? 'local-test-profile' : 'disabled',funding:false,orders:false,settlement:false}});
+    capabilities:{routes:row.state.market?.mode>0 ? 'local-test-profile' : 'disabled',funding:row.state.market?.mode===2,orders:false,settlement:row.state.market?.mode>0}});
   app.get('/v1/market', async () => {
     const row = await indexer.store.snapshot();
     const slot = integer(await indexer.rpc.call('getSlot',[{commitment:'processed'}]));
     const risk = row.state.risk;
-    return {...envelope(row),state:row.state.market,risk,makers:row.state.makers,evaluatedAtSlot:String(slot),
+    const now=BigInt(Math.floor(Date.now()/1000)),mode=oracleMode(row.state.market,risk,now,BigInt(slot));
+    return {...envelope(row),state:row.state.market,risk,makers:row.state.makers,evaluatedAtSlot:String(slot),sourceMode:mode,clockSource:'host-wall-clock-preview',fundingIndexScaled:effectiveFunding(row.state.market,risk,now,BigInt(slot)).toString(),
       valuationStatus:risk ? BigInt(slot)>=BigInt(risk.validFrom)&&BigInt(slot)<BigInt(risk.validUntil) ? 'FreshTestObservation':'ExpiredTestObservation':'NoObservation'};
   });
   app.get<{Params:{participant:string}}>('/v1/balances/:participant', {

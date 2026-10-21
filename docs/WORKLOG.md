@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** M1/P01/P02 are Closed; P03/P04/P05 and M2 remain Review in ready PRs #4/#5/#7. **P06 A05/A07/A08/G07 and the M3 engineering exit pass on clean `2578327`; P06/M3 are Review pending integration.** [P06 evidence](evidence/P06.md) records actual service deposit → split → cross-maker close → funded settlement → withdrawal, durable recovery and fee reconciliation. Ready [PR #8](https://github.com/arnabnandikgp/rivalt/pull/8) is stacked above #7 through `gh stack` and contains exact P05 head `03f96d1`. Later oracle/funding/order/default paths remain disabled.
+**Current position:** M1/P01/P02 are Closed; P03/P04/P05 and M2 remain Review in ready PRs #4/#5/#7. **P06 A05/A07/A08/G07 and the M3 engineering exit pass on clean `2578327`; P06/M3 are Review pending integration.** [P06 evidence](evidence/P06.md) records actual service deposit → split → cross-maker close → funded settlement → withdrawal, durable recovery and fee reconciliation. Ready [PR #8](https://github.com/arnabnandikgp/rivalt/pull/8) is stacked above #7 through `gh stack` and contains exact P05 head `03f96d1`. P07 is now In progress on `phase/p07-oracle-funding`, above exact P06 head `30b0837`. Oracle/funding acceptance is pending; order/default paths remain disabled.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -24,7 +24,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M1 | P01–P02 | Reproducible stack, economic core and custody | Closed | Fresh A01/A02/M1 exit check on `16e51e4`; integrated unchanged at `3c1aae1` |
 | M2 | P03–P04 | Competing makers and atomic execution | Review | Fresh A03–A05/G04/G05 and cross-phase exit pass on `b8e5fb8`; ready PRs #4/#5 await integration |
 | M3 | P05–P06 | Real services and full trade lifecycle | Review | Fresh A05–A08/G07 and complete service exit pass on `2578327`; ready PRs #7/#8 await integration |
-| M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Open | Not implemented |
+| M4 | P07–P10 | Funding, orders, risk recovery and usable UI | In progress | P07 implementation and fresh acceptance in progress; P08–P10 remain Open |
 | M5a | P11–P12 | Complete local engineering evidence | Open | Not implemented |
 | M5b | P13–P14 | Focused real-cluster parity | Open | Not implemented |
 | M6 | P15–P16 | Independent commercial/pilot readiness | Open | Not implemented |
@@ -39,7 +39,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M2 | P04 | Atomic routes and allocation | Review | [PR #5](https://github.com/arnabnandikgp/rivalt/pull/5), tested `b8e5fb8`, stacked above #4 | [A04/A05/G05 evidence](evidence/P04.md); integration pending |
 | M3 | P05 | Indexer, database and read API | Review | [PR #7](https://github.com/arnabnandikgp/rivalt/pull/7), tested `fb2606f`, stacked above #5 | [A06/G06 evidence](evidence/P05.md); integration pending |
 | M3 | P06 | Maker daemons and complete service lifecycle | Review | [PR #8](https://github.com/arnabnandikgp/rivalt/pull/8), tested `2578327`, stacked above #7 | [A05/A07/A08/G07 and M3 exit evidence](evidence/P06.md); integration pending |
-| M4 | P07 | Oracle policy and authenticated funding | Open | — | After P06 |
+| M4 | P07 | Oracle policy and authenticated funding | In progress | `phase/p07-oracle-funding`, above #8 | G08 implementation and acceptance in progress; no PR yet |
 | M4 | P08 | Persistent orders and TP/SL | Open | — | After P07 |
 | M4 | P09 | Liquidation and resumable default | Open | — | After P08 |
 | M4 | P10 | Trading UI and direct exit experience | Open | — | After P09 |
@@ -57,7 +57,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Last completed work: P06 ordinary settlement/cohort exits, distinct maker processes, quote/submission API, durable executor/settlement workers and full service recovery acceptance.
 - Verified implementation: `2578327a74d53191b26e61950c2829ebeef8529f`; clean full regression `.local/runs/20261021T102650Z-52948` and lifecycle `.local/runs/20261021T103231Z-55155`. All 14 source identity records are clean; full command exits zero.
 - Status: P03/P04/P05/P06 and M2/M3 Review pending integration; M1/P01/P02 Closed. Ready PR #8 is published above #7.
-- Immediate task: `gh stack add phase/p07-oracle-funding`, then implement G08 authenticated-source policy/common funding above ready PR #8 without waiting for merges.
+- Immediate task: complete signed P07 source/funding fault checks and actual RPC/WS/PostgreSQL acceptance, then publish a ready stacked PR and proceed directly to P08.
 - Access/product decisions needed now: none. Existing Apple container runtime's PostgreSQL 18.6 loopback/volume/restart behavior is verified. No devnet key or external maker is needed.
 - Deferred external needs: secure devnet/feed access at P13; independent maker at P15; independent review/funded-pilot decision at P16.
 - Historical archives remain optional targeted reference only.
@@ -225,3 +225,15 @@ Update Latest checkpoint and the two overview tables as well as appending the en
 
 - Publication: implementation `2578327`, evidence `19925d1`; ready [PR #8](https://github.com/arnabnandikgp/rivalt/pull/8) opened with base `phase/p05-indexer`, then registered through `gh stack submit --auto --open`. Verified OPEN, `isDraft: false`, exact head `19925d1f24e8ab3412052b05a38e9924cc620f3f`; stack #6 is #4 → #5 → #7 → #8. Final follow-up changes only these documentation links; executable/lockfile parity with the clean tested implementation is verified. No merge or external review is claimed.
 - Final next action: `gh stack add phase/p07-oracle-funding`, then implement G08 and authenticated common funding above ready PR #8.
+
+
+### R009 — 21 October 2026 — P07 — controlled sources and causal common funding
+
+- Starting revision / branch: clean `30b0837542e11754d31499078bdd8481c53e156c` on `phase/p06-lifecycle`; `gh stack add phase/p07-oracle-funding` creates the child above ready PR #8. User authorizes continuing every verified phase as a ready stack without waiting for merges. No unrelated work or external access needed.
+- Delivered: four immutable authenticated local fixture feeds, finite source/risk/mode/recovery profile, full two-maker bid/ask impact sampling with conservative funded depth and exact bounded optimum, causal held funding at every position/settlement transition, retained fractions, no-credible-price flat-cohort exits, generated ABI, event/SQL projections, funding worker with explicit SOL budget, signed fault scenarios and actual service integration harness. D28 and affected protocol/component/validation/delivery/README specifications change together.
+- Development commands/results: pinned `bash ops/build.sh` passes with default/local artifacts and regenerated IDL/SDK; typecheck and 22 Vitest tests pass; Rust financial tests plus the independent 3,000-case Python reference pass. `pnpm test:oracle` passes 253 new signed scenarios after 33 actual custody setups, including 600-lot depth, actual capped premium, source/maker faults, causal close/reopen fractions, exact claims, default-build rejection and source-outage flat exits. Max observed sampling is 660,590 CU / 796 bytes in this development revision; final committed resource report remains pending. The 49 P06 settlement scenarios also regressed successfully during development.
+- Resolved findings: SBF caught a 4,416-byte settlement frame, fixed by boxing; the first full-quantity impact enumeration exceeded 1.2M CU, replaced by conservative guaranteed-admissible depth and exact convex/concave search with once-per-module code authentication. Both maker directions still execute checked CPI. Oracle account/privilege substitution rejects instead of allowing caller-induced restrictive mode. Exit certificate bounds include possible fallback to the last materialized index. PostgreSQL key-order comparison and legacy Buffer canonicalization were corrected without changing financial outcomes. A concurrent loaded Vitest run hit its 5-second route-reference timeout; the unloaded rerun passes all 22 unchanged assertions.
+- Actual integration development: initial 20-ms Surfpool deployment failed before scenario execution (write retries); no acceptance claim. Explicit protected deployment buffers avoid recovery secrets in CLI logs; the declared P07 cadence is 50 ms. `.local/runs/20261021T111657Z-80537` reaches source/maker/gap/stale recovery before the JSON-order issue; `.local/runs/20261021T112336Z-85232` passes RPC/WS/PostgreSQL recovery and fresh reconstruction, then exposes only the test's Buffer representation mismatch. Offline verification of its actual captured bytes passes two accounts and all 38 oracle events against isolated legacy Anchor. These dirty development runs are not clean acceptance.
+- Not run/claimed: final clean full acceptance, final fee/resource additions, ready PR and integration are pending below. P08 orders/cancellation, P09 default/liquidation, browser, load/24-hour soak, devnet/real upstream verification, independent participants/review and funded deployment remain later work. No genuine access/product blocker.
+- Evidence/publication: `.local/p07-build.log`, `.local/p07-unit.log`, `.local/p07-svm.json`, `.local/p07-financial.log`, `.local/p07-rpc-*.log` and the two development run directories. Final evidence/commit/PR will be recorded after actual verification. P07/M4 remain In progress; earlier ready PRs remain Review.
+- Next exact action: commit the coherent P07 implementation and run `source ops/env.sh && RIVALT_SLOT_TIME=50 pnpm smoke` on the clean revision; then publish ready above #8 and immediately start P08.

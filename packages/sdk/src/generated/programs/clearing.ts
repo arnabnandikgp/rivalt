@@ -71,6 +71,7 @@ import {
   getFundInsuranceInstructionAsync,
   getInitializeExitGuardInstructionAsync,
   getInitializeMarketInstructionAsync,
+  getInitializeOracleInstructionAsync,
   getInitializeTestRoutesInstructionAsync,
   getPreviewMakerInstructionAsync,
   getProbeInstructionAsync,
@@ -78,6 +79,7 @@ import {
   getQuarantineMakerInstructionAsync,
   getRegisterMakerInstructionAsync,
   getRegisterParticipantInstructionAsync,
+  getSampleOracleInstructionAsync,
   getSetCustodyPauseInstructionAsync,
   getSettleGainInstructionAsync,
   getSyncMakerEpochInstructionAsync,
@@ -92,6 +94,7 @@ import {
   parseFundInsuranceInstruction,
   parseInitializeExitGuardInstruction,
   parseInitializeMarketInstruction,
+  parseInitializeOracleInstruction,
   parseInitializeTestRoutesInstruction,
   parsePreviewMakerInstruction,
   parseProbeInstruction,
@@ -99,6 +102,7 @@ import {
   parseQuarantineMakerInstruction,
   parseRegisterMakerInstruction,
   parseRegisterParticipantInstruction,
+  parseSampleOracleInstruction,
   parseSetCustodyPauseInstruction,
   parseSettleGainInstruction,
   parseSyncMakerEpochInstruction,
@@ -113,6 +117,7 @@ import {
   type FundInsuranceAsyncInput,
   type InitializeExitGuardAsyncInput,
   type InitializeMarketAsyncInput,
+  type InitializeOracleAsyncInput,
   type InitializeTestRoutesAsyncInput,
   type ParsedApproveMakerInstruction,
   type ParsedCheckExitCohortInstruction,
@@ -123,6 +128,7 @@ import {
   type ParsedFundInsuranceInstruction,
   type ParsedInitializeExitGuardInstruction,
   type ParsedInitializeMarketInstruction,
+  type ParsedInitializeOracleInstruction,
   type ParsedInitializeTestRoutesInstruction,
   type ParsedPreviewMakerInstruction,
   type ParsedProbeInstruction,
@@ -130,6 +136,7 @@ import {
   type ParsedQuarantineMakerInstruction,
   type ParsedRegisterMakerInstruction,
   type ParsedRegisterParticipantInstruction,
+  type ParsedSampleOracleInstruction,
   type ParsedSetCustodyPauseInstruction,
   type ParsedSettleGainInstruction,
   type ParsedSyncMakerEpochInstruction,
@@ -141,6 +148,7 @@ import {
   type QuarantineMakerAsyncInput,
   type RegisterMakerAsyncInput,
   type RegisterParticipantAsyncInput,
+  type SampleOracleAsyncInput,
   type SetCustodyPauseAsyncInput,
   type SettleGainAsyncInput,
   type SyncMakerEpochAsyncInput,
@@ -273,6 +281,7 @@ export function identifyClearingAccount(
 export enum ClearingEvent {
   CustodyChanged,
   MakerChanged,
+  OracleObserved,
   ProbeRecorded,
   RouteExecuted,
   SettlementChanged,
@@ -304,6 +313,17 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.MakerChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([251, 25, 221, 41, 50, 211, 179, 216]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.OracleObserved;
   }
   if (
     containsBytes(
@@ -364,6 +384,7 @@ export enum ClearingInstruction {
   FundInsurance,
   InitializeExitGuard,
   InitializeMarket,
+  InitializeOracle,
   InitializeTestRoutes,
   PreviewMaker,
   Probe,
@@ -371,6 +392,7 @@ export enum ClearingInstruction {
   QuarantineMaker,
   RegisterMaker,
   RegisterParticipant,
+  SampleOracle,
   SetCustodyPause,
   SettleGain,
   SyncMakerEpoch,
@@ -485,6 +507,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([144, 223, 131, 120, 196, 253, 181, 99]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeOracle;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([16, 190, 103, 220, 65, 98, 245, 241]),
       ),
       0,
@@ -557,6 +590,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.RegisterParticipant;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([189, 254, 170, 62, 147, 181, 131, 127]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SampleOracle;
   }
   if (
     containsBytes(
@@ -650,6 +694,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.InitializeMarket;
     } & ParsedInitializeMarketInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.InitializeOracle;
+    } & ParsedInitializeOracleInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.InitializeTestRoutes;
     } & ParsedInitializeTestRoutesInstruction<TProgram>)
   | ({
@@ -670,6 +717,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.RegisterParticipant;
     } & ParsedRegisterParticipantInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.SampleOracle;
+    } & ParsedSampleOracleInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.SetCustodyPause;
     } & ParsedSetCustodyPauseInstruction<TProgram>)
@@ -754,6 +804,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeMarketInstruction(instruction),
       };
     }
+    case ClearingInstruction.InitializeOracle: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeOracle,
+        ...parseInitializeOracleInstruction(instruction),
+      };
+    }
     case ClearingInstruction.InitializeTestRoutes: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -801,6 +858,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.RegisterParticipant,
         ...parseRegisterParticipantInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.SampleOracle: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SampleOracle,
+        ...parseSampleOracleInstruction(instruction),
       };
     }
     case ClearingInstruction.SetCustodyPause: {
@@ -919,6 +983,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeMarketInstructionAsync> &
     SelfPlanAndSendFunctions;
+  initializeOracle: (
+    input: InitializeOracleAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeOracleInstructionAsync> &
+    SelfPlanAndSendFunctions;
   initializeTestRoutes: (
     input: InitializeTestRoutesAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -952,6 +1021,11 @@ export type ClearingPluginInstructions = {
     input: RegisterParticipantAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRegisterParticipantInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  sampleOracle: (
+    input: SampleOracleAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSampleOracleInstructionAsync> &
     SelfPlanAndSendFunctions;
   setCustodyPause: (
     input: SetCustodyPauseAsyncInput,
@@ -1104,6 +1178,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          initializeOracle: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeOracleInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           initializeTestRoutes: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -1156,6 +1238,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getRegisterParticipantInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          sampleOracle: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSampleOracleInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

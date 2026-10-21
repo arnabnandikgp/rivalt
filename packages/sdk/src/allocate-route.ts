@@ -15,7 +15,7 @@ function healthy(p: RouteBalance, lower: bigint, upper: bigint): boolean {
 }
 
 /** Exhaustive fixed A/B shortlist: at most 513 integer splits; no external venue routing.
- * Inputs must describe one labeled, zero-funding local snapshot. On-chain checks remain authoritative.
+ * Inputs must describe one labeled local snapshot with balances accrued to the effective funding index. On-chain checks remain authoritative.
  */
 export function allocateRoute(input: {
   snapshotSlot: bigint; side: number; lots: bigint; lower: bigint; upper: bigint;

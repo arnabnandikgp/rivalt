@@ -21,6 +21,7 @@ mkdir -p .local
   for program in maker_a maker_b; do
     NO_DNA=1 anchor build -p "$program" --no-idl --tools-version v1.52 --arch v0 -- -- --locked
   done
+  cargo build-sbf --manifest-path tests/fixtures/oracle/Cargo.toml --tools-version v1.52 --arch v0 -- --locked
   cargo build-sbf --manifest-path tests/fixtures/hostile-maker/Cargo.toml --tools-version v1.52 --arch v0 -- --locked
 } 2>&1 | tee .local/sbf-build.log
 # LLVM can print these diagnostics yet return success. Never accept such an artifact.

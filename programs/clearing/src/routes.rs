@@ -21,6 +21,7 @@ pub struct TestRouteState {
     pub valid_until: u64,
     pub gross_lots: u64,
     pub bump: u8,
+    pub oracle: crate::oracle::OracleState,
 }
 #[event_cpi]
 #[derive(Accounts)]
@@ -119,6 +120,7 @@ pub fn initialize(ctx: Context<InitializeTestRoutes>, reference: u64, duration: 
         valid_until: 0,
         gross_lots: 0,
         bump: ctx.bumps.route_state,
+        oracle: crate::oracle::OracleState::default(),
     });
     emit_cpi!(publish(
         &mut ctx.accounts.market,
@@ -226,6 +228,8 @@ pub struct RouteExecuted {
     pub trader_lots: i64,
     pub trader_virtual: i128,
     pub trader_generation: u64,
+    pub funding_index_scaled: i128,
+    pub funding_time: i64,
     pub total_cash: u64,
     pub total_fees: u64,
     pub gross_lots: u64,
@@ -233,10 +237,7 @@ pub struct RouteExecuted {
 }
 pub(crate) fn participant_model(p: &Participant) -> Result<math::Participant> {
     require!(
-        p.schema_version == 1
-            && p.reserved == 0
-            && p.order_ids == [0; 4]
-            && p.funding_checkpoint_scaled == 0,
+        p.schema_version == 1 && p.reserved == 0 && p.order_ids == [0; 4],
         ClearingError::Profile
     );
     let model = math::Participant {
@@ -359,7 +360,12 @@ pub fn execute(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
     );
     let a = &mut *ctx.accounts;
     custody::profile(&a.market)?;
-    require!(a.market.mode == 1, ClearingError::Profile);
+    require!(
+        a.market.mode == 1 || a.market.mode == 2,
+        ClearingError::Profile
+    );
+    crate::oracle::action(&a.market, &a.route_state, !intent.reduce_only)?;
+    crate::oracle::materialize(&mut a.market, &a.route_state)?;
     require!(!a.market.paused, ClearingError::Paused);
     custody::reconciled(&a.market, a.vault.amount)?;
     let slot = Clock::get()?.slot;
@@ -568,6 +574,8 @@ pub fn execute(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
         trader_lots: next.lots,
         trader_virtual: next.virtual_scaled,
         trader_generation: next.generation,
+        funding_index_scaled: a.market.funding_index_scaled,
+        funding_time: a.market.funding_time,
         total_cash: a.market.total_cash,
         total_fees: a.market.fees,
         gross_lots,

@@ -31,20 +31,24 @@ export class Runtime {
     // Discover bindings, then refetch every value from a single finalized bank.
     const discovered=await this.rpc.call('getMultipleAccounts',[rkeys,{encoding:'base64',commitment:'finalized'}]);
     const regs=discovered.value.map((x:any)=>{if(x?.owner!==sdk.CLEARING_PROGRAM_ADDRESS)throw new Error('Maker missing');return sdk.getMakerRegistrationDecoder().decode(Buffer.from(x.data[0],'base64'));}) as sdk.MakerRegistration[];
-    const keys=[market,registry,routeState,guard,vault,...pkeys,...rkeys,...regs.flatMap(r=>[r.config,r.programData])];
+    const clock=address('SysvarC1ock11111111111111111111111111111111');
+    const keys=[clock,market,registry,routeState,guard,vault,...pkeys,...rkeys,...regs.flatMap(r=>[r.config,r.programData])];
     const response=await this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized'}]);
     const slot=BigInt(integer(response.context.slot));
     const raw=(key:Address,owner:string=sdk.CLEARING_PROGRAM_ADDRESS)=>{const a=response.value[keys.indexOf(key)];if(!a || a.owner!==owner)throw new Error('Missing/foreign snapshot account');return Buffer.from(a.data[0],'base64');};
     const m=sdk.getMarketStateDecoder().decode(raw(market)),reg=sdk.getParticipantRegistryDecoder().decode(raw(registry));
-    if(Buffer.from(m.domain).toString('hex')!==b.domain || m.schemaVersion!==1 || m.profileVersion!==1 || m.mode!==1 || m.fundingIndexScaled!==0n)throw new Error('Unsupported service profile');
+    if(Buffer.from(m.domain).toString('hex')!==b.domain || m.schemaVersion!==1 || m.profileVersion!==1 || ![1,2].includes(m.mode) || (m.mode===1 && m.fundingIndexScaled!==0n))throw new Error('Unsupported service profile');
     assert.deepEqual(reg.members,pkeys);assert.equal(reg.count,pkeys.length);
     const risk=sdk.getTestRouteStateDecoder().decode(raw(routeState));
     const participants=Object.fromEntries(pkeys.map(k=>[k,sdk.getParticipantDecoder().decode(raw(k))]));
-    pkeys.forEach((k,id)=>{const p=participants[k];if(p.market!==market || p.schemaVersion!==1 || p.id!==id || p.fundingCheckpointScaled!==0n || p.reserved!==0n || p.orderIds.some(n=>n!==0n))throw new Error('Unsupported participant profile');});
-    const total=Object.values(participants).reduce((n,p)=>n+p.cash,0n),claims=Object.values(participants).reduce((n,p)=>n+p.virtualScaled,0n);
+    pkeys.forEach((k,id)=>{const p=participants[k];if(p.market!==market || p.schemaVersion!==1 || p.id!==id || p.reserved!==0n || p.orderIds.some(n=>n!==0n))throw new Error('Unsupported participant profile');});
+    const total=Object.values(participants).reduce((n,p)=>n+p.cash,0n),claims=Object.values(participants).reduce((n,p)=>n+p.virtualScaled+p.lots*p.fundingCheckpointScaled,0n);
     if(total!==m.totalCash || claims!==m.settlement*1_000_000_000n || Object.values(participants).reduce((n,p)=>n+p.lots,0n)!==0n)throw new Error('Snapshot ledger mismatch');
     const actual=raw(vault,'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').readBigUInt64LE(64);
     if(m.allocatedVault!==m.totalCash+m.settlement+m.insurance+m.fees || actual<m.allocatedVault)throw new Error('Snapshot vault mismatch');
+    const now=raw(clock,'Sysvar1111111111111111111111111111111111111').readBigInt64LE(32);
+    const funding=sdk.effectiveFunding(m,risk,now,slot),sourceMode=sdk.oracleMode(m,risk,now,slot);
+    for(const key of pkeys)participants[key]=sdk.accruedBalance(participants[key],funding);
     const heartbeats=(await this.store.pool.query('SELECT *,seen_at>now()-($2::int*interval \'1 millisecond\') AS online FROM maker_heartbeats WHERE run_id=$1',[this.runId,HEARTBEAT_MS])).rows;
     const makers=rkeys.map((registration,i)=>{
       const r=sdk.getMakerRegistrationDecoder().decode(raw(registration));assert.equal(r.config,regs[i].config);assert.equal(r.programData,regs[i].programData);
@@ -53,12 +57,14 @@ export class Runtime {
       const heartbeat=heartbeats.find(h=>h.maker_id===r.makerId && h.owner===r.owner);
       return {registration,r,state,approved,online:heartbeat?.online===true,balance:participants[r.capital]};
     });
-    return {market,registry,routeState,guard,vault,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS,m,risk,slot,participants,members:reg.members,makers,
+    return {market,registry,routeState,guard,vault,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS,m,risk,slot,now,funding,sourceMode,participants,members:reg.members,makers,
       certificate:sdk.getExitGuardDecoder().decode(raw(guard)),actual};
   }
   async quote(owner:Address,side:number,lots:bigint){
     const s=await this.snapshot(),[trader]=await sdk.findParticipantPda({market:s.market,owner}),p=s.participants[trader];
-    if(!p || p.owner!==owner || s.m.paused || s.slot<s.risk.validFrom || s.slot>=s.risk.validUntil)throw new Error('Quote unavailable');
+    if(!p || p.owner!==owner || s.m.paused || s.slot<s.risk.validFrom || s.slot>=s.risk.validUntil || s.sourceMode==='NoCredibleBounds')throw new Error('Quote unavailable');
+    const reduceOnly=(side===1 && p.lots>=lots)||(side===0 && -p.lots>=lots);
+    if(s.sourceMode!=='Normal' && !reduceOnly)throw new Error('Risk increase blocked by oracle mode');
     const eligible=s.makers.filter(x=>x.online && x.approved && !x.r.quarantined && x.r.quoteEpoch===x.state.quoteEpoch);
     const candidates=eligible.map(x=>({state:x.state,balance:x.balance,request:{version:1,domain:s.m.domain,market:s.market,capital:x.r.capital,quoteEpoch:x.r.quoteEpoch,authorityEpoch:x.r.authorityEpoch,termsEpoch:s.m.termsEpoch,marketConfigEpoch:s.m.configEpoch,side,lots,inventory:x.balance.lots,cash:x.balance.cash,inventoryLimit:x.r.inventoryLimit,consumed:side===0?x.r.buyConsumed:x.r.sellConsumed,referencePrice:s.risk.referencePrice,slot:s.slot}}));
     const allocation=candidates.length?sdk.allocateRoute({snapshotSlot:s.slot,side,lots,lower:s.risk.lower,upper:s.risk.upper,trader:p,candidates,grossLots:s.risk.grossLots,maxFee:1_000_000_000n,allInLimit:side===0?1_000_000_000_000_000n:0n}):null;
@@ -69,7 +75,7 @@ export class Runtime {
       firstCapital:first.r.capital,firstRegistration:first.registration,firstProgram:first.r.pricingProgram,firstProgramData:first.r.programData,firstConfig:first.r.config,
       secondCapital:second?.r.capital,secondRegistration:second?.registration,secondProgram:second?.r.pricingProgram,secondProgramData:second?.r.programData,secondConfig:second?.r.config,
       domain:s.m.domain,termsEpoch:s.m.termsEpoch,configEpoch:s.m.configEpoch,observationSequence:s.risk.observationSequence,nonce:p.nonce,startSlot:s.slot,expirySlot:expiry,
-      side,lots,maxFee:allocation.fee,allInLimit:allocation.allIn,reduceOnly:side===1 && p.lots>=lots,generation:p.generation,
+      side,lots,maxFee:allocation.fee,allInLimit:allocation.allIn,reduceOnly,generation:p.generation,
       legs:allocation.legs.map((l,i)=>({lots:l.lots,quoteEpoch:selected[i].r.quoteEpoch,authorityEpoch:selected[i].r.authorityEpoch}))});
     return {available:true,snapshotSlot:s.slot,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation,
       instructions:[sdk.routeComputeBudget(),ix].map(i=>({programAddress:i.programAddress,accounts:i.accounts?.map(a=>({address:a.address,role:a.role})),data:Buffer.from(i.data??[]).toString('base64')}))};
@@ -94,7 +100,7 @@ export class Runtime {
   async settle(key:Keypair){
     await this.queue.budget('keeper',key.address,OPERATOR_CAP);
     const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'keeper:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
-    const s=await this.snapshot();if(s.m.paused || s.slot<s.risk.validFrom || s.slot>=s.risk.validUntil)return;
+    const s=await this.snapshot();if(s.m.paused || s.slot<s.risk.validFrom || s.slot>=s.risk.validUntil || s.sourceMode==='NoCredibleBounds')return;
     const stamp={sequence:s.m.sequence,observation:s.risk.observationSequence},authority:Authority={kind:'sequence',account:s.market,value:s.m.sequence.toString()};
     const base=`keeper:${s.m.sequence}:${s.risk.observationSequence}`;
     for(const participant of s.members){
@@ -123,6 +129,17 @@ export class Runtime {
       if(equity<im)continue;
       await this.enqueue(`${base}:settle:${p.id}`,[await sdk.getSettleGainInstructionAsync({...s,...stamp,participant,amount})],key,'keeper',authority);return;
     }
+  }
+  async funding(key:Keypair){
+    await this.queue.budget('funding',key.address,OPERATOR_CAP);
+    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'funding:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
+    const s=await this.snapshot(),o=s.risk.oracle;
+    if(s.m.mode!==2 || s.m.paused || s.now-o.sampledAt<2n)return;
+    const [a,b]=[0,1].map(id=>s.makers.find(x=>x.r.makerId===id));if(!a||!b)return;
+    const ix=await sdk.getSampleOracleInstructionAsync({...s,primaryBtc:o.sources[0],primaryCollateral:o.sources[1],guardBtc:o.sources[2],guardCollateral:o.sources[3],
+      firstCapital:a.r.capital,firstRegistration:a.registration,firstProgram:a.r.pricingProgram,firstProgramData:a.r.programData,firstConfig:a.r.config,
+      secondCapital:b.r.capital,secondRegistration:b.registration,secondProgram:b.r.pricingProgram,secondProgramData:b.r.programData,secondConfig:b.r.config});
+    await this.enqueue(`funding:${s.risk.observationSequence}`,[sdk.fundingComputeBudget(),ix],key,'funding',{kind:'sequence',account:s.market,value:s.m.sequence.toString()});
   }
   async execute(){await this.environment();for(const id of await this.queue.pending())await this.queue.step(id);}
   async close(){await this.store.close();}

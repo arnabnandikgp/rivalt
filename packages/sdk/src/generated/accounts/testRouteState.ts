@@ -42,6 +42,12 @@ import {
   type MaybeEncodedAccount,
   type ReadonlyUint8Array,
 } from "@solana/kit";
+import {
+  getOracleStateDecoder,
+  getOracleStateEncoder,
+  type OracleState,
+  type OracleStateArgs,
+} from "../types/index.js";
 
 export const TEST_ROUTE_STATE_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([27, 89, 110, 243, 98, 85, 236, 58]);
@@ -63,6 +69,7 @@ export type TestRouteState = {
   validUntil: bigint;
   grossLots: bigint;
   bump: number;
+  oracle: OracleState;
 };
 
 export type TestRouteStateArgs = {
@@ -75,6 +82,7 @@ export type TestRouteStateArgs = {
   validUntil: number | bigint;
   grossLots: number | bigint;
   bump: number;
+  oracle: OracleStateArgs;
 };
 
 /** Gets the encoder for {@link TestRouteStateArgs} account data. */
@@ -91,6 +99,7 @@ export function getTestRouteStateEncoder(): FixedSizeEncoder<TestRouteStateArgs>
       ["validUntil", getU64Encoder()],
       ["grossLots", getU64Encoder()],
       ["bump", getU8Encoder()],
+      ["oracle", getOracleStateEncoder()],
     ]),
     (value) => ({ ...value, discriminator: TEST_ROUTE_STATE_DISCRIMINATOR }),
   );
@@ -109,6 +118,7 @@ export function getTestRouteStateDecoder(): FixedSizeDecoder<TestRouteState> {
     ["validUntil", getU64Decoder()],
     ["grossLots", getU64Decoder()],
     ["bump", getU8Decoder()],
+    ["oracle", getOracleStateDecoder()],
   ]);
 }
 
@@ -198,5 +208,5 @@ export async function fetchAllMaybeTestRouteState(
 }
 
 export function getTestRouteStateSize(): number {
-  return 97;
+  return 387;
 }

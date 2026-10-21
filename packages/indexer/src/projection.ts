@@ -1,3 +1,4 @@
+import { effectiveFunding, oracleMode } from '@rivalt/sdk';
 import type { Event } from './events.js';
 
 export type Participant = { owner: string; id: number; cash: string; lots: string; virtualScaled: string;
@@ -18,7 +19,7 @@ export function project(state: State, event: Event, market: string, domain: stri
     if (![0, 1, 2, 3, 4, 5, 6].includes(e.kind)) throw new Error('Unknown custody operation');
     if (e.kind === 0) {
       if (state.market || e.sequence !== '1') throw new Error('Duplicate initialization');
-      state.market = { mode: 0, fundingIndexScaled: '0', grossLots: '0' };
+      state.market = { mode: 0, fundingIndexScaled: '0', fundingTime:'0', grossLots: '0' };
     }
     const m = requireValue(state.market, 'market');
     for (const k of ['termsEpoch', 'configEpoch', 'totalCash', 'settlement', 'insurance', 'fees', 'allocatedVault', 'paused']) m[k] = e[k];
@@ -37,9 +38,13 @@ export function project(state: State, event: Event, market: string, domain: stri
       if (state.makers[e.registration]) throw new Error('Duplicate maker');
       state.makers[e.registration] = { buyConsumed: '0', sellConsumed: '0' };
     }
+    requireValue(state.market, 'market').configEpoch = e.configEpoch;
     const maker = requireValue(state.makers[e.registration], 'maker');
     for (const k of ['capital', 'makerId', 'authorityEpoch', 'quoteEpoch', 'quarantined', 'approvedHash']) maker[k] = e[k];
     if (e.kind === 2) maker.buyConsumed = maker.sellConsumed = '0';
+  } else if (event.type === 'oracle') {
+    const m = requireValue(state.market, 'market');
+    m.mode = 2; m.termsEpoch=e.termsEpoch; m.configEpoch=e.configEpoch; m.fundingIndexScaled=e.fundingIndexScaled; m.fundingTime=e.fundingTime; state.risk=e;
   } else if (event.type === 'risk') {
     const m = requireValue(state.market, 'market');
     m.mode = 1; m.termsEpoch = e.termsEpoch; m.configEpoch = e.configEpoch; state.risk = e;
@@ -47,20 +52,22 @@ export function project(state: State, event: Event, market: string, domain: stri
     if (![0, 1, 2].includes(e.kind)) throw new Error('Unknown settlement operation');
     const m = requireValue(state.market, 'market');
     const p = requireValue(state.participants[e.participant], 'participant');
-    Object.assign(p, { cash: e.participantCash, virtualScaled: e.participantVirtual });
+    Object.assign(p, { cash: e.participantCash, virtualScaled: e.participantVirtual, fundingCheckpointScaled:e.fundingIndexScaled });
+    m.fundingIndexScaled=e.fundingIndexScaled; m.fundingTime=e.fundingTime;
     Object.assign(m, { totalCash: e.totalCash, settlement: e.settlement, allocatedVault: e.allocatedVault });
   } else {
     const m = requireValue(state.market, 'market');
     const trader = requireValue(state.participants[e.trader], 'trader');
     if (e.nonce !== trader.nonce || ![0, 1].includes(e.side) || ![1, 2].includes(e.legs.length)) throw new Error('Route authority/shape mismatch');
     Object.assign(trader, { cash: e.traderCash, lots: e.traderLots, virtualScaled: e.traderVirtual,
-      generation: e.traderGeneration, nonce: (BigInt(e.nonce) + 1n).toString() });
+      generation: e.traderGeneration, fundingCheckpointScaled:e.fundingIndexScaled, nonce: (BigInt(e.nonce) + 1n).toString() });
     for (const leg of e.legs) {
       const capital = requireValue(state.participants[leg.capital], 'capital');
-      Object.assign(capital, { lots: leg.positionAfter, virtualScaled: leg.virtualAfter, generation: leg.generationAfter });
+      Object.assign(capital, { lots: leg.positionAfter, virtualScaled: leg.virtualAfter, generation: leg.generationAfter, fundingCheckpointScaled:e.fundingIndexScaled });
       const maker = requireValue(Object.values(state.makers).find(m => m.capital === leg.capital && m.makerId === leg.makerId), 'maker');
       maker[e.side === 0 ? 'buyConsumed' : 'sellConsumed'] = leg.consumedAfter;
     }
+    m.fundingIndexScaled=e.fundingIndexScaled; m.fundingTime=e.fundingTime;
     m.totalCash = e.totalCash; m.fees = e.totalFees; m.grossLots = e.grossLots;
   }
   state.sequence = e.sequence;
@@ -69,13 +76,14 @@ export function project(state: State, event: Event, market: string, domain: stri
   const participants = Object.values(state.participants);
   if (m && participants.reduce((n, p) => n + BigInt(p.cash), 0n) !== BigInt(m.totalCash)) throw new Error('Participant cash mismatch');
   if (participants.reduce((n, p) => n + BigInt(p.lots), 0n) !== 0n) throw new Error('Net position mismatch');
-  if (m && participants.reduce((n,p) => n + BigInt(p.virtualScaled),0n) !== BigInt(m.settlement)*1_000_000_000n) throw new Error('Claims conservation failure');
+  if (m && participants.reduce((n,p) => n + BigInt(p.virtualScaled) + BigInt(p.lots)*BigInt(p.fundingCheckpointScaled),0n) !== BigInt(m.settlement)*1_000_000_000n) throw new Error('Claims conservation failure');
 }
 
-export function balance(p: Participant, state: State, slot: bigint) {
-  const q = BigInt(p.lots), v = BigInt(p.virtualScaled), cash = BigInt(p.cash), scale = 1_000_000_000n;
+export function balance(p: Participant, state: State, slot: bigint, now=BigInt(Math.floor(Date.now()/1000))) {
+  const q = BigInt(p.lots), f = effectiveFunding(state.market,state.risk,now,slot), v = BigInt(p.virtualScaled)-q*(f-BigInt(p.fundingCheckpointScaled)), cash = BigInt(p.cash), scale = 1_000_000_000n;
   const risk = state.risk;
-  const fresh = risk && slot >= BigInt(risk.validFrom) && slot < BigInt(risk.validUntil);
+  const mode=oracleMode(state.market,risk,now,slot);
+  const fresh = mode !== 'NoCredibleBounds';
   const unpaid = risk ? v + q * BigInt(risk.referencePrice) * scale : q === 0n ? v : null;
   const adverse = risk ? v + q * BigInt(q >= 0n ? risk.lower : risk.upper) * scale : q === 0n ? v : null;
   const liability = adverse === null ? null : adverse < 0n ? (-adverse + scale - 1n) / scale : 0n;
@@ -83,8 +91,9 @@ export function balance(p: Participant, state: State, slot: bigint) {
   return { ...p, unpaidPnlScaled: unpaid?.toString() ?? null, negativeUnpaidLiability: liability?.toString() ?? null,
     riskEquity: liability === null ? null : (cash - liability).toString(), initialMargin: im?.toString() ?? null,
     positiveUnpaidMarginCredit: '0', withdrawableCash: state.market?.mode === 0 && !state.market.paused ? p.cash : '0',
-    exitRequirement: state.market?.mode === 1 ? 'FreshCompleteCohortCertificateAndPostWithdrawalMargin' : null,
+    exitRequirement: state.market?.mode > 0 ? 'FreshCompleteCohortCertificateAndPostWithdrawalMargin' : null,
     settlementAvailable: state.market?.settlement ?? '0',
-    valuationStatus: risk ? fresh ? 'FreshTestObservation' : 'ExpiredTestObservation' : 'NoObservation',
+    fundingIndexScaled:f.toString(), sourceMode:mode,
+    valuationStatus: risk ? fresh ? state.market?.mode===2 ? 'ControlledLocalOracle' : 'FreshTestObservation' : 'ExpiredTestObservation' : 'NoObservation',
     evaluatedAtSlot: slot.toString() };
 }

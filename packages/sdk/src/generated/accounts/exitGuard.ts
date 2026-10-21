@@ -64,6 +64,7 @@ export type ExitGuard = {
   next: number;
   cash: bigint;
   lots: bigint;
+  exposed: bigint;
   unpaid: bigint;
   bump: number;
 };
@@ -76,6 +77,7 @@ export type ExitGuardArgs = {
   next: number;
   cash: number | bigint;
   lots: number | bigint;
+  exposed: number | bigint;
   unpaid: number | bigint;
   bump: number;
 };
@@ -92,6 +94,7 @@ export function getExitGuardEncoder(): FixedSizeEncoder<ExitGuardArgs> {
       ["next", getU16Encoder()],
       ["cash", getU64Encoder()],
       ["lots", getI128Encoder()],
+      ["exposed", getU64Encoder()],
       ["unpaid", getI128Encoder()],
       ["bump", getU8Encoder()],
     ]),
@@ -110,6 +113,7 @@ export function getExitGuardDecoder(): FixedSizeDecoder<ExitGuard> {
     ["next", getU16Decoder()],
     ["cash", getU64Decoder()],
     ["lots", getI128Decoder()],
+    ["exposed", getU64Decoder()],
     ["unpaid", getI128Decoder()],
     ["bump", getU8Decoder()],
   ]);
@@ -190,5 +194,5 @@ export async function fetchAllMaybeExitGuard(
 }
 
 export function getExitGuardSize(): number {
-  return 101;
+  return 109;
 }

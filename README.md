@@ -21,6 +21,7 @@ Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product 
 | [docs/P01-SPINE.md](docs/P01-SPINE.md) | Reproducible local bootstrap, smoke command and probe contract |
 | [docs/P02-ACCOUNTING-AND-CUSTODY.md](docs/P02-ACCOUNTING-AND-CUSTODY.md) | Exact financial units, fractional default rule, custody authority/ABI and checks |
 | [docs/P04-ATOMIC-ROUTES.md](docs/P04-ATOMIC-ROUTES.md) | Atomic route authority, synthetic risk boundary, allocation and measured budget contract |
+| [docs/P07-ORACLE-AND-FUNDING.md](docs/P07-ORACLE-AND-FUNDING.md) | Controlled source policy, authenticated common funding, action modes and participant fractions |
 | [docs/P06-LIFECYCLE.md](docs/P06-LIFECYCLE.md) | Ordinary settlement/exit guard, maker/executor services, explicit fee budgets and durable retries |
 | [docs/P05-INDEXER.md](docs/P05-INDEXER.md) | PostgreSQL journal/recovery, read endpoints, exact service pins and local operations |
 | [docs/P03-MAKER-CONTRACT.md](docs/P03-MAKER-CONTRACT.md) | Maker curves, capital binding, bounded read-only CPI, epochs and upgrade controls |
@@ -39,10 +40,10 @@ The verified bootstrap profile is macOS arm64, using native Surfpool and the exi
 
 ```sh
 source ops/env.sh
-RIVALT_SLOT_TIME=20 pnpm smoke
+RIVALT_SLOT_TIME=50 pnpm smoke
 ```
 
-This installs frozen dependencies, builds all three SBF programs and IDLs, checks the generated client against isolated legacy Anchor, runs independent financial and compiled-program tests, then starts offline Surfpool and verifies signed deployment, probe, real token custody, maker controls and atomic routes/hostile-CPI rollback over HTTP/WS. It also verifies PostgreSQL rollback, disconnect recovery, fresh database rebuild and real chain-reset isolation, then runs separate maker/executor/settlement processes through deposit → split → cross-maker close → funded settlement → withdrawal, including acknowledgement loss, worker kills, expiry and fee reconciliation. It shuts down only its own runtimes/containers. Evidence is written to `.local/runs/`. `RIVALT_SLOT_TIME` selects the local slot cadence in milliseconds (default 100); 20 keeps the real exclusive-expiry fixture short. This changes local wall time, not on-chain slot lifetimes.
+This installs frozen dependencies, builds all three SBF programs and IDLs, checks the generated client against isolated legacy Anchor, runs independent financial and compiled-program tests, then starts offline Surfpool and verifies signed deployment, probe, real token custody, maker controls and atomic routes/hostile-CPI rollback over HTTP/WS. It also verifies PostgreSQL rollback, disconnect recovery, fresh database rebuild and real chain-reset isolation, then runs separate maker/executor/settlement processes through deposit → split → cross-maker close → funded settlement → withdrawal, including acknowledgement loss, worker kills, expiry and fee reconciliation. P07 adds a separately deployed signed oracle fixture, funding worker, source/maker outage and recovery checks, exact fractional funding, and PostgreSQL reconstruction. It shuts down only its own runtimes/containers. Evidence is written to `.local/runs/`. `RIVALT_SLOT_TIME` selects the local slot cadence in milliseconds (default 100); 50 is the P07 local deployment/acceptance cadence; 20 remains a faster optional test cadence whose shorter blockhash lifetime can exhaust program-upload retries. This changes local wall time, not on-chain slot lifetimes.
 
 Only WORKLOG owns live phase status. The delivery plan defines scope and acceptance, while DECISIONS owns baseline amendments.
 

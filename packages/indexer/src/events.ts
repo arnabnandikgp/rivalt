@@ -9,12 +9,13 @@ export const json = (value: unknown): string => JSON.stringify(value, (_, x) =>
     x?.type === 'Buffer' && Array.isArray(x.data) ? Buffer.from(x.data).toString('hex') : x);
 export const hash = (value: unknown) => createHash('sha256').update(json(value)).digest('hex');
 export type Event = { signature: string; outer: number; inner: number; ordinal: number; slot: number;
-  blockTime: number | null; type: 'custody' | 'maker' | 'risk' | 'route' | 'settlement'; data: any; bytes: string };
+  blockTime: number | null; type: 'custody' | 'maker' | 'risk' | 'route' | 'settlement' | 'oracle'; data: any; bytes: string };
 const decoders = [
   ['custody', sdk.CUSTODY_CHANGED_EVENT_DISCRIMINATOR, sdk.getCustodyChangedEventDecoder()],
   ['maker', sdk.MAKER_CHANGED_EVENT_DISCRIMINATOR, sdk.getMakerChangedEventDecoder()],
   ['risk', sdk.TEST_RISK_PUBLISHED_EVENT_DISCRIMINATOR, sdk.getTestRiskPublishedEventDecoder()],
   ['route', sdk.ROUTE_EXECUTED_EVENT_DISCRIMINATOR, sdk.getRouteExecutedEventDecoder()],
+  ['oracle', sdk.ORACLE_OBSERVED_EVENT_DISCRIMINATOR, sdk.getOracleObservedEventDecoder()],
   ['settlement', sdk.SETTLEMENT_CHANGED_EVENT_DISCRIMINATOR, sdk.getSettlementChangedEventDecoder()],
 ] as const;
 const envelope = Buffer.from('e445a52e51cb9a1d', 'hex');

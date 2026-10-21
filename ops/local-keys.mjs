@@ -3,7 +3,7 @@ import { createHash, createPrivateKey, createPublicKey } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 mkdirSync('.local/keys', { recursive: true, mode: 0o700 });
-for (const role of ['clearing', 'payer', 'maker-a', 'maker-b']) {
+for (const role of ['clearing', 'payer', 'maker-a', 'maker-b', 'oracle-fixture']) {
   const seed = createHash('sha256').update(`rivalt/p01/local-only/${role}`).digest();
   const privateKey = createPrivateKey({
     key: Buffer.concat([Buffer.from('302e020100300506032b657004220420', 'hex'), seed]),

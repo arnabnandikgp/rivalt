@@ -6,3 +6,8 @@ export function routeComputeBudget(): Instruction {
   const ix = ComputeBudgetProgram.setComputeUnitLimit({ units: ROUTE_COMPUTE_UNITS });
   return { programAddress: address(ix.programId.toBase58()), accounts: [], data: ix.data };
 }
+/** G08 bounded full-maker impact search. Measured independently from route CU. */
+export function fundingComputeBudget(): Instruction {
+  const ix = ComputeBudgetProgram.setComputeUnitLimit({units:1_200_000});
+  return {programAddress:address(ix.programId.toBase58()),accounts:[],data:ix.data};
+}

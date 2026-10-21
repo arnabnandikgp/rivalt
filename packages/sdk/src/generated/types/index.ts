@@ -7,6 +7,7 @@
  */
 
 export * from "./executedLeg.js";
+export * from "./oracleState.js";
 export * from "./probeChoice.js";
 export * from "./quoteResponse.js";
 export * from "./routeLeg.js";

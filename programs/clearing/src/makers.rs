@@ -152,6 +152,7 @@ pub struct MakerChanged {
     pub quote_epoch: u64,
     pub quarantined: bool,
     pub approved_hash: [u8; 32],
+    pub config_epoch: u64,
 }
 fn active(m: &MarketState) -> Result<()> {
     crate::custody::profile(m)?;
@@ -163,7 +164,7 @@ fn capital_ready(p: &Participant) -> Result<()> {
     require!(p.cash > 0, ClearingError::MakerCapital);
     Ok(())
 }
-fn config_state(
+pub(crate) fn config_state(
     config: &AccountInfo,
     program: Pubkey,
     maker_id: u8,
@@ -232,6 +233,12 @@ fn event(
     kind: u8,
 ) -> Result<MakerChanged> {
     m.sequence = m.sequence.checked_add(1).ok_or(ClearingError::Arithmetic)?;
+    if m.mode == 2 {
+        m.config_epoch = m
+            .config_epoch
+            .checked_add(1)
+            .ok_or(ClearingError::Arithmetic)?;
+    }
     Ok(MakerChanged {
         version: VERSION,
         domain: m.domain,
@@ -246,6 +253,7 @@ fn event(
         quote_epoch: r.quote_epoch,
         quarantined: r.quarantined,
         approved_hash: r.approved_hash,
+        config_epoch: m.config_epoch,
     })
 }
 pub fn register(ctx: Context<RegisterMaker>, maker_id: u8, inventory_limit: u64) -> Result<()> {
@@ -436,18 +444,28 @@ pub(crate) fn quote_checked<'info>(
     };
     let expected =
         maker_interface::quote(&state, &request).map_err(|_| error!(ClearingError::MakerQuote))?;
+    invoke_quote(config, pricing_program, &request, &expected)
+}
+/// Only for callers that have authenticated module/config/capital in this same
+/// transaction. Inputs stay read-only, so later quote calls cannot change approval.
+pub(crate) fn invoke_quote<'info>(
+    config: &UncheckedAccount<'info>,
+    pricing_program: &Program<'info>,
+    request: &QuoteRequest,
+    expected: &QuoteResponse,
+) -> Result<QuoteResponse> {
     let mut data = hash(b"global:quote").to_bytes()[..8].to_vec();
     request.serialize(&mut data)?;
     // No signer, capital, market, vault or arbitrary remaining account crosses CPI.
     invoke(
         &Instruction {
-            program_id: r.pricing_program,
-            accounts: vec![AccountMeta::new_readonly(r.config, false)],
+            program_id: pricing_program.key(),
+            accounts: vec![AccountMeta::new_readonly(config.key(), false)],
             data,
         },
         &[config.to_account_info(), pricing_program.to_account_info()],
     )?;
     let (producer, bytes) = get_return_data().ok_or(ClearingError::MakerResponse)?;
-    maker_interface::validate_response(&r.pricing_program, &producer, &bytes, &expected)
+    maker_interface::validate_response(&pricing_program.key(), &producer, &bytes, expected)
         .map_err(|_| error!(ClearingError::MakerResponse))
 }

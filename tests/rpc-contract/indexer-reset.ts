@@ -23,7 +23,8 @@ const stop=async(p:ChildProcess)=>{if(p.exitCode!==null||p.signalCode!==null)ret
 const run=async(file:string,env:NodeJS.ProcessEnv)=>new Promise<void>((resolve,reject)=>{const p=spawn(process.execPath,['--import','tsx',file],{env,stdio:'inherit'});p.once('error',reject);p.once('exit',c=>c===0?resolve():reject(new Error(`${file} ${c}`)));});
 try{
   await eventually(async()=>{if(runtime.exitCode!==null)throw new Error('reset runtime exited');try{return await rpc.call('getHealth');}catch{return null;}},x=>x==='ok','new Surfpool');
-  execFileSync('solana',['program','deploy','target/deploy/clearing.so','--program-id','.local/keys/clearing.json','--keypair','.local/keys/payer.json','--url',rpcUrl,'--use-rpc','--output','json'],{stdio:['ignore',log,log]});
+  execFileSync('solana-keygen',['new','--silent','--no-bip39-passphrase','--outfile',`${dir}/deploy-buffer.json`],{stdio:'ignore'});
+  execFileSync('solana',['program','deploy','target/deploy/clearing.so','--buffer',`${dir}/deploy-buffer.json`,'--program-id','.local/keys/clearing.json','--keypair','.local/keys/payer.json','--url',rpcUrl,'--use-rpc','--output','json'],{stdio:['ignore',log,log]});
   const env={...process.env,RIVALT_RUN_DIR:dir,RIVALT_RPC_URL:rpcUrl,RIVALT_WS_URL:wsUrl};
   await run('tests/rpc-contract/custody-rpc.ts',env);
   const fresh=JSON.parse(readFileSync(`${dir}/custody.json`,'utf8'));

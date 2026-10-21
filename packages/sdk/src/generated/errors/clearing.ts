@@ -63,6 +63,10 @@ export const CLEARING_ERROR__ROUTE_HEALTH = 0x17e8; // 6120
 export const CLEARING_ERROR__EXIT_COHORT = 0x17e9; // 6121
 /** FinancialSequence: Financial action is bound to a different market sequence */
 export const CLEARING_ERROR__FINANCIAL_SEQUENCE = 0x17ea; // 6122
+/** OracleSource: Oracle source identity, verification or schema mismatch */
+export const CLEARING_ERROR__ORACLE_SOURCE = 0x17eb; // 6123
+/** OraclePolicy: Oracle action mode, sample timing or source policy rejects action */
+export const CLEARING_ERROR__ORACLE_POLICY = 0x17ec; // 6124
 
 export type ClearingError =
   | typeof CLEARING_ERROR__ALIAS
@@ -81,6 +85,8 @@ export type ClearingError =
   | typeof CLEARING_ERROR__MAKER_RESPONSE
   | typeof CLEARING_ERROR__MAKER_UPGRADE
   | typeof CLEARING_ERROR__MINT
+  | typeof CLEARING_ERROR__ORACLE_POLICY
+  | typeof CLEARING_ERROR__ORACLE_SOURCE
   | typeof CLEARING_ERROR__PAUSED
   | typeof CLEARING_ERROR__PROFILE
   | typeof CLEARING_ERROR__RECONCILIATION
@@ -109,6 +115,8 @@ if (process.env["NODE_ENV"] !== "production") {
     [CLEARING_ERROR__MAKER_RESPONSE]: `Maker response producer, encoding or terms mismatch`,
     [CLEARING_ERROR__MAKER_UPGRADE]: `Maker deployment differs from approved ProgramData hash`,
     [CLEARING_ERROR__MINT]: `Expected classic SPL six-decimal collateral without freeze authority`,
+    [CLEARING_ERROR__ORACLE_POLICY]: `Oracle action mode, sample timing or source policy rejects action`,
+    [CLEARING_ERROR__ORACLE_SOURCE]: `Oracle source identity, verification or schema mismatch`,
     [CLEARING_ERROR__PAUSED]: `Market is paused`,
     [CLEARING_ERROR__PROFILE]: `Financial state is outside the implemented phase profile`,
     [CLEARING_ERROR__RECONCILIATION]: `Actual vault is below allocated cash or cash totals disagree`,

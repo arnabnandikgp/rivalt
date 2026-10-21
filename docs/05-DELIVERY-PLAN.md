@@ -160,7 +160,7 @@ Milestone: **M4**. Depends on: **P06**.
 
 **Runnable demonstration:** Run valid funding, remove required input, observe zero new invalid-interval accrual/restrictive mode, then recover under the recorded policy.
 
-**Expected artifacts:** Oracle adapters/policy, observation/funding state, worker role, fault scenarios and funding precision report.
+**Expected artifacts:** Oracle adapters/policy, observation/funding state, worker role, fault scenarios and funding precision report. The finite local contract is [ORACLE-AND-FUNDING](P07-ORACLE-AND-FUNDING.md); its acceptance status remains in WORKLOG.
 
 ## P08 — Persistent orders and TP/SL
 

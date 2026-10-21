@@ -1187,6 +1187,102 @@
       ]
     },
     {
+      "name": "initialize_oracle",
+      "discriminator": [
+        144,
+        223,
+        131,
+        120,
+        196,
+        253,
+        181,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state"
+          ]
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "primary",
+          "type": "pubkey"
+        },
+        {
+          "name": "guard",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "initialize_test_routes",
       "discriminator": [
         16,
@@ -1901,6 +1997,190 @@
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "sample_oracle",
+      "discriminator": [
+        189,
+        254,
+        170,
+        62,
+        147,
+        181,
+        131,
+        127
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state",
+            "first_capital",
+            "first_registration",
+            "second_capital",
+            "second_registration"
+          ]
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "primary_btc"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_btc"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "first_capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "first_capital.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "first_registration"
+        },
+        {
+          "name": "first_program"
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config"
+        },
+        {
+          "name": "second_capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "second_capital.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "second_registration"
+        },
+        {
+          "name": "second_program"
+        },
+        {
+          "name": "second_program_data"
+        },
+        {
+          "name": "second_config"
         },
         {
           "name": "event_authority"
@@ -2751,6 +3031,19 @@
       ]
     },
     {
+      "name": "OracleObserved",
+      "discriminator": [
+        251,
+        25,
+        221,
+        41,
+        50,
+        211,
+        179,
+        216
+      ]
+    },
+    {
       "name": "ProbeRecorded",
       "discriminator": [
         63,
@@ -2923,6 +3216,16 @@
       "code": 6122,
       "name": "FinancialSequence",
       "msg": "Financial action is bound to a different market sequence"
+    },
+    {
+      "code": 6123,
+      "name": "OracleSource",
+      "msg": "Oracle source identity, verification or schema mismatch"
+    },
+    {
+      "code": 6124,
+      "name": "OraclePolicy",
+      "msg": "Oracle action mode, sample timing or source policy rejects action"
     }
   ],
   "types": [
@@ -3127,6 +3430,10 @@
             "type": "i128"
           },
           {
+            "name": "exposed",
+            "type": "u64"
+          },
+          {
             "name": "unpaid",
             "type": "i128"
           },
@@ -3203,6 +3510,10 @@
                 32
               ]
             }
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
           }
         ]
       }
@@ -3357,6 +3668,10 @@
             "type": "i128"
           },
           {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
             "name": "total_cash",
             "type": "u64"
           },
@@ -3386,6 +3701,180 @@
           {
             "name": "vault_bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleObserved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "observation_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          },
+          {
+            "name": "lower",
+            "type": "u64"
+          },
+          {
+            "name": "upper",
+            "type": "u64"
+          },
+          {
+            "name": "valid_from",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until",
+            "type": "u64"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "OracleState"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sources",
+            "type": {
+              "array": [
+                "pubkey",
+                4
+              ]
+            }
+          },
+          {
+            "name": "source_sequences",
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "sampled_at",
+            "type": "i64"
+          },
+          {
+            "name": "source_deadline",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "0 no credible bounds, 1 degraded, 2 normal (subject to live clock checks)."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "outcome",
+            "type": "u8"
+          },
+          {
+            "name": "valid_since",
+            "type": "i64"
+          },
+          {
+            "name": "last_qualified",
+            "type": "i64"
+          },
+          {
+            "name": "held_until",
+            "type": "i64"
+          },
+          {
+            "name": "held_slot",
+            "type": "u64"
+          },
+          {
+            "name": "held_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "funding_base",
+            "type": "i128"
+          },
+          {
+            "name": "premium_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "quantity",
+            "type": "u64"
+          },
+          {
+            "name": "bid",
+            "type": "u64"
+          },
+          {
+            "name": "ask",
+            "type": "u64"
+          },
+          {
+            "name": "covered_seconds",
+            "type": "u64"
+          },
+          {
+            "name": "skipped_seconds",
+            "type": "u64"
           }
         ]
       }
@@ -3771,6 +4260,14 @@
             "type": "u64"
           },
           {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
             "name": "total_cash",
             "type": "u64"
           },
@@ -3953,6 +4450,14 @@
             "type": "i128"
           },
           {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
             "name": "total_cash",
             "type": "u64"
           },
@@ -4072,6 +4577,14 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "OracleState"
+              }
+            }
           }
         ]
       }

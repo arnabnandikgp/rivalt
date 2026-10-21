@@ -21,6 +21,8 @@ import {
   getHiddenPrefixEncoder,
   getI128Decoder,
   getI128Encoder,
+  getI64Decoder,
+  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
   getU16Decoder,
@@ -59,6 +61,8 @@ export type SettlementChangedEvent = {
   amount: bigint;
   participantCash: bigint;
   participantVirtual: bigint;
+  fundingIndexScaled: bigint;
+  fundingTime: bigint;
   totalCash: bigint;
   settlement: bigint;
   allocatedVault: bigint;
@@ -78,6 +82,8 @@ export type SettlementChangedEventArgs = {
   amount: number | bigint;
   participantCash: number | bigint;
   participantVirtual: number | bigint;
+  fundingIndexScaled: number | bigint;
+  fundingTime: number | bigint;
   totalCash: number | bigint;
   settlement: number | bigint;
   allocatedVault: number | bigint;
@@ -99,6 +105,8 @@ export function getSettlementChangedEventEncoder(): FixedSizeEncoder<SettlementC
       ["amount", getU64Encoder()],
       ["participantCash", getU64Encoder()],
       ["participantVirtual", getI128Encoder()],
+      ["fundingIndexScaled", getI128Encoder()],
+      ["fundingTime", getI64Encoder()],
       ["totalCash", getU64Encoder()],
       ["settlement", getU64Encoder()],
       ["allocatedVault", getU64Encoder()],
@@ -123,6 +131,8 @@ export function getSettlementChangedEventDecoder(): FixedSizeDecoder<SettlementC
       ["amount", getU64Decoder()],
       ["participantCash", getU64Decoder()],
       ["participantVirtual", getI128Decoder()],
+      ["fundingIndexScaled", getI128Decoder()],
+      ["fundingTime", getI64Decoder()],
       ["totalCash", getU64Decoder()],
       ["settlement", getU64Decoder()],
       ["allocatedVault", getU64Decoder()],

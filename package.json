@@ -19,7 +19,8 @@
     "test:routes": "node --import tsx tests/rpc-contract/route-svm.ts",
     "indexer": "node --import tsx packages/indexer/src/main.ts",
     "test:settlement": "node --import tsx tests/rpc-contract/settlement-svm.ts",
-    "services": "node --import tsx packages/services/src/main.ts"
+    "services": "node --import tsx packages/services/src/main.ts",
+    "test:oracle": "node --import tsx tests/rpc-contract/oracle-svm.ts"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "1.5.6",

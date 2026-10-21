@@ -18,6 +18,7 @@ pub struct ExitGuard {
     pub next: u16,
     pub cash: u64,
     pub lots: i128,
+    pub exposed: u64,
     pub unpaid: i128,
     pub bump: u8,
 }
@@ -36,7 +37,7 @@ pub struct CheckExitCohort<'info> {
     #[account(seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump,has_one=vault)]
     pub market: Account<'info, MarketState>,
     #[account(seeds=[b"test-routes",market.key().as_ref()],bump=route_state.bump,has_one=market)]
-    pub route_state: Account<'info, TestRouteState>,
+    pub route_state: Box<Account<'info, TestRouteState>>,
     #[account(seeds=[b"registry",market.key().as_ref()],bump=registry.bump,has_one=market)]
     pub registry: Box<Account<'info, ParticipantRegistry>>,
     #[account(mut,seeds=[b"exit-guard",market.key().as_ref()],bump=guard.bump,has_one=market)]
@@ -54,7 +55,7 @@ pub struct LedgerChange<'info> {
     #[account(mut,seeds=[b"participant",market.key().as_ref(),participant.owner.as_ref()],bump=participant.bump,has_one=market)]
     pub participant: Account<'info, Participant>,
     #[account(seeds=[b"test-routes",market.key().as_ref()],bump=route_state.bump,has_one=market)]
-    pub route_state: Account<'info, TestRouteState>,
+    pub route_state: Box<Account<'info, TestRouteState>>,
     #[account(seeds=[b"exit-guard",market.key().as_ref()],bump=guard.bump,has_one=market)]
     pub guard: Account<'info, ExitGuard>,
     #[account(seeds=[b"vault",market.key().as_ref()],bump=market.vault_bump,
@@ -97,6 +98,8 @@ pub struct SettlementChanged {
     pub amount: u64,
     pub participant_cash: u64,
     pub participant_virtual: i128,
+    pub funding_index_scaled: i128,
+    pub funding_time: i64,
     pub total_cash: u64,
     pub settlement: u64,
     pub allocated_vault: u64,
@@ -105,18 +108,19 @@ pub struct SettlementChanged {
 fn checked<T>(r: math::Result<T>) -> Result<T> {
     r.map_err(|_| error!(ClearingError::Arithmetic))
 }
-fn live(m: &MarketState, r: &TestRouteState, sequence: u64, observation: u64) -> Result<()> {
+fn live(m: &MarketState, r: &TestRouteState, sequence: u64, observation: u64) -> Result<bool> {
     require!(cfg!(feature = "local-test-profile"), ClearingError::Profile);
     custody::profile(m)?;
-    require!(m.mode == 1, ClearingError::Profile);
+    require!(m.mode == 1 || m.mode == 2, ClearingError::Profile);
     require!(!m.paused, ClearingError::Paused);
     require!(m.sequence == sequence, ClearingError::FinancialSequence);
-    let slot = Clock::get()?.slot;
     require!(
-        observation == r.observation_sequence && slot >= r.valid_from && slot < r.valid_until,
+        observation == r.observation_sequence,
         ClearingError::RiskObservation
     );
-    Ok(())
+    let credible = crate::oracle::action(m, r, false).is_ok();
+    require!(credible || m.mode == 2, ClearingError::RiskObservation);
+    Ok(credible)
 }
 fn certified(g: &ExitGuard, sequence: u64, observation: u64) -> Result<()> {
     require!(
@@ -138,7 +142,7 @@ pub fn check(
     start: u16,
 ) -> Result<()> {
     let a = &mut *ctx.accounts;
-    live(&a.market, &a.route_state, sequence, observation)?;
+    let credible = live(&a.market, &a.route_state, sequence, observation)?;
     custody::reconciled(&a.market, a.vault.amount)?;
     let registry = &a.registry;
     require!(
@@ -164,6 +168,7 @@ pub fn check(
         g.next = 0;
         g.cash = 0;
         g.lots = 0;
+        g.exposed = 0;
         g.unpaid = 0;
     }
     require!(
@@ -201,10 +206,21 @@ pub fn check(
         .map_err(|_| error!(ClearingError::ExitCohort))?;
         require_keys_eq!(key, *info.key, ClearingError::ExitCohort);
         let model = routes::participant_model(&p)?;
-        require!(
-            checked(model.risk_equity(a.route_state.lower, a.route_state.upper, 0))? >= 0,
-            ClearingError::ExitCohort
-        );
+        require!(credible || p.lots == 0, ClearingError::ExitCohort);
+        for funding in crate::oracle::funding_bounds(&a.market, &a.route_state)? {
+            require!(
+                checked(model.risk_equity(
+                    a.route_state.lower.max(1),
+                    a.route_state.upper.max(1),
+                    funding
+                ))? >= 0,
+                ClearingError::ExitCohort
+            );
+        }
+        g.exposed = g
+            .exposed
+            .checked_add(p.lots.unsigned_abs())
+            .ok_or(ClearingError::Arithmetic)?;
         g.cash = checked(math::cash_add(g.cash, p.cash))?;
         g.lots = g
             .lots
@@ -255,6 +271,8 @@ fn event(
         amount,
         participant_cash: p.cash,
         participant_virtual: p.virtual_scaled,
+        funding_index_scaled: m.funding_index_scaled,
+        funding_time: m.funding_time,
         total_cash: m.total_cash,
         settlement: m.settlement,
         allocated_vault: m.allocated_vault,
@@ -269,11 +287,17 @@ pub fn change(
     gain: bool,
 ) -> Result<()> {
     let a = &mut *ctx.accounts;
-    live(&a.market, &a.route_state, sequence, observation)?;
+    let credible = live(&a.market, &a.route_state, sequence, observation)?;
     custody::reconciled(&a.market, a.vault.amount)?;
     if gain {
         certified(&a.guard, sequence, observation)?;
+        require!(credible || a.guard.exposed == 0, ClearingError::ExitCohort);
     }
+    require!(
+        credible || a.participant.lots == 0,
+        ClearingError::RiskObservation
+    );
+    crate::oracle::materialize(&mut a.market, &a.route_state)?;
     let mut p = routes::participant_model(&a.participant)?;
     let mut pools = math::Pools {
         vault: a.market.allocated_vault,
@@ -287,9 +311,13 @@ pub fn change(
             pools,
             amount,
             a.route_state.reference_price,
-            0,
+            a.market.funding_index_scaled,
         ))?;
-        checked(p.admissible(a.route_state.lower, a.route_state.upper, 0))?;
+        checked(p.admissible(
+            a.route_state.lower.max(1),
+            a.route_state.upper.max(1),
+            a.market.funding_index_scaled,
+        ))?;
         a.market.total_cash = checked(math::cash_add(a.market.total_cash, amount))?;
     } else {
         (p, pools) = checked(math::collect(
@@ -297,7 +325,7 @@ pub fn change(
             pools,
             amount,
             a.route_state.reference_price,
-            0,
+            a.market.funding_index_scaled,
         ))?;
         a.market.total_cash = checked(math::cash_sub(a.market.total_cash, amount))?;
     }
@@ -322,11 +350,18 @@ pub fn withdraw(
     amount: u64,
 ) -> Result<()> {
     let a = &mut *ctx.accounts;
-    live(&a.market, &a.route_state, sequence, observation)?;
+    let credible = live(&a.market, &a.route_state, sequence, observation)?;
     certified(&a.guard, sequence, observation)?;
+    require!(credible || a.guard.exposed == 0, ClearingError::ExitCohort);
+    crate::oracle::materialize(&mut a.market, &a.route_state)?;
     custody::reconciled(&a.market, a.vault.amount)?;
     let p = routes::participant_model(&a.participant)?;
-    let p = checked(p.withdraw(amount, a.route_state.lower, a.route_state.upper, 0))?;
+    let p = checked(p.withdraw(
+        amount,
+        a.route_state.lower.max(1),
+        a.route_state.upper.max(1),
+        a.market.funding_index_scaled,
+    ))?;
     let bump = [a.market.bump];
     let seeds: &[&[u8]] = &[b"market", b"BTC", &bump];
     token::transfer_checked(

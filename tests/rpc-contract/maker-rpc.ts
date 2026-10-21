@@ -62,7 +62,8 @@ try {
   const result=await makerCases(h);
   // Real signed local program upgrade of identical bytes, changing loader metadata.
   const x=await makerAddresses(0),before=(await h.read(x.programData))!;
-  const deployment=JSON.parse(execFileSync('solana',['program','deploy','target/deploy/maker_a.so','--program-id','.local/keys/maker-a.json','--keypair','.local/keys/payer.json','--url',url,'--use-rpc','--output','json'],{encoding:'utf8'}));
+  execFileSync('solana-keygen',['new','--silent','--no-bip39-passphrase','--outfile',`${dir}/maker-upgrade-buffer.json`],{stdio:'ignore'});
+  const deployment=JSON.parse(execFileSync('solana',['program','deploy','target/deploy/maker_a.so','--buffer',`${dir}/maker-upgrade-buffer.json`,'--program-id','.local/keys/maker-a.json','--keypair','.local/keys/payer.json','--url',url,'--use-rpc','--output','json'],{encoding:'utf8'}));
   const after=await eventually(()=>h.read(x.programData),v=>v!==null&&!v.equals(before),'actual maker upgrade');assert(after);
   const m=sdk.getMarketStateDecoder().decode((await h.read(a.market))!),r=sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!);
   const input={...x,side:0,lots:10n,referencePrice:60_000n,quoteEpoch:r.quoteEpoch,authorityEpoch:r.authorityEpoch,termsEpoch:m.termsEpoch,configEpoch:m.configEpoch};

@@ -23,6 +23,8 @@ import {
   getBytesEncoder,
   getI128Decoder,
   getI128Encoder,
+  getI64Decoder,
+  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
   getU16Decoder,
@@ -74,6 +76,7 @@ export type MarketState = {
   /** 0 CustodyOnly, 1 explicitly compiled synthetic TestRoutes. */
   mode: number;
   fundingIndexScaled: bigint;
+  fundingTime: bigint;
   totalCash: bigint;
   settlement: bigint;
   insurance: bigint;
@@ -98,6 +101,7 @@ export type MarketStateArgs = {
   /** 0 CustodyOnly, 1 explicitly compiled synthetic TestRoutes. */
   mode: number;
   fundingIndexScaled: number | bigint;
+  fundingTime: number | bigint;
   totalCash: number | bigint;
   settlement: number | bigint;
   insurance: number | bigint;
@@ -125,6 +129,7 @@ export function getMarketStateEncoder(): FixedSizeEncoder<MarketStateArgs> {
       ["paused", getBooleanEncoder()],
       ["mode", getU8Encoder()],
       ["fundingIndexScaled", getI128Encoder()],
+      ["fundingTime", getI64Encoder()],
       ["totalCash", getU64Encoder()],
       ["settlement", getU64Encoder()],
       ["insurance", getU64Encoder()],
@@ -153,6 +158,7 @@ export function getMarketStateDecoder(): FixedSizeDecoder<MarketState> {
     ["paused", getBooleanDecoder()],
     ["mode", getU8Decoder()],
     ["fundingIndexScaled", getI128Decoder()],
+    ["fundingTime", getI64Decoder()],
     ["totalCash", getU64Decoder()],
     ["settlement", getU64Decoder()],
     ["insurance", getU64Decoder()],
@@ -241,5 +247,5 @@ export async function fetchAllMaybeMarketState(
 }
 
 export function getMarketStateSize(): number {
-  return 224;
+  return 232;
 }

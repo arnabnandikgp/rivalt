@@ -75,6 +75,8 @@ export type RouteExecutedEvent = {
   traderLots: bigint;
   traderVirtual: bigint;
   traderGeneration: bigint;
+  fundingIndexScaled: bigint;
+  fundingTime: bigint;
   totalCash: bigint;
   totalFees: bigint;
   grossLots: bigint;
@@ -100,6 +102,8 @@ export type RouteExecutedEventArgs = {
   traderLots: number | bigint;
   traderVirtual: number | bigint;
   traderGeneration: number | bigint;
+  fundingIndexScaled: number | bigint;
+  fundingTime: number | bigint;
   totalCash: number | bigint;
   totalFees: number | bigint;
   grossLots: number | bigint;
@@ -128,6 +132,8 @@ export function getRouteExecutedEventEncoder(): Encoder<RouteExecutedEventArgs> 
       ["traderLots", getI64Encoder()],
       ["traderVirtual", getI128Encoder()],
       ["traderGeneration", getU64Encoder()],
+      ["fundingIndexScaled", getI128Encoder()],
+      ["fundingTime", getI64Encoder()],
       ["totalCash", getU64Encoder()],
       ["totalFees", getU64Encoder()],
       ["grossLots", getU64Encoder()],
@@ -159,6 +165,8 @@ export function getRouteExecutedEventDecoder(): Decoder<RouteExecutedEvent> {
       ["traderLots", getI64Decoder()],
       ["traderVirtual", getI128Decoder()],
       ["traderGeneration", getU64Decoder()],
+      ["fundingIndexScaled", getI128Decoder()],
+      ["fundingTime", getI64Decoder()],
       ["totalCash", getU64Decoder()],
       ["totalFees", getU64Decoder()],
       ["grossLots", getU64Decoder()],
