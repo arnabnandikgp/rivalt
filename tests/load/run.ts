@@ -9,6 +9,7 @@ import { Indexer } from '../../packages/indexer/src/index.js';
 import { json, decode } from '../../packages/indexer/src/events.js';
 import { environment, wait } from './environment.js';
 import { summarize, type Attempt } from './metrics.js';
+import { submissionFault } from './submission-fault.js';
 import { publicIntents } from '../e2e/evidence.js';
 
 const args=process.argv.slice(2),seconds=Number(args[args.indexOf('--sweep-seconds')+1]??60);
@@ -30,7 +31,7 @@ let env:Awaited<ReturnType<typeof environment>>|undefined;
 try{
   env=await environment();const e=env;
   const busy=new Set<number>(),positions=[0n,0n,0n],pending=new Set<Promise<void>>();let offered=0;
-  async function request(path:string,body:any){const response=await fetch('http://127.0.0.1:18081'+path,{method:'POST',headers:{'content-type':'application/json'},body:json(body),signal:AbortSignal.timeout(5000)});const result=await response.json() as any;if(!response.ok)throw new Error(result.error??String(response.status));return result;}
+  async function request(path:string,body:any){const response=await fetch('http://127.0.0.1:18081'+path,{method:'POST',headers:{'content-type':'application/json'},body:json(body),signal:AbortSignal.timeout(5000)});const result=await response.json() as any;if(!response.ok)throw Object.assign(new Error(result.error??String(response.status)),{code:result.code});return result;}
   async function attempt(phase:string,fault:boolean,scheduled:number){
     const number=offered++,actor=number%3,row:Attempt={id:`load:${number}`,phase,offeredAt:scheduled,actor,fault,status:'offered'};
     records.push(row);
@@ -69,7 +70,7 @@ try{
         }
         await delay(100);
       }
-    }catch(error){row.status=row.signature?'unresolved':'quote-unavailable';row.code=error instanceof Error?error.message:'request failed';}
+    }catch(error){row.status=row.signature?'unresolved':'quote-unavailable';row.code=error instanceof Error?String((error as Error&{code?:string}).code??error.message):'request failed';}
     finally{
       // An unresolved signed action retains this account's admission lock for the run.
       if(row.status!=='unresolved')busy.delete(actor);
@@ -86,6 +87,8 @@ try{
     execFileSync('python3',['tests/load/reconcile.py',`${dir}/latest.json`],{stdio:['ignore','pipe','pipe']});
     return sample;
   }
+  faults.push(await submissionFault(e));
+  await wait(async()=>{const s=await e.runtime.snapshot();return s.sourceMode==='Normal'&&s.makers.every(x=>x.online);},Boolean,'post-fault normal recovery');
   await capture('start');
   for(const rate of [1,5,10]){
     const name=`sweep-${rate}`,start=performance.now(),first=records.length;

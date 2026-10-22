@@ -30,3 +30,11 @@ At the unchanged two-second sampler floor, 24 hours contains at most 43,200 ordi
 ## Remaining phase gate
 
 Select a sustainable baseline from measured 1/5/10 sweeps, retain saturation/failure causes, verify quote p95 <=200 ms, normal eligible success >=99% and >=20% measured CU headroom for the declared worst cases. Record resource growth and reserve enough disk/memory before starting a real 86,400-second full-system soak with maker/worker/indexer outages, periodic and final reconciliation. Real elapsed runtime is required; no accelerated clock or scheduled automation substitutes. A target failure prevents phase closure until resolved. M5a remains In progress.
+
+## First measurement and scoped correction
+
+The clean `f2415ad` probe (`.local/load/20261022T225134Z-28214`) finishes all 1/5/10 sweeps and final reconciliation but exits 2. Baseline success is 40/43 (93.023%), below target, with quote p95 25.125 ms and maximum 298,176 CU. Stress populations remain fully recorded. No 24-hour run has started.
+
+The first optimization targets measured scheduling delay: PostgreSQL delivers a run-scoped notification only after the immutable signed intent commits. The separate executor wakes promptly and keeps its existing 250 ms durable fallback scan. Notifications carry no financial authority; missed notifications or lost connections cannot replace signatures or release reservations. The API remains a persistence ingress. Safe quote reason codes distinguish source/finality/expiry/paused/account restrictions. Revalidation and new measurements remain pending.
+
+Before measuring load, the same fresh environment now tests a real one-atom deposit committed while the executor/listener is stopped. Startup must discover it without the lost notification; the RPC proxy forwards its actual transaction, drops acknowledgement and kills the executor. A restart and duplicate request must reconcile the original signature and exactly one cash atom, while changed bytes under the same request ID reject. This targets the scheduling change directly without an unrelated inherited suite.

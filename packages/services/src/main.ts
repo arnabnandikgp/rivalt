@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { Keypair } from '@solana/web3.js';
 import { Runtime } from './runtime.js';
 import { api } from './api.js';
+import { ExecutorWake } from './executor-wake.js';
 const required=(name:string)=>{const value=process.env[name];if(!value)throw new Error(`Missing ${name}`);return value;};
 const role=required('RIVALT_SERVICE_ROLE'),url=required('RIVALT_RPC_URL');
 const sampleCadence=process.env.RIVALT_FUNDING_INTERVAL_SECONDS??'2';
@@ -14,9 +15,13 @@ const app=role==='api'?api(runtime):null;
 if(app)await app.listen({host:'127.0.0.1',port:Number(process.env.RIVALT_SERVICE_PORT??18081)});
 let stop=false;process.on('SIGTERM',()=>{stop=true;});process.on('SIGINT',()=>{stop=true;});
 console.log(JSON.stringify({role,pid:process.pid,status:'started'}));
+const inbox=role==='executor'?new ExecutorWake(runtime.store.pool,runtime.runId):null;
 let lastError=false;
 while(!stop){
+  const observed=inbox?.version??0;
   try{
+    // A failed LISTEN connection must not stop the authoritative periodic scan.
+    await inbox?.connect().catch(()=>{});
     if(role==='executor')await runtime.execute();
     else if(role==='risk')await runtime.riskWork(key!);
     else if(role==='orders')await runtime.orders(key!);
@@ -25,6 +30,6 @@ while(!stop){
     else if(role.startsWith('maker-'))await runtime.maker(role==='maker-a'?0:1,key!);
     if(lastError)console.log(JSON.stringify({role,status:'recovered'}));lastError=false;
   }catch{if(!lastError)console.log(JSON.stringify({role,status:'unavailable'}));lastError=true;}
-  await new Promise(resolve=>setTimeout(resolve,250));
+  if(inbox)await inbox.wait(observed);else await new Promise(resolve=>setTimeout(resolve,250));
 }
-await app?.close();await runtime.close();console.log(JSON.stringify({role,status:'stopped'}));
+await inbox?.close();await app?.close();await runtime.close();console.log(JSON.stringify({role,status:'stopped'}));

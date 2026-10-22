@@ -1,14 +1,14 @@
 import Fastify from 'fastify';
 import * as sdk from '@rivalt/sdk';
 import { address } from '@solana/kit';
-import { Runtime } from './runtime.js';
+import { Runtime, QuoteUnavailable } from './runtime.js';
 import { userAuthority } from './queue.js';
 import { json } from '../../indexer/src/events.js';
 
 export function api(runtime:Runtime){
   const app=Fastify({logger:false,bodyLimit:8192});
   app.setReplySerializer(json);
-  app.setErrorHandler((_error,_request,reply)=>reply.code(400).send({error:'Request unavailable or invalid; no implied execution'}));
+  app.setErrorHandler((error,_request,reply)=>reply.code(400).send(error instanceof QuoteUnavailable?{error:error.message,code:error.code}:{error:'Request unavailable or invalid; no implied execution'}));
   app.get('/live',async()=>({live:true}));
   app.get('/ready',async(_q,reply)=>{try{await runtime.snapshot();return {ready:true};}catch{return reply.code(503).send({ready:false});}});
   app.post('/v1/quote',async(request)=>{

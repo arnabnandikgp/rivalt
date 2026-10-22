@@ -11,6 +11,9 @@ import { Queue, type Authority } from './queue.js';
 import { localBudgets } from './profile.js';
 
 export const OPERATOR_CAP=5_000_000n,MAKER_CAP=1_000_000n,HEARTBEAT_MS=3000;
+export class QuoteUnavailable extends Error {
+  constructor(readonly code:string,message:string){super(message);}
+}
 export class Runtime {
   readonly store:Store;readonly rpc:Rpc;readonly queue:Queue;readonly connection:Connection;
   readonly budgets:ReturnType<typeof localBudgets>;
@@ -74,11 +77,15 @@ export class Runtime {
   }
   async quote(owner:Address,side:number,lots:bigint,stored?:{id:bigint;version:bigint;filled:bigint},keeper?:Keypair){
     const s=await this.snapshot(),[trader]=await sdk.findParticipantPda({market:s.market,owner}),p=s.participants[trader];
-    if(!p || p.owner!==owner || s.m.paused || s.slot<s.risk.validFrom || s.slot>=s.risk.validUntil || s.sourceMode==='NoCredibleBounds')throw new Error('Quote unavailable');
+    if(!p || p.owner!==owner)throw new QuoteUnavailable('account-unavailable','Funded account unavailable');
+    if(s.m.paused)throw new QuoteUnavailable('market-paused','Market is paused');
+    if(s.slot<s.risk.validFrom)throw new QuoteUnavailable('observation-not-finalized','Market observation is ahead of the finalized snapshot');
+    if(s.slot>=s.risk.validUntil)throw new QuoteUnavailable('observation-expired','Market observation expired');
+    if(s.sourceMode==='NoCredibleBounds')throw new QuoteUnavailable('source-unavailable','Credible price bounds unavailable');
     const order=stored?p.book.orders.find(o=>o.id===stored.id&&o.version===stored.version&&o.filled===stored.filled):undefined;
     if(stored&&(!order||order.side!==side||sdk.orderRemaining(p,order,s.m.termsEpoch,s.slot)<lots||!sdk.orderTriggered(order,s.risk.referencePrice,s.slot)))throw new Error('Stored order unavailable');
     const reduceOnly=order?order.reduceOnly:(side===1 && p.lots>=lots)||(side===0 && -p.lots>=lots);
-    if(s.sourceMode!=='Normal' && !reduceOnly)throw new Error('Risk increase blocked by oracle mode');
+    if(s.sourceMode!=='Normal' && !reduceOnly)throw new QuoteUnavailable('risk-increase-restricted','Risk increase blocked by oracle mode');
     const eligible=s.makers.filter(x=>x.r.capital!==trader && x.online && x.approved && !x.r.quarantined && x.r.quoteEpoch===x.state.quoteEpoch);
     const candidates=eligible.map(x=>({state:x.state,balance:x.balance,request:{version:1,domain:s.m.domain,market:s.market,capital:x.r.capital,quoteEpoch:x.r.quoteEpoch,authorityEpoch:x.r.authorityEpoch,termsEpoch:s.m.termsEpoch,marketConfigEpoch:s.m.configEpoch,side,lots,inventory:x.balance.lots,cash:x.balance.cash,inventoryLimit:x.r.inventoryLimit,consumed:side===0?x.r.buyConsumed:x.r.sellConsumed,referencePrice:s.risk.referencePrice,slot:s.slot}}));
     const allocation=candidates.length?sdk.allocateRoute({snapshotSlot:s.slot,side,lots,lower:s.risk.lower,upper:s.risk.upper,trader:p,candidates,grossLots:s.risk.grossLots,maxFee:order?order.feeBudget-order.feeCharged:1_000_000_000n,allInLimit:order?order.limit*lots:side===0?1_000_000_000_000_000n:0n,
