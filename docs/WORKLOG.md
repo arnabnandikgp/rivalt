@@ -1,7 +1,7 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Current position:** M1/P01/P02 are Closed. P03–P10 and M2/M3/M4 are Review. **P10 A15/browser/direct-exit acceptance passes all 15 checks on clean `881ae54`.** [P10 evidence](evidence/P10.md) records actual Chrome/Surfpool/RPC/WS/PostgreSQL results and exact cash/claim reconciliation. The broad regression passed through orders, then was intentionally stopped (exit 143) under the user's change-scoped testing instruction; no full-wrapper completion is claimed. `phase/p10-ui` contains exact P09 PR #11 head `828c5e3`; ready [PR #12](https://github.com/arnabnandikgp/rivalt/pull/12) is published above #11. P11 follows immediately without waiting for merge. Default builds keep local financial paths disabled.
+**Current position:** M1/P01/P02 are Closed. P03–P10 and M2/M3/M4 are Review. **P10 A15/browser/direct-exit acceptance passes all 15 checks on clean `881ae54`.** [P10 evidence](evidence/P10.md) records actual Chrome/Surfpool/RPC/WS/PostgreSQL results and exact cash/claim reconciliation. The broad regression passed through orders, then was intentionally stopped (exit 143) under the user's change-scoped testing instruction; no full-wrapper completion is claimed. `phase/p10-ui` contains exact P09 PR #11 head `828c5e3`; ready [PR #12](https://github.com/arnabnandikgp/rivalt/pull/12) is published above #11. P11 is In progress on `phase/p11-matrix` above exact P10 head `cb42c56`, without waiting for merge. Default builds keep local financial paths disabled.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -25,7 +25,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M2 | P03–P04 | Competing makers and atomic execution | Review | Fresh A03–A05/G04/G05 and cross-phase exit pass on `b8e5fb8`; ready PRs #4/#5 await integration |
 | M3 | P05–P06 | Real services and full trade lifecycle | Review | Fresh A05–A08/G07 and complete service exit pass on `2578327`; ready PRs #7/#8 await integration |
 | M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Review | P07–P09 gates verified; [P10 A15 and M4 browser/direct-exit checks](evidence/P10.md) pass on clean `881ae54`; unchanged program baseline retains G08–G10; ready PR #12; integration pending |
-| M5a | P11–P12 | Complete local engineering evidence | Open | Not implemented |
+| M5a | P11–P12 | Complete local engineering evidence | In progress | P11 consolidated matrix and scoped CI implementation; P12 not started |
 | M5b | P13–P14 | Focused real-cluster parity | Open | Not implemented |
 | M6 | P15–P16 | Independent commercial/pilot readiness | Open | Not implemented |
 
@@ -43,7 +43,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M4 | P08 | Persistent orders and TP/SL | Review | [PR #10](https://github.com/arnabnandikgp/rivalt/pull/10), tested `cd2b8fa`, above #9 | [A11/A12/G09 evidence](evidence/P08.md); integration pending |
 | M4 | P09 | Liquidation and resumable default | Review | [PR #11](https://github.com/arnabnandikgp/rivalt/pull/11), tested `8e8f371`, above exact #10 head `b9e6115` | [A13/A14/G10 evidence](evidence/P09.md); integration pending |
 | M4 | P10 | Trading UI and direct exit experience | Review | [PR #12](https://github.com/arnabnandikgp/rivalt/pull/12), tested `881ae54`, above exact PR #11 head `828c5e3` | [15 targeted browser/direct-exit checks](evidence/P10.md), affected client/build checks and independent integer reconciliation pass; broad wrapper intentionally stopped after orders |
-| M5a | P11 | Integrated fault and reconciliation matrix | Open | — | After P10 |
+| M5a | P11 | Integrated fault and reconciliation matrix | In progress | `phase/p11-matrix`, above exact PR #12 head `cb42c56` | Implement scenario reports, independent reconciliation, fault/intent populations and scoped hosted CI; no A16 acceptance yet |
 | M5a | P12 | Resource budgets, load and 24-hour soak | Open | — | After P11 |
 | M5b | P13 | Devnet deployment and real dependency verification | Open | — | After P12 |
 | M5b | P14 | Devnet lifecycle, wallet and provider recovery | Open | — | After P13 |
@@ -57,7 +57,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Last completed work: P10 wallet UI, exact balances/orders, persisted signature recovery and actual API-stopped direct exits; 15 targeted browser checks on clean `881ae54`.
 - Verified implementation: clean `881ae54a5816c09ca5dd1324723f4010b135a46c`; targeted P10 browser acceptance exits zero. The inherited P09 program/core baseline is unchanged; its actual risk/default evidence remains in [P09 evidence](evidence/P09.md). The P10 broad wrapper was intentionally stopped after orders, not reported as passed.
 - Status: P03–P10/M2/M3/M4 Review pending integration; M1/P01/P02 Closed.
-- Immediate task: create `phase/p11-matrix` above published P10 PR #12’s exact head and implement the consolidated A01–A16 report. Use only change/phase-relevant checks; broad regression belongs in supported CI or its explicit integration phase.
+- Immediate task: implement and verify the P11 consolidated A01–A16 report on `phase/p11-matrix` above exact `cb42c567838971e0800e744ceb4edc4db60b0f6f`. Use only change/phase-relevant checks; broad regression belongs in supported CI or its explicit integration phase.
 - Access/product decisions needed now: none. No devnet key or external maker is needed.
 - Deferred external needs: secure devnet/feed access at P13; independent maker at P15; independent review/funded-pilot decision at P16.
 - Historical archives remain optional targeted reference only.
@@ -383,3 +383,15 @@ Update Latest checkpoint and the two overview tables as well as appending the en
 - Both status tables now P10/M4 Review, not Closed; ready PR publication pending. Build bundle warning remains. Not run: remaining unrelated wrapper stages, A16 matrix/load/soak, external wallet/provider/devnet, independent review/maker or funded deployment. Blockers: none. Exact next action: commit reviewed P10 evidence and verification-scope docs, submit `gh stack submit --auto --open`, record its actual PR, then start P11 above that exact head.
 
 - Publication: `gh stack submit --auto --open` creates ready [PR #12](https://github.com/arnabnandikgp/rivalt/pull/12), independently verified OPEN / `isDraft:false` / base `phase/p09-resolution` / head `c016715c1555ccf409e8f3003392c72eb67163c2`. Body/title describe final scope and targeted evidence. P10/M4 remain Review. Exact next action: push this link-only closeout, create `phase/p11-matrix` with gh stack above that exact published head, and implement P11 without waiting for merge.
+
+### R014 — 23 October 2026 — P11 — integrated matrix and scoped CI
+
+- Started `phase/p11-matrix` with `gh stack add` above exact published P10 head `cb42c567838971e0800e744ceb4edc4db60b0f6f`; PR #12 independently verified ready and correctly based on P09. No unrelated work found. Read phase A16, protocol accounting, component interfaces and validation requirements.
+- Scope: one reproducible scenario-by-scenario A01–A16 command, immutable revision/binary/IDL/config/seed identity, independent integer reconciliation, retained rejected/unfilled/unresolved populations and failures/not-run stages. Existing actual-RPC/WS/PostgreSQL fault harnesses remain the execution mechanism; no fixture may fabricate economic success.
+- User's scoped-test instruction remains authoritative. P11 itself owns one fresh complete integrated matrix; it is not a prerequisite for every future PR. GitHub API reports zero self-hosted runners; repository is public. Plan focused free hosted CI for affected fast checks, without claiming Apple Containers support or configuring paid/external infrastructure. Official Action release commit pins were resolved directly from GitHub. No CI execution claimed yet.
+- Both tables: P11/M5a In progress; P10/M4 Review. Blockers: none for local implementation. Exact next action: implement the orchestrator/report and independent rejection tests, verify the changed harness, commit clean source, then run the phase-owned matrix once before publication.
+
+- Implemented `tests/e2e/run.py`/`matrix.py`, seven sequential actual-runtime stages, atomic progress reports, unique service run IDs, source/IDL/lock/config/binary hashes, explicit partial-stage mode, independent integer cash/claims/cohort checks and 23 named fault observations. Public intent/cohort exports preserve non-success populations. `pnpm smoke`/`pnpm test:matrix` now use the explicit orchestrator; ordinary targeted commands remain available.
+- Added scoped `pull_request` CI with pinned official checkout/setup-node commits, read-only permissions and actual stacked-base diff selection. Only free standard hosted jobs are configured; no self-hosted or full-runtime compatibility claim. Added MATRIX contract and D33 alongside component/validation/README updates. No financial/program source changed.
+- Focused validation: 20 Python report/scope/process tests pass on Python 3.15.0; exact one-scaled-unit drift, changed checkpoints, incomplete cohort, wrong binary, stale/dirty identity, missing/modified reports, retained rejected/unresolved orders, failed exits and scoped timeout cleanup are exercised. TypeScript passes after replacing an unavailable root `pg` type import with a narrow structural journal-reader interface. All acceptance shell scripts pass `bash -n`, workflow YAML parses, and `git diff --check` passes. Saved reports were used only for data-format compatibility checks, never as new A16 evidence.
+- Both tables remain P11/M5a In progress; no P11 PR or A16 completion claim. Hosted CI has not run. Exact next action: commit the coherent harness and run one fresh clean `RIVALT_SLOT_TIME=50 pnpm test:matrix` for this phase's explicit A01–A16 gate; record actual outcome before ready publication.

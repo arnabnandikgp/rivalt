@@ -25,7 +25,9 @@
     "test:resolution": "bash ops/resolution-tests.sh",
     "build:trader": "pnpm --filter @rivalt/trader build",
     "trader": "pnpm --filter @rivalt/trader dev",
-    "test:browser": "bash ops/browser-smoke.sh"
+    "test:browser": "bash ops/browser-smoke.sh",
+    "test:matrix": "bash ops/smoke.sh",
+    "test:matrix-report": "python3 -m unittest discover -s tests/e2e -p \"test_*.py\""
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "1.5.6",

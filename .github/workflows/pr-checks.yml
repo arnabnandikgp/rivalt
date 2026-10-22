@@ -1,0 +1,93 @@
+name: Scoped PR checks
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'crates/**'
+      - 'programs/**'
+      - 'tests/**'
+      - 'ops/**'
+      - 'scenarios/**'
+      - 'Cargo.*'
+      - 'rust-toolchain.toml'
+      - 'package.json'
+      - 'pnpm-*.yaml'
+      - 'tsconfig.json'
+permissions:
+  contents: read
+concurrency:
+  group: scoped-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  scope:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      client: ${{ steps.scope.outputs.client }}
+      financial: ${{ steps.scope.outputs.financial }}
+      report: ${{ steps.scope.outputs.report }}
+      shell: ${{ steps.scope.outputs.shell }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 ops/ci-scope.py
+  client:
+    needs: scope
+    if: needs.scope.outputs.client == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.22.0'
+      - run: npm install --global pnpm@10.23.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir tests/anchor-conformance install --frozen-lockfile
+      - run: node ops/local-keys.mjs
+      - run: pnpm generate:check
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build:trader
+  report:
+    needs: scope
+    if: needs.scope.outputs.report == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 --version
+      - run: python3 -m unittest discover -s tests/e2e -p 'test_*.py'
+  financial:
+    needs: scope
+    if: needs.scope.outputs.financial == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.97.1 --profile minimal
+      - run: mkdir -p .local
+      - run: bash ops/financial.sh
+  shell:
+    needs: scope
+    if: needs.scope.outputs.shell == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: for script in ops/*.sh; do bash -n "$script"; done

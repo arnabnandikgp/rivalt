@@ -1,3 +1,4 @@
+import { publicIntents } from '../e2e/evidence.js';
 import assert from 'node:assert/strict';
 import {spawn,execFileSync,type ChildProcess} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -137,6 +138,6 @@ try{
   assert.deepEqual(legacy.accounts[0],canonical(await risk()));assert.deepEqual(legacy.accounts[1],canonical(await market()));
   legacy.events.forEach((e:any,i:number)=>{const expected={...events[i].payload};delete expected.discriminator;e.data.domain=Buffer.from(e.data.domain).toString('hex');assert.deepEqual(e.data,expected);});
   record('isolated legacy Anchor decodes actual observation events and funding accounts byte-for-byte');
-  const report={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),sourceDirty:execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim()!=='',runId,checks,metrics:indexer.metrics,budgets,samples,oracleEvents:events,final:row.state,vault:snapshot.actual,transactions:transactions.map(x=>({signature:x.signature,slot:x.tx.slot,err:x.tx.meta.err,fee:x.tx.meta.fee,computeUnits:x.tx.meta.computeUnitsConsumed})),binaries:Object.fromEntries(['clearing','maker_a','maker_b','oracle_fixture'].map(n=>[n,createHash('sha256').update(readFileSync(`target/deploy/${n}.so`)).digest('hex')]))};
+  const report={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),sourceDirty:execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim()!=='',runId,cohort:snapshot.members,intents:await publicIntents(runtime.store.pool,runId),checks,metrics:indexer.metrics,budgets,samples,oracleEvents:events,final:row.state,vault:snapshot.actual,transactions:transactions.map(x=>({signature:x.signature,slot:x.tx.slot,err:x.tx.meta.err,fee:x.tx.meta.fee,computeUnits:x.tx.meta.computeUnitsConsumed})),binaries:Object.fromEntries(['clearing','maker_a','maker_b','oracle_fixture'].map(n=>[n,createHash('sha256').update(readFileSync(`target/deploy/${n}.so`)).digest('hex')]))};
   writeFileSync(`${dir}/oracle.json`,json(report)+'\n');
 }finally{running=false;sourceRunning=false;await Promise.allSettled([indexLoop,sourceLoop]);for(const p of children)await stop(p);await runtime.close();await indexer.close();}

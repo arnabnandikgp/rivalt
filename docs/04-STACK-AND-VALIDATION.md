@@ -136,6 +136,8 @@ M5a: measured resource/load sweeps and the real 24-hour local soak.
 M5b: focused actual devnet tests.
 Expand testing only for a concrete remaining risk or required gate.
 
+P11 implements the explicit matrix/report contract in [P11-MATRIX](P11-MATRIX.md). `pnpm test:matrix` (also `pnpm smoke`) records A01–A16 on one committed revision and six fresh service environments; `--stage` is a labeled partial reproduction, not full acceptance. Independent Python checks reject stale/dirty evidence, binary/report drift and exact cash/exposure/fractional-claim mismatches. The PR workflow selects hosted fast checks by the actual parent diff. No supported full-runtime CI runner is currently configured; local matrix execution and hosted CI outcomes are recorded separately.
+
 Every evidence report records code commit, binary/IDL/config identities, dependency pins, host, environment, seed, offered load/account mix, actual commands/outcomes and limitations. Phase closure requires evidence on the integrated revision; a passing old branch is insufficient after semantic changes.
 
 ## Metrics and initial objectives

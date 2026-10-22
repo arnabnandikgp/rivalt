@@ -5,7 +5,8 @@ source ops/env.sh
 test "$(surfpool --version)" = "surfpool 1.6.1"
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18899}" RIVALT_WS_PORT="${RIVALT_WS_PORT:-18900}"
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT" RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
-export RIVALT_RUN_DIR=".local/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$"
+export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+test ! -e "$RIVALT_RUN_DIR" # Never reuse an earlier run as fresh evidence.
 mkdir -p "$RIVALT_RUN_DIR"
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" 15432 18081 18083 18084
 surfpool start --offline --no-deploy --no-tui --no-studio --port "$RIVALT_RPC_PORT" --ws-port "$RIVALT_WS_PORT" \

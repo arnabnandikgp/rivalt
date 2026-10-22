@@ -173,3 +173,8 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 ## 23 October 2026 — verification scope
 
 - **D32:** Explicit user direction supersedes the convention of rerunning all inherited acceptance before each PR. Run checks needed for the actual change and phase gate; prefer supported CI for broad regression. Do not spend local time repeating unrelated financial suites or represent absent CI as validation. P11 still owns the integrated fault matrix, P12 the real 24-hour soak, and P13/P14 actual cluster parity. This changes verification scheduling, not economic rules or acceptance standards.
+
+## 23 October 2026 — integrated evidence (implementation in progress)
+
+- **D33:** Select [MATRIX](P11-MATRIX.md)'s seven-stage, clean-source, unique-environment evidence contract. A16 requires every A01–A15 row, explicit fault observations and independent exact reconciliation; missing or interrupted work is not-run/fail, never inferred from old counts. Preserve rejected/unfilled/unresolved populations and immutable wire hashes. All G01–G10 selections remain their existing local profiles; no economic or authority rule changes.
+- Use change-scoped hosted PR checks on the actual stacked diff. The repository has no self-hosted runtime runner, so do not claim full runtime CI or create paid infrastructure. Local A16 acceptance remains pending until the new command actually passes. P12's real elapsed soak remains a separate gate.

@@ -1,3 +1,4 @@
+import { publicIntents } from '../e2e/evidence.js';
 import assert from 'node:assert/strict';
 import { spawn, execFileSync, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -790,6 +791,7 @@ try {
       sourceDirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim() !== '',
       browser: browser.version(),
       fixture: 'instrumented Wallet Standard; private keys stay in Node; no external provider claim',
+      intents: await publicIntents(runtime.store.pool, runId),
       checks,
       unsignedRejections,
       signedRejections,

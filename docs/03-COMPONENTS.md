@@ -125,6 +125,8 @@ Maker daemons log state/config changes, fills, inventory and costs. Paper hedge 
 
 Every worker exposes structured logs, readiness/liveness and metrics. Local supervisor waits for readiness, records PIDs/run identity and cleans up only its own processes. Recovery examples belong in ops/ as code lands.
 
+P11's [matrix contract](P11-MATRIX.md) composes the existing actual-runtime supervisors into distinct, uniquely bound environments. Its Python report consumes public evidence without importing financial implementations; it preserves scenario failures/not-run stages and intent/order populations. Test-only public intent export adds no service authority or API mutation. Hosted CI remains separate from real runtime acceptance.
+
 ## UI requirements
 
 Provide deposit/withdraw, quote and order entry, per-leg result, position/cash breakdown, limit/stop/TP-SL management, fills/orders history, actual-fill chart and operations/error state. Test wallet rejection, account/cluster switch, ambiguous submission, stale quote/source, API outage and unpaid profit.

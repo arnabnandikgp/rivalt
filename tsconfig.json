@@ -24,6 +24,7 @@
     "ops/**/*.ts",
     "apps/**/*.ts",
     "apps/**/*.tsx",
-    "tests/browser/**/*.ts"
+    "tests/browser/**/*.ts",
+    "tests/e2e/**/*.ts"
   ]
 }
