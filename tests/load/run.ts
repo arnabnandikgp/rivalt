@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, readFileSync, writeFileSync, statfsSync } from 'node:fs';
+import { appendFileSync, readFileSync, writeFileSync, statfsSync, readdirSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { performance } from 'node:perf_hooks';
 import * as sdk from '@rivalt/sdk';
@@ -13,7 +13,9 @@ import { submissionFault } from './submission-fault.js';
 import { publicIntents } from '../e2e/evidence.js';
 
 const args=process.argv.slice(2),seconds=Number(args[args.indexOf('--sweep-seconds')+1]??60);
-if(!args.includes('--sweep-seconds')||!Number.isInteger(seconds)||seconds<10||seconds>600)throw new Error('Declare --sweep-seconds 10..600');
+if(!args.includes('--sweep-seconds')||!Number.isInteger(seconds)||seconds<10||seconds>3600)throw new Error('Declare --sweep-seconds 10..3600');
+const rates=args.includes('--rates')?args[args.indexOf('--rates')+1]?.split(',').map(Number):[1,5,10];
+if(!rates?.length||rates.length>5||new Set(rates).size!==rates.length||rates.some(r=>![.25,.5,1,5,10].includes(r)))throw new Error('Declare unique --rates from 0.25,0.5,1,5,10');
 const git=(...args:string[])=>execFileSync('git',args,{encoding:'utf8'}).trim();
 const revision=git('rev-parse','HEAD'),sourceDirty=Boolean(git('status','--porcelain'));
 if(sourceDirty&&!args.includes('--development'))throw new Error('Commit source before acceptance; --development is explicitly provisional');
@@ -30,6 +32,15 @@ console.log(`P12 provisional=${sourceDirty} environment ${dir}`);
 let env:Awaited<ReturnType<typeof environment>>|undefined;
 try{
   env=await environment();const e=env;
+  function broadcastTimes(){
+    const earliest=new Map<string,number>();
+    for(const name of readdirSync(dir).filter(n=>/^executor-.*\.log$/.test(n)))for(const line of readFileSync(`${dir}/${name}`,'utf8').split('\n')){
+      let value:any;try{value=JSON.parse(line);}catch{continue;}
+      if(value.event==='executor-broadcast'&&value.runId===e.runId)earliest.set(value.signature,Math.min(earliest.get(value.signature)??Infinity,value.at));
+    }
+    for(const row of records){const at=row.signature?earliest.get(row.signature):undefined;if(at!==undefined&&row.signedAtEpochMs!==undefined){row.firstBroadcastMs=at-row.signedAtEpochMs;assert(row.firstBroadcastMs>=0,'Host wall clock moved backwards');}}
+    writeFileSync(`${dir}/broadcasts.json`,json(records.filter(r=>r.firstBroadcastMs!==undefined).map(r=>({id:r.id,signature:r.signature,signedAtEpochMs:r.signedAtEpochMs,firstBroadcastMs:r.firstBroadcastMs}))));
+  }
   const busy=new Set<number>(),positions=[0n,0n,0n],pending=new Set<Promise<void>>();let offered=0;
   async function request(path:string,body:any){const response=await fetch('http://127.0.0.1:18081'+path,{method:'POST',headers:{'content-type':'application/json'},body:json(body),signal:AbortSignal.timeout(5000)});const result=await response.json() as any;if(!response.ok)throw Object.assign(new Error(result.error??String(response.status)),{code:result.code});return result;}
   async function attempt(phase:string,fault:boolean,scheduled:number){
@@ -47,10 +58,10 @@ try{
       const signStarted=performance.now(),{transaction}=await sdk.signInstructions(e.connection,user.owner,instructions);
       row.signingMs=performance.now()-signStarted;
       const bytes=transaction.serialize(),wire=Buffer.from(bytes).toString('base64');row.bytes=bytes.length;row.accounts=transaction.message.staticAccountKeys.length;
-      const signedAt=performance.now();
+      const signedAt=performance.now();row.signedAtEpochMs=Date.now();
       // Persist the immutable signature identity before ingress. No signed attempt is rebuilt.
       const signature=await import('@solana/kit').then(({getBase58Decoder})=>getBase58Decoder().decode(transaction.signatures[0]));row.signature=signature;
-      appendFileSync(`${dir}/signed.jsonl`,json({requestId:row.id,signature,wireSha256:createHash('sha256').update(bytes).digest('hex'),offeredAt:row.offeredAt})+'\n');
+      appendFileSync(`${dir}/signed.jsonl`,json({requestId:row.id,signature,wireSha256:createHash('sha256').update(bytes).digest('hex'),offeredAt:row.offeredAt,signedAtEpochMs:row.signedAtEpochMs})+'\n');
       try{const result=await request('/v1/submit',{requestId:row.id,wire});assert.equal(result.signature,signature);}catch{row.code='submission-acknowledgement-unknown';}
       row.submitMs=performance.now()-signedAt;row.status='unresolved';
       const end=performance.now()+30_000;
@@ -90,7 +101,7 @@ try{
   faults.push(await submissionFault(e));
   await wait(async()=>{const s=await e.runtime.snapshot();return s.sourceMode==='Normal'&&s.makers.every(x=>x.online);},Boolean,'post-fault normal recovery');
   await capture('start');
-  for(const rate of [1,5,10]){
+  for(const rate of rates){
     const name=`sweep-${rate}`,start=performance.now(),first=records.length;
     console.log(`Offered-load ${rate}/s for ${seconds} real seconds`);
     for(let n=0;n<rate*seconds;n++){
@@ -101,7 +112,7 @@ try{
     }
     await delay(Math.max(0,start+seconds*1000-performance.now()));
     await Promise.all(pending);
-    const end=performance.now();phases.push({name,rate,durationSeconds:seconds,elapsedSeconds:(end-start)/1000,...summarize(records.slice(first))});
+    broadcastTimes();const end=performance.now();phases.push({name,rate,durationSeconds:seconds,elapsedSeconds:(end-start)/1000,...summarize(records.slice(first))});
     await capture(name);writeFileSync(`${dir}/progress.json`,json({manifest,phases,faults}));
     console.log(json(phases.at(-1)));
   }

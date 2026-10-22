@@ -1,7 +1,7 @@
 export type Attempt = {
   id: string; phase: string; offeredAt: number; actor: number; fault: boolean;
   status: string; eligible?: boolean; signature?: string; code?: string;
-  quoteMs?: number; signingMs?: number; submitMs?: number;
+  quoteMs?: number; signingMs?: number; submitMs?: number; signedAtEpochMs?: number; firstBroadcastMs?: number;
   processedMs?: number; confirmedMs?: number; finalizedMs?: number;
   bytes?: number; accounts?: number; units?: number; fee?: string;
 };
@@ -21,6 +21,7 @@ export function summarize(rows: Attempt[]) {
     statusCounts:counts,quote:distribution(rows.flatMap(r=>r.quoteMs===undefined?[]:[r.quoteMs])),
     signing:distribution(rows.flatMap(r=>r.signingMs===undefined?[]:[r.signingMs])),
     submit:distribution(rows.flatMap(r=>r.submitMs===undefined?[]:[r.submitMs])),
+    firstBroadcast:distribution(rows.flatMap(r=>r.firstBroadcastMs===undefined?[]:[r.firstBroadcastMs])),
     processed:distribution(rows.flatMap(r=>r.processedMs===undefined?[]:[r.processedMs])),
     confirmed:distribution(rows.flatMap(r=>r.confirmedMs===undefined?[]:[r.confirmedMs])),
     finalized:distribution(rows.flatMap(r=>r.finalizedMs===undefined?[]:[r.finalizedMs])),

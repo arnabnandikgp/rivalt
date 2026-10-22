@@ -107,6 +107,7 @@ export class Queue {
           }else if(valid.value===true){
             // The INSERT was committed before this worker can broadcast. Lost
             // acknowledgements and process death only cause identical-byte retries.
+            console.log(JSON.stringify({event:'executor-broadcast',runId:this.store.runId,requestId:id,signature:r.signature,at:Date.now()}));
             await this.rpc.call('sendTransaction',[r.wire,{encoding:'base64',skipPreflight:true,maxRetries:0}]);status='pending';
           }
         }
