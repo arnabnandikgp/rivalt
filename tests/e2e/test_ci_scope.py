@@ -19,6 +19,7 @@ class ScopeTests(unittest.TestCase):
     def test_report_and_financial_domains_stay_separate(self):
         self.assertEqual(module.scope(["tests/e2e/matrix.py"]), {"client": False, "financial": False, "report": True, "shell": False})
         self.assertTrue(module.scope(["crates/financial-core/src/lib.rs"])["financial"])
+        self.assertEqual(module.scope(["tests/load/reference.py"]), {"client": False, "financial": False, "report": True, "shell": False})
 
     def test_workflow_definition_exercises_its_own_jobs(self):
         self.assertTrue(all(module.scope([".github/workflows/pr-checks.yml"]).values()))

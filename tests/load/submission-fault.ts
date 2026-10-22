@@ -6,12 +6,12 @@ import type { environment } from './environment.js';
 import { wait } from './environment.js';
 
 /** Real persisted-byte, missed-notification and lost-ack recovery before measurement. */
-export async function submissionFault(e:Awaited<ReturnType<typeof environment>>){
+export async function submissionFault(e:Awaited<ReturnType<typeof environment>>,requestId='fault:lost-ack'){
   const actor=e.actors[0];
   await e.send('provision one actual test atom for submission recovery',[getMintToInstruction({mint:e.setup.mint.address,token:actor.token.address,mintAuthority:e.payer,amount:1n})]);
   const cash=sdk.getParticipantDecoder().decode((await e.read(actor.participant))!).cash;
   const ix=await sdk.getDepositInstructionAsync({...e.a,owner:actor.owner,participant:actor.participant,quoteMint:e.setup.mint.address,userToken:actor.token.address,amount:1n});
-  const {transaction}=await sdk.signInstructions(e.connection,actor.owner,[ix]),wire=Buffer.from(transaction.serialize()).toString('base64'),requestId='fault:lost-ack';
+  const {transaction}=await sdk.signInstructions(e.connection,actor.owner,[ix]),wire=Buffer.from(transaction.serialize()).toString('base64');
   const post=async(value:any)=>fetch('http://127.0.0.1:18081/v1/submit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(value)});
   await e.stop('executor');
   for(const prefix of ['funding','keeper','maker','maker-sync','order','risk']){

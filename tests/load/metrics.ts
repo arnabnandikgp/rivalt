@@ -1,5 +1,5 @@
 export type Attempt = {
-  id: string; phase: string; offeredAt: number; actor: number; fault: boolean;
+  side?:number;lots?:string;id: string; phase: string; offeredAt: number; actor: number; fault: boolean;
   status: string; eligible?: boolean; signature?: string; code?: string;
   quoteMs?: number; signingMs?: number; submitMs?: number; signedAtEpochMs?: number; firstBroadcastMs?: number;
   processedMs?: number; confirmedMs?: number; finalizedMs?: number;
@@ -14,17 +14,17 @@ export function distribution(values: number[]) {
 }
 export function summarize(rows: Attempt[]) {
   const submitted=rows.filter(r=>r.signature), normal=submitted.filter(r=>r.eligible&&!r.fault);
-  const counts:Record<string,number>={};for(const row of rows)counts[row.status]=(counts[row.status]??0)+1;
+  const counts:Record<string,number>={},causes:Record<string,number>={},mix:Record<string,any>={};for(const row of rows){counts[row.status]=(counts[row.status]??0)+1;if(row.code)causes[row.code]=(causes[row.code]??0)+1;const key=`${row.side??'unknown'}:${row.lots??'unknown'}`,m=mix[key]??={offered:0,submitted:0,successful:0};m.offered++;if(row.signature)m.submitted++;if(row.status==='finalized')m.successful++;}
   return {offered:rows.length,submitted:submitted.length,normalEligible:normal.length,
     normalSuccessful:normal.filter(r=>r.status==='finalized').length,
     normalSuccess:normal.length?normal.filter(r=>r.status==='finalized').length/normal.length:null,
-    statusCounts:counts,quote:distribution(rows.flatMap(r=>r.quoteMs===undefined?[]:[r.quoteMs])),
+    statusCounts:counts,causeCounts:causes,sideSizeMix:mix,quote:distribution(rows.flatMap(r=>r.quoteMs===undefined?[]:[r.quoteMs])),
     signing:distribution(rows.flatMap(r=>r.signingMs===undefined?[]:[r.signingMs])),
     submit:distribution(rows.flatMap(r=>r.submitMs===undefined?[]:[r.submitMs])),
     firstBroadcast:distribution(rows.flatMap(r=>r.firstBroadcastMs===undefined?[]:[r.firstBroadcastMs])),
     processed:distribution(rows.flatMap(r=>r.processedMs===undefined?[]:[r.processedMs])),
     confirmed:distribution(rows.flatMap(r=>r.confirmedMs===undefined?[]:[r.confirmedMs])),
     finalized:distribution(rows.flatMap(r=>r.finalizedMs===undefined?[]:[r.finalizedMs])),
-    maxBytes:Math.max(0,...rows.map(r=>r.bytes??0)),maxAccounts:Math.max(0,...rows.map(r=>r.accounts??0)),
-    maxUnits:Math.max(0,...rows.map(r=>r.units??0)),fees:rows.reduce((n,r)=>n+BigInt(r.fee??0),0n).toString()};
+    maxBytes:rows.reduce((n,r)=>Math.max(n,r.bytes??0),0),maxAccounts:rows.reduce((n,r)=>Math.max(n,r.accounts??0),0),
+    maxUnits:rows.reduce((n,r)=>Math.max(n,r.units??0),0),fees:rows.reduce((n,r)=>n+BigInt(r.fee??0),0n).toString()};
 }

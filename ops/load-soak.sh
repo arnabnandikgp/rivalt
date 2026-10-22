@@ -12,7 +12,8 @@ mkdir -p "$RIVALT_RUN_DIR"
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" 15432 18081 18083 18084
 surfpool start --offline --no-deploy --no-tui --no-studio --port "$RIVALT_RPC_PORT" --ws-port "$RIVALT_WS_PORT" \
   --slot-time 50 --airdrop-keypair-path .local/keys/payer.json --log-path "$RIVALT_RUN_DIR/logs" > "$RIVALT_RUN_DIR/surfpool.log" 2>&1 &
-RIVALT_SURFPOOL_PID=$!
+export RIVALT_SURFPOOL_PID=$!
+caffeinate -i -w "$$" >/dev/null 2>&1 &
 trap 'if [[ -n "${RIVALT_PG_CONTAINER:-}" ]]; then container logs "$RIVALT_PG_CONTAINER" > "$RIVALT_RUN_DIR/postgres.log" 2>&1 || true; container stop "$RIVALT_PG_CONTAINER" >/dev/null 2>&1 || true; container delete "$RIVALT_PG_CONTAINER" >/dev/null 2>&1 || true; fi; kill "$RIVALT_SURFPOOL_PID" 2>/dev/null || true; wait "$RIVALT_SURFPOOL_PID" 2>/dev/null || true' EXIT
 ready=0
 for _ in {1..100}; do

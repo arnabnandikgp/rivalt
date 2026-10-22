@@ -69,6 +69,7 @@ jobs:
           persist-credentials: false
       - run: python3 --version
       - run: python3 -m unittest discover -s tests/e2e -p 'test_*.py'
+      - run: python3 -m unittest discover -s tests/load -p 'test_*.py'
   financial:
     needs: scope
     if: needs.scope.outputs.financial == 'true'

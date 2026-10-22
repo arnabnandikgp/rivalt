@@ -113,6 +113,10 @@ export class Runtime {
       side,lots,maxFee:allocation.fee,allInLimit:allocation.allIn,reduceOnly,generation:p.generation,
       legs});
     return {available:true,snapshotSlot:s.slot,sequence:s.m.sequence,observation:s.risk.observationSequence,nonce:p.nonce,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation,
+      audit:{referencePrice:s.risk.referencePrice,lower:s.risk.lower,upper:s.risk.upper,grossLots:s.risk.grossLots,
+        trader:{...p,effectiveOrders:p.book.orders.filter(o=>sdk.orderRemaining(p,o,s.m.termsEpoch,s.slot)>0n).length},
+        candidates:eligible.map(x=>({...x.balance,makerId:x.r.makerId,inventoryLimit:x.r.inventoryLimit,consumed:side===0?x.r.buyConsumed:x.r.sellConsumed,
+          effectiveOrders:x.balance.book.orders.filter(o=>sdk.orderRemaining(x.balance,o,s.m.termsEpoch,s.slot)>0n).length}))},
       instructions:[sdk.routeComputeBudget(),ix].map(i=>({programAddress:i.programAddress,accounts:i.accounts?.map(a=>({address:a.address,role:a.role})),data:Buffer.from(i.data??[]).toString('base64')}))};
   }
   async enqueue(id:string,ixs:Instruction[],payer:Keypair,budget:string,authority:Authority|null,preflight=false){

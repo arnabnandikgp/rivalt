@@ -60,4 +60,4 @@ P10 adds the wallet trading UI, exact cash/unpaid-profit views, durable orders, 
 
 P11 now records fresh A01–A16 acceptance across seven commands, 23 named faults and six independent integer reconciliations. [P11 evidence](docs/evidence/P11.md) retains exact identities and all outcome populations. The matrix is an explicit phase gate; ordinary PRs use affected checks and scoped hosted CI. P12 load and the real 24-hour soak remain outstanding.
 
-P12 load tooling is being implemented separately; [the current contract](docs/P12-LOAD-SOAK.md) describes the scoped sweep and remaining real 24-hour gate. No performance or soak acceptance is claimed yet.
+P12's corrected five-minute qualification passes its submitted-success/quote/resource targets, with 35.7% offered quote availability reported separately. [The current contract](docs/P12-LOAD-SOAK.md) defines the sustained outage exercise and remaining actual 24-hour gate. P12 remains in progress; no soak acceptance is claimed.

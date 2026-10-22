@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, readFileSync, writeFileSync, statfsSync, readdirSync } from 'node:fs';
+import { appendFileSync, readFileSync, writeFileSync, statfsSync, readdirSync, statSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
+import { gzipSync } from 'node:zlib';
+import { observer } from './observer.js';
+import { sustained } from './sustained.js';
+import { AccountRole } from '@solana/kit';
 import { performance } from 'node:perf_hooks';
 import * as sdk from '@rivalt/sdk';
 import { Indexer } from '../../packages/indexer/src/index.js';
@@ -12,10 +16,12 @@ import { summarize, type Attempt } from './metrics.js';
 import { submissionFault } from './submission-fault.js';
 import { publicIntents } from '../e2e/evidence.js';
 
-const args=process.argv.slice(2),seconds=Number(args[args.indexOf('--sweep-seconds')+1]??60);
-if(!args.includes('--sweep-seconds')||!Number.isInteger(seconds)||seconds<10||seconds>3600)throw new Error('Declare --sweep-seconds 10..3600');
-const rates=args.includes('--rates')?args[args.indexOf('--rates')+1]?.split(',').map(Number):[1,5,10];
-if(!rates?.length||rates.length>5||new Set(rates).size!==rates.length||rates.some(r=>![.25,.5,1,5,10].includes(r)))throw new Error('Declare unique --rates from 0.25,0.5,1,5,10');
+const args=process.argv.slice(2),modes=['--sweep-seconds','--exercise-seconds','--soak-seconds'].filter(x=>args.includes(x));
+if(modes.length!==1)throw new Error('Declare exactly one finite sweep, 900-second exercise, or actual 86400-second soak');
+const mode=modes[0],extended=mode!=='--sweep-seconds',long=mode==='--soak-seconds',seconds=Number(args[args.indexOf(mode)+1]);
+if(!Number.isInteger(seconds)||(long?seconds!==86400:extended?seconds!==900:seconds<10||seconds>3600))throw new Error('Invalid real elapsed duration');
+const rates=args.includes('--rates')?args[args.indexOf('--rates')+1]?.split(',').map(Number):(extended?[.25]:[1,5,10]);
+if(!rates?.length||rates.length>5||new Set(rates).size!==rates.length||rates.some(r=>![.25,.5,1,5,10].includes(r))||extended&&(rates.length!==1||rates[0]>1))throw new Error('Declare supported unique rates; sustained run has one baseline');
 const git=(...args:string[])=>execFileSync('git',args,{encoding:'utf8'}).trim();
 const revision=git('rev-parse','HEAD'),sourceDirty=Boolean(git('status','--porcelain'));
 if(sourceDirty&&!args.includes('--development'))throw new Error('Commit source before acceptance; --development is explicitly provisional');
@@ -25,11 +31,14 @@ const manifest={revision,sourceDirty,startedUtc,command:process.argv.slice(2),ho
   accountMix:'3 funded trader owners, 2 shared maker participants, 1 funded risk receiver; round-robin attempts, at most one unresolved attempt per trader; open sizes 1 lot or 100 every tenth offered attempt, close the same actual exposure',
   transport:'HTTP quote and immutable submission journal; separate executor/other worker processes; actual finalized RPC + PostgreSQL/WS indexer',
   latencyDefinition:'Monotonic elapsed milliseconds; processed/confirmed times are first polling observations (upper bounds), wallet fixture signing separate; every offered attempt retained',
+  traderBuild:extended?Object.fromEntries(readdirSync('apps/trader/dist',{recursive:true}).map(String).filter(n=>statSync('apps/trader/dist/'+n).isFile()).sort().map(n=>[n,createHash('sha256').update(readFileSync('apps/trader/dist/'+n)).digest('hex')])):null,
   binaries:Object.fromEntries(['clearing','maker_a','maker_b','oracle_fixture'].map(n=>[n,createHash('sha256').update(readFileSync(`target/deploy/${n}.so`)).digest('hex')])),
   identities:Object.fromEntries(['Cargo.lock','pnpm-lock.yaml','tests/anchor-conformance/pnpm-lock.yaml','scenarios/local-profile-v1.json'].map(n=>[n,createHash('sha256').update(readFileSync(n)).digest('hex')]))};
 writeFileSync(`${dir}/manifest.json`,json(manifest));
 console.log(`P12 provisional=${sourceDirty} environment ${dir}`);
-let env:Awaited<ReturnType<typeof environment>>|undefined;
+let env:Awaited<ReturnType<typeof environment>>|undefined,ui:Awaited<ReturnType<typeof observer>>|undefined,control:ReturnType<typeof sustained>|undefined;
+let visibility:any=null,sustainedResult:any=null;const auxiliaries:Indexer[]=[];const index=(config:ConstructorParameters<typeof Indexer>[0])=>{const x=new Indexer(config);auxiliaries.push(x);return x;};
+
 try{
   env=await environment();const e=env;
   function broadcastTimes(){
@@ -50,10 +59,11 @@ try{
     busy.add(actor);const user=e.actors[actor];
     try{
       const lots=positions[actor]===0n?(number%10===0?100n:1n):positions[actor]<0n?-positions[actor]:positions[actor],side=positions[actor]>0n?1:0;
-      const beforeQuote=performance.now();let q:any;
+      row.side=side;row.lots=String(lots);const beforeQuote=performance.now();let q:any;
       try{q=await request('/v1/quote',{owner:user.owner.address,side,lots:lots.toString()});}finally{row.quoteMs=performance.now()-beforeQuote;}
       if(!q.available){row.status='unfilled-no-liquidity';return;}
       row.eligible=true;
+      appendFileSync(`${dir}/quotes.jsonl.gz`,gzipSync(json({id:row.id,audit:q.audit,allocation:q.allocation})+'\n'));
       const instructions=q.instructions.map((i:any)=>({...i,data:Buffer.from(i.data,'base64')}));
       const signStarted=performance.now(),{transaction}=await sdk.signInstructions(e.connection,user.owner,instructions);
       row.signingMs=performance.now()-signStarted;
@@ -76,7 +86,9 @@ try{
           const fills=decode(signature,tx,e.a.eventAuthority).filter(x=>x.type==='route');
           if(row.status==='finalized'){assert.equal(fills.length,1);assert.equal(fills[0].data.lots,lots.toString());}
           const p=sdk.getParticipantDecoder().decode((await e.read(user.participant))!);positions[actor]=p.lots;
-          appendFileSync(`${dir}/fills.jsonl`,json({id:row.id,signature,requested:{side,lots},quote:q.allocation,events:fills})+'\n');
+          if(row.status==='finalized')ui?.track(signature,fills[0].data.sequence,fault);
+          const gross=BigInt(fills[0]?.data.grossQuote??0),ref=BigInt(q.audit.referencePrice),sign=side===0?1n:-1n;
+          appendFileSync(`${dir}/fills.jsonl.gz`,gzipSync(json({id:row.id,signature,requested:{side,lots},quote:q.allocation,events:fills,shortfall:fills.length?{bpsNumerator:sign*(gross-lots*ref)*10000n,bpsDenominator:lots*ref,venueFeeAtoms:fills[0].data.fee,networkFeeLamports:row.fee}:null})+'\n'));
           break;
         }
         await delay(100);
@@ -100,15 +112,20 @@ try{
   }
   faults.push(await submissionFault(e));
   await wait(async()=>{const s=await e.runtime.snapshot();return s.sourceMode==='Normal'&&s.makers.every(x=>x.online);},Boolean,'post-fault normal recovery');
-  await capture('start');
+  const openingSnapshot=await capture('start');
+  if(extended){
+    assert(readFileSync('apps/trader/dist/index.html').length>0,'Built production trader required');
+    if(long){const disk=statfsSync('.');assert(disk.bavail*disk.bsize>=3*1024**3,'Reserve at least 3 GiB before the long run');}
+    ui=await observer(e);control=sustained(e,seconds,capture,()=>ui!.poll());
+  }
   for(const rate of rates){
-    const name=`sweep-${rate}`,start=performance.now(),first=records.length;
+    const name=`${long?'soak':extended?'exercise':'sweep'}-${rate}`,start=performance.now(),first=records.length;
     console.log(`Offered-load ${rate}/s for ${seconds} real seconds`);
     for(let n=0;n<rate*seconds;n++){
-      const due=start+n*1000/rate;await delay(Math.max(0,due-performance.now()));
+      control?.assertHealthy();const due=start+n*1000/rate;await delay(Math.max(0,due-performance.now()));
       // Bound driver memory; a saturated driver is still an offered/unfilled attempt.
-      if(pending.size>=32){const row:Attempt={id:`load:${offered++}`,phase:name,offeredAt:Date.now(),actor:offered%3,fault:false,status:'unfilled-driver-limit'};records.push(row);appendFileSync(`${dir}/attempts.jsonl`,json(row)+'\n');continue;}
-      const task=attempt(name,false,Date.now());pending.add(task);void task.finally(()=>pending.delete(task));
+      if(pending.size>=32){const row:Attempt={id:`load:${offered++}`,phase:name,offeredAt:Date.now(),actor:offered%3,fault:control?.fault()??false,status:'unfilled-driver-limit'};records.push(row);appendFileSync(`${dir}/attempts.jsonl`,json(row)+'\n');continue;}
+      const task=attempt(name,control?.fault()??false,Date.now());pending.add(task);void task.finally(()=>pending.delete(task));
     }
     await delay(Math.max(0,start+seconds*1000-performance.now()));
     await Promise.all(pending);
@@ -116,13 +133,26 @@ try{
     await capture(name);writeFileSync(`${dir}/progress.json`,json({manifest,phases,faults}));
     console.log(json(phases.at(-1)));
   }
+  if(control){sustainedResult=await control.close();control=undefined;assert(sustainedResult.continuity.monotonicSeconds>=seconds&&sustainedResult.continuity.wallSeconds>=seconds);}
+  if(ui){for(let n=0;n<6;n++){await ui.poll();await delay(500);}visibility=await ui.close();ui=undefined;}
+  const reference=JSON.parse(execFileSync('python3',['tests/load/reference.py',`${dir}/quotes.jsonl.gz`],{encoding:'utf8'}));writeFileSync(`${dir}/reference.json`,json(reference));
   // Stop new discovery/source changes before final history/fee reconciliation.
   await e.stopSources();for(const role of ['maker-a','maker-b','funding','settlement','orders','risk'])await e.stop(role);
   await wait(async()=>{await e.runtime.execute();return Number((await e.runtime.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[e.runId])).rows[0].count);},n=>n===0,'terminal known submissions',60_000);
-  await e.stop('executor');await e.stop('indexer');
-  const indexer=new Indexer(e.config);await indexer.open();await indexer.cycle();const final=await indexer.reconcile(),state=(await indexer.store.snapshot()).state;
-  const bounded=new Indexer({...e.config,runId:e.runId+'-bound',maxRecoveryTransactions:2});await bounded.open();await assert.rejects(()=>bounded.cycle(),/History recovery exceeds 2-transaction/);assert.equal((await bounded.store.snapshot()).checkpoint,null);await bounded.close();
-  const rebuilt=new Indexer({...e.config,runId:e.runId+'-rebuild'});await rebuilt.open();await rebuilt.cycle();assert.deepEqual((await rebuilt.store.snapshot()).state,state);const rebuiltFinal=await rebuilt.reconcile();await rebuilt.close();
+  await e.stop('executor');
+  if(extended){
+    const s=await e.runtime.snapshot(),ix=await sdk.getCheckExitCohortInstructionAsync({...s,sequence:s.m.sequence,observation:s.risk.observationSequence,start:0});
+    await e.send('final complete-cohort exit certificate',[{...ix,accounts:[...ix.accounts,...s.members.map(address=>({address,role:AccountRole.READONLY}))]}]);
+    const owner=e.actors[0],before=sdk.getParticipantDecoder().decode((await e.read(owner.participant))!).cash;
+    const signature=await e.send('final actual one-atom cash withdrawal',[await sdk.getWithdrawTradingInstructionAsync({...s,owner:owner.owner,participant:owner.participant,quoteMint:e.setup.mint.address,userToken:owner.token.address,sequence:s.m.sequence,observation:s.risk.observationSequence,amount:1n})],[owner.owner]);
+    assert.equal(sdk.getParticipantDecoder().decode((await e.read(owner.participant))!).cash,before-1n);writeFileSync(`${dir}/withdrawal.json`,json({signature,cashBefore:before,cashAfter:before-1n,amount:1n}));
+  }
+  await e.stop('indexer');
+  const indexer=index(e.config);await indexer.open();await indexer.cycle();const final=await indexer.reconcile(),state=(await indexer.store.snapshot()).state;
+  const bounded=index({...e.config,runId:e.runId+'-bound',maxRecoveryTransactions:2});await bounded.open();await assert.rejects(()=>bounded.cycle(),/History recovery exceeds 2-transaction/);assert.equal((await bounded.store.snapshot()).checkpoint,null);await bounded.close();
+  let rebuildDatabase=e.database;
+  if(extended){const name='p12_rebuild';await e.runtime.store.pool.query('CREATE DATABASE '+name);const url=new URL(e.database);url.pathname='/'+name;rebuildDatabase=url.toString();}
+  const rebuilt=index({...e.config,databaseUrl:rebuildDatabase,runId:e.runId+'-rebuild'});await rebuilt.open();await rebuilt.cycle();assert.deepEqual((await rebuilt.store.snapshot()).state,state);const rebuiltFinal=await rebuilt.reconcile();const rebuildMetrics={...rebuilt.metrics};await rebuilt.close();if(long)assert(rebuildMetrics.fetched>10000,'Long-history recovery must actually exceed the default bound');
   const intents:any[]=await publicIntents(e.runtime.store.pool,e.runId),budgets=(await e.runtime.store.pool.query('SELECT name,wallet,cap,committed,spent FROM service_budgets WHERE run_id=$1 ORDER BY name',[e.runId])).rows;
   for(const budget of budgets){const fees=intents.filter(x=>x.budget===budget.name&&['finalized','failed'].includes(String(x.status))).reduce((n,x)=>n+BigInt((x.result as any).fee),0n);assert.equal(fees,BigInt(budget.spent));assert.equal(BigInt(budget.committed),0n);assert(fees<=BigInt(budget.cap));}
   const closingBalances=Object.fromEntries(await Promise.all(Object.entries(e.openingBalances).map(async([role,initial])=>{
@@ -130,11 +160,20 @@ try{
     const budget=budgets.find(b=>b.name===name);assert(budget,`Missing ${name} budget`);assert.equal(BigInt(initial.lamports)-balance,BigInt(budget.spent),`${role} actual funded network fees`);
     return [role,{...initial,closingLamports:balance.toString(),actualFees:budget.spent}];
   })));
+  const sourceClosing=BigInt((await e.rpc.call('getBalance',[e.sourceBudget.address,{commitment:'finalized'}])).value);assert.equal(e.sourceBudget.committed,0n);assert.equal(e.sourceBudget.openingLamports-sourceClosing,e.sourceBudget.spent,'Actual source fixture payer fees');
   const finalSnapshot=await capture('final');
+  const observations=(await e.runtime.store.pool.query("SELECT payload FROM events WHERE run_id=$1 AND kind='oracle' AND sequence>$2 ORDER BY sequence",[e.runId,openingSnapshot.chain.market.sequence.toString()])).rows.map(x=>x.payload);
+  appendFileSync(`${dir}/funding-observations.jsonl.gz`,gzipSync(observations.map(x=>json(x)).join('\n')+'\n'));
+  let capCoveredSeconds=0n,previous:any={referencePrice:openingSnapshot.chain.risk.referencePrice,oracle:openingSnapshot.chain.risk.oracle};
+  for(const sample of observations){const v=BigInt(previous.oracle.premiumScaled),atCap=(v<0n?-v:v)*10000n===BigInt(previous.referencePrice)*1_000_000_000n*50n;if(atCap)capCoveredSeconds+=BigInt(sample.oracle.coveredSeconds)-BigInt(previous.oracle.coveredSeconds);previous=sample;}
+  const fundingQuality={capCoveredSeconds,coveredSeconds:finalSnapshot.chain.risk.oracle.coveredSeconds-openingSnapshot.chain.risk.oracle.coveredSeconds,skippedSeconds:finalSnapshot.chain.risk.oracle.skippedSeconds-openingSnapshot.chain.risk.oracle.skippedSeconds,
+    sampleCount:observations.length,capSamples:observations.filter(x=>{const v=BigInt(x.oracle.premiumScaled);return (v<0n?-v:v)*10000n===BigInt(x.referencePrice)*1_000_000_000n*50n;}).length,
+    retainedFractions:Object.fromEntries(Object.entries(finalSnapshot.chain.participants).map(([key,p])=>[key,p.virtualScaled%1_000_000_000n])),
+    samplingSensitivity:'Not varied in this run; selected cadence five seconds. P07/P11 hold/accrual reference evidence is unchanged.'};
   await indexer.close();
   const baseline=phases[0],targets={quote:baseline.quote.p95!==null&&baseline.quote.p95<=200,normalSuccess:baseline.normalEligible>0&&baseline.normalSuccess>=.99,routeHeadroom:Math.max(...phases.map(x=>x.maxUnits))<=320_000};
-  const result={...manifest,finishedUtc:new Date().toISOString(),result:Object.values(targets).every(Boolean)?'pass':'fail',scope:'finite offered-load development/qualification; A17 remains not-run until actual 24h',targets,phases,faults,final,rebuiltFinal,finalSnapshot,intents,budgets,closingBalances,sourceErrors:e.sourceErrors};
+  const result={...manifest,finishedUtc:new Date().toISOString(),result:Object.values(targets).every(Boolean)?'pass':'fail',scope:long?'actual 24-hour sustained run':extended?'900-second sustained harness exercise; A17 not-run':'finite qualification; A17 not-run',reference,fundingQuality,sustained:sustainedResult,visibility,rebuildMetrics,rebuildKind:extended?'fresh PostgreSQL database':'fresh projection in same database',sourceBudget:{...e.sourceBudget,closingLamports:sourceClosing},targets,phases,faults,final,rebuiltFinal,finalSnapshot,intents,budgets,closingBalances,sourceErrors:e.sourceErrors};
   writeFileSync(`${dir}/load.json`,json(result));assert.equal(e.sourceErrors.length,0,'source publisher errors retained');
   console.log(`Load targets ${result.result}: ${dir}/load.json`);if(result.result==='fail')process.exitCode=2;
 }catch(error){writeFileSync(`${dir}/failure.json`,json({revision,sourceDirty,at:new Date().toISOString(),error:error instanceof Error?error.message:String(error),phases}));throw error;}
-finally{await env?.close();}
+finally{await control?.abort();const cleanup=await Promise.allSettled([ui?.close(),env?.close(),...auxiliaries.map(x=>x.close())]);if(cleanup.some(r=>r.status==='rejected'))throw new Error('Load environment cleanup failed; see retained run artifacts');}
