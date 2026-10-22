@@ -24,7 +24,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M1 | P01–P02 | Reproducible stack, economic core and custody | Closed | Fresh A01/A02/M1 exit check on `16e51e4`; integrated unchanged at `3c1aae1` |
 | M2 | P03–P04 | Competing makers and atomic execution | Review | Fresh A03–A05/G04/G05 and cross-phase exit pass on `b8e5fb8`; ready PRs #4/#5 await integration |
 | M3 | P05–P06 | Real services and full trade lifecycle | Review | Fresh A05–A08/G07 and complete service exit pass on `2578327`; ready PRs #7/#8 await integration |
-| M4 | P07–P10 | Funding, orders, risk recovery and usable UI | In progress | P07–P09 gates verified; P09 full regression and A13/A14 pass on clean `8e8f371`; P10 UI/build and targeted client checks pass; clean browser race correction In progress; integration pending |
+| M4 | P07–P10 | Funding, orders, risk recovery and usable UI | In progress | P07–P09 gates verified; P09 full regression and A13/A14 pass on clean `8e8f371`; P10 UI/build and targeted client checks pass; direct RPC submission correction In progress; integration pending |
 | M5a | P11–P12 | Complete local engineering evidence | Open | Not implemented |
 | M5b | P13–P14 | Focused real-cluster parity | Open | Not implemented |
 | M6 | P15–P16 | Independent commercial/pilot readiness | Open | Not implemented |
@@ -42,7 +42,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M4 | P07 | Oracle policy and authenticated funding | Review | [PR #9](https://github.com/arnabnandikgp/rivalt/pull/9), tested `83f70d4`, above #8 | [A09/A10/G08 evidence](evidence/P07.md); integration pending |
 | M4 | P08 | Persistent orders and TP/SL | Review | [PR #10](https://github.com/arnabnandikgp/rivalt/pull/10), tested `cd2b8fa`, above #9 | [A11/A12/G09 evidence](evidence/P08.md); integration pending |
 | M4 | P09 | Liquidation and resumable default | Review | [PR #11](https://github.com/arnabnandikgp/rivalt/pull/11), tested `8e8f371`, above exact #10 head `b9e6115` | [A13/A14/G10 evidence](evidence/P09.md); integration pending |
-| M4 | P10 | Trading UI and direct exit experience | In progress | `phase/p10-ui`, above exact PR #11 head `828c5e3` | G08–G10 verified; production UI build and 41-test fast suite pass; 12 browser checks pass in development; clean quote-race correction awaiting rerun |
+| M4 | P10 | Trading UI and direct exit experience | In progress | `phase/p10-ui`, above exact PR #11 head `828c5e3` | G08–G10 verified; production UI build and 41-test fast suite pass; 12 browser checks pass in development; clean direct RPC submission correction awaiting rerun |
 | M5a | P11 | Integrated fault and reconciliation matrix | Open | — | After P10 |
 | M5a | P12 | Resource budgets, load and 24-hour soak | Open | — | After P11 |
 | M5b | P13 | Devnet deployment and real dependency verification | Open | — | After P12 |
@@ -57,7 +57,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Last completed work: funded liquidation, frozen complete-cohort resolution, deterministic allocation/rounding, risk-worker restart and frozen/final database reconstruction.
 - Verified implementation: clean `8e8f3716135fdcd7548271c5c508ddf4d4ac9740`; full `RIVALT_SLOT_TIME=50 pnpm smoke` exits zero across all P01–P09 suites. The first failed clean run and replay correction are retained in [P09 evidence](evidence/P09.md).
 - Status: P03–P09/M2/M3 Review pending integration; M1/P01/P02 Closed; M4 In progress.
-- Immediate task: implement P10 wallet signing, exact cash/order views and API-independent cancel/withdraw, then verify A15 and browser lifecycle against real RPC/WS/PostgreSQL.
+- Immediate task: finish clean P10 browser/direct-exit and full inherited acceptance, then publish its ready stacked PR and continue P11.
 - Access/product decisions needed now: none. No devnet key or external maker is needed.
 - Deferred external needs: secure devnet/feed access at P13; independent maker at P15; independent review/funded-pilot decision at P16.
 - Historical archives remain optional targeted reference only.
@@ -360,3 +360,12 @@ Update Latest checkpoint and the two overview tables as well as appending the en
 
 - Implementation committed as `9b38b5a75f62c8fbe84ea0fadb4fc8be9faf625d`. The first clean browser run (`20261021T175030Z-38996`, `.local/p10-browser-clean-9b38b5a.log`) passes nine checks then observes a genuine finalized route rejection (6118) when the risk observation changes after review. The app correctly records failure; the harness incorrectly waited only for success. Updated the harness to independently fetch a known finalized failure, verify the actual vault and all funded participant accounts are unchanged, record its signature/code/network fee, and model a new explicit review/sign only after that proof. Missing/expired/unresolved results never qualify for this path; retries are bounded. The deliberate stale-quote assertion now binds the newly signed receipt so an earlier rejected route cannot satisfy it.
 - UI notices now follow the independently reconciled terminal/unresolved result instead of leaving an obsolete submission notice. Typecheck, production build and 10 targeted client/receipt regressions pass after this correction. Both tables remain P10/M4 In progress. No A15/full-suite completion claimed. Next exact action: commit the race/status correction and rerun clean browser acceptance, then full P01–P10 acceptance.
+
+- Race/status correction committed as `98fab1f0e2b46a4729006ef5bb15537d81199300`. Clean run `20261021T180003Z-41793` reaches actual API-stopped cancellation, then direct withdrawal receives a preflight-only rejection after signing. No transaction enters history; the client correctly retains an unresolved receipt and does not replace it. Aligning direct RPC transport with the existing relay: retain unsigned simulation before wallet review and cryptographic verification/persistence after signing, then send exact bytes with `skipPreflight:true` so on-chain rejection can be fetched as failed with its actual fee. On-chain enforcement and unknown-outcome handling are unchanged; this does not guarantee inclusion.
+- Reclaimed only completed stopped P10 development database volumes after confirming the sole active Rivalt container belonged to run 41793. Reports, logs, screenshots and captured public state/queue diagnostics remain; `.local/p10-development-volumes.json` records exact paths. Both tables remain P10/M4 In progress. Next exact action: commit the direct transport correction, rerun clean browser acceptance and inspect its screenshots before full P01–P10 acceptance.
+
+### R013 — 23 October 2026 — P10 — resumed browser acceptance
+
+- Resumed on `98fab1f` with the four documented pending transport/spec/worklog files; no unrelated changes found. Re-read the current instructions, product, delivery, interface and validation contracts. Started the existing Apple container service after its API reported inactive; only the stopped buildkit container existed, and test ports were free. No host database or unrelated service was changed.
+- `pnpm typecheck` and `pnpm build:trader` pass; build retains the reported >500 kB bundle warning. An initial targeted Vitest command used nonexistent `tests/unit` paths and ran no tests; corrected verification with `pnpm test` passes all 41 tests across 17 files. No browser or full acceptance success inferred from these checks.
+- Both status tables remain P10/M4 In progress. Blockers: none. Exact next action: commit the direct submission correction and run fresh browser acceptance on that clean commit, then inspect screenshots and run inherited full acceptance before publishing the ready stacked P10 PR.

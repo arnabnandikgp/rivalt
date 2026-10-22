@@ -470,9 +470,13 @@ export class UserClient {
       'Saved signature is invalid. Nothing was sent.',
     );
     await this.environment();
+    // prepare() already simulates the reviewed message. Like the durable relay,
+    // submit the signed bytes to on-chain validation without a second preflight:
+    // a race should be observable as a failed transaction, not silently replace
+    // an already signed intent after an RPC-only rejection. Fees still apply.
     const signature = await this.rpc.call('sendTransaction', [
       intent.wire,
-      { encoding: 'base64', skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 0 },
+      { encoding: 'base64', skipPreflight: true, maxRetries: 0 },
     ]);
     requireValue(
       signature === intent.signature,
