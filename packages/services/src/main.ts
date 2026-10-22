@@ -8,7 +8,7 @@ const sampleCadence=process.env.RIVALT_FUNDING_INTERVAL_SECONDS??'2';
 if(!/^[2-5]$/.test(sampleCadence))throw new Error('Local funding cadence must be 2–5 seconds');
 if(!['api','executor','settlement','maker-a','maker-b','funding','orders','risk'].includes(role))throw new Error('Unknown service role');
 if(new URL(url).hostname!=='127.0.0.1')throw new Error('P06 services are local test profile only');
-const runtime=new Runtime(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),url);await runtime.open();
+const runtime=new Runtime(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),url,process.env.RIVALT_BUDGET_PROFILE??'smoke');await runtime.open();
 const key=['settlement','maker-a','maker-b','funding','orders','risk'].includes(role)?await Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(required('RIVALT_SIGNER_PATH'),'utf8')))):null;
 const app=role==='api'?api(runtime):null;
 if(app)await app.listen({host:'127.0.0.1',port:Number(process.env.RIVALT_SERVICE_PORT??18081)});

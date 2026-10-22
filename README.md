@@ -59,3 +59,5 @@ P09 liquidation and complete-cohort resolution pass clean full acceptance on the
 P10 adds the wallet trading UI, exact cash/unpaid-profit views, durable orders, existing-position TP/SL, actual-fill charts and direct RPC recovery. All 15 targeted browser checks pass against real Surfpool/WS/PostgreSQL, including cancellation and withdrawal with the venue API stopped; [P10 evidence](docs/evidence/P10.md) records the tested source and limits. The local instrumented wallet does not establish external wallet-provider or devnet parity.
 
 P11 now records fresh A01–A16 acceptance across seven commands, 23 named faults and six independent integer reconciliations. [P11 evidence](docs/evidence/P11.md) retains exact identities and all outcome populations. The matrix is an explicit phase gate; ordinary PRs use affected checks and scoped hosted CI. P12 load and the real 24-hour soak remain outstanding.
+
+P12 load tooling is being implemented separately; [the current contract](docs/P12-LOAD-SOAK.md) describes the scoped sweep and remaining real 24-hour gate. No performance or soak acceptance is claimed yet.

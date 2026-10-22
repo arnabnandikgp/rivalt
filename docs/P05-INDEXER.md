@@ -49,3 +49,5 @@ Acceptance must exercise actual signed deposits, maker controls and routes; WS i
 This phase does not claim P06 lifecycle settlement/withdrawal, consensus finality, production availability, load/soak, devnet, external review or funded readiness.
 
 P10 interface addendum: read envelopes expose public `deployment:{genesis,anchor,domain}` binding so browser history cannot be mixed with another local run. Trades/events support bounded `latest=true` (limit 1–100), returning the newest window in ascending sequence order with `next:null`; combining it with `after` rejects. Default ascending exclusive cursor semantics are unchanged. P08 supersedes the original unsupported-order row above with actual durable order projections. These additions retain finalized repeatable-read snapshots and explicit unavailable states.
+
+P12 extension (D34): optional `maxRecoveryTransactions` / CLI `RIVALT_HISTORY_LIMIT` is an integer in 1–200,000, default 10,000. This changes only the explicit local batch ceiling. Missing history/metadata, identity mismatch and candidate reconciliation still fail closed before checkpoint advance. Actual large-history qualification is owned by P12.

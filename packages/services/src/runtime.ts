@@ -8,11 +8,14 @@ import { Store } from '../../indexer/src/store.js';
 import { Rpc, integer } from '../../indexer/src/rpc.js';
 import { json, hash } from '../../indexer/src/events.js';
 import { Queue, type Authority } from './queue.js';
+import { localBudgets } from './profile.js';
 
 export const OPERATOR_CAP=5_000_000n,MAKER_CAP=1_000_000n,HEARTBEAT_MS=3000;
 export class Runtime {
   readonly store:Store;readonly rpc:Rpc;readonly queue:Queue;readonly connection:Connection;
-  constructor(database:string,readonly runId:string,url:string){
+  readonly budgets:ReturnType<typeof localBudgets>;
+  constructor(database:string,readonly runId:string,url:string,budgetProfile='smoke'){
+    this.budgets=localBudgets(budgetProfile,url);
     this.store=new Store(database,runId);this.rpc=new Rpc(url);this.queue=new Queue(this.store,this.rpc);this.connection=new Connection(url,'confirmed');
   }
   async open(){await this.store.migrate();await this.store.pool.query(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));await this.environment();}
@@ -107,7 +110,7 @@ export class Runtime {
   }
   async maker(id:number,key:Keypair){
     const s=await this.snapshot(),x=s.makers.find(x=>x.r.makerId===id);if(!x || x.r.owner!==key.address)throw new Error('Maker key binding');
-    const budget=`maker-${id}`;await this.queue.budget(budget,key.address,MAKER_CAP);
+    const budget=`maker-${id}`;await this.queue.budget(budget,key.address,this.budgets.maker);
     await this.store.pool.query(`INSERT INTO maker_heartbeats(run_id,maker_id,owner,process_id,snapshot) VALUES($1,$2,$3,$4,$5) ON CONFLICT(run_id,maker_id) DO UPDATE SET owner=EXCLUDED.owner,process_id=EXCLUDED.process_id,seen_at=now(),snapshot=EXCLUDED.snapshot`,[this.runId,id,key.address,process.pid,json({slot:s.slot,sequence:s.m.sequence,cash:x.balance.cash,lots:x.balance.lots,virtualScaled:x.balance.virtualScaled,quoteEpoch:x.state.quoteEpoch,expirySlot:x.state.expirySlot})]);
     if(!x.approved || x.r.quarantined || s.m.paused)return;
     if(s.slot>=x.state.expirySlot){
@@ -118,7 +121,7 @@ export class Runtime {
     }
   }
   async settle(key:Keypair){
-    await this.queue.budget('keeper',key.address,OPERATOR_CAP);
+    await this.queue.budget('keeper',key.address,this.budgets.operator);
     const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'keeper:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
     const s=await this.snapshot();if(s.m.paused || s.slot<s.risk.validFrom || s.slot>=s.risk.validUntil || s.sourceMode==='NoCredibleBounds')return;
     const stamp={sequence:s.m.sequence,observation:s.risk.observationSequence},authority:Authority={kind:'sequence',account:s.market,value:s.m.sequence.toString()};
@@ -152,7 +155,7 @@ export class Runtime {
   }
   async funding(key:Keypair,intervalSeconds=2n){
     if(intervalSeconds<2n||intervalSeconds>5n)throw new Error('Local funding cadence must be 2–5 seconds');
-    await this.queue.budget('funding',key.address,OPERATOR_CAP);
+    await this.queue.budget('funding',key.address,this.budgets.operator);
     const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'funding:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
     const s=await this.snapshot(),o=s.risk.oracle;
     if(s.m.mode!==2 || s.m.paused || s.now-o.sampledAt<intervalSeconds)return;
@@ -163,7 +166,7 @@ export class Runtime {
     await this.enqueue(`funding:${s.risk.observationSequence}`,[sdk.fundingComputeBudget(),ix],key,'funding',{kind:'sequence',account:s.market,value:s.m.sequence.toString()});
   }
   async orders(key:Keypair){
-    await this.queue.budget('orders',key.address,OPERATOR_CAP);
+    await this.queue.budget('orders',key.address,this.budgets.operator);
     const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'order:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
     const s=await this.snapshot();if(s.m.mode!==2||s.m.paused||s.sourceMode==='NoCredibleBounds')return;
     for(const participant of s.members){const p=s.participants[participant];
@@ -183,7 +186,7 @@ export class Runtime {
     }
   }
   async riskWork(key:Keypair){
-    await this.queue.budget('risk',key.address,OPERATOR_CAP);
+    await this.queue.budget('risk',key.address,this.budgets.operator);
     const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'risk:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
     const s=await this.snapshot();if(!s.resolutionState)throw new Error('Resolution not initialized');
     const o=s.risk.oracle,sources={primaryBtc:o.sources[0],primaryCollateral:o.sources[1],guardBtc:o.sources[2],guardCollateral:o.sources[3]};

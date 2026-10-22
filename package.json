@@ -27,7 +27,9 @@
     "trader": "pnpm --filter @rivalt/trader dev",
     "test:browser": "bash ops/browser-smoke.sh",
     "test:matrix": "bash ops/smoke.sh",
-    "test:matrix-report": "python3 -m unittest discover -s tests/e2e -p \"test_*.py\""
+    "test:matrix-report": "python3 -m unittest discover -s tests/e2e -p \"test_*.py\"",
+    "test:load": "bash ops/load-soak.sh",
+    "test:load-unit": "vitest run tests/load/metrics.test.ts packages/services/src/profile.test.ts"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "1.5.6",

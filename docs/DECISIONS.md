@@ -184,3 +184,9 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **D33 hosted validation:** Ready PR #13 and its [first scoped CI run](https://github.com/arnabnandikgp/rivalt/actions/runs/39866000756) are verified; all five jobs pass on `6d24616`. Full runtime acceptance remains the separately recorded local matrix; no self-hosted runtime CI claim.
 
 - **D33 hosted timeout refinement:** The exhaustive 600-vector allocation reference exceeded Vitest's 5-second default on a hosted rerun. Give only this test 15 seconds; retain all vectors/assertions. This is a bounded correctness-test runner allowance, not a relaxed P12 latency target or changed economic implementation.
+
+## 23 October 2026 — long-run local resources (P12 in progress)
+
+- **D34:** Add an explicit loopback-only `soak24` fee-budget profile: 500,000,000 lamports per separately funded operator role and 5,000,000 per maker. Default smoke caps remain unchanged. Persisted payer/cap identity, reservation, actual-fee reconciliation and unresolved-intent rules still apply. No automatic funding or collateral deductions. These synthetic caps are not production budgets.
+- Indexer recovery remains bounded and reconciled before advancing its checkpoint; an explicit configuration may raise the default 10,000-transaction ceiling to at most 200,000 for the declared long-run profile. Missing history/metadata still blocks readiness. Actual >10,000 recovery and resource viability must be demonstrated, not inferred from this option.
+- P12 begins with actual 1/5/10 offered-attempt sweeps and complete populations. Select the sustained profile from measured results, retain failed targets, and run real elapsed 24 hours only after resource preflight. No simulated acceleration or scheduled automation.

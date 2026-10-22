@@ -138,6 +138,27 @@ importers:
         specifier: 1.64.1
         version: 1.64.1
 
+  tests/load:
+    dependencies:
+      '@rivalt/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@solana-program/system':
+        specifier: 0.16.0
+        version: 0.16.0(@solana/kit@8.5.0(typescript@5.9.3))
+      '@solana-program/token':
+        specifier: 0.18.0
+        version: 0.18.0(@solana/kit@8.5.0(typescript@5.9.3))
+      '@solana/kit':
+        specifier: 8.5.0
+        version: 8.5.0(typescript@5.9.3)
+      '@solana/web3.js':
+        specifier: 3.1.1
+        version: 3.1.1(typescript@5.9.3)
+      playwright-core:
+        specifier: 1.64.1
+        version: 1.64.1
+
   tests/rpc-contract:
     dependencies:
       '@rivalt/sdk':

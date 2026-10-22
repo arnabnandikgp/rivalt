@@ -7,7 +7,7 @@ import { Store, type Binding } from './store.js';
 import { project, type State } from './projection.js';
 
 export { Store, Rpc };
-export type Config = { rpcUrl: string; wsUrl: string; databaseUrl: string; runId: string; market: string; anchor: string; pageSize?: number };
+export type Config = { rpcUrl: string; wsUrl: string; databaseUrl: string; runId: string; market: string; anchor: string; pageSize?: number; maxRecoveryTransactions?: number };
 export class Indexer {
   readonly rpc: Rpc;
   readonly store: Store;
@@ -17,6 +17,7 @@ export class Indexer {
   metrics = { cycles: 0, pages: 0, fetched: 0, notifications: 0, reconnects: 0, failures: 0 };
   private busy = false;
   constructor(readonly config: Config) {
+    if (!Number.isSafeInteger(config.maxRecoveryTransactions ?? 10_000) || (config.maxRecoveryTransactions ?? 10_000) < 1 || (config.maxRecoveryTransactions ?? 10_000) > 200_000) throw new Error('Invalid bounded history recovery limit');
     this.rpc = new Rpc(config.rpcUrl); this.store = new Store(config.databaseUrl, config.runId);
     if (!Number.isInteger(config.pageSize ?? 100) || (config.pageSize ?? 100) < 1 || (config.pageSize ?? 100) > 1000) throw new Error('Invalid history page size');
   }
@@ -62,7 +63,7 @@ export class Indexer {
           if (item.signature === boundary) { if (!row.checkpoint) signatures.push(item); found = true; break; }
           if (seen.has(item.signature)) throw new Error('History pagination failed to advance');
           seen.add(item.signature); signatures.push(item);
-          if (signatures.length > 10_000) throw new Error('History recovery exceeds 10000-transaction local batch bound');
+          if (signatures.length > (this.config.maxRecoveryTransactions ?? 10_000)) throw new Error(`History recovery exceeds ${this.config.maxRecoveryTransactions ?? 10_000}-transaction local batch bound`);
         }
         if (found) break;
         before = batch.at(-1).signature;
