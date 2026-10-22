@@ -1,0 +1,237 @@
+{
+  "schema": 1,
+  "runId": "20261022T214423Z-4148",
+  "revision": "806715981a5012a0ec48f452766dc636c52d0c81",
+  "sourceDirty": false,
+  "selectedStage": null,
+  "startedUtc": "2026-10-22T21:44:23.269294+00:00",
+  "host": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "release": "25.5.0",
+    "python": "3.15.0"
+  },
+  "configuration": {
+    "slotTimeMs": 50,
+    "fundingIntervalSeconds": 2,
+    "browserFundingIntervalSeconds": 5,
+    "rpcPort": 18899,
+    "wsPort": 18900,
+    "postgresPort": 15432,
+    "resetApiPort": 18082,
+    "rpc": "loopback HTTP",
+    "ws": "loopback WS",
+    "postgres": "18.6 Apple Containers",
+    "load": "sequential functional/fault scenarios, not offered-load benchmark"
+  },
+  "seeds": {
+    "economicReference": "0x524956414c54",
+    "programKeys": "SHA256 rivalt/p01/local-only/<role>",
+    "actorKeys": "SHA256 rivalt/p02/local-only/<role>",
+    "faults": "ordered explicit observations in tests/e2e/matrix.py",
+    "replayLimit": "Actual chain wall time and signatures vary; replay preserves deterministic fixtures, fault order and assertions"
+  },
+  "identities": {
+    "Cargo.lock": "3b61857a2e6083806224397b29a44fc57e39d3270345434abc06e91117fab568",
+    "ops/local-keys.mjs": "1ce8cd150956348eb254577e73f1902b9ab3cef2b2ba8545f9ae1c2438da9634",
+    "ops/toolchain-downloads.json": "aebcf6736457aaa6218121ba239c7f42fd76ef9621872e8d4941614d19b3bd8f",
+    "packages/sdk/idl/clearing.json": "49da60cf89946d1a63c257c523cac8bd2ad96270588b302582d1d4b5896cd83e",
+    "packages/sdk/idl/maker_a.json": "4269d9eb3fc13db30196258be875179cea400208328839d737877b5019db7b4b",
+    "packages/sdk/idl/maker_b.json": "d91e4587aec3604103db4393111216e92ef6c536363137e0da6910c0b11a72bd",
+    "pnpm-lock.yaml": "976d220afd47262cd8a62c9a9dbfff0b05bbeee177ca8b7e9608d080d02bb6cc",
+    "rust-toolchain.toml": "559f488c181e0e9e77cf17c29de663977f036ec7ff2e2060585714bf53c52d62",
+    "scenarios/local-profile-v1.json": "c3de9601a6a2558813518116a88300c17c7f1f34673b7779fd6216ed1fd47b5c",
+    "tests/anchor-conformance/pnpm-lock.yaml": "bea39e57994461ed4518e394e230b0eb0df5076bd1538b8ae1470ac43a8861c4",
+    "tests/e2e/matrix.py": "399ce922c2015e0c151ed608ed3acef35ce8dab37e52ceb33491d6b07126d2ee",
+    "tests/e2e/run.py": "dc063ef0460040c227405b8f461fa5f257015f70e365554db6a0da592aa6db8d",
+    "tests/e2e/test_ci_scope.py": "05ff3527e30513c58faf9c820c244517f629f234a8e4b9b4b1f72f304a9ce392",
+    "tests/e2e/test_matrix.py": "36d8a07ee56c0a354492d4b62076e36501ddd9d4b564481e186a466216a8e750",
+    "tests/financial/reference.py": "52463429141e3f4c68eb7d222d2379f666371fb0284f2db454411607eb81bc06",
+    "tests/financial/resolution-reference.py": "091eb531dfea2e723dbcd265d82b59539bae62ef00cd590d47fa68d0ee919481",
+    "tests/rpc-contract/custody-cases.ts": "1719ae57b0b110dce24e78c58eeede8fbc734efd21cf3efee5cadcc29ba15647",
+    "tests/rpc-contract/maker-cases.ts": "615cff150b49c9b677ecc1585fc968ca89d9e347bdba3667a051808127be69b5",
+    "tests/rpc-contract/oracle-cases.ts": "b1f330f50d135dfdf7e84768315e9602df53daae22dc5d1bbe6acfd38dc7e26e",
+    "tests/rpc-contract/order-cases.ts": "f56d6abd33dac7a7aa9c9518f6c75ec79e83a4e3ec63eb6d6b156661d625473d",
+    "tests/rpc-contract/resolution-cases.ts": "a4ceaef322163e72bcfa1900a2c74837bda13edd533693000389932ba3ec32a2",
+    "tests/rpc-contract/route-cases.ts": "0159bc2b54b34984e7b050baed8172b0c8501b2a3a9d511f2d6598cc6985d1bf",
+    "tests/rpc-contract/settlement-cases.ts": "ad84564e930f72a0946f3ae35f013079c04c32f9f0b44435d2a67dc64923af7c"
+  },
+  "binaries": {
+    "clearing": "bb1c0912caadb39567dc6f8aa6baac149d9e0277dad687383f3f3a3d4f642904",
+    "maker_a": "d02d9e57746c5628bc892845c4579be69d6fd92f617c661a61481e0d19189e46",
+    "maker_b": "6ebdcc70d58f3a28754213a59c8e61fbe129c40161a76c53bd19522699fa51d6",
+    "oracle_fixture": "54d5b7044fe0d6a1e16e9b3e1b1c6ca17199a53eb0670416ec763fef4c346fff",
+    "hostile_maker": "1edd8e9ff801c7c04303121e16541a42e4116aae2677e0b046d233317b4aaf78"
+  },
+  "stages": {
+    "checks": {
+      "status": "pass",
+      "command": [
+        "bash",
+        "ops/checks.sh"
+      ],
+      "directory": "runs/20261022T214423Z-4148-checks",
+      "files": {},
+      "startedUtc": "2026-10-22T21:44:23.275190+00:00",
+      "exit": 0,
+      "elapsedSeconds": 49.393,
+      "finishedUtc": "2026-10-22T21:45:12.669028+00:00",
+      "logSha256": "1548116ae7e4236870d2216957566524bf007d2288a633c3178aa5731bd4a519"
+    },
+    "regression": {
+      "status": "pass",
+      "command": [
+        "bash",
+        "ops/rpc-smoke.sh"
+      ],
+      "directory": "runs/20261022T214423Z-4148-regression",
+      "files": {
+        "summary.json": "5c015bec8b1e4c3bf94e6510de4531ccd0e6891f6b6c0a2158c144a237fb66a0",
+        "financial.json": "347b738824f1eda1c813c7d2cafaa3c4b0f302edfaeec00a168fb2e330488d2b",
+        "svm.json": "7968d3d5c7c927b856f141fb3cb70b4510d0c6414a6002fbadc8e59085f275d0",
+        "maker-svm.json": "1c2ee29408e5a13e65c3b4d37b62626d62ef90b6c0421a82884e85f09ddd6aa9",
+        "route-svm.json": "4e5edace58666d2f483562777cd18175d044d3bf13f961a9598a50fd58d88cca",
+        "custody.json": "a6ccc884eebeecc8965e412b4297307deb35e8d9546091c4c618ac55a70f9442",
+        "maker-rpc.json": "2bf363bcb1f530c011173e8a848e9466fb0ac7187b228ec231d752976f29dd38",
+        "route-rpc.json": "40ebc36d7bbac655b91661164dd7b6b7f5506d8fb30d6e2f98152cf1ad8e13e2",
+        "indexer-rpc.json": "8dc0805434e0269bd2070a8c4f6150d7cb7c97f1318685ce4eac046b686b7637",
+        "indexer-reset.json": "7304ebf7c23a6d97a6e95e96ad9e9df055feea0e8f42c4be6a48ddf51e2bca72",
+        "toolchain.json": "701f3f0b473e5e8890c2b22c539fe36b6ad0f6d0ba5817bd283d602dc63504cc",
+        "postgres-version.txt": "66cbaae4250f039f92200da1428bbd0f3f0850da18716bb1ce501a178c259711",
+        "postgres-image.json": "bd36ca635f7c05def7ab610dd086f4b02aae884514eb1fcf54f82111c92f5e71",
+        "container-version.txt": "78d7b2f3d061b337d01308d8e5553cceb11524d7022c3706dde2fb2db18324d3"
+      },
+      "startedUtc": "2026-10-22T21:45:12.669900+00:00",
+      "exit": 0,
+      "elapsedSeconds": 763.073,
+      "finishedUtc": "2026-10-22T21:57:55.755483+00:00",
+      "logSha256": "bd14989211dec5669d561977b2b9ffcd618b822fb00ce131f0ded7d608d7c1e8"
+    },
+    "lifecycle": {
+      "status": "pass",
+      "command": [
+        "bash",
+        "ops/lifecycle-smoke.sh"
+      ],
+      "directory": "runs/20261022T214423Z-4148-lifecycle",
+      "files": {
+        "financial.json": "347b738824f1eda1c813c7d2cafaa3c4b0f302edfaeec00a168fb2e330488d2b",
+        "svm.json": "7968d3d5c7c927b856f141fb3cb70b4510d0c6414a6002fbadc8e59085f275d0",
+        "maker-svm.json": "1c2ee29408e5a13e65c3b4d37b62626d62ef90b6c0421a82884e85f09ddd6aa9",
+        "settlement-svm.json": "4f9cdba1399fa662a3bb733b182ef04728898eeef918bc6c6f50372ca089dac8",
+        "custody.json": "d37287488bc1a970ea483b17489ab56bd0af9db70252300bd3d4ddb889d64f05",
+        "lifecycle.json": "2c69eebe747525bb1a7b59b963d5c187041a3a9def69d079f8960da190fb06f8",
+        "toolchain.json": "19bd41bd4d35872177165e7995d04da0e129e058836eb22805a29a3c62003804",
+        "postgres-version.txt": "66cbaae4250f039f92200da1428bbd0f3f0850da18716bb1ce501a178c259711",
+        "postgres-image.json": "bd36ca635f7c05def7ab610dd086f4b02aae884514eb1fcf54f82111c92f5e71",
+        "container-version.txt": "78d7b2f3d061b337d01308d8e5553cceb11524d7022c3706dde2fb2db18324d3"
+      },
+      "startedUtc": "2026-10-22T21:57:55.759438+00:00",
+      "exit": 0,
+      "elapsedSeconds": 234.115,
+      "finishedUtc": "2026-10-22T22:01:49.878071+00:00",
+      "logSha256": "cc156c05c6c40fbceabc83b820de986d70475fe5a10249d9c6fa7935169c6def"
+    },
+    "oracle": {
+      "status": "pass",
+      "command": [
+        "bash",
+        "ops/oracle-smoke.sh"
+      ],
+      "directory": "runs/20261022T214423Z-4148-oracle",
+      "files": {
+        "financial.json": "347b738824f1eda1c813c7d2cafaa3c4b0f302edfaeec00a168fb2e330488d2b",
+        "svm.json": "7968d3d5c7c927b856f141fb3cb70b4510d0c6414a6002fbadc8e59085f275d0",
+        "maker-svm.json": "1c2ee29408e5a13e65c3b4d37b62626d62ef90b6c0421a82884e85f09ddd6aa9",
+        "oracle-svm.json": "b4652cf2ea4fb80e50da5ab926b6aadb71e4ea438008e33780534f621a4c4dcb",
+        "custody.json": "12faf355860d177af79fa2f290af2ff829500e6ba88c0f9920cf9a094855fc78",
+        "oracle.json": "7812cb75e0410baf4a437add02b55b957639887969044190cc01de6661210961",
+        "toolchain.json": "f3f64869fb498518eaef078b7999647456e4accbeb3729b4153e8a430d8080d9",
+        "postgres-version.txt": "66cbaae4250f039f92200da1428bbd0f3f0850da18716bb1ce501a178c259711",
+        "postgres-image.json": "bd36ca635f7c05def7ab610dd086f4b02aae884514eb1fcf54f82111c92f5e71",
+        "container-version.txt": "78d7b2f3d061b337d01308d8e5553cceb11524d7022c3706dde2fb2db18324d3"
+      },
+      "startedUtc": "2026-10-22T22:01:49.882587+00:00",
+      "exit": 0,
+      "elapsedSeconds": 318.842,
+      "finishedUtc": "2026-10-22T22:07:08.729959+00:00",
+      "logSha256": "578dd9b5f3e655633e63f316bbe1516b6a1ffbb1ab107a5fbdf8f4f236794e49"
+    },
+    "orders": {
+      "status": "pass",
+      "command": [
+        "bash",
+        "ops/orders-smoke.sh"
+      ],
+      "directory": "runs/20261022T214423Z-4148-orders",
+      "files": {
+        "financial.json": "347b738824f1eda1c813c7d2cafaa3c4b0f302edfaeec00a168fb2e330488d2b",
+        "svm.json": "7968d3d5c7c927b856f141fb3cb70b4510d0c6414a6002fbadc8e59085f275d0",
+        "maker-svm.json": "1c2ee29408e5a13e65c3b4d37b62626d62ef90b6c0421a82884e85f09ddd6aa9",
+        "oracle-svm.json": "b4652cf2ea4fb80e50da5ab926b6aadb71e4ea438008e33780534f621a4c4dcb",
+        "order-svm.json": "16a1618ec3d140e33fcd145bbe49ca5c00ab0043a128efc26f3097f99ba38458",
+        "custody.json": "73dffc8f9921fc3f012c3ff6df4a6b292560ac347737b4acd959d3c1ca2c0166",
+        "orders.json": "23000d6233600df80fb2087dab36d151b452999936bb09d8cf2ab7ed400cefd7",
+        "toolchain.json": "6b3e3beff6f8380d21f2b26280282130d69993dd05ee3ed5ee7668a869995f0e",
+        "postgres-version.txt": "66cbaae4250f039f92200da1428bbd0f3f0850da18716bb1ce501a178c259711",
+        "postgres-image.json": "bd36ca635f7c05def7ab610dd086f4b02aae884514eb1fcf54f82111c92f5e71",
+        "container-version.txt": "78d7b2f3d061b337d01308d8e5553cceb11524d7022c3706dde2fb2db18324d3"
+      },
+      "startedUtc": "2026-10-22T22:07:08.736055+00:00",
+      "exit": 0,
+      "elapsedSeconds": 578.588,
+      "finishedUtc": "2026-10-22T22:16:47.314445+00:00",
+      "logSha256": "3e0d758d6eaae7c2113eaa33685e6233db6922106e56e0b070fb894086cd1fad"
+    },
+    "resolution": {
+      "status": "pass",
+      "command": [
+        "bash",
+        "ops/resolution-smoke.sh"
+      ],
+      "directory": "runs/20261022T214423Z-4148-resolution",
+      "files": {
+        "financial.json": "347b738824f1eda1c813c7d2cafaa3c4b0f302edfaeec00a168fb2e330488d2b",
+        "svm.json": "7968d3d5c7c927b856f141fb3cb70b4510d0c6414a6002fbadc8e59085f275d0",
+        "maker-svm.json": "1c2ee29408e5a13e65c3b4d37b62626d62ef90b6c0421a82884e85f09ddd6aa9",
+        "oracle-svm.json": "b4652cf2ea4fb80e50da5ab926b6aadb71e4ea438008e33780534f621a4c4dcb",
+        "resolution-svm.json": "d745612956d0d8ee8d56dab09c1ccd71675d587a39524df42617a111b27ecdb4",
+        "custody.json": "912fc14ed629c5eaa5b3c97b643f28bbfcd97132d1b73d062c1b55d2d2794821",
+        "resolution.json": "ebb44c4a06a0bbb2c776a5900f9790d1d34371b63b486c806b98f48ddeacc181",
+        "toolchain.json": "bea4fc0ea99cf10a676f727c3aa38c0070dedc7f0157aca130ad807bc7dc1c96",
+        "postgres-version.txt": "66cbaae4250f039f92200da1428bbd0f3f0850da18716bb1ce501a178c259711",
+        "postgres-image.json": "bd36ca635f7c05def7ab610dd086f4b02aae884514eb1fcf54f82111c92f5e71",
+        "container-version.txt": "78d7b2f3d061b337d01308d8e5553cceb11524d7022c3706dde2fb2db18324d3"
+      },
+      "startedUtc": "2026-10-22T22:16:47.321923+00:00",
+      "exit": 0,
+      "elapsedSeconds": 632.104,
+      "finishedUtc": "2026-10-22T22:27:19.443330+00:00",
+      "logSha256": "e90c8f1773882a1cc3047f09cb835af9b7be23562da2ef82cd4ae937c1906d16"
+    },
+    "browser": {
+      "status": "pass",
+      "command": [
+        "bash",
+        "ops/browser-smoke.sh"
+      ],
+      "directory": "runs/20261022T214423Z-4148-browser",
+      "files": {
+        "custody.json": "ce4a56d71767142f45b374da873514451a8c45e8b5b5ef0d7e81e8342209cacf",
+        "browser.json": "ab835ee4500775aa5260b2d1d18fab84d0cb52949d4c7258b3976033750ba29b",
+        "browser-transactions.json": "7f9f2c6126cefb411965a607d85a9f0476bb69275b3deea6404ab87a0dddf57d",
+        "toolchain.json": "f498c89efb45fb83330e13b72a93aa7e6321caabd7e9c7641405dd8c30fbedbf",
+        "postgres-version.txt": "66cbaae4250f039f92200da1428bbd0f3f0850da18716bb1ce501a178c259711",
+        "postgres-image.json": "bd36ca635f7c05def7ab610dd086f4b02aae884514eb1fcf54f82111c92f5e71",
+        "container-version.txt": "78d7b2f3d061b337d01308d8e5553cceb11524d7022c3706dde2fb2db18324d3"
+      },
+      "startedUtc": "2026-10-22T22:27:19.463152+00:00",
+      "exit": 0,
+      "elapsedSeconds": 309.112,
+      "finishedUtc": "2026-10-22T22:32:28.594123+00:00",
+      "logSha256": "0475ecd1836641296f25869bd9b1b4d785b6186fa431e43be4d980e2b2afb98a"
+    }
+  },
+  "elapsedSeconds": 2885.331,
+  "finishedUtc": "2026-10-22T22:32:28.616839+00:00"
+}

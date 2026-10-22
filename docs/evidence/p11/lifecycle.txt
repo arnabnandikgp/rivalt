@@ -1,0 +1,26 @@
+Surfpool custody: 33 signed scenarios; 10 committed events; exact vault = insurance = 10007 atoms.
+[0/6] [0s]
+[1/6] Fetching image [0s]
+[2/6] Unpacking image [0s]
+[3/6] Fetching kernel [0s]
+[4/6] Fetching init image [0s]
+[5/6] Unpacking init image [0s]
+[6/6] Starting container [0s]
+[6/6] Starting container [1s]
+[6/6] Starting container [1s]
+Lifecycle: separate A/B keypairs and processes publish/sync real expired epochs; funded fee budgets visible
+Lifecycle: signed wallet bytes committed before broadcast; lost acknowledgement plus SIGKILL/restart and duplicate POST apply one deposit
+Lifecycle: same idempotency key with different signed bytes rejected
+Lifecycle: HTTP quote and wallet-paid submission execute independently priced 21/79 split with one 2 bps fee
+Lifecycle: consumed quote nonce fails through actual API/executor/RPC with no financial projection or duplicated fill
+Lifecycle: maker A outage excluded from labeled quote universe; B closes common position with 94,210 unpaid atoms and zero fabricated settlement cash
+Lifecycle: maker return observable with same on-chain authority
+Lifecycle: keeper restart and competing workers collect 20,580 + 73,630 loss atoms, then settle exactly 94,210 to winner
+Lifecycle: wallet directly withdraws all flat funded cash through SPL CPI after complete-cohort authorization
+Lifecycle: actual blockhash expiry plus finalized unchanged nonce resolves unexecuted intent without re-signing or resubmission
+Lifecycle: expired deposit without monotonic authority remains unresolved; missing history alone is never reported as execution or nonexecution
+Lifecycle: hidden failed landing cannot release fee reservation on expiry; restored RPC history reconciles actual charged network fee
+Lifecycle: operator reservations and spend reconcile to independently fetched payer/fee records; immutable intent bytes enforced by PostgreSQL
+Lifecycle: insufficient explicit operator budget rejects persistence/broadcast without deducting participant collateral
+Lifecycle: finalized RPC and live WS projections reconcile every participant, vault, funding pool and fee; legacy Anchor decodes live settlement events and guard
+P06 evidence: .local/matrix/20261022T214423Z-4148/runs/20261022T214423Z-4148-lifecycle

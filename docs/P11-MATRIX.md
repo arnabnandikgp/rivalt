@@ -1,6 +1,6 @@
 # P11 integrated fault and reconciliation matrix
 
-Implementation contract; A16 acceptance is still pending. WORKLOG owns live status. This phase adds evidence orchestration and hosted fast checks, with no program, custody, economic or source-policy change.
+Implementation contract; [fresh A01–A16 acceptance](evidence/P11.md) passes on clean `8067159`. WORKLOG owns live status. This phase adds evidence orchestration and hosted fast checks, with no program, custody, economic or source-policy change.
 
 ## Run the explicit integration gate
 
@@ -34,6 +34,8 @@ The report checker uses Python integers, importing no production SDK/indexer/Rus
 The actual RPC harness separately verifies each chain account, database checkpoint and fresh replay. Browser evidence includes the full chain snapshot for field-by-field comparison. Funding/order/default reports now retain the actual registry members and public durable intent rows. P09's independently computed frozen payout and mixed-state reconstruction remain required in its live harness; ordinary final-state equations are not incorrectly applied to a partially applied frozen ledger.
 
 Expected on-chain rejections, compiled-program cases, durable pending/unresolved/expired-unexecuted/failed/finalized intents, wallet receipts, unsigned preview rejection and every retained order state remain visible. Wire hashes identify immutable intent bytes without exporting private keys. Fault populations are not normal eligible execution denominators and do not establish P12's success-rate or latency targets.
+
+Hash representation is report-specific: the inherited lifecycle report hashes the base64 wire text; the new public-intent exporter and browser receipts hash decoded serialized bytes. Both bind the saved transaction, but their hashes must not be compared across these representations. The matrix does not make that comparison.
 
 The fault catalog covers lost acknowledgement and executor kill, maker/funding/source outage, competing settlement/order workers, actual expiry, hidden failed fees, SQL rollback, duplicate/reordered events, pruned/missing RPC metadata, WS disconnect, database restart/rebuild, actual chain reset, interrupted default, source emergency, browser reload and actual API-stopped exits. These are completed named assertions from the real harnesses, not inferred from test counts.
 
