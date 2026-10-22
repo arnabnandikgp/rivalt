@@ -9,6 +9,7 @@ import { Rpc, integer } from '../../indexer/src/rpc.js';
 import { json, hash } from '../../indexer/src/events.js';
 import { Queue, type Authority } from './queue.js';
 import { localBudgets } from './profile.js';
+import { quoteWindow } from './quote-window.js';
 
 export const OPERATOR_CAP=5_000_000n,MAKER_CAP=1_000_000n,HEARTBEAT_MS=3000;
 export class QuoteUnavailable extends Error {
@@ -17,7 +18,8 @@ export class QuoteUnavailable extends Error {
 export class Runtime {
   readonly store:Store;readonly rpc:Rpc;readonly queue:Queue;readonly connection:Connection;
   readonly budgets:ReturnType<typeof localBudgets>;
-  constructor(database:string,readonly runId:string,url:string,budgetProfile='smoke'){
+  constructor(database:string,readonly runId:string,url:string,budgetProfile='smoke',readonly sampleInterval=2n,readonly dispatchMargin=0n){
+    quoteWindow(0n,0n,sampleInterval,dispatchMargin);
     this.budgets=localBudgets(budgetProfile,url);
     this.store=new Store(database,runId);this.rpc=new Rpc(url);this.queue=new Queue(this.store,this.rpc);this.connection=new Connection(url,'confirmed');
   }
@@ -82,6 +84,9 @@ export class Runtime {
     if(s.slot<s.risk.validFrom)throw new QuoteUnavailable('observation-not-finalized','Market observation is ahead of the finalized snapshot');
     if(s.slot>=s.risk.validUntil)throw new QuoteUnavailable('observation-expired','Market observation expired');
     if(s.sourceMode==='NoCredibleBounds')throw new QuoteUnavailable('source-unavailable','Credible price bounds unavailable');
+    if(s.m.mode===2&&!quoteWindow(s.now,s.risk.oracle.sampledAt,this.sampleInterval,this.dispatchMargin))throw new QuoteUnavailable('observation-update-due','Next scheduled observation is within the dispatch margin');
+    const pendingSample=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND budget='funding' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);
+    if(pendingSample.rowCount)throw new QuoteUnavailable('observation-update-pending','Observation update is awaiting reconciliation');
     const order=stored?p.book.orders.find(o=>o.id===stored.id&&o.version===stored.version&&o.filled===stored.filled):undefined;
     if(stored&&(!order||order.side!==side||sdk.orderRemaining(p,order,s.m.termsEpoch,s.slot)<lots||!sdk.orderTriggered(order,s.risk.referencePrice,s.slot)))throw new Error('Stored order unavailable');
     const reduceOnly=order?order.reduceOnly:(side===1 && p.lots>=lots)||(side===0 && -p.lots>=lots);
@@ -97,6 +102,8 @@ export class Runtime {
     if(!allocation)return {available:false,snapshotSlot:s.slot,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation:null};
     const selected=allocation.legs.map(l=>eligible.find(x=>x.r.makerId===l.makerId)!);const [first,second]=selected;
     const expiry=[s.slot+150n,s.risk.validUntil,...selected.map(x=>x.state.expirySlot)].reduce((a,b)=>a<b?a:b);
+    const processedSlot=BigInt(integer(await this.rpc.call('getSlot',[{commitment:'processed'}])));
+    if(expiry<=processedSlot+10n)throw new QuoteUnavailable('quote-expiring','Quote has insufficient remaining dispatch slots');
     const accounts={...s,trader,
       firstCapital:first.r.capital,firstRegistration:first.registration,firstProgram:first.r.pricingProgram,firstProgramData:first.r.programData,firstConfig:first.r.config,
       secondCapital:second?.r.capital,secondRegistration:second?.registration,secondProgram:second?.r.pricingProgram,secondProgramData:second?.r.programData,secondConfig:second?.r.config};
@@ -129,7 +136,7 @@ export class Runtime {
   }
   async settle(key:Keypair){
     await this.queue.budget('keeper',key.address,this.budgets.operator);
-    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'keeper:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
+    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND budget='keeper' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
     const s=await this.snapshot();if(s.m.paused || s.slot<s.risk.validFrom || s.slot>=s.risk.validUntil || s.sourceMode==='NoCredibleBounds')return;
     const stamp={sequence:s.m.sequence,observation:s.risk.observationSequence},authority:Authority={kind:'sequence',account:s.market,value:s.m.sequence.toString()};
     const base=`keeper:${s.m.sequence}:${s.risk.observationSequence}`;
@@ -163,7 +170,7 @@ export class Runtime {
   async funding(key:Keypair,intervalSeconds=2n){
     if(intervalSeconds<2n||intervalSeconds>5n)throw new Error('Local funding cadence must be 2–5 seconds');
     await this.queue.budget('funding',key.address,this.budgets.operator);
-    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'funding:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
+    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND budget='funding' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
     const s=await this.snapshot(),o=s.risk.oracle;
     if(s.m.mode!==2 || s.m.paused || s.now-o.sampledAt<intervalSeconds)return;
     const [a,b]=[0,1].map(id=>s.makers.find(x=>x.r.makerId===id));if(!a||!b)return;
@@ -174,7 +181,7 @@ export class Runtime {
   }
   async orders(key:Keypair){
     await this.queue.budget('orders',key.address,this.budgets.operator);
-    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'order:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
+    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND budget='orders' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
     const s=await this.snapshot();if(s.m.mode!==2||s.m.paused||s.sourceMode==='NoCredibleBounds')return;
     for(const participant of s.members){const p=s.participants[participant];
       for(const o of p.book.orders){
@@ -194,7 +201,7 @@ export class Runtime {
   }
   async riskWork(key:Keypair){
     await this.queue.budget('risk',key.address,this.budgets.operator);
-    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND request_id LIKE 'risk:%' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
+    const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND budget='risk' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
     const s=await this.snapshot();if(!s.resolutionState)throw new Error('Resolution not initialized');
     const o=s.risk.oracle,sources={primaryBtc:o.sources[0],primaryCollateral:o.sources[1],guardBtc:o.sources[2],guardCollateral:o.sources[3]};
     const authority:Authority={kind:'sequence',account:s.market,value:s.m.sequence.toString()};

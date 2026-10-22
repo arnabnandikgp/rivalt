@@ -3,6 +3,7 @@ import * as sdk from '@rivalt/sdk';
 import { address } from '@solana/kit';
 import { Runtime, QuoteUnavailable } from './runtime.js';
 import { userAuthority } from './queue.js';
+import { publicRequestId } from './quote-window.js';
 import { json } from '../../indexer/src/events.js';
 
 export function api(runtime:Runtime){
@@ -17,9 +18,9 @@ export function api(runtime:Runtime){
     return runtime.quote(address(b.owner),b.side,BigInt(b.lots));
   });
   app.post('/v1/submit',async(request)=>{
-    const b=request.body as any,binding=await runtime.environment();
+    const b=request.body as any,requestId=publicRequestId(b?.requestId),binding=await runtime.environment();
     const authority=userAuthority(b?.wire,binding.market);
-    const r=await runtime.queue.put(b?.requestId,b.wire,authority);
+    const r=await runtime.queue.put(requestId,b.wire,authority);
     return {requestId:r.request_id,signature:r.signature,status:r.status};
   });
   app.get<{Params:{id:string}}>('/v1/submissions/:id',async(request,reply)=>{

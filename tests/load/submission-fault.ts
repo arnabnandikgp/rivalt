@@ -14,6 +14,9 @@ export async function submissionFault(e:Awaited<ReturnType<typeof environment>>)
   const {transaction}=await sdk.signInstructions(e.connection,actor.owner,[ix]),wire=Buffer.from(transaction.serialize()).toString('base64'),requestId='fault:lost-ack';
   const post=async(value:any)=>fetch('http://127.0.0.1:18081/v1/submit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(value)});
   await e.stop('executor');
+  for(const prefix of ['funding','keeper','maker','maker-sync','order','risk']){
+    const reserved=prefix+':public-probe';assert.equal((await post({requestId:reserved,wire})).status,400);assert.equal(await e.runtime.queue.get(reserved),null);
+  }
   const response=await post({requestId,wire});assert.equal(response.status,200);const submitted=await response.json() as {signature:string};
   // No executor/listener existed at commit, so startup must discover the durable row.
   assert.equal((await e.runtime.queue.get(requestId)).status,'pending');
@@ -41,7 +44,7 @@ export async function submissionFault(e:Awaited<ReturnType<typeof environment>>)
     const different=await sdk.signInstructions(e.connection,actor.owner,[await sdk.getDepositInstructionAsync({...e.a,owner:actor.owner,participant:actor.participant,quoteMint:e.setup.mint.address,userToken:actor.token.address,amount:2n})]);
     assert.equal((await post({requestId,wire:Buffer.from(different.transaction.serialize()).toString('base64')})).status,400);
     return {fault:'missed-notification-lost-ack-executor-kill',status:'pass',signature:submitted.signature,elapsedMs:Date.now()-started,
-      persistedBeforeBroadcast,actualFee:String(tx.meta.fee),cashBefore:cash.toString(),cashAfter:(cash+1n).toString(),differentBytesRejected:true};
+      persistedBeforeBroadcast,actualFee:String(tx.meta.fee),cashBefore:cash.toString(),cashAfter:(cash+1n).toString(),differentBytesRejected:true,reservedWorkerIdentitiesRejected:true};
   }finally{
     await e.stop('executor');await new Promise<void>((resolve,reject)=>{proxy.close(error=>error?reject(error):resolve());proxy.closeAllConnections();});e.start('executor');
   }

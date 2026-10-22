@@ -61,14 +61,14 @@ export async function environment(){
   await t.recover();
   const config={rpcUrl:url,wsUrl,databaseUrl:database,runId,market:a.market,anchor,maxRecoveryTransactions:200_000,pageSize:1000};
   const seedIndexer=new Indexer(config);await seedIndexer.open();await seedIndexer.cycle();await seedIndexer.close();
-  const runtime=new Runtime(database,runId,url,'soak24');await runtime.open();
+  const runtime=new Runtime(database,runId,url,'soak24',5n,1n);await runtime.open();
   const children=new Map<string,ChildProcess>();let childNumber=0;
   const start=(role:string,extra:Record<string,string>={})=>{
     assert(!children.has(role));
     const key=operators[role as keyof typeof operators];let signerPath='';
     if(key){signerPath=resolve(dir,role+'-key.json');writeFileSync(signerPath,JSON.stringify([...key.secretKey]),{mode:0o600});}
     const fd=openSync(`${dir}/${role}-${++childNumber}.log`,'w');
-    const child=spawn(process.execPath,['--import','tsx',role==='indexer'?'packages/indexer/src/main.ts':'packages/services/src/main.ts'],{env:{...process.env,RIVALT_RUN_ID:runId,RIVALT_MARKET:a.market,RIVALT_INIT_SIGNATURE:anchor,RIVALT_HISTORY_LIMIT:'200000',RIVALT_API_PORT:'18083',RIVALT_SERVICE_PORT:'18081',RIVALT_SERVICE_ROLE:role,RIVALT_SIGNER_PATH:signerPath,RIVALT_BUDGET_PROFILE:'soak24',RIVALT_FUNDING_INTERVAL_SECONDS:'5',...extra},stdio:['ignore',fd,fd]});
+    const child=spawn(process.execPath,['--import','tsx',role==='indexer'?'packages/indexer/src/main.ts':'packages/services/src/main.ts'],{env:{...process.env,RIVALT_RUN_ID:runId,RIVALT_MARKET:a.market,RIVALT_INIT_SIGNATURE:anchor,RIVALT_HISTORY_LIMIT:'200000',RIVALT_API_PORT:'18083',RIVALT_SERVICE_PORT:'18081',RIVALT_SERVICE_ROLE:role,RIVALT_SIGNER_PATH:signerPath,RIVALT_BUDGET_PROFILE:'soak24',RIVALT_FUNDING_INTERVAL_SECONDS:'5',RIVALT_QUOTE_DISPATCH_MARGIN_SECONDS:'1',...extra},stdio:['ignore',fd,fd]});
     closeSync(fd);children.set(role,child);return child;
   };
   const stop=async(role:string)=>{
