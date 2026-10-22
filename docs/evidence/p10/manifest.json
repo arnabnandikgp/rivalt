@@ -1,0 +1,196 @@
+{
+  "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+  "sourceDirty": false,
+  "parentRevision": "828c5e321ae501e77e1bbcf70aa83ec36b549778",
+  "parentPr": "https://github.com/arnabnandikgp/rivalt/pull/11",
+  "priorAttempts": [
+    {
+      "revision": "6466ae8b6412ef4fcc2fd98b8c5aae91190135d9",
+      "command": "RIVALT_SLOT_TIME=50 bash ops/browser-smoke.sh",
+      "exit": 1,
+      "reason": "default five-attempt program upload exhausted"
+    },
+    {
+      "revision": "6466ae8b6412ef4fcc2fd98b8c5aae91190135d9",
+      "command": "RIVALT_SLOT_TIME=100 bash ops/browser-smoke.sh",
+      "exit": 0,
+      "checks": 15
+    },
+    {
+      "revision": "6466ae8b6412ef4fcc2fd98b8c5aae91190135d9",
+      "command": "RIVALT_SLOT_TIME=100 pnpm smoke",
+      "exit": 1,
+      "reason": "sequential order source recovery remained restrictive"
+    }
+  ],
+  "commands": [
+    {
+      "command": "source ops/env.sh && RIVALT_SLOT_TIME=50 pnpm smoke",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "exit": 143,
+      "reason": "Stopped at user request to avoid unrelated regression; completed through orders, resolution cancelled during deployment"
+    },
+    {
+      "command": "source ops/env.sh && RIVALT_SLOT_TIME=50 bash ops/browser-smoke.sh",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "exit": 0
+    }
+  ],
+  "result": "P10 targeted A15 browser/direct-exit acceptance passes; completed partial regression is separate; no full-wrapper/soak/devnet/external-review claim",
+  "runs": {
+    "regression": ".local/runs/20261022T204515Z-83101",
+    "lifecycle": ".local/runs/20261022T205749Z-87247",
+    "oracle": ".local/runs/20261022T210200Z-88680",
+    "orders": ".local/runs/20261022T210723Z-90717",
+    "browser": ".local/runs/20261022T211757Z-94891"
+  },
+  "identities": [
+    {
+      "path": "regression-summary.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-custody.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-financial.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-svm.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-maker-svm.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-maker-rpc.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-route-svm.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-route-rpc.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-indexer-rpc.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-indexer-reset.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "regression-reset-custody.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "lifecycle-custody.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "lifecycle-lifecycle.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "lifecycle-settlement-svm.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "oracle-oracle.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "oracle-oracle-svm.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "orders-orders.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "orders-order-svm.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "browser.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    },
+    {
+      "path": "custody.json",
+      "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+      "sourceDirty": false
+    }
+  ],
+  "files": {
+    "browser-acceptance.txt": "5676a6ec594f3744753e912128ba93ca977ff5093cc91109db422a1e2018945d",
+    "browser-transactions.json": "ce6321cd1608d6aa2d0403a59c3c4d968180f656e863043086434c51e0c595b5",
+    "browser.json": "a1ffca81e323a434e14b4fbee938f43e52740c0f953db5aced3d577c519ab617",
+    "container-version.txt": "78d7b2f3d061b337d01308d8e5553cceb11524d7022c3706dde2fb2db18324d3",
+    "custody.json": "a61a8acf38eb3b1372a7ba50e17c0b6dd622f32bc86a248f0ed3c5e020f3f518",
+    "failed-browser-98fab1f.json": "f47bbc90228d0e6d46d22d33fa3a2a00400f9d6a25445d64e6ebbe35a11bd01c",
+    "failed-browser-9b38b5a.json": "a8e8e4185ff4282e08275a3633ca681a1c599c9ae9ab85bfeb22b9123dcc18b7",
+    "failed-full-100ms.txt": "12a7d8a8af60fce535c1a7979a79d8e8e886d8e876fdea125028200a7ddf641c",
+    "failed-upload-50ms.txt": "d7a2f4702f16fe0aa91d837713d3d67ad40623535a9220c53c1bf59c5fe7bcdd",
+    "independent-reconciliation.json": "25a474d9beaa188d1e5ed1e5c464c2ea8fb35e189a02bb52459ef0f45dd4f9e0",
+    "lifecycle-custody.json": "369b87808c7206d787d2c1ca2713cb898fa1987b9d64c4c01860e9ec102b0178",
+    "lifecycle-lifecycle.json": "4c1fc7688a5b270823a75c3db7495d0fd132f2421d008b7734d37be5bf66588c",
+    "lifecycle-settlement-svm.json": "fd9f6604e8d63673d8eb2bda15355c395abaac656bf7a0a93775111efd357680",
+    "lifecycle-toolchain.json": "e4db6df538a9073cacaaeabe241903f2a8b03f74a1128c569aa61d7f5adf5594",
+    "oracle-oracle-conformance.json": "120aea82e789aee90d6717aa6fe3111a33b35c09fb863aa3c0031b866055ec12",
+    "oracle-oracle-svm.json": "13720483279480dcc836bc9804fba7da4726d32ae0133384859faff7c9d4ec37",
+    "oracle-oracle.json": "42f2a45f0654b37bd81d024b8002b2aa2a10838cc9508e45015fe954a8bac977",
+    "oracle-toolchain.json": "33c4481e4b96f3d931a5cd03b7e743cbd6fac675a8675f6342cb73e28c7c787a",
+    "orders-order-svm.json": "f7d34aa3e4bf1f2ad25631ee95e7b81e6606297ade680aaec36118b1faceb48a",
+    "orders-orders-conformance.json": "9ac8d2fd2ef8664414e4f76f415af1c01d39a62e1b85aa472e46b29bf8afa157",
+    "orders-orders.json": "c77c15f8e2a7418eda583b0949a7350ee81199dc4d1a6c59856f4290b71733eb",
+    "orders-toolchain.json": "290ccc2ea99c63084c979710abe337521558a8d6cfc36c1352bdb54753557ab9",
+    "partial-regression-stopped.txt": "af60526e6fd21d1dc34dbf09dfc396851b95026ffe584a4f413f10754b0bf25f",
+    "postgres-image.json": "bd36ca635f7c05def7ab610dd086f4b02aae884514eb1fcf54f82111c92f5e71",
+    "postgres-version.txt": "66cbaae4250f039f92200da1428bbd0f3f0850da18716bb1ce501a178c259711",
+    "prior-browser-6466ae8.json": "d767ba35a5e6caea74fe81da5c70cf78def785682cc05326f67e90d27bb5ea34",
+    "regression-custody.json": "6c3eb640de53cbcaaa1220ed3f3c9b89fc3ba52ab18d7ff838c95789057e4814",
+    "regression-financial.json": "5e35490106d0def0d4d34e1fa444dddc604034c645e3d4c5b957f9780925a0f0",
+    "regression-indexer-reset.json": "4caeeb90777eba1db511675924cf9e9106c86be731b42acd1d1371e08bc343a5",
+    "regression-indexer-rpc.json": "25ed8cdf419e2a16b7f5ec49132b013ad799f2282db29d72e71e937ffee4593e",
+    "regression-maker-rpc.json": "7b6adf4450860b72ac69f30ddbd4bf931dd5e004df991816b922d2981e7f1ffc",
+    "regression-maker-svm.json": "c134d232d5e40ea9e34679d94a07f2eecfe5872a99a1045b163c752b0e912104",
+    "regression-reset-custody.json": "0585616d92403b4df8f404ebf7423288dcd2db51699f0ed41144bbb444e70718",
+    "regression-route-rpc.json": "73409ce21e3d387af9a50e2125e9af869942b183bf10a203aba821d48724c142",
+    "regression-route-svm.json": "047f8b38e18eacdf43233bf910b5bdcbdd9a3a16e4b9f2c4bc4df742728df3af",
+    "regression-summary.json": "717dc0e78abf18efa7fd653e036dd12e89b0b4135ced1ff2d44ce932baa8c370",
+    "regression-svm.json": "68aec045831ffd51f28e8b561b6638f71146701713c8a7835dbd736e370a6890",
+    "regression-toolchain.json": "1c6b594edd1f154aac6478d2a065eff436c152fe6aee6d547f0a5f8d03854082",
+    "toolchain.json": "def610e1319c81398b406a906d4bf33b8b26380243b4e3e8c7ed9d39f0fe1073",
+    "trader-1280-dark.png": "f464de34d93d498ff775782ed5009886b254c5029824d829b664aa0e66a97efd",
+    "trader-1280-light.png": "bde222788c03e2f8075c60b0a5f4e4d78e986bed25522f27b59711034b7541ec",
+    "trader-375-dark.png": "8621ce8ccbc1d151b0903bedc5e813ed815cce24b1c8314c89c010bc84279f77",
+    "trader-375-light.png": "44efc2249b0b247f05612d5497d12a4214e98c92c42a8e80c092ddb4b8fb1803",
+    "trader-768-dark.png": "c54e433d1520c61b1e1097859305c5473464a7803fd3742e197d2b763ab7af0e",
+    "trader-768-light.png": "6c153747b8c0ce79179f882ecd9555deb8dba5408ce68b61a564118bbdb935f1"
+  }
+}

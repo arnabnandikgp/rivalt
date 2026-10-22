@@ -129,6 +129,8 @@ Request secure RPC/API configuration in P13, not earlier. Never put credentials 
 
 Per PR: compile/type/IDL generation checks; affected financial/program/SDK tests; available RPC contract and short service smoke checks. Before those services exist, mark the later suite Not applicable yet, not Passed.
 
+23 October scope clarification: select these checks by the changed behavior and the owning phase's acceptance contract, rather than running every inherited suite before each PR. An unchanged program does not require a new unrelated financial matrix for a UI change. Prefer supported CI for broad regression; a workflow definition or queued job is not passing evidence. P11's consolidated A01–A16 run and P12's real load/24-hour soak remain required deliverables. Retain completed partial results and explicitly label intentional cancellation/not-run stages.
+
 Broader integration: full economic/fault matrix, seeded stress, competing workers and DB recovery.
 M5a: measured resource/load sweeps and the real 24-hour local soak.
 M5b: focused actual devnet tests.

@@ -1,0 +1,190 @@
+[
+  {
+    "configuration" : {
+      "creationDate" : "2026-09-17T21:30:59Z",
+      "descriptor" : {
+        "digest" : "sha256:3d7e9245dbacb5ef0643488980df7bd28fc76697215fd646629925c3a54ae367",
+        "mediaType" : "application/vnd.oci.image.index.v1+json",
+        "size" : 374
+      },
+      "name" : "docker.io/library/postgres@sha256:89f747171c4b0af0eacf5984550060be79786dbe286eb60cfa691d79d1e8b23f"
+    },
+    "id" : "3d7e9245dbacb5ef0643488980df7bd28fc76697215fd646629925c3a54ae367",
+    "variants" : [
+      {
+        "config" : {
+          "architecture" : "arm64",
+          "config" : {
+            "Cmd" : [
+              "postgres"
+            ],
+            "Entrypoint" : [
+              "docker-entrypoint.sh"
+            ],
+            "Env" : [
+              "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+              "GOSU_VERSION=1.19",
+              "LANG=en_US.utf8",
+              "PG_MAJOR=18",
+              "PG_VERSION=18.6",
+              "PG_SHA256=555610c24d53e4316da5b7d3fc25c279d96856d5e0e23ee308c328c5fa881d9f",
+              "DOCKER_PG_LLVM_DEPS=llvm21-dev \t\tclang21",
+              "PGDATA=/var/lib/postgresql/18/docker"
+            ],
+            "StopSignal" : "SIGINT",
+            "WorkingDir" : "/"
+          },
+          "created" : "2026-09-17T21:30:59.665677387Z",
+          "history" : [
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T20:37:05.258369293Z",
+              "created_by" : "ADD alpine-minirootfs-3.24.2-aarch64.tar.gz / # buildkit"
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T20:37:05.258369293Z",
+              "created_by" : "CMD [\"/bin/sh\"]",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:28:30.582870073Z",
+              "created_by" : "RUN /bin/sh -c set -eux; \taddgroup -g 70 -S postgres; \tadduser -u 70 -S -D -G postgres -H -h /var/lib/postgresql -s /bin/sh postgres; \tinstall --verbose --directory --owner postgres --group postgres --mode 1777 /var/lib/postgresql # buildkit"
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:28:33.352492585Z",
+              "created_by" : "ENV GOSU_VERSION=1.19",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:28:33.352492585Z",
+              "created_by" : "RUN /bin/sh -c set -eux; \t\tapk add --no-cache --virtual .gosu-deps \t\tca-certificates \t\tdpkg \t\tgnupg \t; \t\tdpkgArch=\"$(dpkg --print-architecture | awk -F- '{ print $NF }')\"; \twget -O /usr/local/bin/gosu \"https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch\"; \twget -O /usr/local/bin/gosu.asc \"https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch.asc\"; \t\texport GNUPGHOME=\"$(mktemp -d)\"; \tgpg --batch --keyserver hkps://keys.openpgp.org --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4; \tgpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \tgpgconf --kill all; \trm -rf \"$GNUPGHOME\" /usr/local/bin/gosu.asc; \t\tapk del --no-network .gosu-deps; \t\tchmod +x /usr/local/bin/gosu; \tgosu --version; \tgosu nobody true # buildkit"
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:28:33.352492585Z",
+              "created_by" : "ENV LANG=en_US.utf8",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:28:33.444195796Z",
+              "created_by" : "RUN /bin/sh -c mkdir /docker-entrypoint-initdb.d # buildkit"
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:28:33.444195796Z",
+              "created_by" : "ENV PG_MAJOR=18",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:28:33.444195796Z",
+              "created_by" : "ENV PG_VERSION=18.6",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:28:33.444195796Z",
+              "created_by" : "ENV PG_SHA256=555610c24d53e4316da5b7d3fc25c279d96856d5e0e23ee308c328c5fa881d9f",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:28:33.444195796Z",
+              "created_by" : "ENV DOCKER_PG_LLVM_DEPS=llvm21-dev \t\tclang21",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.30181361Z",
+              "created_by" : "RUN /bin/sh -c set -eux; \t\twget -O postgresql.tar.bz2 \"https://ftp.postgresql.org/pub/source/v$PG_VERSION/postgresql-$PG_VERSION.tar.bz2\"; \techo \"$PG_SHA256 *postgresql.tar.bz2\" | sha256sum -c -; \tmkdir -p /usr/src/postgresql; \ttar \t\t--extract \t\t--file postgresql.tar.bz2 \t\t--directory /usr/src/postgresql \t\t--strip-components 1 \t; \trm postgresql.tar.bz2; \t\tapk add --no-cache --virtual .build-deps \t\t$DOCKER_PG_LLVM_DEPS \t\tbison \t\tcoreutils \t\tdpkg-dev dpkg \t\tflex \t\tg++ \t\tgcc \t\tkrb5-dev \t\tlibc-dev \t\tlibedit-dev \t\tlibxml2-dev \t\tlibxslt-dev \t\tlinux-headers \t\tmake \t\topenldap-dev \t\topenssl-dev \t\tperl-dev \t\tperl-ipc-run \t\tperl-utils \t\tpython3-dev \t\ttcl-dev \t\tutil-linux-dev \t\tzlib-dev \t\ticu-dev \t\tlz4-dev \t\tzstd-dev \t\tcurl-dev \t\tliburing-dev \t; \t\tcd /usr/src/postgresql; \tawk '$1 == \"#define\" && $2 == \"DEFAULT_PGSOCKET_DIR\" && $3 == \"\\\"/tmp\\\"\" { $3 = \"\\\"/var/run/postgresql\\\"\"; print; next } { print }' src/include/pg_config_manual.h > src/include/pg_config_manual.h.new; \tgrep '/var/run/postgresql' src/include/pg_config_manual.h.new; \tmv src/include/pg_config_manual.h.new src/include/pg_config_manual.h; \tgnuArch=\"$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)\"; \t\texport LLVM_CONFIG=\"/usr/lib/llvm21/bin/llvm-config\"; \texport CLANG=clang-21; \t\t./configure \t\t--enable-option-checking=fatal \t\t--build=\"$gnuArch\" \t\t--enable-integer-datetimes \t\t--enable-tap-tests \t\t--disable-rpath \t\t--with-uuid=e2fs \t\t--with-pgport=5432 \t\t--with-system-tzdata=/usr/share/zoneinfo \t\t--prefix=/usr/local \t\t--with-includes=/usr/local/include \t\t--with-libraries=/usr/local/lib \t\t--with-gssapi \t\t--with-icu \t\t--with-ldap \t\t--with-libcurl \t\t--with-liburing \t\t--with-libxml \t\t--with-libxslt \t\t--with-llvm \t\t--with-lz4 \t\t--with-openssl \t\t--with-perl \t\t--with-python \t\t--with-tcl \t\t--with-zstd \t; \tmake -j \"$(nproc)\" world-bin; \tmake install-world-bin; \tmake -C contrib install; \t\trunDeps=\"$( \t\tscanelf --needed --nobanner --format '%n#p' --recursive /usr/local \t\t\t| tr ',' '\\n' \t\t\t| sort -u \t\t\t| awk 'system(\"[ -e /usr/local/lib/\" $1 \" ]\") == 0 { next } { print \"so:\" $1 }' \t\t\t| grep -v -e perl -e python -e tcl \t)\"; \tapk add --no-cache --virtual .postgresql-rundeps \t\t$runDeps \t\tbash \t\ttzdata \t\tzstd \t\ticu-data-full \t\t$([ \"$(apk --print-arch)\" != 'ppc64le' ] && echo 'nss_wrapper') \t; \tapk del --no-network .build-deps; \tcd /; \trm -rf \t\t/usr/src/postgresql \t\t/usr/local/share/doc \t\t/usr/local/share/man \t; \t\tpostgres --version # buildkit"
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.421112445Z",
+              "created_by" : "RUN /bin/sh -c set -eux; \tcp -v /usr/local/share/postgresql/postgresql.conf.sample /usr/local/share/postgresql/postgresql.conf.sample.orig; \tsed -ri \"s!^#?(listen_addresses)\\s*=\\s*\\S+.*!\\1 = '*'!\" /usr/local/share/postgresql/postgresql.conf.sample; \tgrep -F \"listen_addresses = '*'\" /usr/local/share/postgresql/postgresql.conf.sample # buildkit"
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.524676039Z",
+              "created_by" : "RUN /bin/sh -c install --verbose --directory --owner postgres --group postgres --mode 3777 /var/run/postgresql # buildkit"
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.524676039Z",
+              "created_by" : "ENV PGDATA=/var/lib/postgresql/18/docker",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.524676039Z",
+              "created_by" : "VOLUME [/var/lib/postgresql]",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.559735062Z",
+              "created_by" : "COPY docker-entrypoint.sh docker-ensure-initdb.sh /usr/local/bin/ # buildkit"
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.665677387Z",
+              "created_by" : "RUN /bin/sh -c ln -sT docker-ensure-initdb.sh /usr/local/bin/docker-enforce-initdb.sh # buildkit"
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.665677387Z",
+              "created_by" : "ENTRYPOINT [\"docker-entrypoint.sh\"]",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.665677387Z",
+              "created_by" : "STOPSIGNAL SIGINT",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.665677387Z",
+              "created_by" : "EXPOSE map[5432/tcp:{}]",
+              "empty_layer" : true
+            },
+            {
+              "comment" : "buildkit.dockerfile.v0",
+              "created" : "2026-09-17T21:30:59.665677387Z",
+              "created_by" : "CMD [\"postgres\"]",
+              "empty_layer" : true
+            }
+          ],
+          "os" : "linux",
+          "rootfs" : {
+            "diff_ids" : [
+              "sha256:1b349a3334531b575b01d409540dd8aca14ef29abddacd50f36643d7c949db4b",
+              "sha256:5382ea8619daa38bff7aef08bfb17a70faa2ae57589098f9957ed0a55f06a1ed",
+              "sha256:b95f507075462d673a8b197fa3dd05c2a976d1e722625c29754a00885ae4bbbe",
+              "sha256:a4225feb6cf5d507d7b207ff064c6d226fed7218089d63b2ad44373282454e96",
+              "sha256:75b956ed28a68ddc90a805a55c43e524bb64f8a2d7dbdc24b77c2408413da846",
+              "sha256:a3432cd603036733a3f61dc11d4d95aeb38082365e344332d3effa6498b641e1",
+              "sha256:72569ca08a8cd3c0e1dcfa96d50381ffb6cfbb04850fe643081aa03e05657471",
+              "sha256:404c0a32963452a4ee097d6d6b075d6cf4ae811573e658b44c1d1038c366ec82",
+              "sha256:85ed09336b338e0465fbe1112c85e8d980092ad538d21301cf0d47e534d980ae"
+            ],
+            "type" : "layers"
+          },
+          "variant" : "v8"
+        },
+        "digest" : "sha256:89f747171c4b0af0eacf5984550060be79786dbe286eb60cfa691d79d1e8b23f",
+        "platform" : {
+          "architecture" : "arm64",
+          "os" : "linux",
+          "variant" : "v8"
+        },
+        "size" : 117889049
+      }
+    ]
+  }
+]

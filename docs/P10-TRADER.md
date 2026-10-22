@@ -1,6 +1,6 @@
 # P10 trading UI and direct user recovery
 
-Implementation in progress. P09/G08–G10 are verified on the stacked baseline; browser acceptance is still required. Only the explicit local test deployment is supported in this phase.
+Implemented for the explicit local test deployment. P09/G08–G10 are verified on the stacked baseline; [P10 evidence](evidence/P10.md) records passing browser/direct-exit acceptance. WORKLOG owns Review/integration status.
 
 ## User and signing boundary
 
@@ -18,7 +18,7 @@ Cancellation uses owner/market/participant authority directly over RPC and does 
 
 Indexed fills/candles and service heartbeats have explicit unavailable states. Direct RPC balances, cancellation and admissible withdrawal remain available when the venue API processes are stopped. Candles derive only from actual finalized route fills and leave no-trade intervals empty. Index, risk interval, funding and last fill are separately labeled.
 
-## Acceptance still required
+## Acceptance contract
 
 Real browser signing through Wallet Standard, deposits, split/open/close, unpaid-versus-cash, funded settlement, withdrawal, durable order partial/cancel/replace, existing-position TP/SL/generation, wallet rejection/account/cluster changes, stale quotes, ambiguous acknowledgement/reload and API-stopped direct cancel/withdraw. All successful effects must be fetched from deployed Surfpool and reconcile with PostgreSQL/indexer state. Instrumented local wallet fixtures establish browser integration, not independent external wallet-provider or devnet acceptance.
 

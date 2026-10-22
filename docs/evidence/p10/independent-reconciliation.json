@@ -1,0 +1,66 @@
+{
+  "revision": "881ae54a5816c09ca5dd1324723f4010b135a46c",
+  "method": "Python integer sums, no SDK/indexer/Rust helper",
+  "checks": [
+    {
+      "environment": "regression",
+      "cashAtoms": "199842067",
+      "netLots": "0",
+      "grossLots": "9212",
+      "claimsScaled": "0",
+      "settlementAtoms": "0",
+      "insuranceAtoms": "10007",
+      "feesAtoms": "157934",
+      "actualVaultAtoms": "200010008",
+      "result": "pass"
+    },
+    {
+      "environment": "lifecycle",
+      "cashAtoms": "109905790",
+      "netLots": "0",
+      "grossLots": "42",
+      "claimsScaled": "0",
+      "settlementAtoms": "0",
+      "insuranceAtoms": "10007",
+      "feesAtoms": "2421",
+      "actualVaultAtoms": "109918218",
+      "result": "pass"
+    },
+    {
+      "environment": "oracle",
+      "cashAtoms": "1099999855",
+      "netLots": "0",
+      "grossLots": "0",
+      "claimsScaled": "0",
+      "settlementAtoms": "0",
+      "insuranceAtoms": "10007",
+      "feesAtoms": "146",
+      "actualVaultAtoms": "1100010008",
+      "result": "pass"
+    },
+    {
+      "environment": "orders",
+      "cashAtoms": "1099997178",
+      "netLots": "0",
+      "grossLots": "14",
+      "claimsScaled": "0",
+      "settlementAtoms": "0",
+      "insuranceAtoms": "10007",
+      "feesAtoms": "2821",
+      "actualVaultAtoms": "1100010006",
+      "result": "pass"
+    },
+    {
+      "environment": "browser",
+      "cashAtoms": "1101087504",
+      "netLots": "0",
+      "grossLots": "4",
+      "claimsScaled": "0",
+      "settlementAtoms": "0",
+      "insuranceAtoms": "10007",
+      "feesAtoms": "2496",
+      "actualVaultAtoms": "1101100007",
+      "result": "pass"
+    }
+  ]
+}
