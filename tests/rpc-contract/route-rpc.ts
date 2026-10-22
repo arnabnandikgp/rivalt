@@ -54,7 +54,7 @@ const h:RouteHarness={
   async replaceMaker(hostile){
     const path=`target/deploy/${hostile?'hostile_maker':'maker_b'}.so`;
     execFileSync('solana-keygen',['new','--silent','--no-bip39-passphrase','--force','--outfile',`${dir}/route-upgrade-buffer.json`],{stdio:'ignore'});
-    const deployment=JSON.parse(execFileSync('solana',['program','deploy',path,'--buffer',`${dir}/route-upgrade-buffer.json`,'--program-id','.local/keys/maker-b.json','--keypair','.local/keys/payer.json','--url',url,'--use-rpc','--output','json'],{encoding:'utf8'}));
+    const deployment=JSON.parse(execFileSync('solana',['program','deploy',path,'--buffer',`${dir}/route-upgrade-buffer.json`,'--program-id','.local/keys/maker-b.json','--keypair','.local/keys/payer.json','--url',url,'--use-rpc','--max-sign-attempts','20','--output','json'],{encoding:'utf8'}));
     deployments.push({hostile,deployment});
   },
   async rent(n){return BigInt(await rpc.call('getMinimumBalanceForRentExemption',[n]));},

@@ -23,7 +23,7 @@ for program in clearing maker_a maker_b oracle_fixture; do
   key="${program//_/-}"
   solana-keygen new --silent --no-bip39-passphrase --outfile "$RIVALT_RUN_DIR/buffer-$key.json" >/dev/null
   solana program deploy "target/deploy/$program.so" --buffer "$RIVALT_RUN_DIR/buffer-$key.json" --program-id ".local/keys/$key.json" \
-    --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" --use-rpc --output json > "$RIVALT_RUN_DIR/deployment-$key.json"
+    --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/deployment-$key.json"
 done
 node --import tsx tests/rpc-contract/custody-rpc.ts
 source ops/postgres.sh

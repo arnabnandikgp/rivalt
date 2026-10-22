@@ -37,12 +37,12 @@ if [[ "$ready" != 1 ]]; then
 fi
 solana-keygen new --silent --no-bip39-passphrase --outfile "$RIVALT_RUN_DIR/deploy-buffer.json" >/dev/null
 solana program deploy target/deploy/clearing.so --buffer "$RIVALT_RUN_DIR/deploy-buffer.json" --program-id .local/keys/clearing.json \
-  --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" --use-rpc --output json \
+  --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" --use-rpc --max-sign-attempts 20 --output json \
   > "$RIVALT_RUN_DIR/deployment.json"
 for maker in a b; do
   solana-keygen new --silent --no-bip39-passphrase --outfile "$RIVALT_RUN_DIR/deploy-buffer-$maker.json" >/dev/null
   solana program deploy "target/deploy/maker_$maker.so" --buffer "$RIVALT_RUN_DIR/deploy-buffer-$maker.json" --program-id ".local/keys/maker-$maker.json" \
-    --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" --use-rpc --output json \
+    --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" --use-rpc --max-sign-attempts 20 --output json \
     > "$RIVALT_RUN_DIR/deployment-maker-$maker.json"
 done
 node --import tsx tests/rpc-contract/smoke.ts
