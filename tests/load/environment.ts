@@ -4,7 +4,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { appendFileSync, writeFileSync, openSync, closeSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import type { Address, Instruction } from '@solana/kit';
+import { address, type Address, type Instruction } from '@solana/kit';
 import { Connection, type Keypair } from '@solana/web3.js';
 import { getCreateAccountInstruction, getTransferSolInstruction } from '@solana-program/system';
 import { TOKEN_PROGRAM_ADDRESS, getInitializeMint2Instruction, getInitializeAccount3Instruction, getMintToInstruction } from '@solana-program/token';
@@ -29,7 +29,7 @@ export async function environment(){
   const runId=dir.split('/').at(-1)!,rpc=new WireRpc(url),connection=new Connection(url,'confirmed'),payer=await payerKey(),a=await addresses();
   const txLog=(label:string,signature:string,tx:any)=>appendFileSync(`${dir}/transactions.jsonl`,json({label,signature,tx})+'\n');
   const read=async(key:Address)=>{const r=await rpc.call('getAccountInfo',[key,{encoding:'base64',commitment:'finalized'}]);return r.value?Buffer.from(r.value.data[0],'base64'):null;};
-  const now=async()=>(await read('SysvarC1ock11111111111111111111111111111' as Address))!.readBigInt64LE(32);
+  const now=async()=>(await read(address('SysvarC1ock11111111111111111111111111111111')))!.readBigInt64LE(32);
   const slot=async()=>BigInt(await rpc.call('getSlot',[{commitment:'finalized'}]));
   async function send(label:string,instructions:Instruction[],signers:Keypair[]=[],feePayer=payer){
     const {transaction}=await sdk.signInstructions(connection,feePayer,instructions,signers);
