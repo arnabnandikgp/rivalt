@@ -182,3 +182,5 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **D33 acceptance:** The fresh seven-stage matrix passes all A01–A16 rows, 23 named faults and six independent integer reconciliations on clean `8067159`; [evidence](evidence/P11.md) records the actual 2,885.331-second run and non-success populations. This supersedes the pending local acceptance statement above. P11 is Review pending integration; M5a remains In progress until P12. Hosted CI execution is still pending publication.
 
 - **D33 hosted validation:** Ready PR #13 and its [first scoped CI run](https://github.com/arnabnandikgp/rivalt/actions/runs/39866000756) are verified; all five jobs pass on `6d24616`. Full runtime acceptance remains the separately recorded local matrix; no self-hosted runtime CI claim.
+
+- **D33 hosted timeout refinement:** The exhaustive 600-vector allocation reference exceeded Vitest's 5-second default on a hosted rerun. Give only this test 15 seconds; retain all vectors/assertions. This is a bounded correctness-test runner allowance, not a relaxed P12 latency target or changed economic implementation.

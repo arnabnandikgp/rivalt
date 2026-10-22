@@ -76,4 +76,4 @@ it('finds beneficial/required splits and matches 600 independently enumerated, h
     assert.deepEqual(actual&&{allIn:actual.allIn,grossQuote:actual.grossQuote,fee:actual.fee,legs:actual.legs},expected,`vector ${i}`);
     assert.deepEqual(sdk.allocateRoute({...input,candidates:[...candidates].reverse()}),actual,`candidate-order invariance ${i}`);
   }
-});
+}, 15_000); // Exhaustive independent vectors; hosted runner speed is not a performance assertion.
