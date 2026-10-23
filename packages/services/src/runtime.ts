@@ -165,7 +165,14 @@ export class Runtime {
   async settle(key:Keypair){
     await this.queue.budget('keeper',key.address,this.budgets.operator);
     const pending=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND budget='keeper' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);if(pending.rowCount)return;
-    const s=await this.snapshot();if(s.m.paused || s.slot<s.risk.validFrom || s.slot>=s.risk.validUntil || s.sourceMode==='NoCredibleBounds')return;
+    const s=await this.snapshot();
+    // Clearing permits ordinary flat-cohort collection/settlement without a
+    // live price. Do not strand funded exits when the sponsored feed expires.
+    // Every exposed cohort still requires credible bounds; the on-chain scan
+    // and signed sequence/observation remain authoritative for every gain.
+    const flatSourceExit=s.m.mode===2&&Object.values(s.participants).every(p=>p.lots===0n);
+    if(s.m.paused||![1,2].includes(s.m.mode)||(!flatSourceExit&&
+      (s.slot<s.risk.validFrom||s.slot>=s.risk.validUntil||s.sourceMode==='NoCredibleBounds')))return;
     const stamp={sequence:s.m.sequence,observation:s.risk.observationSequence},authority:Authority={kind:'sequence',account:s.market,value:s.m.sequence.toString()};
     const base=`keeper:${s.m.sequence}:${s.risk.observationSequence}`;
     for(const participant of s.members){

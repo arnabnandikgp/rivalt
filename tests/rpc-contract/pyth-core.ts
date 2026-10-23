@@ -45,9 +45,9 @@ export function normalizeCore(price: bigint, confidence: bigint, exponent: numbe
   return { value, confidence: conf, exponent: -6 };
 }
 
-export function coreEligibility(p: ReturnType<typeof decodeCore>, now: bigint, collateral: boolean) {
+export function coreEligibility(p: ReturnType<typeof decodeCore>, now: bigint, collateral: boolean, sourceAge: 20n | 30n = 20n) {
   const n = normalizeCore(p.price, p.confidence, p.exponent);
   const [min, max, conf] = collateral ? [500_000n, 1_500_000n, 25n] : [10_000_000_000n, 100_000_000_000n, 50n];
   return { ageSeconds: now - p.published,
-    eligible: p.published <= now + 2n && now - p.published <= 20n && n.value >= min && n.value <= max && n.confidence * 10_000n <= n.value * conf };
+    eligible: p.published <= now + 2n && now - p.published <= sourceAge && n.value >= min && n.value <= max && n.confidence * 10_000n <= n.value * conf };
 }

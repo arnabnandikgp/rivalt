@@ -58,3 +58,5 @@ P12 extension (D34): the original smoke caps remain default; explicit loopback `
 
 
 D35: unsigned route previews may use confirmed state with an explicit commitment label and independent client reconstruction. Pending funding is not assumed applied from a status flag: its exact confirmed transaction must decode to the snapshot observation/epochs/validity/funding state. This does not finalize the queue row or release its budget; missing/conflicting evidence still refuses preparation. All transaction-success and fee reconciliation stays finalized.
+
+P14 service parity correction: the worker now follows P07's existing on-chain flat-cohort source-outage path. When every participant has zero lots in mode 2, ordinary whole-atom collection, complete-cohort verification and funded gain settlement may proceed despite expired sources. Open exposure still requires credible bounds; pause/freeze and all sequence/certificate checks remain enforced. This corrects worker scheduling, not economic permissions or funding.

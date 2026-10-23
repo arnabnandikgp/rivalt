@@ -45,4 +45,13 @@ describe('sponsored Core boundary', () => {
     expect(coreEligibility({ ...p, confidence: p.price / 10n }, 1_000n, false).eligible).toBe(false);
     expect(coreEligibility(p, 1_000n, true).eligible).toBe(false);
   });
+  it('uses the approved 30-second devnet allowance only when explicitly selected', () => {
+    const p = decodeCore(account(fixture()), feeds[0]);
+    for (const age of [20n, 21n, 29n, 30n, 31n]) {
+      expect(coreEligibility(p, 1000n + age, false).eligible).toBe(age <= 20n);
+      expect(coreEligibility(p, 1000n + age, false, 30n).eligible).toBe(age <= 30n);
+    }
+    expect(coreEligibility(p, 997n, false, 30n).eligible).toBe(false);
+    expect(coreEligibility({ ...p, confidence: p.price / 10n }, 1029n, false, 30n).eligible).toBe(false);
+  });
 });
