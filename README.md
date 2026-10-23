@@ -47,3 +47,5 @@ Only WORKLOG owns live phase status. The delivery plan defines scope and accepta
 
 All funds and actors remain explicitly synthetic/test assets through the engineering MVP.
 
+
+Raw run evidence is retained locally at its existing paths and excluded from the tracked tree. See [evidence storage and reproduction](docs/EVIDENCE.md); concise reports and regression fixtures remain in Git.
