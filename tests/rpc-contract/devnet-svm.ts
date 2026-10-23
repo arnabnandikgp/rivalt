@@ -8,6 +8,7 @@ import * as sdk from '@rivalt/sdk';
 import { devnetContext, guardInstruction, profile, sampleInstruction, setupDevnet, type DevnetHarness } from './devnet-context.js';
 
 const svm = new LiteSVM().withSigverify(true).withBlockhashCheck(true);
+const atomicOnly = process.argv.includes('--atomic-recovery-only');
 const a = await devnetContext(true), checks: unknown[] = [];
 for (const [name, key] of Object.entries(profile.programs)) svm.addProgramFromFile(address(key), `.local/devnet/deploy/${name}.so`);
 svm.airdrop(a.payer.address, lamports(100_000_000_000n));
@@ -50,12 +51,12 @@ const participant = async (key = a.trader) => sdk.getParticipantDecoder().decode
 const guard = async () => {
   await h.send('publish-declared-guard', [guardInstruction(a, 0, 81_649_327_449n, 68_172_551n, await h.now()), guardInstruction(a, 1, 999_839n, 83n, await h.now())], [a.guardAuthority]);
 };
-for (let i = 0; i < 4; i++) {
-  setTime(1_792_752_688n + BigInt(i * 2)); await guard();
+for (let i = 0; i < (atomicOnly ? 2 : 4); i++) {
+  setTime(1_792_752_688n + BigInt(i * (atomicOnly ? 3 : 2))); await guard();
   await h.send(`real-schema-recovery-${i}`, [sdk.fundingComputeBudget(), await sampleInstruction(a)]);
 }
 let r = await risk();
-assert.equal(r.oracle.status, 2);
+assert.equal(r.oracle.status, atomicOnly ? 1 : 2);
 assert.equal(r.referencePrice, 81_649_327_449n / 999_839n);
 assert.deepEqual(r.oracle.sourceSequences.slice(0, 2), [1_792_752_688n, 1_792_752_688n]);
 const m = await market(), p = await participant(), x = a.makers[0], reg = sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!);
@@ -63,15 +64,33 @@ const gross = r.referencePrice + 10n; // Independent one-lot A vector, zero inve
 const fee = (gross + 4_999n) / 5_000n;
 const route = await sdk.getExecuteRouteInstructionAsync({ ...a, owner: a.traderOwner,
   firstCapital: x.capital, firstRegistration: x.registration, firstProgram: x.pricingProgram, firstProgramData: x.programData, firstConfig: x.config,
-  domain: m.domain, termsEpoch: m.termsEpoch, configEpoch: m.configEpoch, observationSequence: r.observationSequence, nonce: p.nonce,
+  domain: m.domain, termsEpoch: m.termsEpoch, configEpoch: m.configEpoch, observationSequence: r.observationSequence + (atomicOnly ? 1n : 0n), nonce: p.nonce,
   startSlot: await h.slot(), expirySlot: (await h.slot()) + 150n, side: 0, lots: 1n, allInLimit: gross + fee, maxFee: fee,
   reduceOnly: false, generation: p.generation, legs: [{ lots: 1n, quoteEpoch: reg.quoteEpoch, authorityEpoch: reg.authorityEpoch }] }, a.options);
-await h.send('admit-authenticated-one-lot-route', [sdk.routeComputeBudget(), route], [a.traderOwner]);
+if (atomicOnly) {
+  setTime(1_792_752_693n);
+  await h.send('atomic-recovery-too-early-rolls-back', [sdk.fundingComputeBudget(), await sampleInstruction(a), route], [a.traderOwner], 6124);
+  setTime(1_792_752_694n);
+  await h.send('atomic-six-second-recovery-and-route', [sdk.fundingComputeBudget(), await sampleInstruction(a), route], [a.traderOwner]);
+  assert.equal((await risk()).oracle.status, 2);
+} else await h.send('admit-authenticated-one-lot-route', [sdk.routeComputeBudget(), route], [a.traderOwner]);
 const after = await participant(), maker = await participant(x.capital), afterMarket = await market();
 assert.equal(after.cash, 100_000_000n - fee); assert.equal(maker.cash, 500_000_000n);
 assert.equal(after.lots, 1n); assert.equal(maker.lots, -1n);
 assert.equal(after.virtualScaled, -gross * 1_000_000_000n); assert.equal(maker.virtualScaled, gross * 1_000_000_000n);
 assert.equal(afterMarket.fees, fee); assert.equal(afterMarket.allocatedVault, 1_100_000_000n);
+if (atomicOnly) {
+  const accepted = checks.at(-1) as { computeUnits: string; transactionBytes: number };
+  assert(BigInt(accepted.computeUnits) <= 960_000n); assert(accepted.transactionBytes <= 1232);
+  const report = { revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+    sourceDirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim() !== '', a18Complete: false,
+    scope: 'Compiled devnet-profile conditional atomic recovery/trade; explicit local upstream fixtures, not a devnet execution', setupCount, checks,
+    independentRoute: { gross, fee, trader: after, maker, market: afterMarket },
+    binaries: Object.fromEntries(Object.keys(profile.programs).map(name => [name, createHash('sha256').update(readFileSync(`.local/devnet/deploy/${name}.so`)).digest('hex')])) };
+  writeFileSync('.local/devnet/svm-bundle.json', JSON.stringify(report, (_, x) => typeof x === 'bigint' ? x.toString() : x, 2) + '\n');
+  console.log(JSON.stringify({ checks: checks.length, setupCount, ...accepted, a18Complete: false }));
+  process.exit(0);
+}
 setTime((await h.now()) + 2n);
 const sample = await sampleInstruction(a);
 await h.send('reject-wrong-primary-account', [sdk.fundingComputeBudget(), { ...sample, accounts: sample.accounts.map(meta => meta.address === a.primary[0].account ? { ...meta, address: a.primary[1].account } : meta) }], [], 6123);
