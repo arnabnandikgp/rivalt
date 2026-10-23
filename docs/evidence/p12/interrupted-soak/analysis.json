@@ -1,0 +1,93 @@
+{
+  "analysisUtc": "2026-10-23T05:16:12.674946+00:00",
+  "method": "Post-hoc analysis of immutable captured data; no new runtime or whole-suite tests. Existing independent Python per-lot reference audited all saved quotes; independent integer reconcile checked all saved snapshots.",
+  "sourceRun": ".local/load/20261023T004958Z-61926",
+  "sourceRevision": "8c602c351eb1b179b16fd3e5b88b2c1fc0b7ee81",
+  "sourceHashes": {
+    "attempts.jsonl": "ff57713b3f3b6c04dc91bbee3aaa3ce8e9640dfc9df1511394f495363bf3a3b8",
+    "quotes.jsonl.gz": "66fd52d0c78d7804892c627bbb0caceb9156a7fd6d19e43aa83e65ceee3efa10",
+    "snapshots.jsonl": "c119642d537ec03584cf3011749a4b698a2456f8d517e85781cb2d2467e9adcb",
+    "visibility.json": "6110e4fdd3f8667b2f47b94908e77a95fd6e518e6eb560b4e0e468e2950e6a17",
+    "resources.jsonl": "5d73e7c43e562852ce6dee174e984b91e1b69e62429c978c8b33e7892c0399d3",
+    "faults.jsonl": "00496b8722d8480142bea90e4f3fedebce6208d39280656754281445e17dfc9a"
+  },
+  "normalSubmitted": 828,
+  "normalFinalized": 827,
+  "normalUnresolved": 1,
+  "normalSuccessRatio": 0.998792270531401,
+  "offered": 2468,
+  "submitted": 833,
+  "offerToSubmissionRatio": 0.33752025931928686,
+  "quoteMilliseconds": {
+    "count": 2468,
+    "p50": 11.420458999928087,
+    "p95": 23.895833000075072,
+    "p99": 100.20270900055766,
+    "max": 484.5983750000596
+  },
+  "firstObservedProcessedMilliseconds": {
+    "count": 833,
+    "p50": 116.53716700011864,
+    "p95": 222.4627080000937,
+    "p99": 324.2725829984993,
+    "max": 615.5195829998702
+  },
+  "firstObservedFinalizedMilliseconds": {
+    "count": 832,
+    "p50": 1797.9608340002596,
+    "p95": 1890.991499999538,
+    "p99": 1973.9868330005556,
+    "max": 2404.6737500000745
+  },
+  "maxObservedRoute": {
+    "units": 298596,
+    "bytes": 884,
+    "accounts": 18,
+    "declaredComputeLimit": 400000,
+    "unusedComputePercent": 25.351
+  },
+  "independentQuoteAudit": {
+    "result": "pass",
+    "inputs": 833,
+    "splitQuotes": 49,
+    "sameStateFeasibleSplitBenefitAtoms": "15669",
+    "optimumRegretAtoms": "0",
+    "scope": "fixed local maker profile, empty effective order books, all saved quote inputs including the unresolved submission"
+  },
+  "independentCapturedSnapshotReconciliation": {
+    "result": "pass",
+    "snapshots": 165,
+    "scope": "initial snapshot plus 164 minute snapshots; no terminal or fresh-history replay claim"
+  },
+  "visibility": {
+    "tracked": 832,
+    "censored": 0,
+    "errors": [],
+    "normalApi": {
+      "count": 827,
+      "p50": 256,
+      "p95": 693,
+      "p99": 1007,
+      "max": 1866
+    },
+    "normalUi": {
+      "count": 827,
+      "p50": 407,
+      "p95": 2283,
+      "p99": 2577,
+      "max": 5133
+    }
+  },
+  "databaseGrowthBytes": 96788480,
+  "databaseGrowthBytesPerHour": 35422768.66947498,
+  "limitations": [
+    "Host-sleep-interrupted run; one signature remains unresolved",
+    "Only maker A scheduled outage reached in this run; other fault types have separate earlier exercise evidence",
+    "Final exit and fresh database replay were not reached in this run",
+    "No >10000-transaction reconstruction demonstrated",
+    "Short duration, 0.25 offered attempts/sec and six participants do not establish production capacity",
+    "RSS changes under OS pressure do not prove absence of memory leaks",
+    "Filesystem-wide free-space decline cannot be assigned entirely to Rivalt",
+    "Acceptance duration remains unchanged pending a deliberate scope decision"
+  ]
+}
