@@ -1,1 +1,0 @@
-{"revision": "f07214707e4ac2c2da5d56a649b43c564e5f312b", "sourceDirty": false, "seed": "0x524956414c54", "profile": "scenarios/local-profile-v1.json", "allocation_cases": 1200, "funding_cases": 1200, "default_cases": 600, "profile_checks": 1, "result": "pass"}

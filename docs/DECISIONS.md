@@ -132,3 +132,10 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **Status:** Selected configuration is not acceptance. Actual G08/A09/A10 results, source identities and measured resources must be recorded before P07 becomes Review.
 
 - **G08 evidence:** [P07 acceptance](evidence/P07.md) verifies A09/A10/G08 on clean `83f70d4`, with unchanged financial trees from the passing P01–P06 regression at `f072147`. All 258 signed P07 SVM scenarios and 11 real RPC/WS/PostgreSQL checks pass; maximum sampling cost is 660,691 CU / 781 bytes / 20 accounts. The full wrapper stopped at a subsequently fixed TCP preflight; targeted P07 acceptance exits zero. P07 remains Review pending integration.
+
+
+## 23 October 2026 — local evidence and reviewable phase diffs
+
+- **D38:** The user directs removing bulky raw evidence from Git tracking while leaving every existing local file at its original path. No bundles, downloads, uploads or release assets are requested. Keep concise acceptance summaries, original tested identities, audit code and necessary small regression inputs tracked; explain that raw references are local-only and unavailable in a fresh clone.
+- Ordinary tests use deliberate field projections under `tests/fixtures/`; full retained-run audits still consume the unchanged local reports. Deployment configuration is explicit in `ops/`, independent of historical run output. Enforce the tracked-evidence/fixture budget in scoped CI. A fixture replay is not new acceptance evidence.
+- Add cleanup commits to each existing phase, including the cleaned preceding phase as an ancestor. Preserve the exact original tested commits and their source history. This supersedes any implication that raw evidence must remain in the current source tree, not the acceptance requirements or recorded failures. No financial program behavior, economic setting, milestone status or funded authorization changes.

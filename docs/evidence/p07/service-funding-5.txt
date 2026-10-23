@@ -1,2 +1,0 @@
-{"role":"funding","pid":21318,"status":"started"}
-{"role":"funding","status":"stopped"}
