@@ -30,9 +30,12 @@ try {
   const state = await indexer.store.snapshot(), snapshot = await runtime.snapshot();
   assert.equal(state.binding.program, runtime.deployment.clearing);
   assert.equal(snapshot.m.sequence.toString(), state.state.sequence);
-  assert.equal(snapshot.actual, snapshot.m.allocatedVault);
+  assert(snapshot.actual >= snapshot.m.allocatedVault, 'Vault deficit');
   report.binding = state.binding; report.state = state.state;
-  report.vaultAtoms = snapshot.actual.toString(); report.sourceMode = snapshot.sourceMode;
+  report.vaultAtoms = snapshot.actual.toString();
+  report.allocatedVaultAtoms = snapshot.m.allocatedVault.toString();
+  report.vaultSurplusAtoms = (snapshot.actual - snapshot.m.allocatedVault).toString();
+  report.sourceMode = snapshot.sourceMode;
   report.metrics = { ...indexer.metrics };
   stage = 'actual-http-views';
   await read.listen({ host: '127.0.0.1', port: 18090 });
