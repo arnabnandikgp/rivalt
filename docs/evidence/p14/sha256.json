@@ -3,6 +3,8 @@
   "client-read.json": "96fbf4dc9642510d4abd76337529db1699517f597deb8a1b271a51c1ea0631c6",
   "deployed.json": "9f55beee23f2273a66f01b553bb9bb8b54d8a6c152f49f39cdd71d2b49a9ff71",
   "indexer.json": "465577e0e352f763f4c0c62c862ab747e02dafdacbc2b4fb6e55e154adfee7d6",
+  "recovery-audit.json": "1ca406c47c374a54e9321e84bf34160f6b15d1e55b049a9a7be253a0d119a086",
+  "recovery.json": "1f4dc80146012d40411b30fa249252fcbbe3b24b1558a3d80edb8f9ad7b8cf9f",
   "source-age-svm.json": "0a336c677c746d3c1b950e4d3a32f31760c756b0fc4851f3fe8ef34ad58c1dc1",
   "upgrade-attempt-1.json": "f8c32302055442b616f7809bef1a69529b9ec672ce415ead469271e2e0f2983c",
   "upgrade-attempt-2.json": "58ca0bf7acac5767dd992c80b353eb4d6472bb1f1d8b3146af14ad815ffd1816",
