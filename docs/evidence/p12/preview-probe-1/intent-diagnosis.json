@@ -1,0 +1,49 @@
+{
+  "intents": [
+    {
+      "request_id": "fault:lost-ack",
+      "signature": "3d9wTcXsypnFwQDkCG6ar8QKRtqzwxEW5BzcsVreTmQfjWD3cbmF6deiKjxYAiwomNZGDGPu58c5Lys5aU9N3Mni",
+      "authority": null,
+      "status": "finalized",
+      "attempts": 15,
+      "result": {
+        "fee": "5000",
+        "slot": "1749",
+        "error": null
+      },
+      "budget": null,
+      "created_at": "2026-10-23T06:11:35.754476+00:00",
+      "updated_at": "2026-10-23T06:11:51.374052+00:00"
+    },
+    {
+      "request_id": "funding:6",
+      "signature": "3SFYMuastWZ2qekhPGfoMvRZ1xgwN1BnkpJ3Rve7fE3p6hYPJv6YdNLNYH85AYZrhGHyoqJVsrwqTWsRCdGZzFKn",
+      "authority": {
+        "kind": "sequence",
+        "value": "22",
+        "account": "8GsgcUyzafuK1XhK2YBPWTQnd7qhd6V2EEkPJKU56nUs"
+      },
+      "status": "expired-unexecuted",
+      "attempts": 73,
+      "result": {
+        "fee": null,
+        "slot": "3117",
+        "error": null,
+        "economicEffect": "not-applied"
+      },
+      "budget": "funding",
+      "created_at": "2026-10-23T06:11:36.303466+00:00",
+      "updated_at": "2026-10-23T06:12:51.298634+00:00"
+    }
+  ],
+  "budgets": [
+    {
+      "run_id": "20261023T061003Z-38759",
+      "name": "funding",
+      "wallet": "52Q6yifSNSiu4J3y9r4E2LBCAw93fz62a121cDzRNpBY",
+      "cap": "500000000",
+      "committed": "20000",
+      "spent": "0"
+    }
+  ]
+}

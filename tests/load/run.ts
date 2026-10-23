@@ -119,6 +119,7 @@ try{
     return sample;
   }
   faults.push(await submissionFault(e));
+  writeFileSync(`${dir}/submission-fault.json`,json(faults));
   await wait(async()=>{const s=await e.runtime.snapshot();return s.sourceMode==='Normal'&&s.makers.every(x=>x.online);},Boolean,'post-fault normal recovery');
   const openingSnapshot=await capture('start');
   if(extended){
@@ -196,5 +197,5 @@ try{
   const result={...manifest,finishedUtc:new Date().toISOString(),result:Object.values(targets).every(Boolean)?'pass':'fail',scope:long?'actual 24-hour sustained run':qualification?'D35 bounded 1800-second qualification plus >10000 actual RPC history replay; 24-hour endurance deferred':extended?`${seconds}-second ${mode==='--final-check-seconds'?'final-check probe':'sustained harness exercise'}; A17 not-run`:'finite qualification; A17 not-run',reference,readApi,fundingQuality,sustained:sustainedResult,visibility,history:historyResult,rebuildMetrics,rebuildKind:extended?'fresh PostgreSQL database':'fresh projection in same database',sourceBudget:{...e.sourceBudget,closingLamports:sourceClosing},targets,phases,faults,final,rebuiltFinal,finalSnapshot,intents,budgets,closingBalances,sourceErrors:e.sourceErrors};
   writeFileSync(`${dir}/load.json`,json(result));assert.equal(e.sourceErrors.length,0,'source publisher errors retained');
   console.log(`Load targets ${result.result}: ${dir}/load.json`);if(result.result==='fail')process.exitCode=2;
-}catch(error){writeFileSync(`${dir}/failure.json`,json({revision,sourceDirty,at:new Date().toISOString(),error:error instanceof Error?error.message:String(error),phases}));throw error;}
+}catch(error){writeFileSync(`${dir}/failure.json`,json({revision,sourceDirty,at:new Date().toISOString(),error:error instanceof Error?error.message:String(error),phases,faults}));throw error;}
 finally{await control?.abort();const cleanup=await Promise.allSettled([ui?.close(),env?.close(),...auxiliaries.map(x=>x.close())]);if(cleanup.some(r=>r.status==='rejected'))throw new Error('Load environment cleanup failed; see retained run artifacts');}

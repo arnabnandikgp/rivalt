@@ -25,7 +25,8 @@ export async function submissionFault(e:Awaited<ReturnType<typeof environment>>,
   const proxy=createServer(async(req,res)=>{
     try{
       const chunks:Buffer[]=[];for await(const chunk of req)chunks.push(Buffer.from(chunk));const body=Buffer.concat(chunks).toString(),q=JSON.parse(body);
-      if(Date.now()<recoverAt&&(['getSignatureStatuses','isBlockhashValid','sendTransaction'].includes(q.method)||(q.method==='getTransaction'&&q.params[0]===submitted.signature))){res.writeHead(503);res.end('Injected submission RPC interruption');return;}
+      const targetRead=(q.method==='getSignatureStatuses'&&q.params[0].includes(submitted.signature))||(q.method==='getTransaction'&&q.params[0]===submitted.signature);
+      if(Date.now()<recoverAt&&(targetRead||(q.method==='sendTransaction'&&q.params[0]===wire))){res.writeHead(503);res.end('Injected original-signature RPC interruption');return;}
       const target=q.method==='sendTransaction'&&q.params[0]===wire;
       if(target){const row=(await e.runtime.store.pool.query('SELECT wire FROM service_intents WHERE run_id=$1 AND request_id=$2',[e.runId,requestId])).rows[0];persistedBeforeBroadcast=row?.wire===wire;assert(persistedBeforeBroadcast);}
       const upstream=await fetch(e.url,{method:'POST',headers:{'content-type':'application/json'},body}),text=await upstream.text();
@@ -50,7 +51,7 @@ export async function submissionFault(e:Awaited<ReturnType<typeof environment>>,
     const different=await sdk.signInstructions(e.connection,actor.owner,[await sdk.getDepositInstructionAsync({...e.a,owner:actor.owner,participant:actor.participant,quoteMint:e.setup.mint.address,userToken:actor.token.address,amount:2n})]);
     assert.equal((await post({requestId,wire:Buffer.from(different.transaction.serialize()).toString('base64')})).status,400);
     return {fault:'missed-notification-lost-ack-executor-kill',status:'pass',signature:submitted.signature,elapsedMs:Date.now()-started,
-      persistedBeforeBroadcast,rpcInterruptionMs:outageMs,originalSignatureAfterInterruption:true,actualFee:String(tx.meta.fee),cashBefore:cash.toString(),cashAfter:cashAfter.toString(),cashDeltaIsolated:requestId==='fault:lost-ack',depositEvent:deposit[0],userTokenDelta:'-1',differentBytesRejected:true,reservedWorkerIdentitiesRejected:true};
+      persistedBeforeBroadcast,rpcInterruptionMs:outageMs,rpcInterruptionScope:'Original signature status/transaction reads and exact-wire rebroadcast; unrelated intents remain reachable',originalSignatureAfterInterruption:true,actualFee:String(tx.meta.fee),cashBefore:cash.toString(),cashAfter:cashAfter.toString(),cashDeltaIsolated:requestId==='fault:lost-ack',depositEvent:deposit[0],userTokenDelta:'-1',differentBytesRejected:true,reservedWorkerIdentitiesRejected:true};
   }finally{
     await e.stop('executor');await new Promise<void>((resolve,reject)=>{proxy.close(error=>error?reject(error):resolve());proxy.closeAllConnections();});e.start('executor');
   }
