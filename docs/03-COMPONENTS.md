@@ -28,7 +28,7 @@ The aggregator's on-chain action is the route entry point in clearing. It is not
 | Quote/router | Venue | Consistent cached inputs and eligible one/two-maker allocation; no custody authority |
 | Maker daemons | Their respective operators | Read inventory/state, publish permitted configuration, reconcile fills/costs |
 | Executor/order keeper | Venue initially; constrained action authority | Discover persisted intent, simulate, send, reconcile ambiguity |
-| Oracle/funding worker | Venue initially | Post verified data and schedule authenticated samples, never dictate unchecked rate |
+| Oracle/funding worker | Venue initially | Read sponsored Pyth Core primary accounts in the D36 devnet profile; publish the declared operator guard and schedule authenticated samples, never dictate unchecked rate |
 | Risk/settlement worker | Venue initially | Funded receiver liquidation, cash collection/settlement and paginated recovery |
 | Indexer/PostgreSQL | Venue | Rebuildable read model, history and durable jobs; no authoritative balance creation |
 | UI/API/SDK | Venue-maintained; wallet user-controlled | Quotes, signing, orders, cash/position views, direct exit |

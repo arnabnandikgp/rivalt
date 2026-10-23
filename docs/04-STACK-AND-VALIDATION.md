@@ -123,7 +123,7 @@ Dependency integration: actual dependency executables and, where possible, real 
 
 Devnet: separate program/mint/feed IDs, genesis/feature manifest, actual provider and real primary verifier path. If a genuinely independent guard is unavailable, use only an explicitly labeled operator-controlled guard profile. M5b can establish engineering parity for that limited profile; it cannot close G12's independent-source/funded-pilot gate. An injected primary verification account cannot substitute for the real primary update pipeline.
 
-Request secure RPC/API configuration in P13, not earlier. Never put credentials in reports. M5b is focused parity, not a claim about mainnet congestion, throughput or adversarial consensus behavior.
+Request secure RPC configuration in P13 only when needed. D36 selects sponsored Pyth Core account reads without Pyth API credentials: actual sponsor update/verification transactions plus Rivalt consumption must be independently evidenced. Preserve stale-source rejection and disclose measured availability; neither fixture data nor account existence alone closes A18. Never put credentials in reports. M5b is focused parity, not a claim about mainnet congestion, throughput or adversarial consensus behavior.
 
 ## CI and phase closure
 

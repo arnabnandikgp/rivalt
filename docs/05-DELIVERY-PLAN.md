@@ -248,7 +248,7 @@ Milestone: **M5b**. Depends on: **P12**.
 
 **Deliverable:** Separate test-cluster deployment, real oracle update verification and collateral/authority preflight.
 
-**PR scope:** Obtain secure RPC/feed access when needed. Pin genesis/features, program/IDL hashes, test mint authorities and live feed/verifier identities. Execute actual signed update verification rather than inject already-verified-looking bytes. Document independent-guard provenance or the remaining limitation.
+**PR scope:** Obtain secure RPC access when needed. Under D36 use sponsored Pyth Core on-chain accounts without a paid API or custom pusher. Pin genesis/features, program/IDL hashes, test mint authorities and live feed/verifier identities. Independently fetch/decode actual sponsored signed-update verification transactions and consume their authenticated state; do not inject verified-looking bytes. Document independent-guard provenance or the remaining limitation. Preserve source-age/funding restrictions and report observed sponsored-feed availability.
 
 **Configuration closure:** G11.
 
