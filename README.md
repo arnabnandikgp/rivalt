@@ -58,6 +58,8 @@ P09 liquidation and complete-cohort resolution pass clean full acceptance on the
 
 P10 adds the wallet trading UI, exact cash/unpaid-profit views, durable orders, existing-position TP/SL, actual-fill charts and direct RPC recovery. All 15 targeted browser checks pass against real Surfpool/WS/PostgreSQL, including cancellation and withdrawal with the venue API stopped; [P10 evidence](docs/evidence/P10.md) records the tested source and limits. The local instrumented wallet does not establish external wallet-provider or devnet parity.
 
+To explore the UI on this prepared workspace, run `source ops/env.sh` then `pnpm demo:trader`. It opens a visible Chrome session with a funded local test wallet at `http://127.0.0.1:18084` for up to 60 minutes. Close its tab or Ctrl-C to stop. This starts only the required local runtime, with no automated trading, soak or regression suites. See the [manual UI guide](docs/P10-TRADER.md#run-and-recover-directly).
+
 P11 now records fresh A01–A16 acceptance across seven commands, 23 named faults and six independent integer reconciliations. [P11 evidence](docs/evidence/P11.md) retains exact identities and all outcome populations. The matrix is an explicit phase gate; ordinary PRs use affected checks and scoped hosted CI. P12 load and the real 24-hour soak remain outstanding.
 
 P12's corrected five-minute qualification passes its submitted-success/quote/resource targets, with 35.7% offered quote availability reported separately. [The current contract](docs/P12-LOAD-SOAK.md) defines the sustained outage exercise and remaining actual 24-hour gate. P12 remains in progress; no soak acceptance is claimed.

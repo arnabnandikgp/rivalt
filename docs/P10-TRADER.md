@@ -26,6 +26,19 @@ Responsive/accessibility checks cover 375/768/1280 widths, keyboard/focus, loadi
 
 ## Run and recover directly
 
+For manual exploration on the prepared local workspace, run:
+
+```sh
+source ops/env.sh
+pnpm demo:trader
+```
+
+This provisions fresh Surfpool/PostgreSQL and real service workers using the existing built binaries/UI, then opens a separate visible Chrome window at `http://127.0.0.1:18084`. It connects **Rivalt Test Wallet**, with 100 test USD already deposited and another 50 test USD in its collateral token account. Its keys stay in the local Node fixture; only the opened browser context receives the test-wallet adapter. An ordinary browser can view that URL, but does not inherit this wallet. External wallet-provider/devnet compatibility remains a separate gate.
+
+Try a small deposit, then buy `0.0001` BTC with **Get quote**, inspect the maker legs/2 bps fee and select **Sign transaction**. The local fixture signs after this application review; it does not open a real-wallet extension approval. Wait for the finalized receipt before selling the same size. Existing-position TP/SL, limits/stops, eligible settlement and direct withdrawal are also available. Quotes may expire during review; request a fresh quote when the UI reports it. The chart starts empty and fills only from actual executed trades. No trade loop or fault injection runs in this mode.
+
+Close the demo tab/window or press Ctrl-C in its terminal to stop the owned session. The default time limit is 60 minutes; `pnpm demo:trader --minutes 120` selects up to two hours. The current URL, PID and expiry are in `.local/trader-demo.json`. Each launch resets to a new test deployment; keep it running while testing. This is an interactive demo, not soak or acceptance evidence. If built artifacts are absent, use the existing documented build steps first; the demo does not silently rerun builds or regression suites.
+
 After the pinned bootstrap/build in README, `pnpm build:trader && pnpm test:browser` starts fresh isolated Surfpool, PostgreSQL, the real service workers, read API and the production Vite preview. It uses the existing Chrome executable at `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`. Playwright core is pinned to 1.64.1; React/react-dom and types are 19.3.0, Vite 7.3.7 and wallet-adapter 3.1.1. No browser binary is downloaded. The supervisor refuses occupied ports 18899/18900, 15432 and 18081/18083/18084, then stops only the processes and container it started. Full `pnpm smoke` includes this harness after the inherited checks.
 
 For a running provisioned local deployment, set `RIVALT_TRADER_CONFIG` to its absolute public JSON path and run `pnpm trader`. Configuration contains version `1`, chain `solana:localnet`, local RPC/WS URLs, genesis hash, finalized initialization signature `anchor`, canonical market, mint and 32-byte hexadecimal domain. These values must come from the actual deployment. The server exposes only these public fields, plus fixed same-origin API prefixes. API/read proxies default to 18081/18084; no signer or database credential belongs in this file. Production builds still require a host to serve that public configuration and those API prefixes; the Vite preview supplies the local acceptance host.

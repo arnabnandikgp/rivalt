@@ -25,6 +25,7 @@
     "test:resolution": "bash ops/resolution-tests.sh",
     "build:trader": "pnpm --filter @rivalt/trader build",
     "trader": "pnpm --filter @rivalt/trader dev",
+    "demo:trader": "bash ops/load-soak.sh --manual-ui",
     "test:browser": "bash ops/browser-smoke.sh",
     "test:matrix": "bash ops/smoke.sh",
     "test:matrix-report": "python3 -m unittest discover -s tests/e2e -p \"test_*.py\"",

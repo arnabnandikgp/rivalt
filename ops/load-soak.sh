@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# P12 only: provision a fresh environment, without rerunning unrelated suites.
+# Provision a local load or manual-UI environment without unrelated suites.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
 test "$(surfpool --version)" = 'surfpool 1.6.1'
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18899}" RIVALT_WS_PORT="${RIVALT_WS_PORT:-18900}"
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT" RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
-export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/load/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+RIVALT_RUN_KIND=load
+if [[ "${1:-}" == '--manual-ui' ]]; then RIVALT_RUN_KIND=demo; fi
+export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/$RIVALT_RUN_KIND/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
 mkdir -p "$RIVALT_RUN_DIR"
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" 15432 18081 18083 18084
@@ -30,4 +32,9 @@ for program in clearing maker_a maker_b oracle_fixture; do
 done
 source ops/postgres.sh
 node ops/record-toolchain.mjs > "$RIVALT_RUN_DIR/toolchain.json"
-node --import tsx tests/load/run.ts "$@"
+if [[ "${1:-}" == '--manual-ui' ]]; then
+  shift
+  node --import tsx tests/load/manual-ui.ts "$@"
+else
+  node --import tsx tests/load/run.ts "$@"
+fi
