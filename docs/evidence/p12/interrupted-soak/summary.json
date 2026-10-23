@@ -1,0 +1,88 @@
+{
+  "run": ".local/load/20261023T004958Z-61926",
+  "revision": "8c602c351eb1b179b16fd3e5b88b2c1fc0b7ee81",
+  "result": "incomplete: host clamshell sleep",
+  "firstSustainedSnapshotUtc": "2026-10-23T00:52:28.465Z",
+  "lastPeriodicSnapshotUtc": "2026-10-23T03:36:24.974Z",
+  "lastResourceSeconds": 9836.569778167,
+  "completedOfferRecords": 2468,
+  "finalizedRoutes": 832,
+  "unsignedUnavailable": 1635,
+  "unresolved": [
+    {
+      "id": "load:2466",
+      "phase": "soak-0.25",
+      "offeredAt": 1792726612390,
+      "actor": 0,
+      "fault": false,
+      "status": "unresolved",
+      "side": 0,
+      "lots": "1",
+      "quoteMs": 22.970041999593377,
+      "eligible": true,
+      "signingMs": 5.033208001405001,
+      "bytes": 700,
+      "accounts": 13,
+      "signedAtEpochMs": 1792726612419,
+      "signature": "2bvVig4MTVYDdReek7GNYq3WHU6WGkMa2hiJaPqwdvJiHoxZdF6UKc1hXQWagyHd39XENfRm2GEhQ63r5BbERUgL",
+      "submitMs": 19.447457998991013,
+      "processedMs": 229.791207998991,
+      "confirmedMs": 229.791207998991
+    }
+  ],
+  "completedStoredOrders": 32,
+  "faultEvents": [
+    {
+      "role": "maker-a",
+      "atSeconds": 3600,
+      "durationSeconds": 210,
+      "startedAt": "2026-10-23T01:52:28.515Z",
+      "startedSeconds": 3600.108060042,
+      "beforeCheckpoint": "2kue3T3ngJRV2LAtjb5LvDFxoPVvjY3X2vbfPGDxuzBCx51WGCr26ynwDJjCtsXv6K18RLWf2foTPNrAMaG1Tz2T",
+      "beforeSequence": "1643",
+      "event": "start"
+    },
+    {
+      "role": "maker-a",
+      "atSeconds": 3600,
+      "durationSeconds": 210,
+      "startedAt": "2026-10-23T01:52:28.515Z",
+      "startedSeconds": 3600.108060042,
+      "beforeCheckpoint": "2kue3T3ngJRV2LAtjb5LvDFxoPVvjY3X2vbfPGDxuzBCx51WGCr26ynwDJjCtsXv6K18RLWf2foTPNrAMaG1Tz2T",
+      "beforeSequence": "1643",
+      "expirySlot": "66895",
+      "outageSlot": "69875",
+      "afterSequence": "1699",
+      "afterCheckpoint": "61kRQ7UDKxd2rATbQ722yHzMuVzJgYCN2h3S83bHbBSJRaRN83zvZTeD148v2tuQVj9tZaNufy3z1XyiU9cpJAbP",
+      "finishedSeconds": 3826.4155809579997,
+      "result": "pass",
+      "event": "recovered"
+    }
+  ],
+  "resourceSamples": 164,
+  "firstResource": {
+    "atSeconds": 0.00021887499999138528,
+    "databaseBytes": "8877759",
+    "diskFreeBytes": 4641820672,
+    "summedOwnedRssKiB": 5007680,
+    "postgresVmCapMiB": 512
+  },
+  "lastResource": {
+    "atSeconds": 9836.569778167,
+    "databaseBytes": "105666239",
+    "diskFreeBytes": 2372218880,
+    "summedOwnedRssKiB": 2746592,
+    "postgresVmCapMiB": 512
+  },
+  "notRun": [
+    "remaining five planned outage windows",
+    "final independent quote audit",
+    "final withdrawal",
+    "final read API checks",
+    "fresh-database full replay",
+    "24-hour acceptance"
+  ],
+  "runtimeCleanup": "No owned Surfpool/caffeinate/supervisor processes or running containers found at status inspection",
+  "currentFreeBytes": 2355834880,
+  "status": "P12 and M5a In progress; no P12 PR"
+}

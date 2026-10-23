@@ -1,0 +1,3 @@
+2026-10-23 09:06:51 +0530 Sleep               	Entering Sleep state due to 'Clamshell Sleep':TCPKeepAlive=active Using Batt (Charge:100%) 1056 secs 
+2026-10-23 09:24:27 +0530 DarkWake            	DarkWake from Deep Idle [CDNP] : due to NUB.SPMI0.SW3 nub-spmi0.0x02 rtc/SleepService Using BATT (Charge:100%) 22 secs   
+2026-10-23 09:24:49 +0530 Sleep               	Entering Sleep state due to 'Sleep Service Back to Sleep':TCPKeepAlive=active Using Batt (Charge:100%) 932 secs  
