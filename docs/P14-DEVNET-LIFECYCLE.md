@@ -1,26 +1,28 @@
-# P14 — bounded devnet lifecycle
+# P14 bounded devnet lifecycle
 
-P14 builds above ready P13 PR #15, exact parent `93c1ef4`. It is in progress; no A19 or M5b completion is claimed.
+This phase uses the explicitly pinned devnet clearing/A/B deployments, classic six-decimal test collateral and sponsored Pyth Core accounts. The operator-controlled guard is a disclosed fixture. It is not independent price assurance or funded-pilot readiness. See D36/D37 and WORKLOG for authority and actual status.
 
-Under D37 the target is one actual test-asset lifecycle, one wallet-provider signing check and one provider/backfill recovery into PostgreSQL. Reuse P13 deployment/source provenance and the retained +1-lot trader position where appropriate. Do not repeat the local financial matrix, load, endurance or seek continuous sponsored-feed availability. Missing sources produce an explicit unavailable result; accounting, signature/finality and authority checks remain mandatory.
+The approved devnet source-age ceiling is 30 seconds. Its actual clearing upgrade and age-29 success/age-30 exclusive-deadline rollback are recorded in `evidence/p14/`. Default/local policy remains 20 seconds. Six-second recovery, confidence, funding gaps and all other risk rules are unchanged. P13's immutable successful trade used its original 20-second build.
 
-## Explicit deployment binding
+Run only the acceptance command needed for the changed behavior:
 
-`testDeployment` selects the existing local IDs by default or the pinned P13 devnet clearing/A/B IDs for `solana:devnet`. Indexer/services opt in with `RIVALT_CHAIN=solana:devnet` and verify the fixed devnet genesis and immutable database initialization/program binding. SDK PDA derivation, event decoding, account ownership and generated instruction construction all use that explicit deployment. Mainnet and arbitrary deployment activation are unsupported. Existing local tests keep their original IDs.
+| Command | Scope |
+|---|---|
+| `bash ops/devnet-indexer.sh` | Actual finalized history → fresh PostgreSQL → HTTP reconstruction; no transaction signing |
+| `bash ops/devnet-recovery.sh` | One 1,000-atom actual deposit, deliberately disconnected WS, discarded actual broadcast acknowledgement, restarted service/indexer instances, original-signature/backfill recovery |
+| `python3 tests/e2e/audit_devnet_recovery.py <report.json>` | Independent raw-account integer audit of that recovery |
+| `bash ops/devnet-lifecycle.sh` | Existing-position reduce-only order/cancel, quoted A close, source expiry, flat-cohort loss collection/gain settlement and funded withdrawal |
+| `python3 tests/e2e/audit_devnet_lifecycle.py <report.json>` | Independent raw-account integer lifecycle, funding and cash/claim audit |
+| `bash ops/devnet-demo.sh` | Interactive UI, real indexer/read API and durable wallet-signed executor; no automated trade/source/maker worker |
 
-The browser's public configuration selects `solana:devnet`, the pinned genesis and actual market/mint/initialization/domain. It must contain credential-free RPC/WS URLs. Private provider configuration remains server-side in ignored files. Wallet Standard must advertise devnet and v0 signing; the browser never receives a private key. Existing signed-byte persistence, independent RPC reconciliation and no automatic replacement-signature rules continue.
+The acceptance supervisors own only their run's PostgreSQL container and retain its data and exact transaction journals under `.local/devnet/`. They use existing ignored `.env.devnet` server RPC/WS configuration; no key enters public UI configuration or evidence. A failed or unresolved financial intent must be recovered from its retained original wire/SQL state before any new intent. Do not rerun setup or recreate the P13 opening trade. The lifecycle entry requires the retained +1/−1/0 positions and stops if they differ.
 
-## Approved source-age setting
+The lifecycle has one aggregate 600-second source-preparation budget. Reduce-only actions can use the existing Degraded mode; they do not require artificial continuous Normal availability. Actual program admission still decides at landing. Source expiry after all participants are flat permits the existing P07 on-chain collection/complete-cohort settlement/withdrawal path. The service worker follows that path; exposed, paused and frozen cohorts remain restricted. Fractional claims remain owned by their participants, including any atom retained to cover a negative fractional liability. This demonstration closes against A; the separately recorded local cross-maker close is not relabeled as devnet evidence.
 
-Profile `p14-sponsored-core-test-assets-v2` selects the user-approved **30-second** maximum source age only in the clearing devnet feature. Both ordinary sampling and resolution source rereads use the same selection. Local/default source policy remains **20 seconds**. Bounds may be computed at the age ceiling, but sensitive actions still require execution strictly before the source deadline. Six-second recovery/hold, funding outage/catch-up, confidence/future/divergence limits and fees are unchanged.
+The recovery fault deliberately discards a real provider acknowledgement and closes an actual WS. It is controlled fault evidence, not a spontaneous provider-outage claim. Every new service instance resolves the original signed bytes; SQL uniqueness, full account reconciliation and independent integer checks establish one economic effect.
 
-The separate SBF/IDL build on clean `b3a2fc1` passes. The focused compiled check verifies age-29 acceptance and exclusive age-30 rollback (28 checks including 20 necessary setup). The clearing upgrade finalizes at slot 514275649; independent RPC reads verify exact tested ELF bytes and zero padding, with the same isolated authority. The other three artifacts are unchanged. [Build, boundary and upgrade evidence](evidence/p14/sha256.json) records the actual activation. The original P13 evidence remains attributed to its original 20-second binary and 18-second source age.
+For the interactive check, run `bash ops/devnet-demo.sh`, then open `http://127.0.0.1:18088`. The launcher runs for at most 60 minutes, loads no private signer and cleans up its owned processes/container on exit. Connect an external wallet that supports devnet and v0 transactions. A wallet without a participant uses **Register account** through direct RPC. The browser previews the exact generated instruction, asks the wallet to sign, saves the signed bytes before broadcast and independently fetches finality. Record the public wallet address, actual signature, fetched wire and chain/account delta. CLI/instrumented-wallet signatures do not satisfy this external-provider check.
 
-## Evidence still due
+Public browser RPC uses the credential-free official devnet endpoint; server indexing uses the configured provider. Rate limiting/unavailability must remain visible. Maker/source automation is deliberately absent from the manual launcher: it does not promise continuously available trading. Deposits, registration and admissible flat-cohort direct exits remain available under the program's actual state.
 
-- Actual devnet read/projection with PostgreSQL, exact sequence/account/vault reconciliation and HTTP views: **verified** on clean `df77351`, [52 transactions / 43 events / zero unresolved jobs](evidence/p14/indexer.json). This read-only run has no new live notification or provider-interruption proof.
-- Bounded actual close/settlement/withdrawal plus selected order/funding behavior, with independent expected values and preserved rejected/unknown outcomes.
-- Actual external wallet-provider signing/landing; a local signing fixture cannot replace this check.
-- One provider interruption/reconnection and original-signature/history backfill, with no duplicate economic effect.
-
-WORKLOG records actual commands, outcome populations, deployment/source identities and the next action. Unperformed checks remain pending; funded deployment, independent guard/maker assurance and external review remain M6.
+The engineering MVP report must distinguish verified local behavior, bounded actual devnet behavior, unmerged Review phases and M6's independent-maker/review/funded-pilot gates. An uncompleted wallet/lifecycle check keeps A19 and M5b open.
