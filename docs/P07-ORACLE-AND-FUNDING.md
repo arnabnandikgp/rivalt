@@ -54,3 +54,5 @@ P13's D36 devnet profile replaces only the primary fixture adapter with pinned s
 A09/A10/G08 pass on the clean revisions and unchanged financial trees recorded in [P07 evidence](evidence/P07.md). P07 remains Review pending integration; WORKLOG records actual commands, the wrapper/preflight failure, targeted acceptance and publication status. Real upstream dependency verification, browser wallet, soak, devnet, independent-maker and funded-pilot evidence remain later phases.
 
 P09 refinement: restrictive samples retain the last credible `sourceDeadline` for the source-emergency grace proof. `status=0` and expired/zero slot validity still reject priced actions; retaining this historical timestamp does not imply credible bounds. Freeze independently rereads the authenticated sources. See D30 and P09-RESOLUTION; the actual P09 acceptance remains tracked in WORKLOG.
+
+D39 applies the common bounded operator retry policy to funding samples. A failed sample leaves its observation unchanged but no longer permanently suppresses the next attempt; the old signed row and actual fee remain recorded. Ambiguous signatures still block replacement.

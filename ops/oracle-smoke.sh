@@ -15,7 +15,7 @@ cp .local/p02-svm.json "$RIVALT_RUN_DIR/svm.json"
 cp .local/p03-svm.json "$RIVALT_RUN_DIR/maker-svm.json"
 cp .local/p07-svm.json "$RIVALT_RUN_DIR/oracle-svm.json"
 # Refuse occupied ports rather than connecting to or stopping someone else's runtime.
-python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT"
+python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" 18081
 surfpool start --offline --no-deploy --no-tui --no-studio \
   --port "$RIVALT_RPC_PORT" --ws-port "$RIVALT_WS_PORT" --slot-time "${RIVALT_SLOT_TIME:-50}" \
   --airdrop-keypair-path .local/keys/payer.json \

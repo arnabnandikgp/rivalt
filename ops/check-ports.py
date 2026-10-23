@@ -6,6 +6,10 @@ for value in sys.argv[1:]:
     port = int(value)
     if not 1 <= port <= 65535:
         raise SystemExit(f"Invalid acceptance listener port: {port}")
+    with socket.socket() as client:
+        client.settimeout(0.5)
+        if client.connect_ex(("127.0.0.1", port)) == 0:
+            raise SystemExit(f"Acceptance listener 127.0.0.1:{port} unavailable: live listener accepts connections")
     with socket.socket() as probe:
         probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:

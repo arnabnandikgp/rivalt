@@ -133,7 +133,7 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 
 - **G08 evidence:** [P07 acceptance](evidence/P07.md) verifies A09/A10/G08 on clean `83f70d4`, with unchanged financial trees from the passing P01–P06 regression at `f072147`. All 258 signed P07 SVM scenarios and 11 real RPC/WS/PostgreSQL checks pass; maximum sampling cost is 660,691 CU / 781 bytes / 20 accounts. The full wrapper stopped at a subsequently fixed TCP preflight; targeted P07 acceptance exits zero. P07 remains Review pending integration.
 
-## 21 October 2026 — P08 order configuration (implementation in progress)
+## 21 October 2026 — P08 order configuration
 
 - **D29 / G09:** Select [ORDERS](P08-ORDERS.md)'s embedded four-slot/two-group authority, 216,000-slot lifetime, finite all-in prices/fee budgets, conservative reserve sums, exact cumulative fee prefix and generation-bound existing-position TP/SL. Keep immediate owner signatures and use a separate stored-authority keeper instruction. Maker renewals revalidate current commitments without resetting user budgets.
 - **Boundary:** No economic fee, margin-credit, loss-bearer, custody or order-type expansion. Cancellation/cleanup remains independent of pricing availability. Default build and later liquidation/default remain disabled. Configuration selection is not acceptance; A11/A12 and measured ABI/resource evidence are still required.
@@ -141,7 +141,7 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **G09 evidence:** [P08 acceptance](evidence/P08.md) verifies A11/A12/G09 across clean `1f27fa8` and harness-only child `cd2b8fa`, with identical financial/service trees. 203 signed P08 transactions plus 45 setup transactions and ten real RPC/WS/PostgreSQL checks pass. The fully populated split uses 298,776 CU / 824 bytes / 18 accounts. P08 remains Review until integration; no full-wrapper exit-zero, load, devnet or external-review claim follows.
 
 
-## 21 October 2026 — P09 risk/default configuration (implementation in progress)
+## 21 October 2026 — P09 risk/default configuration
 
 - **D30 / G10:** Select the finite local liquidation, default-entry, 1–4-member page, staged rounding and recovery policy in [RESOLUTION](P09-RESOLUTION.md). Liquidation pays a capped 5 bps funded fee to a consenting non-maker receiver, with no duplicate ordinary taker fee; current index-derived bands, strict post-fee deficit/exposure improvement and receiver IM/reservations remain mandatory.
 - **Complete cohort:** Preserve D19's exact scaled insurance/impairment and terminal rounding. Persist bounded floor/remainder/award passes and a complete payout plan before payment; explicitly reconcile mixed applied/unapplied frozen representations. No new cash asset, selected haircut cohort, stale discretionary mark or liquidation-capital assumption is introduced.
@@ -157,7 +157,7 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 
 - **G10 evidence:** [P09 acceptance](evidence/P09.md) verifies A13/A14 on clean `8e8f371` with a full P01–P09 wrapper exit zero. All legal page sizes agree with independent Python; the 64-member case, real funded liquidation, post-collection crash/rebuild, source emergency, full payout/reconciliation and separate resume authority pass. Largest page is 255,514 CU / 561 bytes / 13 accounts; the account is 8,031 bytes. The first clean run's event-aliasing defect and failing regression remain recorded. P09 is Review pending integration; this is no M6 calibration or funded-use authorization.
 
-## 21 October 2026 — P10 user interface and direct recovery (implementation in progress)
+## 21 October 2026 — P10 user interface and direct recovery
 
 - **D31:** Use the [TRADER](P10-TRADER.md) wallet/configuration/transaction boundary with the existing React/Vite/Wallet Standard stack. The browser verifies canonical accounts and reconstructs quotes; public local deployment identity is separate from venue API availability. Store exact signed bytes before broadcast and preserve unresolved status when history is inconclusive. API and browser share exact labeled balance arithmetic. No custody authority, economic fee, margin-credit or order promise changes.
 - Direct cancel/withdraw/settlement use existing generated instructions and current cohort/source/margin gates. Cohort checks require explicit preceding verification transactions: Solana promotes writability across the whole message, so combining a read-only proof containing the exiting participant with its cash mutation would violate the existing proof contract. P10 preserves that on-chain contract and requires a fresh preview/signature for each proof and exit. UI previews never authorize a bypass. A15 and actual browser/RPC/PostgreSQL evidence remain pending.
@@ -174,7 +174,7 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 
 - **D32:** Explicit user direction supersedes the convention of rerunning all inherited acceptance before each PR. Run checks needed for the actual change and phase gate; prefer supported CI for broad regression. Do not spend local time repeating unrelated financial suites or represent absent CI as validation. P11 still owns the integrated fault matrix, P12 the real 24-hour soak, and P13/P14 actual cluster parity. This changes verification scheduling, not economic rules or acceptance standards.
 
-## 23 October 2026 — integrated evidence (implementation in progress)
+## 23 October 2026 — integrated evidence
 
 - **D33:** Select [MATRIX](P11-MATRIX.md)'s seven-stage, clean-source, unique-environment evidence contract. A16 requires every A01–A15 row, explicit fault observations and independent exact reconciliation; missing or interrupted work is not-run/fail, never inferred from old counts. Preserve rejected/unfilled/unresolved populations and immutable wire hashes. All G01–G10 selections remain their existing local profiles; no economic or authority rule changes.
 - Use change-scoped hosted PR checks on the actual stacked diff. The repository has no self-hosted runtime runner, so do not claim full runtime CI or create paid infrastructure. Local A16 acceptance remains pending until the new command actually passes. P12's real elapsed soak remains a separate gate.
@@ -257,3 +257,9 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **D38:** The user directs removing bulky raw evidence from Git tracking while leaving every existing local file at its original path. No bundles, downloads, uploads or release assets are requested. Keep concise acceptance summaries, original tested identities, audit code and necessary small regression inputs tracked; explain that raw references are local-only and unavailable in a fresh clone.
 - Ordinary tests use deliberate field projections under `tests/fixtures/`; full retained-run audits still consume the unchanged local reports. Deployment configuration is explicit in `ops/`, independent of historical run output. Enforce the tracked-evidence/fixture budget in scoped CI. A fixture replay is not new acceptance evidence.
 - Add cleanup commits to each existing phase, including the cleaned preceding phase as an ancestor. Preserve the exact original tested commits and their source history. This supersedes any implication that raw evidence must remain in the current source tree, not the acceptance requirements or recorded failures. No financial program behavior, economic setting, milestone status or funded authorization changes.
+
+## 23 October 2026 — stack review remediation
+
+- **D39:** Authenticate maker config initialization against clearing's existing owner/market participant derivation without changing PDA seeds or instruction/account layouts. Bound operator retries to 16 immutable signed attempts per request, only after independently proven failure/nonexecution. Maker registration epochs provide the publication/sync nonexecution stamp; unknown fees retain reservations. No automatic wallet replacement signing is introduced.
+- Limit automatic Complete-stage recovery checks to eight persisted attempts per epoch and stop after qualification. Further source qualification and resume are explicit authority operations; on-chain freshness, six-second recovery, frozen accounting and fee budgets are unchanged.
+- Treat mismatched indexer identity as a venue-data error while preserving independently validated direct RPC exits. Add targeted regressions for review findings, preserve original evidence and perform no new load/soak qualification. Remediation is a focused maintenance PR atop the existing phases, to merge atomically with the full stack.

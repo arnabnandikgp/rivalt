@@ -50,7 +50,7 @@ const h:MakerHarness={
   async read(key){const x=await rpc.call('getAccountInfo',[key,{encoding:'base64',commitment:'finalized'}]);return x.value?Buffer.from(x.value.data[0],'base64'):null;},
   async send(...args){await send(...args);},
   async quote(label,ix){const history=await send(label,[ix]);const r=history.meta.returnData;assert(r&&r.data[1]==='base64',label);returns.push({program:r.programId===a.program?'clearing':r.programId===makerIds[0]?'maker_a':'maker_b',data:r.data[0]});return{producer:address(r.programId),data:Buffer.from(r.data[0],'base64')};},
-  async slot(){return BigInt(await rpc.call('getSlot',[{commitment:'processed'}]));},
+  async slot(){return BigInt(await rpc.call('getSlot',[{commitment:'confirmed'}]));},
   async waitUntil(slot){
     console.log(`Waiting over standard RPC for exclusive maker expiry at slot ${slot}.`);
     const deadline=Date.now()+420_000;

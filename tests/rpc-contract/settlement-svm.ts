@@ -40,12 +40,11 @@ const h: RouteHarness = {
 };
 await custodyCases(h);
 await makerCases(h);
-const setupCount = checks.length;
 svm.addProgramFromFile(a.program, '.local/clearing-no-routes.so');
 await h.send('default compiled artifact refuses test trading activation', [await sdk.getInitializeTestRoutesInstructionAsync({...a,authority:payer,reference:60_000n,duration:3600n})], [], 6108);
 svm.addProgramFromFile(a.program, 'target/deploy/clearing.so');
 await routeCases(h);
-const settlementStart = checks.length;
+const setupCount = checks.length;
 const result = await settlementCases(h);
 svm.addProgramFromFile(a.program, '.local/clearing-no-routes.so');
 const owner=await fixtureKey('trader'),mint=await fixtureKey('mint'),token=await fixtureKey('user-token');
@@ -60,4 +59,4 @@ for(const [label,ix] of [
 const evidence = { revision: execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),sourceDirty:execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim()!=='',runtime:'litesvm node 1.6.1',setupCount,checks,result,
   binaries:Object.fromEntries(['clearing','maker_a','maker_b','hostile_maker'].map(n=>[n,createHash('sha256').update(readFileSync(`target/deploy/${n}.so`)).digest('hex')])) };
 writeFileSync('.local/p06-svm.json',JSON.stringify(evidence,(_,v)=>typeof v==='bigint'?v.toString():v,2)+'\n');
-console.log(`Settlement LiteSVM: ${checks.length-settlementStart} signed P06 scenarios plus ${settlementStart} real setup scenarios passed.`);
+console.log(`Settlement LiteSVM: ${checks.length-setupCount} signed P06 scenarios plus ${setupCount} real setup scenarios passed.`);

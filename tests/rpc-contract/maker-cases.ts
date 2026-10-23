@@ -38,6 +38,10 @@ export async function makerCases(h: MakerHarness) {
       getMintToInstruction({ mint: mint.address, token: a.token.address, mintAuthority: payer, amount: 1_000_000_000n }),
     ], [a.owner, a.token]);
     const api = id === 0 ? sdk.makerA : sdk.makerB;
+    const beforeCapital = await h.read(a.capital);
+    await h.send(`reject unrelated signer claiming maker ${id} config`, [await api.getInitializeConfigInstructionAsync({ ...a, owner: payer, domain, duration: 3600n })], [], 6000);
+    assert.equal(await h.read(a.config), null);
+    assert.deepEqual(await h.read(a.capital), beforeCapital);
     if (id === 0) {
       await h.send('reject maker epoch shorter than profile minimum', [await api.getInitializeConfigInstructionAsync({ ...a, domain, duration:63n })], [a.owner], 6002);
       assert.equal(await h.read(a.config), null);

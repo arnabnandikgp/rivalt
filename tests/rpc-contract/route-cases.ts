@@ -86,7 +86,7 @@ export async function routeCases(h:RouteHarness) {
   assert.equal(v.total,6_002_790n);assert(v.total<6_003_000n && v.total<6_005_950n,'price beneficial vs both complete single-maker fills');
   const old=await fill('price-beneficial split, aggregate fee once',0,[[0,21n],[1,79n]]);
   await rejected('reject replayed signed economic nonce',old,6117);
-  await rejected('reject missing maker accounts for two legs',await sdk.getExecuteRouteInstructionAsync({...v.args,nonce:1n,secondCapital:undefined}),6117);
+  await rejected('reject missing maker accounts for two legs',await sdk.getExecuteRouteInstructionAsync({...(await input(0,[[0,21n],[1,79n]])).args,secondCapital:undefined}),6117);
   const stale=await input(0,[[0,10n]]);
   await fill('consume current A prefix',0,[[0,10n]]);
   await rejected('reject stale price after another fill consumes prefix',await sdk.getExecuteRouteInstructionAsync({...stale.args,nonce:2n}),6119);
@@ -100,7 +100,7 @@ export async function routeCases(h:RouteHarness) {
     ['old generation',{generation:0n},6117],['risk-increasing reduce-only',{reduceOnly:true,generation:1n},6117],
   ] as const) {
     const current=await fresh();
-    const update=label==='future start'?{startSlot:current.startSlot+100n,expirySlot:current.startSlot+150n}:patch;
+    const update=label==='future start'?{startSlot:current.startSlot+100n,expirySlot:current.startSlot+150n}:label==='oversized route'?{lots:4609n,legs:[{...current.legs[0],lots:513n},{...current.legs[1],lots:4096n}]}:patch;
     await rejected(`reject ${label}`,await sdk.getExecuteRouteInstructionAsync({...current,...update}),error);
   }
   await rejected('reject owner mismatch',await sdk.getExecuteRouteInstructionAsync({...(await fresh()),owner:payer}),2006,[]);

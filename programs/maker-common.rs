@@ -4,6 +4,11 @@ use maker_interface::{
     MakerState, QuoteRequest, QuoteResponse, MAX_EPOCH_SLOTS, MIN_EPOCH_SLOTS, VERSION,
 };
 
+#[cfg(not(feature = "devnet-test-profile"))]
+const CLEARING_ID: Pubkey = pubkey!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
+#[cfg(feature = "devnet-test-profile")]
+const CLEARING_ID: Pubkey = pubkey!("BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv");
+
 #[account]
 #[derive(InitSpace)]
 pub struct MakerConfig {
@@ -14,7 +19,7 @@ pub struct MakerConfig {
 pub struct Initialize<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
-    /// CHECK: Stored identity only; clearing validates the funded Participant on registration.
+    /// CHECK: initialize verifies clearing ownership and the signer-bound participant PDA.
     pub capital: UncheckedAccount<'info>,
     #[account(init, payer = owner, space = 8 + MakerConfig::INIT_SPACE,
         seeds = [b"maker", capital.key().as_ref()], bump)]
@@ -47,6 +52,13 @@ fn initialize(
     domain: [u8; 32],
     duration: u64,
 ) -> Result<()> {
+    let owner = ctx.accounts.owner.key();
+    let (capital, _) = Pubkey::find_program_address(
+        &[b"participant", market.as_ref(), owner.as_ref()],
+        &CLEARING_ID,
+    );
+    require_keys_eq!(ctx.accounts.capital.key(), capital, MakerError::Authority);
+    require_keys_eq!(*ctx.accounts.capital.owner, CLEARING_ID, MakerError::Binding);
     require!(
         market != Pubkey::default() && domain != [0; 32],
         MakerError::Binding

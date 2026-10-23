@@ -43,3 +43,5 @@ The independent per-lot oracle, cross-client ABI/live decode, signed built-progr
 ## P04 extension
 
 P04 supersedes the custody-only execution and flat-capital preview restriction above: validated exposed maker capital can be quoted, approved and synchronized, and atomic routes commit cumulative consumption with the fill. The one-config CPI, curve/version/epoch/hash rules are unchanged. TestRoutes activation, synthetic observation trust, supported deposits and disabled trading-mode exits are specified in [ATOMIC-ROUTES](P04-ATOMIC-ROUTES.md).
+
+Review hardening (D39): config initialization authenticates the capital account as the signer-bound `[participant, market, owner]` PDA owned by the selected clearing deployment. An unrelated signer cannot occupy another maker's config address. Existing config seeds, account layout and instruction bytes remain unchanged.

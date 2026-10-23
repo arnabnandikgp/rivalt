@@ -144,11 +144,19 @@ export class Runtime {
       instructions:[sdk.routeComputeBudget(),ix].map(i=>({programAddress:i.programAddress,accounts:i.accounts?.map(a=>({address:a.address,role:a.role})),data:Buffer.from(i.data??[]).toString('base64')}))};
   }
   async enqueue(id:string,ixs:Instruction[],payer:Keypair,budget:string,authority:Authority|null,preflight=false){
-    if(await this.queue.get(id))return;
+    // Retain every signed attempt. Unknown or successful attempts block a new
+    // signature; only independently proven non-success can use the next ID.
+    let attempt:string|undefined;
+    for(let n=0;n<16;n++){
+      const candidate=n?`${id}:retry:${n}`:id,prior=await this.queue.get(candidate);
+      if(!prior){attempt=candidate;break;}
+      if(!['failed','expired-unexecuted'].includes(prior.status))return;
+    }
+    if(!attempt)throw new Error('Operator request retry limit reached');
     const {transaction}=await sdk.signInstructions(this.connection,payer,ixs);
     const wire=Buffer.from(transaction.serialize()).toString('base64');
     if(preflight){const simulation=await this.rpc.call('simulateTransaction',[wire,{encoding:'base64',sigVerify:true,commitment:'confirmed'}]);if(simulation.value.err)throw new Error('Risk action presently unavailable');}
-    await this.queue.put(id,wire,authority,budget);
+    await this.queue.put(attempt,wire,authority,budget);
   }
   async maker(id:number,key:Keypair){
     const s=await this.snapshot(),x=s.makers.find(x=>x.r.makerId===id);if(!x || x.r.owner!==key.address)throw new Error('Maker key binding');
@@ -157,9 +165,9 @@ export class Runtime {
     if(!x.approved || x.r.quarantined || s.m.paused)return;
     if(s.slot>=x.state.expirySlot){
       const api=id===0?sdk.makerA:sdk.makerB;
-      await this.enqueue(`maker:${id}:${x.state.quoteEpoch}`,[api.getPublishEpochInstruction({owner:key,config:x.r.config,duration:3600n},{programAddress:x.r.pricingProgram}),await sdk.getSyncMakerEpochInstructionAsync({...s,...x.r,registration:x.registration}, this.options)],key,budget,null);
+      await this.enqueue(`maker:${id}:${x.state.quoteEpoch}`,[api.getPublishEpochInstruction({owner:key,config:x.r.config,duration:3600n},{programAddress:x.r.pricingProgram}),await sdk.getSyncMakerEpochInstructionAsync({...s,...x.r,registration:x.registration}, this.options)],key,budget,{kind:'quoteEpoch',account:x.registration,value:x.r.quoteEpoch.toString()});
     }else if(x.state.quoteEpoch!==x.r.quoteEpoch){
-      await this.enqueue(`maker-sync:${id}:${x.state.quoteEpoch}`,[await sdk.getSyncMakerEpochInstructionAsync({...s,...x.r,registration:x.registration}, this.options)],key,budget,null);
+      await this.enqueue(`maker-sync:${id}:${x.state.quoteEpoch}`,[await sdk.getSyncMakerEpochInstructionAsync({...s,...x.r,registration:x.registration}, this.options)],key,budget,{kind:'quoteEpoch',account:x.registration,value:x.r.quoteEpoch.toString()});
     }
   }
   async settle(key:Keypair){
@@ -244,9 +252,17 @@ export class Runtime {
     if(s.m.mode===3){
       const h=s.resolutionState.header;
       if(h.stage===1||h.stage===12){
-        if(h.stage===12&&s.now-h.recoveryLast<2n)return;
+        if(h.stage===12){
+          if(s.now-h.recoveryLast<2n)return;
+          // Once qualified, leave refresh/resume to the explicit authority.
+          // Stale sources can make checks succeed without qualifying, so also
+          // bound paid attempts durably per resolution epoch across restarts.
+          if(h.recoverySince>0n&&h.recoveryLast-h.recoverySince>=6n)return;
+          const attempts=await this.store.pool.query("SELECT count(*)::int AS count FROM service_intents WHERE run_id=$1 AND starts_with(request_id,$2)",[this.runId,`risk:check:${h.epoch}:12:`]);
+          if(attempts.rows[0].count>=8)return;
+        }
         // Permissionless checks cannot resume. Only a separate explicit authority action can.
-        await enqueue(`check:${h.epoch}:${h.stage}:${s.now}`,await sdk.getRecoverResolutionInstructionAsync({...s,...sources,caller:key,epoch:h.epoch,resume:false}, this.options));return;
+        await enqueue(`check:${h.epoch}:${h.stage}:${h.recoveryLast}`,await sdk.getRecoverResolutionInstructionAsync({...s,...sources,caller:key,epoch:h.epoch,resume:false}, this.options));return;
       }
       if(h.stage>=2&&h.stage<=11){
         const ix=await sdk.getAdvanceResolutionInstructionAsync({...s,epoch:h.epoch,stage:h.stage,start:h.cursor}, this.options);

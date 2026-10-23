@@ -198,7 +198,7 @@ The SDK exports separate makerA/makerB namespaces and a bigint quoteMaker evalua
 
 OrderChanged and route/settlement snapshots preserve the complete book, remaining reservation, IDs and fee prefixes. The finalized indexer reconciles and rebuilds those fields; `/v1/orders` exposes effective eligibility and history. The services `orders` role uses a separate operator budget and immutable signed queue, at most one pending discovery job and a preferred 64-lot subfill. Maker CPI still receives one readonly config and no clearing writables or vault authority. Sensitive admission and funding coverage compute reservations from current bounds rather than trusting an old stored reserve.
 
-### P09 risk and resolution interfaces (acceptance in progress)
+### P09 risk and resolution interfaces
 
 Clearing adds `liquidate`, `initializeResolution`, `freezeMarket`, `advanceResolution` and `recoverResolution`. `ResolutionState` binds the frozen registry identity, epoch, price/funding, stage/cursor, cash totals and at most 64 per-ID planning records. Each instruction takes the shared market coordination account. Liquidation requires the actual funded receiver's owner signature; default pages are permissionless and exact-order, while source-emergency entry and final resume require market authority.
 
@@ -229,6 +229,6 @@ Quote audit candidates include maker version/start/exclusive-expiry slots; a mat
 
 D35 refines P12 quote preparation: `/v1/quote` includes `snapshotCommitment: confirmed`. The SDK reads a confirmed cohort only for independent route-message validation, and the UI labels it provisional; ordinary balance/exit snapshots remain finalized. Pending funding permits preview only after the exact confirmed transaction decodes to the current market/domain/epochs/observation/validity/funding state at or before the preview slot. Unknown evidence blocks quoting. Durable intent state, budget release and indexer projections still require finalized evidence. Existing on-chain expiry, observation, nonce and price checks remain authoritative.
 
-P14 introduces an explicit `solana:devnet` deployment binding across indexer, services, SDK and wallet UI; defaults remain local. Pinned program IDs, genesis and immutable initialization identity govern PDA/owner/event/instruction selection. Browser configuration cannot include provider query credentials. [The bounded devnet contract](P14-DEVNET-LIFECYCLE.md) records pending actual-runtime evidence; implementation alone does not establish wallet or service parity.
+P14 introduces an explicit `solana:devnet` deployment binding across indexer, services, SDK and wallet UI; defaults remain local. Pinned program IDs, genesis and immutable initialization identity govern PDA/owner/event/instruction selection. Browser configuration cannot include provider query credentials. [The bounded devnet contract](P14-DEVNET-LIFECYCLE.md) and [A19 evidence](evidence/P14.md) record the actual bounded lifecycle, PostgreSQL recovery and Phantom registration; WORKLOG owns integration status.
 
 D38 separates explicit deployment configuration and bounded regression fixtures from local raw run output. See [evidence storage](EVIDENCE.md). Raw captures remain in place; launchers and normal tests must work without them.

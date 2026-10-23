@@ -117,6 +117,9 @@ export async function resolutionCases(h:OracleHarness,a:Awaited<ReturnType<typeo
   assert.equal((await t.state()).header.stage,2);assert.equal((await t.market()).mode,3);
   await t.rejected('custody authority cannot bypass resolution recovery',[await sdk.getSetCustodyPauseInstructionAsync({...a,authority:a.payer,paused:false})][0]);
   await t.rejected('deposit cannot join frozen loss-bearing cash',await sdk.getDepositInstructionAsync({...a,owner:a.owner,participant:a.trader,quoteMint:a.mint.address,userToken:a.token.address,amount:1n}),[a.owner]);
+  const insuranceToken=await fixtureKey('insurance-token'),beforeInsurance=await h.read(insuranceToken.address);
+  await t.rejected('insurance funding cannot alter the frozen ledger',await sdk.getFundInsuranceInstructionAsync({...a,authority:a.payer,quoteMint:a.mint.address,source:insuranceToken.address,amount:1n}),[],6101);
+  assert.deepEqual(await h.read(insuranceToken.address),beforeInsurance);
   await t.rejected('ordinary withdrawal blocked while frozen',await t.withdrawIx(1n),[a.owner]);
   await t.rejected('wrong resolution epoch rejected',await t.page(4,{epoch:2n}));
   await t.rejected('skipped page rejected',await t.page(4,{start:1}));

@@ -116,8 +116,11 @@ export function useVenue(config: TraderConfig) {
               x.deployment?.genesis !== config.genesis ||
               x.deployment?.domain !== config.domain,
           )
-        )
-          throw new Error('Indexed deployment differs from this test deployment.');
+        ) {
+          setApiError('Indexed deployment differs from this test deployment. Direct RPC balances and exits remain available.');
+          setFeed((x: any) => ({ ...x, ready: false }));
+          return;
+        }
         setFeed({
           trades: trades.items,
           events: events.items,

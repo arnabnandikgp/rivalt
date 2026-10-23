@@ -591,7 +591,12 @@ try {
   await signedAction('Get quote', 'Buy BTC');
   assert((await t.participant()).generation > group.generation);
   const reopened = await t.participant();
-  assert(activePair.every((o) => sdk.orderRemaining(reopened, o, eligible.m.termsEpoch, 0n) === 0n));
+  for (const old of activePair) {
+    const current = reopened.book.orders.find((o) => o.id === old.id);
+    assert(current, 'closed protective order remains in its recorded slot');
+    assert.equal(sdk.activeOrder(current), false);
+    assert.equal(sdk.orderRemaining(reopened, current, eligible.m.termsEpoch, await slot()), 0n);
+  }
   record('close and reopen advances generation; old protective authority stays inactive');
   // Lose only the acknowledgement after the real relay persists the transaction, then reload.
   await page.getByLabel('Collateral amount', { exact: true }).fill('0.1');
@@ -667,6 +672,20 @@ try {
   await page.getByLabel('Execution limit', { exact: true }).fill('10000');
   await signedAction('Review order', 'Place order');
   const directId = (await t.participant()).book.lastOrderId;
+  // A successful HTTP response from the wrong deployment must not poison RPC exits.
+  await page.route('**/read/v1/**', async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    body.deployment = { ...body.deployment, anchor: 'wrong-deployment' };
+    await route.fulfill({ response, json: body });
+  });
+  await wait(() => page.getByText('Indexed deployment differs from this test deployment. Direct RPC balances and exits remain available.', { exact: true }).isVisible(), Boolean, 'indexed deployment mismatch');
+  const beforeMismatchWithdrawal = (await t.participant()).cash;
+  await page.getByLabel('Collateral amount', { exact: true }).fill('0.01');
+  await signedAction('Withdraw via RPC', 'Withdraw');
+  assert.equal((await t.participant()).cash, beforeMismatchWithdrawal - 10000n);
+  record('wrong indexed deployment disables feed while actual direct RPC withdrawal finalizes');
+  await page.unroute('**/read/v1/**');
   await stop(apiProcess);
   await wait(
     () =>

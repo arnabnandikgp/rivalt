@@ -7,13 +7,13 @@ import {addresses,fixtureKey,payerKey} from './custody-cases.js';
 import {makerAddresses,type MakerHarness} from './maker-cases.js';
 import {feedAddress,initializeFeed,publishFeed,type SourceChange} from './oracle-fixture.js';
 export type OracleHarness=MakerHarness & {now():Promise<bigint>;waitTime(time:bigint):Promise<void>};
-export async function oracleSetup(h:OracleHarness){
+export async function oracleSetup(h:OracleHarness,makerDuration=3600n){
   const a=await addresses(),payer=await payerKey(),mint=await fixtureKey('mint'),owner=await fixtureKey('trader'),token=await fixtureKey('user-token');
   const makers=await Promise.all([0,1].map(makerAddresses)),[trader]=await sdk.findParticipantPda({market:a.market,owner:owner.address}),[routeState]=await sdk.findRouteStatePda({market:a.market}),[guard]=await sdk.findGuardPda({market:a.market});
   const m=sdk.getMarketStateDecoder().decode((await h.read(a.market))!);
   for(const [id,x]of makers.entries()){
     await h.send(`P07 provision actual maker ${id} collateral`,[getTransferSolInstruction({source:payer,destination:x.owner.address,amount:1_000_000_000n}),await sdk.getRegisterParticipantInstructionAsync({...a,owner:x.owner}),getCreateAccountInstruction({payer,newAccount:x.token,lamports:await h.rent(165),space:165n,programAddress:TOKEN_PROGRAM_ADDRESS}),getInitializeAccount3Instruction({account:x.token.address,mint:mint.address,owner:x.owner.address}),getMintToInstruction({mint:mint.address,token:x.token.address,mintAuthority:payer,amount:500_000_000n})],[x.owner,x.token]);
-    await h.send(`P07 initialize maker ${id} curve`,[await (id===0?sdk.makerA:sdk.makerB).getInitializeConfigInstructionAsync({...x,domain:m.domain,duration:3600n}),await sdk.getDepositInstructionAsync({...x,participant:x.capital,quoteMint:mint.address,userToken:x.token.address,amount:500_000_000n})],[x.owner]);
+    await h.send(`P07 initialize maker ${id} curve`,[await (id===0?sdk.makerA:sdk.makerB).getInitializeConfigInstructionAsync({...x,domain:m.domain,duration:makerDuration}),await sdk.getDepositInstructionAsync({...x,participant:x.capital,quoteMint:mint.address,userToken:x.token.address,amount:500_000_000n})],[x.owner]);
     await h.send(`P07 bind maker ${id}`,[await sdk.getRegisterMakerInstructionAsync({...x,authority:payer,makerId:id,inventoryLimit:100_000n})],[x.owner]);
   }
   await h.send('P07 fund trader and initialize risk/guard',[getMintToInstruction({mint:mint.address,token:token.address,mintAuthority:payer,amount:100_000_000n}),await sdk.getDepositInstructionAsync({...a,owner,participant:trader,quoteMint:mint.address,userToken:token.address,amount:100_000_000n}),await sdk.getInitializeTestRoutesInstructionAsync({...a,authority:payer,reference:60_000n,duration:3600n}),await sdk.getInitializeExitGuardInstructionAsync({...a,payer})],[owner]);

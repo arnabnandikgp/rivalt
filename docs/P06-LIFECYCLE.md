@@ -25,7 +25,7 @@ The indexer must initialize the database run binding first. Services verify gene
 | Endpoint | Contract |
 |---|---|
 | `GET /live`, `/ready` | Process liveness; ability to validate a current chain snapshot |
-| `POST /v1/quote` | `{owner, side:0|1, lots:"100"}`; labeled eligible universe, exact allocation/fee and unsigned SDK instructions encoded as base64 data plus account roles |
+| `POST /v1/quote` | `{owner, side:0\|1, lots:"100"}`; labeled eligible universe, exact allocation/fee and unsigned SDK instructions encoded as base64 data plus account roles |
 | `POST /v1/submit` | `{requestId, wire}`; already wallet-signed v0 transaction, exact bytes persisted before broadcast |
 | `GET /v1/submissions/:id` | Signature, durable execution status, attempts and finalized fee/error result |
 | `GET /v1/operators` | Maker owner/availability, capital/inventory/epoch and explicit operator fee budgets |
@@ -62,3 +62,5 @@ P12 extension (D34): the original smoke caps remain default; explicit loopback `
 D35: unsigned route previews may use confirmed state with an explicit commitment label and independent client reconstruction. Pending funding is not assumed applied from a status flag: its exact confirmed transaction must decode to the snapshot observation/epochs/validity/funding state. This does not finalize the queue row or release its budget; missing/conflicting evidence still refuses preparation. All transaction-success and fee reconciliation stays finalized.
 
 P14 service parity correction: the worker now follows P07's existing on-chain flat-cohort source-outage path. When every participant has zero lots in mode 2, ordinary whole-atom collection, complete-cohort verification and funded gain settlement may proceed despite expired sources. Open exposure still requires credible bounds; pause/freeze and all sequence/certificate checks remain enforced. This corrects worker scheduling, not economic permissions or funding.
+
+D39 operator retry policy: preserve the first signed request and derive `:retry:N` identities only after `failed` or `expired-unexecuted`, up to 16 total attempts per economic request. Pending, unresolved and successful attempts forbid a new signature. Exhaustion is explicit; it does not reset budgets. Maker publish-plus-sync and standalone sync bind the clearing registration's monotonic `quoteEpoch` for finalized nonexecution proofs. Unknown network fees keep their original reservation even when economic nonexecution is proven. Wallet ingress remains unchanged.
