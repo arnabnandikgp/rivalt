@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { getBase58Decoder, type Instruction } from '@solana/kit';
@@ -22,11 +23,23 @@ const config = { chain: 'solana:devnet' as const, rpcUrl: h.config.rpc, wsUrl: h
   databaseUrl: process.env.RIVALT_DATABASE_URL!, runId, market: a.market, anchor: original['journal/initialize-market.json'].signature };
 const indexer = new Indexer(config), runtime = new Runtime(config.databaseUrl, runId, h.config.rpc, 'smoke', 2n, 0n, 'solana:devnet');
 const app = serviceApi(runtime);
+const resumePath = process.env.RIVALT_LIFECYCLE_RESUME_REPORT;
+const resumeBytes = resumePath ? readFileSync(resumePath) : undefined;
+const resume = resumeBytes ? JSON.parse(resumeBytes.toString()) : undefined;
+if (resume) {
+  assert.equal(resume.result, 'fail'); assert.equal(resume.failedStage, 'close-existing-position');
+  assert.equal(resume.failure, 'Error: Bounded source preparation expired; no further priced intent signed');
+  assert.equal(resume.sourceUnavailable?.polls, 0, 'Only the exact unsigned post-cancel checkpoint may resume');
+  assert(!resume.finalizationFailure);
+  assert.deepEqual(resume.actions.map((x: any) => [x.id, x.intent.status]), [['p14-place-reduction','finalized'],['p14-cancel-reduction','finalized']]);
+}
 const report: Record<string, any> = { startedUtc: new Date().toISOString(), a19Complete: false,
   revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   sourceDirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim() !== '',
   program: a.program, market: a.market, trader: a.trader, makers: a.makers.map(m => m.capital),
-  sourceWindows: [], actions: [], sourceAgeSeconds: 30, scope: 'Existing-position reduce-only order/cancel, A close, flat-cohort settlement and withdrawal; no continuous availability target' };
+  sourceWindows: resume?.sourceWindows ?? [], actions: resume?.actions ?? [], sourceAgeSeconds: 30,
+  resumedFrom: resume ? { revision: resume.revision, sha256: createHash('sha256').update(resumeBytes!).digest('hex'), result: resume.result } : null,
+  scope: 'Existing-position reduce-only order/cancel, A close, flat-cohort settlement and withdrawal; no continuous availability target' };
 let stage = 'preflight', sourceDeadline = 0;
 const safeFailure = (error: unknown) => String(error).replaceAll(h.config.rpc, '[RPC]').replaceAll(h.config.ws, '[WS]').replace(/https?:\/\/\S+/g, '[endpoint]').slice(0, 500);
 async function rawState(commitment: 'confirmed' | 'finalized' = 'finalized') {
@@ -80,9 +93,11 @@ async function sourceWindow(purpose: string) {
     const now = Buffer.from(raw.value[2].data[0], 'base64').readBigInt64LE(32);
     const prices = a.primary.map((f, i) => decodeCore(raw.value[i], f));
     maxAge = prices.reduce((max, p) => now - p.published > max ? now - p.published : max, 0n); polls++;
+    report.unsignedSourcePoll = { purpose, polls, at: new Date().toISOString(), maximumAgeSeconds: maxAge.toString(), preparationCeilingSeconds: 20 };
+    if (polls % 20 === 0) persist(`${directory}/progress.json`, report);
     // Unsigned scheduling allowance only. Actual clearing enforces 30 seconds,
     // confidence, guard, funding and action-mode checks at landing.
-    if (!prices.every((p, i) => coreEligibility(p, now, i === 1, 30n).eligible) || maxAge > 15n) { await delay(1000); continue; }
+    if (!prices.every((p, i) => coreEligibility(p, now, i === 1, 30n).eligible) || maxAge > 20n) { await delay(1000); continue; }
     const before = await rawState('confirmed');
     const guard = prices.map((p, i) => { const n = normalizeCore(p.price, p.confidence, p.exponent); return guardInstruction(a, i, n.value, n.confidence, p.published); });
     await h.sendObservation(`${purpose}-guard-${now}`, guard, [a.guardAuthority]);
@@ -103,11 +118,22 @@ try {
   await h.open(); await indexer.open(); await indexer.cycle(); await runtime.open();
   await app.listen({ host: '127.0.0.1', port: 18091 });
   let s = await runtime.snapshot(); report.initial = await rawState();
+  if (resume) {
+    assert.equal(resume.program, a.program); assert.equal(resume.market, a.market);
+    const last = resume.actions.at(-1).after;
+    for (const i of [0,2,3,4,5,6]) assert.deepEqual(report.initial.value[i].data, last.value[i].data, 'Resumed financial state changed');
+    report.resumeState = report.initial; report.initial = resume.initial;
+    for (const action of resume.actions) {
+      const original = await h.rpc.call('getTransaction', [action.intent.signature, { encoding: 'base64', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]);
+      assert.equal(original.transaction[0], action.wire); assert.equal(original.meta.err, null);
+    }
+  }
   assert.equal(s.participants[a.trader].lots, 1n); assert.equal(s.participants[a.makers[0].capital].lots, -1n);
   assert.equal(s.participants[a.makers[1].capital].lots, 0n);
   stage = 'owner-maker-renewal';
   await Promise.all(a.makers.map((m, id) => runtime.maker(id, m.owner))); await drain(); await indexer.cycle();
-  sourceDeadline = Date.now() + 600_000;
+  sourceDeadline = Date.now() + (resume ? 300_000 : 600_000);
+  if (!resume) {
   stage = 'reduce-only-order'; await sourceWindow('order');
   s = await runtime.snapshot('confirmed'); const p = s.participants[a.trader], orderId = p.book.lastOrderId + 1n;
   const terms = { side: 1, lots: 1n, limit: 100_000n, feeBudget: 100n, startSlot: s.slot, expirySlot: s.slot + 3600n,
@@ -118,6 +144,7 @@ try {
   stage = 'cancel-original-order';
   const cancelled = await user('p14-cancel-reduction', [await sdk.getCancelOrderInstructionAsync({ ...a, owner: a.traderOwner, participant: a.trader, id: orderId, version: 1n }, a.options)]);
   assert(cancelled.events.some(e => e.type === 'order' && e.data.kind === 2));
+  }
   stage = 'close-existing-position'; await sourceWindow('close');
   await Promise.all(a.makers.map((m, id) => runtime.maker(id, m.owner)));
   const response = await fetch('http://127.0.0.1:18091/v1/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ owner: a.traderOwner.address, side: 1, lots: '1' }) });
