@@ -1,4 +1,6 @@
-# P12 scoped preflight — A17 pending
+# P12 scoped preflight — historical checkpoint
+
+This report preserves the earlier checkpoint. [D35 acceptance](P12.md) supersedes its next-action/status statements without changing these historical results.
 
 Clean source: `2e76c7b674ac523a6f419e224d9acc497aea3f44` above P11 PR #13. Command: `source ops/env.sh && pnpm test:load --final-check-seconds 180 --rates 1`. Run: `.local/load/20261023T003724Z-58126`; result `pass`. Actual 181.924-second offered load is **not a 24-hour soak**. P12 and M5a remain In progress; no P12 PR yet.
 

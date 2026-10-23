@@ -1,0 +1,17 @@
+{
+  "database-proof.json": "23dd00afdb677a9ffc4c94e08b0c066d95d6ca3061854d3f37d839a46c5e9b87",
+  "final-storage.json": "23e5e476f4bc37cd3fa494da3fdbecfff0904a8f35ec3f4345c0c7bdbd963801",
+  "history-deposits.jsonl.gz": "0aac65e12e1bd6319564fa9e1efd8d466281cd5f66111ad74d127d9cb0f7a9e2",
+  "history-operator-step.json": "e4f45e3f029aa00aec816ff0a841f0da4d41e30b356e3a3fc84bebe66688eb0c",
+  "history.json": "8def9229678fb47becbd45a72baba4bc2334a03bb064350e1c7a347596b4f42f",
+  "load.json": "4da8d93fd66b45f2256910a97f7d91d94373f104e48c0b5030df6c32b5a541c2",
+  "manifest.json": "9a169600a5cfc0f5193e2aaa49406af8156364f09efaefbe3d08226b421627d7",
+  "raw-manifest.json": "fc207049f2977e5bb786a8f51cdd3cc2963a6eff072efaf2328805bffc1dc0d8",
+  "read-api.json": "b4ef0666fd04f4eaac4b1a5b1578ce16489bc9385aff530ebf5d8efd8ae530ef",
+  "reference.json": "77f1f1d792cb8304178de75e809e04acb61ae691979fd7295138ad8ef8477f88",
+  "resource-summary.json": "643fa2c064833f1b95bdecba13781ccadf8052f0f8a11c7b6f975fa926d8f853",
+  "sample-transactions.json": "4068e3f8d07fc4cf4bae50fdaf8c0395f45ca92c52efaf35671358d0c4c71d73",
+  "submission-fault.json": "0aa78f8951d9d7476ec0efaa3115b274271e6f00abb91bfed38d8d3ef8774800",
+  "visibility.json": "fba8786ecbbef755de0334166581102f82e0afc74e44c0145bd86950ac7e4e26",
+  "withdrawal.json": "0652ff70cb01b680917f5fda607caf9d4f7520807568929821bb848dcb4f7c40"
+}

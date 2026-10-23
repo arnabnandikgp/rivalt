@@ -145,6 +145,9 @@ try{
   if(control){sustainedResult=await control.close();control=undefined;assert(sustainedResult.continuity.monotonicSeconds>=seconds&&sustainedResult.continuity.wallSeconds>=seconds);}
   if(ui){for(let n=0;n<6;n++){await ui.poll();await delay(500);}visibility=await ui.close();ui=undefined;}
   if(qualification){
+    // The continuous UI/WS phase is complete. Rebuild the dense custody batch
+    // once after writers stop, instead of repeatedly chasing a moving tip.
+    await e.stop('indexer');
     // Keep authenticated sources/makers/funding alive, but freeze participant cash writers.
     for(const role of ['settlement','orders','risk'])await e.stop(role);
     await wait(async()=>{await e.runtime.execute();return Number((await e.runtime.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget IN ('keeper','orders','risk') AND status IN ('pending','unresolved')",[e.runId])).rows[0].count);},n=>n===0,'history participant writers drained');
