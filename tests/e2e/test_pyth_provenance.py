@@ -10,12 +10,11 @@ from audit_pyth_sponsored import audit_update
 class ProvenanceAudit(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        root = Path('docs/evidence/p13/sponsored')
-        load = lambda name: json.loads((root / f'{name}.json').read_text())
-        cls.feed = load('report')['feeds'][2]
-        cls.account = load('samples')[-1]['raw']['value'][2]
-        cls.update = load('btc-update')
-        cls.verification = load('vaa-verification')
+        fixture = json.loads((Path(__file__).resolve().parents[1] / 'fixtures/pyth-provenance.json').read_text())
+        cls.feed = fixture['feed']
+        cls.account = fixture['account']
+        cls.update = fixture['update']
+        cls.verification = fixture['verification']
 
     def test_retained_proof_passes(self):
         self.assertEqual(audit_update(self.feed, self.account, self.update, self.verification)['publishTime'], '1792752688')

@@ -1,1 +1,0 @@
-{"result":"pass","events":178,"trades":60,"lastSequence":"178","candles":4,"method":"Actual PostgreSQL rows through Fastify handlers; independent BigInt sequence sort and per-minute price ordering; forward pages at every reached decimal boundary and latest pagination across sequence 100"}

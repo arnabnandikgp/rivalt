@@ -45,6 +45,9 @@ Production/funded deployments, paid services, outreach, recruiting and external 
 - Do not replace the user's container setup or install Docker Desktop as an assumption. A reproducible native/Apple Containers path is acceptable; verify its actual capabilities.
 - Secrets and production credentials stay out of source, logs and evidence.
 
+
+- Keep raw run evidence at its existing local paths, untracked and ignored. Track concise Markdown summaries and bounded regression fixtures; no archive or upload is required. Runtime launchers must use explicit deployment configuration, not retained acceptance dumps.
+
 ## Required run closeout
 
 Before ending every substantive run:

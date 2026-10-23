@@ -5,8 +5,8 @@ import { afterEach, expect, test, vi } from 'vitest';
 import * as sdk from '@rivalt/sdk';
 import { DevnetRpc, persist } from './devnet-rpc.js';
 
-const bundle = JSON.parse(readFileSync('docs/evidence/p13/acceptance/normal-observation-proof.json', 'utf8'));
-const original = bundle.journal.find((e: any) => e.label.startsWith('sample-') && e.events.some((x: any) => x.type === 'oracle' && x.data.oracle.status === 2));
+const fixture = JSON.parse(readFileSync('tests/fixtures/oracle-finality.json', 'utf8'));
+const original = fixture.entry;
 const directories: string[] = [];
 afterEach(() => { for (const dir of directories.splice(0)) rmSync(dir, { recursive: true }); });
 function pending(changed = false) {
@@ -20,7 +20,7 @@ function pending(changed = false) {
   delete entry.history; delete entry.events; delete entry.feeLamports; entry.finalized = false;
   persist(`${journal}/${entry.label}.json`, entry);
   const h = Object.assign(Object.create(DevnetRpc.prototype), {
-    a: { program: bundle.report.program, eventAuthority: keys[ix.accounts[0]], guardProgram: 'gUq9vLuLsncqn1JGR753q9XZkypWUoMZ6CKquiCk6EF' }, journal,
+    a: { program: fixture.program, eventAuthority: keys[ix.accounts[0]], guardProgram: 'gUq9vLuLsncqn1JGR753q9XZkypWUoMZ6CKquiCk6EF' }, journal,
     checks: [{ label: entry.label, result: 'confirmed-awaiting-finality' }],
     rpc: { call: vi.fn(async (method: string, params: any[]) => {
       expect(method).toBe('getTransaction'); expect(params[0]).toBe(entry.signature); expect(params[1].commitment).toBe('finalized');
