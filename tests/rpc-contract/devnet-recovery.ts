@@ -17,11 +17,11 @@ import { DevnetRpc, persist } from './devnet-rpc.js';
 const directory = process.env.RIVALT_RUN_DIR!;
 assert(directory && process.env.RIVALT_DATABASE_URL);
 const a = await devnetContext(), h = new DevnetRpc(a, `${directory}/journal`);
-const original = JSON.parse(readFileSync('docs/evidence/p13/acceptance/final-bundle.json', 'utf8')).files;
+const deployment = JSON.parse(readFileSync('ops/devnet-deployment.json', 'utf8'));
 const runId = 'p14-recovery-' + directory.split('/').at(-1);
 const config = { chain: 'solana:devnet' as const, rpcUrl: h.config.rpc, wsUrl: h.config.ws,
   databaseUrl: process.env.RIVALT_DATABASE_URL!, runId, market: a.market,
-  anchor: original['journal/initialize-market.json'].signature };
+  anchor: deployment.initializationSignature };
 let indexer = new Indexer(config);
 let runtime = new Runtime(config.databaseUrl, runId, h.config.rpc, 'smoke', 2n, 0n, 'solana:devnet');
 let app = serviceApi(runtime);

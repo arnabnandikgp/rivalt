@@ -21,7 +21,7 @@ const pdBytes = Buffer.from(pd.data); pdBytes[12] = 1; pdBytes.set(getAddressEnc
 // Explicit dependency replay for local adapter rejection tests. This is not a
 // devnet verifier execution; actual upstream verification is separately retained.
 for (const [i, f] of a.primary.entries()) {
-  const data = Buffer.from(readFileSync(`docs/evidence/p13/sponsored/${i === 0 ? 'btc' : 'collateral'}-account.hex`, 'utf8').trim(), 'hex');
+  const data = Buffer.from(readFileSync(`tests/fixtures/${i === 0 ? 'btc' : 'collateral'}-account.hex`, 'utf8').trim(), 'hex');
   svm.setAccount({ address: f.account, programAddress: address(f.receiver), data, executable: false, space: BigInt(data.length), lamports: lamports(5_000_000n) });
 }
 const h: DevnetHarness = {

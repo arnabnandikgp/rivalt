@@ -13,10 +13,9 @@ import { persist } from './devnet-rpc.js';
 const directory = process.env.RIVALT_RUN_DIR!;
 assert(directory && process.env.RIVALT_DATABASE_URL);
 const provider = configuration(process.env);
-const original = JSON.parse(readFileSync('docs/evidence/p13/acceptance/final-bundle.json', 'utf8')).files;
-const m = original['report.json'].independentRoute.after.market;
-const market = original['report.json'].independentRoute.after.trader.market;
-const anchor = original['journal/initialize-market.json'].signature;
+const deployment = JSON.parse(readFileSync('ops/devnet-deployment.json', 'utf8'));
+const market = deployment.market;
+const anchor = deployment.initializationSignature;
 const runId = 'p14-demo-' + directory.split('/').at(-1);
 const indexer = new Indexer({ chain: 'solana:devnet', rpcUrl: provider.rpc, wsUrl: provider.ws,
   databaseUrl: process.env.RIVALT_DATABASE_URL!, runId, market, anchor });
@@ -30,7 +29,7 @@ try {
   await read.listen({ host: '127.0.0.1', port: 18090 });
   await service.listen({ host: '127.0.0.1', port: 18091 });
   const config = { version: 1, chain: 'solana:devnet', rpcUrl: 'https://api.devnet.solana.com',
-    wsUrl: 'wss://api.devnet.solana.com', genesis: indexer.deployment.genesis, anchor, market, mint: m.quoteMint, domain: m.domain };
+    wsUrl: 'wss://api.devnet.solana.com', genesis: indexer.deployment.genesis, anchor, market, mint: deployment.mint, domain: deployment.domain };
   persist(`${directory}/trader-config.json`, config);
   writeFileSync(`${directory}/ready`, 'ready\n', { mode: 0o600 });
   console.log(JSON.stringify({ ready: true, url: 'http://127.0.0.1:18088', chain: config.chain, runId, signerLoaded: false }));

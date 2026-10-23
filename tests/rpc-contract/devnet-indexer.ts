@@ -13,12 +13,12 @@ import { persist } from './devnet-rpc.js';
 const config = configuration(process.env);
 const directory = process.env.RIVALT_RUN_DIR!;
 assert(directory && process.env.RIVALT_DATABASE_URL);
-const original = JSON.parse(readFileSync('docs/evidence/p13/acceptance/final-bundle.json', 'utf8')).files;
+const deployment = JSON.parse(readFileSync('ops/devnet-deployment.json', 'utf8'));
 const report: Record<string, any> = { startedUtc: new Date().toISOString(), signed: false,
   revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   sourceDirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim() !== '', a19Complete: false };
-const market = original['report.json'].independentRoute.after.trader.market;
-const anchor = original['journal/initialize-market.json'].signature;
+const market = deployment.market;
+const anchor = deployment.initializationSignature;
 const runId = 'p14-devnet-' + directory.split('/').at(-1);
 const indexer = new Indexer({ chain: 'solana:devnet', rpcUrl: config.rpc, wsUrl: config.ws,
   databaseUrl: process.env.RIVALT_DATABASE_URL!, runId, market, anchor });
@@ -42,8 +42,8 @@ try {
   await indexer.cycle();
   const response = await fetch('http://127.0.0.1:18090/v1/trades?latest=true&limit=10');
   assert.equal(response.status, 200); const trades = await response.json();
-  const trade = original['report.json'].checks.find((c: any) => c.label === original['report.json'].tradeLabel);
-  assert(trades.items.some((t: any) => t.signature === trade.signature && t.payload.fee === '17'));
+  const trade = { signature: deployment.openingTradeSignature };
+  assert(trades.items.some((t: any) => t.signature === trade.signature && t.payload.fee === deployment.openingTradeFeeAtoms));
   assert.equal(trades.capabilities.routes, 'devnet-test-profile');
   const ready = await fetch('http://127.0.0.1:18091/ready'); assert.equal(ready.status, 200);
   report.http = { trades, serviceReady: await ready.json() };

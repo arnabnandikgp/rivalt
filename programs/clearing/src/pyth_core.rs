@@ -172,12 +172,12 @@ mod tests {
         // This unit replay is not on-chain Rivalt consumption or A18 completion.
         let cases = [
             (
-                include_str!("../../../docs/evidence/p13/sponsored/btc-account.hex"),
+                include_str!("../../../tests/fixtures/btc-account.hex"),
                 81_649_327_449,
                 68_172_551,
             ),
             (
-                include_str!("../../../docs/evidence/p13/sponsored/collateral-account.hex"),
+                include_str!("../../../tests/fixtures/collateral-account.hex"),
                 999_839,
                 83,
             ),

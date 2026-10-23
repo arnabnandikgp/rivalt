@@ -1,2 +1,0 @@
-{"role":"settlement","pid":55730,"status":"started"}
-{"role":"settlement","status":"stopped"}

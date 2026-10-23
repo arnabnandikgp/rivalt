@@ -1,9 +1,0 @@
-{
-  "scope": "Post-hoc attribution limits for interrupted 2h44m run",
-  "filesystemFreeDecreaseBytes": 2269601792,
-  "primaryDatabaseGrowthBytes": 96788480,
-  "elapsedSeconds": 9836.569559292,
-  "hostSwapoutTrafficBytes": 1674641408,
-  "hostCompressorOccupiedIncreaseBytes": 5637308416,
-  "note": "Swapout traffic is cumulative host-wide IO, not swap-file growth or Rivalt attribution. Compressor growth is host-wide physical compressed memory, not additional disk allocation. Past swap allocation and file baselines were not captured, so the filesystem residual cannot be exactly assigned. New qualification captures separate owned files/WAL/tables/indexes plus actual host swap allocation."
-}

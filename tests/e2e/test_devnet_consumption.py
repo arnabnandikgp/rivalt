@@ -8,7 +8,7 @@ from audit_devnet_consumption import audit
 
 
 class DevnetConsumptionAudit(unittest.TestCase):
-    bundle = json.loads(Path('docs/evidence/p13/acceptance/final-bundle.json').read_text())
+    bundle = json.loads((Path(__file__).resolve().parents[1] / 'fixtures/devnet-consumption.json').read_text())
 
     def check(self, change=None):
         bundle = copy.deepcopy(self.bundle)
@@ -19,7 +19,7 @@ class DevnetConsumptionAudit(unittest.TestCase):
             path.write_text(json.dumps(bundle))
             return audit(path, recovered_ws=True)
 
-    def test_actual_trade_and_original_signature_recovery(self):
+    def test_fixture_trade_and_original_signature_recovery(self):
         self.assertEqual(self.check()['feeAtoms'], '17')
 
     def test_wrong_recovery_slot_cannot_pass(self):

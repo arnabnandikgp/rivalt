@@ -17,10 +17,10 @@ const directory = process.env.RIVALT_RUN_DIR!;
 assert(directory && process.env.RIVALT_DATABASE_URL);
 const a = await devnetContext(), h = new DevnetRpc(a, `${directory}/journal`);
 assert.equal(profile.sourceMaxAgeSeconds, 30);
-const original = JSON.parse(readFileSync('docs/evidence/p13/acceptance/final-bundle.json', 'utf8')).files;
+const deployment = JSON.parse(readFileSync('ops/devnet-deployment.json', 'utf8'));
 const runId = 'p14-lifecycle-' + directory.split('/').at(-1);
 const config = { chain: 'solana:devnet' as const, rpcUrl: h.config.rpc, wsUrl: h.config.ws,
-  databaseUrl: process.env.RIVALT_DATABASE_URL!, runId, market: a.market, anchor: original['journal/initialize-market.json'].signature };
+  databaseUrl: process.env.RIVALT_DATABASE_URL!, runId, market: a.market, anchor: deployment.initializationSignature };
 const indexer = new Indexer(config), runtime = new Runtime(config.databaseUrl, runId, h.config.rpc, 'smoke', 2n, 0n, 'solana:devnet');
 const app = serviceApi(runtime);
 const resumePath = process.env.RIVALT_LIFECYCLE_RESUME_REPORT;

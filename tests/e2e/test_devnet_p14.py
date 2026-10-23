@@ -7,17 +7,17 @@ from audit_devnet_lifecycle import audit as lifecycle
 from audit_devnet_recovery import audit as recovery
 from audit_devnet_wallet import audit as wallet
 
-ROOT = Path(__file__).resolve().parents[2] / 'docs/evidence/p14'
+ROOT = Path(__file__).resolve().parents[1] / 'fixtures'
 
 
-class P14ActualEvidence(unittest.TestCase):
+class P14AuditFixtures(unittest.TestCase):
     def setUp(self):
-        self.report = json.loads((ROOT/'lifecycle.json').read_text())
-        self.predecessor = (ROOT/'lifecycle-attempt-2.json').read_bytes()
+        self.report = json.loads((ROOT/'p14-lifecycle.json').read_text())
+        self.predecessor = (ROOT/'p14-predecessor.json').read_bytes()
 
-    def test_actual_composed_lifecycle_and_once_only_recovery(self):
+    def test_fixture_composed_lifecycle_and_once_only_recovery(self):
         self.assertEqual(lifecycle(self.report,self.predecessor)['result'],'pass')
-        self.assertEqual(recovery(json.loads((ROOT/'recovery.json').read_text()))['result'],'pass')
+        self.assertEqual(recovery(json.loads((ROOT/'p14-recovery.json').read_text()))['result'],'pass')
 
     def test_altered_original_intent_lineage_is_rejected(self):
         self.report['actions'][0]['intent']['signature'] = 'different-original-signature'
@@ -37,15 +37,15 @@ class P14ActualEvidence(unittest.TestCase):
         with self.assertRaises(AssertionError): lifecycle(self.report,self.predecessor)
 
     def test_duplicate_economic_event_is_not_recovery(self):
-        report = json.loads((ROOT/'recovery.json').read_text()); report['sql']['events']='2'
+        report = json.loads((ROOT/'p14-recovery.json').read_text()); report['sql']['events']='2'
         with self.assertRaises(AssertionError): recovery(report)
 
 
-class P14WalletEvidence(unittest.TestCase):
+class P14WalletFixtures(unittest.TestCase):
     def setUp(self):
-        self.report = json.loads((ROOT/'wallet-registration.json').read_text())
+        self.report = json.loads((ROOT/'p14-wallet.json').read_text())
 
-    def test_actual_registration_rent_and_indexed_identity(self):
+    def test_fixture_registration_rent_and_indexed_identity(self):
         self.assertEqual(wallet(self.report)['result'], 'pass')
 
     def test_foreign_indexed_signature_is_rejected(self):

@@ -1,9 +1,0 @@
-{
-  "result": "pass",
-  "revision": "dcc7f9d5eb6c9750c4200af3a09020c76e672533",
-  "signature": "kBaU5P88rXFyYURgJW67U9VvrNNJoqzKPKuzjkgUW6CD4dAJPwhKbobc84fncqqisZrp9MsqCHEqzcPTdA8h69q",
-  "depositAtoms": "1000",
-  "onceOnly": true,
-  "walletProviderTest": false,
-  "scope": "Actual RPC/WS/PostgreSQL recovery and exact raw-account deposit deltas; no source/lifecycle or external wallet claim"
-}

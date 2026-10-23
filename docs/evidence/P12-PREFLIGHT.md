@@ -4,7 +4,7 @@ This report preserves the earlier checkpoint. [D35 acceptance](P12.md) supersede
 
 Clean source: `2e76c7b674ac523a6f419e224d9acc497aea3f44` above P11 PR #13. Command: `source ops/env.sh && pnpm test:load --final-check-seconds 180 --rates 1`. Run: `.local/load/20261023T003724Z-58126`; result `pass`. Actual 181.924-second offered load is **not a 24-hour soak**. P12 and M5a remain In progress; no P12 PR yet.
 
-[Complete report](p12/preflight/load.json) retains source/binary/config/UI identities, full normal/unavailable populations, resource samples, fee budgets, final balances and replay metrics. [SHA-256 manifest](p12/preflight/sha256.json) binds the public reports. Raw signatures/logs/captures remain in the local run; private fixture keys and database credentials are excluded.
+Complete report (local: `docs/evidence/p12/preflight/load.json`) retains source/binary/config/UI identities, full normal/unavailable populations, resource samples, fee budgets, final balances and replay metrics. SHA-256 manifest (local: `docs/evidence/p12/preflight/sha256.json`) binds the public reports. Raw signatures/logs/captures remain in the local run; private fixture keys and database credentials are excluded.
 
 | Check | Actual result |
 |---|---|
@@ -21,6 +21,6 @@ Clean source: `2e76c7b674ac523a6f419e224d9acc497aea3f44` above P11 PR #13. Comma
 
 This mode repeats no fault windows or stored-order scenarios. The earlier scoped exercises retain their own passing subchecks and failures in WORKLOG; they do not combine into a continuous soak. Unchanged SBF worst-case evidence remains in P11. Hosted broad regression is pending P12 publication.
 
-[Capacity preflight](p12/preflight/capacity.json) records AC power, 16 GiB physical RAM, 4.707 GB free after reclaiming only inactive test databases, and a short-run projection of approximately 1.043 GB primary PostgreSQL data / 2.347 GB including replay reserve. The selected full-day rate is 0.25 offers/s. Projection is uncertain; actual minute disk/DB/process/host counters and the reserved-space gate govern acceptance. The final probe's summed owned RSS ranged around 4.5–4.9 GiB and may double-count shared pages; the PostgreSQL VM cap is separately 512 MiB.
+Capacity preflight (local: `docs/evidence/p12/preflight/capacity.json`) records AC power, 16 GiB physical RAM, 4.707 GB free after reclaiming only inactive test databases, and a short-run projection of approximately 1.043 GB primary PostgreSQL data / 2.347 GB including replay reserve. The selected full-day rate is 0.25 offers/s. Projection is uncertain; actual minute disk/DB/process/host counters and the reserved-space gate govern acceptance. The final probe's summed owned RSS ranged around 4.5–4.9 GiB and may double-count shared pages; the PostgreSQL VM cap is separately 512 MiB.
 
 Exact next action: run `pnpm test:load --soak-seconds 86400 --rates 0.25` on clean committed source, then inspect full-duration continuity, all six outages, financial reconciliation and >10,000-transaction fresh-database replay before ready PR publication.
