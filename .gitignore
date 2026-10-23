@@ -12,3 +12,8 @@ __pycache__/
 
 
 apps/trader/dist/
+
+# Raw run evidence stays in place locally; track Markdown summaries only.
+/docs/evidence/**
+!/docs/evidence/**/
+!/docs/evidence/**/*.md

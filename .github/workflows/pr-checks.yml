@@ -34,6 +34,8 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Keep raw evidence out of the tracked tree
+        run: python3 ops/check-evidence-policy.py
       - id: scope
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
