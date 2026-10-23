@@ -173,3 +173,10 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 ## 23 October 2026 — verification scope
 
 - **D32:** Explicit user direction supersedes the convention of rerunning all inherited acceptance before each PR. Run checks needed for the actual change and phase gate; prefer supported CI for broad regression. Do not spend local time repeating unrelated financial suites or represent absent CI as validation. P11 still owns the integrated fault matrix, P12 the real 24-hour soak, and P13/P14 actual cluster parity. This changes verification scheduling, not economic rules or acceptance standards.
+
+
+## 23 October 2026 — local evidence and reviewable phase diffs
+
+- **D38:** The user directs removing bulky raw evidence from Git tracking while leaving every existing local file at its original path. No bundles, downloads, uploads or release assets are requested. Keep concise acceptance summaries, original tested identities, audit code and necessary small regression inputs tracked; explain that raw references are local-only and unavailable in a fresh clone.
+- Ordinary tests use deliberate field projections under `tests/fixtures/`; full retained-run audits still consume the unchanged local reports. Deployment configuration is explicit in `ops/`, independent of historical run output. Enforce the tracked-evidence/fixture budget in scoped CI. A fixture replay is not new acceptance evidence.
+- Add cleanup commits to each existing phase, including the cleaned preceding phase as an ancestor. Preserve the exact original tested commits and their source history. This supersedes any implication that raw evidence must remain in the current source tree, not the acceptance requirements or recorded failures. No financial program behavior, economic setting, milestone status or funded authorization changes.

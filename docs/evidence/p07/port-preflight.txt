@@ -1,2 +1,0 @@
-PASS: recently closed actual TCP connection accepted
-PASS: live listener rejected with exact port; unrelated process untouched

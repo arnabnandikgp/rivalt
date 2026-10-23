@@ -1,2 +1,0 @@
-{"role":"orders","pid":55800,"status":"started"}
-{"role":"orders","status":"stopped"}

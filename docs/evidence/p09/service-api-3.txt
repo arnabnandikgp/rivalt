@@ -1,2 +1,0 @@
-{"role":"api","pid":18900,"status":"started"}
-{"role":"api","status":"stopped"}
