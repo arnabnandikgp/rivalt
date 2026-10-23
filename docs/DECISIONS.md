@@ -139,3 +139,10 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **Boundary:** No economic fee, margin-credit, loss-bearer, custody or order-type expansion. Cancellation/cleanup remains independent of pricing availability. Default build and later liquidation/default remain disabled. Configuration selection is not acceptance; A11/A12 and measured ABI/resource evidence are still required.
 
 - **G09 evidence:** [P08 acceptance](evidence/P08.md) verifies A11/A12/G09 across clean `1f27fa8` and harness-only child `cd2b8fa`, with identical financial/service trees. 203 signed P08 transactions plus 45 setup transactions and ten real RPC/WS/PostgreSQL checks pass. The fully populated split uses 298,776 CU / 824 bytes / 18 accounts. P08 remains Review until integration; no full-wrapper exit-zero, load, devnet or external-review claim follows.
+
+
+## 23 October 2026 — local evidence and reviewable phase diffs
+
+- **D38:** The user directs removing bulky raw evidence from Git tracking while leaving every existing local file at its original path. No bundles, downloads, uploads or release assets are requested. Keep concise acceptance summaries, original tested identities, audit code and necessary small regression inputs tracked; explain that raw references are local-only and unavailable in a fresh clone.
+- Ordinary tests use deliberate field projections under `tests/fixtures/`; full retained-run audits still consume the unchanged local reports. Deployment configuration is explicit in `ops/`, independent of historical run output. Enforce the tracked-evidence/fixture budget in scoped CI. A fixture replay is not new acceptance evidence.
+- Add cleanup commits to each existing phase, including the cleaned preceding phase as an ancestor. Preserve the exact original tested commits and their source history. This supersedes any implication that raw evidence must remain in the current source tree, not the acceptance requirements or recorded failures. No financial program behavior, economic setting, milestone status or funded authorization changes.
