@@ -14,7 +14,7 @@ The browser's public configuration selects `solana:devnet`, the pinned genesis a
 
 Profile `p14-sponsored-core-test-assets-v2` selects the user-approved **30-second** maximum source age only in the clearing devnet feature. Both ordinary sampling and resolution source rereads use the same selection. Local/default source policy remains **20 seconds**. Bounds may be computed at the age ceiling, but sensitive actions still require execution strictly before the source deadline. Six-second recovery/hold, funding outage/catch-up, confidence/future/divergence limits and fees are unchanged.
 
-This describes source implementation; the current live P13 binary remains at 20 seconds until a separately recorded tested upgrade. Compiled age-29 acceptance / exclusive age-30 rollback and actual deployed ELF verification are required before enabling the new setting. The original P13 evidence remains attributed to its original binary and 18-second source age.
+The separate SBF/IDL build on clean `b3a2fc1` passes. The focused compiled check verifies age-29 acceptance and exclusive age-30 rollback (28 checks including 20 necessary setup). The clearing upgrade finalizes at slot 514275649; independent RPC reads verify exact tested ELF bytes and zero padding, with the same isolated authority. The other three artifacts are unchanged. [Build, boundary and upgrade evidence](evidence/p14/sha256.json) records the actual activation. The original P13 evidence remains attributed to its original 20-second binary and 18-second source age.
 
 ## Evidence still due
 

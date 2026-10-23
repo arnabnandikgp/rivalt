@@ -1,0 +1,33 @@
+{
+  "feePayer": "Hoamid9gD8dEgLrirgt3gNnAWhmxYe5LSKrJJUGGd4DA",
+  "feePayerBeforeLamports": "8420006480",
+  "estimatedTemporaryBufferRentLamports": "6528678840",
+  "startedUtc": "2026-10-23T14:24:28.040Z",
+  "buildRevision": "b3a2fc12c7d1744f647133460a03b6dc3394c592",
+  "program": "BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv",
+  "programData": "CfJjHRmXwRAhqbZuo2DB9TLFujxXwjJWLjaTPRbqpWhc",
+  "sourceMaxAgeSeconds": 30,
+  "commands": [
+    {
+      "action": "extend",
+      "bytes": 10240,
+      "stdout": "{\n  \"programId\": \"BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv\",\n  \"additionalBytes\": 10240\n}\n",
+      "stderr": ""
+    },
+    {
+      "action": "upgrade",
+      "stdout": "{\n  \"programId\": \"BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv\",\n  \"signature\": \"i2oZjJxbrRnvsAT1MUneD5B8nqKFSyEhXY22rDxwazkuUgY27YPoukg6GqGN1hhMDFM5zmwT1M35Eqj7DJ3LU7h\"\n}\n",
+      "stderr": ""
+    }
+  ],
+  "identity": {
+    "deploymentSlot": "514275649",
+    "upgradeAuthority": "4oudHrUzAnRhd5BivAu4cympwyevfo4PTr2Cg87cV8Hi",
+    "allocatedBytes": "1294541",
+    "accountSha256": "4d9e11091644fe94b8b1a66628b890fb42690348f8aedbba657ef80b050fc4fa",
+    "payloadWithPaddingSha256": "cb84f6e3afb4604d3c51a1f78e5d60c32570f51b39feafedc40dcba1ec737652"
+  },
+  "feePayerAfterLamports": "8405956480",
+  "result": "pass",
+  "finishedUtc": "2026-10-23T14:25:08.590Z"
+}

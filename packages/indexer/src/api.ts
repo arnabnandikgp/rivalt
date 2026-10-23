@@ -25,7 +25,7 @@ export function api(indexer: Indexer) {
   const envelope = (row: Awaited<ReturnType<typeof indexer.store.snapshot>>) => ({schemaVersion:1,runId:indexer.config.runId,
     market:indexer.config.market,deployment:{anchor:row.binding.anchor,genesis:row.binding.genesis,domain:row.binding.domain},asOf:{commitment:'finalized',sequence:row.state.sequence,signature:row.checkpoint,slot:row.checkpoint_slot},
     units:{cash:'collateral atoms (1e6/token)',lots:'1e6/BTC',price:'collateral atoms/lot',scaled:'1e9'},
-    capabilities:{routes:[1,2].includes(row.state.market?.mode)&&!row.state.market?.paused ? 'local-test-profile' : 'disabled',funding:row.state.market?.mode===2,orders:row.state.market?.mode===2,settlement:[1,2].includes(row.state.market?.mode)&&!row.state.market?.paused,resolution:row.state.market?.mode===3}});
+    capabilities:{routes:[1,2].includes(row.state.market?.mode)&&!row.state.market?.paused ? indexer.deployment.chain === 'solana:devnet' ? 'devnet-test-profile' : 'local-test-profile' : 'disabled',funding:row.state.market?.mode===2,orders:row.state.market?.mode===2,settlement:[1,2].includes(row.state.market?.mode)&&!row.state.market?.paused,resolution:row.state.market?.mode===3}});
   app.get('/v1/resolution',async()=>{const row=await indexer.store.snapshot();return {...envelope(row),frozen:row.state.market?.mode===3,resolution:row.state.resolution??null};});
   app.get('/v1/market', async () => {
     const row = await indexer.store.snapshot();

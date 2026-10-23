@@ -1,0 +1,11 @@
+{
+  "startedUtc": "2026-10-23T14:20:25.501Z",
+  "buildRevision": "b3a2fc12c7d1744f647133460a03b6dc3394c592",
+  "program": "BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv",
+  "programData": "CfJjHRmXwRAhqbZuo2DB9TLFujxXwjJWLjaTPRbqpWhc",
+  "sourceMaxAgeSeconds": 30,
+  "commands": [],
+  "result": "fail",
+  "failure": "Inspect original program/buffer state; no automatic replacement action",
+  "finishedUtc": "2026-10-23T14:20:30.410Z"
+}
