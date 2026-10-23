@@ -90,12 +90,15 @@ try {
   }
   assert(qualified, 'No executable source recovery window within the bounded live observation');
   stage = 'priced-action';
-  const raw = await h.rpc.call('getMultipleAccounts', [[a.market, a.routeState, a.trader, a.makers[0].capital, a.makers[0].registration, a.vault], { encoding: 'base64', commitment: 'finalized' }]);
+  const raw = await h.rpc.call('getMultipleAccounts', [[a.market, a.routeState, a.trader, a.makers[0].capital, a.makers[0].registration, a.vault,
+    'SysvarC1ock11111111111111111111111111111111'], { encoding: 'base64', commitment: 'finalized' }]);
   const bytes = raw.value.map((x: any) => Buffer.from(x.data[0], 'base64'));
   const m = sdk.getMarketStateDecoder().decode(bytes[0]), r = sdk.getTestRouteStateDecoder().decode(bytes[1]);
   const trader = sdk.getParticipantDecoder().decode(bytes[2]), maker = sdk.getParticipantDecoder().decode(bytes[3]);
   const reg = sdk.getMakerRegistrationDecoder().decode(bytes[4]);
   assert.equal(trader.lots, 0n); assert.equal(maker.lots, 0n);
+  const currentClock = bytes[6].readBigInt64LE(32), currentSlot = BigInt(unsigned(raw.context.slot));
+  assert.equal(sdk.oracleMode(m, r, currentClock, currentSlot), 'Normal', 'Finalized evidence was delayed past live source validity; stop before signing');
   const normalized = report.usedSource.prices.map((p: ReturnType<typeof decodeCore>) => normalizeCore(p.price, p.confidence, p.exponent));
   assert.equal(r.referencePrice, normalized[0].value / normalized[1].value);
   const gross = r.referencePrice + 10n, fee = (gross + 4_999n) / 5_000n, slot = BigInt(unsigned(raw.context.slot)), x = a.makers[0];
@@ -105,7 +108,8 @@ try {
     startSlot: slot, expirySlot: slot + 150n, side: 0, lots: 1n, allInLimit: gross + fee, maxFee: fee, reduceOnly: false, generation: trader.generation,
     legs: [{ lots: 1n, quoteEpoch: reg.quoteEpoch, authorityEpoch: reg.authorityEpoch }] }, a.options);
   persist(`${directory}/route-expected.json`, { gross, fee, before: { trader, maker, market: m }, observation: r, source: report.usedSource });
-  await h.send('open-one-lot', [sdk.routeComputeBudget(), route], [a.traderOwner]);
+  const tradeLabel = `open-one-lot-${r.observationSequence}`; report.tradeLabel = tradeLabel;
+  await h.send(tradeLabel, [sdk.routeComputeBudget(), route], [a.traderOwner]);
   const after = await h.rpc.call('getMultipleAccounts', [[a.market, a.trader, a.makers[0].capital, a.vault], { encoding: 'base64', commitment: 'finalized' }]);
   const [am, at, ap, av] = after.value.map((x: any) => Buffer.from(x.data[0], 'base64'));
   const marketAfter = sdk.getMarketStateDecoder().decode(am), traderAfter = sdk.getParticipantDecoder().decode(at), makerAfter = sdk.getParticipantDecoder().decode(ap);
@@ -120,7 +124,7 @@ try {
   const expired = await risk(); assert.equal(expired.oracle.status, 0);
   await h.send('reject-priced-action-after-expiry', [sdk.routeComputeBudget(), route], [a.traderOwner], 6118);
   report.expiry = expired;
-  assert(ws.acknowledged && ws.buffer.some(n => n.value.signature === h.checks.find(c => c.label === 'open-one-lot')?.signature), 'No actual clearing WS notice for priced action');
+  assert(ws.acknowledged && ws.buffer.some(n => n.value.signature === h.checks.find(c => c.label === tradeLabel)?.signature), 'No actual clearing WS notice for priced action');
   report.result = 'pass'; report.a18RuntimeChecks = true;
   // Full A18 closeout still requires deployment/source manifests and retained actual
   // update-verification provenance for the primary messages consumed in this run.

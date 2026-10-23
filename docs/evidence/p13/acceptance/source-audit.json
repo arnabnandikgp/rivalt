@@ -1,0 +1,33 @@
+{
+  "result": "pass",
+  "a18Complete": false,
+  "revision": "4380cde79305ce8a88555073554b1ddf485e3d2d",
+  "upstream": [
+    {
+      "feed": "btc",
+      "signature": "2vVCSQmxc8bPhFP1sWp4GqK2xfafcThTR8qStoVdYn4z3TnibcMioiuuibcYfCu65nigQDeKSoXQr4V6YGgaVe8s",
+      "slot": "514242489",
+      "publishTime": "1792757584",
+      "encodedVaa": "GQXcb7NcvRm3yKzTe9M4qB1ppNssH2dPHB91FyyFfk9m",
+      "receiver": "rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp",
+      "proofNodes": "12"
+    },
+    {
+      "feed": "collateral",
+      "signature": "2oTxhy8v2VCUT52u9MvNVuJXBBEvjy2K6HLXJDZcZU6XUoriouawFwrF8ARFU1t6ZQ292rCZaWiazzf9xyEMDWdJ",
+      "slot": "514242484",
+      "publishTime": "1792757584",
+      "encodedVaa": "GQXcb7NcvRm3yKzTe9M4qB1ppNssH2dPHB91FyyFfk9m",
+      "receiver": "rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp",
+      "proofNodes": "12"
+    }
+  ],
+  "consumedObservation": {
+    "signature": "ozsRYivN4enzLe2zLk8Yx2pyqVF59s9mK1r9w3Lzw2oGrzpQRb4uNM7Mo9BHrtXV6RP7Nb32YykXEiLGC6HrrEm",
+    "slot": "514242526",
+    "sampledAt": "1792757597",
+    "sourceDeadline": "1792757604"
+  },
+  "referenceAtomsPerLot": "81476",
+  "scope": "Exact upstream verification and actual Normal clearing observation only; priced action acceptance remains incomplete."
+}

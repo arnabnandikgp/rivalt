@@ -1,0 +1,88 @@
+{
+  "kind": "read-only-devnet-dependency-inventory",
+  "startedUtc": "2026-10-23T12:18:17.221Z",
+  "revision": "4380cde79305ce8a88555073554b1ddf485e3d2d",
+  "sourceDirty": true,
+  "a18Complete": false,
+  "signedUpdateVerified": false,
+  "rivaltDeployed": false,
+  "endpoint": "configured-private-url-redacted",
+  "genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "version": {
+    "solanaCore": "4.4.0-beta.0",
+    "featureSet": "1855282951"
+  },
+  "dependencies": [
+    {
+      "role": "receiver",
+      "program": "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ",
+      "programData": "96QrNCjmh32H9quY9DX4NEH81nECVsbkATBDZeoVbvLV",
+      "deploymentSlot": "491006444",
+      "upgradeAuthority": "upg8KLALUN7ByDHiBu4wEbMDTC6UnSVFSYfTyGfXuzr",
+      "allocatedBytes": "1355965",
+      "accountSha256": "47bb6f0e02b0341571bd51d6f81962b9d0b126d69bb57887cb1d5379d016c033",
+      "payloadWithPaddingSha256": "0d6bf9142c2eb1fdb8ead48054491369bed3a8d6846c5887e362844155599ab2"
+    },
+    {
+      "role": "wormholeReceiver",
+      "program": "HDwcJBJXjL9FpJ7UBsYBtaDjsBUhuLCUYoz3zr8SWWaQ",
+      "programData": "CmumsQAU6TvqW2VLFVySBjQYKqKDeUPMBVdrxJ2YoK1",
+      "deploymentSlot": "487852630",
+      "upgradeAuthority": "upg8KLALUN7ByDHiBu4wEbMDTC6UnSVFSYfTyGfXuzr",
+      "allocatedBytes": "1356397",
+      "accountSha256": "f55d16cbfe0a8fc3e0860f383f22e20ff65adb45009109847f31d9619c0204a5",
+      "payloadWithPaddingSha256": "ca237355a04cc5ceeb788853833ae46c0cb8b0a728625e8f9bb9bc05d1e9c619"
+    },
+    {
+      "role": "push",
+      "program": "pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT",
+      "programData": "8xAeURaAWExxyHUXJSgjsg5r96Ydr3G4cek2if7imQmz",
+      "deploymentSlot": "293898740",
+      "upgradeAuthority": "ACzP6RC98vcBk9oTeAwcH1o5HJvtBzU59b5nqdwc7Cxy",
+      "allocatedBytes": "281949",
+      "accountSha256": "9f967e5eb5f7209c114752979948a1b21a6f1ca61f95b9363f719106768f32a2",
+      "payloadWithPaddingSha256": "845d84603cdef688e927521eb05be70996a0432c21f40f4cdeb3b7a59f44c4ec"
+    },
+    {
+      "role": "compatibleReceiver",
+      "program": "rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp",
+      "programData": "3UV7w2yTaqVcUAbWm1KUXdcE1Ziw8CfyyCpZvhKFkPfX",
+      "deploymentSlot": "460336311",
+      "upgradeAuthority": "upg8KLALUN7ByDHiBu4wEbMDTC6UnSVFSYfTyGfXuzr",
+      "allocatedBytes": "416909",
+      "accountSha256": "7122abc6b5e78d30bf88c869cb5d8783adaf897369d04eca827d3af8ffe18e5d",
+      "payloadWithPaddingSha256": "c5079559864fc34dbd5fe87b4aa9fba3a1ed22690363ec490449e8660e73af64"
+    },
+    {
+      "role": "compatibleWormholeReceiver",
+      "program": "HDw2E7P8X1SkCyjvoGsfBGAVUutKcj874bXjHrpVYrVL",
+      "programData": "9hLWdeVhSG9ufuQFA5d6zUoZ6qXoMRWrS8i4HGFHnR1x",
+      "deploymentSlot": "460336290",
+      "upgradeAuthority": "upg8KLALUN7ByDHiBu4wEbMDTC6UnSVFSYfTyGfXuzr",
+      "allocatedBytes": "656005",
+      "accountSha256": "f26f4b53b0f980455886116f500fa74ba475e51b1acb7f486b18afa9d73d948f",
+      "payloadWithPaddingSha256": "f9061f03a81b89db29f4603677e3b3d89b3bbf08d67827b2832f18a4e2b61acb"
+    },
+    {
+      "role": "compatiblePush",
+      "program": "pyt2F414BA6dPttK6RddPZUdHfapoBN24GL5wbrPCou",
+      "programData": "9nxngQjxBGUZ3ajfqoTrpiuDBVfztXCQVDuWDAw52Gew",
+      "deploymentSlot": "460336332",
+      "upgradeAuthority": "upg8KLALUN7ByDHiBu4wEbMDTC6UnSVFSYfTyGfXuzr",
+      "allocatedBytes": "234997",
+      "accountSha256": "95c4f5d726073d533c1509eb79260d914a8c1ca939e91f18de062f98328b5e97",
+      "payloadWithPaddingSha256": "a0318a87b80cebf9633e2b16e81984af5633e9a72ab491960ca16fbfd0d7d916"
+    }
+  ],
+  "contexts": {
+    "programSlot": "514243791",
+    "programDataSlot": "514243792",
+    "commitment": "finalized"
+  },
+  "websocket": {
+    "subscription": "1",
+    "slot": "514243806"
+  },
+  "result": "pass",
+  "finishedUtc": "2026-10-23T12:18:22.780Z"
+}

@@ -8,11 +8,13 @@ import sys
 from audit_pyth_sponsored import audit_update, b58
 
 
-def audit(root):
+def audit(root, source_only=False):
     load = lambda path: json.loads((root / path).read_text())
     report = load('report.json')
     manifest = load('provenance/manifest.json')
-    assert report['result'] == 'pass' and report['a18RuntimeChecks'] and not report['sourceDirty']
+    assert not report['sourceDirty']
+    if not source_only:
+        assert report['result'] == 'pass' and report['a18RuntimeChecks']
     assert manifest['usedSource'] == report['usedSource']
     proofs = []
     normalized = []
@@ -41,8 +43,9 @@ def audit(root):
             else:
                 # Retain unexpected, finalized harness failures as failures;
                 # never retroactively classify them as successful negative tests.
-                assert entry['label'] == 'refresh-maker-0-2'
-                assert tx['meta']['err'] == {'InstructionError': [0, {'Custom': 6002}]}
+                known_failures = {'refresh-maker-0-2': [0, {'Custom': 6002}], 'open-one-lot': [1, {'Custom': 6124}]}
+                assert entry['label'] in known_failures
+                assert tx['meta']['err'] == {'InstructionError': known_failures[entry['label']]}
             continue
         keys = tx['transaction']['message']['accountKeys'] + tx['meta'].get('loadedAddresses', {}).get('writable', []) + tx['meta'].get('loadedAddresses', {}).get('readonly', [])
         for group in tx['meta']['innerInstructions']:
@@ -68,6 +71,10 @@ def audit(root):
                 assert b[354] == 2 and sampled <= deadline
                 selected.append({'signature': entry['signature'], 'slot': str(tx['slot']), 'sampledAt': str(sampled), 'sourceDeadline': str(deadline)})
     assert len(selected) == 1
+    if source_only:
+        return {'result': 'pass', 'a18Complete': False, 'revision': report['revision'], 'upstream': proofs,
+                'consumedObservation': selected[0], 'referenceAtomsPerLot': str(reference),
+                'scope': 'Exact upstream verification and actual Normal clearing observation only; priced action acceptance remains incomplete.'}
     gross = reference + 10
     fee = (gross + 4999) // 5000
     actual = report['independentRoute']
@@ -86,4 +93,5 @@ def audit(root):
 
 
 if __name__ == '__main__':
-    print(json.dumps(audit(Path(sys.argv[1] if len(sys.argv) > 1 else '.local/devnet/acceptance')), indent=2))
+    args = [x for x in sys.argv[1:] if x != '--source-only']
+    print(json.dumps(audit(Path(args[0] if args else '.local/devnet/acceptance'), '--source-only' in sys.argv), indent=2))
