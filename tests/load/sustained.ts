@@ -57,9 +57,12 @@ export function sustained(e:Awaited<ReturnType<typeof environment>>,duration:num
         if(err instanceof QuoteUnavailable){record('orders',{atSeconds:elapsed(),unavailable:err.code});lastOrder=elapsed()-orderCadence+5;}else fatal=err;
       }).finally(()=>{orderAction=null;});}
       if(time-lastCapture>=60){lastCapture=time;const sample=await capture(`sustained-${Math.floor(time)}`),free=statfsSync('.');
-        const pids=[process.pid,Number(process.env.RIVALT_SURFPOOL_PID),...[...e.children.values()].map(c=>c.pid)].filter((x):x is number=>Number.isInteger(x)&&Number(x)>0);
-        const usage=execFileSync('ps',['-p',pids.join(','),'-o','pid=,%cpu=,rss=,etime=,comm='],{encoding:'utf8'});
-        const value={atSeconds:time,databaseBytes:sample.databaseBytes,diskFreeBytes:free.bavail*free.bsize,processes:usage};resources.push(value);record('resources',value);
+        const inventory=execFileSync('ps',['-Ao','pid=,ppid=,%cpu=,rss=,etime=,comm='],{encoding:'utf8'}).trim().split('\n').map(line=>{const fields=line.trim().split(/\s+/);return{pid:Number(fields[0]),parent:Number(fields[1]),rssKiB:Number(fields[3]),line};});
+        const owned=new Set([process.pid,Number(process.env.RIVALT_SURFPOOL_PID)]);let changed=true;
+        while(changed){changed=false;for(const p of inventory)if(owned.has(p.parent)&&!owned.has(p.pid)){owned.add(p.pid);changed=true;}}
+        const selected=inventory.filter(p=>owned.has(p.pid));
+        const value={atSeconds:time,databaseBytes:sample.databaseBytes,diskFreeBytes:free.bavail*free.bsize,processes:selected.map(p=>p.line).join('\n'),
+          summedOwnedRssKiB:selected.reduce((n,p)=>n+p.rssKiB,0),postgresVmCapMiB:512,vmStatistics:execFileSync('vm_stat',[],{encoding:'utf8'})};resources.push(value);record('resources',value);
         assert(value.diskFreeBytes>Math.max(512*1024*1024,Number(sample.databaseBytes)*1.25),'Insufficient reserved disk for final rebuild; soak incomplete');
         assert.equal(e.sourceErrors.length,0,'Source publication errors');
         for(const role of ['indexer','api','executor','maker-a','maker-b','funding','settlement','orders','risk'])if(role!==active){const child=e.children.get(role);assert(child&&child.exitCode===null&&child.signalCode===null,`Unexpected ${role} process exit`);}

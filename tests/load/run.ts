@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { cpus,totalmem } from 'node:os';
 import { createHash } from 'node:crypto';
 import { appendFileSync, readFileSync, writeFileSync, statfsSync, readdirSync, statSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -27,7 +28,7 @@ const git=(...args:string[])=>execFileSync('git',args,{encoding:'utf8'}).trim();
 const revision=git('rev-parse','HEAD'),sourceDirty=Boolean(git('status','--porcelain'));
 if(sourceDirty&&!args.includes('--development'))throw new Error('Commit source before acceptance; --development is explicitly provisional');
 const dir=process.env.RIVALT_RUN_DIR!,startedUtc=new Date().toISOString(),records:Attempt[]=[],faults:any[]=[],phases:any[]=[];
-const manifest={revision,sourceDirty,startedUtc,command:process.argv.slice(2),host:{platform:process.platform,arch:process.arch,node:process.version},
+const manifest={revision,sourceDirty,startedUtc,command:process.argv.slice(2),host:{platform:process.platform,arch:process.arch,node:process.version,logicalCpus:cpus().length,physicalMemoryBytes:totalmem()},
   slotTimeMs:50,fundingIntervalSeconds:5,quoteDispatchMarginSeconds:1,minRemainingQuoteSlots:10,budgetProfile:'soak24',maxRecoveryTransactions:200000,
   accountMix:'3 funded trader owners, 2 shared maker participants, 1 funded risk receiver; round-robin attempts, at most one unresolved attempt per trader; open sizes 1 lot or 100 every tenth offered attempt, close the same actual exposure',
   transport:'HTTP quote and immutable submission journal; separate executor/other worker processes; actual finalized RPC + PostgreSQL/WS indexer',
@@ -120,9 +121,9 @@ try{
     ui=await observer(e);control=sustained(e,seconds,capture,()=>ui!.poll());
   }
   for(const rate of rates){
-    const name=`${long?'soak':extended?'exercise':'sweep'}-${rate}`,start=performance.now(),first=records.length;
+    const name=`${long?'soak':extended?'exercise':'sweep'}-${rate}`,start=performance.now(),firstWall=Date.now(),first=records.length;
     console.log(`Offered-load ${rate}/s for ${seconds} real seconds`);
-    for(let n=0;n<rate*seconds;n++){
+    for(let n=0;n<rate*seconds||extended&&Date.now()-firstWall<seconds*1000;n++){
       control?.assertHealthy();const due=start+n*1000/rate;await delay(Math.max(0,due-performance.now()));
       // Bound driver memory; a saturated driver is still an offered/unfilled attempt.
       if(pending.size>=32){const row:Attempt={id:`load:${offered++}`,phase:name,offeredAt:Date.now(),actor:offered%3,fault:control?.fault()??false,status:'unfilled-driver-limit'};records.push(row);appendFileSync(`${dir}/attempts.jsonl`,json(row)+'\n');continue;}
@@ -136,17 +137,22 @@ try{
   }
   if(control){sustainedResult=await control.close();control=undefined;assert(sustainedResult.continuity.monotonicSeconds>=seconds&&sustainedResult.continuity.wallSeconds>=seconds);}
   if(ui){for(let n=0;n<6;n++){await ui.poll();await delay(500);}visibility=await ui.close();ui=undefined;}
-  const reference=JSON.parse(execFileSync('python3',['tests/load/reference.py',`${dir}/quotes.jsonl.gz`],{encoding:'utf8'}));writeFileSync(`${dir}/reference.json`,json(reference));
   // Stop new discovery/source changes before final history/fee reconciliation.
   await e.stopSources();for(const role of ['maker-a','maker-b','funding','settlement','orders','risk'])await e.stop(role);
   await wait(async()=>{await e.runtime.execute();return Number((await e.runtime.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[e.runId])).rows[0].count);},n=>n===0,'terminal known submissions',60_000);
   await e.stop('executor');
   if(extended){
-    const s=await e.runtime.snapshot(),ix=await sdk.getCheckExitCohortInstructionAsync({...s,sequence:s.m.sequence,observation:s.risk.observationSequence,start:0});
-    await e.send('final complete-cohort exit certificate',[{...ix,accounts:[...ix.accounts,...s.members.map(address=>({address,role:AccountRole.READONLY}))]}]);
+    let s=await e.runtime.snapshot();
+    const g=s.certificate,current=g.sequence===s.m.sequence&&g.observation===s.risk.observationSequence&&g.count===s.members.length;
+    const start=current?g.next:0,certificate={mode:current?(start===s.members.length?'reuse-complete':'resume'):'new',start,count:s.members.length,sequence:s.m.sequence,observation:s.risk.observationSequence};
+    for(let next=start;next<s.members.length;next+=8){
+      const ix=await sdk.getCheckExitCohortInstructionAsync({...s,sequence:s.m.sequence,observation:s.risk.observationSequence,start:next});
+      await e.send('final complete-cohort exit certificate',[{...ix,accounts:[...ix.accounts,...s.members.slice(next,next+8).map(address=>({address,role:AccountRole.READONLY}))]}]);
+    }
+    s=await e.runtime.snapshot();assert.equal(s.certificate.sequence,s.m.sequence);assert.equal(s.certificate.observation,s.risk.observationSequence);assert.equal(s.certificate.next,s.members.length);
     const owner=e.actors[0],before=sdk.getParticipantDecoder().decode((await e.read(owner.participant))!).cash;
     const signature=await e.send('final actual one-atom cash withdrawal',[await sdk.getWithdrawTradingInstructionAsync({...s,owner:owner.owner,participant:owner.participant,quoteMint:e.setup.mint.address,userToken:owner.token.address,sequence:s.m.sequence,observation:s.risk.observationSequence,amount:1n})],[owner.owner]);
-    assert.equal(sdk.getParticipantDecoder().decode((await e.read(owner.participant))!).cash,before-1n);writeFileSync(`${dir}/withdrawal.json`,json({signature,cashBefore:before,cashAfter:before-1n,amount:1n}));
+    assert.equal(sdk.getParticipantDecoder().decode((await e.read(owner.participant))!).cash,before-1n);writeFileSync(`${dir}/withdrawal.json`,json({signature,certificate,cashBefore:before,cashAfter:before-1n,amount:1n}));
   }
   await e.stop('indexer');
   const indexer=index(e.config);await indexer.open();await indexer.cycle();const final=await indexer.reconcile(),state=(await indexer.store.snapshot()).state;const readApi=extended?await verifyReads(indexer):null;if(readApi)writeFileSync(`${dir}/read-api.json`,json(readApi));
@@ -172,6 +178,7 @@ try{
     retainedFractions:Object.fromEntries(Object.entries(finalSnapshot.chain.participants).map(([key,p])=>[key,p.virtualScaled%1_000_000_000n])),
     samplingSensitivity:'Not varied in this run; selected cadence five seconds. P07/P11 hold/accrual reference evidence is unchanged.'};
   await indexer.close();
+  const reference=JSON.parse(execFileSync('python3',['tests/load/reference.py',`${dir}/quotes.jsonl.gz`],{encoding:'utf8'}));writeFileSync(`${dir}/reference.json`,json(reference));
   const baseline=phases[0],targets={quote:baseline.quote.p95!==null&&baseline.quote.p95<=200,normalSuccess:baseline.normalEligible>0&&baseline.normalSuccess>=.99,routeHeadroom:Math.max(...phases.map(x=>x.maxUnits))<=320_000};
   const result={...manifest,finishedUtc:new Date().toISOString(),result:Object.values(targets).every(Boolean)?'pass':'fail',scope:long?'actual 24-hour sustained run':extended?`${seconds}-second ${mode==='--final-check-seconds'?'final-check probe':'sustained harness exercise'}; A17 not-run`:'finite qualification; A17 not-run',reference,readApi,fundingQuality,sustained:sustainedResult,visibility,rebuildMetrics,rebuildKind:extended?'fresh PostgreSQL database':'fresh projection in same database',sourceBudget:{...e.sourceBudget,closingLamports:sourceClosing},targets,phases,faults,final,rebuiltFinal,finalSnapshot,intents,budgets,closingBalances,sourceErrors:e.sourceErrors};
   writeFileSync(`${dir}/load.json`,json(result));assert.equal(e.sourceErrors.length,0,'source publisher errors retained');
