@@ -8,6 +8,7 @@ import { Rpc } from '../../packages/indexer/src/rpc.js';
 import { decode, json } from '../../packages/indexer/src/events.js';
 import { checkedGenesis, configuration, unsigned } from './devnet-preflight-support.js';
 import { profile, type DevnetContext, type DevnetHarness } from './devnet-context.js';
+import { DevnetTransport } from './devnet-transport.js';
 
 const digest = (value: unknown) => createHash('sha256').update(json(value)).digest('hex');
 export function persist(path: string, value: unknown) {
@@ -20,7 +21,7 @@ type Entry = { label: string; instructionHash: string; signature: string; wire: 
 
 export class DevnetRpc implements DevnetHarness {
   readonly config = configuration(process.env);
-  readonly rpc = new Rpc(this.config.rpc);
+  readonly rpc = new DevnetTransport(new Rpc(this.config.rpc));
   readonly journal = '.local/devnet/acceptance/journal';
   readonly checks: Array<{ label: string; signature: string; result: string; feeLamports: string }> = [];
   constructor(readonly a: DevnetContext) {

@@ -108,7 +108,8 @@ try {
   report.failure = error instanceof assert.AssertionError ? error.message : 'Transport or execution failure; inspect retained stage/journal';
   process.exitCode = 1;
 } finally {
-  report.finishedUtc = new Date().toISOString(); report.checks = h.checks; report.ws = { acknowledged: ws?.acknowledged ?? false, notifications: ws?.buffer ?? [] };
+  report.finishedUtc = new Date().toISOString(); report.checks = h.checks; report.rateLimits = h.rpc.interruptions;
+  report.ws = { acknowledged: ws?.acknowledged ?? false, notifications: ws?.buffer ?? [] };
   ws?.close(); persist(`${directory}/report.json`, report);
   console.log(JSON.stringify({ result: report.result, failedStage: report.failedStage, failure: report.failure, report: `${directory}/report.json`, a18Complete: false }));
 }
