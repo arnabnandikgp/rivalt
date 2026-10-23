@@ -30,7 +30,7 @@ def state(raw):
     assert sum(p['virtual']+p['lots']*p['checkpoint'] for p in participants) == market['pool']*SCALE
     assert market['cash']+market['pool']+market['insurance']+market['fees'] == market['vault'] == number(b[5],64)
     # OracleState starts after the route's fixed fields and bump.
-    o = r[105:]
+    o = r[97:]
     oracle = dict(sample=number(o,160,8,True), deadline=number(o,168,8,True), status=o[176], outcome=o[177],
                   heldUntil=number(o,194,8,True), heldSlot=number(o,202), heldEpoch=number(o,210),
                   base=number(o,218,16,True), premium=number(o,234,16,True), quantity=number(o,250),

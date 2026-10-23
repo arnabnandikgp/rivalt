@@ -28,6 +28,7 @@ const report: Record<string, any> = { startedUtc: new Date().toISOString(), a19C
   program: a.program, market: a.market, trader: a.trader, makers: a.makers.map(m => m.capital),
   sourceWindows: [], actions: [], sourceAgeSeconds: 30, scope: 'Existing-position reduce-only order/cancel, A close, flat-cohort settlement and withdrawal; no continuous availability target' };
 let stage = 'preflight', sourceDeadline = 0;
+const safeFailure = (error: unknown) => String(error).replaceAll(h.config.rpc, '[RPC]').replaceAll(h.config.ws, '[WS]').replace(/https?:\/\/\S+/g, '[endpoint]').slice(0, 500);
 async function rawState(commitment: 'confirmed' | 'finalized' = 'finalized') {
   return h.rpc.call('getMultipleAccounts', [[a.market, a.routeState, a.trader, ...a.makers.map(m => m.capital), a.vault, a.traderToken.address], { encoding: 'base64', commitment }]);
 }
@@ -65,7 +66,17 @@ async function drain() {
 async function sourceWindow(purpose: string) {
   let polls = 0, maxAge: bigint | undefined;
   while (Date.now() < sourceDeadline) {
-    const raw = await h.rpc.call('getMultipleAccounts', [[...a.primary.map(x => x.account), 'SysvarC1ock11111111111111111111111111111111'], { encoding: 'base64', commitment: 'confirmed' }]);
+    let raw: any;
+    try {
+      raw = await h.rpc.call('getMultipleAccounts', [[...a.primary.map(x => x.account), 'SysvarC1ock11111111111111111111111111111111'], { encoding: 'base64', commitment: 'confirmed' }]);
+    } catch (error) {
+      (report.sourceReadErrors ??= []).push({ purpose, at: new Date().toISOString(), error: safeFailure(error) });
+      persist(`${directory}/progress.json`, report);
+      // Read-only polling may recover transient HTTP/network interruptions. This
+      // does not retry/rebuild any financial intent or extend the 600-second cap.
+      if (report.sourceReadErrors.length >= 5 || !/fetch failed|TimeoutError|AbortError|RPC HTTP (429|502|503|504)/.test(String(error))) throw error;
+      await delay(1000); continue;
+    }
     const now = Buffer.from(raw.value[2].data[0], 'base64').readBigInt64LE(32);
     const prices = a.primary.map((f, i) => decodeCore(raw.value[i], f));
     maxAge = prices.reduce((max, p) => now - p.published > max ? now - p.published : max, 0n); polls++;
@@ -153,7 +164,7 @@ try {
   report.result = 'pass';
 } catch (error) {
   report.result = 'fail'; report.failedStage = stage;
-  report.failure = error instanceof assert.AssertionError ? error.message : 'Bounded runtime operation failed; inspect retained stage/journal without replacing a signed intent';
+  report.failure = safeFailure(error);
   process.exitCode = 1;
 } finally {
   await h.reconcileObservations().catch(() => { report.finalizationFailure = true; process.exitCode = 1; });
