@@ -1,2 +1,0 @@
-{"role":"risk","pid":18902,"status":"started"}
-{"role":"risk","status":"stopped"}

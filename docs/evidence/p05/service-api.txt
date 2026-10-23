@@ -1,7 +1,0 @@
-{"level":30,"time":1792575473726,"pid":30322,"hostname":"Arnabs-MacBook-Air.local","msg":"Server listening at http://127.0.0.1:18080"}
-{"level":30,"time":1792575473795,"pid":30322,"hostname":"Arnabs-MacBook-Air.local","reqId":"req-1","req":{"method":"GET","url":"/ready","host":"127.0.0.1:18080","remoteAddress":"127.0.0.1","remotePort":60086},"msg":"incoming request"}
-{"level":30,"time":1792575473799,"pid":30322,"hostname":"Arnabs-MacBook-Air.local","reqId":"req-1","res":{"statusCode":200},"responseTime":3.6015840000000026,"msg":"request completed"}
-{"level":30,"time":1792575473799,"pid":30322,"hostname":"Arnabs-MacBook-Air.local","reqId":"req-2","req":{"method":"GET","url":"/metrics","host":"127.0.0.1:18080","remoteAddress":"127.0.0.1","remotePort":60087},"msg":"incoming request"}
-{"level":30,"time":1792575473800,"pid":30322,"hostname":"Arnabs-MacBook-Air.local","reqId":"req-2","res":{"statusCode":200},"responseTime":0.2545839999999657,"msg":"request completed"}
-{"level":30,"time":1792575473800,"pid":30322,"hostname":"Arnabs-MacBook-Air.local","reqId":"req-3","req":{"method":"GET","url":"/v1/market","host":"127.0.0.1:18080","remoteAddress":"127.0.0.1","remotePort":60086},"msg":"incoming request"}
-{"level":30,"time":1792575473803,"pid":30322,"hostname":"Arnabs-MacBook-Air.local","reqId":"req-3","res":{"statusCode":200},"responseTime":2.582334000000003,"msg":"request completed"}

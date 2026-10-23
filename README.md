@@ -53,3 +53,5 @@ All funds and actors remain explicitly synthetic/test assets through the enginee
 
 
 P09 liquidation and complete-cohort resolution pass clean full acceptance on the stacked child of P08. The local profile includes funded receivers, exact paginated loss allocation and explicit recovery authority; [evidence](docs/evidence/P09.md) records the actual results and [WORKLOG](docs/WORKLOG.md) owns Review/integration status. [P09's contract](docs/P09-RESOLUTION.md) describes the frozen ledger and service interface.
+
+Raw run evidence is retained locally at its existing paths and excluded from the tracked tree. See [evidence storage and reproduction](docs/EVIDENCE.md); concise reports and regression fixtures remain in Git.
