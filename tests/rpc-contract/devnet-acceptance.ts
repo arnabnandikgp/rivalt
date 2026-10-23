@@ -40,23 +40,28 @@ try {
   const sample = await sampleInstruction(a);
   await h.send('reject-primary-substitution', [sdk.fundingComputeBudget(), { ...sample, accounts: sample.accounts.map(x => x.address === a.primary[0].account ? { ...x, address: a.primary[1].account } : x) }], [], 6123);
   await h.send('reject-writable-primary', [sdk.fundingComputeBudget(), { ...sample, accounts: sample.accounts.map(x => x.address === a.primary[0].account ? { ...x, role: AccountRole.WRITABLE } : x) }], [], 6123);
-  stage = 'refresh-maker-quotes';
-  for (const [id, maker] of a.makers.entries()) {
-    const api = id === 0 ? sdk.makerA : sdk.makerB;
-    const state = api.getMakerConfigDecoder().decode((await h.read(maker.config))!).state;
-    if (state.expirySlot - await h.slot() < 3000n) {
-      await h.send(`refresh-maker-${id}-${state.quoteEpoch}`, [
-        api.getPublishEpochInstruction({ owner: maker.owner, config: maker.config, duration: 3600n }, { programAddress: maker.pricingProgram }),
-        await sdk.getSyncMakerEpochInstructionAsync({ ...a, ...maker }, a.options),
-      ], [maker.owner]);
-    }
-  }
+  const makerStates = await Promise.all(a.makers.map(async maker => sdk.makerA.getMakerConfigDecoder().decode((await h.read(maker.config))!).state));
   stage = 'qualify-live-primary';
   const deadline = Date.now() + 600_000;
   let lastSampledAt = (await risk()).oracle.sampledAt;
   let qualified = false, attempt = 0;
   while (Date.now() < deadline && !qualified) {
     const source = await sources();
+    // G04 forbids replacing an active epoch. Renew only after actual expiry,
+    // including during the unsigned source wait, then obtain a new snapshot.
+    let renewed = false;
+    for (const [id, maker] of a.makers.entries()) {
+      const state = makerStates[id], api = id === 0 ? sdk.makerA : sdk.makerB;
+      if (BigInt(unsigned(source.raw.context.slot)) >= state.expirySlot) {
+        await h.send(`renew-expired-maker-${id}-${state.quoteEpoch}`, [
+          api.getPublishEpochInstruction({ owner: maker.owner, config: maker.config, duration: 3600n }, { programAddress: maker.pricingProgram }),
+          await sdk.getSyncMakerEpochInstructionAsync({ ...a, ...maker }, a.options),
+        ], [maker.owner]);
+        makerStates[id] = api.getMakerConfigDecoder().decode((await h.read(maker.config))!).state;
+        renewed = true;
+      }
+    }
+    if (renewed) continue;
     // Unsigned preparation allowance only; the program's 20-second rule is unchanged.
     if (!source.eligible || source.latestAge > 11n || source.now < lastSampledAt + 2n) { await delay(500); continue; }
     attempt++;

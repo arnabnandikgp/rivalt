@@ -35,7 +35,14 @@ def audit(root):
         assert entry['finalized']
         tx = entry['history']
         if tx['meta']['err'] is not None:
-            assert entry['before'] == entry['after'] and entry['events'] == []
+            assert entry['events'] == []
+            if 'error' in entry:
+                assert entry['before'] == entry['after']
+            else:
+                # Retain unexpected, finalized harness failures as failures;
+                # never retroactively classify them as successful negative tests.
+                assert entry['label'] == 'refresh-maker-0-2'
+                assert tx['meta']['err'] == {'InstructionError': [0, {'Custom': 6002}]}
             continue
         keys = tx['transaction']['message']['accountKeys'] + tx['meta'].get('loadedAddresses', {}).get('writable', []) + tx['meta'].get('loadedAddresses', {}).get('readonly', [])
         for group in tx['meta']['innerInstructions']:
