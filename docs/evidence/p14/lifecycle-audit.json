@@ -1,6 +1,7 @@
 {
   "result": "pass",
   "revision": "df67ff1c130e4bc7a255cef1867cb10f070964a8",
+  "predecessorRevision": "696470474fd040608a9a12c29446b065dac64700",
   "lifecycle": [
     "cancel",
     "close",

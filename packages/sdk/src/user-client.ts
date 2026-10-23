@@ -8,7 +8,7 @@ import {
   type Address,
   type Instruction,
 } from '@solana/kit';
-import { PublicKey, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
+import { MessageV0, PublicKey, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 import { getMintDecoder, getTokenDecoder, TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import * as c from './generated/index.js';
 import * as makerA from './generatedMakerA/index.js';
@@ -138,6 +138,24 @@ export type SignedIntent = {
   error?: string;
   fee?: string;
 };
+
+/** Public message metadata only; no signature/private key or broadcast. */
+export function walletMessageDifference(preparedMessage: string, transaction: VersionedTransaction) {
+  try {
+    const expected = MessageV0.deserialize(fromBase64(preparedMessage)), actual = transaction.message;
+    const describe = (m: typeof expected) => m.compiledInstructions.map(ix => ({
+      program: m.staticAccountKeys[ix.programIdIndex].toString(), data: hex(ix.data),
+      accounts: ix.accountKeyIndexes.map(i => ({ address: m.staticAccountKeys[i].toString(), signer: m.isAccountSigner(i), writable: m.isAccountWritable(i) })),
+    }));
+    if (actual.version !== 0 || actual.addressTableLookups.length) return { unsupportedReturnedMessage: true };
+    const before = describe(expected), after = describe(actual);
+    return { blockhashChanged: expected.recentBlockhash !== actual.recentBlockhash,
+      payerChanged: expected.staticAccountKeys[0].toString() !== actual.staticAccountKeys[0].toString(),
+      expectedInstructions: before.length, returnedInstructions: after.length,
+      originalInstructionsPreserved: before.every(ix => after.some(other => JSON.stringify(ix) === JSON.stringify(other))),
+      addedInstructions: after.filter(ix => !before.some(other => JSON.stringify(ix) === JSON.stringify(other))).map(ix => ({ program: ix.program, data: ix.data.slice(0, 80) })) };
+  } catch { return { unsupportedMessageDifference: true }; }
+}
 
 /** User-owned RPC operations. No venue HTTP service, relay key or private key is required. */
 export class UserClient {
@@ -424,10 +442,8 @@ export class UserClient {
     };
   }
   async signed(prepared: PreparedTransaction, transaction: VersionedTransaction): Promise<SignedIntent> {
-    requireValue(
-      toBase64(transaction.message.serialize()) === prepared.message,
-      'Wallet returned a different transaction. Nothing was sent.',
-    );
+    requireValue(toBase64(transaction.message.serialize()) === prepared.message,
+      `Wallet returned a different transaction. Nothing was sent. ${JSON.stringify(walletMessageDifference(prepared.message, transaction))}`);
     requireValue(
       transaction.signatures.length === 1 &&
         transaction.message.staticAccountKeys[0].address === prepared.owner,

@@ -67,3 +67,5 @@ The declared full integrated acceptance cadence is 50 ms. Local deployment and u
 
 
 D35: quote review explicitly uses and labels a confirmed provisional snapshot. Independent client reconstruction validates the same commitment and all existing route constraints; displayed finalized account balances, direct exits and transaction-success reporting keep their prior finality rules. A forked or stale preview can reject on chain and is never automatically re-signed.
+
+P14 external-wallet diagnostics preserve the exact-message rule. A differing wallet output is not broadcast; its error may include public message metadata identifying changed payer/blockhash, instruction counts and added programs/data. This diagnostic contains no private key or signature and does not authorize modified instructions or an increased fee.

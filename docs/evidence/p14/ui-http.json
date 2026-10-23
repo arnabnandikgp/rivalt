@@ -1,0 +1,40 @@
+[
+  {
+    "path": "/",
+    "http": 200
+  },
+  {
+    "path": "/assets/index-CjnbwCW-.js",
+    "http": 200
+  },
+  {
+    "path": "/assets/index-BB9V-8VI.css",
+    "http": 200
+  },
+  {
+    "path": "/rivalt-config.json",
+    "http": 200
+  },
+  {
+    "path": "/api/ready",
+    "http": 200,
+    "body": {
+      "ready": true
+    }
+  },
+  {
+    "path": "/read/ready",
+    "http": 200,
+    "body": {
+      "ready": true,
+      "runId": "p14-demo-p14-demo-20261023T154353Z-94590",
+      "sequence": "57",
+      "error": null
+    }
+  },
+  {
+    "path": "/read/v1/trades?latest=true&limit=2",
+    "http": 200,
+    "trades": 2
+  }
+]

@@ -42,8 +42,16 @@ def trunc(n, d):
     return (abs(n)//d) * (-1 if n < 0 else 1)
 
 
-def audit(report):
+def audit(report, predecessor_bytes):
     assert report['result'] == 'pass' and not report['sourceDirty'] and not report.get('finalizationFailure')
+    predecessor = json.loads(predecessor_bytes)
+    assert report['resumedFrom']['sha256'] == hashlib.sha256(predecessor_bytes).hexdigest()
+    assert report['resumedFrom']['revision'] == predecessor['revision']
+    assert predecessor['result'] == 'fail' and predecessor['failedStage'] == 'close-existing-position'
+    assert predecessor['sourceUnavailable'] == {'purpose':'close', 'polls':0}
+    assert not predecessor['sourceDirty'] and not predecessor.get('finalizationFailure')
+    assert report['actions'][:len(predecessor['actions'])] == predecessor['actions']
+    assert report['initial'] == predecessor['initial']
     initial, final = state(report['initial']), state(report['final'])
     assert [p['lots'] for p in initial['p']] == [1,-1,0]
     assert [p['lots'] for p in final['p']] == [0,0,0]
@@ -108,10 +116,11 @@ def audit(report):
     assert report['sql'] == dict(unresolved='0',jobs='0')
     assert final['m']['pool'] <= 1 and all(abs(p['virtual']) < SCALE for p in final['p'])
     assert all(int(row['committed']) == 0 and int(row['spent']) <= int(row['cap']) for row in report['budgets'])
-    return dict(result='pass', revision=report['revision'], lifecycle=sorted(found), networkFeesLamports=str(fees),
+    return dict(result='pass', revision=report['revision'], predecessorRevision=predecessor['revision'], lifecycle=sorted(found), networkFeesLamports=str(fees),
                 finalVaultAtoms=str(final['m']['vault']), finalSettlementAtoms=str(final['m']['pool']),
                 retainedFractionalClaims=[str(p['virtual']) for p in final['p']], externalWalletVerified=False)
 
 
 if __name__ == '__main__':
-    print(json.dumps(audit(json.loads(Path(sys.argv[1]).read_text())), indent=2))
+    predecessor = Path(sys.argv[2] if len(sys.argv)>2 else 'docs/evidence/p14/lifecycle-attempt-2.json').read_bytes()
+    print(json.dumps(audit(json.loads(Path(sys.argv[1]).read_text()), predecessor), indent=2))

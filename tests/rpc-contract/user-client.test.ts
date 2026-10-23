@@ -144,6 +144,17 @@ it('verifies a real wallet signature and rejects a changed message before any br
   await transaction.sign([owner]);
   const intent = await client.signed(prepared, transaction);
   expect(intent.status).toBe('pending');
+  const walletModified = new VersionedTransaction(new TransactionMessage({
+    payerKey: owner.publicKey, recentBlockhash: blockhash(env.genesis),
+    instructions: [sdk.routeComputeBudget(), ix],
+  }).compileToV0Message());
+  await walletModified.sign([owner]);
+  expect(sdk.walletMessageDifference(prepared.message, walletModified)).toMatchObject({
+    blockhashChanged: false, payerChanged: false, expectedInstructions: 1, returnedInstructions: 2,
+    originalInstructionsPreserved: true,
+    addedInstructions: [{ program: 'ComputeBudget111111111111111111111111111111', data: sdk.hex(sdk.routeComputeBudget().data!) }],
+  });
+  await expect(client.signed(prepared, walletModified)).rejects.toThrow(/different transaction/);
   let broadcasts = 0;
   client.rpc.call = async () => {
     broadcasts++;
