@@ -1,6 +1,7 @@
 {
   "acceptance/attempts/2026-10-23T11-37-11-report.json": "abcc6f380b1d5b4bfccb02892284f905eee2694e168fc08f307b32336a681e8a",
   "acceptance/attempts/2026-10-23T11-41-report.json": "e92962a428675c210ee0bdcb73f4f0ea2e0dad22fd97d3f6bf4235c94c8723f6",
+  "acceptance/attempts/2026-10-23T11-46-window-overhead.json": "6cf45f57665c78362c8e8628dc2a88116d258e880c0e21833c2c09d566a43656",
   "deployment/build.json": "c6751fccda6d28825d241d11a606004a5555b73cd6a695df31f6b7de28009f88",
   "deployment/deployed.json": "2b416911821fecca1327f34147a54cf0d71be733d4c1ac47daf41d252be34a6f",
   "deployment/deployment-transactions.json": "2b9937bbd0fb32ccad62125fac8bbe5c857c52b6302729d1b6cebf05f3455225",

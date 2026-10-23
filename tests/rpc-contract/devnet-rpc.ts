@@ -24,6 +24,7 @@ export class DevnetRpc implements DevnetHarness {
   readonly rpc = new DevnetTransport(new Rpc(this.config.rpc));
   readonly journal = '.local/devnet/acceptance/journal';
   readonly checks: Array<{ label: string; signature: string; result: string; feeLamports: string }> = [];
+  latestEvents: ReturnType<typeof decode> = [];
   constructor(readonly a: DevnetContext) {
     assert.equal(a.payer.address, profile.deployer, 'Local SVM keys cannot submit to devnet');
     mkdirSync(this.journal, { recursive: true, mode: 0o700 });
@@ -84,19 +85,19 @@ export class DevnetRpc implements DevnetHarness {
       await this.finish(entry);
     }
     this.expectedOutcome(entry);
+    this.latestEvents = entry.events!;
     this.checks.push({ label, signature: entry.signature, result: entry.error === undefined ? 'pass' : 'rejected', feeLamports: entry.feeLamports! });
   }
   private async finish(entry: Entry) {
     const deadline = Date.now() + 90_000;
-    let status: any = null;
+    let history: any = null;
     while (Date.now() < deadline) {
-      try { status = (await this.rpc.call('getSignatureStatuses', [[entry.signature], { searchTransactionHistory: true }])).value[0]; }
+      try { history = await this.rpc.call('getTransaction', [entry.signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]); }
       catch { /* Provider interruption cannot be treated as failure or absence. */ }
-      if (status?.confirmationStatus === 'finalized') break;
+      if (history?.meta) break;
       await delay(500);
     }
-    assert.equal(status?.confirmationStatus, 'finalized', `Unresolved original signature ${entry.signature}; no replacement signed`);
-    const history = await this.rpc.call('getTransaction', [entry.signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]);
+    assert(history?.meta, `Unresolved original signature ${entry.signature}; no replacement signed`);
     const wire = await this.rpc.call('getTransaction', [entry.signature, { encoding: 'base64', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]);
     assert(history?.meta && wire?.transaction && history.transaction.signatures[0] === entry.signature);
     assert.equal(wire.transaction[0], entry.wire, 'Fetched signed bytes differ');

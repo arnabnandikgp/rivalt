@@ -40,26 +40,42 @@ try {
   const sample = await sampleInstruction(a);
   await h.send('reject-primary-substitution', [sdk.fundingComputeBudget(), { ...sample, accounts: sample.accounts.map(x => x.address === a.primary[0].account ? { ...x, address: a.primary[1].account } : x) }], [], 6123);
   await h.send('reject-writable-primary', [sdk.fundingComputeBudget(), { ...sample, accounts: sample.accounts.map(x => x.address === a.primary[0].account ? { ...x, role: AccountRole.WRITABLE } : x) }], [], 6123);
+  stage = 'refresh-maker-quotes';
+  for (const [id, maker] of a.makers.entries()) {
+    const api = id === 0 ? sdk.makerA : sdk.makerB;
+    const state = api.getMakerConfigDecoder().decode((await h.read(maker.config))!).state;
+    if (state.expirySlot - await h.slot() < 3000n) {
+      await h.send(`refresh-maker-${id}-${state.quoteEpoch}`, [
+        api.getPublishEpochInstruction({ owner: maker.owner, config: maker.config, duration: 3600n }, { programAddress: maker.pricingProgram }),
+        await sdk.getSyncMakerEpochInstructionAsync({ ...a, ...maker }, a.options),
+      ], [maker.owner]);
+    }
+  }
   stage = 'qualify-live-primary';
   const deadline = Date.now() + 600_000;
+  let lastSampledAt = (await risk()).oracle.sampledAt;
   let qualified = false, attempt = 0;
   while (Date.now() < deadline && !qualified) {
     const source = await sources();
     // Unsigned preparation allowance only; the program's 20-second rule is unchanged.
-    if (!source.eligible || source.latestAge > 11n) { await delay(500); continue; }
+    if (!source.eligible || source.latestAge > 11n || source.now < lastSampledAt + 2n) { await delay(500); continue; }
     attempt++;
     const window: Record<string, any> = { attempt, firstSource: source, samples: [] }; report.sourceWindows.push(window);
     console.log(JSON.stringify({ stage: 'source-window', attempt, maximumAgeSeconds: source.latestAge.toString() }));
     const guards = source.prices.map((p, i) => { const n = normalizeCore(p.price, p.confidence, p.exponent); return guardInstruction(a, i, n.value, n.confidence, p.published); });
     await h.send(`guard-${source.prices[0].published}-${source.prices[1].published}`, guards, [a.guardAuthority]);
     for (let i = 0; i < 5 && Date.now() < deadline; i++) {
-      await waitSample();
-      const before = await sources(); if (!before.eligible) break;
-      const sampleTime = await h.now();
-      await h.send(`sample-${sampleTime}`, [sdk.fundingComputeBudget(), await sampleInstruction(a)]);
-      const r = await risk();
+      let before = i === 0 ? source : await sources();
+      while (before.now < lastSampledAt + 2n && Date.now() < deadline) { await delay(250); before = await sources(); }
+      if (!before.eligible || Date.now() >= deadline) break;
+      await h.send(`sample-${before.now}`, [sdk.fundingComputeBudget(), await sampleInstruction(a)]);
+      // The finalized event already contains the exact sampled state; avoid
+      // refetching it and Clock separately before the next time-sensitive sample.
+      const event = h.latestEvents.find(e => e.type === 'oracle'); assert(event);
+      const r = sdk.getOracleObservedEventDecoder().decode(Buffer.from(event.bytes, 'base64'));
+      lastSampledAt = r.oracle.sampledAt;
       window.samples.push({ before, observation: r }); persist(`${directory}/progress.json`, report);
-      if (r.oracle.status === 2 && (await h.now()) + 1n < r.oracle.sourceDeadline) {
+      if (r.oracle.status === 2 && r.oracle.sampledAt < r.oracle.sourceDeadline) {
         assert.deepEqual(r.oracle.sourceSequences.slice(0, 2), before.prices.map(p => p.published), 'Source changed during the recorded observation; retain race instead of inventing its snapshot');
         report.usedSource = before; qualified = true; break;
       }
