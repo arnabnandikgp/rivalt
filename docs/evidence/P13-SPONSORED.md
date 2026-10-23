@@ -1,6 +1,6 @@
 # P13 sponsored-source and adapter checkpoint
 
-P13/A18 is **incomplete**. This checkpoint verifies sponsored source provenance, the local adapter and actual Rivalt devnet deployment. Live setup has started, but executable source/action acceptance and M5b completion remain pending.
+This is the historical adapter/deployment checkpoint, when P13/A18 was incomplete. [The later P13 closeout](P13.md) records actual source consumption, accepted/rejected actions and the explicit recovered-WS qualification. M5b still requires P14.
 
 ## Actual dependency observation
 

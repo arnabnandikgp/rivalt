@@ -258,6 +258,8 @@ Milestone: **M5b**. Depends on: **P12**.
 
 **Expected artifacts:** Devnet manifest/preflight/deployment scripts, verification tests and dependency provenance report.
 
+D37 makes this a bounded dependency/action check. Intermittent sponsored updates and a missed live log remain reported limitations; finalized original-signature RPC/WS recovery may resolve the latter. Do not repeat source waits to imply continuous availability or hide the original failed harness report. [Actual P13 evidence](evidence/P13.md) records the scoped assessment.
+
 ## P14 — Devnet lifecycle, wallet and provider recovery
 
 Milestone: **M5b**. Depends on: **P13**.
@@ -273,6 +275,8 @@ Milestone: **M5b**. Depends on: **P13**.
 **Runnable demonstration:** One actual-cluster lifecycle with wallet signing and a provider disconnect/recovery report.
 
 **Expected artifacts:** Focused devnet suite, actual wallet smoke evidence and engineering-MVP completion report.
+
+Under D37, run one bounded lifecycle/recovery demonstration, without a load/endurance or continuous free-feed availability target. The approved devnet-only 30-second source-age setting needs explicit configuration/boundary evidence if enabled; P13's existing deployment and accepted trade use 20 seconds. Other recovery/funding/risk constraints are unchanged.
 
 ## P15 — Independent maker integration and economics
 

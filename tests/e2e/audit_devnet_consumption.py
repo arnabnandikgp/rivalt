@@ -8,12 +8,37 @@ import sys
 from audit_pyth_sponsored import audit_update, b58
 
 
-def audit(root, source_only=False):
-    load = lambda path: json.loads((root / path).read_text())
+def audit(root, source_only=False, recovered_ws=False):
+    # A public bundle preserves the original reports and signed journal verbatim.
+    # It is an offline input format, not regenerated or fabricated RPC evidence.
+    bundle = json.loads(root.read_text())['files'] if root.is_file() else None
+    load = lambda path: bundle[path] if bundle is not None else json.loads((root / path).read_text())
     report = load('report.json')
     manifest = load('provenance/manifest.json')
     assert not report['sourceDirty']
-    if not source_only:
+    if recovered_ws:
+        assert not source_only
+        assert report['result'] == 'fail'
+        assert report['failure'] == 'No actual clearing WS notice for priced action'
+        assert not report.get('finalizationFailure')
+        assert report['expiry']['oracle']['status'] == 0
+        assert report['ws']['acknowledged'] and report['ws']['notifications']
+        assert all(c['result'] in ('pass', 'rejected') for c in report['checks'])
+        trade = next(c for c in report['checks'] if c['label'] == report['tradeLabel'])
+        assert trade['result'] == 'pass'
+        recovery = load('ws-diagnostic.json')
+        assert recovery['signature'] == trade['signature']
+        messages = [m['message'] for m in recovery['messages']]
+        ack = next(m for m in messages if m.get('id') == 1)
+        notification = next(m for m in messages if m.get('method') == 'signatureNotification')
+        assert isinstance(ack['result'], int)
+        assert notification['params']['subscription'] == ack['result']
+        assert notification['params']['result']['value']['err'] is None
+        entry = load(f"journal/{report['tradeLabel']}.json")
+        assert entry['signature'] == trade['signature'] and entry['finalized']
+        assert entry['history']['meta']['err'] is None
+        assert notification['params']['result']['context']['slot'] == entry['history']['slot']
+    elif not source_only:
         assert report['result'] == 'pass' and report['a18RuntimeChecks']
     assert manifest['usedSource'] == report['usedSource']
     proofs = []
@@ -32,8 +57,9 @@ def audit(root, source_only=False):
     expected = load('route-expected.json')
     observation_sequence = int(expected['observation']['observationSequence'])
     selected = []
-    for file in (root / 'journal').glob('*.json'):
-        entry = json.loads(file.read_text())
+    journal_paths = [p for p in bundle if p.startswith('journal/') and p.endswith('.json')] if bundle is not None else [str(p.relative_to(root)) for p in (root / 'journal').glob('*.json')]
+    for path in journal_paths:
+        entry = load(path)
         assert entry['finalized']
         tx = entry['history']
         if tx['meta']['err'] is not None:
@@ -89,9 +115,10 @@ def audit(root, source_only=False):
     assert after['market']['allocatedVault'] == before['market']['allocatedVault'] == '1100000000'
     return {'result': 'pass', 'revision': report['revision'], 'upstream': proofs, 'consumedObservation': selected[0],
             'referenceAtomsPerLot': str(reference), 'grossAtoms': str(gross), 'feeAtoms': str(fee),
+            'websocket': 'Finalized original-signature recovery; live trade log was missed.' if recovered_ws else 'Runtime report',
             'scope': 'Exact sponsored update verification, actual clearing event bytes and independent one-lot integer deltas; no independent-guard or wallet/service claim.'}
 
 
 if __name__ == '__main__':
-    args = [x for x in sys.argv[1:] if x != '--source-only']
-    print(json.dumps(audit(Path(args[0] if args else '.local/devnet/acceptance'), '--source-only' in sys.argv), indent=2))
+    args = [x for x in sys.argv[1:] if x not in ('--source-only', '--recovered-ws')]
+    print(json.dumps(audit(Path(args[0] if args else '.local/devnet/acceptance'), '--source-only' in sys.argv, '--recovered-ws' in sys.argv), indent=2))

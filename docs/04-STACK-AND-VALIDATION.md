@@ -100,6 +100,8 @@ IDs are stable references from the delivery plan/worklog. A finite suite is evid
 | A20 | Independent maker evidence | Genuine operator records, observed hedges/capital/costs, missing-data labels | P15 |
 | A21 | Pilot readiness | Measured risk/capital, external review findings, incident/exit drill and separate go/no-go | P16 |
 
+D37 scopes A18/A19 to bounded engineering checks with intermittent sponsored devnet feeds. Record availability and notification gaps; do not require continuous feed availability or repeat a soak. An actual original-signature WS recovery plus independently finalized RPC history may qualify a missed live A18 notification while retaining the original failure. A19 still requires the focused service/wallet lifecycle and provider/backfill recovery. Neither accounting/authentication failures nor unresolved signed outcomes can be waived. P13's accepted trade uses 20-second source age; the approved 30-second devnet-only configuration must be separately implemented/tested before use.
+
 Early phases use controlled fixtures and supported operations; do not claim A09/A10/A14 pass before implementation. Historical experiment numbers are not transferred.
 
 ## RPC and database acceptance
