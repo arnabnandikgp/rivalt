@@ -122,3 +122,10 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **Acceptance:** Configuration is selected here; actual A05/A07/A08/G07 and M3 exit results and integration status remain in WORKLOG/evidence.
 
 - **G07 evidence:** [P06 clean acceptance](evidence/P06.md) passes on `2578327`: 49 signed cohort/settlement cases and 15 actual RPC/WS/PostgreSQL service checks, including explicit payer/cap accounting, unknown failed-transaction fees, real expiry and worker recovery. G07 and M3's engineering exit are verified; integration remains Review in WORKLOG.
+
+
+## 23 October 2026 — local evidence and reviewable phase diffs
+
+- **D38:** The user directs removing bulky raw evidence from Git tracking while leaving every existing local file at its original path. No bundles, downloads, uploads or release assets are requested. Keep concise acceptance summaries, original tested identities, audit code and necessary small regression inputs tracked; explain that raw references are local-only and unavailable in a fresh clone.
+- Ordinary tests use deliberate field projections under `tests/fixtures/`; full retained-run audits still consume the unchanged local reports. Deployment configuration is explicit in `ops/`, independent of historical run output. Enforce the tracked-evidence/fixture budget in scoped CI. A fixture replay is not new acceptance evidence.
+- Add cleanup commits to each existing phase, including the cleaned preceding phase as an ancestor. Preserve the exact original tested commits and their source history. This supersedes any implication that raw evidence must remain in the current source tree, not the acceptance requirements or recorded failures. No financial program behavior, economic setting, milestone status or funded authorization changes.
