@@ -1,0 +1,24 @@
+{
+  "source": "User-reported actual Phantom retry; not independently captured browser telemetry",
+  "result": "rejected-before-broadcast",
+  "blockhashChanged": false,
+  "payerChanged": false,
+  "expectedInstructions": 1,
+  "returnedInstructions": 3,
+  "originalInstructionsPreserved": true,
+  "addedInstructions": [
+    {
+      "program": "ComputeBudget111111111111111111111111111111",
+      "data": "03d8b8050000000000"
+    },
+    {
+      "program": "ComputeBudget111111111111111111111111111111",
+      "data": "02400d0300"
+    }
+  ],
+  "decoded": {
+    "computeUnitLimit": 200000,
+    "microLamportsPerComputeUnit": "375000",
+    "priorityFeeLamports": "75000"
+  }
+}

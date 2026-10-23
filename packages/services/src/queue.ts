@@ -27,12 +27,15 @@ export function signedWire(wire:string) {
 export function userAuthority(wire:string,market:string,program:Address=sdk.CLEARING_PROGRAM_ADDRESS):Authority|null {
   const {tx,keys}=signedWire(wire);const instructions=tx.message.compiledInstructions;
   let economic:typeof instructions[number]|undefined;
+  const budgets=new Set<string>();
   for(const ix of instructions){
     if(keys[ix.programIdIndex]==='ComputeBudget111111111111111111111111111111'){
-      if(!Buffer.from(ix.data).equals(Buffer.from(sdk.routeComputeBudget().data!)))throw new Error('Unsupported compute budget');
+      const data=Buffer.from(ix.data),kind=data.equals(Buffer.from(sdk.routeComputeBudget().data!))?'limit':data.equals(Buffer.from(sdk.zeroPriorityFee().data!))?'price':null;
+      if(!kind||economic||ix.accountKeyIndexes.length||budgets.has(kind))throw new Error('Unsupported compute budget');
+      budgets.add(kind);
     }else{if(economic || keys[ix.programIdIndex]!==program)throw new Error('Unsupported transaction');economic=ix;}
   }
-  if(!economic || instructions.length>2)throw new Error('Expected one financial action');
+  if(!economic || instructions.length>3 || (budgets.has('price')&&!budgets.has('limit')))throw new Error('Expected one financial action');
   const ix=economic,accounts=ix.accountKeyIndexes.map(i=>keys[i]);
   if(accounts[0]!==keys[0] || accounts[1]!==market)throw new Error('Wallet fee payer/market mismatch');
   const disc=Buffer.from(ix.data).subarray(0,8);

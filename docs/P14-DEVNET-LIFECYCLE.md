@@ -14,6 +14,7 @@ Run only the acceptance command needed for the changed behavior:
 | `bash ops/devnet-lifecycle.sh` | Existing-position reduce-only order/cancel, quoted A close, source expiry, flat-cohort loss collection/gain settlement and funded withdrawal |
 | `python3 tests/e2e/audit_devnet_lifecycle.py <report.json>` | Independent raw-account integer lifecycle, funding and cash/claim audit |
 | `bash ops/devnet-demo.sh` | Interactive UI, real indexer/read API and durable wallet-signed executor; no automated trade/source/maker worker |
+| `node --env-file=.env.devnet --import tsx tests/rpc-contract/devnet-wallet.ts <public-owner>` | Read-only verification of the external wallet's actual registration signature, exact canonical message, finalized account state and indexed balance |
 
 The acceptance supervisors own only their run's PostgreSQL container and retain its data and exact transaction journals under `.local/devnet/`. They use existing ignored `.env.devnet` server RPC/WS configuration; no key enters public UI configuration or evidence. A failed or unresolved financial intent must be recovered from its retained original wire/SQL state before any new intent. Do not rerun setup or recreate the P13 opening trade. The lifecycle entry requires the retained +1/−1/0 positions and stops if they differ.
 

@@ -15,7 +15,7 @@ import * as makerA from './generatedMakerA/index.js';
 import { effectiveFunding, oracleMode, accruedBalance } from './oracle-policy.js';
 import { orderReserve } from './order-policy.js';
 import { quoteMaker } from './quote-maker.js';
-import { routeComputeBudget } from './route-budget.js';
+import { routeComputeBudget, walletComputeBudget } from './route-budget.js';
 import { testDeployment, testRpcUrl, DEVNET_GENESIS, type TestChain } from './test-deployment.js';
 import { reconcileResolution } from './resolution-policy.js';
 
@@ -416,7 +416,7 @@ export class UserClient {
       new TransactionMessage({
         payerKey: new PublicKey(owner),
         recentBlockhash: latest.value.blockhash,
-        instructions,
+        instructions: walletComputeBudget(instructions),
       }).compileToV0Message(),
     );
     requireValue(transaction.serialize().length <= 1232, 'Transaction exceeds the supported message size.');
@@ -442,8 +442,8 @@ export class UserClient {
     };
   }
   async signed(prepared: PreparedTransaction, transaction: VersionedTransaction): Promise<SignedIntent> {
-    requireValue(toBase64(transaction.message.serialize()) === prepared.message,
-      `Wallet returned a different transaction. Nothing was sent. ${JSON.stringify(walletMessageDifference(prepared.message, transaction))}`);
+    if (toBase64(transaction.message.serialize()) !== prepared.message)
+      throw new Error(`Wallet returned a different transaction. Nothing was sent. ${JSON.stringify(walletMessageDifference(prepared.message, transaction))}`);
     requireValue(
       transaction.signatures.length === 1 &&
         transaction.message.staticAccountKeys[0].address === prepared.owner,

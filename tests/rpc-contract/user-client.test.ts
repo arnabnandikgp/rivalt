@@ -288,6 +288,25 @@ it('rebuilds the entire two-maker message and rejects malicious fees, accounts, 
     fee: 1201n,
     allIn: 6003991n,
   });
+  client.environment = async () => {};
+  let simulated: VersionedTransaction | undefined, pricedMessage: string | undefined;
+  client.rpc.call = async (method, params) => {
+    if (method === 'getLatestBlockhash') return { value: { blockhash: env.genesis, lastValidBlockHeight: 100 } };
+    if (method === 'simulateTransaction') {
+      simulated = VersionedTransaction.deserialize(Buffer.from(params![0] as string, 'base64'));
+      return { value: { err: null } };
+    }
+    if (method === 'getFeeForMessage') { pricedMessage = params![0] as string; return { value: 5000 }; }
+    throw new Error(`Unexpected RPC ${method}`);
+  };
+  const prepared = await client.prepare('Two-maker route', owner.address, [sdk.routeComputeBudget(), ix]);
+  expect(prepared.transaction.message.compiledInstructions.slice(0, 2).map(x => sdk.hex(x.data)))
+    .toEqual(['02801a0600', '030000000000000000']);
+  expect(prepared.transaction.serialize().length).toBeLessThanOrEqual(1232);
+  expect(sdk.toBase64(simulated!.message.serialize())).toBe(prepared.message);
+  expect(pricedMessage).toBe(prepared.message);
+  await prepared.transaction.sign([owner]);
+  expect((await client.signed(prepared, prepared.transaction)).status).toBe('pending');
   const attacks = [
     (q: typeof quote) => { q.snapshotCommitment = 'finalized'; },
     (q: typeof quote) => {

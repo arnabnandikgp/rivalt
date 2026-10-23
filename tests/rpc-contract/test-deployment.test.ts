@@ -44,4 +44,19 @@ test('signed devnet wallet ingress must explicitly match its deployment', async 
   const wire = Buffer.from(tx.serialize()).toString('base64');
   expect(userAuthority(wire, market, deployment.clearing)).toBeNull();
   expect(() => userAuthority(wire, market)).toThrow('Unsupported transaction');
+  const complete = sdk.walletComputeBudget([ix]);
+  expect(complete.slice(0,2).map(ix => Buffer.from(ix.data!).toString('hex'))).toEqual(['02801a0600','030000000000000000']);
+  expect(sdk.walletComputeBudget(complete)).toEqual(complete);
+  const signed = async (instructions: typeof complete) => {
+    const t = new VersionedTransaction(new TransactionMessage({ payerKey:key.publicKey,
+      recentBlockhash:blockhash('11111111111111111111111111111111'),instructions }).compileToV0Message());
+    await t.sign([key]); return Buffer.from(t.serialize()).toString('base64');
+  };
+  expect(userAuthority(await signed(complete),market,deployment.clearing)).toBeNull();
+  const nonzero = {...complete[1],data:Uint8Array.from([3,1,0,0,0,0,0,0,0])};
+  for (const invalid of [[complete[0],nonzero,ix],[...complete,complete[1]],[complete[1],ix],[ix,complete[0]]]) {
+    const wire = await signed(invalid);
+    expect(()=>userAuthority(wire,market,deployment.clearing)).toThrow();
+  }
+  expect(()=>sdk.walletComputeBudget([nonzero,ix])).toThrow('Unsupported');
 });
