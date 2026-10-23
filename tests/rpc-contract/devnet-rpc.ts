@@ -17,7 +17,8 @@ export function persist(path: string, value: unknown) {
   renameSync(path + '.tmp', path);
 }
 type Entry = { label: string; instructionHash: string; signature: string; wire: string; error?: number | 'reject'; feeLamports?: string;
-  history?: any; events?: ReturnType<typeof decode>; before?: Array<string | null>; after?: Array<string | null>; finalized: boolean };
+  history?: any; events?: ReturnType<typeof decode>; confirmed?: { history: any; events: ReturnType<typeof decode> };
+  before?: Array<string | null>; after?: Array<string | null>; finalized: boolean };
 
 export class DevnetRpc implements DevnetHarness {
   readonly config = configuration(process.env);
@@ -55,6 +56,19 @@ export class DevnetRpc implements DevnetHarness {
     return r.value.map((v: any) => v === null ? null : digest({ owner: v.owner, data: v.data })) as Array<string | null>;
   }
   async send(label: string, instructions: Instruction[], signers: Parameters<DevnetHarness['send']>[2] = [], error?: number | 'reject') {
+    return this.submit(label, instructions, signers, error, false);
+  }
+  async sendObservation(label: string, instructions: Instruction[], signers: Parameters<DevnetHarness['send']>[2] = []) {
+    for (const ix of instructions) {
+      if (ix.programAddress === 'ComputeBudget111111111111111111111111111111') continue;
+      const discriminator = Buffer.from(ix.data ?? []).subarray(0, 8);
+      assert((ix.programAddress === this.a.guardProgram && discriminator.equals(createHash('sha256').update('global:publish').digest().subarray(0, 8))) ||
+        (ix.programAddress === this.a.program && discriminator.equals(Buffer.from(sdk.SAMPLE_ORACLE_DISCRIMINATOR))),
+      'Only guard publication and oracle sampling may advance from confirmed observations');
+    }
+    return this.submit(label, instructions, signers, undefined, true);
+  }
+  private async submit(label: string, instructions: Instruction[], signers: Parameters<DevnetHarness['send']>[2], error: number | 'reject' | undefined, observe: boolean) {
     assert(/^[a-z0-9-]{1,128}$/.test(label));
     const path = `${this.journal}/${label}.json`;
     const instructionHash = digest(instructions.map(ix => ({ program: ix.programAddress, data: Buffer.from(ix.data ?? []).toString('hex'), accounts: ix.accounts?.map(x => ({ address: x.address, role: x.role })) })));
@@ -82,22 +96,43 @@ export class DevnetRpc implements DevnetHarness {
         const signature = await this.rpc.call('sendTransaction', [entry.wire, { encoding: 'base64', skipPreflight: true, maxRetries: 3 }]);
         assert.equal(signature, entry.signature);
       } catch { /* Unknown acknowledgement: reconcile the same persisted signature below. */ }
-      await this.finish(entry);
+      if (observe) {
+        const history = await this.history(entry, 'confirmed');
+        entry.confirmed = { history, events: decode(entry.signature, history, this.a.eventAuthority, this.a.program) };
+        persist(path, entry);
+        // A failed provisional observation stops and reconciles; it never drives
+        // a later priced intent. No successful acceptance is inferred here.
+        if (history.meta.err !== null) await this.finish(entry);
+      } else await this.finish(entry);
     }
-    this.expectedOutcome(entry);
-    this.latestEvents = entry.events!;
-    this.checks.push({ label, signature: entry.signature, result: entry.error === undefined ? 'pass' : 'rejected', feeLamports: entry.feeLamports! });
+    if (entry.finalized) this.expectedOutcome(entry);
+    this.latestEvents = entry.finalized ? entry.events! : entry.confirmed!.events;
+    this.checks.push({ label, signature: entry.signature, result: entry.finalized ? entry.error === undefined ? 'pass' : 'rejected' : 'confirmed-awaiting-finality',
+      feeLamports: entry.feeLamports ?? unsigned(entry.confirmed!.history.meta.fee) });
   }
-  private async finish(entry: Entry) {
+  async reconcileObservations() {
+    for (const file of readdirSync(this.journal).filter(f => f.endsWith('.json')).sort()) {
+      const entry: Entry = JSON.parse(readFileSync(`${this.journal}/${file}`, 'utf8'));
+      if (!entry.finalized) await this.finish(entry);
+      const check = this.checks.find(x => x.label === entry.label);
+      if (check?.result === 'confirmed-awaiting-finality') { this.expectedOutcome(entry); check.result = 'pass'; check.feeLamports = entry.feeLamports!; }
+    }
+  }
+  private async history(entry: Entry, commitment: 'confirmed' | 'finalized') {
     const deadline = Date.now() + 90_000;
     let history: any = null;
     while (Date.now() < deadline) {
-      try { history = await this.rpc.call('getTransaction', [entry.signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]); }
+      try { history = await this.rpc.call('getTransaction', [entry.signature, { encoding: 'json', commitment, maxSupportedTransactionVersion: 0 }]); }
       catch { /* Provider interruption cannot be treated as failure or absence. */ }
       if (history?.meta) break;
       await delay(500);
     }
     assert(history?.meta, `Unresolved original signature ${entry.signature}; no replacement signed`);
+    assert.equal(history.transaction.signatures[0], entry.signature);
+    return history;
+  }
+  private async finish(entry: Entry) {
+    const history = await this.history(entry, 'finalized');
     const wire = await this.rpc.call('getTransaction', [entry.signature, { encoding: 'base64', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]);
     assert(history?.meta && wire?.transaction && history.transaction.signatures[0] === entry.signature);
     assert.equal(wire.transaction[0], entry.wire, 'Fetched signed bytes differ');
@@ -109,6 +144,7 @@ export class DevnetRpc implements DevnetHarness {
     this.expectedOutcome(entry);
   }
   private expectedOutcome(entry: Entry) {
+    if (entry.confirmed) assert.deepEqual(entry.events, entry.confirmed.events, 'Finalized observation differs from provisional evidence');
     if (entry.error === undefined) assert.equal(entry.history.meta.err, null, `${entry.label}: ${json(entry.history.meta.err)}`);
     else {
       assert.notEqual(entry.history.meta.err, null, `${entry.label}: unexpectedly succeeded`);

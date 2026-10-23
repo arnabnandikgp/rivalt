@@ -68,18 +68,18 @@ try {
     const window: Record<string, any> = { attempt, firstSource: source, samples: [] }; report.sourceWindows.push(window);
     console.log(JSON.stringify({ stage: 'source-window', attempt, maximumAgeSeconds: source.latestAge.toString() }));
     const guards = source.prices.map((p, i) => { const n = normalizeCore(p.price, p.confidence, p.exponent); return guardInstruction(a, i, n.value, n.confidence, p.published); });
-    await h.send(`guard-${source.prices[0].published}-${source.prices[1].published}`, guards, [a.guardAuthority]);
+    await h.sendObservation(`guard-${source.prices[0].published}-${source.prices[1].published}`, guards, [a.guardAuthority]);
     for (let i = 0; i < 5 && Date.now() < deadline; i++) {
       let before = i === 0 ? source : await sources();
       while (before.now < lastSampledAt + 2n && Date.now() < deadline) { await delay(250); before = await sources(); }
       if (!before.eligible || Date.now() >= deadline) break;
-      await h.send(`sample-${before.now}`, [sdk.fundingComputeBudget(), await sampleInstruction(a)]);
-      // The finalized event already contains the exact sampled state; avoid
-      // refetching it and Clock separately before the next time-sensitive sample.
+      await h.sendObservation(`sample-${before.now}`, [sdk.fundingComputeBudget(), await sampleInstruction(a)]);
+      // Confirmed events can prepare a subsequent observation, like live quote
+      // previews. Every event/wire must reconcile finalized before acceptance.
       const event = h.latestEvents.find(e => e.type === 'oracle'); assert(event);
       const r = sdk.getOracleObservedEventDecoder().decode(Buffer.from(event.bytes, 'base64'));
       lastSampledAt = r.oracle.sampledAt;
-      window.samples.push({ before, observation: r }); persist(`${directory}/progress.json`, report);
+      window.samples.push({ before, observation: r, preparationCommitment: 'confirmed' }); persist(`${directory}/progress.json`, report);
       if (r.oracle.status === 2 && r.oracle.sampledAt < r.oracle.sourceDeadline) {
         assert.deepEqual(r.oracle.sourceSequences.slice(0, 2), before.prices.map(p => p.published), 'Source changed during the recorded observation; retain race instead of inventing its snapshot');
         report.usedSource = before; qualified = true; break;
@@ -91,14 +91,14 @@ try {
   assert(qualified, 'No executable source recovery window within the bounded live observation');
   stage = 'priced-action';
   const raw = await h.rpc.call('getMultipleAccounts', [[a.market, a.routeState, a.trader, a.makers[0].capital, a.makers[0].registration, a.vault,
-    'SysvarC1ock11111111111111111111111111111111'], { encoding: 'base64', commitment: 'finalized' }]);
+    'SysvarC1ock11111111111111111111111111111111'], { encoding: 'base64', commitment: 'confirmed' }]);
   const bytes = raw.value.map((x: any) => Buffer.from(x.data[0], 'base64'));
   const m = sdk.getMarketStateDecoder().decode(bytes[0]), r = sdk.getTestRouteStateDecoder().decode(bytes[1]);
   const trader = sdk.getParticipantDecoder().decode(bytes[2]), maker = sdk.getParticipantDecoder().decode(bytes[3]);
   const reg = sdk.getMakerRegistrationDecoder().decode(bytes[4]);
   assert.equal(trader.lots, 0n); assert.equal(maker.lots, 0n);
   const currentClock = bytes[6].readBigInt64LE(32), currentSlot = BigInt(unsigned(raw.context.slot));
-  assert.equal(sdk.oracleMode(m, r, currentClock, currentSlot), 'Normal', 'Finalized evidence was delayed past live source validity; stop before signing');
+  assert.equal(sdk.oracleMode(m, r, currentClock, currentSlot), 'Normal', 'Source validity ended while preparing the action; stop before signing');
   const normalized = report.usedSource.prices.map((p: ReturnType<typeof decodeCore>) => normalizeCore(p.price, p.confidence, p.exponent));
   assert.equal(r.referencePrice, normalized[0].value / normalized[1].value);
   const gross = r.referencePrice + 10n, fee = (gross + 4_999n) / 5_000n, slot = BigInt(unsigned(raw.context.slot)), x = a.makers[0];
@@ -117,7 +117,9 @@ try {
   assert.equal(traderAfter.lots, 1n); assert.equal(makerAfter.lots, -1n);
   assert.equal(traderAfter.virtualScaled, -gross * 1_000_000_000n); assert.equal(makerAfter.virtualScaled, gross * 1_000_000_000n);
   assert.equal(marketAfter.fees, m.fees + fee); assert.equal(marketAfter.allocatedVault, m.allocatedVault); assert.equal(getTokenDecoder().decode(av).amount, m.allocatedVault);
-  report.independentRoute = { gross, fee, before: { trader, maker, market: m }, after: { trader: traderAfter, maker: makerAfter, market: marketAfter } };
+  report.independentRoute = { gross, fee, beforeCommitment: 'confirmed', afterCommitment: 'finalized',
+    before: { trader, maker, market: m }, after: { trader: traderAfter, maker: makerAfter, market: marketAfter } };
+  stage = 'finalize-observations'; await h.reconcileObservations();
   stage = 'natural-source-expiry';
   while ((await h.now()) <= r.oracle.sourceDeadline) await delay(500);
   await waitSample(); await h.send('sample-expired-primary', [sdk.fundingComputeBudget(), await sampleInstruction(a)]);
@@ -133,6 +135,8 @@ try {
   report.failure = error instanceof assert.AssertionError ? error.message : 'Transport or execution failure; inspect retained stage/journal';
   process.exitCode = 1;
 } finally {
+  try { await h.reconcileObservations(); }
+  catch { report.result = 'fail'; report.finalizationFailure = 'Original observation history unresolved or differs; no replacement signed'; process.exitCode = 1; }
   report.finishedUtc = new Date().toISOString(); report.checks = h.checks; report.rateLimits = h.rpc.interruptions;
   report.ws = { acknowledged: ws?.acknowledged ?? false, notifications: ws?.buffer ?? [] };
   ws?.close(); persist(`${directory}/report.json`, report);

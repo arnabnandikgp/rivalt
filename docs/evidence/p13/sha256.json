@@ -5,6 +5,7 @@
   "acceptance/attempts/2026-10-23T11-57-no-window.json": "92dad513f266f72a3b636329e84328295aa02681776a0c1635b0c4fb2acb5a69",
   "acceptance/attempts/2026-10-23T12-07-early-renewal.json": "c0251a4032476bc79f7b766929ece4f71ac378e73698ee3e89581e1e5f20d9e4",
   "acceptance/attempts/2026-10-23T12-10-normal-expired-route.json": "fc275b09b522fb394e268b1f607df5b8037ac2833ee78865046ff39de17cb0e0",
+  "acceptance/attempts/2026-10-23T12-19-configured-window.json": "e50944b1aa695579dafe9bacbc5921715e4b9d7f57afa07728d8d9a431213496",
   "acceptance/failed-route-reconciliation.json": "11daee3acfcb0b0549ad0910f57f611a9df748df7dde3ea08e9226efe105e297",
   "acceptance/normal-observation-proof.json": "a237b27fad5e80d2b1a61d690743b8dcb574d4d8487a4fed6871d2e6515bcf91",
   "acceptance/observation-proof.json": "7d6c5c944fd59bc0b7e06c3d6183770d8abe8106a70df8ae4bfe3c5fe342bba1",
