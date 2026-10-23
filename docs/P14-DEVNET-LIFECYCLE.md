@@ -18,7 +18,7 @@ The separate SBF/IDL build on clean `b3a2fc1` passes. The focused compiled check
 
 ## Evidence still due
 
-- Actual devnet read/projection with PostgreSQL, exact sequence/account/vault reconciliation and HTTP views.
+- Actual devnet read/projection with PostgreSQL, exact sequence/account/vault reconciliation and HTTP views: **verified** on clean `df77351`, [52 transactions / 43 events / zero unresolved jobs](evidence/p14/indexer.json). This read-only run has no new live notification or provider-interruption proof.
 - Bounded actual close/settlement/withdrawal plus selected order/funding behavior, with independent expected values and preserved rejected/unknown outcomes.
 - Actual external wallet-provider signing/landing; a local signing fixture cannot replace this check.
 - One provider interruption/reconnection and original-signature/history backfill, with no duplicate economic effect.
