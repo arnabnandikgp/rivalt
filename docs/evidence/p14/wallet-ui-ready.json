@@ -1,0 +1,24 @@
+{
+  "checkedUtc": "2026-10-23T16:12:58.906Z",
+  "source": "e968063",
+  "asset": "/assets/index-dxIm5661.js",
+  "assetSha256": "f807caf68ff291c048d6f752c66e974be5371ebaef4fd4142b04f1d3bb2900d0",
+  "endpoints": [
+    {
+      "path": "/rivalt-config.json",
+      "status": 200
+    },
+    {
+      "path": "/api/ready",
+      "status": 200
+    },
+    {
+      "path": "/read/ready",
+      "status": 200
+    },
+    {
+      "path": "/read/v1/trades?latest=true&limit=2",
+      "status": 200
+    }
+  ]
+}

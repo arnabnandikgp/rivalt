@@ -1,0 +1,10 @@
+{
+  "result": "pass",
+  "revision": "e96806314735caaba6632138f69d8c2f8060aa3b",
+  "signature": "2iLPo97byRamHdtR7Tq1aQfgvQN8JbsbDXDqza7MYa9CaVJpHpANXoMhDpEi1dsvA1sXh166AaZfA5dtXexrGTnc",
+  "slot": 514303068,
+  "networkFeeLamports": "5000",
+  "participantRentLamports": "4790440",
+  "indexedSequence": "58",
+  "scope": "Actual registration instructions, raw zero-cash participant, unchanged vault, exact rent/fees and finalized PostgreSQL projection; wallet provider identity is user-reported"
+}

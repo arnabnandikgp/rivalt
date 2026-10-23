@@ -15,5 +15,8 @@
   "upgrade-attempt-2.json": "58ca0bf7acac5767dd992c80b353eb4d6472bb1f1d8b3146af14ad815ffd1816",
   "upgrade-transaction.json": "3a017997944daa61c790c594c7c1397fb9e5489140f76518520790f9224ae242",
   "upgrade.json": "ee29b66442465d8471c20c69eb48791ed2fd357b0abe89f4fb273c1585a0bb56",
-  "wallet-diagnostic.json": "7a71ce465a290453199f9c313fceaeeb4494fd88d5803fa70060e4b47b79fac6"
+  "wallet-audit.json": "ba382495c3d867066f4f470cab505c65473529427bb6bc4c8a56452196fae2e6",
+  "wallet-diagnostic.json": "7a71ce465a290453199f9c313fceaeeb4494fd88d5803fa70060e4b47b79fac6",
+  "wallet-registration.json": "bd03aa1682caa5f41c794746e761dd6d40d8438e5d7a240726db94ee7cd6ff0d",
+  "wallet-ui-ready.json": "ba05fc814aac28c4e851338975f724f9de97f59a54422ac236ecb892990a5b06"
 }

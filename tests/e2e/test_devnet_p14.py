@@ -5,6 +5,7 @@ from pathlib import Path
 import unittest
 from audit_devnet_lifecycle import audit as lifecycle
 from audit_devnet_recovery import audit as recovery
+from audit_devnet_wallet import audit as wallet
 
 ROOT = Path(__file__).resolve().parents[2] / 'docs/evidence/p14'
 
@@ -38,3 +39,19 @@ class P14ActualEvidence(unittest.TestCase):
     def test_duplicate_economic_event_is_not_recovery(self):
         report = json.loads((ROOT/'recovery.json').read_text()); report['sql']['events']='2'
         with self.assertRaises(AssertionError): recovery(report)
+
+
+class P14WalletEvidence(unittest.TestCase):
+    def setUp(self):
+        self.report = json.loads((ROOT/'wallet-registration.json').read_text())
+
+    def test_actual_registration_rent_and_indexed_identity(self):
+        self.assertEqual(wallet(self.report)['result'], 'pass')
+
+    def test_foreign_indexed_signature_is_rejected(self):
+        self.report['indexed']['asOf']['signature'] = 'another-transaction'
+        with self.assertRaises(AssertionError): wallet(self.report)
+
+    def test_unexplained_wallet_debit_is_rejected(self):
+        self.report['transaction']['history']['meta']['postBalances'][0] -= 1
+        with self.assertRaises(AssertionError): wallet(self.report)
