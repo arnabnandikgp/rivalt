@@ -63,7 +63,7 @@ export function api(indexer: Indexer) {
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       const row=(await client.query('SELECT * FROM runs WHERE run_id=$1',[indexer.config.runId])).rows[0];
       const fills=(await client.query(`SELECT sequence::text,payload,block_time::text FROM events WHERE run_id=$1 AND kind='route'
-        AND (block_time IS NULL OR (block_time >= $2 AND block_time < $3)) ORDER BY sequence`,[indexer.config.runId,from,to])).rows;
+        AND (block_time IS NULL OR (block_time >= $2 AND block_time < $3)) ORDER BY events.sequence`,[indexer.config.runId,from,to])).rows;
       const buckets=new Map<number,any>();let unplacedTrades=0;
       for(const fill of fills){
         if(fill.block_time===null){unplacedTrades++;continue;}
@@ -88,7 +88,7 @@ export function api(indexer: Indexer) {
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       const row = (await client.query('SELECT * FROM runs WHERE run_id=$1',[indexer.config.runId])).rows[0];
       const result = await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,payload FROM events
-        WHERE run_id=$1 AND sequence>$2 ${endpoint==='trades' ? "AND kind='route'" : ''} ORDER BY sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`,
+        WHERE run_id=$1 AND sequence>$2 ${endpoint==='trades' ? "AND kind='route'" : ''} ORDER BY events.sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`,
       [indexer.config.runId,request.query.after??'0',request.query.limit??50]);
       await client.query('COMMIT');
       return {...envelope(row),items:request.query.latest?result.rows.reverse():result.rows,next:request.query.latest?null:result.rows.at(-1)?.sequence ?? null};

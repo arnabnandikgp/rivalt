@@ -5,6 +5,7 @@ import { appendFileSync, readFileSync, writeFileSync, statfsSync, readdirSync, s
 import { setTimeout as delay } from 'node:timers/promises';
 import { gzipSync } from 'node:zlib';
 import { observer } from './observer.js';
+import { verifyReads } from './read-api.js';
 import { sustained } from './sustained.js';
 import { AccountRole } from '@solana/kit';
 import { performance } from 'node:perf_hooks';
@@ -16,10 +17,10 @@ import { summarize, type Attempt } from './metrics.js';
 import { submissionFault } from './submission-fault.js';
 import { publicIntents } from '../e2e/evidence.js';
 
-const args=process.argv.slice(2),modes=['--sweep-seconds','--exercise-seconds','--soak-seconds'].filter(x=>args.includes(x));
-if(modes.length!==1)throw new Error('Declare exactly one finite sweep, 900-second exercise, or actual 86400-second soak');
+const args=process.argv.slice(2),modes=['--sweep-seconds','--exercise-seconds','--exercise-tail-seconds','--soak-seconds'].filter(x=>args.includes(x));
+if(modes.length!==1)throw new Error('Declare one finite sweep, 900-second full exercise, 360-second tail exercise, or actual 86400-second soak');
 const mode=modes[0],extended=mode!=='--sweep-seconds',long=mode==='--soak-seconds',seconds=Number(args[args.indexOf(mode)+1]);
-if(!Number.isInteger(seconds)||(long?seconds!==86400:extended?seconds!==900:seconds<10||seconds>3600))throw new Error('Invalid real elapsed duration');
+if(!Number.isInteger(seconds)||(long?seconds!==86400:extended?seconds!==(mode==='--exercise-tail-seconds'?360:900):seconds<10||seconds>3600))throw new Error('Invalid real elapsed duration');
 const rates=args.includes('--rates')?args[args.indexOf('--rates')+1]?.split(',').map(Number):(extended?[.25]:[1,5,10]);
 if(!rates?.length||rates.length>5||new Set(rates).size!==rates.length||rates.some(r=>![.25,.5,1,5,10].includes(r))||extended&&(rates.length!==1||rates[0]>1))throw new Error('Declare supported unique rates; sustained run has one baseline');
 const git=(...args:string[])=>execFileSync('git',args,{encoding:'utf8'}).trim();
@@ -148,7 +149,7 @@ try{
     assert.equal(sdk.getParticipantDecoder().decode((await e.read(owner.participant))!).cash,before-1n);writeFileSync(`${dir}/withdrawal.json`,json({signature,cashBefore:before,cashAfter:before-1n,amount:1n}));
   }
   await e.stop('indexer');
-  const indexer=index(e.config);await indexer.open();await indexer.cycle();const final=await indexer.reconcile(),state=(await indexer.store.snapshot()).state;
+  const indexer=index(e.config);await indexer.open();await indexer.cycle();const final=await indexer.reconcile(),state=(await indexer.store.snapshot()).state;const readApi=extended?await verifyReads(indexer):null;if(readApi)writeFileSync(`${dir}/read-api.json`,json(readApi));
   const bounded=index({...e.config,runId:e.runId+'-bound',maxRecoveryTransactions:2});await bounded.open();await assert.rejects(()=>bounded.cycle(),/History recovery exceeds 2-transaction/);assert.equal((await bounded.store.snapshot()).checkpoint,null);await bounded.close();
   let rebuildDatabase=e.database;
   if(extended){const name='p12_rebuild';await e.runtime.store.pool.query('CREATE DATABASE '+name);const url=new URL(e.database);url.pathname='/'+name;rebuildDatabase=url.toString();}
@@ -172,7 +173,7 @@ try{
     samplingSensitivity:'Not varied in this run; selected cadence five seconds. P07/P11 hold/accrual reference evidence is unchanged.'};
   await indexer.close();
   const baseline=phases[0],targets={quote:baseline.quote.p95!==null&&baseline.quote.p95<=200,normalSuccess:baseline.normalEligible>0&&baseline.normalSuccess>=.99,routeHeadroom:Math.max(...phases.map(x=>x.maxUnits))<=320_000};
-  const result={...manifest,finishedUtc:new Date().toISOString(),result:Object.values(targets).every(Boolean)?'pass':'fail',scope:long?'actual 24-hour sustained run':extended?'900-second sustained harness exercise; A17 not-run':'finite qualification; A17 not-run',reference,fundingQuality,sustained:sustainedResult,visibility,rebuildMetrics,rebuildKind:extended?'fresh PostgreSQL database':'fresh projection in same database',sourceBudget:{...e.sourceBudget,closingLamports:sourceClosing},targets,phases,faults,final,rebuiltFinal,finalSnapshot,intents,budgets,closingBalances,sourceErrors:e.sourceErrors};
+  const result={...manifest,finishedUtc:new Date().toISOString(),result:Object.values(targets).every(Boolean)?'pass':'fail',scope:long?'actual 24-hour sustained run':extended?`${seconds}-second sustained harness exercise; A17 not-run`:'finite qualification; A17 not-run',reference,readApi,fundingQuality,sustained:sustainedResult,visibility,rebuildMetrics,rebuildKind:extended?'fresh PostgreSQL database':'fresh projection in same database',sourceBudget:{...e.sourceBudget,closingLamports:sourceClosing},targets,phases,faults,final,rebuiltFinal,finalSnapshot,intents,budgets,closingBalances,sourceErrors:e.sourceErrors};
   writeFileSync(`${dir}/load.json`,json(result));assert.equal(e.sourceErrors.length,0,'source publisher errors retained');
   console.log(`Load targets ${result.result}: ${dir}/load.json`);if(result.result==='fail')process.exitCode=2;
 }catch(error){writeFileSync(`${dir}/failure.json`,json({revision,sourceDirty,at:new Date().toISOString(),error:error instanceof Error?error.message:String(error),phases}));throw error;}
