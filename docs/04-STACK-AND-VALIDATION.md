@@ -157,3 +157,5 @@ Initial engineering objectives retained from the build specification:
 
 These are targets, not achieved measurements or promises. Report failed/unfilled attempts, unpaid profits and degraded intervals. Do not combine local/devnet latency populations. Tune one measured bottleneck at a time after correctness.
 
+
+D38: retain raw run files locally at their current paths, untracked/ignored; keep concise Markdown reports and necessary bounded regression fixtures in Git. A fresh clone runs ordinary tests without the local captures. Full retained-run auditors require actual local input and must fail if it is unavailable. See [storage policy](EVIDENCE.md). A source-preserving cleanup is not another financial/soak run.
