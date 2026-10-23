@@ -1,0 +1,48 @@
+{
+  "kind": "read-only-devnet-dependency-inventory",
+  "startedUtc": "2026-10-23T07:32:35.597Z",
+  "revision": "0a6e2c92cfdfadf8507c70cab4c60bd1f4ef3fa4",
+  "sourceDirty": false,
+  "a18Complete": false,
+  "signedUpdateVerified": false,
+  "rivaltDeployed": false,
+  "endpoint": "official-public-devnet",
+  "genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "version": {
+    "solanaCore": "4.4.0-beta.1",
+    "featureSet": "3993424257"
+  },
+  "dependencies": [
+    {
+      "role": "receiver",
+      "program": "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ",
+      "programData": "96QrNCjmh32H9quY9DX4NEH81nECVsbkATBDZeoVbvLV",
+      "deploymentSlot": "491006444",
+      "upgradeAuthority": "upg8KLALUN7ByDHiBu4wEbMDTC6UnSVFSYfTyGfXuzr",
+      "allocatedBytes": "1355965",
+      "accountSha256": "47bb6f0e02b0341571bd51d6f81962b9d0b126d69bb57887cb1d5379d016c033",
+      "payloadWithPaddingSha256": "0d6bf9142c2eb1fdb8ead48054491369bed3a8d6846c5887e362844155599ab2"
+    },
+    {
+      "role": "wormholeReceiver",
+      "program": "HDwcJBJXjL9FpJ7UBsYBtaDjsBUhuLCUYoz3zr8SWWaQ",
+      "programData": "CmumsQAU6TvqW2VLFVySBjQYKqKDeUPMBVdrxJ2YoK1",
+      "deploymentSlot": "487852630",
+      "upgradeAuthority": "upg8KLALUN7ByDHiBu4wEbMDTC6UnSVFSYfTyGfXuzr",
+      "allocatedBytes": "1356397",
+      "accountSha256": "f55d16cbfe0a8fc3e0860f383f22e20ff65adb45009109847f31d9619c0204a5",
+      "payloadWithPaddingSha256": "ca237355a04cc5ceeb788853833ae46c0cb8b0a728625e8f9bb9bc05d1e9c619"
+    }
+  ],
+  "contexts": {
+    "programSlot": "514171961",
+    "programDataSlot": "514171961",
+    "commitment": "finalized"
+  },
+  "websocket": {
+    "subscription": "128",
+    "slot": "514171968"
+  },
+  "result": "pass",
+  "finishedUtc": "2026-10-23T07:32:37.192Z"
+}
