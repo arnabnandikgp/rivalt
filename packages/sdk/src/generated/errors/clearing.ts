@@ -33,10 +33,52 @@ export const CLEARING_ERROR__CAPACITY = 0x17d9; // 6105
 export const CLEARING_ERROR__AMOUNT = 0x17da; // 6106
 /** Reconciliation: Actual vault is below allocated cash or cash totals disagree */
 export const CLEARING_ERROR__RECONCILIATION = 0x17db; // 6107
-/** Profile: Financial state is outside the implemented custody-only profile */
+/** Profile: Financial state is outside the implemented phase profile */
 export const CLEARING_ERROR__PROFILE = 0x17dc; // 6108
 /** Domain: Domain identity must be nonzero */
 export const CLEARING_ERROR__DOMAIN = 0x17dd; // 6109
+/** MakerBinding: Maker program, config or capital binding mismatch */
+export const CLEARING_ERROR__MAKER_BINDING = 0x17de; // 6110
+/** MakerCapital: Maker capital is unfunded or outside the implemented profile */
+export const CLEARING_ERROR__MAKER_CAPITAL = 0x17df; // 6111
+/** MakerEpoch: Maker or market epoch mismatch or expired quote */
+export const CLEARING_ERROR__MAKER_EPOCH = 0x17e0; // 6112
+/** MakerQuarantined: Maker registration is quarantined */
+export const CLEARING_ERROR__MAKER_QUARANTINED = 0x17e1; // 6113
+/** MakerUpgrade: Maker deployment differs from approved ProgramData hash */
+export const CLEARING_ERROR__MAKER_UPGRADE = 0x17e2; // 6114
+/** MakerQuote: Maker quote exceeds price, size or capacity bounds */
+export const CLEARING_ERROR__MAKER_QUOTE = 0x17e3; // 6115
+/** MakerResponse: Maker response producer, encoding or terms mismatch */
+export const CLEARING_ERROR__MAKER_RESPONSE = 0x17e4; // 6116
+/** RouteIntent: Route authority, quantity, lifetime, nonce or generation mismatch */
+export const CLEARING_ERROR__ROUTE_INTENT = 0x17e5; // 6117
+/** RiskObservation: Synthetic observation is unavailable, stale or mismatched */
+export const CLEARING_ERROR__RISK_OBSERVATION = 0x17e6; // 6118
+/** RouteLimit: Route exceeds all-in, fee or execution bounds */
+export const CLEARING_ERROR__ROUTE_LIMIT = 0x17e7; // 6119
+/** RouteHealth: Post-fee health or exposure capacity fails */
+export const CLEARING_ERROR__ROUTE_HEALTH = 0x17e8; // 6120
+/** ExitCohort: Exit cohort is incomplete, insolvent, foreign or stale */
+export const CLEARING_ERROR__EXIT_COHORT = 0x17e9; // 6121
+/** FinancialSequence: Financial action is bound to a different market sequence */
+export const CLEARING_ERROR__FINANCIAL_SEQUENCE = 0x17ea; // 6122
+/** OracleSource: Oracle source identity, verification or schema mismatch */
+export const CLEARING_ERROR__ORACLE_SOURCE = 0x17eb; // 6123
+/** OraclePolicy: Oracle action mode, sample timing or source policy rejects action */
+export const CLEARING_ERROR__ORACLE_POLICY = 0x17ec; // 6124
+/** OrderState: Stored order identity, version, prefix or state mismatch */
+export const CLEARING_ERROR__ORDER_STATE = 0x17ed; // 6125
+/** OrderTerms: Order quantity, limits, lifetime, trigger or generation rejected */
+export const CLEARING_ERROR__ORDER_TERMS = 0x17ee; // 6126
+/** OrderSlots: No free bounded order/protective-group slot */
+export const CLEARING_ERROR__ORDER_SLOTS = 0x17ef; // 6127
+/** OrderTrigger: Current central index does not satisfy stored trigger */
+export const CLEARING_ERROR__ORDER_TRIGGER = 0x17f0; // 6128
+/** Liquidation: Liquidation receiver, funded fee or strict risk progress check failed */
+export const CLEARING_ERROR__LIQUIDATION = 0x17f1; // 6129
+/** Resolution: Resolution epoch, stage, cursor, cohort or accounting check failed */
+export const CLEARING_ERROR__RESOLUTION = 0x17f2; // 6130
 
 export type ClearingError =
   | typeof CLEARING_ERROR__ALIAS
@@ -45,11 +87,32 @@ export type ClearingError =
   | typeof CLEARING_ERROR__AUTHORITY
   | typeof CLEARING_ERROR__CAPACITY
   | typeof CLEARING_ERROR__DOMAIN
+  | typeof CLEARING_ERROR__EXIT_COHORT
+  | typeof CLEARING_ERROR__FINANCIAL_SEQUENCE
+  | typeof CLEARING_ERROR__LIQUIDATION
+  | typeof CLEARING_ERROR__MAKER_BINDING
+  | typeof CLEARING_ERROR__MAKER_CAPITAL
+  | typeof CLEARING_ERROR__MAKER_EPOCH
+  | typeof CLEARING_ERROR__MAKER_QUARANTINED
+  | typeof CLEARING_ERROR__MAKER_QUOTE
+  | typeof CLEARING_ERROR__MAKER_RESPONSE
+  | typeof CLEARING_ERROR__MAKER_UPGRADE
   | typeof CLEARING_ERROR__MINT
+  | typeof CLEARING_ERROR__ORACLE_POLICY
+  | typeof CLEARING_ERROR__ORACLE_SOURCE
+  | typeof CLEARING_ERROR__ORDER_SLOTS
+  | typeof CLEARING_ERROR__ORDER_STATE
+  | typeof CLEARING_ERROR__ORDER_TERMS
+  | typeof CLEARING_ERROR__ORDER_TRIGGER
   | typeof CLEARING_ERROR__PAUSED
   | typeof CLEARING_ERROR__PROFILE
   | typeof CLEARING_ERROR__RECONCILIATION
-  | typeof CLEARING_ERROR__RESERVED_NONCE;
+  | typeof CLEARING_ERROR__RESERVED_NONCE
+  | typeof CLEARING_ERROR__RESOLUTION
+  | typeof CLEARING_ERROR__RISK_OBSERVATION
+  | typeof CLEARING_ERROR__ROUTE_HEALTH
+  | typeof CLEARING_ERROR__ROUTE_INTENT
+  | typeof CLEARING_ERROR__ROUTE_LIMIT;
 
 let clearingErrorMessages: Record<ClearingError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
@@ -60,11 +123,32 @@ if (process.env["NODE_ENV"] !== "production") {
     [CLEARING_ERROR__AUTHORITY]: `Wrong authority`,
     [CLEARING_ERROR__CAPACITY]: `Participant registry is full`,
     [CLEARING_ERROR__DOMAIN]: `Domain identity must be nonzero`,
+    [CLEARING_ERROR__EXIT_COHORT]: `Exit cohort is incomplete, insolvent, foreign or stale`,
+    [CLEARING_ERROR__FINANCIAL_SEQUENCE]: `Financial action is bound to a different market sequence`,
+    [CLEARING_ERROR__LIQUIDATION]: `Liquidation receiver, funded fee or strict risk progress check failed`,
+    [CLEARING_ERROR__MAKER_BINDING]: `Maker program, config or capital binding mismatch`,
+    [CLEARING_ERROR__MAKER_CAPITAL]: `Maker capital is unfunded or outside the implemented profile`,
+    [CLEARING_ERROR__MAKER_EPOCH]: `Maker or market epoch mismatch or expired quote`,
+    [CLEARING_ERROR__MAKER_QUARANTINED]: `Maker registration is quarantined`,
+    [CLEARING_ERROR__MAKER_QUOTE]: `Maker quote exceeds price, size or capacity bounds`,
+    [CLEARING_ERROR__MAKER_RESPONSE]: `Maker response producer, encoding or terms mismatch`,
+    [CLEARING_ERROR__MAKER_UPGRADE]: `Maker deployment differs from approved ProgramData hash`,
     [CLEARING_ERROR__MINT]: `Expected classic SPL six-decimal collateral without freeze authority`,
+    [CLEARING_ERROR__ORACLE_POLICY]: `Oracle action mode, sample timing or source policy rejects action`,
+    [CLEARING_ERROR__ORACLE_SOURCE]: `Oracle source identity, verification or schema mismatch`,
+    [CLEARING_ERROR__ORDER_SLOTS]: `No free bounded order/protective-group slot`,
+    [CLEARING_ERROR__ORDER_STATE]: `Stored order identity, version, prefix or state mismatch`,
+    [CLEARING_ERROR__ORDER_TERMS]: `Order quantity, limits, lifetime, trigger or generation rejected`,
+    [CLEARING_ERROR__ORDER_TRIGGER]: `Current central index does not satisfy stored trigger`,
     [CLEARING_ERROR__PAUSED]: `Market is paused`,
-    [CLEARING_ERROR__PROFILE]: `Financial state is outside the implemented custody-only profile`,
+    [CLEARING_ERROR__PROFILE]: `Financial state is outside the implemented phase profile`,
     [CLEARING_ERROR__RECONCILIATION]: `Actual vault is below allocated cash or cash totals disagree`,
     [CLEARING_ERROR__RESERVED_NONCE]: `The maximum nonce is reserved for the local rejection probe`,
+    [CLEARING_ERROR__RESOLUTION]: `Resolution epoch, stage, cursor, cohort or accounting check failed`,
+    [CLEARING_ERROR__RISK_OBSERVATION]: `Synthetic observation is unavailable, stale or mismatched`,
+    [CLEARING_ERROR__ROUTE_HEALTH]: `Post-fee health or exposure capacity fails`,
+    [CLEARING_ERROR__ROUTE_INTENT]: `Route authority, quantity, lifetime, nonce or generation mismatch`,
+    [CLEARING_ERROR__ROUTE_LIMIT]: `Route exceeds all-in, fee or execution bounds`,
   };
 }
 

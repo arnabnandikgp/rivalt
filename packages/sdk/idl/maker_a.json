@@ -1,0 +1,433 @@
+{
+  "address": "7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU",
+  "metadata": {
+    "name": "maker_a",
+    "version": "0.1.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [
+    {
+      "name": "initialize_config",
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "capital"
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "market",
+          "type": "pubkey"
+        },
+        {
+          "name": "domain",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "duration",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "publish_epoch",
+      "discriminator": [
+        222,
+        6,
+        136,
+        82,
+        54,
+        246,
+        245,
+        120
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.state.capital",
+                "account": "MakerConfig"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "duration",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "quote",
+      "discriminator": [
+        149,
+        42,
+        109,
+        247,
+        134,
+        146,
+        213,
+        123
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.state.capital",
+                "account": "MakerConfig"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "request",
+          "type": {
+            "defined": {
+              "name": "QuoteRequest"
+            }
+          }
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QuoteResponse"
+        }
+      }
+    }
+  ],
+  "accounts": [
+    {
+      "name": "MakerConfig",
+      "discriminator": [
+        76,
+        171,
+        10,
+        33,
+        116,
+        211,
+        115,
+        209
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Authority",
+      "msg": "Wrong maker config authority"
+    },
+    {
+      "code": 6001,
+      "name": "Binding",
+      "msg": "Invalid maker binding"
+    },
+    {
+      "code": 6002,
+      "name": "Lifetime",
+      "msg": "Epoch lifetime invalid or previous epoch still active"
+    },
+    {
+      "code": 6003,
+      "name": "Quote",
+      "msg": "Quote outside bounded strategy, capacity or lifetime"
+    }
+  ],
+  "types": [
+    {
+      "name": "MakerConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MakerState"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "QuoteRequest",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "market_config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "docs": [
+              "Taker side: 0 buys from the maker; 1 sells to it."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "inventory",
+            "type": "i64"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "inventory_limit",
+            "type": "u64"
+          },
+          {
+            "name": "consumed",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "docs": [
+              "Indicative quote input, never an authenticated risk observation."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "QuoteResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross_quote",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "market_config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "consumed_before",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

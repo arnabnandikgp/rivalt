@@ -28,7 +28,7 @@ The aggregator's on-chain action is the route entry point in clearing. It is not
 | Quote/router | Venue | Consistent cached inputs and eligible one/two-maker allocation; no custody authority |
 | Maker daemons | Their respective operators | Read inventory/state, publish permitted configuration, reconcile fills/costs |
 | Executor/order keeper | Venue initially; constrained action authority | Discover persisted intent, simulate, send, reconcile ambiguity |
-| Oracle/funding worker | Venue initially | Post verified data and schedule authenticated samples, never dictate unchecked rate |
+| Oracle/funding worker | Venue initially | Read sponsored Pyth Core primary accounts in the D36 devnet profile; publish the declared operator guard and schedule authenticated samples, never dictate unchecked rate |
 | Risk/settlement worker | Venue initially | Funded receiver liquidation, cash collection/settlement and paginated recovery |
 | Indexer/PostgreSQL | Venue | Rebuildable read model, history and durable jobs; no authoritative balance creation |
 | UI/API/SDK | Venue-maintained; wallet user-controlled | Quotes, signing, orders, cash/position views, direct exit |
@@ -92,7 +92,7 @@ All monetary/quantity fields use decimal integer strings over JSON, plus explici
 | Market data | actual fills/candles, index/risk/funding series separately labeled, source freshness and valid coverage |
 | Operations | dependency health, worker lag, reconciliation discrepancies, retry queues and resolution stage/progress |
 
-P05 freezes actual endpoint names/pagination/errors; P06 freezes submission reconciliation. SDK is usable without API/UI for deposits, cancels and admissible withdrawals. The direct path must respect the same chain rules.
+P05 freezes actual endpoint names/pagination/errors in [INDEXER](P05-INDEXER.md); P06 freezes submission reconciliation. SDK is usable without API/UI for deposits, cancels and admissible withdrawals. The direct path must respect the same chain rules.
 
 ## Events and indexer
 
@@ -113,6 +113,8 @@ Store:
 
 Use SQL uniqueness and transactions to enforce idempotency. Recovery must reconcile accounts/vault against projections. A Surfpool reset starts a new run identity; never mix a fresh chain with old database history. Snapshot history retention must be tested, not assumed.
 
+P05 implementation: `packages/indexer` is the separately runnable workspace service. Its schema-1 journal, finalized-only projections, initialization binding, 10,000-transaction bounded local recovery and HTTP contracts are specified in [INDEXER](P05-INDEXER.md). Confirmed observations remain provisional; unknown finality stays unresolved. The initial P05 zero funding/reservation profile is extended by P07 funding and P08 full order-book projections. P06 owns submission identity, quote candidates and economic retry jobs.
+
 ## Executor and operational workers
 
 Persist signed transaction identity before broadcast. On timeout, inspect signature status and authoritative order/nonce before rebuilding. Blockhash expiry alone is not proof of nonexecution. Retries preserve economic authority and cumulative consumption.
@@ -122,6 +124,8 @@ Keep order, oracle/funding, risk and indexer roles separately restartable, with 
 Maker daemons log state/config changes, fills, inventory and costs. Paper hedge prices are marked simulated; they never become observed hedge fills or on-chain collateral.
 
 Every worker exposes structured logs, readiness/liveness and metrics. Local supervisor waits for readiness, records PIDs/run identity and cleans up only its own processes. Recovery examples belong in ops/ as code lands.
+
+P11's [matrix contract](P11-MATRIX.md) composes the existing actual-runtime supervisors into distinct, uniquely bound environments. Its Python report consumes public evidence without importing financial implementations; it preserves scenario failures/not-run stages and intent/order populations. Test-only public intent export adds no service authority or API mutation. Hosted CI remains separate from real runtime acceptance.
 
 ## UI requirements
 
@@ -145,7 +149,7 @@ The kit supplies only README/AGENTS/SEED-PROMPT and docs. Create code directorie
 | tests/rpc-contract/ | Standard RPC/WS contract | P01 |
 | tests/e2e/, tests/browser/ | Service lifecycle and actual UI flows | P06/P10 |
 | services/api/, services/quote-router/ | Read/trading API and allocation | P04–P06 |
-| services/indexer/, services/workers/ | Chain projection and maintenance execution | P05–P09 |
+| packages/indexer/, services/workers/ | Chain projection and maintenance execution | P05–P09 |
 | makers/daemon/ | Shared daemon code with distinct A/B configs/processes | P06 |
 | apps/trader/ | React/Vite trading and operations UI | P10 |
 | scenarios/ | Versioned deterministic/local/devnet scenarios | P02 onward |
@@ -164,3 +168,67 @@ The initial clearing artifact exposed only the nonfinancial `probe` instruction 
 
 Seven custody instructions perform initialization, registration, deposit, withdrawal, insurance funding, surplus classification and custody pause. Initialization checks the real clearing ProgramData upgrade authority; later administration uses stored market authority. Financial state is advanced only by actual checked token CPI. `CustodyChanged` event-CPI includes a checked market sequence and explicit cash totals; failed transaction events never represent committed effects. The financial core's fill/funding/risk/default primitives remain model-only until their owning instruction phases.
 
+
+## P03 implemented interface
+
+[MAKER-CONTRACT](P03-MAKER-CONTRACT.md) defines fixed strategy version 1 for separately deployed A/B programs. Each exposes initializeConfig, publishEpoch and quote. Clearing adds registerMaker, approveMaker, syncMakerEpoch, quarantineMaker and read-only previewMaker. MakerRegistration and CapitalBinding are clearing-owned; config is maker-owned. Exact Borsh layouts are in the three generated IDLs; the response is bounded to 92 bytes. The CPI carries exactly one read-only config and no clearing authority. G04's preview reference is explicitly indicative; no financial execution is enabled.
+
+The SDK exports separate makerA/makerB namespaces and a bigint quoteMaker evaluator. Codama names the shared participant seeds after the first capital role; the existing findParticipantPda API remains an alias of the generated findCapitalPda, with unchanged seeds and bytes.
+
+## P04 implemented interface
+
+[ATOMIC-ROUTES](P04-ATOMIC-ROUTES.md) adds executeRoute, initializeTestRoutes and publishTestRisk, a 97-byte TestRouteState PDA and critical RouteExecuted/TestRiskPublished event-CPI records. Immediate routes require the explicit local-test-profile compile feature and a live authority-published synthetic observation. The default compiled artifact rejects activation. Maker CPI retains the P03 single read-only config boundary. One/two-maker accounting, fee, nonce and consumption commit atomically; real deposits support exposed accounts, while trading-mode withdrawals remain disabled until guarded exits land. The pure bigint allocation core lives in packages/sdk/src/allocate-route.ts for later quote services; no server or PostgreSQL projection is claimed by this phase.
+
+
+## P06 implemented interface
+
+[LIFECYCLE](P06-LIFECYCLE.md) supersedes the P04/P05 settlement/exit boundary: clearing adds a 101-byte ExitGuard, bounded complete-cohort scans, sequence-bound collection/gain settlement and owner-signed trading withdrawals. The critical SettlementChanged event extends the finalized projection with exact C/v/P accounting. Default builds still reject these synthetic-profile financial paths; oracle/funding/order/default interfaces remain disabled.
+
+`packages/services` supplies separately runnable API, executor, maker A/B and settlement roles. Wallet transactions are signature-verified and persisted as immutable exact bytes before broadcast. PostgreSQL operator reservations, identity-bound retries, finalized status/history reconciliation and maker heartbeats have explicit contracts in LIFECYCLE. Services share the existing indexer run binding and serialize schema migrations through a database advisory transaction lock. Maker CPI authority is unchanged.
+
+
+## P07 implemented interface
+
+[ORACLE-AND-FUNDING](P07-ORACLE-AND-FUNDING.md) adds initializeOracle/sampleOracle, embedded OracleState, materialized funding index/time and OracleObserved event-CPI. Route and settlement events include actual funding checkpoints; maker control changes invalidate the held configuration stamp. The separately restartable funding role uses the existing immutable transaction queue and its own explicit SOL budget. Signed local dependency publication is a clearly labeled fixture; it has no rate-setting or vault authority. The indexer reconciles full observation state and checkpoint-adjusted claims through actual RPC/WS/PostgreSQL.
+
+
+## P08 implemented interface
+
+[ORDERS](P08-ORDERS.md) embeds four durable order records and two protective groups in Participant. Owner-signed place/replace/cancel and pair/group operations are separate from permissionless executeOrder and terminal cleanup. Immediate executeRoute still requires the wallet signer. Cancellation uses only the owner, market, participant and event-CPI accounts; source and maker availability are not prerequisites.
+
+OrderChanged and route/settlement snapshots preserve the complete book, remaining reservation, IDs and fee prefixes. The finalized indexer reconciles and rebuilds those fields; `/v1/orders` exposes effective eligibility and history. The services `orders` role uses a separate operator budget and immutable signed queue, at most one pending discovery job and a preferred 64-lot subfill. Maker CPI still receives one readonly config and no clearing writables or vault authority. Sensitive admission and funding coverage compute reservations from current bounds rather than trusting an old stored reserve.
+
+### P09 risk and resolution interfaces
+
+Clearing adds `liquidate`, `initializeResolution`, `freezeMarket`, `advanceResolution` and `recoverResolution`. `ResolutionState` binds the frozen registry identity, epoch, price/funding, stage/cursor, cash totals and at most 64 per-ID planning records. Each instruction takes the shared market coordination account. Liquidation requires the actual funded receiver's owner signature; default pages are permissionless and exact-order, while source-emergency entry and final resume require market authority.
+
+`LiquidationApplied` includes both full changed participant states. `ResolutionProgress` includes the exact header, bounded row updates and compact balance changes; its finalization flag explicitly invalidates active order records, zeroes IDs/reserves/group allowances and preserves history/nonces. The indexer reconstructs and compares the complete accounts. Frozen reconciliation uses the resolution ledger's collected/applied adjustments instead of applying ordinary net-position equations to partially finalized accounts. Both APIs expose `/v1/resolution`; balance views distinguish planned and applied payments and keep withdrawals unavailable while frozen.
+
+The separate `risk` process uses a 5,000,000-lamport operator budget and a real funded non-maker participant. It discovers bounded improving transfers or bankruptcy proofs, persists signed bytes through the existing queue and advances exact pages. It may check recovery sources but cannot resume the venue. Details and resource evidence are in [RESOLUTION](P09-RESOLUTION.md) and WORKLOG.
+
+## P10 user and browser interfaces
+
+`apps/trader` uses Wallet Standard through the existing modern adapter. `UserClient` reads the exact finalized cohort, verifies local deployment identity, reconstructs route instructions and independently evaluates maker prices. `balanceView` supplies the same labeled calculations to the API and browser. The client constructs direct cancel/cohort/withdraw/settlement instructions without a venue HTTP dependency. It persists signed bytes before submission and requires an independent exact RPC transaction fetch before labeling success finalized. Public configuration and recovery steps are in [TRADER](P10-TRADER.md).
+
+Read API envelopes add genesis, initialization and domain binding. Optional bounded `latest=true` on events/trades returns the newest window in ascending order with no continuation cursor; existing `after` pagination is preserved and cannot be combined with `latest`. A browser never interprets cached service health as financial authority. Frozen balances expose planned versus applied resolution payments and disable ordinary actions.
+
+P12 adds explicit bounded local resource options under [LOAD-SOAK](P12-LOAD-SOAK.md): loopback-only `soak24` worker budgets and a validated indexer recovery ceiling up to 200,000 transactions (default 10,000). Durable budget identity, unknown-outcome rules, finalized metadata and full candidate reconciliation remain unchanged. Actual long-run acceptance is pending.
+
+P12 scheduling extension: new immutable service intents emit a run-scoped PostgreSQL notification within their INSERT transaction, delivered on commit. The separate executor uses it only as a wake-up hint; the existing 250 ms durable scan remains the fallback after notification loss/disconnect/restart. Public quote failures may include bounded reason codes for paused/account/source/observation restrictions; admission and signed-byte authority are unchanged.
+
+### P12 quote dispatch admission
+
+Public submission request identities cannot use the reserved `funding:`, `keeper:`, `maker:`, `maker-sync:`, `order:` or `risk:` prefixes. Worker pending checks use their actual persisted budget. Quote preparation reports `observation-update-pending` for a pending/unresolved operator-funded sample and `quote-expiring` when the selected expiry has <=10 slots left at processed RPC. Optional loopback `RIVALT_QUOTE_DISPATCH_MARGIN_SECONDS` is 0 (default) or 1; with the configured 2–5 second sampler it reports `observation-update-due` before the next scheduled sample. P12 declares margin 1/cadence 5 and reports the resulting availability cost. These guards do not extend quotes, promise execution or replace on-chain checks.
+
+P12 quote responses additionally include read-only `audit` snapshot inputs (reference/bounds, accrued balances, consumed maker depth and effective-order counts) for independent exact quote comparison. This creates no new instruction or execution authority. Financial JSON remains decimal strings.
+
+Trades, event cursors and candle open/close chronology order by the underlying numeric event sequence. Serialization as a decimal string must not cause lexical ordering (for example, 98 before 218). P12 adds real PostgreSQL coverage of that multi-digit boundary.
+
+Quote audit candidates include maker version/start/exclusive-expiry slots; a mathematically attractive curve outside its current epoch window is unavailable to the independent comparator.
+
+
+D35 refines P12 quote preparation: `/v1/quote` includes `snapshotCommitment: confirmed`. The SDK reads a confirmed cohort only for independent route-message validation, and the UI labels it provisional; ordinary balance/exit snapshots remain finalized. Pending funding permits preview only after the exact confirmed transaction decodes to the current market/domain/epochs/observation/validity/funding state at or before the preview slot. Unknown evidence blocks quoting. Durable intent state, budget release and indexer projections still require finalized evidence. Existing on-chain expiry, observation, nonce and price checks remain authoritative.
+
+P14 introduces an explicit `solana:devnet` deployment binding across indexer, services, SDK and wallet UI; defaults remain local. Pinned program IDs, genesis and immutable initialization identity govern PDA/owner/event/instruction selection. Browser configuration cannot include provider query credentials. [The bounded devnet contract](P14-DEVNET-LIFECYCLE.md) and [A19 evidence](evidence/P14.md) record the actual bounded lifecycle, PostgreSQL recovery and Phantom registration; WORKLOG owns integration status.
+
+D38 separates explicit deployment configuration and bounded regression fixtures from local raw run output. See [evidence storage](EVIDENCE.md). Raw captures remain in place; launchers and normal tests must work without them.

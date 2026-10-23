@@ -10,11 +10,13 @@ name = "clearing"
 
 [features]
 default = []
+devnet-test-profile = ["oracle-fixture/devnet-test-profile"]
+local-test-profile = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build", "maker-interface/idl-build", "oracle-fixture/idl-build"]
 anchor-debug = []
 custom-heap = []
 custom-panic = []
@@ -23,3 +25,7 @@ custom-panic = []
 anchor-lang = { workspace = true }
 anchor-spl = { workspace = true }
 financial-core = { path = "../../crates/financial-core" }
+maker-interface = { path = "../../crates/maker-interface" }
+solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }
+
+oracle-fixture = { path = "../../tests/fixtures/oracle", features = ["no-entrypoint"] }

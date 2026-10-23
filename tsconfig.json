@@ -8,7 +8,24 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ]
   },
-  "include": ["packages/**/*.ts", "tests/rpc-contract/**/*.ts", "ops/**/*.ts"]
+  "include": [
+    "packages/**/*.ts",
+    "tests/rpc-contract/**/*.ts",
+    "ops/**/*.ts",
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
+    "tests/browser/**/*.ts",
+    "tests/e2e/**/*.ts",
+    "tests/load/**/*.ts"
+  ]
 }

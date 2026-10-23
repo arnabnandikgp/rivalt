@@ -20,9 +20,10 @@ pub struct MarketState {
     pub config_epoch: u64,
     pub sequence: u64,
     pub paused: bool,
-    /// Only CustodyOnly (0) exists in this schema.
+    /// 0 CustodyOnly, 1 synthetic TestRoutes, 2 oracle profile, 3 frozen resolution.
     pub mode: u8,
     pub funding_index_scaled: i128,
+    pub funding_time: i64,
     pub total_cash: u64,
     pub settlement: u64,
     pub insurance: u64,
@@ -47,8 +48,9 @@ pub struct Participant {
     pub generation: u64,
     pub nonce: u64,
     pub reserved: u64,
-    /// Zero means empty. P08 owns order records and the nonzero slot authority.
+    /// Zero means inactive; IDs never repeat when a bounded slot is reused.
     pub order_ids: [u64; 4],
+    pub book: crate::orders::OrderBook,
     pub bump: u8,
 }
 
@@ -71,17 +73,17 @@ pub struct InitializeMarket<'info> {
     #[account(constraint = clearing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::Authority)]
     pub clearing_program: Program<'info, crate::program::Clearing>,
     #[account(constraint = program_data.upgrade_authority_address == Some(authority.key()) @ ClearingError::Authority)]
-    pub program_data: Account<'info, ProgramData>,
+    pub program_data: Box<Account<'info, ProgramData>>,
     #[account(constraint = quote_mint.decimals == DECIMALS @ ClearingError::Mint,
         constraint = quote_mint.freeze_authority.is_none() @ ClearingError::Mint)]
-    pub quote_mint: Account<'info, Mint>,
+    pub quote_mint: Box<Account<'info, Mint>>,
     #[account(init, payer = authority, space = 8 + MarketState::INIT_SPACE, seeds = [b"market".as_ref(), b"BTC".as_ref()], bump)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(init, payer = authority, space = 8 + ParticipantRegistry::INIT_SPACE, seeds = [b"registry", market.key().as_ref()], bump)]
     pub registry: Box<Account<'info, ParticipantRegistry>>,
     #[account(init, payer = authority, seeds = [b"vault", market.key().as_ref()], bump,
         token::mint = quote_mint, token::authority = market)]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: Box<Account<'info, TokenAccount>>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -92,12 +94,12 @@ pub struct RegisterParticipant<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
     #[account(mut, seeds = [b"market".as_ref(), b"BTC".as_ref()], bump = market.bump)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(mut, seeds = [b"registry", market.key().as_ref()], bump = registry.bump, has_one = market)]
     pub registry: Box<Account<'info, ParticipantRegistry>>,
     #[account(init, payer = owner, space = 8 + Participant::INIT_SPACE,
         seeds = [b"participant", market.key().as_ref(), owner.key().as_ref()], bump)]
-    pub participant: Account<'info, Participant>,
+    pub participant: Box<Account<'info, Participant>>,
     pub system_program: Program<'info, System>,
 }
 
@@ -106,17 +108,17 @@ pub struct RegisterParticipant<'info> {
 pub struct CashTransfer<'info> {
     pub owner: Signer<'info>,
     #[account(mut, seeds = [b"market".as_ref(), b"BTC".as_ref()], bump = market.bump, has_one = quote_mint, has_one = vault)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(mut, seeds = [b"participant", market.key().as_ref(), owner.key().as_ref()], bump = participant.bump,
         has_one = owner, has_one = market)]
-    pub participant: Account<'info, Participant>,
-    pub quote_mint: Account<'info, Mint>,
+    pub participant: Box<Account<'info, Participant>>,
+    pub quote_mint: Box<Account<'info, Mint>>,
     #[account(mut, seeds = [b"vault", market.key().as_ref()], bump = market.vault_bump,
         token::mint = quote_mint, token::authority = market)]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: Box<Account<'info, TokenAccount>>,
     #[account(mut, constraint = user_token.key() != vault.key() @ ClearingError::Alias,
         token::mint = quote_mint, token::authority = owner)]
-    pub user_token: Account<'info, TokenAccount>,
+    pub user_token: Box<Account<'info, TokenAccount>>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -126,14 +128,14 @@ pub struct FundInsurance<'info> {
     pub authority: Signer<'info>,
     #[account(mut, seeds = [b"market".as_ref(), b"BTC".as_ref()], bump = market.bump,
         has_one = authority, has_one = quote_mint, has_one = vault)]
-    pub market: Account<'info, MarketState>,
-    pub quote_mint: Account<'info, Mint>,
+    pub market: Box<Account<'info, MarketState>>,
+    pub quote_mint: Box<Account<'info, Mint>>,
     #[account(mut, seeds = [b"vault", market.key().as_ref()], bump = market.vault_bump,
         token::mint = quote_mint, token::authority = market)]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: Box<Account<'info, TokenAccount>>,
     #[account(mut, constraint = source.key() != vault.key() @ ClearingError::Alias,
         token::mint = quote_mint, token::authority = authority)]
-    pub source: Account<'info, TokenAccount>,
+    pub source: Box<Account<'info, TokenAccount>>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -142,11 +144,11 @@ pub struct FundInsurance<'info> {
 pub struct ControlMarket<'info> {
     pub authority: Signer<'info>,
     #[account(mut, seeds = [b"market".as_ref(), b"BTC".as_ref()], bump = market.bump, has_one = authority, has_one = vault)]
-    pub market: Account<'info, MarketState>,
+    pub market: Box<Account<'info, MarketState>>,
     #[account(seeds = [b"vault", market.key().as_ref()], bump = market.vault_bump,
         constraint = vault.mint == market.quote_mint @ ClearingError::Mint,
         constraint = vault.owner == market.key() @ ClearingError::Authority)]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: Box<Account<'info, TokenAccount>>,
 }
 
 #[event]
@@ -178,14 +180,13 @@ pub struct CustodyChanged {
 fn arithmetic<T>(value: financial_core::Result<T>) -> Result<T> {
     value.map_err(|_| error!(ClearingError::Arithmetic))
 }
-fn profile(m: &MarketState) -> Result<()> {
+pub(crate) fn profile(m: &MarketState) -> Result<()> {
     require!(
         m.schema_version == SCHEMA_VERSION
             && m.profile_version == PROFILE_VERSION
-            && m.mode == 0
-            && m.funding_index_scaled == 0
-            && m.settlement == 0
-            && m.fees == 0,
+            && m.mode <= 3
+            && (m.mode >= 2 || m.funding_index_scaled == 0)
+            && (m.mode > 0 || (m.fees == 0 && m.settlement == 0)),
         ClearingError::Profile
     );
     Ok(())
@@ -195,7 +196,7 @@ fn active(m: &MarketState) -> Result<()> {
     require!(!m.paused, ClearingError::Paused);
     Ok(())
 }
-fn reconciled(m: &MarketState, actual: u64) -> Result<()> {
+pub(crate) fn reconciled(m: &MarketState, actual: u64) -> Result<()> {
     let sum = u128::from(m.total_cash)
         + u128::from(m.settlement)
         + u128::from(m.insurance)
@@ -268,6 +269,7 @@ pub fn initialize(ctx: Context<InitializeMarket>, domain: [u8; 32]) -> Result<()
         paused: false,
         mode: 0,
         funding_index_scaled: 0,
+        funding_time: 0,
         total_cash: 0,
         settlement: 0,
         insurance: 0,
@@ -320,6 +322,7 @@ pub fn register(ctx: Context<RegisterParticipant>) -> Result<()> {
         nonce: 0,
         reserved: 0,
         order_ids: [0; 4],
+        book: crate::orders::OrderBook::default(),
         bump: ctx.bumps.participant,
     });
     r.members.push(p.key());
@@ -331,7 +334,7 @@ pub fn register(ctx: Context<RegisterParticipant>) -> Result<()> {
 pub fn process_deposit(ctx: Context<CashTransfer>, amount: u64) -> Result<()> {
     let m = &mut ctx.accounts.market;
     active(m)?;
-    flat(&ctx.accounts.participant)?;
+    crate::routes::participant_model(&ctx.accounts.participant)?;
     require!(amount > 0, ClearingError::Amount);
     reconciled(m, ctx.accounts.vault.amount)?;
     let p = &mut ctx.accounts.participant;
@@ -367,6 +370,8 @@ pub fn process_deposit(ctx: Context<CashTransfer>, amount: u64) -> Result<()> {
 pub fn process_withdraw(ctx: Context<CashTransfer>, amount: u64) -> Result<()> {
     let m = &mut ctx.accounts.market;
     active(m)?;
+    // P06 adds guarded exits with settlement/whole-market policy.
+    require!(m.mode == 0, ClearingError::Profile);
     flat(&ctx.accounts.participant)?;
     require!(amount > 0, ClearingError::Amount);
     reconciled(m, ctx.accounts.vault.amount)?;
@@ -439,6 +444,7 @@ pub fn process_fund_insurance(ctx: Context<FundInsurance>, amount: u64) -> Resul
 pub fn process_classify_surplus(ctx: Context<ControlMarket>) -> Result<()> {
     let m = &mut ctx.accounts.market;
     profile(m)?;
+    require!(m.mode != 3, ClearingError::Resolution);
     reconciled(m, ctx.accounts.vault.amount)?;
     let amount = ctx
         .accounts
@@ -463,6 +469,7 @@ pub fn process_classify_surplus(ctx: Context<ControlMarket>) -> Result<()> {
 pub fn set_pause(ctx: Context<ControlMarket>, paused: bool) -> Result<()> {
     let m = &mut ctx.accounts.market;
     profile(m)?;
+    require!(m.mode != 3, ClearingError::Resolution);
     reconciled(m, ctx.accounts.vault.amount)?;
     m.paused = paused;
     m.config_epoch = m

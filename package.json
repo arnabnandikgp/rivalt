@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.23.0",
-  "engines": { "node": "24.22.0" },
+  "engines": {
+    "node": "24.22.0"
+  },
   "scripts": {
     "generate": "node --import tsx ops/generate-sdk.ts",
     "generate:check": "node --import tsx ops/generate-sdk.ts --check",
@@ -12,7 +14,23 @@
     "test:financial": "bash ops/financial.sh",
     "test:svm": "node --import tsx tests/rpc-contract/custody-svm.ts",
     "conformance": "node tests/anchor-conformance/conformance.cjs",
-    "smoke": "bash ops/smoke.sh"
+    "smoke": "bash ops/smoke.sh",
+    "test:makers": "bash ops/makers.sh",
+    "test:routes": "node --import tsx tests/rpc-contract/route-svm.ts",
+    "indexer": "node --import tsx packages/indexer/src/main.ts",
+    "test:settlement": "node --import tsx tests/rpc-contract/settlement-svm.ts",
+    "services": "node --import tsx packages/services/src/main.ts",
+    "test:oracle": "node --import tsx tests/rpc-contract/oracle-svm.ts",
+    "test:orders": "node --import tsx tests/rpc-contract/order-svm.ts",
+    "test:resolution": "bash ops/resolution-tests.sh",
+    "build:trader": "pnpm --filter @rivalt/trader build",
+    "trader": "pnpm --filter @rivalt/trader dev",
+    "demo:trader": "bash ops/load-soak.sh --manual-ui",
+    "test:browser": "bash ops/browser-smoke.sh",
+    "test:matrix": "bash ops/smoke.sh",
+    "test:matrix-report": "python3 -m unittest discover -s tests/e2e -p \"test_*.py\"",
+    "test:load": "bash ops/load-soak.sh",
+    "test:load-unit": "vitest run tests/load/metrics.test.ts packages/services/src/profile.test.ts"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "1.5.6",

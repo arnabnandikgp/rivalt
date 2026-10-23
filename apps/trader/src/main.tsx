@@ -1,0 +1,87 @@
+import React, { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ConnectionProvider, WalletProvider, WalletModalProvider } from '@solana/wallet-adapter';
+import { userConfig, type UserConfig } from '@rivalt/sdk';
+import '@solana/wallet-adapter/styles.css';
+import './styles.css';
+import { App } from './App.js';
+export type TraderConfig = UserConfig & { apiBase: string; readBase: string };
+function Root() {
+  const [config, setConfig] = useState<TraderConfig>(),
+    [error, setError] = useState(''),
+    [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setError('');
+    fetch('/rivalt-config.json', { signal: AbortSignal.timeout(8000) })
+      .then(async (r) => {
+        if (!r.ok) throw new Error('The local venue configuration is unavailable.');
+        const raw = await r.json(),
+          validated = userConfig(raw);
+        if (raw.apiBase !== '/api' || raw.readBase !== '/read')
+          throw new Error('Unsupported service configuration.');
+        if (active) setConfig({ ...validated, apiBase: raw.apiBase, readBase: raw.readBase });
+      })
+      .catch((e) => {
+        if (active) setError(e.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [attempt]);
+  if (!config)
+    return (
+      <main className="startup">
+        <span className="wordmark">
+          Rivalt
+          <span className="brand-dot" />
+        </span>
+        <h1>BTC perpetuals</h1>
+        {error ? (
+          <>
+            <p role="alert">{error}</p>
+            <button onClick={() => setAttempt((x) => x + 1)}>Retry connection</button>
+          </>
+        ) : (
+          <p role="status">Connecting to the test venue…</p>
+        )}
+      </main>
+    );
+  return (
+    <ConnectionProvider
+      endpoint={config.rpcUrl}
+      config={{ commitment: 'confirmed', wsEndpoint: config.wsUrl }}
+    >
+      <WalletProvider chain={config.chain} autoConnect>
+        <WalletModalProvider>
+          <App config={config} />
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
+  );
+}
+class Boundary extends React.Component<{ children: React.ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? (
+      <main className="startup">
+        <h1>View unavailable</h1>
+        <p>
+          Saved transaction signatures remain in this browser. Reload to reconcile them before repeating an
+          action.
+        </p>
+        <button onClick={() => location.reload()}>Reload</button>
+      </main>
+    ) : (
+      this.props.children
+    );
+  }
+}
+createRoot(document.getElementById('root')!).render(
+  <Boundary>
+    <Root />
+  </Boundary>,
+);

@@ -6,9 +6,665 @@
     "spec": "0.1.0"
   },
   "docs": [
-    "Profile 1 implements custody only. Trade/funding/order/default entrypoints are absent."
+    "Synthetic local routes require the explicit local-test-profile build feature."
   ],
   "instructions": [
+    {
+      "name": "advance_resolution",
+      "discriminator": [
+        112,
+        155,
+        208,
+        72,
+        177,
+        155,
+        63,
+        181
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state",
+            "registry",
+            "resolution"
+          ]
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "stage",
+          "type": "u8"
+        },
+        {
+          "name": "start",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "approve_maker",
+      "discriminator": [
+        182,
+        108,
+        6,
+        26,
+        13,
+        52,
+        208,
+        158
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "capital",
+            "registration"
+          ]
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "capital",
+            "registration"
+          ]
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          },
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "pricing_program",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "program_data",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "config",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_order",
+      "discriminator": [
+        95,
+        129,
+        237,
+        240,
+        8,
+        49,
+        223,
+        132
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "id",
+          "type": "u64"
+        },
+        {
+          "name": "version",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "cancel_protection",
+      "discriminator": [
+        237,
+        169,
+        181,
+        11,
+        241,
+        193,
+        117,
+        4
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "group_id",
+          "type": "u64"
+        },
+        {
+          "name": "version",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "check_exit_cohort",
+      "discriminator": [
+        218,
+        218,
+        53,
+        17,
+        248,
+        121,
+        117,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state",
+            "registry",
+            "guard"
+          ]
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "start",
+          "type": "u16"
+        }
+      ]
+    },
     {
       "name": "classify_surplus",
       "discriminator": [
@@ -88,6 +744,268 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "cleanup_orders",
+      "discriminator": [
+        231,
+        52,
+        245,
+        91,
+        29,
+        84,
+        160,
+        33
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "participant.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "collect_loss",
+      "discriminator": [
+        47,
+        245,
+        158,
+        140,
+        104,
+        252,
+        109,
+        86
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant",
+            "route_state",
+            "guard"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "participant.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     },
     {
       "name": "deposit",
@@ -225,6 +1143,607 @@
       ]
     },
     {
+      "name": "execute_order",
+      "discriminator": [
+        115,
+        61,
+        180,
+        24,
+        168,
+        32,
+        215,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "keeper",
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "trader",
+            "route_state"
+          ]
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "trader.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "first_capital",
+          "writable": true
+        },
+        {
+          "name": "first_registration",
+          "writable": true
+        },
+        {
+          "name": "first_program"
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config"
+        },
+        {
+          "name": "second_capital",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_registration",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_program",
+          "optional": true
+        },
+        {
+          "name": "second_program_data",
+          "optional": true
+        },
+        {
+          "name": "second_config",
+          "optional": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "OrderExecution"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_route",
+      "discriminator": [
+        246,
+        14,
+        81,
+        121,
+        140,
+        237,
+        86,
+        23
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "trader"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "trader",
+            "route_state"
+          ]
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "first_capital",
+          "writable": true
+        },
+        {
+          "name": "first_registration",
+          "writable": true
+        },
+        {
+          "name": "first_program"
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config"
+        },
+        {
+          "name": "second_capital",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_registration",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_program",
+          "optional": true
+        },
+        {
+          "name": "second_program_data",
+          "optional": true
+        },
+        {
+          "name": "second_config",
+          "optional": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "intent",
+          "type": {
+            "defined": {
+              "name": "RouteIntent"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "freeze_market",
+      "discriminator": [
+        184,
+        154,
+        237,
+        98,
+        127,
+        82,
+        217,
+        180
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "target",
+            "route_state",
+            "registry",
+            "resolution"
+          ]
+        },
+        {
+          "name": "target",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "target.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "primary_btc"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_btc"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "emergency",
+          "type": "bool"
+        }
+      ]
+    },
+    {
       "name": "fund_insurance",
       "discriminator": [
         58,
@@ -323,6 +1842,84 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "initialize_exit_guard",
+      "discriminator": [
+        119,
+        141,
+        64,
+        241,
+        210,
+        16,
+        221,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "initialize_market",
@@ -454,6 +2051,893 @@
       ]
     },
     {
+      "name": "initialize_oracle",
+      "discriminator": [
+        144,
+        223,
+        131,
+        120,
+        196,
+        253,
+        181,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state"
+          ]
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "primary",
+          "type": "pubkey"
+        },
+        {
+          "name": "guard",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "initialize_resolution",
+      "discriminator": [
+        114,
+        234,
+        73,
+        65,
+        38,
+        194,
+        180,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_test_routes",
+      "discriminator": [
+        16,
+        190,
+        103,
+        220,
+        65,
+        98,
+        245,
+        241
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "reference",
+          "type": "u64"
+        },
+        {
+          "name": "duration",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "liquidate",
+      "discriminator": [
+        223,
+        179,
+        226,
+        125,
+        48,
+        46,
+        39,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "receiver_owner",
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "target",
+            "receiver",
+            "route_state"
+          ]
+        },
+        {
+          "name": "target",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "target.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "receiver",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "receiver_owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "receiver_binding",
+          "docs": [
+            "transfer cannot disqualify it; an initialized maker binding always does."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114,
+                  45,
+                  99,
+                  97,
+                  112,
+                  105,
+                  116,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "receiver"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "lots",
+          "type": "u64"
+        },
+        {
+          "name": "price",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "place_order",
+      "discriminator": [
+        51,
+        194,
+        155,
+        175,
+        109,
+        130,
+        96,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant",
+            "route_state"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "expected_id",
+          "type": "u64"
+        },
+        {
+          "name": "terms",
+          "type": {
+            "defined": {
+              "name": "OrderTerms"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "place_protection",
+      "discriminator": [
+        101,
+        184,
+        4,
+        139,
+        113,
+        214,
+        10,
+        1
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant",
+            "route_state"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "expected_id",
+          "type": "u64"
+        },
+        {
+          "name": "tp",
+          "type": {
+            "defined": {
+              "name": "OrderTerms"
+            }
+          }
+        },
+        {
+          "name": "sl",
+          "type": {
+            "defined": {
+              "name": "OrderTerms"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "preview_maker",
+      "discriminator": [
+        30,
+        210,
+        207,
+        120,
+        189,
+        100,
+        226,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "capital",
+            "registration"
+          ]
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "capital.owner",
+                "account": "Participant"
+              }
+            ]
+          },
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "registration"
+        },
+        {
+          "name": "pricing_program",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "program_data",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "config",
+          "relations": [
+            "registration"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "PreviewArgs"
+            }
+          }
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QuoteResponse"
+        }
+      }
+    },
+    {
       "name": "probe",
       "discriminator": [
         9,
@@ -530,6 +3014,501 @@
               "name": "ProbeChoice"
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "publish_test_risk",
+      "discriminator": [
+        46,
+        208,
+        112,
+        198,
+        93,
+        161,
+        13,
+        246
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state"
+          ]
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "reference",
+          "type": "u64"
+        },
+        {
+          "name": "duration",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "quarantine_maker",
+      "discriminator": [
+        153,
+        18,
+        69,
+        131,
+        41,
+        154,
+        187,
+        101
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "recover_resolution",
+      "discriminator": [
+        160,
+        117,
+        82,
+        167,
+        208,
+        168,
+        218,
+        196
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state",
+            "registry",
+            "resolution"
+          ]
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "primary_btc"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_btc"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "resume",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "register_maker",
+      "discriminator": [
+        148,
+        253,
+        56,
+        234,
+        31,
+        33,
+        225,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "capital"
+          ]
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "capital"
+          ]
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114,
+                  45,
+                  99,
+                  97,
+                  112,
+                  105,
+                  116,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pricing_program"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "config"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "maker_id",
+          "type": "u8"
+        },
+        {
+          "name": "inventory_limit",
+          "type": "u64"
         }
       ]
     },
@@ -652,6 +3631,326 @@
       "args": []
     },
     {
+      "name": "replace_order",
+      "discriminator": [
+        196,
+        148,
+        255,
+        192,
+        194,
+        68,
+        104,
+        91
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant",
+            "route_state"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "id",
+          "type": "u64"
+        },
+        {
+          "name": "version",
+          "type": "u64"
+        },
+        {
+          "name": "terms",
+          "type": {
+            "defined": {
+              "name": "OrderTerms"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "sample_oracle",
+      "discriminator": [
+        189,
+        254,
+        170,
+        62,
+        147,
+        181,
+        131,
+        127
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "route_state",
+            "first_capital",
+            "first_registration",
+            "second_capital",
+            "second_registration"
+          ]
+        },
+        {
+          "name": "route_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "primary_btc"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_btc"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "first_capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "first_capital.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "first_registration"
+        },
+        {
+          "name": "first_program"
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config"
+        },
+        {
+          "name": "second_capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "second_capital.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "second_registration"
+        },
+        {
+          "name": "second_program"
+        },
+        {
+          "name": "second_program_data"
+        },
+        {
+          "name": "second_config"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "set_custody_pause",
       "discriminator": [
         139,
@@ -735,6 +4034,293 @@
           "type": "bool"
         }
       ]
+    },
+    {
+      "name": "settle_gain",
+      "discriminator": [
+        36,
+        171,
+        80,
+        119,
+        51,
+        41,
+        156,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant",
+            "route_state",
+            "guard"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "participant.owner",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "sync_maker_epoch",
+      "discriminator": [
+        176,
+        197,
+        132,
+        132,
+        121,
+        222,
+        151,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "capital",
+            "registration"
+          ]
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "capital.owner",
+                "account": "Participant"
+              }
+            ]
+          },
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "pricing_program",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "program_data",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "config",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
     },
     {
       "name": "withdraw",
@@ -870,9 +4456,246 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "withdraw_trading",
+      "discriminator": [
+        78,
+        233,
+        115,
+        42,
+        209,
+        223,
+        53,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  66,
+                  84,
+                  67
+                ]
+              }
+            ]
+          },
+          "relations": [
+            "participant",
+            "route_state",
+            "guard"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "route_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  115,
+                  116,
+                  45,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  103,
+                  117,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "quote_mint",
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          },
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "user_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observation",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "CapitalBinding",
+      "discriminator": [
+        176,
+        183,
+        79,
+        146,
+        172,
+        158,
+        6,
+        18
+      ]
+    },
+    {
+      "name": "ExitGuard",
+      "discriminator": [
+        199,
+        210,
+        148,
+        192,
+        93,
+        253,
+        196,
+        218
+      ]
+    },
+    {
+      "name": "MakerRegistration",
+      "discriminator": [
+        231,
+        196,
+        106,
+        151,
+        199,
+        213,
+        13,
+        66
+      ]
+    },
     {
       "name": "MarketState",
       "discriminator": [
@@ -924,6 +4747,32 @@
         95,
         56
       ]
+    },
+    {
+      "name": "ResolutionState",
+      "discriminator": [
+        79,
+        128,
+        50,
+        21,
+        72,
+        199,
+        254,
+        128
+      ]
+    },
+    {
+      "name": "TestRouteState",
+      "discriminator": [
+        27,
+        89,
+        110,
+        243,
+        98,
+        85,
+        236,
+        58
+      ]
     }
   ],
   "events": [
@@ -941,6 +4790,58 @@
       ]
     },
     {
+      "name": "LiquidationApplied",
+      "discriminator": [
+        36,
+        102,
+        222,
+        145,
+        192,
+        150,
+        20,
+        41
+      ]
+    },
+    {
+      "name": "MakerChanged",
+      "discriminator": [
+        208,
+        85,
+        87,
+        120,
+        6,
+        221,
+        0,
+        171
+      ]
+    },
+    {
+      "name": "OracleObserved",
+      "discriminator": [
+        251,
+        25,
+        221,
+        41,
+        50,
+        211,
+        179,
+        216
+      ]
+    },
+    {
+      "name": "OrderChanged",
+      "discriminator": [
+        159,
+        192,
+        209,
+        208,
+        211,
+        229,
+        147,
+        199
+      ]
+    },
+    {
       "name": "ProbeRecorded",
       "discriminator": [
         63,
@@ -951,6 +4852,58 @@
         158,
         27,
         151
+      ]
+    },
+    {
+      "name": "ResolutionProgress",
+      "discriminator": [
+        164,
+        124,
+        164,
+        77,
+        35,
+        136,
+        138,
+        141
+      ]
+    },
+    {
+      "name": "RouteExecuted",
+      "discriminator": [
+        223,
+        139,
+        136,
+        123,
+        11,
+        101,
+        183,
+        17
+      ]
+    },
+    {
+      "name": "SettlementChanged",
+      "discriminator": [
+        245,
+        182,
+        67,
+        134,
+        121,
+        92,
+        221,
+        133
+      ]
+    },
+    {
+      "name": "TestRiskPublished",
+      "discriminator": [
+        108,
+        25,
+        154,
+        69,
+        185,
+        245,
+        237,
+        196
       ]
     }
   ],
@@ -1003,15 +4956,140 @@
     {
       "code": 6108,
       "name": "Profile",
-      "msg": "Financial state is outside the implemented custody-only profile"
+      "msg": "Financial state is outside the implemented phase profile"
     },
     {
       "code": 6109,
       "name": "Domain",
       "msg": "Domain identity must be nonzero"
+    },
+    {
+      "code": 6110,
+      "name": "MakerBinding",
+      "msg": "Maker program, config or capital binding mismatch"
+    },
+    {
+      "code": 6111,
+      "name": "MakerCapital",
+      "msg": "Maker capital is unfunded or outside the implemented profile"
+    },
+    {
+      "code": 6112,
+      "name": "MakerEpoch",
+      "msg": "Maker or market epoch mismatch or expired quote"
+    },
+    {
+      "code": 6113,
+      "name": "MakerQuarantined",
+      "msg": "Maker registration is quarantined"
+    },
+    {
+      "code": 6114,
+      "name": "MakerUpgrade",
+      "msg": "Maker deployment differs from approved ProgramData hash"
+    },
+    {
+      "code": 6115,
+      "name": "MakerQuote",
+      "msg": "Maker quote exceeds price, size or capacity bounds"
+    },
+    {
+      "code": 6116,
+      "name": "MakerResponse",
+      "msg": "Maker response producer, encoding or terms mismatch"
+    },
+    {
+      "code": 6117,
+      "name": "RouteIntent",
+      "msg": "Route authority, quantity, lifetime, nonce or generation mismatch"
+    },
+    {
+      "code": 6118,
+      "name": "RiskObservation",
+      "msg": "Synthetic observation is unavailable, stale or mismatched"
+    },
+    {
+      "code": 6119,
+      "name": "RouteLimit",
+      "msg": "Route exceeds all-in, fee or execution bounds"
+    },
+    {
+      "code": 6120,
+      "name": "RouteHealth",
+      "msg": "Post-fee health or exposure capacity fails"
+    },
+    {
+      "code": 6121,
+      "name": "ExitCohort",
+      "msg": "Exit cohort is incomplete, insolvent, foreign or stale"
+    },
+    {
+      "code": 6122,
+      "name": "FinancialSequence",
+      "msg": "Financial action is bound to a different market sequence"
+    },
+    {
+      "code": 6123,
+      "name": "OracleSource",
+      "msg": "Oracle source identity, verification or schema mismatch"
+    },
+    {
+      "code": 6124,
+      "name": "OraclePolicy",
+      "msg": "Oracle action mode, sample timing or source policy rejects action"
+    },
+    {
+      "code": 6125,
+      "name": "OrderState",
+      "msg": "Stored order identity, version, prefix or state mismatch"
+    },
+    {
+      "code": 6126,
+      "name": "OrderTerms",
+      "msg": "Order quantity, limits, lifetime, trigger or generation rejected"
+    },
+    {
+      "code": 6127,
+      "name": "OrderSlots",
+      "msg": "No free bounded order/protective-group slot"
+    },
+    {
+      "code": 6128,
+      "name": "OrderTrigger",
+      "msg": "Current central index does not satisfy stored trigger"
+    },
+    {
+      "code": 6129,
+      "name": "Liquidation",
+      "msg": "Liquidation receiver, funded fee or strict risk progress check failed"
+    },
+    {
+      "code": 6130,
+      "name": "Resolution",
+      "msg": "Resolution epoch, stage, cursor, cohort or accounting check failed"
     }
   ],
   "types": [
+    {
+      "name": "CapitalBinding",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "registration",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
     {
       "name": "CustodyChanged",
       "type": {
@@ -1112,6 +5190,378 @@
       }
     },
     {
+      "name": "ExecutedLeg",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross_quote",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "consumed_after",
+            "type": "u64"
+          },
+          {
+            "name": "position_after",
+            "type": "i64"
+          },
+          {
+            "name": "virtual_after",
+            "type": "i128"
+          },
+          {
+            "name": "generation_after",
+            "type": "u64"
+          },
+          {
+            "name": "reserved_after",
+            "type": "u64"
+          },
+          {
+            "name": "order_ids_after",
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "book_after",
+            "type": {
+              "defined": {
+                "name": "OrderBook"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExitGuard",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "observation",
+            "type": "u64"
+          },
+          {
+            "name": "count",
+            "type": "u16"
+          },
+          {
+            "name": "next",
+            "type": "u16"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "i128"
+          },
+          {
+            "name": "exposed",
+            "type": "u64"
+          },
+          {
+            "name": "unpaid",
+            "type": "i128"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidationApplied",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "observation",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "deficit_before",
+            "type": "i128"
+          },
+          {
+            "name": "deficit_after",
+            "type": "i128"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "gross_lots",
+            "type": "u64"
+          },
+          {
+            "name": "target",
+            "type": {
+              "defined": {
+                "name": "RiskParticipant"
+              }
+            }
+          },
+          {
+            "name": "receiver",
+            "type": {
+              "defined": {
+                "name": "RiskParticipant"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "registration",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "quarantined",
+            "type": "bool"
+          },
+          {
+            "name": "approved_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerRegistration",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pricing_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "program_data",
+            "type": "pubkey"
+          },
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "approved_hash",
+            "docs": [
+              "Entire loader ProgramData, including deployment slot, authority and code."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "inventory_limit",
+            "type": "u64"
+          },
+          {
+            "name": "buy_consumed",
+            "type": "u64"
+          },
+          {
+            "name": "sell_consumed",
+            "type": "u64"
+          },
+          {
+            "name": "quarantined",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "MarketState",
       "type": {
         "kind": "struct",
@@ -1164,13 +5614,17 @@
           {
             "name": "mode",
             "docs": [
-              "Only CustodyOnly (0) exists in this schema."
+              "0 CustodyOnly, 1 synthetic TestRoutes, 2 oracle profile, 3 frozen resolution."
             ],
             "type": "u8"
           },
           {
             "name": "funding_index_scaled",
             "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
           },
           {
             "name": "total_cash",
@@ -1202,6 +5656,389 @@
           {
             "name": "vault_bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleObserved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "observation_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          },
+          {
+            "name": "lower",
+            "type": "u64"
+          },
+          {
+            "name": "upper",
+            "type": "u64"
+          },
+          {
+            "name": "valid_from",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until",
+            "type": "u64"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "OracleState"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sources",
+            "type": {
+              "array": [
+                "pubkey",
+                4
+              ]
+            }
+          },
+          {
+            "name": "source_sequences",
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "sampled_at",
+            "type": "i64"
+          },
+          {
+            "name": "source_deadline",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "0 no credible bounds, 1 degraded, 2 normal (subject to live clock checks)."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "outcome",
+            "type": "u8"
+          },
+          {
+            "name": "valid_since",
+            "type": "i64"
+          },
+          {
+            "name": "last_qualified",
+            "type": "i64"
+          },
+          {
+            "name": "held_until",
+            "type": "i64"
+          },
+          {
+            "name": "held_slot",
+            "type": "u64"
+          },
+          {
+            "name": "held_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "funding_base",
+            "type": "i128"
+          },
+          {
+            "name": "premium_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "quantity",
+            "type": "u64"
+          },
+          {
+            "name": "bid",
+            "type": "u64"
+          },
+          {
+            "name": "ask",
+            "type": "u64"
+          },
+          {
+            "name": "covered_seconds",
+            "type": "u64"
+          },
+          {
+            "name": "skipped_seconds",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderBook",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "last_order_id",
+            "type": "u64"
+          },
+          {
+            "name": "last_group_id",
+            "type": "u64"
+          },
+          {
+            "name": "reserve_observation",
+            "type": "u64"
+          },
+          {
+            "name": "orders",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "StoredOrder"
+                  }
+                },
+                4
+              ]
+            }
+          },
+          {
+            "name": "groups",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "ProtectiveGroup"
+                  }
+                },
+                2
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "docs": [
+              "0 place, 1 replace, 2 cancel, 3 protective pair, 4 cancel group, 5 cleanup."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "participant",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_id",
+            "type": "u64"
+          },
+          {
+            "name": "reserved",
+            "type": "u64"
+          },
+          {
+            "name": "order_ids",
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "book",
+            "type": {
+              "defined": {
+                "name": "OrderBook"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderExecution",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "version",
+            "type": "u64"
+          },
+          {
+            "name": "filled",
+            "type": "u64"
+          },
+          {
+            "name": "observation_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "RouteLeg"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderTerms",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "limit",
+            "type": "u64"
+          },
+          {
+            "name": "fee_budget",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "trigger",
+            "type": "u8"
+          },
+          {
+            "name": "threshold",
+            "type": "u64"
+          },
+          {
+            "name": "reduce_only",
+            "type": "bool"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
           }
         ]
       }
@@ -1258,13 +6095,21 @@
           {
             "name": "order_ids",
             "docs": [
-              "Zero means empty. P08 owns order records and the nonzero slot authority."
+              "Zero means inactive; IDs never repeat when a bounded slot is reused."
             ],
             "type": {
               "array": [
                 "u64",
                 4
               ]
+            }
+          },
+          {
+            "name": "book",
+            "type": {
+              "defined": {
+                "name": "OrderBook"
+              }
             }
           },
           {
@@ -1300,6 +6145,42 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PreviewArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
           }
         ]
       }
@@ -1398,6 +6279,1130 @@
             "type": {
               "defined": {
                 "name": "ProbeChoice"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProtectiveGroup",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "version",
+            "type": "u64"
+          },
+          {
+            "name": "original",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "QuoteResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross_quote",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "market_config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "consumed_before",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionHeader",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          },
+          {
+            "name": "cursor",
+            "type": "u16"
+          },
+          {
+            "name": "count",
+            "type": "u16"
+          },
+          {
+            "name": "registry_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "funding",
+            "type": "i128"
+          },
+          {
+            "name": "frozen_at",
+            "type": "i64"
+          },
+          {
+            "name": "initial_cash",
+            "type": "u64"
+          },
+          {
+            "name": "initial_pool",
+            "type": "u64"
+          },
+          {
+            "name": "initial_insurance",
+            "type": "u64"
+          },
+          {
+            "name": "initial_fees",
+            "type": "u64"
+          },
+          {
+            "name": "initial_vault",
+            "type": "u64"
+          },
+          {
+            "name": "scanned_cash",
+            "type": "u64"
+          },
+          {
+            "name": "scanned_lots",
+            "type": "i128"
+          },
+          {
+            "name": "scanned_gross",
+            "type": "u64"
+          },
+          {
+            "name": "claim_sum",
+            "type": "i128"
+          },
+          {
+            "name": "remaining_lots",
+            "type": "i128"
+          },
+          {
+            "name": "remaining_gross",
+            "type": "u64"
+          },
+          {
+            "name": "debt",
+            "type": "u128"
+          },
+          {
+            "name": "positive",
+            "type": "u128"
+          },
+          {
+            "name": "insured_atoms",
+            "type": "u64"
+          },
+          {
+            "name": "plan_pool",
+            "type": "u64"
+          },
+          {
+            "name": "assigned",
+            "type": "u128"
+          },
+          {
+            "name": "extra",
+            "type": "u16"
+          },
+          {
+            "name": "rounding_sum",
+            "type": "i128"
+          },
+          {
+            "name": "collected_total",
+            "type": "u64"
+          },
+          {
+            "name": "paid_applied",
+            "type": "u64"
+          },
+          {
+            "name": "insurance_moved",
+            "type": "bool"
+          },
+          {
+            "name": "recovery_since",
+            "type": "i64"
+          },
+          {
+            "name": "recovery_last",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionParticipant",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "participant",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "i64"
+          },
+          {
+            "name": "virtual_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_checkpoint_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "finalized",
+            "docs": [
+              "Apply invalidates all active orders, zeros reserves/IDs and group allowance.",
+              "Collection leaves the full existing book and nonce unchanged."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionProgress",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "docs": [
+              "0 freeze/reset rows, 1 page, 2 valuation/recovery check, 3 resume."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "mode",
+            "type": "u8"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "settlement",
+            "type": "u64"
+          },
+          {
+            "name": "insurance",
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
+          },
+          {
+            "name": "allocated_vault",
+            "type": "u64"
+          },
+          {
+            "name": "gross_lots",
+            "type": "u64"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "OracleState"
+              }
+            }
+          },
+          {
+            "name": "header",
+            "type": {
+              "defined": {
+                "name": "ResolutionHeader"
+              }
+            }
+          },
+          {
+            "name": "rows",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ResolutionUpdate"
+                }
+              }
+            }
+          },
+          {
+            "name": "participants",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ResolutionParticipant"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionRow",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cash_before",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "i64"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "claim",
+            "docs": [
+              "Valued claim plus collected*SCALE. Ordinary v remains frozen until Apply."
+            ],
+            "type": "i128"
+          },
+          {
+            "name": "collected",
+            "type": "u64"
+          },
+          {
+            "name": "insured_scaled",
+            "type": "u128"
+          },
+          {
+            "name": "impaired_scaled",
+            "type": "u128"
+          },
+          {
+            "name": "paid",
+            "type": "u64"
+          },
+          {
+            "name": "rounding_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "remainder",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "header",
+            "type": {
+              "defined": {
+                "name": "ResolutionHeader"
+              }
+            }
+          },
+          {
+            "name": "rows",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ResolutionRow"
+                }
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolutionUpdate",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "row",
+            "type": {
+              "defined": {
+                "name": "ResolutionRow"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RiskParticipant",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "participant",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "i64"
+          },
+          {
+            "name": "virtual_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_checkpoint_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "reserved",
+            "type": "u64"
+          },
+          {
+            "name": "order_ids",
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "book",
+            "type": {
+              "defined": {
+                "name": "OrderBook"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RouteExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "observation_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross_quote",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "trader_cash",
+            "type": "u64"
+          },
+          {
+            "name": "trader_lots",
+            "type": "i64"
+          },
+          {
+            "name": "trader_virtual",
+            "type": "i128"
+          },
+          {
+            "name": "trader_generation",
+            "type": "u64"
+          },
+          {
+            "name": "trader_reserved",
+            "type": "u64"
+          },
+          {
+            "name": "trader_order_ids",
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "trader_book",
+            "type": {
+              "defined": {
+                "name": "OrderBook"
+              }
+            }
+          },
+          {
+            "name": "order_id",
+            "type": "u64"
+          },
+          {
+            "name": "order_version",
+            "type": "u64"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "total_fees",
+            "type": "u64"
+          },
+          {
+            "name": "gross_lots",
+            "type": "u64"
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ExecutedLeg"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RouteIntent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "observation_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "all_in_limit",
+            "docs": [
+              "Buy: maximum gross+fee. Sell: minimum gross-fee."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_fee",
+            "type": "u64"
+          },
+          {
+            "name": "reduce_only",
+            "type": "bool"
+          },
+          {
+            "name": "generation",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "RouteLeg"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RouteLeg",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettlementChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "observation",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "docs": [
+              "0 collect loss, 1 settle gain, 2 withdraw funded cash."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "participant",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "participant_cash",
+            "type": "u64"
+          },
+          {
+            "name": "participant_virtual",
+            "type": "i128"
+          },
+          {
+            "name": "participant_reserved",
+            "type": "u64"
+          },
+          {
+            "name": "participant_order_ids",
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "participant_book",
+            "type": {
+              "defined": {
+                "name": "OrderBook"
+              }
+            }
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "settlement",
+            "type": "u64"
+          },
+          {
+            "name": "allocated_vault",
+            "type": "u64"
+          },
+          {
+            "name": "actual_vault",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StoredOrder",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "version",
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "original_lots",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "filled",
+            "type": "u64"
+          },
+          {
+            "name": "notional",
+            "type": "u64"
+          },
+          {
+            "name": "fee_charged",
+            "type": "u64"
+          },
+          {
+            "name": "fee_budget",
+            "type": "u64"
+          },
+          {
+            "name": "limit",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "trigger",
+            "docs": [
+              "0 none, 1 central reference >= threshold, 2 <= threshold."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "threshold",
+            "type": "u64"
+          },
+          {
+            "name": "reduce_only",
+            "type": "bool"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "group_id",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "reserve",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TestRiskPublished",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "observation_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          },
+          {
+            "name": "lower",
+            "type": "u64"
+          },
+          {
+            "name": "upper",
+            "type": "u64"
+          },
+          {
+            "name": "valid_from",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TestRouteState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "observation_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          },
+          {
+            "name": "lower",
+            "type": "u64"
+          },
+          {
+            "name": "upper",
+            "type": "u64"
+          },
+          {
+            "name": "valid_from",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until",
+            "type": "u64"
+          },
+          {
+            "name": "gross_lots",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "OracleState"
               }
             }
           }

@@ -1,13 +1,198 @@
 use anchor_lang::prelude::*;
+#[cfg(any(test, feature = "devnet-test-profile"))]
+mod pyth_core;
+pub mod resolution;
+pub use resolution::*;
+pub mod risk;
+pub use risk::*;
+pub mod orders;
+pub use orders::*;
 pub mod custody;
 pub use custody::*;
+pub mod makers;
+use maker_interface::QuoteResponse;
+pub use makers::*;
+pub mod routes;
+pub use routes::*;
+pub mod oracle;
+pub use oracle::*;
+pub mod settlement;
+pub use settlement::*;
 
+#[cfg(not(feature = "devnet-test-profile"))]
 declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
+#[cfg(feature = "devnet-test-profile")]
+declare_id!("BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv");
 
-/// Profile 1 implements custody only. Trade/funding/order/default entrypoints are absent.
+#[cfg(all(feature = "local-test-profile", feature = "devnet-test-profile"))]
+compile_error!("local and devnet financial profiles are mutually exclusive");
+
+pub(crate) const fn financial_profile() -> bool {
+    cfg!(any(
+        feature = "local-test-profile",
+        feature = "devnet-test-profile"
+    ))
+}
+
+/// Financial paths require an explicit, separate engineering profile.
 #[program]
 pub mod clearing {
     use super::*;
+
+    pub fn initialize_resolution(ctx: Context<InitializeResolution>) -> Result<()> {
+        resolution::initialize(ctx)
+    }
+    pub fn freeze_market(
+        ctx: Context<FreezeMarket>,
+        sequence: u64,
+        observation: u64,
+        emergency: bool,
+    ) -> Result<()> {
+        resolution::freeze(ctx, sequence, observation, emergency)
+    }
+    pub fn advance_resolution(
+        ctx: Context<AdvanceResolution>,
+        epoch: u64,
+        stage: u8,
+        start: u16,
+    ) -> Result<()> {
+        resolution::advance(ctx, epoch, stage, start)
+    }
+    pub fn recover_resolution(
+        ctx: Context<RecoverResolution>,
+        epoch: u64,
+        resume: bool,
+    ) -> Result<()> {
+        resolution::recover(ctx, epoch, resume)
+    }
+    pub fn liquidate(
+        ctx: Context<Liquidate>,
+        sequence: u64,
+        observation: u64,
+        lots: u64,
+        price: u64,
+    ) -> Result<()> {
+        risk::liquidate(ctx, sequence, observation, lots, price)
+    }
+    pub fn place_order(
+        ctx: Context<ManageOrder>,
+        expected_id: u64,
+        terms: OrderTerms,
+    ) -> Result<()> {
+        orders::place(ctx, expected_id, terms)
+    }
+    pub fn replace_order(
+        ctx: Context<ManageOrder>,
+        id: u64,
+        version: u64,
+        terms: OrderTerms,
+    ) -> Result<()> {
+        orders::replace(ctx, id, version, terms)
+    }
+    pub fn cancel_order(ctx: Context<CancelOrder>, id: u64, version: u64) -> Result<()> {
+        orders::cancel(ctx, id, version)
+    }
+    pub fn place_protection(
+        ctx: Context<ManageOrder>,
+        expected_id: u64,
+        tp: OrderTerms,
+        sl: OrderTerms,
+    ) -> Result<()> {
+        orders::protect(ctx, expected_id, tp, sl)
+    }
+    pub fn cancel_protection(ctx: Context<CancelOrder>, group_id: u64, version: u64) -> Result<()> {
+        orders::cancel_group(ctx, group_id, version)
+    }
+    pub fn cleanup_orders(ctx: Context<CleanupOrders>) -> Result<()> {
+        orders::cleanup(ctx)
+    }
+
+    pub fn initialize_oracle(
+        ctx: Context<InitializeOracle>,
+        primary: Pubkey,
+        guard: Pubkey,
+    ) -> Result<()> {
+        oracle::initialize(ctx, primary, guard)
+    }
+    pub fn sample_oracle(ctx: Context<SampleOracle>) -> Result<()> {
+        oracle::sample(ctx)
+    }
+
+    pub fn initialize_exit_guard(ctx: Context<InitializeExitGuard>) -> Result<()> {
+        settlement::initialize(ctx)
+    }
+    pub fn check_exit_cohort(
+        ctx: Context<CheckExitCohort>,
+        sequence: u64,
+        observation: u64,
+        start: u16,
+    ) -> Result<()> {
+        settlement::check(ctx, sequence, observation, start)
+    }
+    pub fn collect_loss(
+        ctx: Context<LedgerChange>,
+        sequence: u64,
+        observation: u64,
+        amount: u64,
+    ) -> Result<()> {
+        settlement::change(ctx, sequence, observation, amount, false)
+    }
+    pub fn settle_gain(
+        ctx: Context<LedgerChange>,
+        sequence: u64,
+        observation: u64,
+        amount: u64,
+    ) -> Result<()> {
+        settlement::change(ctx, sequence, observation, amount, true)
+    }
+    pub fn withdraw_trading(
+        ctx: Context<WithdrawTrading>,
+        sequence: u64,
+        observation: u64,
+        amount: u64,
+    ) -> Result<()> {
+        settlement::withdraw(ctx, sequence, observation, amount)
+    }
+
+    pub fn initialize_test_routes(
+        ctx: Context<InitializeTestRoutes>,
+        reference: u64,
+        duration: u64,
+    ) -> Result<()> {
+        routes::initialize(ctx, reference, duration)
+    }
+    pub fn publish_test_risk(
+        ctx: Context<PublishTestRisk>,
+        reference: u64,
+        duration: u64,
+    ) -> Result<()> {
+        routes::publish_risk(ctx, reference, duration)
+    }
+    pub fn execute_order(ctx: Context<ExecuteOrder>, args: OrderExecution) -> Result<()> {
+        routes::execute_order(ctx, args)
+    }
+    pub fn execute_route(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
+        routes::execute(ctx, intent)
+    }
+    pub fn register_maker(
+        ctx: Context<RegisterMaker>,
+        maker_id: u8,
+        inventory_limit: u64,
+    ) -> Result<()> {
+        makers::register(ctx, maker_id, inventory_limit)
+    }
+    pub fn approve_maker(ctx: Context<ApproveMaker>) -> Result<()> {
+        makers::approve(ctx)
+    }
+    pub fn sync_maker_epoch(ctx: Context<SyncMaker>) -> Result<()> {
+        makers::sync(ctx)
+    }
+    pub fn quarantine_maker(ctx: Context<QuarantineMaker>) -> Result<()> {
+        makers::quarantine(ctx)
+    }
+    pub fn preview_maker(ctx: Context<PreviewMaker>, args: PreviewArgs) -> Result<QuoteResponse> {
+        makers::preview(ctx, args)
+    }
 
     pub fn initialize_market(ctx: Context<InitializeMarket>, domain: [u8; 32]) -> Result<()> {
         custody::initialize(ctx, domain)
@@ -125,8 +310,50 @@ pub enum ClearingError {
     Amount,
     #[msg("Actual vault is below allocated cash or cash totals disagree")]
     Reconciliation,
-    #[msg("Financial state is outside the implemented custody-only profile")]
+    #[msg("Financial state is outside the implemented phase profile")]
     Profile,
     #[msg("Domain identity must be nonzero")]
     Domain,
+    #[msg("Maker program, config or capital binding mismatch")]
+    MakerBinding,
+    #[msg("Maker capital is unfunded or outside the implemented profile")]
+    MakerCapital,
+    #[msg("Maker or market epoch mismatch or expired quote")]
+    MakerEpoch,
+    #[msg("Maker registration is quarantined")]
+    MakerQuarantined,
+    #[msg("Maker deployment differs from approved ProgramData hash")]
+    MakerUpgrade,
+    #[msg("Maker quote exceeds price, size or capacity bounds")]
+    MakerQuote,
+    #[msg("Maker response producer, encoding or terms mismatch")]
+    MakerResponse,
+    #[msg("Route authority, quantity, lifetime, nonce or generation mismatch")]
+    RouteIntent,
+    #[msg("Synthetic observation is unavailable, stale or mismatched")]
+    RiskObservation,
+    #[msg("Route exceeds all-in, fee or execution bounds")]
+    RouteLimit,
+    #[msg("Post-fee health or exposure capacity fails")]
+    RouteHealth,
+    #[msg("Exit cohort is incomplete, insolvent, foreign or stale")]
+    ExitCohort,
+    #[msg("Financial action is bound to a different market sequence")]
+    FinancialSequence,
+    #[msg("Oracle source identity, verification or schema mismatch")]
+    OracleSource,
+    #[msg("Oracle action mode, sample timing or source policy rejects action")]
+    OraclePolicy,
+    #[msg("Stored order identity, version, prefix or state mismatch")]
+    OrderState,
+    #[msg("Order quantity, limits, lifetime, trigger or generation rejected")]
+    OrderTerms,
+    #[msg("No free bounded order/protective-group slot")]
+    OrderSlots,
+    #[msg("Current central index does not satisfy stored trigger")]
+    OrderTrigger,
+    #[msg("Liquidation receiver, funded fee or strict risk progress check failed")]
+    Liquidation,
+    #[msg("Resolution epoch, stage, cursor, cohort or accounting check failed")]
+    Resolution,
 }

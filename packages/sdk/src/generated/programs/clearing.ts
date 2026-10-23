@@ -17,6 +17,7 @@ import {
   SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
   SolanaError,
   type Address,
+  type ClientWithPayer,
   type ClientWithRpc,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
@@ -35,10 +36,21 @@ import {
   type SelfPlanAndSendFunctions,
 } from "@solana/kit/program-client-core";
 import {
+  getCapitalBindingCodec,
+  getExitGuardCodec,
+  getMakerRegistrationCodec,
   getMarketStateCodec,
   getParticipantCodec,
   getParticipantRegistryCodec,
   getProbeRecordCodec,
+  getResolutionStateCodec,
+  getTestRouteStateCodec,
+  type CapitalBinding,
+  type CapitalBindingArgs,
+  type ExitGuard,
+  type ExitGuardArgs,
+  type MakerRegistration,
+  type MakerRegistrationArgs,
   type MarketState,
   type MarketStateArgs,
   type Participant,
@@ -47,46 +59,164 @@ import {
   type ParticipantRegistryArgs,
   type ProbeRecord,
   type ProbeRecordArgs,
+  type ResolutionState,
+  type ResolutionStateArgs,
+  type TestRouteState,
+  type TestRouteStateArgs,
 } from "../accounts/index.js";
 import {
+  getAdvanceResolutionInstructionAsync,
+  getApproveMakerInstructionAsync,
+  getCancelOrderInstructionAsync,
+  getCancelProtectionInstructionAsync,
+  getCheckExitCohortInstructionAsync,
   getClassifySurplusInstructionAsync,
+  getCleanupOrdersInstructionAsync,
+  getCollectLossInstructionAsync,
   getDepositInstructionAsync,
+  getExecuteOrderInstructionAsync,
+  getExecuteRouteInstructionAsync,
+  getFreezeMarketInstructionAsync,
   getFundInsuranceInstructionAsync,
+  getInitializeExitGuardInstructionAsync,
   getInitializeMarketInstructionAsync,
+  getInitializeOracleInstructionAsync,
+  getInitializeResolutionInstructionAsync,
+  getInitializeTestRoutesInstructionAsync,
+  getLiquidateInstructionAsync,
+  getPlaceOrderInstructionAsync,
+  getPlaceProtectionInstructionAsync,
+  getPreviewMakerInstructionAsync,
   getProbeInstructionAsync,
+  getPublishTestRiskInstructionAsync,
+  getQuarantineMakerInstructionAsync,
+  getRecoverResolutionInstructionAsync,
+  getRegisterMakerInstructionAsync,
   getRegisterParticipantInstructionAsync,
+  getReplaceOrderInstructionAsync,
+  getSampleOracleInstructionAsync,
   getSetCustodyPauseInstructionAsync,
+  getSettleGainInstructionAsync,
+  getSyncMakerEpochInstructionAsync,
   getWithdrawInstructionAsync,
+  getWithdrawTradingInstructionAsync,
+  parseAdvanceResolutionInstruction,
+  parseApproveMakerInstruction,
+  parseCancelOrderInstruction,
+  parseCancelProtectionInstruction,
+  parseCheckExitCohortInstruction,
   parseClassifySurplusInstruction,
+  parseCleanupOrdersInstruction,
+  parseCollectLossInstruction,
   parseDepositInstruction,
+  parseExecuteOrderInstruction,
+  parseExecuteRouteInstruction,
+  parseFreezeMarketInstruction,
   parseFundInsuranceInstruction,
+  parseInitializeExitGuardInstruction,
   parseInitializeMarketInstruction,
+  parseInitializeOracleInstruction,
+  parseInitializeResolutionInstruction,
+  parseInitializeTestRoutesInstruction,
+  parseLiquidateInstruction,
+  parsePlaceOrderInstruction,
+  parsePlaceProtectionInstruction,
+  parsePreviewMakerInstruction,
   parseProbeInstruction,
+  parsePublishTestRiskInstruction,
+  parseQuarantineMakerInstruction,
+  parseRecoverResolutionInstruction,
+  parseRegisterMakerInstruction,
   parseRegisterParticipantInstruction,
+  parseReplaceOrderInstruction,
+  parseSampleOracleInstruction,
   parseSetCustodyPauseInstruction,
+  parseSettleGainInstruction,
+  parseSyncMakerEpochInstruction,
   parseWithdrawInstruction,
+  parseWithdrawTradingInstruction,
+  type AdvanceResolutionAsyncInput,
+  type ApproveMakerAsyncInput,
+  type CancelOrderAsyncInput,
+  type CancelProtectionAsyncInput,
+  type CheckExitCohortAsyncInput,
   type ClassifySurplusAsyncInput,
+  type CleanupOrdersAsyncInput,
+  type CollectLossAsyncInput,
   type DepositAsyncInput,
+  type ExecuteOrderAsyncInput,
+  type ExecuteRouteAsyncInput,
+  type FreezeMarketAsyncInput,
   type FundInsuranceAsyncInput,
+  type InitializeExitGuardAsyncInput,
   type InitializeMarketAsyncInput,
+  type InitializeOracleAsyncInput,
+  type InitializeResolutionAsyncInput,
+  type InitializeTestRoutesAsyncInput,
+  type LiquidateAsyncInput,
+  type ParsedAdvanceResolutionInstruction,
+  type ParsedApproveMakerInstruction,
+  type ParsedCancelOrderInstruction,
+  type ParsedCancelProtectionInstruction,
+  type ParsedCheckExitCohortInstruction,
   type ParsedClassifySurplusInstruction,
+  type ParsedCleanupOrdersInstruction,
+  type ParsedCollectLossInstruction,
   type ParsedDepositInstruction,
+  type ParsedExecuteOrderInstruction,
+  type ParsedExecuteRouteInstruction,
+  type ParsedFreezeMarketInstruction,
   type ParsedFundInsuranceInstruction,
+  type ParsedInitializeExitGuardInstruction,
   type ParsedInitializeMarketInstruction,
+  type ParsedInitializeOracleInstruction,
+  type ParsedInitializeResolutionInstruction,
+  type ParsedInitializeTestRoutesInstruction,
+  type ParsedLiquidateInstruction,
+  type ParsedPlaceOrderInstruction,
+  type ParsedPlaceProtectionInstruction,
+  type ParsedPreviewMakerInstruction,
   type ParsedProbeInstruction,
+  type ParsedPublishTestRiskInstruction,
+  type ParsedQuarantineMakerInstruction,
+  type ParsedRecoverResolutionInstruction,
+  type ParsedRegisterMakerInstruction,
   type ParsedRegisterParticipantInstruction,
+  type ParsedReplaceOrderInstruction,
+  type ParsedSampleOracleInstruction,
   type ParsedSetCustodyPauseInstruction,
+  type ParsedSettleGainInstruction,
+  type ParsedSyncMakerEpochInstruction,
   type ParsedWithdrawInstruction,
+  type ParsedWithdrawTradingInstruction,
+  type PlaceOrderAsyncInput,
+  type PlaceProtectionAsyncInput,
+  type PreviewMakerAsyncInput,
   type ProbeAsyncInput,
+  type PublishTestRiskAsyncInput,
+  type QuarantineMakerAsyncInput,
+  type RecoverResolutionAsyncInput,
+  type RegisterMakerAsyncInput,
   type RegisterParticipantAsyncInput,
+  type ReplaceOrderAsyncInput,
+  type SampleOracleAsyncInput,
   type SetCustodyPauseAsyncInput,
+  type SettleGainAsyncInput,
+  type SyncMakerEpochAsyncInput,
   type WithdrawAsyncInput,
+  type WithdrawTradingAsyncInput,
 } from "../instructions/index.js";
 import {
+  findBindingPda,
+  findCapitalPda,
+  findGuardPda,
   findMarketPda,
-  findParticipantPda,
+  findReceiverBindingPda,
+  findReceiverPda,
   findRecordPda,
   findRegistryPda,
+  findResolutionPda,
+  findRouteStatePda,
   findVaultPda,
 } from "../pdas/index.js";
 
@@ -94,16 +224,54 @@ export const CLEARING_PROGRAM_ADDRESS =
   "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo" as Address<"Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo">;
 
 export enum ClearingAccount {
+  CapitalBinding,
+  ExitGuard,
+  MakerRegistration,
   MarketState,
   Participant,
   ParticipantRegistry,
   ProbeRecord,
+  ResolutionState,
+  TestRouteState,
 }
 
 export function identifyClearingAccount(
   account: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingAccount {
   const data = "data" in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([176, 183, 79, 146, 172, 158, 6, 18]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.CapitalBinding;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([199, 210, 148, 192, 93, 253, 196, 218]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.ExitGuard;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([231, 196, 106, 151, 199, 213, 13, 66]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.MakerRegistration;
+  }
   if (
     containsBytes(
       data,
@@ -148,6 +316,28 @@ export function identifyClearingAccount(
   ) {
     return ClearingAccount.ProbeRecord;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([79, 128, 50, 21, 72, 199, 254, 128]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.ResolutionState;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([27, 89, 110, 243, 98, 85, 236, 58]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.TestRouteState;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
     { accountData: data, programName: "clearing" },
@@ -156,7 +346,15 @@ export function identifyClearingAccount(
 
 export enum ClearingEvent {
   CustodyChanged,
+  LiquidationApplied,
+  MakerChanged,
+  OracleObserved,
+  OrderChanged,
   ProbeRecorded,
+  ResolutionProgress,
+  RouteExecuted,
+  SettlementChanged,
+  TestRiskPublished,
 }
 
 export function identifyClearingEvent(
@@ -178,6 +376,50 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([36, 102, 222, 145, 192, 150, 20, 41]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.LiquidationApplied;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([208, 85, 87, 120, 6, 221, 0, 171]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MakerChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([251, 25, 221, 41, 50, 211, 179, 216]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.OracleObserved;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([159, 192, 209, 208, 211, 229, 147, 199]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.OrderChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([63, 158, 201, 180, 143, 158, 27, 151]),
       ),
       0,
@@ -185,20 +427,91 @@ export function identifyClearingEvent(
   ) {
     return ClearingEvent.ProbeRecorded;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([164, 124, 164, 77, 35, 136, 138, 141]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.ResolutionProgress;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([223, 139, 136, 123, 11, 101, 183, 17]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.RouteExecuted;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([245, 182, 67, 134, 121, 92, 221, 133]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.SettlementChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([108, 25, 154, 69, 185, 245, 237, 196]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.TestRiskPublished;
+  }
   throw new Error(
     "The provided event could not be identified as a clearing event.",
   );
 }
 
 export enum ClearingInstruction {
+  AdvanceResolution,
+  ApproveMaker,
+  CancelOrder,
+  CancelProtection,
+  CheckExitCohort,
   ClassifySurplus,
+  CleanupOrders,
+  CollectLoss,
   Deposit,
+  ExecuteOrder,
+  ExecuteRoute,
+  FreezeMarket,
   FundInsurance,
+  InitializeExitGuard,
   InitializeMarket,
+  InitializeOracle,
+  InitializeResolution,
+  InitializeTestRoutes,
+  Liquidate,
+  PlaceOrder,
+  PlaceProtection,
+  PreviewMaker,
   Probe,
+  PublishTestRisk,
+  QuarantineMaker,
+  RecoverResolution,
+  RegisterMaker,
   RegisterParticipant,
+  ReplaceOrder,
+  SampleOracle,
   SetCustodyPause,
+  SettleGain,
+  SyncMakerEpoch,
   Withdraw,
+  WithdrawTrading,
 }
 
 export function identifyClearingInstruction(
@@ -209,12 +522,89 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([112, 155, 208, 72, 177, 155, 63, 181]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AdvanceResolution;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([182, 108, 6, 26, 13, 52, 208, 158]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ApproveMaker;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([95, 129, 237, 240, 8, 49, 223, 132]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CancelOrder;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([237, 169, 181, 11, 241, 193, 117, 4]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CancelProtection;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([218, 218, 53, 17, 248, 121, 117, 186]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CheckExitCohort;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([233, 161, 140, 11, 133, 238, 233, 139]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.ClassifySurplus;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([231, 52, 245, 91, 29, 84, 160, 33]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CleanupOrders;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([47, 245, 158, 140, 104, 252, 109, 86]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CollectLoss;
   }
   if (
     containsBytes(
@@ -231,12 +621,56 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([115, 61, 180, 24, 168, 32, 215, 20]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteOrder;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([246, 14, 81, 121, 140, 237, 86, 23]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteRoute;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([184, 154, 237, 98, 127, 82, 217, 180]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.FreezeMarket;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([58, 216, 37, 162, 201, 50, 20, 66]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.FundInsurance;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([119, 141, 64, 241, 210, 16, 221, 137]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeExitGuard;
   }
   if (
     containsBytes(
@@ -253,12 +687,133 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([144, 223, 131, 120, 196, 253, 181, 99]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeOracle;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([114, 234, 73, 65, 38, 194, 180, 145]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeResolution;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([16, 190, 103, 220, 65, 98, 245, 241]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeTestRoutes;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([223, 179, 226, 125, 48, 46, 39, 74]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.Liquidate;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([51, 194, 155, 175, 109, 130, 96, 106]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PlaceOrder;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([101, 184, 4, 139, 113, 214, 10, 1]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PlaceProtection;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([30, 210, 207, 120, 189, 100, 226, 6]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PreviewMaker;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([9, 126, 79, 73, 106, 229, 245, 221]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.Probe;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([46, 208, 112, 198, 93, 161, 13, 246]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PublishTestRisk;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([153, 18, 69, 131, 41, 154, 187, 101]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.QuarantineMaker;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([160, 117, 82, 167, 208, 168, 218, 196]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RecoverResolution;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([148, 253, 56, 234, 31, 33, 225, 11]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RegisterMaker;
   }
   if (
     containsBytes(
@@ -275,12 +830,56 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([196, 148, 255, 192, 194, 68, 104, 91]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ReplaceOrder;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([189, 254, 170, 62, 147, 181, 131, 127]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SampleOracle;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([139, 80, 85, 170, 59, 17, 172, 172]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.SetCustodyPause;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([36, 171, 80, 119, 51, 41, 156, 177]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SettleGain;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([176, 197, 132, 132, 121, 222, 151, 188]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SyncMakerEpoch;
   }
   if (
     containsBytes(
@@ -293,6 +892,17 @@ export function identifyClearingInstruction(
   ) {
     return ClearingInstruction.Withdraw;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([78, 233, 115, 42, 209, 223, 53, 166]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.WithdrawTrading;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "clearing" },
@@ -303,40 +913,170 @@ export type ParsedClearingInstruction<
   TProgram extends string = "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
 > =
   | ({
+      instructionType: ClearingInstruction.AdvanceResolution;
+    } & ParsedAdvanceResolutionInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ApproveMaker;
+    } & ParsedApproveMakerInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CancelOrder;
+    } & ParsedCancelOrderInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CancelProtection;
+    } & ParsedCancelProtectionInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CheckExitCohort;
+    } & ParsedCheckExitCohortInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ClassifySurplus;
     } & ParsedClassifySurplusInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CleanupOrders;
+    } & ParsedCleanupOrdersInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CollectLoss;
+    } & ParsedCollectLossInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.Deposit;
     } & ParsedDepositInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ExecuteOrder;
+    } & ParsedExecuteOrderInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ExecuteRoute;
+    } & ParsedExecuteRouteInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.FreezeMarket;
+    } & ParsedFreezeMarketInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.FundInsurance;
     } & ParsedFundInsuranceInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.InitializeExitGuard;
+    } & ParsedInitializeExitGuardInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.InitializeMarket;
     } & ParsedInitializeMarketInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.InitializeOracle;
+    } & ParsedInitializeOracleInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.InitializeResolution;
+    } & ParsedInitializeResolutionInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.InitializeTestRoutes;
+    } & ParsedInitializeTestRoutesInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.Liquidate;
+    } & ParsedLiquidateInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.PlaceOrder;
+    } & ParsedPlaceOrderInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.PlaceProtection;
+    } & ParsedPlaceProtectionInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.PreviewMaker;
+    } & ParsedPreviewMakerInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.Probe;
     } & ParsedProbeInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.PublishTestRisk;
+    } & ParsedPublishTestRiskInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.QuarantineMaker;
+    } & ParsedQuarantineMakerInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RecoverResolution;
+    } & ParsedRecoverResolutionInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RegisterMaker;
+    } & ParsedRegisterMakerInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.RegisterParticipant;
     } & ParsedRegisterParticipantInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ReplaceOrder;
+    } & ParsedReplaceOrderInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.SampleOracle;
+    } & ParsedSampleOracleInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.SetCustodyPause;
     } & ParsedSetCustodyPauseInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.SettleGain;
+    } & ParsedSettleGainInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.SyncMakerEpoch;
+    } & ParsedSyncMakerEpochInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.Withdraw;
-    } & ParsedWithdrawInstruction<TProgram>);
+    } & ParsedWithdrawInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.WithdrawTrading;
+    } & ParsedWithdrawTradingInstruction<TProgram>);
 
 export function parseClearingInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClearingInstruction<TProgram> {
   const instructionType = identifyClearingInstruction(instruction);
   switch (instructionType) {
+    case ClearingInstruction.AdvanceResolution: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AdvanceResolution,
+        ...parseAdvanceResolutionInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ApproveMaker: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ApproveMaker,
+        ...parseApproveMakerInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CancelOrder: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CancelOrder,
+        ...parseCancelOrderInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CancelProtection: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CancelProtection,
+        ...parseCancelProtectionInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CheckExitCohort: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CheckExitCohort,
+        ...parseCheckExitCohortInstruction(instruction),
+      };
+    }
     case ClearingInstruction.ClassifySurplus: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.ClassifySurplus,
         ...parseClassifySurplusInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CleanupOrders: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CleanupOrders,
+        ...parseCleanupOrdersInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CollectLoss: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CollectLoss,
+        ...parseCollectLossInstruction(instruction),
       };
     }
     case ClearingInstruction.Deposit: {
@@ -346,11 +1086,39 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseDepositInstruction(instruction),
       };
     }
+    case ClearingInstruction.ExecuteOrder: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteOrder,
+        ...parseExecuteOrderInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteRoute: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteRoute,
+        ...parseExecuteRouteInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.FreezeMarket: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.FreezeMarket,
+        ...parseFreezeMarketInstruction(instruction),
+      };
+    }
     case ClearingInstruction.FundInsurance: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.FundInsurance,
         ...parseFundInsuranceInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.InitializeExitGuard: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeExitGuard,
+        ...parseInitializeExitGuardInstruction(instruction),
       };
     }
     case ClearingInstruction.InitializeMarket: {
@@ -360,11 +1128,88 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeMarketInstruction(instruction),
       };
     }
+    case ClearingInstruction.InitializeOracle: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeOracle,
+        ...parseInitializeOracleInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.InitializeResolution: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeResolution,
+        ...parseInitializeResolutionInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.InitializeTestRoutes: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeTestRoutes,
+        ...parseInitializeTestRoutesInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.Liquidate: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.Liquidate,
+        ...parseLiquidateInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.PlaceOrder: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PlaceOrder,
+        ...parsePlaceOrderInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.PlaceProtection: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PlaceProtection,
+        ...parsePlaceProtectionInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.PreviewMaker: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PreviewMaker,
+        ...parsePreviewMakerInstruction(instruction),
+      };
+    }
     case ClearingInstruction.Probe: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.Probe,
         ...parseProbeInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.PublishTestRisk: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PublishTestRisk,
+        ...parsePublishTestRiskInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.QuarantineMaker: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.QuarantineMaker,
+        ...parseQuarantineMakerInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.RecoverResolution: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RecoverResolution,
+        ...parseRecoverResolutionInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.RegisterMaker: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RegisterMaker,
+        ...parseRegisterMakerInstruction(instruction),
       };
     }
     case ClearingInstruction.RegisterParticipant: {
@@ -374,6 +1219,20 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseRegisterParticipantInstruction(instruction),
       };
     }
+    case ClearingInstruction.ReplaceOrder: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ReplaceOrder,
+        ...parseReplaceOrderInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.SampleOracle: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SampleOracle,
+        ...parseSampleOracleInstruction(instruction),
+      };
+    }
     case ClearingInstruction.SetCustodyPause: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -381,11 +1240,32 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseSetCustodyPauseInstruction(instruction),
       };
     }
+    case ClearingInstruction.SettleGain: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SettleGain,
+        ...parseSettleGainInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.SyncMakerEpoch: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SyncMakerEpoch,
+        ...parseSyncMakerEpochInstruction(instruction),
+      };
+    }
     case ClearingInstruction.Withdraw: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.Withdraw,
         ...parseWithdrawInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.WithdrawTrading: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.WithdrawTrading,
+        ...parseWithdrawTradingInstruction(instruction),
       };
     }
     default:
@@ -406,6 +1286,12 @@ export type ClearingPlugin = {
 };
 
 export type ClearingPluginAccounts = {
+  capitalBinding: ReturnType<typeof getCapitalBindingCodec> &
+    SelfFetchFunctions<CapitalBindingArgs, CapitalBinding>;
+  exitGuard: ReturnType<typeof getExitGuardCodec> &
+    SelfFetchFunctions<ExitGuardArgs, ExitGuard>;
+  makerRegistration: ReturnType<typeof getMakerRegistrationCodec> &
+    SelfFetchFunctions<MakerRegistrationArgs, MakerRegistration>;
   marketState: ReturnType<typeof getMarketStateCodec> &
     SelfFetchFunctions<MarketStateArgs, MarketState>;
   participant: ReturnType<typeof getParticipantCodec> &
@@ -414,60 +1300,206 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<ParticipantRegistryArgs, ParticipantRegistry>;
   probeRecord: ReturnType<typeof getProbeRecordCodec> &
     SelfFetchFunctions<ProbeRecordArgs, ProbeRecord>;
+  resolutionState: ReturnType<typeof getResolutionStateCodec> &
+    SelfFetchFunctions<ResolutionStateArgs, ResolutionState>;
+  testRouteState: ReturnType<typeof getTestRouteStateCodec> &
+    SelfFetchFunctions<TestRouteStateArgs, TestRouteState>;
 };
 
 export type ClearingPluginInstructions = {
+  advanceResolution: (
+    input: AdvanceResolutionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAdvanceResolutionInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  approveMaker: (
+    input: ApproveMakerAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getApproveMakerInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  cancelOrder: (
+    input: CancelOrderAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCancelOrderInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  cancelProtection: (
+    input: CancelProtectionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCancelProtectionInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  checkExitCohort: (
+    input: CheckExitCohortAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCheckExitCohortInstructionAsync> &
+    SelfPlanAndSendFunctions;
   classifySurplus: (
     input: ClassifySurplusAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getClassifySurplusInstructionAsync> &
     SelfPlanAndSendFunctions;
+  cleanupOrders: (
+    input: CleanupOrdersAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCleanupOrdersInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  collectLoss: (
+    input: CollectLossAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCollectLossInstructionAsync> &
+    SelfPlanAndSendFunctions;
   deposit: (
     input: DepositAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getDepositInstructionAsync> & SelfPlanAndSendFunctions;
+  executeOrder: (
+    input: ExecuteOrderAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteOrderInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  executeRoute: (
+    input: ExecuteRouteAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteRouteInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  freezeMarket: (
+    input: FreezeMarketAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getFreezeMarketInstructionAsync> &
+    SelfPlanAndSendFunctions;
   fundInsurance: (
     input: FundInsuranceAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getFundInsuranceInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  initializeExitGuard: (
+    input: MakeOptional<InitializeExitGuardAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeExitGuardInstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeMarket: (
     input: InitializeMarketAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeMarketInstructionAsync> &
     SelfPlanAndSendFunctions;
+  initializeOracle: (
+    input: InitializeOracleAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeOracleInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  initializeResolution: (
+    input: InitializeResolutionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeResolutionInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  initializeTestRoutes: (
+    input: InitializeTestRoutesAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeTestRoutesInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  liquidate: (
+    input: LiquidateAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getLiquidateInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  placeOrder: (
+    input: PlaceOrderAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPlaceOrderInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  placeProtection: (
+    input: PlaceProtectionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPlaceProtectionInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  previewMaker: (
+    input: PreviewMakerAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPreviewMakerInstructionAsync> &
+    SelfPlanAndSendFunctions;
   probe: (
     input: ProbeAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getProbeInstructionAsync> & SelfPlanAndSendFunctions;
+  publishTestRisk: (
+    input: PublishTestRiskAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPublishTestRiskInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  quarantineMaker: (
+    input: QuarantineMakerAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getQuarantineMakerInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  recoverResolution: (
+    input: RecoverResolutionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRecoverResolutionInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  registerMaker: (
+    input: RegisterMakerAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRegisterMakerInstructionAsync> &
+    SelfPlanAndSendFunctions;
   registerParticipant: (
     input: RegisterParticipantAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRegisterParticipantInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  replaceOrder: (
+    input: ReplaceOrderAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getReplaceOrderInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  sampleOracle: (
+    input: SampleOracleAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSampleOracleInstructionAsync> &
     SelfPlanAndSendFunctions;
   setCustodyPause: (
     input: SetCustodyPauseAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSetCustodyPauseInstructionAsync> &
     SelfPlanAndSendFunctions;
+  settleGain: (
+    input: SettleGainAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSettleGainInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  syncMakerEpoch: (
+    input: SyncMakerEpochAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSyncMakerEpochInstructionAsync> &
+    SelfPlanAndSendFunctions;
   withdraw: (
     input: WithdrawAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getWithdrawInstructionAsync> &
     SelfPlanAndSendFunctions;
+  withdrawTrading: (
+    input: WithdrawTradingAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getWithdrawTradingInstructionAsync> &
+    SelfPlanAndSendFunctions;
 };
 
 export type ClearingPluginPdas = {
   market: typeof findMarketPda;
-  vault: typeof findVaultPda;
-  participant: typeof findParticipantPda;
+  routeState: typeof findRouteStatePda;
   registry: typeof findRegistryPda;
+  resolution: typeof findResolutionPda;
+  vault: typeof findVaultPda;
+  capital: typeof findCapitalPda;
+  guard: typeof findGuardPda;
+  receiver: typeof findReceiverPda;
+  receiverBinding: typeof findReceiverBindingPda;
   record: typeof findRecordPda;
+  binding: typeof findBindingPda;
 };
 
 export type ClearingPluginRequirements = ClientWithRpc<
   GetAccountInfoApi & GetMultipleAccountsApi
 > &
+  ClientWithPayer &
   ClientWithTransactionPlanning &
   ClientWithTransactionSending;
 
@@ -480,6 +1512,15 @@ export function clearingProgram(
     return extendClient(client, {
       clearing: <ClearingPlugin>{
         accounts: {
+          capitalBinding: addSelfFetchFunctions(
+            client,
+            getCapitalBindingCodec(),
+          ),
+          exitGuard: addSelfFetchFunctions(client, getExitGuardCodec()),
+          makerRegistration: addSelfFetchFunctions(
+            client,
+            getMakerRegistrationCodec(),
+          ),
           marketState: addSelfFetchFunctions(client, getMarketStateCodec()),
           participant: addSelfFetchFunctions(client, getParticipantCodec()),
           participantRegistry: addSelfFetchFunctions(
@@ -487,12 +1528,76 @@ export function clearingProgram(
             getParticipantRegistryCodec(),
           ),
           probeRecord: addSelfFetchFunctions(client, getProbeRecordCodec()),
+          resolutionState: addSelfFetchFunctions(
+            client,
+            getResolutionStateCodec(),
+          ),
+          testRouteState: addSelfFetchFunctions(
+            client,
+            getTestRouteStateCodec(),
+          ),
         },
         instructions: {
+          advanceResolution: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAdvanceResolutionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          approveMaker: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getApproveMakerInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          cancelOrder: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCancelOrderInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          cancelProtection: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCancelProtectionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          checkExitCohort: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCheckExitCohortInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           classifySurplus: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getClassifySurplusInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          cleanupOrders: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCleanupOrdersInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          collectLoss: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCollectLossInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -505,6 +1610,30 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          executeOrder: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteOrderInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeRoute: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteRouteInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          freezeMarket: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getFreezeMarketInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           fundInsurance: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -513,10 +1642,77 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          initializeExitGuard: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeExitGuardInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
+            ),
           initializeMarket: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getInitializeMarketInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          initializeOracle: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeOracleInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          initializeResolution: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeResolutionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          initializeTestRoutes: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeTestRoutesInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          liquidate: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getLiquidateInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          placeOrder: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPlaceOrderInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          placeProtection: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPlaceProtectionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          previewMaker: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPreviewMakerInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -529,10 +1725,58 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          publishTestRisk: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPublishTestRiskInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          quarantineMaker: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getQuarantineMakerInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          recoverResolution: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRecoverResolutionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          registerMaker: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRegisterMakerInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           registerParticipant: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getRegisterParticipantInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          replaceOrder: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getReplaceOrderInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          sampleOracle: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSampleOracleInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -545,10 +1789,34 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          settleGain: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSettleGainInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          syncMakerEpoch: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSyncMakerEpochInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           withdraw: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getWithdrawInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          withdrawTrading: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getWithdrawTradingInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -560,13 +1828,8 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          vault: (seeds, pdaConfig) =>
-            findVaultPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          participant: (seeds, pdaConfig) =>
-            findParticipantPda(seeds, {
+          routeState: (seeds, pdaConfig) =>
+            findRouteStatePda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
@@ -575,8 +1838,43 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
+          resolution: (seeds, pdaConfig) =>
+            findResolutionPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          vault: (seeds, pdaConfig) =>
+            findVaultPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          capital: (seeds, pdaConfig) =>
+            findCapitalPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          guard: (seeds, pdaConfig) =>
+            findGuardPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          receiver: (seeds, pdaConfig) =>
+            findReceiverPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          receiverBinding: (seeds, pdaConfig) =>
+            findReceiverBindingPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           record: (seeds, pdaConfig) =>
             findRecordPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          binding: (seeds, pdaConfig) =>
+            findBindingPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
@@ -588,3 +1886,5 @@ export function clearingProgram(
     });
   };
 }
+
+type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
