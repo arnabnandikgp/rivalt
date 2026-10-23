@@ -1,8 +1,13 @@
 {
+  "deployment/build.json": "c6751fccda6d28825d241d11a606004a5555b73cd6a695df31f6b7de28009f88",
+  "deployment/deployed.json": "2b416911821fecca1327f34147a54cf0d71be733d4c1ac47daf41d252be34a6f",
+  "deployment/deployment-transactions.json": "2b9937bbd0fb32ccad62125fac8bbe5c857c52b6302729d1b6cebf05f3455225",
+  "deployment/upstream-inventory.json": "164ed51d03c71d88c76909f130ae20a6f035f6d1f4fa69c3c7c7db57cc537b37",
   "funding/faucet-attempt.json": "1b128752bc292f1a2a82e15e69f2a0cc3c2679155f03e34817cce8acd075f662",
   "funding/funding-finalized.json": "126edf2d4af89b82a39b8d1a6e92eedd6150bef9123e276c8418355e18d976db",
   "funding/funding-transfer.json": "c61265734c6deb323c7d9d14519de8214515312d18b9770c1080b5f8d13f9059",
   "funding/preliminary-rent.json": "e151bfda1e550878a8ff0c3912a7e49658761eb10ed4d82d81fcccd40e3954bf",
+  "sponsored/adapter-svm-isolated.json": "70a78a75f912645c4d06963b4caccf930588606c7e80ca7ba74cbfcf16a32eca",
   "sponsored/adapter-svm.json": "aefeb073177729567324c64f3ee7c6eea548647ccf36d7484ab79bd6c66ac254",
   "sponsored/audit.json": "b9ed53a763873055d10f47d14b0ab590bd7def476b9093d4341b2ef740090107",
   "sponsored/btc-account.hex": "6528e493739237fd5438ac36cda21d42a166d837331113dc0e5ab66ef255a756",

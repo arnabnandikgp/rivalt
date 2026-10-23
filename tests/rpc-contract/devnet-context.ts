@@ -14,27 +14,29 @@ export const profile = JSON.parse(readFileSync('ops/devnet-profile.json', 'utf8'
 };
 const loader = address('BPFLoaderUpgradeab1e11111111111111111111111');
 const hash = (s: string) => createHash('sha256').update(s).digest();
-export async function privateKey(role: string) {
+export async function privateKey(role: string, directory = '.local/devnet/keys') {
   assert(/^[a-z0-9-]{1,32}$/.test(role));
-  const path = `.local/devnet/keys/${role}.json`;
-  process.umask(0o077); mkdirSync('.local/devnet/keys', { recursive: true, mode: 0o700 });
+  const path = `${directory}/${role}.json`;
+  if (directory === '.local/devnet/keys' && role === 'deployer') assert(existsSync(path), 'Pinned devnet deployer key is required; never substitute a generated or public fixture key');
+  process.umask(0o077); mkdirSync(directory, { recursive: true, mode: 0o700 });
   if (!existsSync(path)) execFileSync('solana-keygen', ['new', '--no-bip39-passphrase', '--silent', '--outfile', path], { stdio: 'ignore' });
   assert.equal(statSync(path).mode & 0o077, 0, 'Private key file permissions');
   return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(path, 'utf8'))));
 }
-export async function devnetContext() {
-  const payer = await privateKey('deployer'); assert.equal(payer.address, profile.deployer);
+export async function devnetContext(localKeys = false) {
+  const key = (role: string) => privateKey(role, localKeys ? '.local/devnet-svm/keys' : '.local/devnet/keys');
+  const payer = await key('deployer'); if (!localKeys) assert.equal(payer.address, profile.deployer);
   const program = address(profile.programs.clearing), options = { programAddress: program };
   const [market] = await sdk.findMarketPda(options), [registry] = await sdk.findRegistryPda({ market }, options);
   const [vault] = await sdk.findVaultPda({ market }, options), [routeState] = await sdk.findRouteStatePda({ market }, options);
   const [exitGuard] = await sdk.findGuardPda({ market }, options);
   const [eventAuthority] = await getProgramDerivedAddress({ programAddress: program, seeds: [Buffer.from('__event_authority')] });
   const [programData] = await getProgramDerivedAddress({ programAddress: loader, seeds: [getAddressEncoder().encode(program)] });
-  const mint = await privateKey('mint'), traderOwner = await privateKey('trader'), traderToken = await privateKey('trader-token');
+  const mint = await key('mint'), traderOwner = await key('trader'), traderToken = await key('trader-token');
   const [trader] = await sdk.findParticipantPda({ market, owner: traderOwner.address }, options);
   const domain = hash(`rivalt/${profile.profile}/${profile.genesis}/${program}/${mint.address}`);
   const makers = await Promise.all([0, 1].map(async id => {
-    const owner = await privateKey(`maker-${id}-owner`), token = await privateKey(`maker-${id}-token`);
+    const owner = await key(`maker-${id}-owner`), token = await key(`maker-${id}-token`);
     const pricingProgram = address(profile.programs[id === 0 ? 'maker_a' : 'maker_b']);
     const [capital] = await sdk.findParticipantPda({ market, owner: owner.address }, options);
     const [registration] = await getProgramDerivedAddress({ programAddress: program, seeds: [Buffer.from('maker'), getAddressEncoder().encode(market), Uint8Array.of(id)] });
@@ -42,7 +44,7 @@ export async function devnetContext() {
     const [makerProgramData] = await getProgramDerivedAddress({ programAddress: loader, seeds: [getAddressEncoder().encode(pricingProgram)] });
     return { owner, token, capital, registration, pricingProgram, config, programData: makerProgramData };
   }));
-  const guardProgram = address(profile.programs.oracle_fixture), guardAuthority = await privateKey('guard-authority');
+  const guardProgram = address(profile.programs.oracle_fixture), guardAuthority = await key('guard-authority');
   const guards = await Promise.all([2, 3].map(async index => ({ index, account: (await getProgramDerivedAddress({
     programAddress: guardProgram, seeds: [Buffer.from('feed'), getAddressEncoder().encode(guardAuthority.address), Buffer.alloc(32, index + 1)],
   }))[0] })));
@@ -63,6 +65,7 @@ export type DevnetHarness = {
 // The devnet runner must journal each signed wire before submission and resume it.
 export async function setupDevnet(h: DevnetHarness, a: DevnetContext) {
   const { payer, options } = a;
+  const allocatedAtEntry = await h.read(a.routeState);
   await h.send('create-test-mint', [getCreateAccountInstruction({ payer, newAccount: a.mint, lamports: await h.rent(82), space: 82n, programAddress: TOKEN_PROGRAM_ADDRESS }),
     getInitializeMint2Instruction({ mint: a.mint.address, decimals: 6, mintAuthority: payer.address })], [a.mint]);
   await h.send('initialize-market', [await sdk.getInitializeMarketInstructionAsync({ ...a, clearingProgram: a.program, authority: payer, quoteMint: a.mint.address }, options)]);
@@ -85,7 +88,7 @@ export async function setupDevnet(h: DevnetHarness, a: DevnetContext) {
     await h.send(`maker-${id}-registration`, [await sdk.getRegisterMakerInstructionAsync({ ...a, ...m, authority: payer, makerId: id, inventoryLimit: 100_000n }, options)], [m.owner]);
   }
   await h.send('reject-synthetic-route-bootstrap', [await sdk.getInitializeTestRoutesInstructionAsync({ ...a, authority: payer, reference: 60_000n, duration: 3600n }, options)], [], 6108);
-  assert.equal(await h.read(a.routeState), null);
+  if (!allocatedAtEntry) assert.equal(await h.read(a.routeState), null);
   await h.send('allocate-disabled-risk-state', [await sdk.getInitializeTestRoutesInstructionAsync({ ...a, authority: payer, reference: 0n, duration: 0n }, options),
     await sdk.getInitializeExitGuardInstructionAsync({ ...a, payer }, options)]);
   await h.send('fund-guard-rent', [getTransferSolInstruction({ source: payer, destination: a.guardAuthority.address, amount: 20_000_000n })]);

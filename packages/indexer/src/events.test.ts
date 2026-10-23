@@ -28,3 +28,11 @@ it('canonicalizes Buffer and typed bytes identically for PostgreSQL run bindings
   expect(json({bytes:Buffer.from([1,2,255]),amount:12345678901234567890n})).toBe('{"bytes":"0102ff","amount":"12345678901234567890"}');
   expect(json({bytes:new Uint8Array([1,2,255])})).toBe('{"bytes":"0102ff"}');
 });
+it('binds event-CPI decoding to an explicitly selected deployment',()=>{
+  const other=address('BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv'), valid=tx();
+  const deployed={...valid,transaction:{...valid.transaction,message:{accountKeys:[other,key]}}};
+  expect(decode('signature',deployed,key)).toEqual([]);
+  expect(decode('signature',valid,key,other)).toEqual([]);
+  expect(decode('signature',deployed,key,other)).toHaveLength(1);
+  expect(()=>decode('signature',deployed,'wrong-authority',other)).toThrow(/authority/);
+});

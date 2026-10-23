@@ -8,7 +8,7 @@ import * as sdk from '@rivalt/sdk';
 import { devnetContext, guardInstruction, profile, sampleInstruction, setupDevnet, type DevnetHarness } from './devnet-context.js';
 
 const svm = new LiteSVM().withSigverify(true).withBlockhashCheck(true);
-const a = await devnetContext(), checks: unknown[] = [];
+const a = await devnetContext(true), checks: unknown[] = [];
 for (const [name, key] of Object.entries(profile.programs)) svm.addProgramFromFile(address(key), `.local/devnet/deploy/${name}.so`);
 svm.airdrop(a.payer.address, lamports(100_000_000_000n));
 svm.warpToSlot(514_222_000n);

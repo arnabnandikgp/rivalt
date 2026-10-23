@@ -31,4 +31,10 @@ The initial public faucet request returned JSON-RPC `-32603 Internal error`, and
 
 Typecheck and explicit generated-IDL layout comparison pass. No inherited financial matrix, load, browser, 24-hour endurance or external review was rerun. The final WS probe adds premature-close failure detection after the recorded observation; the observed run is attributed to its exact earlier revision, not relabeled as a second run. [Evidence hashes](p13/sha256.json).
 
-Next: commit/build the exact profile, inventory the selected upstream programs, deploy the separate tested artifacts and prove actual Rivalt source consumption plus accepted/rejected protocol actions. P14 remains dependent on that actual A18 gate.
+## Actual deployment checkpoint
+
+Clean `b25a8573ea23991da7c1e327bcb8d4f13a80abc6` rebuilds with every ELF hash identical to the signed SVM report. [Build/IDL identity](p13/deployment/build.json) and [six upstream ProgramData/WS checks](p13/deployment/upstream-inventory.json) are retained. Actual deployment completes for clearing, A, B and the signed guard fixture. Independent finalized RPC reads match every tested ELF byte and expected authority; independently fetched deployment transactions match the recorded ProgramData slots. [Deployment manifest](p13/deployment/deployed.json), [actual deployment transactions](p13/deployment/deployment-transactions.json). The isolated payer retains 5,893,094,800 lamports. No Rivalt account state has been fabricated or injected on devnet.
+
+The final local harness isolates its generated SVM keys from the operator's private keys and still passes 41 signed checks with the same binaries. [Separate report](p13/sponsored/adapter-svm-isolated.json). Four focused event-decoder tests cover explicit program binding, and typecheck passes. This does not claim hosted CI, full regression or actual-cluster protocol acceptance.
+
+Next: execute the committed bounded A18 harness against the verified deployments, then retain source-verification provenance for the exact messages consumed. P14 remains dependent on that actual A18 gate.

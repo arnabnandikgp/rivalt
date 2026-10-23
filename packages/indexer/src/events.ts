@@ -23,7 +23,7 @@ const decoders = [
 ] as const;
 const envelope = Buffer.from('e445a52e51cb9a1d', 'hex');
 
-export function decode(signature: string, tx: any, eventAuthority: string): Event[] {
+export function decode(signature: string, tx: any, eventAuthority: string, program: string = PROGRAM): Event[] {
   if (!tx?.meta || tx.transaction?.signatures?.[0] !== signature) throw new Error('Missing transaction metadata/identity');
   integer(tx.slot);
   if (tx.meta.err !== null) return []; // Retained reverted event bytes are never projected.
@@ -33,7 +33,7 @@ export function decode(signature: string, tx: any, eventAuthority: string): Even
   for (const group of tx.meta.innerInstructions) {
     integer(group.index);
     for (const [inner, ix] of group.instructions.entries()) {
-      if (keys[ix.programIdIndex] !== PROGRAM) continue;
+      if (keys[ix.programIdIndex] !== program) continue;
       const bytes = Buffer.from(getBase58Encoder().encode(ix.data));
       if (!bytes.subarray(0, 8).equals(envelope)) continue;
       if (ix.accounts.length !== 1 || keys[ix.accounts[0]] !== eventAuthority) throw new Error('Invalid event authority');
