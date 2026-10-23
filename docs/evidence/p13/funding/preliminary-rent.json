@@ -1,0 +1,34 @@
+{
+  "observedUtc": "2026-10-23T10:53:59Z",
+  "deployer": "4oudHrUzAnRhd5BivAu4cympwyevfo4PTr2Cg87cV8Hi",
+  "balance": {
+    "context": {
+      "apiVersion": "4.4.0-beta.1",
+      "slot": 514222588
+    },
+    "value": 0
+  },
+  "programs": [
+    {
+      "existingLocalBinary": "clearing",
+      "bytes": "1285176",
+      "programDataRentLamports": "6529572920"
+    },
+    {
+      "existingLocalBinary": "maker_a",
+      "bytes": "176864",
+      "programDataRentLamports": "899347960"
+    },
+    {
+      "existingLocalBinary": "maker_b",
+      "bytes": "176864",
+      "programDataRentLamports": "899347960"
+    },
+    {
+      "existingLocalBinary": "oracle_fixture",
+      "bytes": "151608",
+      "programDataRentLamports": "771047480"
+    }
+  ],
+  "note": "Preliminary sizing from inherited local binaries, not devnet artifact or final deployment budget."
+}

@@ -7,6 +7,10 @@ export const UPGRADEABLE_LOADER = 'BPFLoaderUpgradeab1e11111111111111111111111';
 export const DEPENDENCIES = {
   receiver: 'rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ',
   wormholeReceiver: 'HDwcJBJXjL9FpJ7UBsYBtaDjsBUhuLCUYoz3zr8SWWaQ',
+  push: 'pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT',
+  compatibleReceiver: 'rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp',
+  compatibleWormholeReceiver: 'HDw2E7P8X1SkCyjvoGsfBGAVUutKcj874bXjHrpVYrVL',
+  compatiblePush: 'pyt2F414BA6dPttK6RddPZUdHfapoBN24GL5wbrPCou',
 } as const;
 
 export function configuration(env: Record<string, string | undefined>) {

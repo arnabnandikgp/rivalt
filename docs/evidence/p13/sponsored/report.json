@@ -1,0 +1,49 @@
+{
+  "kind": "read-only-sponsored-core-observation",
+  "startedUtc": "2026-10-23T10:49:13.669Z",
+  "revision": "ffc20f3f9c75489b5124e8d011b9bdc81932da1a",
+  "sourceDirty": false,
+  "a18Complete": false,
+  "rivaltDeployed": false,
+  "endpoint": "official-public-devnet",
+  "genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "feeds": [
+    {
+      "name": "core",
+      "receiver": "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ",
+      "push": "pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT",
+      "feed": "btc",
+      "feedId": "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43",
+      "account": "4cSM2e6rvbGQUFiJbqytoVMi5GgghSMr8LwVrT9VPSPo"
+    },
+    {
+      "name": "core",
+      "receiver": "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ",
+      "push": "pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT",
+      "feed": "collateral",
+      "feedId": "eaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a",
+      "account": "Dpw1EAVrSB1ibxiDQyTAW6Zip3J4Btk2x4SgApQCeFbX"
+    },
+    {
+      "name": "compatible",
+      "receiver": "rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp",
+      "push": "pyt2F414BA6dPttK6RddPZUdHfapoBN24GL5wbrPCou",
+      "feed": "btc",
+      "feedId": "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43",
+      "account": "APgzQGGdv2qCgBkX6aHVkrGePtBVDDg68GiqaM7rmtf5"
+    },
+    {
+      "name": "compatible",
+      "receiver": "rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp",
+      "push": "pyt2F414BA6dPttK6RddPZUdHfapoBN24GL5wbrPCou",
+      "feed": "collateral",
+      "feedId": "eaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a",
+      "account": "6HAuqASbHEh4w4REJEUUUCginTLfj1kwCh215ZLtMkrT"
+    }
+  ],
+  "elapsedMilliseconds": "180522",
+  "wsSubscriptions": "4",
+  "wsNotifications": "7",
+  "result": "observed",
+  "finishedUtc": "2026-10-23T10:52:14.727Z"
+}

@@ -1,0 +1,48 @@
+{
+  "result": "pass",
+  "a18Complete": false,
+  "verificationSignature": "QekLPuciRUctMt47AuppzvXZ48LQS9a4jZsSitQswueXm4QKQrGUBgi7no2WRi98ZuJ9G2h8tTXLW3C9R5wFJt5",
+  "verificationSlot": "514221956",
+  "updates": [
+    {
+      "feed": "btc",
+      "signature": "3CuJRpZvtswKufeveKbDvLtiqnuYuGW7Y6UVGc1Bq5afpaSXcm8ooFm3Adps5VepgoTTeTKAM6yeFRswLDWSy9qV",
+      "slot": "514221993",
+      "publishTime": "1792752688",
+      "encodedVaa": "3SqE4cmHfKvzEyd7dnq83sGKvmddCsyxj1izGteEYmzb",
+      "receiver": "rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp",
+      "proofNodes": "12"
+    },
+    {
+      "feed": "collateral",
+      "signature": "53D5kDpohFCaSBPueEyQG2BFV6ZETJgfybbTZDRkycMQYZpH81wshMi71WZdPm5b6WmeiBWZDXUkzjB1jXVAws5L",
+      "slot": "514221961",
+      "publishTime": "1792752688",
+      "encodedVaa": "3SqE4cmHfKvzEyd7dnq83sGKvmddCsyxj1izGteEYmzb",
+      "receiver": "rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp",
+      "proofNodes": "12"
+    }
+  ],
+  "availability": {
+    "confirmed/core": {
+      "pairEligibleSamples": "1",
+      "samples": "37",
+      "note": "Source checks only; not continuous availability, recovery completion or executable trading."
+    },
+    "confirmed/compatible": {
+      "pairEligibleSamples": "3",
+      "samples": "37",
+      "note": "Source checks only; not continuous availability, recovery completion or executable trading."
+    },
+    "finalized/core": {
+      "pairEligibleSamples": "1",
+      "samples": "37",
+      "note": "Source checks only; not continuous availability, recovery completion or executable trading."
+    },
+    "finalized/compatible": {
+      "pairEligibleSamples": "3",
+      "samples": "37",
+      "note": "Source checks only; not continuous availability, recovery completion or executable trading."
+    }
+  }
+}

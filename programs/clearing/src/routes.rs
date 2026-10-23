@@ -101,7 +101,7 @@ fn publish(
     })
 }
 pub fn initialize(ctx: Context<InitializeTestRoutes>, reference: u64, duration: u64) -> Result<()> {
-    require!(cfg!(feature = "local-test-profile"), ClearingError::Profile);
+    require!(crate::financial_profile(), ClearingError::Profile);
     custody::profile(&ctx.accounts.market)?;
     require!(ctx.accounts.market.mode == 0, ClearingError::Profile);
     ctx.accounts.market.mode = 1;
@@ -123,12 +123,35 @@ pub fn initialize(ctx: Context<InitializeTestRoutes>, reference: u64, duration: 
         bump: ctx.bumps.route_state,
         oracle: crate::oracle::OracleState::default(),
     });
+    #[cfg(not(feature = "devnet-test-profile"))]
     emit_cpi!(publish(
         &mut ctx.accounts.market,
         &mut ctx.accounts.route_state,
         reference,
         duration
     )?);
+    #[cfg(feature = "devnet-test-profile")]
+    {
+        // Allocate coordination state without any ad hoc executable risk price.
+        // initialize_oracle must bind real sources before financial execution.
+        require!(reference == 0 && duration == 0, ClearingError::Profile);
+        let m = &mut ctx.accounts.market;
+        m.sequence = m.sequence.checked_add(1).ok_or(ClearingError::Arithmetic)?;
+        emit_cpi!(TestRiskPublished {
+            version: 1,
+            terms_epoch: m.terms_epoch,
+            domain: m.domain,
+            market: m.key(),
+            sequence: m.sequence,
+            config_epoch: m.config_epoch,
+            observation_sequence: 0,
+            reference_price: 0,
+            lower: 0,
+            upper: 0,
+            valid_from: 0,
+            valid_until: 0,
+        });
+    }
     Ok(())
 }
 pub fn publish_risk(ctx: Context<PublishTestRisk>, reference: u64, duration: u64) -> Result<()> {
@@ -453,7 +476,7 @@ pub fn execute(ctx: Context<ExecuteRoute>, intent: RouteIntent) -> Result<()> {
 }
 pub fn execute_order(ctx: Context<ExecuteOrder>, args: OrderExecution) -> Result<()> {
     require!(
-        cfg!(feature = "local-test-profile") && ctx.accounts.market.mode == 2,
+        crate::financial_profile() && ctx.accounts.market.mode == 2,
         ClearingError::Profile
     );
     require!(
@@ -513,10 +536,10 @@ fn execute_core(
     intent: RouteIntent,
     order_index: Option<usize>,
 ) -> Result<RouteExecuted> {
-    require!(cfg!(feature = "local-test-profile"), ClearingError::Profile);
+    require!(crate::financial_profile(), ClearingError::Profile);
     custody::profile(&a.market)?;
     require!(
-        a.market.mode == 1 || a.market.mode == 2,
+        (a.market.mode == 1 && !cfg!(feature = "devnet-test-profile")) || a.market.mode == 2,
         ClearingError::Profile
     );
     crate::oracle::action(&a.market, &a.route_state, !intent.reduce_only)?;

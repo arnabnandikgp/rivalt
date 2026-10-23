@@ -228,12 +228,7 @@ fn sources(
 ) -> Result<Option<policy::Bounds>> {
     let mut values = [None; 4];
     for i in 0..4 {
-        require!(
-            infos[i].key == &o.sources[i]
-                && infos[i].owner == &oracle_fixture::ID
-                && !infos[i].is_writable,
-            ClearingError::OracleSource
-        );
+        oracle::binding(infos[i], o.sources[i], i)?;
         if let Ok((p, sequence)) = oracle::source(infos[i], o.sources[i], i, o.source_sequences[i])
         {
             values[i] = Some(p);
@@ -252,7 +247,7 @@ fn frozen(
     vault: u64,
     epoch: u64,
 ) -> Result<()> {
-    require!(cfg!(feature = "local-test-profile"), ClearingError::Profile);
+    require!(crate::financial_profile(), ClearingError::Profile);
     custody::profile(m)?;
     let h = &state.header;
     require!(
@@ -334,7 +329,7 @@ fn progress(
 }
 pub fn initialize(ctx: Context<InitializeResolution>) -> Result<()> {
     require!(
-        cfg!(feature = "local-test-profile")
+        crate::financial_profile()
             && ctx.remaining_accounts.is_empty()
             && ctx.accounts.market.mode == 2
             && !ctx.accounts.market.paused,
@@ -382,9 +377,7 @@ pub fn freeze(
 ) -> Result<()> {
     let a = &mut *ctx.accounts;
     require!(
-        cfg!(feature = "local-test-profile")
-            && ctx.remaining_accounts.is_empty()
-            && a.market.mode == 2,
+        crate::financial_profile() && ctx.remaining_accounts.is_empty() && a.market.mode == 2,
         ClearingError::Profile
     );
     custody::profile(&a.market)?;

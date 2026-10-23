@@ -10,6 +10,7 @@ name = "clearing"
 
 [features]
 default = []
+devnet-test-profile = ["oracle-fixture/devnet-test-profile"]
 local-test-profile = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []

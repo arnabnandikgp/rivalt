@@ -35,6 +35,7 @@ try {
   socket = new WebSocket(config.ws);
   const subscriptions = new Map<number, number>();
   socket.addEventListener('error', () => { wsFailure = true; });
+  socket.addEventListener('close', () => { wsFailure = true; });
   socket.addEventListener('message', ({ data }) => {
     try {
       const msg = JSON.parse(String(data));

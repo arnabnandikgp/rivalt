@@ -112,7 +112,7 @@ fn checked<T>(r: math::Result<T>) -> Result<T> {
     r.map_err(|_| error!(ClearingError::Arithmetic))
 }
 fn live(m: &MarketState, r: &TestRouteState, sequence: u64, observation: u64) -> Result<bool> {
-    require!(cfg!(feature = "local-test-profile"), ClearingError::Profile);
+    require!(crate::financial_profile(), ClearingError::Profile);
     custody::profile(m)?;
     require!(m.mode == 1 || m.mode == 2, ClearingError::Profile);
     require!(!m.paused, ClearingError::Paused);
@@ -133,7 +133,7 @@ fn certified(g: &ExitGuard, sequence: u64, observation: u64) -> Result<()> {
     Ok(())
 }
 pub fn initialize(ctx: Context<InitializeExitGuard>) -> Result<()> {
-    require!(cfg!(feature = "local-test-profile"), ClearingError::Profile);
+    require!(crate::financial_profile(), ClearingError::Profile);
     ctx.accounts.guard.market = ctx.accounts.market.key();
     ctx.accounts.guard.bump = ctx.bumps.guard;
     Ok(())

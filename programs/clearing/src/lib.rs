@@ -1,4 +1,6 @@
 use anchor_lang::prelude::*;
+#[cfg(any(test, feature = "devnet-test-profile"))]
+mod pyth_core;
 pub mod resolution;
 pub use resolution::*;
 pub mod risk;
@@ -17,9 +19,22 @@ pub use oracle::*;
 pub mod settlement;
 pub use settlement::*;
 
+#[cfg(not(feature = "devnet-test-profile"))]
 declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
+#[cfg(feature = "devnet-test-profile")]
+declare_id!("BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv");
 
-/// Synthetic local routes require the explicit local-test-profile build feature.
+#[cfg(all(feature = "local-test-profile", feature = "devnet-test-profile"))]
+compile_error!("local and devnet financial profiles are mutually exclusive");
+
+pub(crate) const fn financial_profile() -> bool {
+    cfg!(any(
+        feature = "local-test-profile",
+        feature = "devnet-test-profile"
+    ))
+}
+
+/// Financial paths require an explicit, separate engineering profile.
 #[program]
 pub mod clearing {
     use super::*;

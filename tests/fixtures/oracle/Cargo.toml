@@ -8,6 +8,7 @@ crate-type = ["cdylib", "lib"]
 name = "oracle_fixture"
 [features]
 default = []
+devnet-test-profile = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

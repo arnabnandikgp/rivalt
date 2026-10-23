@@ -8,8 +8,14 @@ use anchor_lang::solana_program::{
 use maker_interface::{MakerState, QuoteRequest, QuoteResponse, VERSION};
 use solana_sha256_hasher::hash;
 
+#[cfg(not(feature = "devnet-test-profile"))]
 pub const MAKER_A: Pubkey = pubkey!("7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU");
+#[cfg(not(feature = "devnet-test-profile"))]
 pub const MAKER_B: Pubkey = pubkey!("F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc");
+#[cfg(feature = "devnet-test-profile")]
+pub const MAKER_A: Pubkey = pubkey!("C2dhcKi2FQTsJgHiAYYb8hGeqYWdcUQr9MB4kU6AdLJG");
+#[cfg(feature = "devnet-test-profile")]
+pub const MAKER_B: Pubkey = pubkey!("8gBGZLMdws9ci5ax8ASmK46WPigHguFYvm8azK8q6Ckc");
 
 #[account]
 #[derive(InitSpace)]

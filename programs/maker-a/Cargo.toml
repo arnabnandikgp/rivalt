@@ -10,6 +10,7 @@ name = "maker_a"
 
 [features]
 default = []
+devnet-test-profile = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

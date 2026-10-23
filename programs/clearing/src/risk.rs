@@ -132,7 +132,7 @@ fn apply_liquidation(
     price: u64,
 ) -> Result<(u64, i128, i128)> {
     require!(
-        cfg!(feature = "local-test-profile") && a.market.mode == 2,
+        crate::financial_profile() && a.market.mode == 2,
         ClearingError::Profile
     );
     custody::profile(&a.market)?;

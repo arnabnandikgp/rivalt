@@ -1,5 +1,8 @@
 include!("../../maker-common.rs");
+#[cfg(not(feature = "devnet-test-profile"))]
 declare_id!("7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU");
+#[cfg(feature = "devnet-test-profile")]
+declare_id!("C2dhcKi2FQTsJgHiAYYb8hGeqYWdcUQr9MB4kU6AdLJG");
 const MAKER_ID: u8 = 0;
 #[program]
 pub mod maker_a {

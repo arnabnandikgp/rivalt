@@ -1,4 +1,4 @@
-//! G08 controlled local dependencies, causal funding, and action policy.
+//! Authenticated source adapters, causal funding, and G08 action policy.
 use crate::{
     custody, makers, routes, ClearingError, MakerRegistration, MarketState, Participant,
     PreviewArgs, TestRouteState,
@@ -45,7 +45,7 @@ pub struct SampleOracle<'info> {
     pub market: Box<Account<'info, MarketState>>,
     #[account(mut,seeds=[b"test-routes",market.key().as_ref()],bump=route_state.bump,has_one=market)]
     pub route_state: Box<Account<'info, TestRouteState>>,
-    /// CHECK: exact configured PDA, fixture owner, discriminator and signed schema below.
+    /// CHECK: exact configured PDA, profile owner, discriminator and verified schema below.
     pub primary_btc: UncheckedAccount<'info>,
     /// CHECK: same checks, distinct collateral feed ID.
     pub primary_collateral: UncheckedAccount<'info>,
@@ -123,7 +123,7 @@ fn event(m: &mut Account<MarketState>, r: &mut TestRouteState) -> Result<OracleO
     })
 }
 pub fn initialize(ctx: Context<InitializeOracle>, primary: Pubkey, guard: Pubkey) -> Result<()> {
-    require!(cfg!(feature = "local-test-profile"), ClearingError::Profile);
+    require!(crate::financial_profile(), ClearingError::Profile);
     let a = &mut *ctx.accounts;
     custody::profile(&a.market)?;
     require!(
@@ -135,7 +135,17 @@ pub fn initialize(ctx: Context<InitializeOracle>, primary: Pubkey, guard: Pubkey
         ClearingError::OraclePolicy
     );
     let mut sources = [Pubkey::default(); 4];
+    #[cfg(feature = "devnet-test-profile")]
+    require!(
+        primary == crate::pyth_core::RECEIVER,
+        ClearingError::OracleSource
+    );
     for (i, source) in sources.iter_mut().enumerate() {
+        #[cfg(feature = "devnet-test-profile")]
+        if i < 2 {
+            *source = crate::pyth_core::ACCOUNTS[i];
+            continue;
+        }
         let authority = if i < 2 { primary } else { guard };
         *source = Pubkey::find_program_address(
             &[b"feed", authority.as_ref(), &[i as u8 + 1; 32]],
@@ -164,6 +174,12 @@ pub(crate) fn source(
     index: usize,
     sequence: u64,
 ) -> Result<(policy::Price, u64)> {
+    binding(info, expected, index)?;
+    #[cfg(feature = "devnet-test-profile")]
+    if index < 2 {
+        return crate::pyth_core::decode(info, index, sequence, Clock::get()?.slot)
+            .ok_or_else(|| error!(ClearingError::OracleSource));
+    }
     require!(
         info.key == &expected && info.owner == &FIXTURE && !info.is_writable,
         ClearingError::OracleSource
@@ -191,6 +207,25 @@ pub(crate) fn source(
         },
         feed.sequence,
     ))
+}
+/// Bad account substitution rejects before a policy failure can be recorded.
+pub(crate) fn binding(info: &AccountInfo, expected: Pubkey, index: usize) -> Result<()> {
+    #[cfg(feature = "devnet-test-profile")]
+    let owner = if index < 2 {
+        crate::pyth_core::RECEIVER
+    } else {
+        FIXTURE
+    };
+    #[cfg(not(feature = "devnet-test-profile"))]
+    let owner = {
+        let _ = index;
+        FIXTURE
+    };
+    require!(
+        info.key == &expected && info.owner == &owner && !info.is_writable && !info.executable,
+        ClearingError::OracleSource
+    );
+    Ok(())
 }
 /// Prefix evaluation is independent of the number of accruals/trades in the hold.
 pub fn funding(m: &MarketState, r: &TestRouteState, now: i64, slot: u64) -> Result<i128> {
@@ -532,7 +567,7 @@ fn impact(a: &SampleOracle, b: policy::Bounds, f: i128) -> Result<(u64, u64, u64
 }
 pub fn sample(ctx: Context<SampleOracle>) -> Result<()> {
     require!(
-        cfg!(feature = "local-test-profile") && ctx.remaining_accounts.is_empty(),
+        crate::financial_profile() && ctx.remaining_accounts.is_empty(),
         ClearingError::Profile
     );
     let a = &mut *ctx.accounts;
@@ -559,12 +594,7 @@ pub fn sample(ctx: Context<SampleOracle>) -> Result<()> {
     for i in 0..4 {
         // Bad account selection is a rejected caller attempt, never evidence that a
         // configured authenticated source failed (which would permit griefing).
-        require!(
-            sources[i].key() == old.sources[i]
-                && sources[i].owner == &FIXTURE
-                && !sources[i].is_writable,
-            ClearingError::OracleSource
-        );
+        binding(sources[i], old.sources[i], i)?;
         if let Ok((p, s)) = source(sources[i], old.sources[i], i, sequences[i]) {
             values[i] = Some(p);
             sequences[i] = s;

@@ -118,7 +118,7 @@ fn checked<T>(r: math::Result<T>) -> Result<T> {
 }
 fn profile(m: &MarketState) -> Result<()> {
     require!(
-        cfg!(feature = "local-test-profile") && m.mode == 2,
+        crate::financial_profile() && m.mode == 2,
         ClearingError::Profile
     );
     custody::profile(m)

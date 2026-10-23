@@ -1,6 +1,9 @@
 //! Signed local dependency fixture. This is NOT an upstream price verifier.
 use anchor_lang::prelude::*;
+#[cfg(not(feature = "devnet-test-profile"))]
 declare_id!("A5ACpHNQHLkCQtfvRkPoR45juvuxwfi9mEWGU43eD5nj");
+#[cfg(feature = "devnet-test-profile")]
+declare_id!("gUq9vLuLsncqn1JGR753q9XZkypWUoMZ6CKquiCk6EF");
 #[program]
 pub mod oracle_fixture {
     use super::*;
