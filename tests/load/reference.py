@@ -18,7 +18,10 @@ def audit(a,allocation):
         for mid,qty in [(0,count),(1,n-count)]:
             if not qty:continue
             if mid not in candidates:valid=False;break
-            p=candidates[mid];q,cash,cons,cap=map(int,(p['lots'],p['cash'],p['consumed'],p['inventoryLimit']))
+            p=candidates[mid]
+            start,end,slot=map(int,(p['startSlot'],p['expirySlot'],allocation['snapshotSlot']))
+            if p['version']!=1 or not 64<=end-start<=3600 or not start<=slot<end:valid=False;break
+            q,cash,cons,cap=map(int,(p['lots'],p['cash'],p['consumed'],p['inventoryLimit']))
             depth,flat,step,tick,spread=(512,0,64,4,10) if mid==0 else (4096,256,256,1,30)
             sign=1 if side==0 else -1
             capacity=min(depth-cons,cap+(q if side==0 else -q),max(0,min(cash*10//ref,10**8)-abs(q)))

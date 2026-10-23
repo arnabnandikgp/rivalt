@@ -17,10 +17,10 @@ import { summarize, type Attempt } from './metrics.js';
 import { submissionFault } from './submission-fault.js';
 import { publicIntents } from '../e2e/evidence.js';
 
-const args=process.argv.slice(2),modes=['--sweep-seconds','--exercise-seconds','--exercise-tail-seconds','--soak-seconds'].filter(x=>args.includes(x));
-if(modes.length!==1)throw new Error('Declare one finite sweep, 900-second full exercise, 360-second tail exercise, or actual 86400-second soak');
+const args=process.argv.slice(2),modes=['--sweep-seconds','--exercise-seconds','--exercise-tail-seconds','--final-check-seconds','--soak-seconds'].filter(x=>args.includes(x));
+if(modes.length!==1)throw new Error('Declare one finite sweep, 900-second full exercise, 360-second tail, 180-second final check, or actual 86400-second soak');
 const mode=modes[0],extended=mode!=='--sweep-seconds',long=mode==='--soak-seconds',seconds=Number(args[args.indexOf(mode)+1]);
-if(!Number.isInteger(seconds)||(long?seconds!==86400:extended?seconds!==(mode==='--exercise-tail-seconds'?360:900):seconds<10||seconds>3600))throw new Error('Invalid real elapsed duration');
+if(!Number.isInteger(seconds)||(long?seconds!==86400:extended?seconds!==(mode==='--exercise-tail-seconds'?360:mode==='--final-check-seconds'?180:900):seconds<10||seconds>3600))throw new Error('Invalid real elapsed duration');
 const rates=args.includes('--rates')?args[args.indexOf('--rates')+1]?.split(',').map(Number):(extended?[.25]:[1,5,10]);
 if(!rates?.length||rates.length>5||new Set(rates).size!==rates.length||rates.some(r=>![.25,.5,1,5,10].includes(r))||extended&&(rates.length!==1||rates[0]>1))throw new Error('Declare supported unique rates; sustained run has one baseline');
 const git=(...args:string[])=>execFileSync('git',args,{encoding:'utf8'}).trim();
@@ -173,7 +173,7 @@ try{
     samplingSensitivity:'Not varied in this run; selected cadence five seconds. P07/P11 hold/accrual reference evidence is unchanged.'};
   await indexer.close();
   const baseline=phases[0],targets={quote:baseline.quote.p95!==null&&baseline.quote.p95<=200,normalSuccess:baseline.normalEligible>0&&baseline.normalSuccess>=.99,routeHeadroom:Math.max(...phases.map(x=>x.maxUnits))<=320_000};
-  const result={...manifest,finishedUtc:new Date().toISOString(),result:Object.values(targets).every(Boolean)?'pass':'fail',scope:long?'actual 24-hour sustained run':extended?`${seconds}-second sustained harness exercise; A17 not-run`:'finite qualification; A17 not-run',reference,readApi,fundingQuality,sustained:sustainedResult,visibility,rebuildMetrics,rebuildKind:extended?'fresh PostgreSQL database':'fresh projection in same database',sourceBudget:{...e.sourceBudget,closingLamports:sourceClosing},targets,phases,faults,final,rebuiltFinal,finalSnapshot,intents,budgets,closingBalances,sourceErrors:e.sourceErrors};
+  const result={...manifest,finishedUtc:new Date().toISOString(),result:Object.values(targets).every(Boolean)?'pass':'fail',scope:long?'actual 24-hour sustained run':extended?`${seconds}-second ${mode==='--final-check-seconds'?'final-check probe':'sustained harness exercise'}; A17 not-run`:'finite qualification; A17 not-run',reference,readApi,fundingQuality,sustained:sustainedResult,visibility,rebuildMetrics,rebuildKind:extended?'fresh PostgreSQL database':'fresh projection in same database',sourceBudget:{...e.sourceBudget,closingLamports:sourceClosing},targets,phases,faults,final,rebuiltFinal,finalSnapshot,intents,budgets,closingBalances,sourceErrors:e.sourceErrors};
   writeFileSync(`${dir}/load.json`,json(result));assert.equal(e.sourceErrors.length,0,'source publisher errors retained');
   console.log(`Load targets ${result.result}: ${dir}/load.json`);if(result.result==='fail')process.exitCode=2;
 }catch(error){writeFileSync(`${dir}/failure.json`,json({revision,sourceDirty,at:new Date().toISOString(),error:error instanceof Error?error.message:String(error),phases}));throw error;}

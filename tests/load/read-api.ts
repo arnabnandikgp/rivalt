@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import type { Indexer } from '../../packages/indexer/src/index.js';
+import { samePrice } from './price-ratio.js';
 import { api } from '../../packages/indexer/src/api.js';
 
 /** Real PostgreSQL event history, independent numeric ordering and OHLC expectations. */
@@ -23,7 +24,7 @@ export async function verifyReads(indexer:Indexer){
       const sorted=[...values].sort((a,b)=>{const d=BigInt(a.payload.grossQuote)*BigInt(b.payload.lots)-BigInt(b.payload.grossQuote)*BigInt(a.payload.lots);return d<0n?-1:d>0n?1:0;});
       return {start:String(start),open:price(values[0]),high:price(sorted.at(-1)),low:price(sorted[0]),close:price(values.at(-1)),volumeLots:values.reduce((n,x)=>n+BigInt(x.payload.lots),0n).toString(),volumeQuote:values.reduce((n,x)=>n+BigInt(x.payload.grossQuote),0n).toString(),trades:values.length};
     });
-    const candles=await read(`/v1/candles?from=${from}&to=${end}`);assert.deepEqual(candles.items,expected);assert.equal(candles.unplacedTrades,trades.filter(x=>x.block_time===null).length);
+    const candles=await read(`/v1/candles?from=${from}&to=${end}`);assert.equal(candles.items.length,expected.length);for(const [i,want] of expected.entries()){const got=candles.items[i];assert(samePrice(got.high,want.high)&&samePrice(got.low,want.low),'Exact candle extreme values');assert.deepEqual({...got,high:want.high,low:want.low},want);}assert.equal(candles.unplacedTrades,trades.filter(x=>x.block_time===null).length);
     return {result:'pass',events:rows.length,trades:trades.length,lastSequence:rows.at(-1)!.sequence,candles:expected.length,method:'Actual PostgreSQL rows through Fastify handlers; independent BigInt sequence sort and per-minute price ordering; forward and latest pagination across sequence 100'};
   }finally{await app.close();}
 }

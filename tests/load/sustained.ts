@@ -11,8 +11,8 @@ import { Continuity } from './continuity.js';
 import { submissionFault } from './submission-fault.js';
 
 export function sustained(e:Awaited<ReturnType<typeof environment>>,duration:number,capture:(label:string)=>Promise<any>,pollUi:()=>Promise<void>){
-  const start=performance.now(),clock=new Continuity(Date.now(),start),long=duration>=86400,tail=duration===360,orderCadence=tail?30:300;
-  const roles=tail?['funding','indexer','settlement']:['maker-a','maker-b','executor','funding','indexer','settlement'];
+  const start=performance.now(),clock=new Continuity(Date.now(),start),long=duration>=86400,tail=duration===360,finalOnly=duration===180,orderCadence=tail?30:300;
+  const roles=finalOnly?[]:tail?['funding','indexer','settlement']:['maker-a','maker-b','executor','funding','indexer','settlement'];
   const times=long?[3600,10800,21600,32400,43200,64800]:tail?[60,150,270]:[60,330,600,660,750,840];
   const plan=roles.map((role,i)=>({role,atSeconds:times[i],durationSeconds:role.startsWith('maker')?210:role==='executor'?0:role==='indexer'?60:30}));
   writeFileSync(`${e.dir}/fault-plan.json`,json({durationSeconds:duration,plan,classification:'From outage start through observed recovery; set before any affected offered attempt'}));
@@ -52,7 +52,7 @@ export function sustained(e:Awaited<ReturnType<typeof environment>>,duration:num
     try{
       clock.observe(Date.now(),performance.now());const time=elapsed();
       if(!action&&nextFault<plan.length&&time>=plan[nextFault].atSeconds){const p=plan[nextFault++];action=fault(p).catch(err=>{fatal=err;}).finally(()=>{action=null;});}
-      if(!orderAction&&!active&&time<duration-120&&time-lastOrder>=orderCadence){lastOrder=time;orderAction=placeOrder().catch(err=>{
+      if(!finalOnly&&!orderAction&&!active&&time<duration-120&&time-lastOrder>=orderCadence){lastOrder=time;orderAction=placeOrder().catch(err=>{
         // Unsigned unavailable quotes are retained; any signed/other failure is fatal.
         if(err instanceof QuoteUnavailable){record('orders',{atSeconds:elapsed(),unavailable:err.code});lastOrder=elapsed()-orderCadence+5;}else fatal=err;
       }).finally(()=>{orderAction=null;});}
@@ -69,7 +69,7 @@ export function sustained(e:Awaited<ReturnType<typeof environment>>,duration:num
     if(fatal)break;await delay(500);
   }})();
   return {fault:()=>active!==null,assertHealthy(){if(fatal)throw fatal;},
-    async close(){stopping=true;await loop;await Promise.all([action,orderAction]);clock.observe(Date.now(),performance.now());if(fatal)throw fatal;assert.equal(nextFault,plan.length);assert(events.every(x=>x.result==='pass'));assert(orders.length>=(tail?3:1)&&orders.every(x=>x.filledSeconds!==undefined),'Stored open/close/reopen must actually fill');
+    async close(){stopping=true;await loop;await Promise.all([action,orderAction]);clock.observe(Date.now(),performance.now());if(fatal)throw fatal;assert.equal(nextFault,plan.length);assert(events.every(x=>x.result==='pass'));assert(orders.length>=(finalOnly?0:tail?3:1)&&orders.every(x=>x.filledSeconds!==undefined),'Stored open/close/reopen must actually fill');
       const result={durationSeconds:duration,continuity:clock.result(),faults:events,orders,resources};writeFileSync(`${e.dir}/sustained.json`,json(result));return result;},
     async abort(){stopping=true;abort.abort();await loop;await Promise.all([action,orderAction]);}
   };

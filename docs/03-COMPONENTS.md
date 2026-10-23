@@ -223,3 +223,5 @@ Public submission request identities cannot use the reserved `funding:`, `keeper
 P12 quote responses additionally include read-only `audit` snapshot inputs (reference/bounds, accrued balances, consumed maker depth and effective-order counts) for independent exact quote comparison. This creates no new instruction or execution authority. Financial JSON remains decimal strings.
 
 Trades, event cursors and candle open/close chronology order by the underlying numeric event sequence. Serialization as a decimal string must not cause lexical ordering (for example, 98 before 218). P12 adds real PostgreSQL coverage of that multi-digit boundary.
+
+Quote audit candidates include maker version/start/exclusive-expiry slots; a mathematically attractive curve outside its current epoch window is unavailable to the independent comparator.
