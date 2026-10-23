@@ -2,14 +2,16 @@ import assert from 'node:assert/strict';
 import { address, getProgramDerivedAddress } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import { Rpc, Subscription, integer } from './rpc.js';
-import { decode, hash, json, PROGRAM, type Event } from './events.js';
+import { decode, hash, json, type Event } from './events.js';
 import { Store, type Binding } from './store.js';
 import { project, type State } from './projection.js';
 
 export { Store, Rpc };
-export type Config = { rpcUrl: string; wsUrl: string; databaseUrl: string; runId: string; market: string; anchor: string; pageSize?: number; maxRecoveryTransactions?: number };
+export type Config = { rpcUrl: string; wsUrl: string; databaseUrl: string; runId: string; market: string; anchor: string; pageSize?: number; maxRecoveryTransactions?: number; chain?: sdk.TestChain };
 export class Indexer {
   readonly rpc: Rpc;
+  readonly deployment: ReturnType<typeof sdk.testDeployment>;
+  readonly options: { programAddress: ReturnType<typeof sdk.testDeployment>['clearing'] };
   readonly store: Store;
   ws?: Subscription;
   eventAuthority = '';
@@ -17,6 +19,10 @@ export class Indexer {
   metrics = { cycles: 0, pages: 0, fetched: 0, notifications: 0, reconnects: 0, failures: 0 };
   private busy = false;
   constructor(readonly config: Config) {
+    this.deployment = sdk.testDeployment(config.chain);
+    this.options = { programAddress: this.deployment.clearing };
+    sdk.testRpcUrl(config.rpcUrl, this.deployment.chain);
+    sdk.testRpcUrl(config.wsUrl, this.deployment.chain, true);
     if (!Number.isSafeInteger(config.maxRecoveryTransactions ?? 10_000) || (config.maxRecoveryTransactions ?? 10_000) < 1 || (config.maxRecoveryTransactions ?? 10_000) > 200_000) throw new Error('Invalid bounded history recovery limit');
     this.rpc = new Rpc(config.rpcUrl); this.store = new Store(config.databaseUrl, config.runId);
     if (!Number.isInteger(config.pageSize ?? 100) || (config.pageSize ?? 100) < 1 || (config.pageSize ?? 100) > 1000) throw new Error('Invalid history page size');
@@ -26,18 +32,20 @@ export class Indexer {
     if (!tx) throw new Error(`History gap: transaction ${signature} unavailable`); return tx;
   }
   async open() {
-    this.eventAuthority = (await getProgramDerivedAddress({ programAddress: PROGRAM, seeds: [Buffer.from('__event_authority')] }))[0];
+    this.eventAuthority = (await getProgramDerivedAddress({ programAddress: this.deployment.clearing, seeds: [Buffer.from('__event_authority')] }))[0];
     await this.store.migrate();
     const anchor = await this.transaction(this.config.anchor);
-    const init = decode(this.config.anchor, anchor, this.eventAuthority).find(e => e.type === 'custody' && e.data.kind === 0 && e.data.sequence === '1');
+    const init = decode(this.config.anchor, anchor, this.eventAuthority, this.deployment.clearing).find(e => e.type === 'custody' && e.data.kind === 0 && e.data.sequence === '1');
     if (!init || init.data.market !== this.config.market) throw new Error('Invalid initialization anchor');
-    await this.store.bind({ genesis: await this.rpc.call('getGenesisHash'), market: this.config.market, domain: init.data.domain,
-      anchor: this.config.anchor, anchorHash: hash(anchor.transaction), program: PROGRAM, schema: 1 });
+    const genesis = await this.rpc.call('getGenesisHash');
+    if (this.deployment.genesis && genesis !== this.deployment.genesis) throw new Error('Devnet genesis mismatch');
+    await this.store.bind({ genesis, market: this.config.market, domain: init.data.domain,
+      anchor: this.config.anchor, anchorHash: hash(anchor.transaction), program: this.deployment.clearing, schema: 1 });
     await this.connect();
   }
   async connect() {
     this.ws?.close(); this.healthy = false;
-    this.ws = new Subscription(this.config.wsUrl, PROGRAM); await this.ws.ready; this.metrics.reconnects++;
+    this.ws = new Subscription(this.config.wsUrl, this.deployment.clearing); await this.ws.ready; this.metrics.reconnects++;
   }
   async cycle() {
     if (this.busy) throw new Error('Concurrent indexing cycle');
@@ -55,7 +63,7 @@ export class Indexer {
       const signatures: any[] = [], seen = new Set<string>();
       let before: string | undefined, found = false;
       for (let page = 0; page < 10_000; page++) {
-        const batch = await this.rpc.call('getSignaturesForAddress', [PROGRAM,{commitment:'finalized',limit:this.config.pageSize ?? 100,...(before ? {before} : {})}]);
+        const batch = await this.rpc.call('getSignaturesForAddress', [this.deployment.clearing,{commitment:'finalized',limit:this.config.pageSize ?? 100,...(before ? {before} : {})}]);
         this.metrics.pages++;
         if (!Array.isArray(batch) || !batch.length) break;
         for (const item of batch) {
@@ -74,7 +82,7 @@ export class Indexer {
         const tx = await this.transaction(item.signature); this.metrics.fetched++;
         if (tx.slot !== item.slot || json(tx.meta.err) !== json(item.err)) throw new Error('Finalized history conflict');
         await this.store.observe('rpc-finalized',item.signature,tx);
-        txs.push({signature:item.signature,tx}); events.push(...decode(item.signature,tx,this.eventAuthority));
+        txs.push({signature:item.signature,tx}); events.push(...decode(item.signature,tx,this.eventAuthority,this.deployment.clearing));
       }
       // Verify the entire candidate against one chain snapshot before advancing the
       // durable cursor. In particular, missing tail events must not strand it ahead
@@ -105,15 +113,15 @@ export class Indexer {
   async reconcile(snapshot?: {state:State;binding:Binding}) {
     const {state,binding} = snapshot ?? await this.store.snapshot();
     const market = address(binding.market);
-    const [registry] = await sdk.findRegistryPda({market});
-    const [route] = await sdk.findRouteStatePda({market});
-    const [vault] = await sdk.findVaultPda({market});
-    const [resolution] = await sdk.findResolutionPda({market});
+    const [registry] = await sdk.findRegistryPda({market}, this.options);
+    const [route] = await sdk.findRouteStatePda({market}, this.options);
+    const [vault] = await sdk.findVaultPda({market}, this.options);
+    const [resolution] = await sdk.findResolutionPda({market}, this.options);
     const participants = Object.keys(state.participants), makers = Object.keys(state.makers);
     const keys = [market,registry,vault,...participants,...makers,...(state.risk ? [route] : []),...(state.resolution ? [resolution] : [])];
     const response = await this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized'}]);
     integer(response.context.slot);
-    const data = (i:number, owner:string = PROGRAM) => {
+    const data = (i:number, owner:string = this.deployment.clearing) => {
       const a = response.value[i]; if (!a || a.owner !== owner) throw new Error('Reconciliation account missing/wrong owner');
       return Buffer.from(a.data[0],'base64');
     };

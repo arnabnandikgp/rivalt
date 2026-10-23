@@ -7,6 +7,21 @@ use anchor_lang::prelude::*;
 use financial_core::{self as math, oracle as policy};
 use oracle_fixture::{Feed, ID as FIXTURE};
 
+pub(crate) fn source_bounds(
+    primary: [policy::Price; 2],
+    guard: Option<[policy::Price; 2]>,
+    now: i64,
+) -> math::Result<policy::Bounds> {
+    #[cfg(feature = "devnet-test-profile")]
+    {
+        policy::devnet_bounds(primary, guard, now)
+    }
+    #[cfg(not(feature = "devnet-test-profile"))]
+    {
+        policy::bounds(primary, guard, now)
+    }
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace)]
 pub struct OracleState {
     pub sources: [Pubkey; 4],
@@ -601,7 +616,7 @@ pub fn sample(ctx: Context<SampleOracle>) -> Result<()> {
         }
     }
     let bounds = values[0].zip(values[1]).and_then(|(p, c)| {
-        policy::bounds([p, c], values[2].zip(values[3]).map(|(p, c)| [p, c]), now).ok()
+        source_bounds([p, c], values[2].zip(values[3]).map(|(p, c)| [p, c]), now).ok()
     });
     let gap = old.sampled_at > 0 && now - old.sampled_at > policy::MAX_CATCHUP;
     let changed = old.held_epoch != a.market.config_epoch;

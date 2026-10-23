@@ -43,7 +43,7 @@ function Root() {
             <button onClick={() => setAttempt((x) => x + 1)}>Retry connection</button>
           </>
         ) : (
-          <p role="status">Connecting to the local test venue…</p>
+          <p role="status">Connecting to the test venue…</p>
         )}
       </main>
     );

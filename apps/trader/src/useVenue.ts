@@ -117,7 +117,7 @@ export function useVenue(config: TraderConfig) {
               x.deployment?.domain !== config.domain,
           )
         )
-          throw new Error('Indexed deployment differs from this local chain.');
+          throw new Error('Indexed deployment differs from this test deployment.');
         setFeed({
           trades: trades.items,
           events: events.items,
@@ -201,7 +201,7 @@ export function useVenue(config: TraderConfig) {
     setNotice('');
     setReview(undefined);
     if (!owner || !canSign) {
-      setError('Connect a wallet account that supports this local test network and v0 signing.');
+      setError('Connect a wallet account that supports this test network and v0 signing.');
       return;
     }
     setBusy('Preparing transaction');

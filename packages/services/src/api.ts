@@ -19,7 +19,7 @@ export function api(runtime:Runtime){
   });
   app.post('/v1/submit',async(request)=>{
     const b=request.body as any,requestId=publicRequestId(b?.requestId),binding=await runtime.environment();
-    const authority=userAuthority(b?.wire,binding.market);
+    const authority=userAuthority(b?.wire,binding.market,runtime.deployment.clearing);
     const r=await runtime.queue.put(requestId,b.wire,authority);
     return {requestId:r.request_id,signature:r.signature,status:r.status};
   });

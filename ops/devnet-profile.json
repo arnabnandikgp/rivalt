@@ -1,5 +1,5 @@
 {
-  "profile": "p13-sponsored-core-test-assets-v1",
+  "profile": "p14-sponsored-core-test-assets-v2",
   "genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
   "deployer": "4oudHrUzAnRhd5BivAu4cympwyevfo4PTr2Cg87cV8Hi",
   "programs": {
@@ -14,5 +14,6 @@
   "wormholeReceiver": "HDw2E7P8X1SkCyjvoGsfBGAVUutKcj874bXjHrpVYrVL",
   "primaryBtc": "APgzQGGdv2qCgBkX6aHVkrGePtBVDDg68GiqaM7rmtf5",
   "primaryCollateral": "6HAuqASbHEh4w4REJEUUUCginTLfj1kwCh215ZLtMkrT",
-  "collateralFeedMeaning": "USDC/USD engineering proxy for a separately minted six-decimal test token"
+  "collateralFeedMeaning": "USDC/USD engineering proxy for a separately minted six-decimal test token",
+  "sourceMaxAgeSeconds": 30
 }

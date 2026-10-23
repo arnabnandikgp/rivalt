@@ -236,7 +236,7 @@ fn sources(
         }
     }
     Ok(values[0].zip(values[1]).and_then(|(p, c)| {
-        policy::bounds([p, c], values[2].zip(values[3]).map(|(p, c)| [p, c]), now).ok()
+        oracle::source_bounds([p, c], values[2].zip(values[3]).map(|(p, c)| [p, c]), now).ok()
     }))
 }
 fn frozen(

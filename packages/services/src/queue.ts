@@ -1,6 +1,6 @@
 import { createPublicKey, verify } from 'node:crypto';
 import { VersionedTransaction } from '@solana/web3.js';
-import { getBase58Decoder, getAddressEncoder } from '@solana/kit';
+import { getBase58Decoder, getAddressEncoder, type Address } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import { Store } from '../../indexer/src/store.js';
 import { Rpc, integer } from '../../indexer/src/rpc.js';
@@ -24,13 +24,13 @@ export function signedWire(wire:string) {
 }
 // External ingress accepts only one wallet-owned financial action. No relay key
 // or sponsorship is exposed by this API, and a wallet signature is never rebuilt.
-export function userAuthority(wire:string,market:string):Authority|null {
+export function userAuthority(wire:string,market:string,program:Address=sdk.CLEARING_PROGRAM_ADDRESS):Authority|null {
   const {tx,keys}=signedWire(wire);const instructions=tx.message.compiledInstructions;
   let economic:typeof instructions[number]|undefined;
   for(const ix of instructions){
     if(keys[ix.programIdIndex]==='ComputeBudget111111111111111111111111111111'){
       if(!Buffer.from(ix.data).equals(Buffer.from(sdk.routeComputeBudget().data!)))throw new Error('Unsupported compute budget');
-    }else{if(economic || keys[ix.programIdIndex]!==sdk.CLEARING_PROGRAM_ADDRESS)throw new Error('Unsupported transaction');economic=ix;}
+    }else{if(economic || keys[ix.programIdIndex]!==program)throw new Error('Unsupported transaction');economic=ix;}
   }
   if(!economic || instructions.length>2)throw new Error('Expected one financial action');
   const ix=economic,accounts=ix.accountKeyIndexes.map(i=>keys[i]);
@@ -50,7 +50,7 @@ export function userAuthority(wire:string,market:string):Authority|null {
   throw new Error('Unsupported financial action');
 }
 export class Queue {
-  constructor(readonly store:Store,readonly rpc:Rpc){}
+  constructor(readonly store:Store,readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS){}
   async budget(name:string,wallet:string,cap:bigint){
     await this.store.pool.query('INSERT INTO service_budgets(run_id,name,wallet,cap) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[this.store.runId,name,wallet,cap.toString()]);
     const r=(await this.store.pool.query('SELECT * FROM service_budgets WHERE run_id=$1 AND name=$2',[this.store.runId,name])).rows[0];
@@ -96,7 +96,7 @@ export class Queue {
           const valid=await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'finalized'}]);
           if(valid.value===false && r.authority){
             const a=await this.rpc.call('getAccountInfo',[r.authority.account,{encoding:'base64',commitment:'finalized',minContextSlot:integer(valid.context.slot)}]);
-            if(a.value?.owner===sdk.CLEARING_PROGRAM_ADDRESS){
+            if(a.value?.owner===this.program){
               const bytes=Buffer.from(a.value.data[0],'base64');
               const value=r.authority.kind==='nonce'?sdk.getParticipantDecoder().decode(bytes).nonce:sdk.getMarketStateDecoder().decode(bytes).sequence;
               // Unchanged authority rules out the economic effect, not a failed

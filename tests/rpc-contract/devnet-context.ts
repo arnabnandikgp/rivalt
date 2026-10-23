@@ -10,7 +10,7 @@ import * as sdk from '@rivalt/sdk';
 import { CORE_PROFILES, sponsoredFeeds } from './pyth-core.js';
 
 export const profile = JSON.parse(readFileSync('ops/devnet-profile.json', 'utf8')) as {
-  profile: string; genesis: string; deployer: string; programs: Record<string, string>;
+  profile: string; genesis: string; deployer: string; programs: Record<string, string>; sourceMaxAgeSeconds?: 20 | 30;
 };
 const loader = address('BPFLoaderUpgradeab1e11111111111111111111111');
 const hash = (s: string) => createHash('sha256').update(s).digest();

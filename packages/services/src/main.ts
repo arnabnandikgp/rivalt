@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { testDeployment, testRpcUrl } from '@rivalt/sdk';
 import { Keypair } from '@solana/web3.js';
 import { Runtime } from './runtime.js';
 import { api } from './api.js';
@@ -8,10 +9,10 @@ const role=required('RIVALT_SERVICE_ROLE'),url=required('RIVALT_RPC_URL');
 const sampleCadence=process.env.RIVALT_FUNDING_INTERVAL_SECONDS??'2';
 if(!/^[2-5]$/.test(sampleCadence))throw new Error('Local funding cadence must be 2–5 seconds');
 if(!['api','executor','settlement','maker-a','maker-b','funding','orders','risk'].includes(role))throw new Error('Unknown service role');
-if(new URL(url).hostname!=='127.0.0.1')throw new Error('P06 services are local test profile only');
+const chain=testDeployment(process.env.RIVALT_CHAIN).chain;testRpcUrl(url,chain);
 const margin=process.env.RIVALT_QUOTE_DISPATCH_MARGIN_SECONDS??'0';
 if(!/^[01]$/.test(margin))throw new Error('Local quote dispatch margin must be 0 or 1 second');
-const runtime=new Runtime(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),url,process.env.RIVALT_BUDGET_PROFILE??'smoke',BigInt(sampleCadence),BigInt(margin));await runtime.open();
+const runtime=new Runtime(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),url,process.env.RIVALT_BUDGET_PROFILE??'smoke',BigInt(sampleCadence),BigInt(margin),chain);await runtime.open();
 const key=['settlement','maker-a','maker-b','funding','orders','risk'].includes(role)?await Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(required('RIVALT_SIGNER_PATH'),'utf8')))):null;
 const app=role==='api'?api(runtime):null;
 if(app)await app.listen({host:'127.0.0.1',port:Number(process.env.RIVALT_SERVICE_PORT??18081)});

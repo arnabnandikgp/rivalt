@@ -102,9 +102,9 @@ describe('direct user financial previews', () => {
   });
   it('binds the explicit local profile and rejects remote/wrong-cluster configuration', () => {
     expect(sdk.userConfig(env).chain).toBe('solana:localnet');
-    expect(() => sdk.userConfig({ ...env, chain: 'solana:mainnet' })).toThrow(/local test/);
+    expect(() => sdk.userConfig({ ...env, chain: 'solana:mainnet' })).toThrow(/test network/);
     expect(() => sdk.userConfig({ ...env, rpcUrl: 'https://api.devnet.solana.com' })).toThrow(
-      /Local test RPC/,
+      /test RPC/,
     );
   });
 });

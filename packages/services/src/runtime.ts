@@ -24,14 +24,19 @@ export function sampleMatchesSnapshot(event:any,s:{market:string;m:Pick<sdk.Mark
 export class Runtime {
   readonly store:Store;readonly rpc:Rpc;readonly queue:Queue;readonly connection:Connection;
   readonly budgets:ReturnType<typeof localBudgets>;
-  constructor(database:string,readonly runId:string,url:string,budgetProfile='smoke',readonly sampleInterval=2n,readonly dispatchMargin=0n){
+  readonly deployment:ReturnType<typeof sdk.testDeployment>;
+  readonly options:{programAddress:ReturnType<typeof sdk.testDeployment>['clearing']};
+  constructor(database:string,readonly runId:string,url:string,budgetProfile='smoke',readonly sampleInterval=2n,readonly dispatchMargin=0n,chain:sdk.TestChain='solana:localnet'){
+    this.deployment=sdk.testDeployment(chain);this.options={programAddress:this.deployment.clearing};sdk.testRpcUrl(url,chain);
+    if(chain==='solana:devnet'&&budgetProfile!=='smoke')throw new Error('Devnet uses bounded smoke budgets');
     quoteWindow(0n,0n,sampleInterval,dispatchMargin);
     this.budgets=localBudgets(budgetProfile,url);
-    this.store=new Store(database,runId);this.rpc=new Rpc(url);this.queue=new Queue(this.store,this.rpc);this.connection=new Connection(url,'confirmed');
+    this.store=new Store(database,runId);this.rpc=new Rpc(url);this.queue=new Queue(this.store,this.rpc,this.deployment.clearing);this.connection=new Connection(url,'confirmed');
   }
   async open(){await this.store.migrate();await this.store.pool.query(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));await this.environment();}
   async environment(){
     const b=(await this.store.snapshot()).binding;
+    if(b.program!==this.deployment.clearing||(this.deployment.genesis&&b.genesis!==this.deployment.genesis))throw new Error('Service deployment mismatch');
     if(await this.rpc.call('getGenesisHash')!==b.genesis)throw new Error('Service genesis mismatch');
     const tx=await this.rpc.call('getTransaction',[b.anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:0}]);
     if(!tx || hash(tx.transaction)!==b.anchorHash)throw new Error('Service initialization anchor mismatch');
@@ -39,18 +44,18 @@ export class Runtime {
   }
   async snapshot(commitment:'confirmed'|'finalized'='finalized'){
     const b=await this.environment(),row=await this.store.snapshot(),market=address(b.market);
-    const [registry]=await sdk.findRegistryPda({market}),[routeState]=await sdk.findRouteStatePda({market}),[guard]=await sdk.findGuardPda({market}),[vault]=await sdk.findVaultPda({market});
-    const [resolution]=await sdk.findResolutionPda({market});
-    const [eventAuthority]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('__event_authority')]});
+    const [registry]=await sdk.findRegistryPda({market}, this.options),[routeState]=await sdk.findRouteStatePda({market}, this.options),[guard]=await sdk.findGuardPda({market}, this.options),[vault]=await sdk.findVaultPda({market}, this.options);
+    const [resolution]=await sdk.findResolutionPda({market}, this.options);
+    const [eventAuthority]=await getProgramDerivedAddress({programAddress:this.deployment.clearing,seeds:[Buffer.from('__event_authority')]});
     const pkeys=Object.keys(row.state.participants).sort((a,b)=>row.state.participants[a].id-row.state.participants[b].id).map(address),rkeys=Object.keys(row.state.makers).map(address);
     // Discover bindings, then refetch every value at the explicitly labeled commitment.
     const discovered=await this.rpc.call('getMultipleAccounts',[rkeys,{encoding:'base64',commitment}]);
-    const regs=discovered.value.map((x:any)=>{if(x?.owner!==sdk.CLEARING_PROGRAM_ADDRESS)throw new Error('Maker missing');return sdk.getMakerRegistrationDecoder().decode(Buffer.from(x.data[0],'base64'));}) as sdk.MakerRegistration[];
+    const regs=discovered.value.map((x:any)=>{if(x?.owner!==this.deployment.clearing)throw new Error('Maker missing');return sdk.getMakerRegistrationDecoder().decode(Buffer.from(x.data[0],'base64'));}) as sdk.MakerRegistration[];
     const clock=address('SysvarC1ock11111111111111111111111111111111');
     const keys=[clock,market,registry,routeState,guard,vault,...pkeys,...rkeys,...regs.flatMap(r=>[r.config,r.programData]),resolution];
     const response=await this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment}]);
     const slot=BigInt(integer(response.context.slot));
-    const raw=(key:Address,owner:string=sdk.CLEARING_PROGRAM_ADDRESS)=>{const a=response.value[keys.indexOf(key)];if(!a || a.owner!==owner)throw new Error('Missing/foreign snapshot account');return Buffer.from(a.data[0],'base64');};
+    const raw=(key:Address,owner:string=this.deployment.clearing)=>{const a=response.value[keys.indexOf(key)];if(!a || a.owner!==owner)throw new Error('Missing/foreign snapshot account');return Buffer.from(a.data[0],'base64');};
     const m=sdk.getMarketStateDecoder().decode(raw(market)),reg=sdk.getParticipantRegistryDecoder().decode(raw(registry));
     if(Buffer.from(m.domain).toString('hex')!==b.domain || m.schemaVersion!==1 || m.profileVersion!==1 || ![1,2,3].includes(m.mode) || (m.mode===1 && m.fundingIndexScaled!==0n))throw new Error('Unsupported service profile');
     assert.deepEqual(reg.members,pkeys);assert.equal(reg.count,pkeys.length);
@@ -80,11 +85,11 @@ export class Runtime {
       const heartbeat=heartbeats.find(h=>h.maker_id===r.makerId && h.owner===r.owner);
       return {registration,r,state,approved,online:heartbeat?.online===true,balance:participants[r.capital]};
     });
-    return {commitment,market,registry,routeState,guard,vault,resolution,resolutionState,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS,m,risk,slot,now,funding,sourceMode,participants,members:reg.members,makers,
+    return {commitment,market,registry,routeState,guard,vault,resolution,resolutionState,eventAuthority,program:this.deployment.clearing,m,risk,slot,now,funding,sourceMode,participants,members:reg.members,makers,
       certificate:sdk.getExitGuardDecoder().decode(raw(guard)),actual};
   }
   async quote(owner:Address,side:number,lots:bigint,stored?:{id:bigint;version:bigint;filled:bigint},keeper?:Keypair){
-    const s=await this.snapshot('confirmed'),[trader]=await sdk.findParticipantPda({market:s.market,owner}),p=s.participants[trader];
+    const s=await this.snapshot('confirmed'),[trader]=await sdk.findParticipantPda({market:s.market,owner}, this.options),p=s.participants[trader];
     if(!p || p.owner!==owner)throw new QuoteUnavailable('account-unavailable','Funded account unavailable');
     if(s.m.paused)throw new QuoteUnavailable('market-paused','Market is paused');
     if(s.slot<s.risk.validFrom)throw new QuoteUnavailable('observation-not-confirmed','Market observation is ahead of the confirmed preview');
@@ -100,7 +105,7 @@ export class Runtime {
       let applied=false;
       try{
         const tx=await this.rpc.call('getTransaction',[signature,{encoding:'json',commitment:'confirmed',maxSupportedTransactionVersion:0}]);
-        const events=decode(signature,tx,s.eventAuthority).filter(x=>x.type==='oracle');
+        const events=decode(signature,tx,s.eventAuthority,s.program).filter(x=>x.type==='oracle');
         applied=events.length===1&&BigInt(integer(tx.slot))<=s.slot&&sampleMatchesSnapshot(events[0].data,s);
       }catch{ /* No inference from missing or conflicting evidence. */ }
       if(!applied)throw new QuoteUnavailable('observation-update-pending','Observation update is awaiting confirmed preview evidence');
@@ -127,10 +132,10 @@ export class Runtime {
       firstCapital:first.r.capital,firstRegistration:first.registration,firstProgram:first.r.pricingProgram,firstProgramData:first.r.programData,firstConfig:first.r.config,
       secondCapital:second?.r.capital,secondRegistration:second?.registration,secondProgram:second?.r.pricingProgram,secondProgramData:second?.r.programData,secondConfig:second?.r.config};
     const legs=allocation.legs.map((l,i)=>({lots:l.lots,quoteEpoch:selected[i].r.quoteEpoch,authorityEpoch:selected[i].r.authorityEpoch}));
-    const ix=order?await sdk.getExecuteOrderInstructionAsync({...accounts,keeper:keeper!,id:order.id,version:order.version,filled:order.filled,observationSequence:s.risk.observationSequence,startSlot:s.slot,expirySlot:expiry,lots,legs}):await sdk.getExecuteRouteInstructionAsync({...accounts,owner:createNoopSigner(owner),
+    const ix=order?await sdk.getExecuteOrderInstructionAsync({...accounts,keeper:keeper!,id:order.id,version:order.version,filled:order.filled,observationSequence:s.risk.observationSequence,startSlot:s.slot,expirySlot:expiry,lots,legs}, this.options):await sdk.getExecuteRouteInstructionAsync({...accounts,owner:createNoopSigner(owner),
       domain:s.m.domain,termsEpoch:s.m.termsEpoch,configEpoch:s.m.configEpoch,observationSequence:s.risk.observationSequence,nonce:p.nonce,startSlot:s.slot,expirySlot:expiry,
       side,lots,maxFee:allocation.fee,allInLimit:allocation.allIn,reduceOnly,generation:p.generation,
-      legs});
+      legs}, this.options);
     return {available:true,snapshotCommitment:s.commitment,confirmedPendingSamples,snapshotSlot:s.slot,sequence:s.m.sequence,observation:s.risk.observationSequence,nonce:p.nonce,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation,
       audit:{referencePrice:s.risk.referencePrice,lower:s.risk.lower,upper:s.risk.upper,grossLots:s.risk.grossLots,
         trader:{...p,effectiveOrders:p.book.orders.filter(o=>sdk.orderRemaining(p,o,s.m.termsEpoch,s.slot)>0n).length},
@@ -152,9 +157,9 @@ export class Runtime {
     if(!x.approved || x.r.quarantined || s.m.paused)return;
     if(s.slot>=x.state.expirySlot){
       const api=id===0?sdk.makerA:sdk.makerB;
-      await this.enqueue(`maker:${id}:${x.state.quoteEpoch}`,[api.getPublishEpochInstruction({owner:key,config:x.r.config,duration:3600n}),await sdk.getSyncMakerEpochInstructionAsync({...s,...x.r,registration:x.registration})],key,budget,null);
+      await this.enqueue(`maker:${id}:${x.state.quoteEpoch}`,[api.getPublishEpochInstruction({owner:key,config:x.r.config,duration:3600n},{programAddress:x.r.pricingProgram}),await sdk.getSyncMakerEpochInstructionAsync({...s,...x.r,registration:x.registration}, this.options)],key,budget,null);
     }else if(x.state.quoteEpoch!==x.r.quoteEpoch){
-      await this.enqueue(`maker-sync:${id}:${x.state.quoteEpoch}`,[await sdk.getSyncMakerEpochInstructionAsync({...s,...x.r,registration:x.registration})],key,budget,null);
+      await this.enqueue(`maker-sync:${id}:${x.state.quoteEpoch}`,[await sdk.getSyncMakerEpochInstructionAsync({...s,...x.r,registration:x.registration}, this.options)],key,budget,null);
     }
   }
   async settle(key:Keypair){
@@ -167,7 +172,7 @@ export class Runtime {
       const p=s.participants[participant],u=p.virtualScaled+p.lots*s.risk.referencePrice*1_000_000_000n;
       if(u<=-1_000_000_000n && p.cash>0n){
         const loss=(-u)/1_000_000_000n,amount=loss<p.cash?loss:p.cash;
-        await this.enqueue(`${base}:collect:${p.id}`,[await sdk.getCollectLossInstructionAsync({...s,...stamp,participant,amount})],key,'keeper',authority);return;
+        await this.enqueue(`${base}:collect:${p.id}`,[await sdk.getCollectLossInstructionAsync({...s,...stamp,participant,amount}, this.options)],key,'keeper',authority);return;
       }
     }
     // No default shortcut: an insolvent cohort makes all ordinary exits unavailable.
@@ -175,7 +180,7 @@ export class Runtime {
     const g=s.certificate;
     if(g.sequence!==s.m.sequence || g.observation!==s.risk.observationSequence || g.next!==s.members.length){
       const start=g.sequence===s.m.sequence && g.observation===s.risk.observationSequence?g.next:0;
-      const ix=await sdk.getCheckExitCohortInstructionAsync({...s,...stamp,start});
+      const ix=await sdk.getCheckExitCohortInstructionAsync({...s,...stamp,start}, this.options);
       const page={...ix,accounts:[...ix.accounts,...s.members.slice(start,start+8).map(address=>({address,role:AccountRole.READONLY}))]};
       await this.enqueue(`${base}:scan:${start}`,[page],key,'keeper',authority);return;
     }
@@ -187,7 +192,7 @@ export class Runtime {
       const adverse=p.virtualScaled-amount*1_000_000_000n+p.lots*(p.lots<0n?s.risk.upper:s.risk.lower)*1_000_000_000n;
       const equity=(p.cash+amount)*1_000_000_000n+(adverse<0n?adverse:0n),im=(((p.lots<0n?-p.lots:p.lots)*s.risk.upper+9n)/10n+p.reserved)*1_000_000_000n;
       if(equity<im)continue;
-      await this.enqueue(`${base}:settle:${p.id}`,[await sdk.getSettleGainInstructionAsync({...s,...stamp,participant,amount})],key,'keeper',authority);return;
+      await this.enqueue(`${base}:settle:${p.id}`,[await sdk.getSettleGainInstructionAsync({...s,...stamp,participant,amount}, this.options)],key,'keeper',authority);return;
     }
   }
   async funding(key:Keypair,intervalSeconds=2n){
@@ -199,7 +204,7 @@ export class Runtime {
     const [a,b]=[0,1].map(id=>s.makers.find(x=>x.r.makerId===id));if(!a||!b)return;
     const ix=await sdk.getSampleOracleInstructionAsync({...s,primaryBtc:o.sources[0],primaryCollateral:o.sources[1],guardBtc:o.sources[2],guardCollateral:o.sources[3],
       firstCapital:a.r.capital,firstRegistration:a.registration,firstProgram:a.r.pricingProgram,firstProgramData:a.r.programData,firstConfig:a.r.config,
-      secondCapital:b.r.capital,secondRegistration:b.registration,secondProgram:b.r.pricingProgram,secondProgramData:b.r.programData,secondConfig:b.r.config});
+      secondCapital:b.r.capital,secondRegistration:b.registration,secondProgram:b.r.pricingProgram,secondProgramData:b.r.programData,secondConfig:b.r.config}, this.options);
     await this.enqueue(`funding:${s.risk.observationSequence}`,[sdk.fundingComputeBudget(),ix],key,'funding',{kind:'sequence',account:s.market,value:s.m.sequence.toString()});
   }
   async orders(key:Keypair){
@@ -234,10 +239,10 @@ export class Runtime {
       if(h.stage===1||h.stage===12){
         if(h.stage===12&&s.now-h.recoveryLast<2n)return;
         // Permissionless checks cannot resume. Only a separate explicit authority action can.
-        await enqueue(`check:${h.epoch}:${h.stage}:${s.now}`,await sdk.getRecoverResolutionInstructionAsync({...s,...sources,caller:key,epoch:h.epoch,resume:false}));return;
+        await enqueue(`check:${h.epoch}:${h.stage}:${s.now}`,await sdk.getRecoverResolutionInstructionAsync({...s,...sources,caller:key,epoch:h.epoch,resume:false}, this.options));return;
       }
       if(h.stage>=2&&h.stage<=11){
-        const ix=await sdk.getAdvanceResolutionInstructionAsync({...s,epoch:h.epoch,stage:h.stage,start:h.cursor});
+        const ix=await sdk.getAdvanceResolutionInstructionAsync({...s,epoch:h.epoch,stage:h.stage,start:h.cursor}, this.options);
         const page={...ix,accounts:[...ix.accounts,...s.members.slice(h.cursor,h.cursor+4).map(address=>({address,role:[3,10].includes(h.stage)?AccountRole.WRITABLE:AccountRole.READONLY}))]};
         await enqueue(`page:${h.epoch}:${h.stage}:${h.cursor}`,page);
       }
@@ -247,17 +252,17 @@ export class Runtime {
     // Bankruptcy proof is independent of liquidation receiver capacity.
     for(const target of s.members){const p=s.participants[target];
       if(p.cash*1_000_000_000n+p.virtualScaled+p.lots*s.risk.referencePrice*1_000_000_000n<0n){
-        await enqueue(`freeze:${p.id}`,await sdk.getFreezeMarketInstructionAsync({...s,...sources,caller:key,target,sequence:s.m.sequence,observation:s.risk.observationSequence,emergency:false}));return;
+        await enqueue(`freeze:${p.id}`,await sdk.getFreezeMarketInstructionAsync({...s,...sources,caller:key,target,sequence:s.m.sequence,observation:s.risk.observationSequence,emergency:false}, this.options));return;
       }
     }
-    const [receiver]=await sdk.findParticipantPda({market:s.market,owner:key.address}),capital=s.participants[receiver];
+    const [receiver]=await sdk.findParticipantPda({market:s.market,owner:key.address}, this.options),capital=s.participants[receiver];
     if(!capital||capital.cash===0n||s.makers.some(x=>x.r.capital===receiver))return;
     for(const target of s.members){const p=s.participants[target];if(target===receiver||sdk.maintenanceDeficit(p,s.risk.lower,s.risk.upper)===0n)continue;
       const exposure=p.lots<0n?-p.lots:p.lots;
       let lots=exposure<64n?exposure:64n;
       while(lots>0n){
         const candidate=sdk.liquidationCandidate(p,capital,lots,s.risk.referencePrice,s.risk.referencePrice,s.risk.lower,s.risk.upper,s.m.termsEpoch,s.slot,s.risk.grossLots);
-        if(candidate){await enqueue(`liquidate:${p.id}`,await sdk.getLiquidateInstructionAsync({...s,receiverOwner:key,target,receiver,sequence:s.m.sequence,observation:s.risk.observationSequence,lots,price:s.risk.referencePrice}));return;}
+        if(candidate){await enqueue(`liquidate:${p.id}`,await sdk.getLiquidateInstructionAsync({...s,receiverOwner:key,target,receiver,sequence:s.m.sequence,observation:s.risk.observationSequence,lots,price:s.risk.referencePrice}, this.options));return;}
         lots/=2n;
       }
     }

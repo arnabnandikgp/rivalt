@@ -1,8 +1,10 @@
 import { setTimeout as delay } from 'node:timers/promises';
+import { testDeployment } from '@rivalt/sdk';
 import { Indexer } from './index.js';
 import { api } from './api.js';
 const required = (key:string) => { const value=process.env[key];if(!value)throw new Error(`Missing ${key}`);return value; };
-const indexer = new Indexer({rpcUrl:required('RIVALT_RPC_URL'),wsUrl:required('RIVALT_WS_URL'),databaseUrl:required('RIVALT_DATABASE_URL'),
+const chain = testDeployment(process.env.RIVALT_CHAIN).chain;
+const indexer = new Indexer({chain,rpcUrl:required('RIVALT_RPC_URL'),wsUrl:required('RIVALT_WS_URL'),databaseUrl:required('RIVALT_DATABASE_URL'),
   runId:required('RIVALT_RUN_ID'),market:required('RIVALT_MARKET'),anchor:required('RIVALT_INIT_SIGNATURE'),maxRecoveryTransactions:Number(process.env.RIVALT_HISTORY_LIMIT??'10000')});
 const app = api(indexer);
 let stopping = false;

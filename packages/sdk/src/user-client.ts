@@ -12,11 +12,11 @@ import { PublicKey, TransactionMessage, VersionedTransaction } from '@solana/web
 import { getMintDecoder, getTokenDecoder, TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import * as c from './generated/index.js';
 import * as makerA from './generatedMakerA/index.js';
-import * as makerB from './generatedMakerB/index.js';
 import { effectiveFunding, oracleMode, accruedBalance } from './oracle-policy.js';
 import { orderReserve } from './order-policy.js';
 import { quoteMaker } from './quote-maker.js';
 import { routeComputeBudget } from './route-budget.js';
+import { testDeployment, testRpcUrl, DEVNET_GENESIS, type TestChain } from './test-deployment.js';
 import { reconcileResolution } from './resolution-policy.js';
 
 const SCALE = 1_000_000_000n;
@@ -38,7 +38,7 @@ const min = (...xs: bigint[]) => xs.reduce((a, b) => (a < b ? a : b)),
 
 export type UserConfig = {
   version: 1;
-  chain: 'solana:localnet';
+  chain: TestChain;
   rpcUrl: string;
   wsUrl: string;
   genesis: string;
@@ -49,21 +49,16 @@ export type UserConfig = {
 };
 export function userConfig(value: any): UserConfig {
   requireValue(
-    value?.version === 1 && value.chain === 'solana:localnet',
-    'This build requires a configured local test network.',
+    value?.version === 1 && ['solana:localnet', 'solana:devnet'].includes(value.chain),
+    'This build requires a configured test network.',
   );
-  for (const [key, protocols] of [
-    ['rpcUrl', ['http:', 'https:']],
-    ['wsUrl', ['ws:', 'wss:']],
-  ] as const) {
+  testDeployment(value.chain);
+  if (value.chain === 'solana:devnet') requireValue(value.genesis === DEVNET_GENESIS, 'Devnet genesis mismatch.');
+  for (const key of ['rpcUrl', 'wsUrl'] as const) {
+    testRpcUrl(value[key], value.chain, key === 'wsUrl');
+    // Browser configuration uses credential-free public endpoints or a local proxy.
     const url = new URL(value[key]);
-    requireValue(
-      protocols.some((p) => url.protocol === p) &&
-        ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) &&
-        !url.username &&
-        !url.password,
-      'Local test RPC configuration required.',
-    );
+    requireValue(!url.search && !url.hash, 'Public RPC configuration cannot contain credentials.');
   }
   requireValue(
     typeof value.domain === 'string' && /^[0-9a-f]{64}$/.test(value.domain),
@@ -147,7 +142,12 @@ export type SignedIntent = {
 /** User-owned RPC operations. No venue HTTP service, relay key or private key is required. */
 export class UserClient {
   readonly rpc: UserRpc;
+  readonly deployment: ReturnType<typeof testDeployment>;
+  readonly options: { programAddress: ReturnType<typeof testDeployment>['clearing'] };
   constructor(readonly config: UserConfig) {
+    userConfig(config);
+    this.deployment = testDeployment(config.chain);
+    this.options = { programAddress: this.deployment.clearing };
     this.rpc = new UserRpc(config.rpcUrl);
   }
   async environment() {
@@ -164,7 +164,7 @@ export class UserClient {
     );
     requireValue(
       anchor?.meta?.err === null && anchor.transaction?.signatures?.[0] === this.config.anchor,
-      'Deployment history is unavailable or this local chain was reset.',
+      'Deployment history is unavailable or this test deployment was reset.',
     );
   }
   async snapshot(commitment: 'confirmed' | 'finalized' = 'finalized') {
@@ -173,14 +173,14 @@ export class UserClient {
     const market = this.config.market;
     const [[canonical], [registry], [routeState], [guard], [vault], [resolution], [eventAuthority]] =
       await Promise.all([
-        c.findMarketPda(),
-        c.findRegistryPda({ market }),
-        c.findRouteStatePda({ market }),
-        c.findGuardPda({ market }),
-        c.findVaultPda({ market }),
-        c.findResolutionPda({ market }),
+        c.findMarketPda(this.options),
+        c.findRegistryPda({ market }, this.options),
+        c.findRouteStatePda({ market }, this.options),
+        c.findGuardPda({ market }, this.options),
+        c.findVaultPda({ market }, this.options),
+        c.findResolutionPda({ market }, this.options),
         getProgramDerivedAddress({
-          programAddress: c.CLEARING_PROGRAM_ADDRESS,
+          programAddress: this.deployment.clearing,
           seeds: [bytes('__event_authority')],
         }),
       ]);
@@ -190,7 +190,7 @@ export class UserClient {
         async (id) =>
           (
             await getProgramDerivedAddress({
-              programAddress: c.CLEARING_PROGRAM_ADDRESS,
+              programAddress: this.deployment.clearing,
               seeds: [bytes('maker'), getAddressEncoder().encode(market), Uint8Array.of(id)],
             })
           )[0],
@@ -207,7 +207,7 @@ export class UserClient {
       );
       return decode(fromBase64(account.data[0]));
     };
-    const initialRegistry = decodeAccount(first.value[0], c.CLEARING_PROGRAM_ADDRESS, (b) =>
+    const initialRegistry = decodeAccount(first.value[0], this.deployment.clearing, (b) =>
       c.getParticipantRegistryDecoder().decode(b),
     );
     requireValue(
@@ -219,7 +219,7 @@ export class UserClient {
         ? [
             {
               registration,
-              r: decodeAccount(first.value[i + 1], c.CLEARING_PROGRAM_ADDRESS, (b) =>
+              r: decodeAccount(first.value[i + 1], this.deployment.clearing, (b) =>
                 c.getMakerRegistrationDecoder().decode(b),
               ),
             },
@@ -242,7 +242,7 @@ export class UserClient {
       keys,
       { encoding: 'base64', commitment },
     ]);
-    const raw = (key: Address, owner: string = c.CLEARING_PROGRAM_ADDRESS) =>
+    const raw = (key: Address, owner: string = this.deployment.clearing) =>
       decodeAccount(response.value[keys.indexOf(key)], owner, (b) => b);
     const m = c.getMarketStateDecoder().decode(raw(market)),
       reg = c.getParticipantRegistryDecoder().decode(raw(registry));
@@ -269,7 +269,7 @@ export class UserClient {
             p.schemaVersion === 1 &&
               p.market === market &&
               p.id === id &&
-              (await c.findCapitalPda({ market, owner: p.owner }))[0] === k,
+              (await c.findCapitalPda({ market, owner: p.owner }, this.options))[0] === k,
             'Participant binding mismatch.',
           );
           return [k, p] as const;
@@ -319,7 +319,7 @@ export class UserClient {
     const makers = await Promise.all(
       initialMakers.map(async (x) => {
         const r = c.getMakerRegistrationDecoder().decode(raw(x.registration)),
-          program = r.makerId === 0 ? makerA.MAKER_A_PROGRAM_ADDRESS : makerB.MAKER_B_PROGRAM_ADDRESS;
+          program = r.makerId === 0 ? this.deployment.makerA : this.deployment.makerB;
         requireValue(
           r.makerId === registrations.indexOf(x.registration) &&
             r.market === market &&
@@ -351,7 +351,7 @@ export class UserClient {
       vault,
       resolution,
       eventAuthority,
-      program: c.CLEARING_PROGRAM_ADDRESS,
+      program: this.deployment.clearing,
       m,
       risk,
       certificate,
@@ -383,7 +383,7 @@ export class UserClient {
     }) as { address: Address; amount: bigint }[];
   }
   async user(s: UserSnapshot, owner: Address) {
-    const [participant] = await c.findCapitalPda({ market: s.market, owner });
+    const [participant] = await c.findCapitalPda({ market: s.market, owner }, this.options);
     return { participant, p: s.participants[participant], signer: createNoopSigner(owner) };
   }
   async prepare(
@@ -641,7 +641,7 @@ export class UserClient {
       secondProgram: second?.r.pricingProgram,
       secondProgramData: second?.r.programData,
       secondConfig: second?.r.config,
-    });
+    }, this.options);
     const instructions = [routeComputeBudget(), ix];
     instructions.forEach((expected, i) => {
       const actual = quote.instructions[i];
@@ -675,7 +675,7 @@ export class UserClient {
             quoteMint: this.config.mint,
             userToken,
             amount,
-          }),
+          }, this.options),
         ],
         verificationOnly: false,
       };
@@ -690,7 +690,7 @@ export class UserClient {
       instructions: Instruction[] = [];
     if (start < s.members.length) {
       const page = s.members.slice(start, start + 8);
-      const ix = await c.getCheckExitCohortInstructionAsync({ ...s, ...stamp, start });
+      const ix = await c.getCheckExitCohortInstructionAsync({ ...s, ...stamp, start }, this.options);
       instructions.push({
         ...ix,
         accounts: [...ix.accounts, ...page.map((key) => ({ address: key, role: AccountRole.READONLY }))],
@@ -703,7 +703,7 @@ export class UserClient {
     }
     instructions.push(
       settle
-        ? await c.getSettleGainInstructionAsync({ ...s, participant, ...stamp, amount })
+        ? await c.getSettleGainInstructionAsync({ ...s, participant, ...stamp, amount }, this.options)
         : await c.getWithdrawTradingInstructionAsync({
             ...s,
             owner: signer,
@@ -712,7 +712,7 @@ export class UserClient {
             userToken,
             ...stamp,
             amount,
-          }),
+          }, this.options),
     );
     return { instructions: [routeComputeBudget(), ...instructions], verificationOnly: false };
   }

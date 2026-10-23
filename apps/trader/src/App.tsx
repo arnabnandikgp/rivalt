@@ -237,7 +237,7 @@ export function App({ config }: { config: TraderConfig }) {
                 quoteMint: config.mint,
                 userToken: selectedToken.address,
                 amount,
-              }),
+              }, v.client.options),
             ],
             details: [
               `Deposit ${fixed(amount)} test USD from ${short(selectedToken.address)}.`,
@@ -331,14 +331,14 @@ export function App({ config }: { config: TraderConfig }) {
               id: previous.id,
               version: previous.version,
               terms: t,
-            })
+            }, v.client.options)
           : await sdk.getPlaceOrderInstructionAsync({
               ...snap,
               owner: u.signer,
               participant: u.participant,
               expectedId: u.p.book.lastOrderId + 1n,
               terms: t,
-            });
+            }, v.client.options);
       return {
         instructions: [ix],
         details: [
@@ -378,7 +378,7 @@ export function App({ config }: { config: TraderConfig }) {
               participant: u.participant,
               id: current.id,
               version: current.version,
-            }),
+            }, v.client.options),
           ],
           details: [
             `Cancel order ${o.id}, version ${current.version}, directly over RPC.`,
@@ -418,7 +418,7 @@ export function App({ config }: { config: TraderConfig }) {
             expectedId: u.p.book.lastOrderId + 1n,
             tp: { ...common, trigger: long ? 1 : 2, threshold: tpPrice },
             sl: { ...common, trigger: long ? 2 : 1, threshold: slPrice },
-          }),
+          }, v.client.options),
         ],
         details: [
           `Protect ${fixed(lots)} BTC of existing generation ${u.p.generation}.`,
@@ -439,7 +439,7 @@ export function App({ config }: { config: TraderConfig }) {
           <span className="brand-dot" />
         </a>
         <div className="network">
-          Local test venue <span aria-hidden="true">·</span> BTC / test USD
+          {config.chain === 'solana:devnet' ? 'Devnet test venue' : 'Local test venue'} <span aria-hidden="true">·</span> BTC / test USD
         </div>
         <div className="header-actions">
           <button
@@ -486,7 +486,7 @@ export function App({ config }: { config: TraderConfig }) {
           )}
           {v.owner && !v.canSign && (
             <p className="warning notice">
-              This wallet account cannot sign v0 transactions on the configured local test network.
+              This wallet account cannot sign v0 transactions on the configured test network.
             </p>
           )}
           {s?.m.mode === 3 && (
@@ -552,7 +552,7 @@ export function App({ config }: { config: TraderConfig }) {
                                 ...snap,
                                 owner: u.signer,
                                 participant: u.participant,
-                              }),
+                              }, v.client.options),
                             ],
                             details: [
                               'Create your isolated participant account. Network rent is paid by your wallet.',
@@ -739,7 +739,7 @@ export function App({ config }: { config: TraderConfig }) {
             <a href="#orders">Manage orders ↓</a>
             <dl className="deployment">
               <dt>Network</dt>
-              <dd>Local test only</dd>
+              <dd>{config.chain === 'solana:devnet' ? 'Devnet test assets only' : 'Local test only'}</dd>
               <dt>Market</dt>
               <dd>
                 <code title={config.market}>{short(config.market)}</code>
@@ -985,7 +985,7 @@ export function App({ config }: { config: TraderConfig }) {
                               participant: u.participant,
                               groupId: current.id,
                               version: current.version,
-                            }),
+                            }, v.client.options),
                           ],
                           details: ['Cancel both remaining protective authorities directly over RPC.'],
                         };

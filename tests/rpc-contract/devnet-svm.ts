@@ -8,7 +8,8 @@ import * as sdk from '@rivalt/sdk';
 import { devnetContext, guardInstruction, profile, sampleInstruction, setupDevnet, type DevnetHarness } from './devnet-context.js';
 
 const svm = new LiteSVM().withSigverify(true).withBlockhashCheck(true);
-const atomicOnly = process.argv.includes('--atomic-recovery-only');
+const sourceAgeOnly = process.argv.includes('--source-age-only');
+const atomicOnly = process.argv.includes('--atomic-recovery-only') || sourceAgeOnly;
 const a = await devnetContext(true), checks: unknown[] = [];
 for (const [name, key] of Object.entries(profile.programs)) svm.addProgramFromFile(address(key), `.local/devnet/deploy/${name}.so`);
 svm.airdrop(a.payer.address, lamports(100_000_000_000n));
@@ -51,12 +52,12 @@ const participant = async (key = a.trader) => sdk.getParticipantDecoder().decode
 const guard = async () => {
   await h.send('publish-declared-guard', [guardInstruction(a, 0, 81_649_327_449n, 68_172_551n, await h.now()), guardInstruction(a, 1, 999_839n, 83n, await h.now())], [a.guardAuthority]);
 };
-for (let i = 0; i < (atomicOnly ? 2 : 4); i++) {
-  setTime(1_792_752_688n + BigInt(i * (atomicOnly ? 3 : 2))); await guard();
+for (let i = 0; i < (sourceAgeOnly ? 3 : atomicOnly ? 2 : 4); i++) {
+  setTime(1_792_752_688n + (sourceAgeOnly ? 20n : 0n) + BigInt(i * (atomicOnly ? 3 : 2))); await guard();
   await h.send(`real-schema-recovery-${i}`, [sdk.fundingComputeBudget(), await sampleInstruction(a)]);
 }
 let r = await risk();
-assert.equal(r.oracle.status, atomicOnly ? 1 : 2);
+assert.equal(r.oracle.status, atomicOnly && !sourceAgeOnly ? 1 : 2);
 assert.equal(r.referencePrice, 81_649_327_449n / 999_839n);
 assert.deepEqual(r.oracle.sourceSequences.slice(0, 2), [1_792_752_688n, 1_792_752_688n]);
 const m = await market(), p = await participant(), x = a.makers[0], reg = sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!);
@@ -67,7 +68,12 @@ const route = await sdk.getExecuteRouteInstructionAsync({ ...a, owner: a.traderO
   domain: m.domain, termsEpoch: m.termsEpoch, configEpoch: m.configEpoch, observationSequence: r.observationSequence + (atomicOnly ? 1n : 0n), nonce: p.nonce,
   startSlot: await h.slot(), expirySlot: (await h.slot()) + 150n, side: 0, lots: 1n, allInLimit: gross + fee, maxFee: fee,
   reduceOnly: false, generation: p.generation, legs: [{ lots: 1n, quoteEpoch: reg.quoteEpoch, authorityEpoch: reg.authorityEpoch }] }, a.options);
-if (atomicOnly) {
+if (sourceAgeOnly) {
+  assert.equal(profile.sourceMaxAgeSeconds, 30);
+  setTime(1_792_752_717n);
+  await h.send('atomic-devnet-source-age-29', [sdk.fundingComputeBudget(), await sampleInstruction(a), route], [a.traderOwner]);
+  assert.equal((await risk()).oracle.sourceDeadline, 1_792_752_718n);
+} else if (atomicOnly) {
   setTime(1_792_752_693n);
   await h.send('atomic-recovery-too-early-rolls-back', [sdk.fundingComputeBudget(), await sampleInstruction(a), route], [a.traderOwner], 6124);
   setTime(1_792_752_694n);
@@ -82,12 +88,21 @@ assert.equal(afterMarket.fees, fee); assert.equal(afterMarket.allocatedVault, 1_
 if (atomicOnly) {
   const accepted = checks.at(-1) as { computeUnits: string; transactionBytes: number };
   assert(BigInt(accepted.computeUnits) <= 960_000n); assert(accepted.transactionBytes <= 1232);
+  if (sourceAgeOnly) {
+    const args = sdk.getExecuteRouteInstructionDataDecoder().decode(route.data);
+    const fresh = await sdk.getExecuteRouteInstructionAsync({ ...a, owner: a.traderOwner, ...args,
+      nonce: after.nonce, generation: after.generation, observationSequence: (await risk()).observationSequence + 1n,
+      firstCapital: x.capital, firstRegistration: x.registration, firstProgram: x.pricingProgram,
+      firstProgramData: x.programData, firstConfig: x.config }, a.options);
+    setTime(1_792_752_718n);
+    await h.send('exclusive-source-deadline-30-rolls-back', [sdk.fundingComputeBudget(), await sampleInstruction(a), fresh], [a.traderOwner], 6124);
+  }
   const report = { revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     sourceDirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim() !== '', a18Complete: false,
-    scope: 'Compiled devnet-profile conditional atomic recovery/trade; explicit local upstream fixtures, not a devnet execution', setupCount, checks,
+    scope: sourceAgeOnly ? 'Compiled devnet 30-second source boundary: age 29 trade, exclusive deadline 30 rollback; local fixture, not devnet execution' : 'Compiled devnet-profile conditional atomic recovery/trade; explicit local upstream fixtures, not a devnet execution', setupCount, checks,
     independentRoute: { gross, fee, trader: after, maker, market: afterMarket },
     binaries: Object.fromEntries(Object.keys(profile.programs).map(name => [name, createHash('sha256').update(readFileSync(`.local/devnet/deploy/${name}.so`)).digest('hex')])) };
-  writeFileSync('.local/devnet/svm-bundle.json', JSON.stringify(report, (_, x) => typeof x === 'bigint' ? x.toString() : x, 2) + '\n');
+  writeFileSync(sourceAgeOnly ? '.local/devnet/svm-age.json' : '.local/devnet/svm-bundle.json', JSON.stringify(report, (_, x) => typeof x === 'bigint' ? x.toString() : x, 2) + '\n');
   console.log(JSON.stringify({ checks: checks.length, setupCount, ...accepted, a18Complete: false }));
   process.exit(0);
 }
@@ -109,7 +124,7 @@ for (const [label, mutate] of [
   assert.equal(r.oracle.status, 0); assert.equal(r.oracle.heldUntil, 0n);
   assert.equal(r.oracle.sourceSequences[0], 1_792_752_688n);
 }
-svm.setAccount(original); setTime(1_792_752_709n); await guard();
+svm.setAccount(original); setTime(1_792_752_688n + BigInt(profile.sourceMaxAgeSeconds ?? 20) + 1n); await guard();
 await h.send('restrict-stale-primary-with-fresh-guard', [sdk.fundingComputeBudget(), sample]);
 assert.equal((await risk()).oracle.status, 0);
 await h.send('stale-primary-cannot-execute', [sdk.routeComputeBudget(), route], [a.traderOwner], 6118);

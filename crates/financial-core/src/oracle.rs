@@ -1,6 +1,7 @@
 //! Finite synthetic source/funding profile. Authentication is the adapter's job.
 use super::{Error, Result, MAX_FUNDING, SCALE};
 pub const SOURCE_AGE: i64 = 20;
+pub const DEVNET_SOURCE_AGE: i64 = 30;
 pub const FUTURE_SKEW: i64 = 2;
 pub const SAMPLE_INTERVAL: i64 = 2;
 pub const HOLD: i64 = 6;
@@ -19,6 +20,9 @@ pub struct Price {
 }
 /// Fixed -6 USD exponent: unlike collateral parity, this is an explicit source schema.
 pub fn valid(p: Price, now: i64, collateral: bool) -> bool {
+    valid_at_age(p, now, collateral, SOURCE_AGE)
+}
+fn valid_at_age(p: Price, now: i64, collateral: bool, source_age: i64) -> bool {
     let (min, max, confidence) = if collateral {
         (500_000, 1_500_000, 25)
     } else {
@@ -27,9 +31,9 @@ pub fn valid(p: Price, now: i64, collateral: bool) -> bool {
     p.exponent == -6
         && (min..=max).contains(&p.value)
         && p.published > 0
-        && p.published <= i64::MAX - SOURCE_AGE
+        && p.published <= i64::MAX - source_age
         && p.published <= now.saturating_add(FUTURE_SKEW)
-        && now.saturating_sub(p.published) <= SOURCE_AGE
+        && now.saturating_sub(p.published) <= source_age
         && u128::from(p.confidence) * 10_000 <= (p.value as u128) * confidence
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -41,7 +45,21 @@ pub struct Bounds {
     pub deadline: i64,
 }
 pub fn bounds(primary: [Price; 2], guard: Option<[Price; 2]>, now: i64) -> Result<Bounds> {
-    if !valid(primary[0], now, false) || !valid(primary[1], now, true) {
+    bounds_at_age(primary, guard, now, SOURCE_AGE)
+}
+/// D37's explicitly selected devnet-only allowance. No funding/recovery change.
+pub fn devnet_bounds(primary: [Price; 2], guard: Option<[Price; 2]>, now: i64) -> Result<Bounds> {
+    bounds_at_age(primary, guard, now, DEVNET_SOURCE_AGE)
+}
+fn bounds_at_age(
+    primary: [Price; 2],
+    guard: Option<[Price; 2]>,
+    now: i64,
+    source_age: i64,
+) -> Result<Bounds> {
+    if !valid_at_age(primary[0], now, false, source_age)
+        || !valid_at_age(primary[1], now, true, source_age)
+    {
         return Err(Error::Bounds);
     }
     let ratio = |a: Price, b: Price| -> u64 { (a.value as u128 / b.value as u128) as u64 };
@@ -61,11 +79,13 @@ pub fn bounds(primary: [Price; 2], guard: Option<[Price; 2]>, now: i64) -> Resul
     let (mut lower, mut upper) = interval(primary);
     let mut deadline = primary
         .iter()
-        .map(|p| p.published + SOURCE_AGE)
+        .map(|p| p.published + source_age)
         .min()
         .unwrap();
     let mut normal = false;
-    if let Some(g) = guard.filter(|g| valid(g[0], now, false) && valid(g[1], now, true)) {
+    if let Some(g) = guard.filter(|g| {
+        valid_at_age(g[0], now, false, source_age) && valid_at_age(g[1], now, true, source_age)
+    }) {
         let other = ratio(g[0], g[1]);
         if reference.abs_diff(other) * 10_000 > reference * 100 {
             return Err(Error::Health);
@@ -73,7 +93,7 @@ pub fn bounds(primary: [Price; 2], guard: Option<[Price; 2]>, now: i64) -> Resul
         let (l, u) = interval(g);
         lower = lower.min(l);
         upper = upper.max(u);
-        deadline = deadline.min(g.iter().map(|p| p.published + SOURCE_AGE).min().unwrap());
+        deadline = deadline.min(g.iter().map(|p| p.published + source_age).min().unwrap());
         normal = primary[1].value >= 950_000
             && primary[1].value <= 1_050_000
             && g[1].value >= 950_000
@@ -89,6 +109,60 @@ pub fn bounds(primary: [Price; 2], guard: Option<[Price; 2]>, now: i64) -> Resul
         normal,
         deadline,
     })
+}
+
+#[cfg(test)]
+mod devnet_profile_tests {
+    use super::*;
+
+    fn pair(published: i64) -> [Price; 2] {
+        [
+            Price {
+                value: 60_000_000_000,
+                confidence: 10_000_000,
+                exponent: -6,
+                published,
+            },
+            Price {
+                value: 1_000_000,
+                confidence: 100,
+                exponent: -6,
+                published,
+            },
+        ]
+    }
+
+    #[test]
+    fn fixed_profiles_preserve_distinct_age_and_exclusive_action_deadlines() {
+        let p = pair(1000);
+        for age in [19, 20, 21, 29, 30, 31] {
+            let local = bounds(p, Some(p), 1000 + age);
+            let devnet = devnet_bounds(p, Some(p), 1000 + age);
+            assert_eq!(local.is_ok(), age <= 20);
+            assert_eq!(devnet.is_ok(), age <= 30);
+            if let Ok(b) = local {
+                assert_eq!(b.deadline, 1020);
+            }
+            if let Ok(b) = devnet {
+                assert_eq!(b.deadline, 1030);
+            }
+        }
+        assert_eq!(RECOVERY, 6);
+        assert_eq!(HOLD, 6);
+        assert_eq!(FUNDING_OUTAGE, 12);
+    }
+
+    #[test]
+    fn devnet_allowance_does_not_admit_bad_confidence_future_or_overflow() {
+        let p = pair(1000);
+        assert!(devnet_bounds(p, Some(p), 997).is_err());
+        let mut bad = p;
+        bad[1].confidence = 2501;
+        assert!(devnet_bounds(bad, Some(p), 1029).is_err());
+        assert!(devnet_bounds(pair(i64::MAX - 29), None, i64::MAX - 1).is_err());
+        let old_guard = pair(989);
+        assert!(!devnet_bounds(p, Some(old_guard), 1029).unwrap().normal);
+    }
 }
 /// Premium in scaled atoms/lot, truncated toward zero once per sample (<1 scaled unit).
 pub fn premium(reference: u64, quantity: u64, bid: u64, ask: u64) -> Result<i128> {
