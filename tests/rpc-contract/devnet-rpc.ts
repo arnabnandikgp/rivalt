@@ -23,10 +23,9 @@ type Entry = { label: string; instructionHash: string; signature: string; wire: 
 export class DevnetRpc implements DevnetHarness {
   readonly config = configuration(process.env);
   readonly rpc = new DevnetTransport(new Rpc(this.config.rpc));
-  readonly journal = '.local/devnet/acceptance/journal';
   readonly checks: Array<{ label: string; signature: string; result: string; feeLamports: string }> = [];
   latestEvents: ReturnType<typeof decode> = [];
-  constructor(readonly a: DevnetContext) {
+  constructor(readonly a: DevnetContext, readonly journal = '.local/devnet/acceptance/journal') {
     assert.equal(a.payer.address, profile.deployer, 'Local SVM keys cannot submit to devnet');
     mkdirSync(this.journal, { recursive: true, mode: 0o700 });
   }
@@ -81,7 +80,7 @@ export class DevnetRpc implements DevnetHarness {
       const spentOrHeld = readdirSync(this.journal).filter(f => f.endsWith('.json')).reduce((sum, f) => {
         const e: Entry = JSON.parse(readFileSync(`${this.journal}/${f}`, 'utf8')); return sum + BigInt(e.feeLamports ?? '20000');
       }, 0n);
-      assert(spentOrHeld + 20_000n <= 10_000_000n, 'P13 acceptance network-fee budget exhausted');
+      assert(spentOrHeld + 20_000n <= 10_000_000n, 'Devnet acceptance network-fee budget exhausted');
       const { transaction } = await sdk.signInstructions({ getLatestBlockhash: async () => {
         const r = await this.rpc.call('getLatestBlockhash', [{ commitment: 'confirmed' }]);
         return { blockhash: blockhash(r.value.blockhash), lastValidBlockHeight: BigInt(unsigned(r.value.lastValidBlockHeight)) };
