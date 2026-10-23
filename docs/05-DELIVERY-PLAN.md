@@ -11,7 +11,7 @@ Six milestone families, with M5 explicitly split into local and devnet gates, co
 | M2 | P03–P04 | Competing makers and atomic execution | Separate A/B modules; valid split; complete rollback and measured resource fit |
 | M3 | P05–P06 | Real services and full trade lifecycle | Indexed deposit→split→cross-maker close→funded settle→withdraw; durable retry/recovery |
 | M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Sources/funding, TP/SL, liquidation/default and browser/direct-exit gates |
-| M5a | P11–P12 | Complete local engineering evidence | Whole fault matrix plus measured load and 24-hour reconciled local soak |
+| M5a | P11–P12 | Complete local engineering evidence | Whole fault matrix, measured load, bounded qualification and >10,000-transaction RPC replay (D35) |
 | M5b | P13–P14 | Focused real-cluster parity | Actual dependency verification, wallet/core lifecycle and provider recovery |
 | M6 | P15–P16 | Independent commercial/pilot readiness | Observed independent economics, calibrated risk, external review and separate funded-use decision |
 
@@ -32,7 +32,7 @@ M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. 
 | P09 | M4 | Liquidation and resumable default | P08 | A13, A14 |
 | P10 | M4 | Trading UI and direct exit experience | P09 | A15 |
 | P11 | M5a | Integrated fault and reconciliation matrix | P10 | A16 and regression A01–A15 |
-| P12 | M5a | Resource budgets, load and 24-hour soak | P11 | A17 plus affected invariants |
+| P12 | M5a | Resource budgets, load and bounded qualification | P11 | A17 plus affected invariants |
 | P13 | M5b | Devnet deployment and real dependency verification | P12 | A18 |
 | P14 | M5b | Devnet lifecycle, wallet and provider recovery | P13 | A19 |
 | P15 | M6 | Independent maker integration and economics | P14 | A20 |
@@ -226,17 +226,17 @@ Milestone: **M5a**. Depends on: **P10**.
 
 **Expected artifacts:** tests/e2e orchestration, fault profiles and docs/evidence integrated acceptance report.
 
-## P12 — Resource budgets, load and 24-hour soak
+## P12 — Resource budgets, load and bounded qualification
 
 Milestone: **M5a**. Depends on: **P11**.
 
 **Deliverable:** Measured local performance envelope and sustained recovery evidence.
 
-**PR scope:** Measure bytes/accounts/CU and account contention; start offered-load sweeps at 1/5/10 attempts per second with declared account mix. Run a real 24-hour Surfpool full-system soak with worker/maker/indexer outages and reconciliation. Optimize only measured bottlenecks; rerun affected gates after fixes.
+**PR scope:** Measure bytes/accounts/CU and account contention; start offered-load sweeps at 1/5/10 attempts per second with declared account mix. Under D35, retain the interrupted endurance evidence, address availability/recovery/resource findings, run a real 1,800-second Surfpool full-system qualification with affected outages, and separately prove >10,000-transaction RPC reconstruction into fresh PostgreSQL. Optimize only measured bottlenecks; rerun affected gates after fixes.
 
 **Configuration closure:** Recorded host/profile/load/resource budgets.
 
-**Acceptance:** A17 reports actual elapsed run and complete metrics; target quote p95 <=200 ms, normal eligible success >=99% and >=20% CU headroom for declared worst cases, or explicit unresolved failure that prevents closure. No simulated acceleration substitutes for 24-hour runtime.
+**Acceptance:** A17 reports actual elapsed run and complete metrics; target quote p95 <=200 ms, normal eligible success >=99% and >=20% CU headroom for declared worst cases, or explicit unresolved failure that prevents closure. D35 additionally requires >=50% normal offered availability, actual final withdrawal/reconciliation and >10,000 fetched history transactions. Preserve the prior six-fault evidence and repeat affected funding/executor-RPC/indexer recoveries. A continuous 24-hour endurance run is deferred to P16 before positive funded-pilot readiness; it is not satisfied by this bounded gate.
 
 **Runnable demonstration:** Reproducible report covering latency distributions, success/failure causes, load saturation, outages and final balances.
 
@@ -300,7 +300,7 @@ Milestone: **M6**. Depends on: **P15**.
 
 **Configuration closure:** G12 complete; independent review and pilot authorization remain real external decisions.
 
-**Acceptance:** A21 requires measured capital/risk assumptions, source-independence assessment, external review outcomes and resolved material findings for a positive recommendation; technical readiness and authorization are separately recorded. A negative go/no-go is an honest assessment deliverable. Closing the assessment with No-go does not mean a funded pilot is ready or approved; record the readiness outcome explicitly.
+**Acceptance:** A21 requires measured capital/risk assumptions, source-independence assessment, external review outcomes, a real continuous 24-hour endurance run with final reconciliation (deferred from P12 by D35), and resolved material findings for a positive recommendation; technical readiness and authorization are separately recorded. A negative go/no-go is an honest assessment deliverable. Closing the assessment with No-go does not mean a funded pilot is ready or approved; record the readiness outcome explicitly.
 
 **Runnable demonstration:** Executable risk/incident drill plus a decision-ready pilot package with limits, budgets, monitoring and unresolved conditions.
 

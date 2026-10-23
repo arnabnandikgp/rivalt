@@ -94,7 +94,7 @@ IDs are stable references from the delivery plan/worklog. A finite suite is evid
 | A14 | Default | Complete cohort, insurance/impairment, deterministic remainder, pagination/restart/omission rejection | P09 |
 | A15 | UI and direct exit | Wallet failures/status accuracy, unpaid cash distinction, API-down admissible SDK exit | P10 |
 | A16 | Sustained reliability | Whole matrix across services, maker/worker/RPC faults, no unexplained drift | P11 |
-| A17 | Load/soak | Declared profile/load, resource headroom, 24-hour reconciled local soak | P12 |
+| A17 | Load/soak | Declared load/resources, D35 bounded qualification, >10,000 actual RPC history replay and final exit | P12 |
 | A18 | Real dependency verification | Actual deployed verifier/update path and mint/authority/source provenance | P13 |
 | A19 | Devnet parity | Core lifecycle, real wallet signing/landing and provider backfill/recovery | P14 |
 | A20 | Independent maker evidence | Genuine operator records, observed hedges/capital/costs, missing-data labels | P15 |
@@ -129,10 +129,10 @@ Request secure RPC/API configuration in P13, not earlier. Never put credentials 
 
 Per PR: compile/type/IDL generation checks; affected financial/program/SDK tests; available RPC contract and short service smoke checks. Before those services exist, mark the later suite Not applicable yet, not Passed.
 
-23 October scope clarification: select these checks by the changed behavior and the owning phase's acceptance contract, rather than running every inherited suite before each PR. An unchanged program does not require a new unrelated financial matrix for a UI change. Prefer supported CI for broad regression; a workflow definition or queued job is not passing evidence. P11's consolidated A01–A16 run and P12's real load/24-hour soak remain required deliverables. Retain completed partial results and explicitly label intentional cancellation/not-run stages.
+23 October scope clarification: select these checks by the changed behavior and the owning phase's acceptance contract, rather than running every inherited suite before each PR. An unchanged program does not require a new unrelated financial matrix for a UI change. Prefer supported CI for broad regression; a workflow definition or queued job is not passing evidence. P11's consolidated A01–A16 run and P12's D35 load/bounded qualification and large-history replay remain required deliverables. Retain completed partial results and explicitly label intentional cancellation/not-run stages.
 
 Broader integration: full economic/fault matrix, seeded stress, competing workers and DB recovery.
-M5a: measured resource/load sweeps and the real 24-hour local soak.
+M5a: measured resource/load sweeps, D35 real 1,800-second qualification, affected recovery and >10,000-transaction fresh PostgreSQL reconstruction.
 M5b: focused actual devnet tests.
 Expand testing only for a concrete remaining risk or required gate.
 
@@ -164,7 +164,8 @@ Initial engineering objectives retained from the build specification:
 - >=99% eligible normal-condition submitted attempts succeed at that profile's chosen baseline load;
 - load sweeps start at 1, 5 and 10 attempted orders/second with declared account mix; report saturation;
 - required transactions fit real limits, target >=20% measured CU headroom for declared worst-case fixtures;
-- a 24-hour complete local soak with restarts/backfill/maker outages and final reconciliation.
+- under D35, >=50% normal offered availability and real 1,800-second local qualification with affected recovery, final withdrawal and >10,000-transaction RPC reconstruction;
+- a continuous 24-hour endurance run with restarts/backfill/maker outages and final reconciliation remains deferred to P16 before funded-pilot readiness.
 
 These are targets, not achieved measurements or promises. Report failed/unfilled attempts, unpaid profits and degraded intervals. Do not combine local/devnet latency populations. Tune one measured bottleneck at a time after correctness.
 
@@ -196,4 +197,4 @@ The pinned build adds a local signed oracle fixture dependency, with no new npm/
 
 P10 runtime acceptance refinement: full integrated acceptance uses `RIVALT_SLOT_TIME=50`. Local program deployment/upgrade provisioning permits at most 20 CLI blockhash signing attempts after observed upload exhaustion at the default five. This allowance is limited to program/buffer uploads; durable financial retries retain their original signature rules. A separately passing 100 ms browser profile does not validate sequential manual funding harnesses at 100 ms, which can violate the unchanged six-second recovery-gap condition.
 
-P12 verification is scoped to its resource options, measurement logic, actual offered-load sweep and real elapsed soak; unchanged financial programs retain P11 evidence. [LOAD-SOAK](P12-LOAD-SOAK.md) defines complete offered/submitted populations and the explicit local fee/history profile. A short sweep is not A17 and a raised recovery bound is not proof of a large replay.
+P12 verification is scoped to its resource options, measurement logic, actual offered-load sweep, D35 bounded qualification and actual large-history replay; unchanged financial programs retain P11 evidence. [LOAD-SOAK](P12-LOAD-SOAK.md) defines complete offered/submitted populations and the explicit local fee/history profile. A short sweep alone is not A17 and a raised recovery bound is not proof of a large replay. D35 explicitly supersedes the blocking P12 full-day duration; it does not claim full-day endurance passed.

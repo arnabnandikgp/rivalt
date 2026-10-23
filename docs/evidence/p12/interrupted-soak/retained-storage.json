@@ -1,0 +1,13 @@
+{"databases" : [{"datname":"postgres","bytes":7861951}, 
+ {"datname":"rivalt","bytes":105977535}, 
+ {"datname":"template1","bytes":7935679}, 
+ {"datname":"template0","bytes":7701007}], "relations" : [{"relname":"outbox","heap_bytes":9682944,"index_bytes":237568}, 
+ {"relname":"schema_version","heap_bytes":8192,"index_bytes":16384}, 
+ {"relname":"jobs","heap_bytes":1105920,"index_bytes":1187840}, 
+ {"relname":"service_budgets","heap_bytes":16384,"index_bytes":16384}, 
+ {"relname":"runs","heap_bytes":319488,"index_bytes":16384}, 
+ {"relname":"events","heap_bytes":8151040,"index_bytes":1155072}, 
+ {"relname":"observations","heap_bytes":34529280,"index_bytes":1835008}, 
+ {"relname":"transactions","heap_bytes":27541504,"index_bytes":1171456}, 
+ {"relname":"maker_heartbeats","heap_bytes":57344,"index_bytes":16384}, 
+ {"relname":"service_intents","heap_bytes":8527872,"index_bytes":1941504}], "wal_bytes" : 50331648}

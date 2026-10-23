@@ -245,3 +245,6 @@ The worker must implement these as independently calculated assertions and add b
 ### P09 frozen-resolution implementation contract
 
 [RESOLUTION](P09-RESOLUTION.md) selects G10's local funded receiver, strict post-fee progress, source emergency grace, complete-cohort traversal and authority recovery rules. Frozen mode locks registration, custody allocation and ordinary financial authority. Collection records its scaled adjustment in the resolution ledger while keeping ordinary virtual fields frozen, preserving derived valuation headroom. Paged Apply uses a fully computed funded payout plan, then a full account reconciliation. The pinned common reference, frozen funding endpoint and deterministic stable-ID allocation preserve D19 economics. Pending payout remains distinct from funded cash. Implementation acceptance and integration are tracked in WORKLOG.
+
+
+D35 implementation clarification: a route quote is an explicitly confirmed provisional preview. It creates no cash, reservation release or execution guarantee. Finalized event projection and transaction receipts remain separate; clearing rechecks the signed observation, nonce, epochs, bounds and expiry on actual execution.

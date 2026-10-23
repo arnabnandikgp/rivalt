@@ -6,7 +6,7 @@ import { Connection, Keypair } from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import { Store } from '../../indexer/src/store.js';
 import { Rpc, integer } from '../../indexer/src/rpc.js';
-import { json, hash } from '../../indexer/src/events.js';
+import { json, hash, decode } from '../../indexer/src/events.js';
 import { Queue, type Authority } from './queue.js';
 import { localBudgets } from './profile.js';
 import { quoteWindow } from './quote-window.js';
@@ -14,6 +14,12 @@ import { quoteWindow } from './quote-window.js';
 export const OPERATOR_CAP=5_000_000n,MAKER_CAP=1_000_000n,HEARTBEAT_MS=3000;
 export class QuoteUnavailable extends Error {
   constructor(readonly code:string,message:string){super(message);}
+}
+export function sampleMatchesSnapshot(event:any,s:{market:string;m:Pick<sdk.MarketState,'domain'|'termsEpoch'|'configEpoch'>;risk:sdk.TestRouteState}){
+  return event.market===s.market&&event.domain===Buffer.from(s.m.domain).toString('hex')&&
+    event.termsEpoch===String(s.m.termsEpoch)&&event.configEpoch===String(s.m.configEpoch)&&
+    ['observationSequence','referencePrice','lower','upper','validFrom','validUntil'].every(key=>event[key]===String(s.risk[key as keyof sdk.TestRouteState]))&&
+    json(event.oracle)===json(s.risk.oracle);
 }
 export class Runtime {
   readonly store:Store;readonly rpc:Rpc;readonly queue:Queue;readonly connection:Connection;
@@ -31,18 +37,18 @@ export class Runtime {
     if(!tx || hash(tx.transaction)!==b.anchorHash)throw new Error('Service initialization anchor mismatch');
     return b;
   }
-  async snapshot(){
+  async snapshot(commitment:'confirmed'|'finalized'='finalized'){
     const b=await this.environment(),row=await this.store.snapshot(),market=address(b.market);
     const [registry]=await sdk.findRegistryPda({market}),[routeState]=await sdk.findRouteStatePda({market}),[guard]=await sdk.findGuardPda({market}),[vault]=await sdk.findVaultPda({market});
     const [resolution]=await sdk.findResolutionPda({market});
     const [eventAuthority]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('__event_authority')]});
     const pkeys=Object.keys(row.state.participants).sort((a,b)=>row.state.participants[a].id-row.state.participants[b].id).map(address),rkeys=Object.keys(row.state.makers).map(address);
-    // Discover bindings, then refetch every value from a single finalized bank.
-    const discovered=await this.rpc.call('getMultipleAccounts',[rkeys,{encoding:'base64',commitment:'finalized'}]);
+    // Discover bindings, then refetch every value at the explicitly labeled commitment.
+    const discovered=await this.rpc.call('getMultipleAccounts',[rkeys,{encoding:'base64',commitment}]);
     const regs=discovered.value.map((x:any)=>{if(x?.owner!==sdk.CLEARING_PROGRAM_ADDRESS)throw new Error('Maker missing');return sdk.getMakerRegistrationDecoder().decode(Buffer.from(x.data[0],'base64'));}) as sdk.MakerRegistration[];
     const clock=address('SysvarC1ock11111111111111111111111111111111');
     const keys=[clock,market,registry,routeState,guard,vault,...pkeys,...rkeys,...regs.flatMap(r=>[r.config,r.programData]),resolution];
-    const response=await this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized'}]);
+    const response=await this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment}]);
     const slot=BigInt(integer(response.context.slot));
     const raw=(key:Address,owner:string=sdk.CLEARING_PROGRAM_ADDRESS)=>{const a=response.value[keys.indexOf(key)];if(!a || a.owner!==owner)throw new Error('Missing/foreign snapshot account');return Buffer.from(a.data[0],'base64');};
     const m=sdk.getMarketStateDecoder().decode(raw(market)),reg=sdk.getParticipantRegistryDecoder().decode(raw(registry));
@@ -74,19 +80,32 @@ export class Runtime {
       const heartbeat=heartbeats.find(h=>h.maker_id===r.makerId && h.owner===r.owner);
       return {registration,r,state,approved,online:heartbeat?.online===true,balance:participants[r.capital]};
     });
-    return {market,registry,routeState,guard,vault,resolution,resolutionState,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS,m,risk,slot,now,funding,sourceMode,participants,members:reg.members,makers,
+    return {commitment,market,registry,routeState,guard,vault,resolution,resolutionState,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS,m,risk,slot,now,funding,sourceMode,participants,members:reg.members,makers,
       certificate:sdk.getExitGuardDecoder().decode(raw(guard)),actual};
   }
   async quote(owner:Address,side:number,lots:bigint,stored?:{id:bigint;version:bigint;filled:bigint},keeper?:Keypair){
-    const s=await this.snapshot(),[trader]=await sdk.findParticipantPda({market:s.market,owner}),p=s.participants[trader];
+    const s=await this.snapshot('confirmed'),[trader]=await sdk.findParticipantPda({market:s.market,owner}),p=s.participants[trader];
     if(!p || p.owner!==owner)throw new QuoteUnavailable('account-unavailable','Funded account unavailable');
     if(s.m.paused)throw new QuoteUnavailable('market-paused','Market is paused');
-    if(s.slot<s.risk.validFrom)throw new QuoteUnavailable('observation-not-finalized','Market observation is ahead of the finalized snapshot');
+    if(s.slot<s.risk.validFrom)throw new QuoteUnavailable('observation-not-confirmed','Market observation is ahead of the confirmed preview');
     if(s.slot>=s.risk.validUntil)throw new QuoteUnavailable('observation-expired','Market observation expired');
     if(s.sourceMode==='NoCredibleBounds')throw new QuoteUnavailable('source-unavailable','Credible price bounds unavailable');
     if(s.m.mode===2&&!quoteWindow(s.now,s.risk.oracle.sampledAt,this.sampleInterval,this.dispatchMargin))throw new QuoteUnavailable('observation-update-due','Next scheduled observation is within the dispatch margin');
-    const pendingSample=await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND budget='funding' AND status IN ('pending','unresolved') LIMIT 1",[this.runId]);
-    if(pendingSample.rowCount)throw new QuoteUnavailable('observation-update-pending','Observation update is awaiting reconciliation');
+    const pendingSample=await this.store.pool.query("SELECT signature FROM service_intents WHERE run_id=$1 AND budget='funding' AND status IN ('pending','unresolved')",[this.runId]);
+    const confirmedPendingSamples:string[]=[];
+    for(const {signature} of pendingSample.rows){
+      // A known confirmed sample already present in this preview cannot execute
+      // twice. The durable intent/budget still wait for independent finality.
+      // Unknown, failed, different or future observations remain unavailable.
+      let applied=false;
+      try{
+        const tx=await this.rpc.call('getTransaction',[signature,{encoding:'json',commitment:'confirmed',maxSupportedTransactionVersion:0}]);
+        const events=decode(signature,tx,s.eventAuthority).filter(x=>x.type==='oracle');
+        applied=events.length===1&&BigInt(integer(tx.slot))<=s.slot&&sampleMatchesSnapshot(events[0].data,s);
+      }catch{ /* No inference from missing or conflicting evidence. */ }
+      if(!applied)throw new QuoteUnavailable('observation-update-pending','Observation update is awaiting confirmed preview evidence');
+      confirmedPendingSamples.push(signature);
+    }
     const order=stored?p.book.orders.find(o=>o.id===stored.id&&o.version===stored.version&&o.filled===stored.filled):undefined;
     if(stored&&(!order||order.side!==side||sdk.orderRemaining(p,order,s.m.termsEpoch,s.slot)<lots||!sdk.orderTriggered(order,s.risk.referencePrice,s.slot)))throw new Error('Stored order unavailable');
     const reduceOnly=order?order.reduceOnly:(side===1 && p.lots>=lots)||(side===0 && -p.lots>=lots);
@@ -99,7 +118,7 @@ export class Runtime {
         return sdk.postOrderReserve(original,after,s.m.termsEpoch,s.slot,s.risk.lower,s.risk.upper,
           order&&before.id===p.id?{id:order.id,lots,gross,fee}:undefined);
       }}):null;
-    if(!allocation)return {available:false,snapshotSlot:s.slot,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation:null};
+    if(!allocation)return {available:false,snapshotCommitment:s.commitment,snapshotSlot:s.slot,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation:null};
     const selected=allocation.legs.map(l=>eligible.find(x=>x.r.makerId===l.makerId)!);const [first,second]=selected;
     const expiry=[s.slot+150n,s.risk.validUntil,...selected.map(x=>x.state.expirySlot)].reduce((a,b)=>a<b?a:b);
     const processedSlot=BigInt(integer(await this.rpc.call('getSlot',[{commitment:'processed'}])));
@@ -112,7 +131,7 @@ export class Runtime {
       domain:s.m.domain,termsEpoch:s.m.termsEpoch,configEpoch:s.m.configEpoch,observationSequence:s.risk.observationSequence,nonce:p.nonce,startSlot:s.slot,expirySlot:expiry,
       side,lots,maxFee:allocation.fee,allInLimit:allocation.allIn,reduceOnly,generation:p.generation,
       legs});
-    return {available:true,snapshotSlot:s.slot,sequence:s.m.sequence,observation:s.risk.observationSequence,nonce:p.nonce,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation,
+    return {available:true,snapshotCommitment:s.commitment,confirmedPendingSamples,snapshotSlot:s.slot,sequence:s.m.sequence,observation:s.risk.observationSequence,nonce:p.nonce,universe:s.makers.map(x=>({makerId:x.r.makerId,online:x.online,approved:x.approved})),allocation,
       audit:{referencePrice:s.risk.referencePrice,lower:s.risk.lower,upper:s.risk.upper,grossLots:s.risk.grossLots,
         trader:{...p,effectiveOrders:p.book.orders.filter(o=>sdk.orderRemaining(p,o,s.m.termsEpoch,s.slot)>0n).length},
         candidates:eligible.map(x=>({...x.balance,makerId:x.r.makerId,version:x.state.version,startSlot:x.state.startSlot,expirySlot:x.state.expirySlot,inventoryLimit:x.r.inventoryLimit,consumed:side===0?x.r.buyConsumed:x.r.sellConsumed,

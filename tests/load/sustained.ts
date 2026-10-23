@@ -9,11 +9,12 @@ import { wait,type environment } from './environment.js';
 import { QuoteUnavailable } from '../../packages/services/src/runtime.js';
 import { Continuity } from './continuity.js';
 import { submissionFault } from './submission-fault.js';
+import { resources as diskResources } from './resources.js';
 
 export function sustained(e:Awaited<ReturnType<typeof environment>>,duration:number,capture:(label:string)=>Promise<any>,pollUi:()=>Promise<void>){
-  const start=performance.now(),clock=new Continuity(Date.now(),start),long=duration>=86400,tail=duration===360,finalOnly=duration===180,orderCadence=tail?30:300;
-  const roles=finalOnly?[]:tail?['funding','indexer','settlement']:['maker-a','maker-b','executor','funding','indexer','settlement'];
-  const times=long?[3600,10800,21600,32400,43200,64800]:tail?[60,150,270]:[60,330,600,660,750,840];
+  const start=performance.now(),clock=new Continuity(Date.now(),start),long=duration>=86400,qualification=duration===1800,tail=duration===360,finalOnly=duration===180,orderCadence=tail?30:300;
+  const roles=finalOnly?[]:qualification?['funding','executor','indexer']:tail?['funding','indexer','settlement']:['maker-a','maker-b','executor','funding','indexer','settlement'];
+  const times=long?[3600,10800,21600,32400,43200,64800]:qualification?[300,600,900]:tail?[60,150,270]:[60,330,600,660,750,840];
   const plan=roles.map((role,i)=>({role,atSeconds:times[i],durationSeconds:role.startsWith('maker')?210:role==='executor'?0:role==='indexer'?60:30}));
   writeFileSync(`${e.dir}/fault-plan.json`,json({durationSeconds:duration,plan,classification:'From outage start through observed recovery; set before any affected offered attempt'}));
   const events:any[]=[],orders:any[]=[],resources:any[]=[];let active:string|null=null,stopping=false,fatal:unknown,nextFault=0,lastCapture=-60,lastOrder=-orderCadence,action:Promise<void>|null=null,orderAction:Promise<void>|null=null;
@@ -62,7 +63,7 @@ export function sustained(e:Awaited<ReturnType<typeof environment>>,duration:num
         while(changed){changed=false;for(const p of inventory)if(owned.has(p.parent)&&!owned.has(p.pid)){owned.add(p.pid);changed=true;}}
         const selected=inventory.filter(p=>owned.has(p.pid));
         const value={atSeconds:time,databaseBytes:sample.databaseBytes,diskFreeBytes:free.bavail*free.bsize,processes:selected.map(p=>p.line).join('\n'),
-          summedOwnedRssKiB:selected.reduce((n,p)=>n+p.rssKiB,0),postgresVmCapMiB:512,vmStatistics:execFileSync('vm_stat',[],{encoding:'utf8'})};resources.push(value);record('resources',value);
+          summedOwnedRssKiB:selected.reduce((n,p)=>n+p.rssKiB,0),postgresVmCapMiB:512,storage:await diskResources(e)};resources.push(value);record('resources',value);
         assert(value.diskFreeBytes>Math.max(512*1024*1024,Number(sample.databaseBytes)*1.25),'Insufficient reserved disk for final rebuild; soak incomplete');
         assert.equal(e.sourceErrors.length,0,'Source publication errors');
         for(const role of ['indexer','api','executor','maker-a','maker-b','funding','settlement','orders','risk'])if(role!==active){const child=e.children.get(role);assert(child&&child.exitCode===null&&child.signalCode===null,`Unexpected ${role} process exit`);}

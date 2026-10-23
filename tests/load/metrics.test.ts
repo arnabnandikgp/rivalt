@@ -10,6 +10,7 @@ it('retains every offered, failed, pending and fault population without denomina
   expect(result.offered).toBe(6);expect(result.submitted).toBe(4);expect(result.normalEligible).toBe(3);
   expect(result.normalSuccessful).toBe(1);expect(result.normalSuccess).toBe(1/3);expect(result.fees).toBe('20000');
   expect(result.statusCounts.unresolved).toBe(1);
+  expect(result.normalOffered).toBe(5);expect(result.normalAvailability).toBe(3/5);
 });
 it('uses a complete nearest-rank latency population and reports absent observations explicitly',()=>{
   expect(distribution([100,1,30,20,10])).toEqual({count:5,p50:20,p95:100,p99:100,max:100});

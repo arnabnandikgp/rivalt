@@ -55,3 +55,6 @@ Acceptance exercises actual SPL deposit → beneficial A/B split → B-only clos
 Run-specific pass/fail, hashes, measured resources and integration status belong in [WORKLOG](WORKLOG.md) and the evidence report. This contract alone does not claim acceptance, review, soak or deployment completion.
 
 P12 extension (D34): the original smoke caps remain default; explicit loopback `soak24` uses 500,000,000 lamports per operator role and 5,000,000 per maker. Payer/cap identity is still immutable; separately prefunded synthetic SOL, fee reservations, actual-fee reconciliation and unknown-outcome retention are unchanged. No automatic top-ups or collateral funding are added. See [LOAD-SOAK](P12-LOAD-SOAK.md) for the measured profile and pending acceptance.
+
+
+D35: unsigned route previews may use confirmed state with an explicit commitment label and independent client reconstruction. Pending funding is not assumed applied from a status flag: its exact confirmed transaction must decode to the snapshot observation/epochs/validity/funding state. This does not finalize the queue row or release its budget; missing/conflicting evidence still refuses preparation. All transaction-success and fee reconciliation stays finalized.

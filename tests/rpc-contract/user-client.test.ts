@@ -205,6 +205,7 @@ it('rebuilds the entire two-maker message and rejects malicious fees, accounts, 
     p = participant({ owner: owner.address, nonce: 0n, generation: 0n });
   const s = {
     ...a,
+    commitment: 'confirmed',
     routeState,
     m: { mode: 2, paused: false, domain, termsEpoch: 1n, configEpoch: 1n },
     risk: { referencePrice: 60000n, observationSequence: 1n, validUntil: 1000n },
@@ -254,6 +255,7 @@ it('rebuilds the entire two-maker message and rejects malicious fees, accounts, 
   });
   const quote = {
     available: true,
+    snapshotCommitment: 'confirmed',
     allocation: {
       legs: [
         { makerId: 0, lots: '21', grossQuote: '1260420' },
@@ -276,6 +278,7 @@ it('rebuilds the entire two-maker message and rejects malicious fees, accounts, 
     allIn: 6003991n,
   });
   const attacks = [
+    (q: typeof quote) => { q.snapshotCommitment = 'finalized'; },
     (q: typeof quote) => {
       q.allocation.fee = '0';
     },
@@ -289,6 +292,7 @@ it('rebuilds the entire two-maker message and rejects malicious fees, accounts, 
       q.allocation.legs[1].makerId = 0;
     },
   ];
+  await expect(client.validateQuote({ ...s, commitment: 'finalized' }, owner.address, 0, 100n, quote)).rejects.toThrow(/confirmed quote preview/);
   for (const change of attacks) {
     const q = structuredClone(quote);
     change(q);

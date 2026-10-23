@@ -21,14 +21,15 @@ export async function submissionFault(e:Awaited<ReturnType<typeof environment>>,
   const response=await post({requestId,wire});assert.equal(response.status,200);const submitted=await response.json() as {signature:string};
   // No executor/listener existed at commit, so startup must discover the durable row.
   assert.equal((await e.runtime.queue.get(requestId)).status,'pending');
-  let dropped=false,persistedBeforeBroadcast=false;
+  let dropped=false,persistedBeforeBroadcast=false,recoverAt=0;const outageMs=15_000;
   const proxy=createServer(async(req,res)=>{
     try{
       const chunks:Buffer[]=[];for await(const chunk of req)chunks.push(Buffer.from(chunk));const body=Buffer.concat(chunks).toString(),q=JSON.parse(body);
+      if(Date.now()<recoverAt&&(['getSignatureStatuses','isBlockhashValid','sendTransaction'].includes(q.method)||(q.method==='getTransaction'&&q.params[0]===submitted.signature))){res.writeHead(503);res.end('Injected submission RPC interruption');return;}
       const target=q.method==='sendTransaction'&&q.params[0]===wire;
       if(target){const row=(await e.runtime.store.pool.query('SELECT wire FROM service_intents WHERE run_id=$1 AND request_id=$2',[e.runId,requestId])).rows[0];persistedBeforeBroadcast=row?.wire===wire;assert(persistedBeforeBroadcast);}
       const upstream=await fetch(e.url,{method:'POST',headers:{'content-type':'application/json'},body}),text=await upstream.text();
-      if(target&&!dropped){dropped=true;e.children.get('executor')?.kill('SIGKILL');res.destroy();return;}
+      if(target&&!dropped){dropped=true;recoverAt=Date.now()+outageMs;e.children.get('executor')?.kill('SIGKILL');res.destroy();return;}
       res.setHeader('content-type','application/json');res.end(text);
     }catch{res.destroy();}
   });
@@ -39,7 +40,8 @@ export async function submissionFault(e:Awaited<ReturnType<typeof environment>>,
     await wait(async()=>dropped&&child.signalCode==='SIGKILL',Boolean,'lost acknowledgement and actual executor death');
     await e.stop('executor');e.start('executor',{RIVALT_RPC_URL:proxyUrl});
     const duplicate=await post({requestId,wire});assert.equal(duplicate.status,200);assert.equal((await duplicate.json() as any).signature,submitted.signature);
-    await wait(()=>e.runtime.queue.get(requestId),r=>r.status==='finalized','original signature reconciles after restart');
+    assert(['pending','unresolved'].includes((await e.runtime.queue.get(requestId)).status));
+    await wait(()=>e.runtime.queue.get(requestId),r=>r.status==='finalized','original signature reconciles after restart and RPC interruption');
     const tx=await e.rpc.call('getTransaction',[submitted.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:0}]);assert.equal(tx.meta.err,null);e.txLog(requestId,submitted.signature,tx);
     assert(persistedBeforeBroadcast);const cashAfter=sdk.getParticipantDecoder().decode((await e.read(actor.participant))!).cash;
     const deposit=decode(submitted.signature,tx,e.a.eventAuthority).filter(x=>x.type==='custody'&&x.data.participant===actor.participant);
@@ -48,7 +50,7 @@ export async function submissionFault(e:Awaited<ReturnType<typeof environment>>,
     const different=await sdk.signInstructions(e.connection,actor.owner,[await sdk.getDepositInstructionAsync({...e.a,owner:actor.owner,participant:actor.participant,quoteMint:e.setup.mint.address,userToken:actor.token.address,amount:2n})]);
     assert.equal((await post({requestId,wire:Buffer.from(different.transaction.serialize()).toString('base64')})).status,400);
     return {fault:'missed-notification-lost-ack-executor-kill',status:'pass',signature:submitted.signature,elapsedMs:Date.now()-started,
-      persistedBeforeBroadcast,actualFee:String(tx.meta.fee),cashBefore:cash.toString(),cashAfter:cashAfter.toString(),cashDeltaIsolated:requestId==='fault:lost-ack',depositEvent:deposit[0],userTokenDelta:'-1',differentBytesRejected:true,reservedWorkerIdentitiesRejected:true};
+      persistedBeforeBroadcast,rpcInterruptionMs:outageMs,originalSignatureAfterInterruption:true,actualFee:String(tx.meta.fee),cashBefore:cash.toString(),cashAfter:cashAfter.toString(),cashDeltaIsolated:requestId==='fault:lost-ack',depositEvent:deposit[0],userTokenDelta:'-1',differentBytesRejected:true,reservedWorkerIdentitiesRejected:true};
   }finally{
     await e.stop('executor');await new Promise<void>((resolve,reject)=>{proxy.close(error=>error?reject(error):resolve());proxy.closeAllConnections();});e.start('executor');
   }

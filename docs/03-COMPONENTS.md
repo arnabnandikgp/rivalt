@@ -225,3 +225,6 @@ P12 quote responses additionally include read-only `audit` snapshot inputs (refe
 Trades, event cursors and candle open/close chronology order by the underlying numeric event sequence. Serialization as a decimal string must not cause lexical ordering (for example, 98 before 218). P12 adds real PostgreSQL coverage of that multi-digit boundary.
 
 Quote audit candidates include maker version/start/exclusive-expiry slots; a mathematically attractive curve outside its current epoch window is unavailable to the independent comparator.
+
+
+D35 refines P12 quote preparation: `/v1/quote` includes `snapshotCommitment: confirmed`. The SDK reads a confirmed cohort only for independent route-message validation, and the UI labels it provisional; ordinary balance/exit snapshots remain finalized. Pending funding permits preview only after the exact confirmed transaction decodes to the current market/domain/epochs/observation/validity/funding state at or before the preview slot. Unknown evidence blocks quoting. Durable intent state, budget release and indexer projections still require finalized evidence. Existing on-chain expiry, observation, nonce and price checks remain authoritative.

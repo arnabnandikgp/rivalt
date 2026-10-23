@@ -275,7 +275,7 @@ export function App({ config }: { config: TraderConfig }) {
       const lots = units(size, 6, 'BTC size');
       if (lots > 1000n) throw new Error('This local profile supports at most 0.001 BTC per route.');
       const quote = await http(config.apiBase, '/v1/quote', { owner, side, lots: String(lots) }),
-        fresh = await v.client.snapshot(),
+        fresh = await v.client.snapshot('confirmed'),
         q = await v.client.validateQuote(fresh, owner, side, lots, quote);
       return {
         instructions: q.instructions,
@@ -287,6 +287,7 @@ export function App({ config }: { config: TraderConfig }) {
           ),
           `Gross ${fixed(q.gross)} · venue fee ${fixed(q.fee)} test USD (2 bps)`,
           `All-in ${side === 0 ? 'debit' : 'credit'} ${fixed(q.allIn)} test USD`,
+          'Preview uses confirmed state. The fill remains pending until independently finalized.',
           `Quote expires at slot ${q.expirySlot}. A stale quote rejects atomically.`,
         ],
       };

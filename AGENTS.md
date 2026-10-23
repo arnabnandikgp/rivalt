@@ -37,7 +37,7 @@ Production/funded deployments, paid services, outreach, recruiting and external 
 - Keep legacy conformance dependencies isolated. No workspace override that makes them appear compatible.
 - Use integer/fixed-point checked arithmetic; explicit units and decimal strings in JSON. No floating-point settlement.
 - Write an independent economic reference/expected vectors; tests cannot merely call the implementation twice.
-- Scope PR verification to changed behavior and the phase's acceptance gates. Do not rerun unrelated inherited suites before every PR. Put broad regression in CI when a supported runner exists; P11's integrated matrix and P12's actual soak remain explicit phase deliverables. Record skipped checks and the reason without claiming CI ran when it did not.
+- Scope PR verification to changed behavior and the phase's acceptance gates. Do not rerun unrelated inherited suites before every PR. Put broad regression in CI when a supported runner exists; P11's integrated matrix and P12's D35 bounded qualification/large-history replay remain explicit phase deliverables. Record skipped checks and the reason without claiming CI ran when it did not.
 - Source restoration is optional targeted reuse. Do not download all research or block P01 on missing archives. Never claim old test counts validate new code.
 - Use real deployed local programs, PostgreSQL and standard RPC/WS for service E2E. Fixtures may provision the environment, not fabricate successful deposits/fills/settlements.
 - Critical events, database checkpoints, failed transaction logs and ambiguous retries must follow the indexing contract.

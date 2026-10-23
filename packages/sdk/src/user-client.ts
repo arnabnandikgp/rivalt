@@ -167,7 +167,8 @@ export class UserClient {
       'Deployment history is unavailable or this local chain was reset.',
     );
   }
-  async snapshot() {
+  async snapshot(commitment: 'confirmed' | 'finalized' = 'finalized') {
+    requireValue(['confirmed', 'finalized'].includes(commitment), 'Unsupported snapshot commitment.');
     await this.environment();
     const market = this.config.market;
     const [[canonical], [registry], [routeState], [guard], [vault], [resolution], [eventAuthority]] =
@@ -197,7 +198,7 @@ export class UserClient {
     );
     const first = await this.rpc.call('getMultipleAccounts', [
       [registry, ...registrations],
-      { encoding: 'base64', commitment: 'finalized' },
+      { encoding: 'base64', commitment },
     ]);
     const decodeAccount = <T>(account: any, owner: string, decode: (data: Uint8Array) => T): T => {
       requireValue(
@@ -239,7 +240,7 @@ export class UserClient {
     ];
     const response = await this.rpc.call('getMultipleAccounts', [
       keys,
-      { encoding: 'base64', commitment: 'finalized' },
+      { encoding: 'base64', commitment },
     ]);
     const raw = (key: Address, owner: string = c.CLEARING_PROGRAM_ADDRESS) =>
       decodeAccount(response.value[keys.indexOf(key)], owner, (b) => b);
@@ -342,6 +343,7 @@ export class UserClient {
       }),
     );
     return {
+      commitment,
       market,
       registry,
       routeState,
@@ -526,6 +528,8 @@ export class UserClient {
   async validateQuote(s: UserSnapshot, owner: Address, side: number, lots: bigint, quote: any) {
     const { participant, p, signer } = await this.user(s, owner);
     requireValue(p && s.risk && !s.m.paused && s.m.mode === 2, 'Trading is unavailable.');
+    requireValue(quote?.snapshotCommitment === 'confirmed' && s.commitment === 'confirmed',
+      'Refresh the confirmed quote preview. Finalized balances are separate.');
     requireValue(
       quote?.available === true &&
         quote.instructions?.length === 2 &&

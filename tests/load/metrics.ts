@@ -1,7 +1,7 @@
 export type Attempt = {
   side?:number;lots?:string;id: string; phase: string; offeredAt: number; actor: number; fault: boolean;
   status: string; eligible?: boolean; signature?: string; code?: string;
-  quoteMs?: number; signingMs?: number; submitMs?: number; signedAtEpochMs?: number; firstBroadcastMs?: number;
+  quoteMs?: number; validationMs?: number; signingMs?: number; submitMs?: number; signedAtEpochMs?: number; firstBroadcastMs?: number;
   processedMs?: number; confirmedMs?: number; finalizedMs?: number;
   bytes?: number; accounts?: number; units?: number; fee?: string;
 };
@@ -15,11 +15,13 @@ export function distribution(values: number[]) {
 export function summarize(rows: Attempt[]) {
   const submitted=rows.filter(r=>r.signature), normal=submitted.filter(r=>r.eligible&&!r.fault);
   const counts:Record<string,number>={},causes:Record<string,number>={},mix:Record<string,any>={};for(const row of rows){counts[row.status]=(counts[row.status]??0)+1;if(row.code)causes[row.code]=(causes[row.code]??0)+1;const key=`${row.side??'unknown'}:${row.lots??'unknown'}`,m=mix[key]??={offered:0,submitted:0,successful:0};m.offered++;if(row.signature)m.submitted++;if(row.status==='finalized')m.successful++;}
-  return {offered:rows.length,submitted:submitted.length,normalEligible:normal.length,
+  const normalOffered=rows.filter(r=>!r.fault).length;
+  return {offered:rows.length,submitted:submitted.length,normalOffered,normalAvailability:normalOffered?normal.length/normalOffered:null,normalEligible:normal.length,
     normalSuccessful:normal.filter(r=>r.status==='finalized').length,
     normalSuccess:normal.length?normal.filter(r=>r.status==='finalized').length/normal.length:null,
     statusCounts:counts,causeCounts:causes,sideSizeMix:mix,quote:distribution(rows.flatMap(r=>r.quoteMs===undefined?[]:[r.quoteMs])),
     signing:distribution(rows.flatMap(r=>r.signingMs===undefined?[]:[r.signingMs])),
+    validation:distribution(rows.flatMap(r=>r.validationMs===undefined?[]:[r.validationMs])),
     submit:distribution(rows.flatMap(r=>r.submitMs===undefined?[]:[r.submitMs])),
     firstBroadcast:distribution(rows.flatMap(r=>r.firstBroadcastMs===undefined?[]:[r.firstBroadcastMs])),
     processed:distribution(rows.flatMap(r=>r.processedMs===undefined?[]:[r.processedMs])),
