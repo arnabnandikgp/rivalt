@@ -228,3 +228,5 @@ Quote audit candidates include maker version/start/exclusive-expiry slots; a mat
 
 
 D35 refines P12 quote preparation: `/v1/quote` includes `snapshotCommitment: confirmed`. The SDK reads a confirmed cohort only for independent route-message validation, and the UI labels it provisional; ordinary balance/exit snapshots remain finalized. Pending funding permits preview only after the exact confirmed transaction decodes to the current market/domain/epochs/observation/validity/funding state at or before the preview slot. Unknown evidence blocks quoting. Durable intent state, budget release and indexer projections still require finalized evidence. Existing on-chain expiry, observation, nonce and price checks remain authoritative.
+
+D38 separates explicit deployment configuration and bounded regression fixtures from local raw run output. See [evidence storage](EVIDENCE.md). Raw captures remain in place; launchers and normal tests must work without them.
