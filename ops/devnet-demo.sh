@@ -29,7 +29,8 @@ test -f "$RIVALT_RUN_DIR/ready"
 export RIVALT_TRADER_CONFIG="$PWD/$RIVALT_RUN_DIR/trader-config.json"
 export RIVALT_SERVICE_ORIGIN=http://127.0.0.1:18091
 export RIVALT_INDEXER_ORIGIN=http://127.0.0.1:18090
-node apps/trader/node_modules/vite/bin/vite.js apps/trader --host 127.0.0.1 --port 18088 --strictPort > "$RIVALT_RUN_DIR/ui.log" 2>&1 &
+pnpm build:trader > "$RIVALT_RUN_DIR/build-ui.log" 2>&1
+node apps/trader/node_modules/vite/bin/vite.js preview apps/trader --host 127.0.0.1 --port 18088 --strictPort > "$RIVALT_RUN_DIR/ui.log" 2>&1 &
 ui_pid=$!
 echo "Devnet test UI: http://127.0.0.1:18088 (up to 60 minutes; Ctrl-C stops owned services)"
 wait "$demo_pid"

@@ -500,7 +500,7 @@ export function App({ config }: { config: TraderConfig }) {
           <Metric
             label="Index reference"
             value={s?.risk ? fixed(s.risk.referencePrice, 0) : '—'}
-            hint="test USD / BTC · controlled local feeds"
+            hint={config.chain === 'solana:devnet' ? 'test USD / BTC · sponsored Pyth Core, operator guard' : 'test USD / BTC · controlled local feeds'}
           />
           <Metric
             label="Risk interval"
