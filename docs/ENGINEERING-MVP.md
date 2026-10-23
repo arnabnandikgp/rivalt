@@ -2,7 +2,7 @@
 
 23 October 2026 · M1 through M5b · BTC / test collateral
 
-The recorded implementation and acceptance evidence supports an engineering MVP of Rivalt: common clearing with separate competing A/B maker programs, an actual wallet UI, durable services and finalized PostgreSQL reconstruction. The bounded local and devnet gates pass within their declared profiles. Integration is still pending for the stacked Review phases; [WORKLOG](WORKLOG.md) is the authority for live phase/PR status. This assessment is not funded-pilot readiness.
+The recorded implementation and acceptance evidence supports an engineering MVP of Rivalt: common clearing with separate competing A/B maker programs, an actual wallet UI, durable services and finalized PostgreSQL reconstruction. The bounded local and devnet gates pass within their declared profiles. The complete stack is integrated at `2bc298e`. D39 review fixes pass targeted program/service/browser checks, while the new maker initialization authentication still needs a narrow test-only devnet deployment verification; [WORKLOG](WORKLOG.md) is the authority for live phase/PR status. This assessment is not funded-pilot readiness.
 
 ## Evidence and configuration closure
 
@@ -33,4 +33,4 @@ Devnet uses sponsored Pyth Core with intermittent freshness and an explicitly op
 
 The UI is executable with `bash ops/devnet-demo.sh` and the documented secure local configuration, at `http://127.0.0.1:18088` for a bounded session. It loads no private signer or automated trading/source worker. Unfinished financial paths remain disabled in default builds, and test collateral has no redemption promise.
 
-M6/P15–P16 still require independent maker/source participation, independent review, funded-risk/insurance/cost calibration and explicit pilot authorization. The continuous 24-hour endurance gate is deferred to P16 under D35, not passed. No paid service, outreach, external hedging or funded deployment is authorized by this engineering assessment. The immediate engineering action is review/integration of the ready stack; external gates require their actual inputs and authorization.
+M6/P15–P16 still require independent maker/source participation, independent review, funded-risk/insurance/cost calibration and explicit pilot authorization. The continuous 24-hour endurance gate is deferred to P16 under D35, not passed. No paid service, outreach, external hedging or funded deployment is authorized by this engineering assessment. The immediate engineering action is to roll the reviewed maker initialization hardening into the existing test-only devnet deployment and verify the affected binding; external gates require their actual inputs and authorization.
