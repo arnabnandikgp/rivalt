@@ -79,3 +79,5 @@ The full-day attempt on `8c602c3` subsequently **stopped incomplete**: host logs
 
 
 D35 supersedes the earlier full-day restart instructions above. The old signed attempt `load:2466` is subsequently resolved from the retained indexer's finalized RPC journal: verified original signature/message, successful metadata and one decoded committed route. The original attempt and executor row remain recorded as unresolved at interruption, and no fresh RPC refetch from the stopped ephemeral chain is claimed. [Recovery evidence](evidence/p12/interrupted-soak/recovered-intent.json) records the provenance.
+
+The D35 supervisor disables Surfpool's unused instruction profiler with its supported `--disable-instruction-profiling` flag. Standard RPC transaction metadata, logs and event history remain mandatory and are checked in the actual probe. Resource measurements must identify this profile; prior instruction-profile memory observations remain historical evidence.

@@ -12,7 +12,7 @@ export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/$RIVALT_RUN_KIND/$(date -u +%Y%m
 test ! -e "$RIVALT_RUN_DIR"
 mkdir -p "$RIVALT_RUN_DIR"
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" 15432 18081 18083 18084
-surfpool start --offline --no-deploy --no-tui --no-studio --port "$RIVALT_RPC_PORT" --ws-port "$RIVALT_WS_PORT" \
+surfpool start --offline --no-deploy --no-tui --no-studio --disable-instruction-profiling --port "$RIVALT_RPC_PORT" --ws-port "$RIVALT_WS_PORT" \
   --slot-time 50 --airdrop-keypair-path .local/keys/payer.json --log-path "$RIVALT_RUN_DIR/logs" > "$RIVALT_RUN_DIR/surfpool.log" 2>&1 &
 export RIVALT_SURFPOOL_PID=$!
 caffeinate -i -w "$$" >/dev/null 2>&1 &

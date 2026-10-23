@@ -31,7 +31,7 @@ const revision=git('rev-parse','HEAD'),sourceDirty=Boolean(git('status','--porce
 if(sourceDirty&&!args.includes('--development'))throw new Error('Commit source before acceptance; --development is explicitly provisional');
 const dir=process.env.RIVALT_RUN_DIR!,startedUtc=new Date().toISOString(),records:Attempt[]=[],faults:any[]=[],phases:any[]=[];
 const manifest={revision,sourceDirty,startedUtc,command:process.argv.slice(2),host:{platform:process.platform,arch:process.arch,node:process.version,logicalCpus:cpus().length,physicalMemoryBytes:totalmem()},
-  slotTimeMs:50,fundingIntervalSeconds:5,quoteDispatchMarginSeconds:1,minRemainingQuoteSlots:10,quoteSnapshotCommitment:'confirmed',budgetProfile:'soak24',maxRecoveryTransactions:200000,
+  slotTimeMs:50,surfpoolInstructionProfiling:false,fundingIntervalSeconds:5,quoteDispatchMarginSeconds:1,minRemainingQuoteSlots:10,quoteSnapshotCommitment:'confirmed',budgetProfile:'soak24',maxRecoveryTransactions:200000,
   accountMix:'3 funded trader owners, 2 shared maker participants, 1 funded risk receiver; round-robin attempts, at most one unresolved attempt per trader; open sizes 1 lot or 100 every tenth offered attempt, close the same actual exposure',
   transport:'HTTP quote and immutable submission journal; separate executor/other worker processes; actual finalized RPC + PostgreSQL/WS indexer',
   latencyDefinition:'Monotonic elapsed milliseconds; processed/confirmed times are first polling observations (upper bounds), wallet fixture signing separate; every offered attempt retained',
