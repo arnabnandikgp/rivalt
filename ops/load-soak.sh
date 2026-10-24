@@ -8,6 +8,7 @@ export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18899}" RIVALT_WS_PORT="${RIVALT_WS_P
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT" RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
 RIVALT_RUN_KIND=load
 if [[ "${1:-}" == '--manual-ui' ]]; then RIVALT_RUN_KIND=demo; fi
+if [[ "${1:-}" == '--maker-kit' ]]; then RIVALT_RUN_KIND=maker-qualification; fi
 export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/$RIVALT_RUN_KIND/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
 mkdir -p "$RIVALT_RUN_DIR"
@@ -32,7 +33,10 @@ for program in clearing maker_a maker_b oracle_fixture; do
 done
 source ops/postgres.sh
 node ops/record-toolchain.mjs > "$RIVALT_RUN_DIR/toolchain.json"
-if [[ "${1:-}" == '--manual-ui' ]]; then
+if [[ "${1:-}" == '--maker-kit' ]]; then
+  shift
+  node --import tsx tests/rpc-contract/maker-kit.ts "$@"
+elif [[ "${1:-}" == '--manual-ui' ]]; then
   shift
   node --import tsx tests/load/manual-ui.ts "$@"
 else

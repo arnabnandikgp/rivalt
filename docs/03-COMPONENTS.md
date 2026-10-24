@@ -233,6 +233,10 @@ P14 introduces an explicit `solana:devnet` deployment binding across indexer, se
 
 D38 separates explicit deployment configuration and bounded regression fixtures from local raw run output. See [evidence storage](EVIDENCE.md). Raw captures remain in place; launchers and normal tests must work without them.
 
+### P15A maker operator tooling
+
+`packages/maker-kit` wraps the existing owner-scoped maker runtime with protected configuration, explicit market/domain/signer binding and separate executor operation. It constructs SDK deposit/publication examples without adding signing or on-chain authority. Its recorder takes one repeatable-read PostgreSQL snapshot of finalized state/events/fees/reservations; a separate exact-integer reporter reconciles ordinary fills, funding, cash settlement, capital flows and unpaid claims. Unknown economic event types fail closed. Reference valuations are historical, hedge costs are labelled assumptions and independent-operator validation is always false. See [the operator guide](P15A-MAKER-KIT.md). The qualification provisions actual local programs and services; it does not consume retained acceptance dumps or change any program/IDL/economic rules.
+
 
 ## 24 October 2026 — program source organization
 

@@ -1,0 +1,18 @@
+{
+  "name": "@rivalt/maker-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/economics.ts"
+  },
+  "dependencies": {
+    "@rivalt/sdk": "workspace:*",
+    "@rivalt/services": "workspace:*",
+    "@solana/kit": "8.5.0",
+    "@solana/web3.js": "3.1.1"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

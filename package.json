@@ -30,7 +30,12 @@
     "test:matrix": "bash ops/smoke.sh",
     "test:matrix-report": "python3 -m unittest discover -s tests/e2e -p \"test_*.py\"",
     "test:load": "bash ops/load-soak.sh",
-    "test:load-unit": "vitest run tests/load/metrics.test.ts packages/services/src/profile.test.ts"
+    "test:load-unit": "vitest run tests/load/metrics.test.ts packages/services/src/profile.test.ts",
+    "maker:build": "bash ops/build-maker-kit.sh",
+    "maker:qualify": "bash ops/load-soak.sh --maker-kit",
+    "maker:bot": "node --import tsx packages/maker-kit/src/bot.ts",
+    "maker:record": "node --import tsx packages/maker-kit/src/record.ts",
+    "maker:report": "node --import tsx packages/maker-kit/src/report.ts"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "1.5.6",
