@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 
 const versions = new Map();
 const visited = new Set();
+const runtimeOnly = process.argv.includes('--runtime-only');
+assert(process.argv.slice(2).every(arg => arg === '--runtime-only'), 'Unknown dependency check option');
 function walk(manifestPath) {
   const path = realpathSync(manifestPath);
   if (visited.has(path)) return;
@@ -28,9 +30,10 @@ function walk(manifestPath) {
   }
 }
 for (const root of ['packages/sdk', 'packages/indexer', 'packages/services', 'apps/trader', 'tests/rpc-contract']) walk(resolve(root, 'package.json'));
+if (existsSync('packages/maker-kit/package.json')) walk(resolve('packages/maker-kit/package.json'));
 assert.equal(versions.get('@solana/kit'), '8.5.0');
 assert.equal(versions.get('@solana/wallet-adapter'), '3.1.1');
-for (const [name, expected] of [['@anchor-lang/core', '1.2.1'], ['@solana/web3.js', '1.99.0']]) {
+if (!runtimeOnly) for (const [name, expected] of [['@anchor-lang/core', '1.2.1'], ['@solana/web3.js', '1.99.0']]) {
   assert.equal(JSON.parse(readFileSync(`tests/anchor-conformance/node_modules/${name}/package.json`)).version, expected);
 }
 const custodyTestPackages = Object.fromEntries([
@@ -50,4 +53,4 @@ const browserTooling=Object.fromEntries([
 console.log(JSON.stringify({ modernRuntime: Object.fromEntries(versions), custodyTestPackages,
   browserTooling,
   serviceRuntime: Object.fromEntries(['fastify','pg'].map(name=>[name,JSON.parse(readFileSync(`packages/indexer/node_modules/${name}/package.json`)).version])),
-  packagesInspected: visited.size, legacyIsolation: 'pass' }, null, 2));
+  packagesInspected: visited.size, legacyIsolation: runtimeOnly ? 'runtime graph excludes legacy; isolated conformance client not checked' : 'pass' }, null, 2));

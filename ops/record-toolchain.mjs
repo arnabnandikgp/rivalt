@@ -15,5 +15,5 @@ console.log(JSON.stringify({
     '.tools/bin/anchor', '.tools/agave/solana-release/bin/solana', '.tools/agave/solana-release/bin/cargo-build-sbf',
     '.tools/surfpool/surfpool', '.tools/node/node-v24.22.0-darwin-arm64/bin/node',
   ].map(path => [path, hash(path)])),
-  installedDependencies: JSON.parse(run('node', ['ops/check-dependencies.mjs'])),
+  installedDependencies: JSON.parse(run('node', ['ops/check-dependencies.mjs', ...process.argv.slice(2)])),
 }, null, 2));

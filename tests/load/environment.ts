@@ -105,9 +105,9 @@ export async function environment(options: { makerKit?: boolean; beforeStart?: (
   const sourceErrors:string[]=[];
   const sourceLoop=(async()=>{while(!sourceStop){try{if(sourceActive){const time=await now();if(time>published){await send('signed controlled dependency update',await Promise.all([0,1,2,3].map(i=>publishFeed(i,time))),[setup.primary,setup.guardKey],sourcePayer);published=time;}}}catch(e){sourceErrors.push(e instanceof Error?e.message:'source error');}await delay(500);}})();
   const openingBalances:Record<string,{address:string;lamports:string}>=Object.fromEntries(await Promise.all(Object.entries(operators).map(async([role,key])=>[role,{address:key.address,lamports:String((await rpc.call('getBalance',[key.address,{commitment:'finalized'}])).value)}])));
+  try {
   await options.beforeStart?.(runtime);
   for(const role of ['indexer','api','executor','maker-a','maker-b','funding','settlement',...(options.makerKit?[]:['orders','risk'])])start(role);
-  try {
   await wait(async()=>{const r=await fetch('http://127.0.0.1:18083/ready');return r.ok;},Boolean,'indexer readiness');
   await wait(async()=>{const s=await runtime.snapshot();return s.sourceMode==='Normal'&&s.makers.every(x=>x.online);},Boolean,'funding and makers ready');
   } catch(error) {sourceStop=true;await sourceLoop;await Promise.all([...children.keys()].map(stop));await runtime.close();throw error;}

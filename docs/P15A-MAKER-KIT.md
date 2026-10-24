@@ -11,6 +11,8 @@ In a fresh checkout of the recorded P15A revision:
 ```sh
 python3 ops/bootstrap.py
 source ops/env.sh
+npm install --prefix .tools/pnpm --ignore-scripts pnpm@10.23.0
+rustup toolchain install 1.97.1 --profile minimal --component rustfmt,clippy
 pnpm maker:build
 pnpm maker:qualify
 ```
