@@ -55,6 +55,36 @@ try {
     (SELECT count(*)::text FROM events WHERE run_id=$1) AS events,
     (SELECT count(*)::text FROM jobs WHERE run_id=$1 AND status IN ('pending','unresolved')) AS unresolved`, [runId])).rows[0];
   assert.equal(report.sql.unresolved, '0');
+  // Optional narrow post-upgrade acceptance, with exact signatures from this
+  // run. The runtime itself continues to load only ops/deployment configuration.
+  if (process.env.RIVALT_MAKER_ROLLOUT_REPORT) {
+    stage = 'maker-rollout-reconciliation';
+    const rollout = JSON.parse(readFileSync(process.env.RIVALT_MAKER_ROLLOUT_REPORT, 'utf8'));
+    assert.equal(rollout.result, 'pass'); assert.equal(rollout.market, market);
+    const current = await indexer.store.snapshot();
+    const registrationChecks = [];
+    for (const [index, maker] of rollout.makers.entries()) {
+      const program = rollout.programs.find((item: any) => item.name === (index === 0 ? 'maker_a' : 'maker_b'));
+      assert.equal(current.state.makers[maker.registration].approvedHash, program.accountSha256);
+      const check = rollout.checks.find((item: any) => item.label === `maker-${index}-jointly-approve`);
+      const rows = (await indexer.store.pool.query('SELECT kind,payload FROM events WHERE run_id=$1 AND signature=$2', [runId, check.signature])).rows;
+      assert.equal(rows.length, 1); assert.equal(rows[0].kind, 'maker');
+      assert.equal(rows[0].payload.kind, 1); assert.equal(rows[0].payload.approvedHash, program.accountSha256);
+      registrationChecks.push({ registration: maker.registration, signature: check.signature, approvedHash: program.accountSha256 });
+      const rejected = rollout.checks.find((item: any) => item.label === `maker-${index}-reject-unapproved-upgrade`);
+      const failed = (await indexer.store.pool.query('SELECT failed FROM transactions WHERE run_id=$1 AND signature=$2', [runId, rejected.signature])).rows;
+      assert.deepEqual(failed, [{ failed: true }]);
+      assert.equal((await indexer.store.pool.query('SELECT count(*)::text AS count FROM events WHERE run_id=$1 AND signature=$2', [runId, rejected.signature])).rows[0].count, '0');
+    }
+    assert.equal(current.state.participants[rollout.capital].owner, rollout.owner);
+    assert.equal(current.state.participants[rollout.capital].cash, '0');
+    const response = await fetch('http://127.0.0.1:18090/v1/market');
+    assert.equal(response.status, 200);
+    const view = await response.json();
+    for (const check of registrationChecks) assert.equal(view.makers[check.registration].approvedHash, check.approvedHash);
+    report.makerRollout = { report: process.env.RIVALT_MAKER_ROLLOUT_REPORT, registrations: registrationChecks,
+      rejectedUpgradesRetainedWithoutEvents: 2, participant: rollout.capital, httpHashesMatch: true };
+  }
   report.result = 'pass';
 } catch {
   report.result = 'fail'; report.failedStage = stage; process.exitCode = 1;
