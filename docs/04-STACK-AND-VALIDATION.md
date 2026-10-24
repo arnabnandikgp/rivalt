@@ -98,7 +98,7 @@ IDs are stable references from the delivery plan/worklog. A finite suite is evid
 | A18 | Real dependency verification | Actual deployed verifier/update path and mint/authority/source provenance | P13 |
 | A19 | Devnet parity | Core lifecycle, real wallet signing/landing and provider backfill/recovery | P14 |
 | A20A | Maker kit/tooling | Fresh operator qualification over actual RPC/WS/PostgreSQL; independent economics and labelled hedge assumptions | P15A |
-| A21A | Engineering endurance | Explicit availability populations/reasons, uninterrupted 24 hours on pinned code, actual incidents/recovery/reconciliation/exit and measured limits | P16A |
+| A21A | Engineering reliability | Explicit availability populations/reasons, targeted bounded checks for actionable fixes, affected recovery/reconciliation/exit and measured limits; 24-hour endurance deferred (D42) | P16A |
 | A20B (original A20) | Independent maker evidence | Genuine operator records, observed hedges/capital/costs, missing-data labels; A20A cannot substitute | P15B |
 | A21B | External/funded readiness | Independent review/source assurance, measured funded risk/capital and separately authorized go/no-go; A21A cannot substitute | P16B |
 
@@ -169,7 +169,7 @@ Initial engineering objectives retained from the build specification:
 - load sweeps start at 1, 5 and 10 attempted orders/second with declared account mix; report saturation;
 - required transactions fit real limits, target >=20% measured CU headroom for declared worst-case fixtures;
 - under D35, >=50% normal offered availability and real 1,800-second local qualification with affected recovery, final withdrawal and >10,000-transaction RPC reconstruction;
-- a continuous 24-hour endurance run with restarts/backfill/maker outages and final reconciliation is owned by P16A under D41; P16B funded readiness also requires the separate external gates.
+- a continuous 24-hour endurance run with restarts/backfill/maker outages and final reconciliation remains deferred under D42 and is not required for current P16A completion; future funded-readiness assessment must revisit it separately.
 
 These are targets, not achieved measurements or promises. Report failed/unfilled attempts, unpaid profits and degraded intervals. Do not combine local/devnet latency populations. Tune one measured bottleneck at a time after correctness.
 
@@ -205,4 +205,4 @@ P12 verification is scoped to its resource options, measurement logic, actual of
 
 D38: retain raw run files locally at their current paths, untracked/ignored; keep concise Markdown reports and necessary bounded regression fixtures in Git. A fresh clone runs ordinary tests without the local captures. Full retained-run auditors require actual local input and must fail if it is unavailable. See [storage policy](EVIDENCE.md). A source-preserving cleanup is not another financial/soak run.
 
-D41 separates engineering and external evidence: P15A supplies reproducible internal operator qualification and exact economics tooling; P16A supplies explicit availability denominators/classification and the uninterrupted full-day run. A20B/A21B retain the independent-participant/review/funded gates. No new full-body checks are required for unrelated changes; the real 24-hour qualification itself remains an explicit P16A deliverable.
+D41 separates engineering and external evidence: P15A supplies reproducible internal operator qualification and exact economics tooling; P16A supplies explicit availability denominators/classification and bounded, change-focused operational verification; D42 supersedes D41's full-day requirement. A20B/A21B retain the independent-participant/review/funded gates. No new full-body checks are required for unrelated changes; continuous 24-hour qualification stays explicitly Deferred, not passed or replaced by a bounded check.

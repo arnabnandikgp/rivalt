@@ -13,7 +13,7 @@ Six milestone families, with M5 explicitly split into local and devnet gates, re
 | M4 | P07–P10 | Funding, orders, risk recovery and usable UI | Sources/funding, TP/SL, liquidation/default and browser/direct-exit gates |
 | M5a | P11–P12 | Complete local engineering evidence | Whole fault matrix, measured load, bounded qualification and >10,000-transaction RPC replay (D35) |
 | M5b | P13–P14 | Focused real-cluster parity | Actual dependency verification, wallet/core lifecycle and provider recovery |
-| M6 | P15A/P16A + P15B/P16B | Standalone maker tooling/endurance, followed by independent commercial/pilot readiness | A: reproducible operator qualification and continuous 24-hour engineering evidence. B: independent observations/review, calibrated funded risk and a separate pilot decision. All four must close for M6 closure |
+| M6 | P15A/P16A + P15B/P16B | Standalone maker tooling/reliability, followed by independent commercial/pilot readiness | A: reproducible operator qualification and bounded, change-focused reliability/operations evidence. B: independent observations/review, calibrated funded risk and a separate pilot decision. All four must close for M6 closure |
 
 M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. M6 engineering extensions P15A/P16A can proceed with explicitly internal makers and test assets. P15B/P16B require independent people/data/review and separate funded authorization. Completing A never closes B or establishes funded readiness.
 
@@ -36,7 +36,7 @@ M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. 
 | P13 | M5b | Devnet deployment and real dependency verification | P12 | A18 |
 | P14 | M5b | Devnet lifecycle, wallet and provider recovery | P13 | A19 |
 | P15A | M6 | Maker integration kit and economics tooling | P14 | A20A |
-| P16A | M6 | Engineering endurance and operational readiness | P15A verified baseline | A21A |
+| P16A | M6 | Engineering reliability and operational readiness | P15A verified baseline | A21A |
 | P15B | M6 | Independent maker validation | P15A + actual independent participation | A20B (original A20) |
 | P16B | M6 | Independent review and funded-pilot readiness | P16A + P15B + real review/authorization inputs | A21B (original A21 external gate) |
 
@@ -294,19 +294,19 @@ Milestone: **M6 engineering extension**. Depends on: **P14**.
 
 **Expected artifacts:** Operator guide/config examples, executable SDK examples, reference-bot entrypoint, fresh-environment qualification harness and independently checked economics report. Publish one cohesive ready PR; keep it open.
 
-## P16A — Engineering endurance and operational readiness
+## P16A — Engineering reliability and operational readiness
 
 Milestone: **M6 engineering extension**. Depends on: **P15A's exact verified baseline**, including an open Review PR.
 
-**Deliverable:** Explained availability, actionable reliability improvements and a real continuous 24-hour engineering qualification with measured limits and operational evidence.
+**Deliverable:** Explained availability, actionable reliability improvements and bounded operational checks with measured technical limits. D42 keeps continuous 24-hour qualification deferred for later; it is not a current P16A gate.
 
-**PR scope:** Reconstruct the reported 71.19% offered availability from its actual retained P12 population. Define offered/scheduled/eligible/submitted/finalized denominators and fault exclusions; classify each unavailable/rejected/failed/unknown case, retaining unknown causes when evidence cannot establish them. Improve actionable service/scheduling/resource defects without weakening source freshness, confidence, recovery, authority, solvency, margin or replay safeguards to raise metrics. Pin the revision, program/artifact/config identities, load/account mix and resource/fee budgets before the continuous run.
+**PR scope:** Reconstruct the reported 71.19% offered availability from its actual retained P12 population. Define offered/scheduled/eligible/submitted/finalized denominators and fault exclusions; classify each unavailable/rejected/failed/unknown case, retaining unknown causes when evidence cannot establish them. Improve actionable service/scheduling/resource defects without weakening source freshness, confidence, recovery, authority, solvency, margin or replay safeguards to raise metrics. Pin the revision, program/artifact/config identities and relevant account/resource/fee profiles for each actual check. Select duration and workload to exercise a concrete changed behavior; no replacement long soak is introduced automatically.
 
-**Configuration closure:** Explicit continuous-run profile, host/storage/clock/continuity preflight, incident schedule, recovery/reconciliation/exit criteria, measured technical limits and provisional risk assumptions. No production calibration or G12 closure follows.
+**Configuration closure:** Explicit bounded-check profiles, relevant host/storage preflight, incident/recovery/reconciliation/exit criteria, measured technical limits and provisional risk assumptions. No production calibration or G12 closure follows.
 
-**Acceptance — A21A:** Complete at least 86,400 uninterrupted measured seconds on one pinned revision using actual deployed Surfpool programs, RPC/WS, separately running services and PostgreSQL. Preserve periodic and terminal independent reconciliation, scheduled maker/worker/provider/indexer incidents, durable original-signature recovery and an actual final exit/replay. Record actual availability denominators/reasons, successful and rejected populations, latency/resource trajectories and technical limits. A host sleep, continuity breach, unexplained accounting/authority fault or unresolved signed outcome keeps qualification incomplete; earlier interrupted periods cannot be added together. Preserve risk/oracle admission safeguards and explicitly disclose synthetic/internal inputs and provisional calibration. The earlier P12 bounded qualification remains valid for its original scope; it is not the full-day result.
+**Acceptance — A21A:** Explain the actual P12 availability population and classifications, then verify actionable fixes with targeted tests and bounded real Surfpool RPC/WS/PostgreSQL checks. Include affected incident/recovery paths, durable original-signature reconciliation and an actual admissible exit when the changed behavior can affect them. Report measured durations, successful/rejected/unknown populations, resource/latency limits and provisional risk assumptions. Unexplained accounting/authority faults or unresolved signed outcomes cannot be waived. Preserve risk/oracle admission safeguards and clearly label synthetic/internal inputs. Unchanged inherited checks retain their recorded evidence. Continuous 24-hour qualification stays Deferred under D42; neither the earlier 2h44m interruption nor bounded checks are a full-day pass.
 
-**Expected artifacts:** Availability diagnosis, focused fixes and tests, continuous-run command/report, incident/recovery/exit runbooks and measured technical/provisional-risk limits. P16A may span several runs; keep its stacked PR open and its phase In progress until the real duration/exit gates pass, then Review while unmerged.
+**Expected artifacts:** Availability diagnosis, focused fixes/tests and bounded verification report, incident/recovery/exit runbooks, measured technical/provisional-risk limits and an explicit deferred-endurance item. Keep the stacked PR open; move to Review only after the scoped engineering acceptance passes. P16A completion does not claim long-duration endurance or close P15B/P16B.
 
 ## P15B — Independent maker validation
 
@@ -322,7 +322,7 @@ Milestone: **M6 external gate**. Depends on: **P16A + P15B + actual independent 
 
 **Deliverable:** Independent review/remediation, calibrated funded-risk/insurance/cost assumptions and an explicit bounded pilot go/no-go package.
 
-**Acceptance — A21B:** Real independent review and source/guard assurance, measured external liquidity/capital inputs, resolved material findings, calibrated caps/margin/liquidation/reserve budgets and actual pilot authorization determine readiness. Reuse P16A's attributed endurance/incident evidence when applicable; A completion cannot fabricate external review or funded calibration. G12 closes here only when its independent conditions are met. A recorded No-go does not mean funded deployment is ready or approved. No funded deployment is authorized by completing either A phase.
+**Acceptance — A21B:** Real independent review and source/guard assurance, measured external liquidity/capital inputs, resolved material findings, calibrated caps/margin/liquidation/reserve budgets and actual pilot authorization determine readiness. Reuse P16A's attributed bounded reliability/incident evidence when applicable; revisit deferred endurance separately before any funded-readiness claim; A completion cannot fabricate external review or funded calibration. G12 closes here only when its independent conditions are met. A recorded No-go does not mean funded deployment is ready or approved. No funded deployment is authorized by completing either A phase.
 
 ## Required closeout record
 
