@@ -78,6 +78,17 @@ try {
     }
     assert.equal(current.state.participants[rollout.capital].owner, rollout.owner);
     assert.equal(current.state.participants[rollout.capital].cash, '0');
+    if (process.env.RIVALT_MAKER_OWNERSHIP_REPORT) {
+      const ownership = JSON.parse(readFileSync(process.env.RIVALT_MAKER_OWNERSHIP_REPORT, 'utf8'));
+      assert.equal(ownership.result, 'pass'); assert.equal(ownership.market, market);
+      assert.equal(current.state.participants[ownership.capital].owner, ownership.owner);
+      assert.equal(current.state.participants[ownership.capital].cash, '0');
+      const registration = ownership.checks.find((item: any) => item.label === 'register-test-participant');
+      const rows = (await indexer.store.pool.query('SELECT kind,payload FROM events WHERE run_id=$1 AND signature=$2', [runId, registration.signature])).rows;
+      assert.equal(rows.length, 1); assert.equal(rows[0].kind, 'custody');
+      assert.equal(rows[0].payload.participant, ownership.capital);
+      report.correctedOwnershipParticipant = ownership.capital;
+    }
     const response = await fetch('http://127.0.0.1:18090/v1/market');
     assert.equal(response.status, 200);
     const view = await response.json();

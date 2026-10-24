@@ -11,7 +11,8 @@ import { DevnetRpc, persist } from './devnet-rpc.js';
 import { programDataIdentity } from './devnet-preflight-support.js';
 import rollout from '../../ops/devnet-maker-rollout.json';
 
-const directory = '.local/devnet/maker-rollout-r030';
+const directory = process.env.RIVALT_MAKER_ROLLOUT_DIR ?? '.local/devnet/maker-rollout-r030';
+assert(/^\.local\/devnet\/[a-z0-9-]+$/.test(directory), 'Use a dedicated local rollout directory');
 const baseline = JSON.parse(readFileSync(`${directory}/baseline.json`, 'utf8'));
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(), '', 'Commit acceptance before signing');
@@ -23,6 +24,10 @@ let stage = 'verify-deployed-artifacts';
 const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 const data = (account: any) => Buffer.from(account.data[0], 'base64');
 const original = (key: string) => data(baseline.accounts[key]);
+const marketBefore = sdk.getMarketStateDecoder().decode(original(context.market));
+// A profile label may change after initialization. Existing market authority
+// always comes from its stored domain, never a newly derived profile hash.
+const domain = marketBefore.domain;
 const checkpoints = `${directory}/checkpoints`;
 mkdirSync(checkpoints, { recursive: true, mode: 0o700 });
 
@@ -52,7 +57,7 @@ try {
     } else assert.equal(identity.accountSha256, deployed.accountSha256);
     report.programs.push({ name: deployed.name, program: deployed.program, programData: deployed.programData, ...identity });
   }
-  const owner = await privateKey('r030-owner');
+  const owner = await privateKey(process.env.RIVALT_MAKER_TEST_OWNER_ROLE ?? 'r030-owner');
   const [capital] = await sdk.findParticipantPda({ market: context.market, owner: owner.address }, context.options);
   report.owner = owner.address; report.capital = capital;
   await step('fund-test-owner-rent', async () => {
@@ -65,7 +70,7 @@ try {
     await step(`maker-${index}-reject-missing-capital`, async () => {
       assert.equal(await harness.read(capital), null);
       await harness.send(`maker-${index}-reject-missing-capital`, [await api.getInitializeConfigInstructionAsync({ owner, capital,
-        config: configs[index], market: context.market, domain: context.domain, duration: 3600n }, { programAddress: maker.pricingProgram })], [owner], 6001);
+        config: configs[index], market: context.market, domain, duration: 3600n }, { programAddress: maker.pricingProgram })], [owner], 6001);
       assert.equal(await harness.read(configs[index]), null);
     });
   }
@@ -74,9 +79,10 @@ try {
     const participant = sdk.getParticipantDecoder().decode((await harness.read(capital))!);
     assert.equal(participant.owner, owner.address); assert.equal(participant.cash, 0n); assert.equal(participant.lots, 0n);
   });
+  report.approvalsPerformed = 0;
   for (const [index, maker] of context.makers.entries()) {
     const api = index === 0 ? sdk.makerA : sdk.makerB;
-    const input = { owner, capital, config: configs[index], market: context.market, domain: context.domain, duration: 3600n };
+    const input = { owner, capital, config: configs[index], market: context.market, domain, duration: 3600n };
     await step(`maker-${index}-reject-unrelated-owner`, async () => {
       const before = await harness.read(capital);
       await harness.send(`maker-${index}-reject-unrelated-owner`, [await api.getInitializeConfigInstructionAsync({ ...input, owner: context.payer },
@@ -90,7 +96,13 @@ try {
       const config = api.getMakerConfigDecoder().decode((await harness.read(configs[index]))!).state;
       assert.equal(config.owner, owner.address); assert.equal(config.capital, capital);
       assert.equal(config.market, context.market); assert.equal(config.makerId, index);
+      assert.deepEqual(Buffer.from(config.domain), Buffer.from(domain));
     });
+    const initialRegistration = sdk.getMakerRegistrationDecoder().decode(original(maker.registration));
+    const deployedHash = hash((await harness.read(maker.programData))!);
+    // A separate ownership-only rerun must not repeat a completed upgrade or
+    // manufacture another approval merely to exercise the old-hash rejection.
+    if (Buffer.from(initialRegistration.approvedHash).toString('hex') === deployedHash) continue;
     await step(`maker-${index}-reject-unapproved-upgrade`, async () => {
       await harness.send(`maker-${index}-reject-unapproved-upgrade`, [await sdk.getSyncMakerEpochInstructionAsync({ ...context, ...maker }, context.options)], [], 6114);
     });
@@ -103,6 +115,7 @@ try {
       assert.equal(registration.quarantined, false);
       assert.equal(registration.buyConsumed, before.buyConsumed); assert.equal(registration.sellConsumed, before.sellConsumed);
     });
+    report.approvalsPerformed++;
   }
   stage = 'final-account-reconciliation';
   const keys = [...Object.keys(baseline.accounts), capital, ...configs] as Address[];
@@ -113,10 +126,10 @@ try {
     assert.equal(report.accounts[key].owner, baseline.accounts[key].owner);
     assert.deepEqual(data(report.accounts[key]), original(key), `Unexpected existing-account mutation: ${key}`);
   }
-  const marketBefore = sdk.getMarketStateDecoder().decode(original(context.market));
   const marketAfter = sdk.getMarketStateDecoder().decode(data(report.accounts[context.market]));
   assert.equal(marketBefore.mode, 2);
-  assert.equal(json(marketAfter), json({ ...marketBefore, sequence: marketBefore.sequence + 3n, configEpoch: marketBefore.configEpoch + 2n }));
+  assert.equal(json(marketAfter), json({ ...marketBefore, sequence: marketBefore.sequence + 1n + BigInt(report.approvalsPerformed),
+    configEpoch: marketBefore.configEpoch + BigInt(report.approvalsPerformed) }));
   const registryBefore = sdk.getParticipantRegistryDecoder().decode(original(context.registry));
   const registryAfter = sdk.getParticipantRegistryDecoder().decode(data(report.accounts[context.registry]));
   assert.equal(json(registryAfter), json({ ...registryBefore, count: registryBefore.count + 1, members: [...registryBefore.members, capital] }));
@@ -127,7 +140,7 @@ try {
     assert.equal(entry.finalized, true); return { label: entry.label, signature: entry.signature, error: entry.history.meta.err,
       feeLamports: entry.feeLamports, journal: `${harness.journal}/${file}` };
   });
-  assert.equal(report.checks.length, 12);
+  assert.equal(report.checks.length, 8 + 2 * report.approvalsPerformed);
   report.result = 'pass';
 } catch (error) {
   report.result = 'fail'; report.failedStage = stage;

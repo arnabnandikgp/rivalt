@@ -29,7 +29,7 @@ def u64(data, offset):
     return struct.unpack_from("<Q", data, offset)[0]
 
 
-def audit(report):
+def audit(report, verify_initialization=True):
     assert report["result"] == "pass" and report["sourceDirty"] is False
     baseline = json.loads(Path(report["baseline"]).read_text())
     before, after = baseline["accounts"], report["accounts"]
@@ -41,8 +41,10 @@ def audit(report):
     old_market, market = raw(before[report["market"]]), raw(after[report["market"]])
     assert market[:8] == hashlib.sha256(b"account:MarketState").digest()[:8]
     expected = bytearray(old_market)
-    struct.pack_into("<Q", expected, 148, u64(old_market, 148) + 2)  # config epoch
-    struct.pack_into("<Q", expected, 156, u64(old_market, 156) + 3)  # event sequence
+    approvals = report.get("approvalsPerformed", 2)
+    assert approvals in (0, 1, 2)
+    struct.pack_into("<Q", expected, 148, u64(old_market, 148) + approvals)
+    struct.pack_into("<Q", expected, 156, u64(old_market, 156) + 1 + approvals)
     assert market == expected and market[165] == 2
     old_registry, registry = raw(before[report["registry"]]), raw(after[report["registry"]])
     old_count = struct.unpack_from("<H", old_registry, 42)[0]
@@ -62,15 +64,20 @@ def audit(report):
     participant = raw(after[report["capital"]])
     assert participant[42:74] == address_bytes(report["owner"])
     assert participant[76:124] == bytes(48)  # cash, position, virtual value and funding checkpoint
+    changed_approvals = 0
     for index, maker in enumerate(report["makers"]):
         old_registration = raw(before[maker["registration"]])
         registration = raw(after[maker["registration"]])
         program = next(item for item in report["programs"] if item["name"] == ("maker_a" if index == 0 else "maker_b"))
         expected = bytearray(old_registration)
-        expected[203:235] = bytes.fromhex(program["accountSha256"])
-        struct.pack_into("<Q", expected, 235, u64(old_registration, 235) + 1)
-        expected[291] = 0  # explicit joint reapproval clears quarantine
+        if old_registration[203:235].hex() != program["accountSha256"]:
+            changed_approvals += 1
+            expected[203:235] = bytes.fromhex(program["accountSha256"])
+            struct.pack_into("<Q", expected, 235, u64(old_registration, 235) + 1)
+            expected[291] = 0  # explicit joint reapproval clears quarantine
         assert registration == expected
+        if not verify_initialization:
+            continue  # Original failed fixture is retained, never counted as a valid initialization.
         config = raw(after[maker["config"]])
         assert after[maker["config"]]["owner"] == program["program"]
         assert config[:8] == hashlib.sha256(b"account:MakerConfig").digest()[:8]
@@ -79,7 +86,8 @@ def audit(report):
         assert config[75:107] == address_bytes(report["capital"])
         assert config[107:139] == market[12:44] and u64(config, 139) == 1
         assert u64(config, 155) - u64(config, 147) == 3600
-    assert len(report["checks"]) == 12
+    assert changed_approvals == approvals
+    assert len(report["checks"]) == 8 + 2 * approvals
     signatures, fees, rejections = set(), 0, 0
     for check in report["checks"]:
         entry = json.loads(Path(check["journal"]).read_text())
@@ -96,11 +104,21 @@ def audit(report):
             rejections += 1
         else:
             assert history["meta"]["err"] is None
-    assert rejections == 6
-    return {"result": "pass", "signedChecks": 12, "expectedRejections": rejections,
+    assert rejections == 4 + approvals
+    return {"result": "pass", "scope": "full" if verify_initialization else "approval-and-accounting-only",
+            "signedChecks": len(report["checks"]), "expectedRejections": rejections,
             "participants": count, "vaultAtoms": str(vault), "allocatedAtoms": str(allocated),
             "acceptanceFeeLamports": str(fees), "rawAccountReconciliation": True}
 
 
 if __name__ == "__main__":
-    print(json.dumps(audit(json.loads(Path(sys.argv[1]).read_text())), indent=2))
+    current = json.loads(Path(sys.argv[1]).read_text())
+    result = audit(current)
+    if len(sys.argv) == 3:
+        previous = json.loads(Path(sys.argv[2]).read_text())
+        result["previous"] = audit(previous, verify_initialization=False)
+        baseline = json.loads(Path(current["baseline"]).read_text())
+        for key, account in baseline["accounts"].items():
+            assert account["owner"] == previous["accounts"][key]["owner"]
+            assert raw(account) == raw(previous["accounts"][key]), "Continuation changed prior state"
+    print(json.dumps(result, indent=2))

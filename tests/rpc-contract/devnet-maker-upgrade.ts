@@ -14,7 +14,8 @@ import rollout from '../../ops/devnet-maker-rollout.json';
 // This bounded maintenance command upgrades only the two pinned devnet makers.
 // CLI retries apply to program uploads; financial acceptance uses DevnetRpc's
 // original-signature journal separately. Existing captures are never overwritten.
-const directory = '.local/devnet/maker-rollout-r030';
+const directory = process.env.RIVALT_MAKER_ROLLOUT_DIR ?? '.local/devnet/maker-rollout-r030';
+assert(/^\.local\/devnet\/[a-z0-9-]+$/.test(directory), 'Use a dedicated local rollout directory');
 const configurationValues = configuration(process.env);
 const rpc = new Rpc(configurationValues.rpc);
 const run = promisify(execFile);
