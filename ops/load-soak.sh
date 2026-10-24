@@ -9,11 +9,12 @@ export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT" RIVALT_WS_URL="ws://12
 RIVALT_RUN_KIND=load
 if [[ "${1:-}" == '--manual-ui' ]]; then RIVALT_RUN_KIND=demo; fi
 if [[ "${1:-}" == '--maker-kit' ]]; then RIVALT_RUN_KIND=maker-qualification; fi
+if [[ "${1:-}" == '--readiness' ]]; then RIVALT_RUN_KIND=readiness; fi
 export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/$RIVALT_RUN_KIND/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
 mkdir -p "$RIVALT_RUN_DIR"
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" 15432 18081 18083 18084
-if [[ "$RIVALT_RUN_KIND" == maker-qualification ]]; then
+if [[ "$RIVALT_RUN_KIND" == maker-qualification || "$RIVALT_RUN_KIND" == readiness ]]; then
   node ops/record-toolchain.mjs --runtime-only > "$RIVALT_RUN_DIR/toolchain.json"
 else
   node ops/record-toolchain.mjs > "$RIVALT_RUN_DIR/toolchain.json"
@@ -37,7 +38,10 @@ for program in clearing maker_a maker_b oracle_fixture; do
     --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/deployment-$key.json"
 done
 source ops/postgres.sh
-if [[ "${1:-}" == '--maker-kit' ]]; then
+if [[ "${1:-}" == '--readiness' ]]; then
+  shift
+  node --import tsx tests/rpc-contract/readiness.ts "$@"
+elif [[ "${1:-}" == '--maker-kit' ]]; then
   shift
   node --import tsx tests/rpc-contract/maker-kit.ts "$@"
 elif [[ "${1:-}" == '--manual-ui' ]]; then

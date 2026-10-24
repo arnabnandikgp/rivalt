@@ -13,7 +13,7 @@ import { quoteWindow } from './quote-window.js';
 
 export const OPERATOR_CAP=5_000_000n,MAKER_CAP=1_000_000n,HEARTBEAT_MS=3000;
 export class QuoteUnavailable extends Error {
-  constructor(readonly code:string,message:string){super(message);}
+  constructor(readonly code:string,message:string,readonly diagnostic?:Record<string,string|number>){super(message);}
 }
 export function sampleMatchesSnapshot(event:any,s:{market:string;m:Pick<sdk.MarketState,'domain'|'termsEpoch'|'configEpoch'>;risk:sdk.TestRouteState}){
   return event.market===s.market&&event.domain===Buffer.from(s.m.domain).toString('hex')&&
@@ -90,12 +90,18 @@ export class Runtime {
   }
   async quote(owner:Address,side:number,lots:bigint,stored?:{id:bigint;version:bigint;filled:bigint},keeper?:Keypair){
     const s=await this.snapshot('confirmed'),[trader]=await sdk.findParticipantPda({market:s.market,owner}, this.options),p=s.participants[trader];
-    if(!p || p.owner!==owner)throw new QuoteUnavailable('account-unavailable','Funded account unavailable');
-    if(s.m.paused)throw new QuoteUnavailable('market-paused','Market is paused');
-    if(s.slot<s.risk.validFrom)throw new QuoteUnavailable('observation-not-confirmed','Market observation is ahead of the confirmed preview');
-    if(s.slot>=s.risk.validUntil)throw new QuoteUnavailable('observation-expired','Market observation expired');
-    if(s.sourceMode==='NoCredibleBounds')throw new QuoteUnavailable('source-unavailable','Credible price bounds unavailable');
-    if(s.m.mode===2&&!quoteWindow(s.now,s.risk.oracle.sampledAt,this.sampleInterval,this.dispatchMargin))throw new QuoteUnavailable('observation-update-due','Next scheduled observation is within the dispatch margin');
+    // Public read-only preview context explains a refusal without authorizing an
+    // action or interpreting a declared driver fault window as oracle Normal.
+    const diagnostic={snapshotCommitment:s.commitment,snapshotSlot:s.slot.toString(),sequence:s.m.sequence.toString(),
+      observation:s.risk.observationSequence.toString(),sourceMode:s.sourceMode,oracleStatus:s.risk.oracle.status,
+      chainTime:s.now.toString(),sampledAt:s.risk.oracle.sampledAt.toString(),validFrom:s.risk.validFrom.toString(),validUntil:s.risk.validUntil.toString()};
+    const unavailable=(code:string,message:string)=>new QuoteUnavailable(code,message,diagnostic);
+    if(!p || p.owner!==owner)throw unavailable('account-unavailable','Funded account unavailable');
+    if(s.m.paused)throw unavailable('market-paused','Market is paused');
+    if(s.slot<s.risk.validFrom)throw unavailable('observation-not-confirmed','Market observation is ahead of the confirmed preview');
+    if(s.slot>=s.risk.validUntil)throw unavailable('observation-expired','Market observation expired');
+    if(s.sourceMode==='NoCredibleBounds')throw unavailable('source-unavailable','Credible price bounds unavailable');
+    if(s.m.mode===2&&!quoteWindow(s.now,s.risk.oracle.sampledAt,this.sampleInterval,this.dispatchMargin))throw unavailable('observation-update-due','Next scheduled observation is within the dispatch margin');
     const pendingSample=await this.store.pool.query("SELECT signature FROM service_intents WHERE run_id=$1 AND budget='funding' AND status IN ('pending','unresolved')",[this.runId]);
     const confirmedPendingSamples:string[]=[];
     for(const {signature} of pendingSample.rows){
@@ -108,13 +114,13 @@ export class Runtime {
         const events=decode(signature,tx,s.eventAuthority,s.program).filter(x=>x.type==='oracle');
         applied=events.length===1&&BigInt(integer(tx.slot))<=s.slot&&sampleMatchesSnapshot(events[0].data,s);
       }catch{ /* No inference from missing or conflicting evidence. */ }
-      if(!applied)throw new QuoteUnavailable('observation-update-pending','Observation update is awaiting confirmed preview evidence');
+      if(!applied)throw unavailable('observation-update-pending','Observation update is awaiting confirmed preview evidence');
       confirmedPendingSamples.push(signature);
     }
     const order=stored?p.book.orders.find(o=>o.id===stored.id&&o.version===stored.version&&o.filled===stored.filled):undefined;
     if(stored&&(!order||order.side!==side||sdk.orderRemaining(p,order,s.m.termsEpoch,s.slot)<lots||!sdk.orderTriggered(order,s.risk.referencePrice,s.slot)))throw new Error('Stored order unavailable');
     const reduceOnly=order?order.reduceOnly:(side===1 && p.lots>=lots)||(side===0 && -p.lots>=lots);
-    if(s.sourceMode!=='Normal' && !reduceOnly)throw new QuoteUnavailable('risk-increase-restricted','Risk increase blocked by oracle mode');
+    if(s.sourceMode!=='Normal' && !reduceOnly)throw unavailable('risk-increase-restricted','Risk increase blocked by oracle mode');
     const eligible=s.makers.filter(x=>x.r.capital!==trader && x.online && x.approved && !x.r.quarantined && x.r.quoteEpoch===x.state.quoteEpoch);
     const candidates=eligible.map(x=>({state:x.state,balance:x.balance,request:{version:1,domain:s.m.domain,market:s.market,capital:x.r.capital,quoteEpoch:x.r.quoteEpoch,authorityEpoch:x.r.authorityEpoch,termsEpoch:s.m.termsEpoch,marketConfigEpoch:s.m.configEpoch,side,lots,inventory:x.balance.lots,cash:x.balance.cash,inventoryLimit:x.r.inventoryLimit,consumed:side===0?x.r.buyConsumed:x.r.sellConsumed,referencePrice:s.risk.referencePrice,slot:s.slot}}));
     const allocation=candidates.length?sdk.allocateRoute({snapshotSlot:s.slot,side,lots,lower:s.risk.lower,upper:s.risk.upper,trader:p,candidates,grossLots:s.risk.grossLots,maxFee:order?order.feeBudget-order.feeCharged:1_000_000_000n,allInLimit:order?order.limit*lots:side===0?1_000_000_000_000_000n:0n,
@@ -127,7 +133,7 @@ export class Runtime {
     const selected=allocation.legs.map(l=>eligible.find(x=>x.r.makerId===l.makerId)!);const [first,second]=selected;
     const expiry=[s.slot+150n,s.risk.validUntil,...selected.map(x=>x.state.expirySlot)].reduce((a,b)=>a<b?a:b);
     const processedSlot=BigInt(integer(await this.rpc.call('getSlot',[{commitment:'processed'}])));
-    if(expiry<=processedSlot+10n)throw new QuoteUnavailable('quote-expiring','Quote has insufficient remaining dispatch slots');
+    if(expiry<=processedSlot+10n)throw unavailable('quote-expiring','Quote has insufficient remaining dispatch slots');
     const accounts={...s,trader,
       firstCapital:first.r.capital,firstRegistration:first.registration,firstProgram:first.r.pricingProgram,firstProgramData:first.r.programData,firstConfig:first.r.config,
       secondCapital:second?.r.capital,secondRegistration:second?.registration,secondProgram:second?.r.pricingProgram,secondProgramData:second?.r.programData,secondConfig:second?.r.config};

@@ -237,6 +237,8 @@ D38 separates explicit deployment configuration and bounded regression fixtures 
 
 `packages/maker-kit` wraps the existing owner-scoped maker runtime with protected configuration, explicit market/domain/signer binding and separate executor operation. It constructs SDK deposit/publication examples without adding signing or on-chain authority. Its recorder takes one repeatable-read PostgreSQL snapshot of finalized state/events/fees/reservations; a separate exact-integer reporter reconciles ordinary fills, funding, cash settlement, capital flows and unpaid claims. Unknown economic event types fail closed. Reference valuations are historical, hedge costs are labelled assumptions and independent-operator validation is always false. See [the operator guide](P15A-MAKER-KIT.md). The qualification provisions actual local programs and services; it does not consume retained acceptance dumps or change any program/IDL/economic rules.
 
+P16A adds optional `diagnostic` to existing quote-refusal responses: confirmed preview slot/sequence/observation, source mode/status, chain/sample time and validity slots. It is public read-only context, not signing/admission authority; all rejection predicates/order remain unchanged. The attempt recorder retains it for future cause attribution. [Operational readiness](P16A-OPERATIONS.md) defines separate quote/submission/fill populations, bounded recovery checks and remaining limits.
+
 
 ## 24 October 2026 — program source organization
 

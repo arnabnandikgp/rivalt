@@ -35,7 +35,9 @@
     "maker:qualify": "bash ops/load-soak.sh --maker-kit",
     "maker:bot": "node --import tsx packages/maker-kit/src/bot.ts",
     "maker:record": "node --import tsx packages/maker-kit/src/record.ts",
-    "maker:report": "node --import tsx packages/maker-kit/src/report.ts"
+    "maker:report": "node --import tsx packages/maker-kit/src/report.ts",
+    "test:readiness": "bash ops/load-soak.sh --readiness",
+    "report:availability": "node --import tsx tests/load/availability-cli.ts"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "1.5.6",
