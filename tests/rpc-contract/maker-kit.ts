@@ -54,6 +54,9 @@ try {
       result => result.value[0]?.confirmationStatus === 'finalized', `original signature ${label}`, 45_000);
     const tx = await venue.rpc.call('getTransaction', [signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]);
     assert(tx?.meta); venue.txLog(label, signature, tx);
+    assert.equal(tx.transaction.signatures[0], signature);
+    const fetchedWire = await venue.rpc.call('getTransaction', [signature, { encoding: 'base64', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]);
+    assert.equal(fetchedWire.transaction[0], wire, 'Independently fetched transaction preserves the original signed bytes');
     steps.push({ label, signature, acknowledged, error: tx.meta.err, feeLamports: String(tx.meta.fee), slot: tx.slot });
     writeFileSync(`${dir}/steps.json`, json(steps));
     assert.equal(tx.meta.err, null, `${label}: ${tx.meta.logMessages}`);
@@ -62,7 +65,10 @@ try {
   async function trade(label: string, signer: Keypair, side: 0 | 1, lots: bigint) {
     const prepared = await wait(async () => {
       try {
-        const quote = await venue.runtime.quote(signer.address, side, lots);
+        const response = await fetch('http://127.0.0.1:18081/v1/quote', { method: 'POST', headers: { 'content-type': 'application/json' },
+          body: json({ owner: signer.address, side, lots }), signal: AbortSignal.timeout(5000) });
+        const quote = await response.json() as any;
+        if (!response.ok) throw new Error(quote.code ?? quote.error ?? `HTTP ${response.status}`);
         if (!quote.available) { unsignedRejections.push('no-liquidity'); return null; }
         return await client.validateQuote(await client.snapshot('confirmed'), signer.address, side, lots, quote);
       } catch (error) { unsignedRejections.push(error instanceof Error ? error.message : 'quote unavailable'); return null; }
