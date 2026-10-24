@@ -1,52 +1,21 @@
 //! Standing maker authorization and bounded read-only pricing.
-use crate::{ClearingError, MarketState, Participant};
+
+use crate::error::ClearingError;
+use crate::events::MakerChanged;
+use crate::state::{CapitalBinding, MakerRegistration, MarketState, Participant};
+
+pub use crate::constants::makers::*;
+
 use anchor_lang::prelude::*;
+
 use anchor_lang::solana_program::{
     instruction::{AccountMeta, Instruction},
     program::{get_return_data, invoke},
 };
+
 use maker_interface::{MakerState, QuoteRequest, QuoteResponse, VERSION};
+
 use solana_sha256_hasher::hash;
-
-#[cfg(not(feature = "devnet-test-profile"))]
-pub const MAKER_A: Pubkey = pubkey!("7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU");
-#[cfg(not(feature = "devnet-test-profile"))]
-pub const MAKER_B: Pubkey = pubkey!("F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc");
-#[cfg(feature = "devnet-test-profile")]
-pub const MAKER_A: Pubkey = pubkey!("C2dhcKi2FQTsJgHiAYYb8hGeqYWdcUQr9MB4kU6AdLJG");
-#[cfg(feature = "devnet-test-profile")]
-pub const MAKER_B: Pubkey = pubkey!("8gBGZLMdws9ci5ax8ASmK46WPigHguFYvm8azK8q6Ckc");
-
-#[account]
-#[derive(InitSpace)]
-pub struct MakerRegistration {
-    pub version: u16,
-    pub maker_id: u8,
-    pub market: Pubkey,
-    pub capital: Pubkey,
-    pub owner: Pubkey,
-    pub pricing_program: Pubkey,
-    pub program_data: Pubkey,
-    pub config: Pubkey,
-    /// Entire loader ProgramData, including deployment slot, authority and code.
-    pub approved_hash: [u8; 32],
-    pub authority_epoch: u64,
-    pub quote_epoch: u64,
-    pub start_slot: u64,
-    pub expiry_slot: u64,
-    pub inventory_limit: u64,
-    pub buy_consumed: u64,
-    pub sell_consumed: u64,
-    pub quarantined: bool,
-    pub bump: u8,
-}
-#[account]
-#[derive(InitSpace)]
-pub struct CapitalBinding {
-    pub market: Pubkey,
-    pub capital: Pubkey,
-    pub registration: Pubkey,
-}
 
 #[event_cpi]
 #[derive(Accounts)]
@@ -55,13 +24,35 @@ pub struct RegisterMaker<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
     pub authority: Signer<'info>,
-    #[account(mut, seeds=[b"market".as_ref(),b"BTC".as_ref()], bump=market.bump, has_one=authority)]
+    #[account(
+        mut,
+        seeds = [b"market".as_ref(), b"BTC".as_ref()],
+        bump = market.bump,
+        has_one = authority,
+    )]
     pub market: Box<Account<'info, MarketState>>,
-    #[account(seeds=[b"participant",market.key().as_ref(),owner.key().as_ref()], bump=capital.bump, has_one=market, has_one=owner)]
+    #[account(
+        seeds = [b"participant", market.key().as_ref(), owner.key().as_ref()],
+        bump = capital.bump,
+        has_one = market,
+        has_one = owner,
+    )]
     pub capital: Box<Account<'info, Participant>>,
-    #[account(init,payer=owner,space=8+MakerRegistration::INIT_SPACE,seeds=[b"maker",market.key().as_ref(),&[maker_id]],bump)]
+    #[account(
+        init,
+        payer = owner,
+        space = 8 + MakerRegistration::INIT_SPACE,
+        seeds = [b"maker", market.key().as_ref(), &[maker_id]],
+        bump,
+    )]
     pub registration: Box<Account<'info, MakerRegistration>>,
-    #[account(init,payer=owner,space=8+CapitalBinding::INIT_SPACE,seeds=[b"maker-capital",capital.key().as_ref()],bump)]
+    #[account(
+        init,
+        payer = owner,
+        space = 8 + CapitalBinding::INIT_SPACE,
+        seeds = [b"maker-capital", capital.key().as_ref()],
+        bump,
+    )]
     pub binding: Account<'info, CapitalBinding>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
@@ -76,12 +67,31 @@ pub struct RegisterMaker<'info> {
 pub struct ApproveMaker<'info> {
     pub owner: Signer<'info>,
     pub authority: Signer<'info>,
-    #[account(mut,seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump,has_one=authority)]
+    #[account(
+        mut,
+        seeds = [b"market".as_ref(), b"BTC".as_ref()],
+        bump = market.bump,
+        has_one = authority,
+    )]
     pub market: Box<Account<'info, MarketState>>,
-    #[account(seeds=[b"participant",market.key().as_ref(),owner.key().as_ref()],bump=capital.bump,has_one=market,has_one=owner)]
+    #[account(
+        seeds = [b"participant", market.key().as_ref(), owner.key().as_ref()],
+        bump = capital.bump,
+        has_one = market,
+        has_one = owner,
+    )]
     pub capital: Box<Account<'info, Participant>>,
-    #[account(mut,seeds=[b"maker",market.key().as_ref(),&[registration.maker_id]],bump=registration.bump,
-        has_one=market,has_one=capital,has_one=owner,has_one=pricing_program,has_one=program_data,has_one=config)]
+    #[account(
+        mut,
+        seeds = [b"maker", market.key().as_ref(), &[registration.maker_id]],
+        bump = registration.bump,
+        has_one = market,
+        has_one = capital,
+        has_one = owner,
+        has_one = pricing_program,
+        has_one = program_data,
+        has_one = config,
+    )]
     pub registration: Box<Account<'info, MakerRegistration>>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
@@ -93,12 +103,28 @@ pub struct ApproveMaker<'info> {
 #[event_cpi]
 #[derive(Accounts)]
 pub struct SyncMaker<'info> {
-    #[account(mut,seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump)]
+    #[account(
+        mut,
+        seeds = [b"market".as_ref(), b"BTC".as_ref()],
+        bump = market.bump,
+    )]
     pub market: Box<Account<'info, MarketState>>,
-    #[account(seeds=[b"participant",market.key().as_ref(),capital.owner.as_ref()],bump=capital.bump,has_one=market)]
+    #[account(
+        seeds = [b"participant", market.key().as_ref(), capital.owner.as_ref()],
+        bump = capital.bump,
+        has_one = market,
+    )]
     pub capital: Box<Account<'info, Participant>>,
-    #[account(mut,seeds=[b"maker",market.key().as_ref(),&[registration.maker_id]],bump=registration.bump,
-        has_one=market,has_one=capital,has_one=pricing_program,has_one=program_data,has_one=config)]
+    #[account(
+        mut,
+        seeds = [b"maker", market.key().as_ref(), &[registration.maker_id]],
+        bump = registration.bump,
+        has_one = market,
+        has_one = capital,
+        has_one = pricing_program,
+        has_one = program_data,
+        has_one = config,
+    )]
     pub registration: Box<Account<'info, MakerRegistration>>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
@@ -111,20 +137,44 @@ pub struct SyncMaker<'info> {
 #[derive(Accounts)]
 pub struct QuarantineMaker<'info> {
     pub authority: Signer<'info>,
-    #[account(mut,seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump,has_one=authority)]
+    #[account(
+        mut,
+        seeds = [b"market".as_ref(), b"BTC".as_ref()],
+        bump = market.bump,
+        has_one = authority,
+    )]
     pub market: Box<Account<'info, MarketState>>,
-    #[account(mut,seeds=[b"maker",market.key().as_ref(),&[registration.maker_id]],bump=registration.bump,has_one=market)]
+    #[account(
+        mut,
+        seeds = [b"maker", market.key().as_ref(), &[registration.maker_id]],
+        bump = registration.bump,
+        has_one = market,
+    )]
     pub registration: Box<Account<'info, MakerRegistration>>,
 }
 
 #[derive(Accounts)]
 pub struct PreviewMaker<'info> {
-    #[account(seeds=[b"market".as_ref(),b"BTC".as_ref()],bump=market.bump)]
+    #[account(
+        seeds = [b"market".as_ref(), b"BTC".as_ref()],
+        bump = market.bump,
+    )]
     pub market: Box<Account<'info, MarketState>>,
-    #[account(seeds=[b"participant",market.key().as_ref(),capital.owner.as_ref()],bump=capital.bump,has_one=market)]
+    #[account(
+        seeds = [b"participant", market.key().as_ref(), capital.owner.as_ref()],
+        bump = capital.bump,
+        has_one = market,
+    )]
     pub capital: Box<Account<'info, Participant>>,
-    #[account(seeds=[b"maker",market.key().as_ref(),&[registration.maker_id]],bump=registration.bump,
-        has_one=market,has_one=capital,has_one=pricing_program,has_one=program_data,has_one=config)]
+    #[account(
+        seeds = [b"maker", market.key().as_ref(), &[registration.maker_id]],
+        bump = registration.bump,
+        has_one = market,
+        has_one = capital,
+        has_one = pricing_program,
+        has_one = program_data,
+        has_one = config,
+    )]
     pub registration: Box<Account<'info, MakerRegistration>>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
@@ -143,33 +193,19 @@ pub struct PreviewArgs {
     pub terms_epoch: u64,
     pub config_epoch: u64,
 }
-#[event]
-pub struct MakerChanged {
-    pub version: u16,
-    pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub kind: u8,
-    pub registration: Pubkey,
-    pub capital: Pubkey,
-    pub maker_id: u8,
-    pub authority_epoch: u64,
-    pub quote_epoch: u64,
-    pub quarantined: bool,
-    pub approved_hash: [u8; 32],
-    pub config_epoch: u64,
-}
-fn active(m: &MarketState) -> Result<()> {
-    crate::custody::profile(m)?;
-    require!(!m.paused, ClearingError::Paused);
+
+fn active(market: &MarketState) -> Result<()> {
+    crate::custody::profile(market)?;
+    require!(!market.paused, ClearingError::Paused);
     Ok(())
 }
-fn capital_ready(p: &Participant) -> Result<()> {
-    crate::routes::participant_model(p)?;
-    require!(p.cash > 0, ClearingError::MakerCapital);
+
+fn capital_ready(capital: &Participant) -> Result<()> {
+    crate::routes::participant_model(capital)?;
+    require!(capital.cash > 0, ClearingError::MakerCapital);
     Ok(())
 }
+
 pub(crate) fn config_state(
     config: &AccountInfo,
     program: Pubkey,
@@ -216,52 +252,59 @@ pub(crate) fn config_state(
     );
     Ok(state)
 }
+
 fn module_hash(data: &Account<ProgramData>) -> Result<[u8; 32]> {
     let account = data.to_account_info();
     let bytes = account.try_borrow_data()?;
     require!(bytes.len() <= 1_048_576, ClearingError::MakerBinding);
     Ok(hash(&bytes).to_bytes())
 }
-fn approved(r: &MakerRegistration, data: &Account<ProgramData>) -> Result<()> {
+
+fn approved(registration: &MakerRegistration, data: &Account<ProgramData>) -> Result<()> {
     require!(
-        r.version == VERSION && !r.quarantined,
+        registration.version == VERSION && !registration.quarantined,
         ClearingError::MakerQuarantined
     );
     require!(
-        module_hash(data)? == r.approved_hash,
+        module_hash(data)? == registration.approved_hash,
         ClearingError::MakerUpgrade
     );
     Ok(())
 }
+
 fn event(
-    m: &mut Account<MarketState>,
-    r: &Account<MakerRegistration>,
+    market: &mut Account<MarketState>,
+    registration: &Account<MakerRegistration>,
     kind: u8,
 ) -> Result<MakerChanged> {
-    m.sequence = m.sequence.checked_add(1).ok_or(ClearingError::Arithmetic)?;
-    if m.mode == 2 {
-        m.config_epoch = m
+    market.sequence = market
+        .sequence
+        .checked_add(1)
+        .ok_or(ClearingError::Arithmetic)?;
+    if market.mode == 2 {
+        market.config_epoch = market
             .config_epoch
             .checked_add(1)
             .ok_or(ClearingError::Arithmetic)?;
     }
     Ok(MakerChanged {
         version: VERSION,
-        domain: m.domain,
-        market: m.key(),
-        sequence: m.sequence,
+        domain: market.domain,
+        market: market.key(),
+        sequence: market.sequence,
         slot: Clock::get()?.slot,
         kind,
-        registration: r.key(),
-        capital: r.capital,
-        maker_id: r.maker_id,
-        authority_epoch: r.authority_epoch,
-        quote_epoch: r.quote_epoch,
-        quarantined: r.quarantined,
-        approved_hash: r.approved_hash,
-        config_epoch: m.config_epoch,
+        registration: registration.key(),
+        capital: registration.capital,
+        maker_id: registration.maker_id,
+        authority_epoch: registration.authority_epoch,
+        quote_epoch: registration.quote_epoch,
+        quarantined: registration.quarantined,
+        approved_hash: registration.approved_hash,
+        config_epoch: market.config_epoch,
     })
 }
+
 pub fn register(ctx: Context<RegisterMaker>, maker_id: u8, inventory_limit: u64) -> Result<()> {
     active(&ctx.accounts.market)?;
     capital_ready(&ctx.accounts.capital)?;
@@ -313,6 +356,7 @@ pub fn register(ctx: Context<RegisterMaker>, maker_id: u8, inventory_limit: u64)
     )?);
     Ok(())
 }
+
 pub fn approve(ctx: Context<ApproveMaker>) -> Result<()> {
     active(&ctx.accounts.market)?;
     capital_ready(&ctx.accounts.capital)?;
@@ -323,18 +367,18 @@ pub fn approve(ctx: Context<ApproveMaker>) -> Result<()> {
         &ctx.accounts.market,
         &ctx.accounts.capital,
     )?;
-    let r = &mut ctx.accounts.registration;
+    let registration = &mut ctx.accounts.registration;
     // Approval never resets consumption or silently adopts a new quote epoch.
     require!(
-        state.quote_epoch >= r.quote_epoch,
+        state.quote_epoch >= registration.quote_epoch,
         ClearingError::MakerEpoch
     );
-    r.approved_hash = module_hash(&ctx.accounts.program_data)?;
-    r.authority_epoch = r
+    registration.approved_hash = module_hash(&ctx.accounts.program_data)?;
+    registration.authority_epoch = registration
         .authority_epoch
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
-    r.quarantined = false;
+    registration.quarantined = false;
     emit_cpi!(event(
         &mut ctx.accounts.market,
         &ctx.accounts.registration,
@@ -342,6 +386,7 @@ pub fn approve(ctx: Context<ApproveMaker>) -> Result<()> {
     )?);
     Ok(())
 }
+
 pub fn sync(ctx: Context<SyncMaker>) -> Result<()> {
     active(&ctx.accounts.market)?;
     approved(&ctx.accounts.registration, &ctx.accounts.program_data)?;
@@ -353,19 +398,19 @@ pub fn sync(ctx: Context<SyncMaker>) -> Result<()> {
         &ctx.accounts.capital,
     )?;
     let slot = Clock::get()?.slot;
-    let r = &mut ctx.accounts.registration;
+    let registration = &mut ctx.accounts.registration;
     require!(
-        state.quote_epoch > r.quote_epoch
-            && state.start_slot >= r.expiry_slot
+        state.quote_epoch > registration.quote_epoch
+            && state.start_slot >= registration.expiry_slot
             && slot >= state.start_slot
             && slot < state.expiry_slot,
         ClearingError::MakerEpoch
     );
-    r.quote_epoch = state.quote_epoch;
-    r.start_slot = state.start_slot;
-    r.expiry_slot = state.expiry_slot;
-    r.buy_consumed = 0;
-    r.sell_consumed = 0;
+    registration.quote_epoch = state.quote_epoch;
+    registration.start_slot = state.start_slot;
+    registration.expiry_slot = state.expiry_slot;
+    registration.buy_consumed = 0;
+    registration.sell_consumed = 0;
     emit_cpi!(event(
         &mut ctx.accounts.market,
         &ctx.accounts.registration,
@@ -373,11 +418,12 @@ pub fn sync(ctx: Context<SyncMaker>) -> Result<()> {
     )?);
     Ok(())
 }
+
 pub fn quarantine(ctx: Context<QuarantineMaker>) -> Result<()> {
     require!(ctx.accounts.market.mode != 3, ClearingError::Resolution);
-    let r = &mut ctx.accounts.registration;
-    r.quarantined = true;
-    r.authority_epoch = r
+    let registration = &mut ctx.accounts.registration;
+    registration.quarantined = true;
+    registration.authority_epoch = registration
         .authority_epoch
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
@@ -388,6 +434,7 @@ pub fn quarantine(ctx: Context<QuarantineMaker>) -> Result<()> {
     )?);
     Ok(())
 }
+
 pub fn preview(ctx: Context<PreviewMaker>, args: PreviewArgs) -> Result<QuoteResponse> {
     active(&ctx.accounts.market)?;
     capital_ready(&ctx.accounts.capital)?;
@@ -403,48 +450,54 @@ pub fn preview(ctx: Context<PreviewMaker>, args: PreviewArgs) -> Result<QuoteRes
 }
 
 pub(crate) fn quote_checked<'info>(
-    m: &Account<'info, MarketState>,
-    p: &Account<'info, Participant>,
-    r: &Account<'info, MakerRegistration>,
+    market: &Account<'info, MarketState>,
+    capital: &Account<'info, Participant>,
+    registration: &Account<'info, MakerRegistration>,
     pricing_program: &Program<'info>,
     program_data: &Account<'info, ProgramData>,
     config: &UncheckedAccount<'info>,
     args: PreviewArgs,
 ) -> Result<QuoteResponse> {
-    capital_ready(p)?;
-    approved(r, program_data)?;
+    capital_ready(capital)?;
+    approved(registration, program_data)?;
     require!(
-        args.quote_epoch == r.quote_epoch
-            && args.authority_epoch == r.authority_epoch
-            && args.terms_epoch == m.terms_epoch
-            && args.config_epoch == m.config_epoch,
+        args.quote_epoch == registration.quote_epoch
+            && args.authority_epoch == registration.authority_epoch
+            && args.terms_epoch == market.terms_epoch
+            && args.config_epoch == market.config_epoch,
         ClearingError::MakerEpoch
     );
-    let state = config_state(config, pricing_program.key(), r.maker_id, m, p)?;
+    let state = config_state(
+        config,
+        pricing_program.key(),
+        registration.maker_id,
+        market,
+        capital,
+    )?;
     require!(
-        state.quote_epoch == r.quote_epoch
-            && state.start_slot == r.start_slot
-            && state.expiry_slot == r.expiry_slot,
+        state.quote_epoch == registration.quote_epoch
+            && state.start_slot == registration.start_slot
+            && state.expiry_slot == registration.expiry_slot,
         ClearingError::MakerEpoch
     );
     let request = QuoteRequest {
         version: VERSION,
-        domain: m.domain,
-        market: m.key(),
-        capital: p.key(),
-        quote_epoch: r.quote_epoch,
-        authority_epoch: r.authority_epoch,
-        terms_epoch: m.terms_epoch,
-        market_config_epoch: m.config_epoch,
+        domain: market.domain,
+        market: market.key(),
+        capital: capital.key(),
+        quote_epoch: registration.quote_epoch,
+        authority_epoch: registration.authority_epoch,
+        terms_epoch: market.terms_epoch,
+        market_config_epoch: market.config_epoch,
         side: args.side,
         lots: args.lots,
-        inventory: p.lots,
-        cash: p.cash,
-        inventory_limit: r.inventory_limit,
+        inventory: capital.lots,
+        cash: capital.cash,
+        inventory_limit: registration.inventory_limit,
         consumed: if args.side == 0 {
-            r.buy_consumed
+            registration.buy_consumed
         } else {
-            r.sell_consumed
+            registration.sell_consumed
         },
         reference_price: args.reference_price,
         slot: Clock::get()?.slot,
@@ -453,6 +506,7 @@ pub(crate) fn quote_checked<'info>(
         maker_interface::quote(&state, &request).map_err(|_| error!(ClearingError::MakerQuote))?;
     invoke_quote(config, pricing_program, &request, &expected)
 }
+
 /// Only for callers that have authenticated module/config/capital in this same
 /// transaction. Inputs stay read-only, so later quote calls cannot change approval.
 pub(crate) fn invoke_quote<'info>(

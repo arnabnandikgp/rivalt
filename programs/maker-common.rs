@@ -21,21 +21,33 @@ pub struct Initialize<'info> {
     pub owner: Signer<'info>,
     /// CHECK: initialize verifies clearing ownership and the signer-bound participant PDA.
     pub capital: UncheckedAccount<'info>,
-    #[account(init, payer = owner, space = 8 + MakerConfig::INIT_SPACE,
-        seeds = [b"maker", capital.key().as_ref()], bump)]
+    #[account(
+        init,
+        payer = owner,
+        space = 8 + MakerConfig::INIT_SPACE,
+        seeds = [b"maker", capital.key().as_ref()],
+        bump,
+    )]
     pub config: Account<'info, MakerConfig>,
     pub system_program: Program<'info, System>,
 }
 #[derive(Accounts)]
 pub struct Publish<'info> {
     pub owner: Signer<'info>,
-    #[account(mut, seeds = [b"maker", config.state.capital.as_ref()], bump = config.state.bump,
-        constraint = config.state.owner == owner.key() @ MakerError::Authority)]
+    #[account(
+        mut,
+        seeds = [b"maker", config.state.capital.as_ref()],
+        bump = config.state.bump,
+        constraint = config.state.owner == owner.key() @ MakerError::Authority,
+    )]
     pub config: Account<'info, MakerConfig>,
 }
 #[derive(Accounts)]
 pub struct ReadQuote<'info> {
-    #[account(seeds = [b"maker", config.state.capital.as_ref()], bump = config.state.bump)]
+    #[account(
+        seeds = [b"maker", config.state.capital.as_ref()],
+        bump = config.state.bump,
+    )]
     pub config: Account<'info, MakerConfig>,
 }
 fn expiry(slot: u64, duration: u64) -> Result<u64> {
@@ -47,40 +59,48 @@ fn expiry(slot: u64, duration: u64) -> Result<u64> {
         .ok_or(error!(MakerError::Lifetime))
 }
 fn initialize(
-    ctx: Context<Initialize>,
+    context: Context<Initialize>,
     market: Pubkey,
     domain: [u8; 32],
     duration: u64,
 ) -> Result<()> {
-    let owner = ctx.accounts.owner.key();
+    let owner = context.accounts.owner.key();
     let (capital, _) = Pubkey::find_program_address(
         &[b"participant", market.as_ref(), owner.as_ref()],
         &CLEARING_ID,
     );
-    require_keys_eq!(ctx.accounts.capital.key(), capital, MakerError::Authority);
-    require_keys_eq!(*ctx.accounts.capital.owner, CLEARING_ID, MakerError::Binding);
+    require_keys_eq!(
+        context.accounts.capital.key(),
+        capital,
+        MakerError::Authority
+    );
+    require_keys_eq!(
+        *context.accounts.capital.owner,
+        CLEARING_ID,
+        MakerError::Binding
+    );
     require!(
         market != Pubkey::default() && domain != [0; 32],
         MakerError::Binding
     );
     let slot = Clock::get()?.slot;
-    ctx.accounts.config.state = MakerState {
+    context.accounts.config.state = MakerState {
         version: VERSION,
         maker_id: MAKER_ID,
-        owner: ctx.accounts.owner.key(),
+        owner: context.accounts.owner.key(),
         market,
-        capital: ctx.accounts.capital.key(),
+        capital: context.accounts.capital.key(),
         domain,
         quote_epoch: 1,
         start_slot: slot,
         expiry_slot: expiry(slot, duration)?,
-        bump: ctx.bumps.config,
+        bump: context.bumps.config,
     };
     Ok(())
 }
-fn publish(ctx: Context<Publish>, duration: u64) -> Result<()> {
+fn publish(context: Context<Publish>, duration: u64) -> Result<()> {
     let slot = Clock::get()?.slot;
-    let state = &mut ctx.accounts.config.state;
+    let state = &mut context.accounts.config.state;
     require!(slot >= state.expiry_slot, MakerError::Lifetime);
     state.quote_epoch = state
         .quote_epoch
@@ -90,15 +110,15 @@ fn publish(ctx: Context<Publish>, duration: u64) -> Result<()> {
     state.expiry_slot = expiry(slot, duration)?;
     Ok(())
 }
-fn read_quote(ctx: Context<ReadQuote>, mut request: QuoteRequest) -> Result<QuoteResponse> {
+fn read_quote(context: Context<ReadQuote>, mut request: QuoteRequest) -> Result<QuoteResponse> {
     require!(
-        ctx.accounts.config.state.maker_id == MAKER_ID,
+        context.accounts.config.state.maker_id == MAKER_ID,
         MakerError::Binding
     );
     // Hypothetical snapshots are allowed for indicative quoting. Only clearing's
     // later route instruction can authorize financial effects from a quote.
     request.slot = Clock::get()?.slot;
-    maker_interface::quote(&ctx.accounts.config.state, &request)
+    maker_interface::quote(&context.accounts.config.state, &request)
         .map_err(|_| error!(MakerError::Quote))
 }
 #[error_code]

@@ -232,3 +232,20 @@ D35 refines P12 quote preparation: `/v1/quote` includes `snapshotCommitment: con
 P14 introduces an explicit `solana:devnet` deployment binding across indexer, services, SDK and wallet UI; defaults remain local. Pinned program IDs, genesis and immutable initialization identity govern PDA/owner/event/instruction selection. Browser configuration cannot include provider query credentials. [The bounded devnet contract](P14-DEVNET-LIFECYCLE.md) and [A19 evidence](evidence/P14.md) record the actual bounded lifecycle, PostgreSQL recovery and Phantom registration; WORKLOG owns integration status.
 
 D38 separates explicit deployment configuration and bounded regression fixtures from local raw run output. See [evidence storage](EVIDENCE.md). Raw captures remain in place; launchers and normal tests must work without them.
+
+
+## 24 October 2026 — program source organization
+
+Clearing separates persistent account layouts under `programs/clearing/src/state/`
+from Anchor instruction contexts and handlers under `src/instructions/`. The root
+`lib.rs` contains program IDs and delegates public entrypoints; `constants.rs`,
+`error.rs` and `events.rs` own shared constants, stable errors and critical event
+schemas. Oracle impact sampling and the resolution ledger have dedicated internal
+modules. [The clearing source map](../programs/clearing/README.md) gives the reading
+order and identifies the authoritative financial checks.
+
+This is a source-organization change: serialized names/order, instruction arguments,
+PDA seeds, error numbers, authority and economic rules remain unchanged. Descriptive
+local names do not rename published wire fields. Anchor requires `ctx` in handlers
+using `emit_cpi!`; generated client/CPI exports are explicit. A fresh IDL build also
+refreshes the existing top-level profile description; its wire ABI is unchanged.

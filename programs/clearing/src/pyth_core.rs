@@ -32,23 +32,23 @@ pub fn decode(
     if info.key != expected || info.owner != &RECEIVER || info.is_writable || info.executable {
         return None;
     }
-    let b = info.try_borrow_data().ok()?;
+    let data = info.try_borrow_data().ok()?;
     // Full is enum tag 1; Partial has a different serialized length and is refused.
     // The account allocates the enum's maximum size, leaving one padding byte for Full.
-    if b.len() != 134
-        || b[..8] != DISCRIMINATOR
-        || b[40] != 1
-        || &b[8..40] != expected.as_ref()
-        || b[41..73] != FEEDS[index]
+    if data.len() != 134
+        || data[..8] != DISCRIMINATOR
+        || data[40] != 1
+        || &data[8..40] != expected.as_ref()
+        || data[41..73] != FEEDS[index]
     {
         return None;
     }
-    let price = i64::from_le_bytes(b[73..81].try_into().ok()?);
-    let confidence = u64::from_le_bytes(b[81..89].try_into().ok()?);
-    let exponent = i32::from_le_bytes(b[89..93].try_into().ok()?);
-    let published = i64::from_le_bytes(b[93..101].try_into().ok()?);
-    let previous = i64::from_le_bytes(b[101..109].try_into().ok()?);
-    let posted_slot = u64::from_le_bytes(b[125..133].try_into().ok()?);
+    let price = i64::from_le_bytes(data[73..81].try_into().ok()?);
+    let confidence = u64::from_le_bytes(data[81..89].try_into().ok()?);
+    let exponent = i32::from_le_bytes(data[89..93].try_into().ok()?);
+    let published = i64::from_le_bytes(data[93..101].try_into().ok()?);
+    let previous = i64::from_le_bytes(data[101..109].try_into().ok()?);
+    let posted_slot = u64::from_le_bytes(data[125..133].try_into().ok()?);
     let sequence = u64::try_from(published).ok()?;
     if sequence == 0
         || sequence < previous_publish
@@ -76,13 +76,21 @@ fn normalize(price: i64, confidence: u64, exponent: i32) -> Option<(i64, u64)> {
     }
     let shift = exponent + 6;
     let scale = 10u128.checked_pow(shift.unsigned_abs())?;
-    let p = u128::try_from(price).ok()?;
-    let c = u128::from(confidence);
+    let price_value = u128::try_from(price).ok()?;
+    let confidence_value = u128::from(confidence);
     let (value, conf) = if shift >= 0 {
-        (p.checked_mul(scale)?, c.checked_mul(scale)?)
+        (
+            price_value.checked_mul(scale)?,
+            confidence_value.checked_mul(scale)?,
+        )
     } else {
         // Include the midpoint remainder so both ends enclose the source interval.
-        (p / scale, c.checked_add(p % scale)?.div_ceil(scale))
+        (
+            price_value / scale,
+            confidence_value
+                .checked_add(price_value % scale)?
+                .div_ceil(scale),
+        )
     };
     let value = i64::try_from(value).ok()?;
     if value == 0 {
@@ -95,21 +103,21 @@ fn normalize(price: i64, confidence: u64, exponent: i32) -> Option<(i64, u64)> {
 mod tests {
     use super::*;
     fn bytes() -> Vec<u8> {
-        let mut b = vec![0; 134];
-        b[..8].copy_from_slice(&DISCRIMINATOR);
-        b[8..40].copy_from_slice(ACCOUNTS[0].as_ref());
-        b[40] = 1;
-        b[41..73].copy_from_slice(&FEEDS[0]);
-        b[73..81].copy_from_slice(&8_123_456_789_012i64.to_le_bytes());
-        b[81..89].copy_from_slice(&10_001u64.to_le_bytes());
-        b[89..93].copy_from_slice(&(-8i32).to_le_bytes());
-        b[93..101].copy_from_slice(&1_000i64.to_le_bytes());
-        b[101..109].copy_from_slice(&999i64.to_le_bytes());
-        b[125..133].copy_from_slice(&123u64.to_le_bytes());
-        b
+        let mut data = vec![0; 134];
+        data[..8].copy_from_slice(&DISCRIMINATOR);
+        data[8..40].copy_from_slice(ACCOUNTS[0].as_ref());
+        data[40] = 1;
+        data[41..73].copy_from_slice(&FEEDS[0]);
+        data[73..81].copy_from_slice(&8_123_456_789_012i64.to_le_bytes());
+        data[81..89].copy_from_slice(&10_001u64.to_le_bytes());
+        data[89..93].copy_from_slice(&(-8i32).to_le_bytes());
+        data[93..101].copy_from_slice(&1_000i64.to_le_bytes());
+        data[101..109].copy_from_slice(&999i64.to_le_bytes());
+        data[125..133].copy_from_slice(&123u64.to_le_bytes());
+        data
     }
     fn read(
-        b: &mut [u8],
+        data: &mut [u8],
         key: Pubkey,
         owner: Pubkey,
         writable: bool,
@@ -118,7 +126,7 @@ mod tests {
     ) -> Option<(Price, u64)> {
         let mut lamports = 1;
         decode(
-            &AccountInfo::new(&key, false, writable, &mut lamports, b, &owner, false),
+            &AccountInfo::new(&key, false, writable, &mut lamports, data, &owner, false),
             0,
             previous,
             slot,
@@ -126,15 +134,22 @@ mod tests {
     }
     #[test]
     fn identity_full_verification_and_time_regression() {
-        let b = bytes();
-        let (p, seq) = read(&mut b.clone(), ACCOUNTS[0], RECEIVER, false, 1_000, 123).unwrap();
+        let data = bytes();
+        let (price_value, seq) =
+            read(&mut data.clone(), ACCOUNTS[0], RECEIVER, false, 1_000, 123).unwrap();
         assert_eq!(
-            (p.value, p.confidence, p.exponent, p.published, seq),
+            (
+                price_value.value,
+                price_value.confidence,
+                price_value.exponent,
+                price_value.published,
+                seq
+            ),
             (81_234_567_890, 101, -6, 1_000, 1_000)
         );
-        assert!(read(&mut b.clone(), ACCOUNTS[1], RECEIVER, false, 0, 123).is_none());
+        assert!(read(&mut data.clone(), ACCOUNTS[1], RECEIVER, false, 0, 123).is_none());
         assert!(read(
-            &mut b.clone(),
+            &mut data.clone(),
             ACCOUNTS[0],
             Pubkey::default(),
             false,
@@ -142,15 +157,23 @@ mod tests {
             123
         )
         .is_none());
-        assert!(read(&mut b.clone(), ACCOUNTS[0], RECEIVER, true, 0, 123).is_none());
-        assert!(read(&mut b.clone(), ACCOUNTS[0], RECEIVER, false, 1_001, 123).is_none());
-        assert!(read(&mut b.clone(), ACCOUNTS[0], RECEIVER, false, 0, 122).is_none());
+        assert!(read(&mut data.clone(), ACCOUNTS[0], RECEIVER, true, 0, 123).is_none());
+        assert!(read(&mut data.clone(), ACCOUNTS[0], RECEIVER, false, 1_001, 123).is_none());
+        assert!(read(&mut data.clone(), ACCOUNTS[0], RECEIVER, false, 0, 122).is_none());
         for at in [0, 8, 40, 41] {
-            let mut bad = b.clone();
+            let mut bad = data.clone();
             bad[at] ^= 1;
             assert!(read(&mut bad, ACCOUNTS[0], RECEIVER, false, 0, 123).is_none());
         }
-        assert!(read(&mut b[..133].to_vec(), ACCOUNTS[0], RECEIVER, false, 0, 123).is_none());
+        assert!(read(
+            &mut data[..133].to_vec(),
+            ACCOUNTS[0],
+            RECEIVER,
+            false,
+            0,
+            123
+        )
+        .is_none());
     }
     #[test]
     fn conservative_integer_conversion_vectors() {
@@ -183,7 +206,7 @@ mod tests {
             ),
         ];
         for (index, (hex, value, confidence)) in cases.into_iter().enumerate() {
-            let mut b: Vec<u8> = hex
+            let mut data: Vec<u8> = hex
                 .trim()
                 .as_bytes()
                 .chunks_exact(2)
@@ -195,13 +218,19 @@ mod tests {
                 false,
                 false,
                 &mut lamports,
-                &mut b,
+                &mut data,
                 &RECEIVER,
                 false,
             );
-            let (p, sequence) = decode(&info, index, 0, u64::MAX).unwrap();
+            let (price_value, sequence) = decode(&info, index, 0, u64::MAX).unwrap();
             assert_eq!(
-                (p.value, p.confidence, p.exponent, p.published, sequence),
+                (
+                    price_value.value,
+                    price_value.confidence,
+                    price_value.exponent,
+                    price_value.published,
+                    sequence
+                ),
                 (value, confidence, -6, 1_792_752_688, 1_792_752_688)
             );
         }
