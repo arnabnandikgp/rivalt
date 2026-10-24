@@ -269,3 +269,8 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 
 - **D40:** At the user's request, separate clearing instruction handlers/contexts from persistent state, extract root constants/errors/events, and replace terse implementation variables with domain names. Split the oracle impact calculation and resolution page ledger from their entrypoint modules; provide a source map. Keep published account fields, instruction arguments, discriminants, seeds and error codes intact. This is a maintenance refactor, not a new economic phase or a devnet upgrade.
 - Verify freshly generated IDLs against the existing wire ABI, both normal/CPI compilation and affected compiled-program scenarios. Unchanged service/browser/load/soak suites are outside this PR's validation scope. Original phase evidence retains its recorded identities; current verification belongs to R029.
+
+## 25 October 2026 — D39/D40 deployment follow-up
+
+- R030 rolls the reviewed D39 A/B initialization authentication onto test-only devnet, jointly reapproves exact deployed ProgramData hashes and verifies the affected owner binding. Clearing remains on its recorded P14 artifact; D40's clearing source reorganization is not described as a deployed binary. No economics, source-age limit, key authority or paid/funded scope changes.
+- Existing-market test configuration uses the market's stored domain. A renamed operator profile cannot redefine that authority. Preserve R030's failed derived-domain fixture and its separately valid approval/accounting evidence; the corrected ownership-only continuation supplies the missing valid initialization checks. The [closeout report](evidence/R030-DEVNET-CLOSEOUT.md) records actual identities, limits and commands.

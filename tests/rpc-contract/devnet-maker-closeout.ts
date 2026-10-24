@@ -20,6 +20,7 @@ const context = await devnetContext();
 const harness = new DevnetRpc(context, `${directory}/journal`);
 const reportPath = `${directory}/acceptance-${new Date().toISOString().replaceAll(':', '-')}.json`;
 const report: Record<string, any> = { revision, sourceDirty: false, startedUtc: new Date().toISOString(), baseline: `${directory}/baseline.json` };
+report.newSteps = [];
 let stage = 'verify-deployed-artifacts';
 const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 const data = (account: any) => Buffer.from(account.data[0], 'base64');
@@ -39,6 +40,7 @@ async function step(label: string, check: () => Promise<void>) {
   if (existsSync(path)) return;
   await check();
   persist(path, { revision, completedUtc: new Date().toISOString() });
+  report.newSteps.push(label);
   console.log(JSON.stringify({ check: label, result: 'pass' }));
 }
 
@@ -121,6 +123,20 @@ try {
   const keys = [...Object.keys(baseline.accounts), capital, ...configs] as Address[];
   const accounts = await harness.rpc.call('getMultipleAccounts', [keys, { encoding: 'base64', commitment: 'finalized' }]);
   report.accounts = Object.fromEntries(keys.map((key, index) => [key, accounts.value[index]]));
+  for (const [index, maker] of context.makers.entries()) {
+    // Recheck final state even when an earlier invocation completed each step.
+    const config = sdk.makerA.getMakerConfigDecoder().decode(data(report.accounts[configs[index]])).state;
+    assert.equal(config.owner, owner.address); assert.equal(config.capital, capital);
+    assert.equal(config.market, context.market); assert.equal(config.makerId, index);
+    assert.deepEqual(Buffer.from(config.domain), Buffer.from(domain));
+    const before = sdk.getMakerRegistrationDecoder().decode(original(maker.registration));
+    const registration = sdk.getMakerRegistrationDecoder().decode(data(report.accounts[maker.registration]));
+    const currentHash = hash((await harness.read(maker.programData))!);
+    assert.equal(currentHash, report.programs.find((program: any) => program.program === maker.pricingProgram).accountSha256);
+    const changedApproval = Buffer.from(before.approvedHash).toString('hex') !== currentHash;
+    assert.equal(json(registration), json({ ...before, approvedHash: Buffer.from(currentHash, 'hex'),
+      authorityEpoch: before.authorityEpoch + (changedApproval ? 1n : 0n), quarantined: changedApproval ? false : before.quarantined }));
+  }
   const changed = new Set<string>([context.market, context.registry, ...context.makers.map(maker => maker.registration)]);
   for (const key of Object.keys(baseline.accounts)) if (!changed.has(key)) {
     assert.equal(report.accounts[key].owner, baseline.accounts[key].owner);
@@ -138,7 +154,8 @@ try {
   report.checks = readdirSync(harness.journal).filter(file => file.endsWith('.json')).map(file => {
     const entry = JSON.parse(readFileSync(`${harness.journal}/${file}`, 'utf8'));
     assert.equal(entry.finalized, true); return { label: entry.label, signature: entry.signature, error: entry.history.meta.err,
-      feeLamports: entry.feeLamports, journal: `${harness.journal}/${file}` };
+      feeLamports: entry.feeLamports, journal: `${harness.journal}/${file}`,
+      checkRevision: JSON.parse(readFileSync(`${checkpoints}/${entry.label}.json`, 'utf8')).revision };
   });
   assert.equal(report.checks.length, 8 + 2 * report.approvalsPerformed);
   report.result = 'pass';
