@@ -5,7 +5,7 @@ Rivalt is a new Solana perpetual venue with common clearing, isolated collateral
 
 ## Start here
 
-Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product scope](docs/01-PRODUCT.md) and [the delivery plan](docs/05-DELIVERY-PLAN.md). Before implementing a phase, read its domain documents and decision gates.
+Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product scope](docs/01-PRODUCT.md) and [the delivery plan](docs/05-DELIVERY-PLAN.md). Before implementing a phase, read its domain documents and decision gates. For program code, start with the [clearing source map](programs/clearing/README.md).
 
 | File | Authority / purpose |
 |---|---|
@@ -66,6 +66,6 @@ P12's D35 bounded qualification passes with 1,249/1,249 submitted trades, 71.19%
 
 P13 verifies separate devnet deployment, actual sponsored Pyth Core consumption, a finalized one-lot trade and restrictive stale/source actions. [Evidence](docs/evidence/P13.md) retains the missed live WS notification and successful original-signature recovery, with intermittent feeds and operator-controlled guard clearly limited under D37. P14 owns the bounded service/wallet lifecycle; this is not a funded launch approval.
 
-P14's bounded devnet lifecycle, original-signature/PostgreSQL recovery and actual Phantom registration now pass. [P14 evidence](docs/evidence/P14.md) retains the exact failed attempts, successful continuation and independent wallet/account reconciliation. The [engineering MVP assessment](docs/ENGINEERING-MVP.md) covers M1–M5b; stacked integration remains pending, and independent maker/review/funded-pilot gates remain M6. Run `bash ops/devnet-demo.sh` for the bounded interactive devnet UI with the existing secure local RPC configuration.
+P14's bounded devnet lifecycle, original-signature/PostgreSQL recovery and actual Phantom registration now pass. [P14 evidence](docs/evidence/P14.md) retains the exact failed attempts, successful continuation and independent wallet/account reconciliation. The [engineering MVP assessment](docs/ENGINEERING-MVP.md) covers M1–M5b; the implementation stack is integrated, while WORKLOG tracks the remaining devnet artifact/owner-binding follow-up. Independent maker/review/funded-pilot gates remain M6. Run `bash ops/devnet-demo.sh` for the bounded interactive devnet UI with the existing secure local RPC configuration.
 
 Raw run evidence is retained locally at its existing paths and excluded from the tracked tree. See [evidence storage and reproduction](docs/EVIDENCE.md); concise reports and regression fixtures remain in Git.
