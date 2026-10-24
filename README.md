@@ -14,7 +14,7 @@ Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product 
 | [docs/02-PROTOCOL.md](docs/02-PROTOCOL.md) | Economic state, invariants, transitions, funding, orders and risk contract |
 | [docs/03-COMPONENTS.md](docs/03-COMPONENTS.md) | Program/service boundaries, account and interface requirements, repository layout |
 | [docs/04-STACK-AND-VALIDATION.md](docs/04-STACK-AND-VALIDATION.md) | Stack, test layers, required scenarios, metrics and environment policy |
-| [docs/05-DELIVERY-PLAN.md](docs/05-DELIVERY-PLAN.md) | Six milestones, M5 split into local/devnet gates, and 16 PR-sized phases |
+| [docs/05-DELIVERY-PLAN.md](docs/05-DELIVERY-PLAN.md) | Milestone/phase dependencies; P15/P16 engineering A and external B gates |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Accepted choices, consolidation clarifications and phase-bound configuration gates |
 | [docs/WORKLOG.md](docs/WORKLOG.md) | Sole live status tables, chronological run log, blockers and exact next action |
 | [docs/SOURCE-AUDIT.md](docs/SOURCE-AUDIT.md) | Consistency audit, historical provenance and explicit supersessions |
@@ -69,3 +69,5 @@ P13 verifies separate devnet deployment, actual sponsored Pyth Core consumption,
 P14's bounded devnet lifecycle, original-signature/PostgreSQL recovery and actual Phantom registration now pass. [P14 evidence](docs/evidence/P14.md) retains the exact failed attempts, successful continuation and independent wallet/account reconciliation. The [engineering MVP assessment](docs/ENGINEERING-MVP.md) covers M1–M5b; the implementation stack is integrated, and [R030](docs/evidence/R030-DEVNET-CLOSEOUT.md) verifies the subsequent devnet maker hardening/owner-binding follow-up. The closeout is integrated through PR #19; WORKLOG records P13/P14/M5b Closed. Independent maker/review/funded-pilot gates remain M6. Run `bash ops/devnet-demo.sh` for the bounded interactive devnet UI with the existing secure local RPC configuration.
 
 Raw run evidence is retained locally at its existing paths and excluded from the tracked tree. See [evidence storage and reproduction](docs/EVIDENCE.md); concise reports and regression fixtures remain in Git.
+
+D41 extends the completed engineering MVP with **P15A** maker integration/economics tooling and **P16A** availability analysis, continuous 24-hour endurance and operational readiness. **P15B/P16B** remain separate independent-maker/review/funded-pilot gates; internal makers and simulated hedges cannot close them. New engineering PRs remain stacked and open. See [the delivery plan](docs/05-DELIVERY-PLAN.md) and [live worklog](docs/WORKLOG.md).
