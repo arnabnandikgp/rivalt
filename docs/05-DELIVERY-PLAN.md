@@ -238,7 +238,7 @@ Milestone: **M5a**. Depends on: **P11**.
 
 **Configuration closure:** Recorded host/profile/load/resource budgets.
 
-**Acceptance:** A17 reports actual elapsed run and complete metrics; target quote p95 <=200 ms, normal eligible success >=99% and >=20% CU headroom for declared worst cases, or explicit unresolved failure that prevents closure. D35 additionally requires >=50% normal offered availability, actual final withdrawal/reconciliation and >10,000 fetched history transactions. Preserve the prior six-fault evidence and repeat affected funding/executor-RPC/indexer recoveries. A continuous 24-hour endurance run is deferred to P16 before positive funded-pilot readiness; it is not satisfied by this bounded gate.
+**Acceptance:** A17 reports actual elapsed run and complete metrics; target quote p95 <=200 ms, normal eligible success >=99% and >=20% CU headroom for declared worst cases, or explicit unresolved failure that prevents closure. D35 additionally requires >=50% normal offered availability, actual final withdrawal/reconciliation and >10,000 fetched history transactions. Preserve the prior six-fault evidence and repeat affected funding/executor-RPC/indexer recoveries. D42 keeps continuous 24-hour endurance Deferred for separately scoped future work, outside current P16A acceptance; this bounded gate does not satisfy endurance.
 
 **Runnable demonstration:** Reproducible report covering latency distributions, success/failure causes, load saturation, outages and final balances.
 
