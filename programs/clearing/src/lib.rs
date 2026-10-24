@@ -1,38 +1,29 @@
+//! Rivalt common clearing: public entrypoints delegate to instruction modules.
 use anchor_lang::prelude::*;
+use maker_interface::QuoteResponse;
+
+pub mod constants;
+pub mod error;
+pub mod events;
+pub mod instructions;
 #[cfg(any(test, feature = "devnet-test-profile"))]
 mod pyth_core;
-pub mod resolution;
-pub use resolution::*;
-pub mod risk;
-pub use risk::*;
-pub mod orders;
-pub use orders::*;
-pub mod custody;
-pub use custody::*;
-pub mod makers;
-use maker_interface::QuoteResponse;
-pub use makers::*;
-pub mod routes;
-pub use routes::*;
-pub mod oracle;
-pub use oracle::*;
-pub mod settlement;
-pub use settlement::*;
+pub mod state;
+
+use constants::financial_profile;
+pub use error::ClearingError;
+pub use events::*;
+pub use instructions::*;
+pub use state::*;
 
 #[cfg(not(feature = "devnet-test-profile"))]
 declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
+
 #[cfg(feature = "devnet-test-profile")]
 declare_id!("BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv");
 
 #[cfg(all(feature = "local-test-profile", feature = "devnet-test-profile"))]
 compile_error!("local and devnet financial profiles are mutually exclusive");
-
-pub(crate) const fn financial_profile() -> bool {
-    cfg!(any(
-        feature = "local-test-profile",
-        feature = "devnet-test-profile"
-    ))
-}
 
 /// Financial paths require an explicit, separate engineering profile.
 #[program]
@@ -223,137 +214,6 @@ pub mod clearing {
         optional_value: Option<u64>,
         choice: ProbeChoice,
     ) -> Result<()> {
-        // A deterministic rejection lets RPC tests distinguish failed logs from committed state.
-        require!(nonce != u64::MAX, ClearingError::ReservedNonce);
-        let record = &mut ctx.accounts.record;
-        record.owner = ctx.accounts.owner.key();
-        record.nonce = nonce;
-        record.signed_value = signed_value;
-        record.optional_value = optional_value;
-        record.choice = choice;
-        record.bump = ctx.bumps.record;
-        emit_cpi!(ProbeRecorded {
-            schema_version: 1,
-            owner: record.owner,
-            record: record.key(),
-            nonce,
-            signed_value,
-            optional_value,
-            choice,
-        });
-        Ok(())
+        probe::handle(ctx, nonce, signed_value, optional_value, choice)
     }
-}
-
-#[event_cpi]
-#[derive(Accounts)]
-#[instruction(nonce: u64)]
-pub struct Probe<'info> {
-    #[account(mut)]
-    pub owner: Signer<'info>,
-    #[account(
-        init,
-        payer = owner,
-        space = 8 + ProbeRecord::INIT_SPACE,
-        seeds = [b"probe", owner.key().as_ref(), &nonce.to_le_bytes()],
-        bump
-    )]
-    pub record: Account<'info, ProbeRecord>,
-    pub system_program: Program<'info, System>,
-}
-
-#[account]
-#[derive(InitSpace)]
-pub struct ProbeRecord {
-    pub owner: Pubkey,
-    pub nonce: u64,
-    pub signed_value: i128,
-    pub optional_value: Option<u64>,
-    pub choice: ProbeChoice,
-    pub bump: u8,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, InitSpace)]
-pub enum ProbeChoice {
-    Empty,
-    Number { value: u64 },
-}
-
-#[event]
-pub struct ProbeRecorded {
-    pub schema_version: u16,
-    pub owner: Pubkey,
-    pub record: Pubkey,
-    pub nonce: u64,
-    pub signed_value: i128,
-    pub optional_value: Option<u64>,
-    pub choice: ProbeChoice,
-}
-
-#[error_code]
-pub enum ClearingError {
-    #[msg("The maximum nonce is reserved for the local rejection probe")]
-    ReservedNonce,
-    #[msg("Custody arithmetic bound or overflow")]
-    Arithmetic = 100,
-    #[msg("Market is paused")]
-    Paused,
-    #[msg("Wrong authority")]
-    Authority,
-    #[msg("Expected classic SPL six-decimal collateral without freeze authority")]
-    Mint,
-    #[msg("Source and destination roles alias")]
-    Alias,
-    #[msg("Participant registry is full")]
-    Capacity,
-    #[msg("Amount must be positive")]
-    Amount,
-    #[msg("Actual vault is below allocated cash or cash totals disagree")]
-    Reconciliation,
-    #[msg("Financial state is outside the implemented phase profile")]
-    Profile,
-    #[msg("Domain identity must be nonzero")]
-    Domain,
-    #[msg("Maker program, config or capital binding mismatch")]
-    MakerBinding,
-    #[msg("Maker capital is unfunded or outside the implemented profile")]
-    MakerCapital,
-    #[msg("Maker or market epoch mismatch or expired quote")]
-    MakerEpoch,
-    #[msg("Maker registration is quarantined")]
-    MakerQuarantined,
-    #[msg("Maker deployment differs from approved ProgramData hash")]
-    MakerUpgrade,
-    #[msg("Maker quote exceeds price, size or capacity bounds")]
-    MakerQuote,
-    #[msg("Maker response producer, encoding or terms mismatch")]
-    MakerResponse,
-    #[msg("Route authority, quantity, lifetime, nonce or generation mismatch")]
-    RouteIntent,
-    #[msg("Synthetic observation is unavailable, stale or mismatched")]
-    RiskObservation,
-    #[msg("Route exceeds all-in, fee or execution bounds")]
-    RouteLimit,
-    #[msg("Post-fee health or exposure capacity fails")]
-    RouteHealth,
-    #[msg("Exit cohort is incomplete, insolvent, foreign or stale")]
-    ExitCohort,
-    #[msg("Financial action is bound to a different market sequence")]
-    FinancialSequence,
-    #[msg("Oracle source identity, verification or schema mismatch")]
-    OracleSource,
-    #[msg("Oracle action mode, sample timing or source policy rejects action")]
-    OraclePolicy,
-    #[msg("Stored order identity, version, prefix or state mismatch")]
-    OrderState,
-    #[msg("Order quantity, limits, lifetime, trigger or generation rejected")]
-    OrderTerms,
-    #[msg("No free bounded order/protective-group slot")]
-    OrderSlots,
-    #[msg("Current central index does not satisfy stored trigger")]
-    OrderTrigger,
-    #[msg("Liquidation receiver, funded fee or strict risk progress check failed")]
-    Liquidation,
-    #[msg("Resolution epoch, stage, cursor, cohort or accounting check failed")]
-    Resolution,
 }

@@ -8,17 +8,17 @@ const MAKER_ID: u8 = 1;
 pub mod maker_b {
     use super::*;
     pub fn initialize_config(
-        ctx: Context<Initialize>,
+        context: Context<Initialize>,
         market: Pubkey,
         domain: [u8; 32],
         duration: u64,
     ) -> Result<()> {
-        initialize(ctx, market, domain, duration)
+        initialize(context, market, domain, duration)
     }
-    pub fn publish_epoch(ctx: Context<Publish>, duration: u64) -> Result<()> {
-        publish(ctx, duration)
+    pub fn publish_epoch(context: Context<Publish>, duration: u64) -> Result<()> {
+        publish(context, duration)
     }
-    pub fn quote(ctx: Context<ReadQuote>, request: QuoteRequest) -> Result<QuoteResponse> {
-        read_quote(ctx, request)
+    pub fn quote(context: Context<ReadQuote>, request: QuoteRequest) -> Result<QuoteResponse> {
+        read_quote(context, request)
     }
 }
