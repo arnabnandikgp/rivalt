@@ -164,6 +164,7 @@ pub(crate) use group_trading::routes::{
 };
 pub use group_trading::routes::{ExecuteGroupRoute, ManageGroupOrder};
 
+pub mod group_margin;
 pub mod group_safety;
 pub(crate) use group_safety::resolution::{
     __client_accounts_advance_group_resolution, __client_accounts_freeze_group,
