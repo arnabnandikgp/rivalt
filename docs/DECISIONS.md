@@ -455,3 +455,22 @@ preserved code locations produces byte-identical clearing artifacts in all three
 profiles; no financial opcode changes accompany this promotion. Six scoped host
 identity/profile checks pass. This qualifies local engineering only, not P21,
 M7 completion or any external/funded gate.
+
+## D53 — versioned successor service boundary (P21A)
+
+Reuse the append-only PostgreSQL journal and finalized recovery machinery through
+an explicit protocol projection adapter. SQL journal schema 1 remains compatible;
+immutable `binding.schema=2` selects the fresh group contract and rejects V1 access
+to that run. Group events use one global sequence across both markets. Reconcile
+every projected account and exact frozen ledger before checkpoint advance; include
+the group in every bounded RPC account chunk to detect intervening mutations.
+
+Expose `/v2` group/portfolio/root/history reads, with finalized projection identity
+and separate on-chain Clock context for pending funding/reservation previews. Cash
+is counted once per margin account; neither positive unpaid open claims nor a
+portfolio-wide aggregate grants risk credit. Local cash headroom is not permission
+to withdraw: require complete-group certification and actual simulation. This is
+an interface choice, not a change to financial/on-chain authority or economics.
+P21A's direct clients, immutable worker budgets/recovery and complete fresh
+qualification remain required before Review; prior P20/P16A evidence is not a
+substitute. P15B/P16B stay Open and D42 stays Deferred.

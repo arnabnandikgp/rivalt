@@ -19,3 +19,5 @@ export * from './liquidation-policy.js';
 export * from './balance-view.js';
 export * from './user-client.js';
 export * from './test-deployment.js';
+export * from './group-addresses.js';
+export * from './group-balance.js';

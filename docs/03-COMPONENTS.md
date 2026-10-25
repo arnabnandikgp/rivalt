@@ -14,7 +14,9 @@ CPI new authority. WORKLOG records actual acceptance.
 snapshots have separate event payload types without account discriminators.
 The Codama generator explicitly retains V1's flattened instruction arguments
 when a request type becomes shared; new contexts use distinct PDA names.
-V2 PostgreSQL/API/workers/UI remain P21 deliverables.
+V2 PostgreSQL/API/workers/UI remain P21 deliverables. [P21A's interface contract](P21A-INTERFACES.md)
+describes the versioned group journal, finalized reconstruction and labelled SDK
+previews; WORKLOG records the completed checks and remaining integration gates.
 
 [P18C](P18C-GROUP-SAFETY.md) separates `group_safety/settlement`, `risk` and
 `resolution/{mod,ledger}`. The cash context nests its unchanged identity/token

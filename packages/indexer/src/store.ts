@@ -1,14 +1,22 @@
 import { readFileSync } from 'node:fs';
 import pg, { type PoolClient } from 'pg';
 import { empty, project, type State } from './projection.js';
-import { hash, json, type Event } from './events.js';
+import { hash, json, type Event, type JournalEvent } from './events.js';
 
-export type Binding = { genesis: string; market: string; domain: string; anchor: string; anchorHash: string; program: string; schema: 1 };
-export class Store {
+export type JournalBinding = { genesis: string; domain: string; anchor: string; anchorHash: string; program: string; schema: number };
+export type Binding = JournalBinding & {market: string; schema: 1};
+export type Projection<State, Binding, Event> = {
+  schema: number;
+  empty(): State;
+  project(state: State, event: Event, binding: Binding): void;
+};
+/** One journal implementation, with an explicit immutable protocol version.
+ * SQL schema 1 is the journal format; binding.schema selects protocol accounts. */
+export class JournalStore<State extends {sequence: string}, Binding extends JournalBinding, Event extends JournalEvent> {
   readonly pool: pg.Pool;
   private lease?: PoolClient;
   private closed = false;
-  constructor(url: string, readonly runId: string) {
+  constructor(url: string, readonly runId: string, readonly projection: Projection<State, Binding, Event>) {
     if (!/^[a-zA-Z0-9._-]{1,120}$/.test(runId)) throw new Error('Invalid run identity');
     this.pool = new pg.Pool({ connectionString: url, max: 4, connectionTimeoutMillis: 5000,
       statement_timeout: 15_000, idle_in_transaction_session_timeout: 15_000 });
@@ -20,17 +28,20 @@ export class Store {
     await this.pool.query(readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'));
   }
   async bind(binding: Binding) {
+    if (binding.schema !== this.projection.schema) throw new Error('Incompatible projection schema');
     this.lease = await this.pool.connect();
     const lock = await this.lease.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS locked', [this.runId]);
     if (!lock.rows[0].locked) { this.lease.release(); this.lease = undefined; throw new Error('Run already has an indexer'); }
     this.lease.on('error', () => { const lost = this.lease; this.lease = undefined; lost?.release(true); });
-    await this.pool.query('INSERT INTO runs(run_id,binding,state) VALUES($1,$2,$3) ON CONFLICT DO NOTHING', [this.runId, json(binding), json(empty())]);
+    await this.pool.query('INSERT INTO runs(run_id,binding,state) VALUES($1,$2,$3) ON CONFLICT DO NOTHING', [this.runId, json(binding), json(this.projection.empty())]);
     const row = await this.snapshot();
     if (hashSorted(row.binding) !== hashSorted(binding)) throw new Error('Incompatible run binding');
   }
   async snapshot(): Promise<{ state: State; binding: Binding; checkpoint: string | null; checkpoint_slot: string | null; synced_at: Date | null; error: string | null }> {
     const { rows } = await this.pool.query('SELECT * FROM runs WHERE run_id=$1', [this.runId]);
-    if (!rows[0]) throw new Error('Unknown run'); return rows[0];
+    if (!rows[0]) throw new Error('Unknown run');
+    if (rows[0].binding.schema !== this.projection.schema) throw new Error('Incompatible projection schema');
+    return rows[0];
   }
   async observe(source: 'ws-confirmed' | 'rpc-finalized', signature: string, payload: any) {
     const client = await this.pool.connect();
@@ -48,6 +59,7 @@ export class Store {
     try {
       await client.query('BEGIN');
       const row = (await client.query('SELECT * FROM runs WHERE run_id=$1 FOR UPDATE', [this.runId])).rows[0];
+      if (row.binding.schema !== this.projection.schema) throw new Error('Incompatible projection schema');
       if (row.checkpoint !== expectedCheckpoint) throw new Error('Concurrent checkpoint change');
       const state: State = row.state;
       for (const { signature, tx } of transactions) {
@@ -66,7 +78,7 @@ export class Store {
           if (old.bytes !== event.bytes) throw new Error('Conflicting finalized event');
           continue;
         }
-        project(state, event, row.binding.market, row.binding.domain);
+        this.projection.project(state, event, row.binding);
         await client.query('INSERT INTO outbox VALUES($1,$2,$3)', [this.runId,event.data.sequence,json(event)]);
       }
       await client.query('UPDATE runs SET state=$2,checkpoint=COALESCE($3,checkpoint),checkpoint_slot=COALESCE($4,checkpoint_slot),synced_at=NULL,error=NULL WHERE run_id=$1',
@@ -82,6 +94,11 @@ export class Store {
     this.closed = true;
     if (this.lease) { await this.lease.query('SELECT pg_advisory_unlock(hashtextextended($1,0))', [this.runId]); this.lease.release(); this.lease = undefined; }
     await this.pool.end();
+  }
+}
+export class Store extends JournalStore<State, Binding, Event> {
+  constructor(url: string, runId: string) {
+    super(url, runId, {schema:1, empty, project:(state, event, binding) => project(state, event, binding.market, binding.domain)});
   }
 }
 const hashSorted = (v: Record<string, unknown>) => hash(Object.fromEntries(Object.entries(v).sort(([a],[b]) => a.localeCompare(b))));
