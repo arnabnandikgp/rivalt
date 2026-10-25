@@ -88,3 +88,10 @@ order/settlement/risk services on P20's explicit qualified local artifacts.
 default, process recovery, independent accounting, exact program identity and
 API-independent exits. P21B still owns the successor UI and bounded concurrent
 workload; WORKLOG records Review/integration status.
+
+[P21B](docs/P21B-QUALIFICATION.md) adds the portfolio-zero isolated/cross wallet UI
+and a fresh bounded two-market workload. [Its report](docs/evidence/P21B.md) records
+real wallet/RPC/WS/PostgreSQL checks, exact financial reconciliation and measured
+limits: continuous sampling invalidated exit certificates; explicit quiescent exits
+succeeded. This is an operator-controlled test profile, not funded readiness or
+always-live exit availability. WORKLOG owns open-stack Review/integration status.
