@@ -9,6 +9,9 @@ import { addresses, payerKey, type Harness } from './custody-cases.js';
 import type { GroupTradingHarness } from './group-trading-cases.js';
 import { groupSafetyCases } from './group-safety-cases.js';
 import { groupDefaultCases } from './group-default-cases.js';
+import { groupOrderCases } from './group-order-cases.js';
+import { groupEmergencyCases } from './group-emergency-cases.js';
+import { decodeGroupEvent,groupLiveParity } from './group-live-parity.js';
 import { ORACLE_FIXTURE } from './oracle-fixture.js';
 
 const artifact = '.local/successor-p18c';
@@ -25,6 +28,7 @@ const metadata=Uint8Array.from(programData.data);metadata[12]=1;metadata.set(get
 svm.setAccount({...programData,data:metadata}); // Loader upgrade authority only; financial state is never provisioned by byte injection.
 const initial=svm.getClock();initial.unixTimestamp=1_800_000_000n;initial.slot=100n;svm.setClock(initial);
 const checks: {label:string;status:string;bytes:number;accounts:number;computeUnits:string;declaredComputeUnits:number;signatureHex:string}[]=[];
+const eventBytes:string[]=[];
 const json=(value:unknown)=>JSON.stringify(value,(_,item)=>typeof item==='bigint'?item.toString():item,2)+'\n';
 async function send(label:string,instructions:Instruction[],signers:Parameters<Harness['send']>[2]=[],expectedError?:number) {
   svm.expireBlockhash();
@@ -43,6 +47,12 @@ async function send(label:string,instructions:Instruction[],signers:Parameters<H
   if(expectedError===undefined){
     assert(!(result instanceof FailedTransactionMetadata),`${label}: ${meta.logs().join('\n')}`);
     assert(meta.computeUnitsConsumed()<=BigInt(declaredComputeUnits*0.8),`${label}: insufficient CU headroom: ${meta.computeUnitsConsumed()}`);
+    for(const inner of meta.innerInstructions().flat()) {
+      const instruction=inner.instruction();
+      if(transaction.message.staticAccountKeys[instruction.programIdIndex()].toBase58()!==deployment.program)continue;
+      const bytes=Buffer.from(instruction.data()).subarray(8);
+      if(decodeGroupEvent(bytes))eventBytes.push(bytes.toString('base64'));
+    }
   }else{
     assert(result instanceof FailedTransactionMetadata,`${label}: unexpectedly accepted`);
     assert(meta.logs().some(line=>expectedError===0?line.includes('already in use'):line.includes(`Error Number: ${expectedError}.`)),`${label}: expected ${expectedError}\n${meta.logs().join('\n')}`);
@@ -68,11 +78,18 @@ async function capture(label:string,keys:import('@solana/kit').Address[]) {
   writeFileSync(`${output}/captures.json`,json(captures));
 }
 const result=await groupSafetyCases(h,capture);
-await groupDefaultCases(h,result,capture);
+await groupOrderCases(h,result,capture);
+const defaults=await groupDefaultCases(h,result,capture);
+await groupEmergencyCases(h,result,defaults,capture);
 const fixture=result.fixture;
+const parity=groupLiveParity(output,await Promise.all([
+  ['groupExitGuardV2',fixture.guard],['groupResolutionV2',fixture.resolution],['marginAccountV2',fixture.roots[0]],
+].map(async([name,key])=>({name,bytes:(await h.read(key as import('@solana/kit').Address))!.toString('base64')}))),eventBytes);
 writeFileSync(`${output}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
-  trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',checks,
+  trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',checks,parity,
   hashes:Object.fromEntries(programs.map(([,name])=>[name,createHash('sha256').update(readFileSync(`${artifact}/${name}.so`)).digest('hex')])),
   keys:{group:fixture.group,registry:fixture.registry,vault:fixture.vault,markets:fixture.markets,roots:fixture.roots,
     guard:fixture.guard,resolution:fixture.resolution,tokens:fixture.operators.map(operator=>operator.token.address)},captures:Object.keys(captures)}));
 console.log(`P18C development: ${checks.length} signed scenarios recorded in ${output}`);
+const audit=execFileSync('python3',['tests/financial/group-safety-reference.py',output],{encoding:'utf8'});
+writeFileSync(`${output}/independent-audit.json`,audit);console.log(audit.trim());

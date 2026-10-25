@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { AccountRole,getAddressEncoder,type Address } from '@solana/kit';
 import { getTransferSolInstruction } from '@solana-program/system';
+import { getTransferCheckedInstruction } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import { fixtureKey } from './custody-cases.js';
 import { groupPda } from './group-custody-cases.js';
@@ -40,6 +41,10 @@ export async function groupDefaultCases(h:GroupTradingHarness, lifecycle:Lifecyc
   await reject('reject provider capital as liquidation receiver',[await liquidation(50n,52_000n,fixture.makers[0][0].capital,fixture.makers[0][0].owner)],
     [fixture.makers[0][0].owner],sdk.CLEARING_ERROR__LIQUIDATION);
   await reject('reject target flip by liquidation',[await liquidation(101n,52_000n)],[receiverOwner],sdk.CLEARING_ERROR__ARITHMETIC);
+  // Independent 1% risk bands are [51,480, 52,520]. At 48,855, closing 50
+  // releases 131,300 MM and loses 131,250 equity: its 50-atom progress is
+  // consumed by the 1,222-atom funded fee.
+  await reject('reject liquidation progress consumed by funded fee',[await liquidation(50n,48_855n)],[receiverOwner],sdk.CLEARING_ERROR__ARITHMETIC);
   await capture('before-liquidation',protectedKeys());
   await h.send('funded partial liquidation after source move',[await liquidation(50n,52_000n)],[receiverOwner]);
   assert.equal((await fixture.rootState(receiver)).positions[0].lots,50n);
@@ -57,7 +62,10 @@ export async function groupDefaultCases(h:GroupTradingHarness, lifecycle:Lifecyc
   }
   for(const root of roots) {
     const account=await fixture.rootState(root);if(account.mode!==1)continue;
-    const index=account.isolatedMarketIndex,amount=account.positions[index].virtualScaled/1_000_000_000n;
+    const index=account.isolatedMarketIndex,entitlement=account.positions[index].virtualScaled/1_000_000_000n;
+    // Whole-atom loss collection can leave fractional losses unpaid. A positive
+    // claim is paid only from P; the unbacked remainder is still an unpaid claim.
+    const pool=(await fixture.groupState()).settlement,amount=entitlement<pool?entitlement:pool;
     if(amount>0n){await certificate();await h.send('pay collected liquidation lifecycle gain',[sdk.getChangeGroupClaimV2Instruction({...safety,...await fixture.stamp(),margin:root,marketIndex:index,amount,gain:true})]);}
   }
   await capture('liquidation-lifecycle-complete',protectedKeys());
@@ -73,6 +81,10 @@ export async function groupDefaultCases(h:GroupTradingHarness, lifecycle:Lifecyc
         subaccountIndex:child,mode:child===0?0:1,isolatedMarketIndex:child===0?255:child%2,role:0})],[signer]);roots.push(margin);
     }
   }
+  const overflow=await groupPda('margin-v2',encoder.encode(operators[0].portfolio),u16(3));
+  await reject('reject registry member 65',[await sdk.getRegisterMarginV2InstructionAsync({...common,owner,portfolio:operators[0].portfolio,margin:overflow,
+    subaccountIndex:3,mode:1,isolatedMarketIndex:0,role:0})],[owner],sdk.CLEARING_ERROR__CAPACITY);
+  assert.equal(await h.read(overflow),null,'failed account initialization rolled back');
   await certificate();
   const completeStamp=await fixture.stamp();
   const rewind=sdk.getCheckGroupExitV2Instruction({...safety,...completeStamp,start:0});
@@ -83,6 +95,17 @@ export async function groupDefaultCases(h:GroupTradingHarness, lifecycle:Lifecyc
   await fixture.publish(0,{price:10_000_000_000n});await fixture.publish(2,{price:10_000_000_000n});
   await fixture.publish(4,{price:4_000_000_000n});await fixture.publish(5,{price:4_000_000_000n});
   await fixture.qualify();
+  const beforeInsurance=await fixture.groupState();assert(beforeInsurance.fees>1_000n);
+  await reject('reject foreign fee allocation',[sdk.getAllocateGroupFeesV2Instruction({...common,authority:owner,amount:1n})],[owner],2001);
+  await reject('reject allocation beyond funded fees',[sdk.getAllocateGroupFeesV2Instruction({...common,authority:payer,amount:beforeInsurance.fees+1n})],[],sdk.CLEARING_ERROR__ARITHMETIC);
+  await h.send('explicit fee allocation to insurance',[sdk.getAllocateGroupFeesV2Instruction({...common,authority:payer,amount:1_000n})]);
+  await h.send('actual SPL donation to group vault',[getTransferCheckedInstruction({source:operators[0].token.address,mint:fixture.mint.address,
+    destination:fixture.vault,authority:owner,amount:7n,decimals:6})],[owner]);
+  await reject('reject foreign surplus classification',[sdk.getClassifyGroupSurplusV2Instruction({...common,authority:owner})],[owner],2001);
+  await h.send('classify donated insurance',[sdk.getClassifyGroupSurplusV2Instruction({...common,authority:payer})]);
+  const insured=await fixture.groupState();assert.equal(insured.insurance,1_007n);assert.equal(insured.fees,beforeInsurance.fees-1_000n);
+  assert.equal(insured.totalCash,beforeInsurance.totalCash);assert.equal(insured.allocatedVault,beforeInsurance.allocatedVault+7n);
+  await h.send('pause does not prevent complete-group default',[sdk.getPauseGroupCustodyV2Instruction({...common,authority:payer,paused:true})]);
   await capture('before-default',protectedKeys());
   await h.send('freeze complete mixed-market group',[sdk.getFreezeGroupV2Instruction({...safety,...fixture.sources,...await fixture.stamp(),caller:payer,
     target:operators[0].capital[0],emergency:false})]);

@@ -149,7 +149,20 @@ def audit(summary,captures):
         position=previous['positions'][0];funding=after['markets'][0]['funding']
         expected=position['virtual']-position['lots']*(funding-position['checkpoint'])+side*50*52_000*SCALE
         assert current['positions'][0]['virtual']==expected and current['positions'][0]['checkpoint']==funding
-    frozen,complete=states['frozen-default'],states['complete-default']
+    result=default_audit(states,keys,'default')
+    if 'frozen-emergency' in states:
+        result['emergency']=default_audit(states,keys,'emergency')
+        waiting,_=resolution(states['await-valuation']['accounts'][keys['resolution']])
+        valued,_=resolution(states['frozen-emergency']['accounts'][keys['resolution']])
+        assert waiting['stage']==1 and waiting['prices']==[0,0]
+        assert waiting['funding']==valued['funding'] and waiting['epoch']==valued['epoch']
+    for check in summary['checks']:
+        assert check['bytes']<=1232
+        if check['status']=='pass':assert int(check['computeUnits'])*5<=check['declaredComputeUnits']*4
+    return result
+
+def default_audit(states,keys,label):
+    frozen,complete=states[f'frozen-{label}'],states[f'complete-{label}']
     header,_=resolution(frozen['accounts'][keys['resolution']]);finished,rows=resolution(complete['accounts'][keys['resolution']])
     assert header['stage']==2 and finished['stage']==12 and header['count']==finished['count']==64
     assert header['prices']==[10_000,40_000] and header['funding']==[market['funding'] for market in frozen['markets']]
@@ -157,7 +170,8 @@ def audit(summary,captures):
     assert complete['members']==frozen['members']
     cash=[entry['cash'] for entry in frozen['roots']]
     initial_claims=[sum(claims(entry,header['prices'],header['funding'])) for entry in frozen['roots']]
-    assert sum(initial_claims)==header['initial_pool']*SCALE and cash[0]*SCALE+initial_claims[0]<0
+    assert sum(initial_claims)==header['initial_pool']*SCALE
+    if label=='default':assert cash[0]*SCALE+initial_claims[0]<0
     collected=[min(balance,max(-claim,0)//SCALE) for balance,claim in zip(cash,initial_claims)]
     residual=[claim+amount*SCALE for claim,amount in zip(initial_claims,collected)]
     debt=[max(-claim,0) for claim in residual];positive=[max(claim,0) for claim in residual]
@@ -183,21 +197,43 @@ def audit(summary,captures):
     assert finished['collected_total']==sum(collected) and finished['paid_applied']==pool
     assert complete['pools']['fees']==frozen['pools']['fees'] and complete['pools']['vault']==frozen['pools']['vault']
     assert complete['pools']['pool']==0 and complete['pools']['insurance']==header['initial_insurance']-insurance
-    assert states['resumed-default']['pools']==complete['pools']
+    assert states[f'resumed-{label}']['pools']==complete['pools']
+    return dict(members=64,collected=str(sum(collected)),insurance=str(insurance),paid=str(pool),impairedScaled=str(sum(impaired)),roundingSum=str(sum(rounding)))
+
+def ordinary_audit(summary,captures):
+    states={name:snapshot(raw,summary['keys']) for name,raw in captures.items()}
+    for state in states.values():normal(state)
+    assert states['activated-empty']['pools']==dict(cash=2_002_000_000,pool=0,insurance=0,fees=0,vault=2_002_000_000)
+    # Literal independent maker-curve sums: A buy 20 at reference+10+[0..19],
+    # then sell at reference-10-[20..39]; B buys/sells 30 at reference +/-30.
+    for market,price,fee in [(0,60_000,601),(1,30_000,301)]:
+        opened=states[f'opened-{market}'];position=opened['roots'][market]['positions'][market]
+        assert position['lots']==50 and position['virtual']==-(50*price+1_290)*SCALE
+        assert opened['roots'][market]['cash']==1_000_000-fee
+        assert opened['roots'][2+market]['positions'][market]['lots']==-20
+        assert opened['roots'][4+market]['positions'][market]['lots']==-30
+    final=states['ordinary-lifecycle']
+    assert [entry['cash'] for entry in final['roots']]==[995_809,996_329,500_001_180,500_001_180,500_001_800,500_001_800,0]
+    assert final['pools']==dict(cash=2_001_998_098,pool=0,insurance=0,fees=1_802,vault=2_001_999_900)
+    assert all(position['lots']==position['virtual']==0 for entry in final['roots'] for position in entry['positions'])
     for check in summary['checks']:
         assert check['bytes']<=1232
         if check['status']=='pass':assert int(check['computeUnits'])*5<=check['declaredComputeUnits']*4
-    return dict(members=64,collected=str(sum(collected)),insurance=str(insurance),paid=str(pool),impairedScaled=str(sum(impaired)),roundingSum=str(sum(rounding)))
+    return dict(markets=2,roots=7,fees='1802',withdrawn='100',fundedCash='2001998098')
 
 if __name__=='__main__':
     directory=Path(sys.argv[1]);summary=json.loads((directory/'summary.json').read_text());captures=json.loads((directory/'captures.json').read_text())
-    result=audit(summary,captures)
+    ordinary='--ordinary' in sys.argv
+    check_audit=ordinary_audit if ordinary else audit
+    result=check_audit(summary,captures)
     changes=[('complete-default',summary['keys']['roots'][0],113),('complete-default',summary['keys']['group'],255),
              ('frozen-default',summary['keys']['resolution'],87),('complete-default',summary['keys']['resolution'],478),
              ('complete-default',summary['keys']['roots'][1],129),('after-liquidation',summary['keys']['roots'][7],113)]
+    if ordinary:changes=[('ordinary-lifecycle',summary['keys']['roots'][0],113),('ordinary-lifecycle',summary['keys']['group'],255),
+                         ('opened-1',summary['keys']['roots'][1],169),('ordinary-lifecycle',summary['keys']['vault'],64)]
     for label,key,offset in changes:
         altered=copy.deepcopy(captures);data=bytearray(base64.b64decode(altered[label][key]));data[offset]^=1;altered[label][key]=base64.b64encode(data).decode()
-        try:audit(summary,altered)
+        try:check_audit(summary,altered)
         except (AssertionError,KeyError):pass
         else:raise AssertionError(f'audit accepted corrupted {label} at {offset}')
     print(json.dumps({'independentRawAudit':'pass','mutationsRejected':len(changes),**result}))

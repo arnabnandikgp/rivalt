@@ -2,8 +2,8 @@
 
 Implementation is in progress above P18B PR #26. A23C/G14 is not yet passed.
 The isolated safety candidate is now executable only in the explicit local test
-profile for acceptance. Cross remains hard-disabled. No fresh runtime deployment
-or A23C qualification is claimed yet; default/devnet builds reject V2 trading.
+profile for acceptance. Cross remains hard-disabled. No A23C qualification is
+claimed yet; default/devnet builds reject V2 trading.
 The contract remains [P17](P17-MARGIN-CONTRACT.md); D50 resolves ordinary lifecycle
 choices without changing fees, loss ownership or source safeguards.
 
@@ -82,10 +82,18 @@ Two-maker routing also exhausted the heap through temporary candidates/event Vec
 use bounded allocation and unchanged Anchor-compatible event CPI. The default
 32 KiB heap and all identity/oracle/risk checks remain intact.
 
-Development run `20261025T072540907Z-64213` passes 746 signed SVM scenarios, including
-actual isolated activation, both-market split open/close/collection/payment/exit,
-funded partial liquidation, 64 real registered members and complete default/resume.
-Its independent raw-byte audit and six mutations pass. This is a dirty-development
-run; remaining order/emergency/RPC/legacy cases and clean committed acceptance are
-still required. Prior failed paths remain in `.local/group-safety/` and are recorded
-in WORKLOG. No raw report is tracked.
+Development run `20261025T073809721Z-69865` passes 1,131 signed SVM scenarios,
+including partial order fees, pending funding, TP/SL, reserved cash rejection,
+funded liquidation, all 64 real members, insured default and repeat emergency
+resolution after AwaitValuation. Both independent raw-byte waterfall audits and
+six mutations pass. Three live account codecs and 692 events across eight types
+match isolated legacy Anchor; 15 safety ABI cases cover the nested cash context.
+This remains dirty-development evidence. Fresh RPC/WS and clean committed
+acceptance are still required. Prior failed paths remain in `.local/group-safety/`
+and are recorded in WORKLOG. No raw report is tracked.
+
+The RPC harness observes confirmed results while sources are being sampled and
+then independently fetches **every original signature finalized** before passing.
+This avoids spending an entire funding hold on sequential finality waits while
+preserving the source deadlines and final outcome checks. PostgreSQL and new
+service consumers remain P21 acceptance, not a claim of this program-level run.

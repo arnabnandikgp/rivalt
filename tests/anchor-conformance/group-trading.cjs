@@ -29,10 +29,13 @@ const unpack = value => {
   const output = [];
   for (const entry of (Array.isArray(input)?input:input.instructions??[])) {
     const program=programFor(entry.program);
-    const accounts=Object.fromEntries(Object.entries(entry.accounts).map(([key,value])=>[key,value===null?null:new PublicKey(value)]));
+    const accountKeys=value=>value===null?null:typeof value==='string'?new PublicKey(value)
+      :Object.fromEntries(Object.entries(value).map(([key,item])=>[key,accountKeys(item)]));
+    const accounts=accountKeys(entry.accounts);
     const instruction=await program.methods[entry.name](...entry.args.map(unpack)).accountsStrict(accounts).instruction();
     output.push({data:instruction.data.toString('hex'),accounts:instruction.keys.map(key=>({address:key.pubkey.toBase58(),signer:key.isSigner,writable:key.isWritable}))});
   }
   const accounts=(Array.isArray(input)?[]:input.accounts??[]).map(entry=>plain(programFor(entry.program).coder.accounts.decode(entry.name,Buffer.from(entry.bytes,'base64'))));
-  process.stdout.write(JSON.stringify(Array.isArray(input)?output:{instructions:output,accounts}));
+  const events=(Array.isArray(input)?[]:input.events??[]).map(entry=>plain(programFor(entry.program).coder.events.decode(entry.bytes)));
+  process.stdout.write(JSON.stringify(Array.isArray(input)?output:{instructions:output,accounts,events}));
 })().catch(error=>{console.error(error);process.exitCode=1;});
