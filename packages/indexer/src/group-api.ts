@@ -6,7 +6,7 @@ import {integer} from './rpc.js';
 
 const publicKey = {type:'string',pattern:'^[1-9A-HJ-NP-Za-km-z]{32,44}$'} as const;
 const clockAddress = address('SysvarC1ock11111111111111111111111111111111');
-const cursor = {type:'object',additionalProperties:false,properties:{after:{type:'string',pattern:'^(0|[1-9][0-9]{0,19})$'},limit:{type:'integer',minimum:1,maximum:100}}} as const;
+const cursor = {type:'object',additionalProperties:false,properties:{after:{type:'string',pattern:'^(0|[1-9][0-9]{0,19})$'},limit:{type:'integer',minimum:1,maximum:100},latest:{type:'boolean'}}} as const;
 /** Schema-2 read surface. Confirmed/host-clock hints cannot rewrite the finalized
  * projection; current risk views disclose their separate on-chain Clock input. */
 export function groupApi(indexer: GroupIndexer) {
@@ -49,16 +49,18 @@ export function groupApi(indexer: GroupIndexer) {
     return {...envelope(row),margin:request.params.margin,account:root,view,clockSource:'finalized-rpc-sysvar',clockContextSlot:String(response.context.slot),
       resolution:row.state.group?.mode === 3 ? {header:row.state.resolution!.header,row:row.state.resolution!.rows[root.id]} : null};
   });
-  for (const endpoint of ['events','trades'] as const) app.get<{Querystring:{after?:string;limit?:number}}>(`/v2/${endpoint}`,{schema:{querystring:cursor}},async request => {
+  for (const endpoint of ['events','trades'] as const) app.get<{Querystring:{after?:string;limit?:number;latest?:boolean}}>(`/v2/${endpoint}`,{schema:{querystring:cursor}},async (request,reply) => {
+    if(request.query.latest&&request.query.after!==undefined)return reply.code(400).send({error:'ChooseLatestOrCursor'});
     const client = await indexer.store.pool.connect();
     try {
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       const row = (await client.query('SELECT * FROM runs WHERE run_id=$1',[indexer.config.runId])).rows[0];
       const result = await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload FROM events
         WHERE run_id=$1 AND sequence>$2 ${endpoint === 'trades' ? "AND kind IN ('group-route','margin-route')" : ''}
-        ORDER BY sequence LIMIT $3`,[indexer.config.runId,request.query.after ?? '0',request.query.limit ?? 50]);
+        ORDER BY sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`,[indexer.config.runId,request.query.after ?? '0',request.query.limit ?? 50]);
       await client.query('COMMIT');
-      return {...envelope(row),items:result.rows,next:result.rows.at(-1)?.sequence ?? null};
+      const items=request.query.latest?result.rows.reverse():result.rows;
+      return {...envelope(row),items,next:items.at(-1)?.sequence ?? null};
     } catch (error) {await client.query('ROLLBACK'); throw error;} finally {client.release();}
   });
   app.setErrorHandler((error,_,reply) => {

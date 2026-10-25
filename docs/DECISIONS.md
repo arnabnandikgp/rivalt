@@ -566,3 +566,18 @@ Samples increment both counters; unrelated group writes cannot obscure an
 unchanged market stamp. Original bytes/authority remain immutable and unknown
 fees remain reserved even after proven economic nonexecution. Existing broader
 stamps are not rewritten. No risk, oracle cadence, financial or fee rule changes.
+
+## D54 — successor wallet presentation and qualification boundary (P21B)
+
+Select the explicit schema-2 local deployment in the existing trader shell.
+Portfolio zero presents owner trader accounts with immutable modes/markets and
+explicit allocation. Empty portfolio discovery authenticates its canonical PDA;
+wallet collateral reads authenticate classic token owner/mint/layout. No pooled
+portfolio risk, live conversion or new signing authority is added. SDK-rebuilt
+messages, scoped reviews and saved original bytes remain mandatory. Recent
+finalized history adds bounded latest ordering alongside unchanged cursor reads.
+
+[P21B](P21B-QUALIFICATION.md) separates actual sequential browser acceptance from
+the required 300-second/0.5-offer-per-second concurrent qualification, complete
+outcome populations and independent reconciliation. No inherited P16A/P21A result
+closes those checks; external gates and deferred endurance are unchanged.

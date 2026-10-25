@@ -104,3 +104,26 @@ it('requires the exact pinned initialization hash and retains local-only deploym
   expect(()=>sdk.groupUserConfig({...fixture.config,chain:'solana:devnet'} as any)).toThrow(/qualified local/);
   expect(()=>sdk.groupUserConfig({...fixture.config,rpcUrl:'http://127.0.0.1:1/?api-key=redacted'})).toThrow(/credentials/);
 });
+
+it('reads owned classic collateral exactly and rejects substituted owners/mints/programs/layouts',async()=>{
+  const fixture=await environment(),client=new sdk.GroupUserClient(fixture.config),owner=fixture.owners[0];
+  const bytes=Buffer.alloc(165);bytes.set(getAddressEncoder().encode(fixture.config.mint));bytes.set(getAddressEncoder().encode(owner),32);bytes.writeBigUInt64LE(123_456n,64);bytes[108]=1;
+  const row={pubkey:fixture.members[0],account:{owner:'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',data:[bytes.toString('base64'),'base64']}};
+  client.rpc.call=async(method,params)=>{expect(method).toBe('getTokenAccountsByOwner');expect(params?.[1]).toEqual({mint:fixture.config.mint});return {value:[row]};};
+  expect(await client.walletTokens(owner)).toEqual([{address:fixture.members[0],amount:123456n}]);
+  for(const offset of [0,32]){const altered=Buffer.from(bytes);altered[offset]^=1;row.account.data[0]=altered.toString('base64');await expect(client.walletTokens(owner)).rejects.toThrow(/owner\/mint/);}
+  row.account.data[0]=Buffer.concat([bytes,Buffer.alloc(1)]).toString('base64');await expect(client.walletTokens(owner)).rejects.toThrow(/layout/);
+  row.account.owner=sdk.CLEARING_PROGRAM_ADDRESS;await expect(client.walletTokens(owner)).rejects.toThrow(/Foreign collateral/);
+});
+it('discovers an empty owner portfolio before its first root and authenticates immutable identity',async()=>{
+  const fixture=await environment(),client=new sdk.GroupUserClient(fixture.config),owner=fixture.owners[0];
+  const [portfolio,bump]=await sdk.findPortfolioPda({group:fixture.config.group,owner,index:0});
+  let value:any=null;
+  client.rpc.call=async(method,params)=>{expect(method).toBe('getAccountInfo');expect(params?.[0]).toBe(portfolio);return {value};};
+  expect((await client.ownerPortfolio(owner)).account).toBeNull();
+  const state={schemaVersion:2,group:fixture.config.group,owner,index:0,children:0,bump};
+  value={owner:sdk.CLEARING_PROGRAM_ADDRESS,data:[Buffer.from(sdk.getPortfolioV2Encoder().encode(state)).toString('base64'),'base64']};
+  expect((await client.ownerPortfolio(owner)).account?.children).toBe(0);
+  value.data[0]=Buffer.from(sdk.getPortfolioV2Encoder().encode({...state,index:1})).toString('base64');
+  await expect(client.ownerPortfolio(owner)).rejects.toThrow(/identity/);
+});

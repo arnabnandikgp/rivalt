@@ -29,3 +29,22 @@ it('reads the canonical on-chain Clock and labels funding previews without grant
     expect(calls).toBe(1);
   } finally {await app.close();}
 });
+
+it('serves bounded latest history in ascending display order without changing cursor reads',async()=>{
+  const row={binding:{group:'group',profile:'cross-safety-qualification'},state:{sequence:'105',markets:{}},synced_at:new Date()};
+  const queries:string[]=[];
+  const client={async query(sql:string,params?:unknown[]){queries.push(sql);
+    if(sql.startsWith('SELECT * FROM runs'))return {rows:[row]};
+    if(sql.includes('FROM events')){expect(params).toEqual(['test','0',2]);return {rows:(sql.includes('DESC')?['105','104']:['1','2']).map(sequence=>({sequence}))};}
+    return {rows:[]};},release(){}};
+  const indexer={healthy:true,ws:{error:null},config:{runId:'test'},store:{async snapshot(){return row;},pool:{async connect(){return client;}}}};
+  const app=groupApi(indexer as unknown as GroupIndexer);
+  try{
+    const latest=await app.inject('/v2/trades?latest=true&limit=2');expect(latest.statusCode).toBe(200);
+    expect(latest.json().items.map((item:any)=>item.sequence)).toEqual(['104','105']);expect(latest.json().next).toBe('105');
+    const cursor=await app.inject('/v2/events?limit=2');expect(cursor.json().items.map((item:any)=>item.sequence)).toEqual(['1','2']);
+    expect((await app.inject('/v2/events?latest=true&after=3')).statusCode).toBe(400);
+    expect((await app.inject('/v2/events?latest=true&limit=101')).statusCode).toBe(400);
+    expect(queries.filter(query=>query.startsWith('BEGIN'))).toHaveLength(2);
+  }finally{await app.close();}
+});

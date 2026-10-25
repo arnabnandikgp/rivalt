@@ -1,4 +1,5 @@
 import {AccountRole, address, createNoopSigner, getProgramDerivedAddress, type Address, type Instruction} from '@solana/kit';
+import {getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import * as protocol from './generated/index.js';
 import {testRpcUrl} from './test-deployment.js';
 import {GroupArtifactVerifier} from './group-artifacts.js';
@@ -83,6 +84,29 @@ export class GroupUserClient extends WalletClient {
   }
   async snapshot(commitment:'confirmed'|'finalized'='finalized'){
     await this.environment();return readGroupSnapshot(this.rpc,this.config,commitment);
+  }
+  async walletTokens(owner:Address):Promise<{address:Address;amount:bigint}[]>{
+    const response=await this.rpc.call('getTokenAccountsByOwner',[owner,{mint:this.config.mint},{encoding:'base64',commitment:'finalized'}]);
+    requireValue(Array.isArray(response.value),'Incomplete wallet collateral response.');
+    return response.value.map((entry:any)=>{
+      requireValue(entry.account?.owner===TOKEN_PROGRAM_ADDRESS&&entry.account.data?.[1]==='base64','Foreign collateral account.');
+      const bytes=fromBase64(entry.account.data[0]);requireValue(bytes.length===165,'Unsupported collateral account layout.');
+      const token=getTokenDecoder().decode(bytes);
+      requireValue(token.owner===owner&&token.mint===this.config.mint,'Collateral owner/mint mismatch.');
+      return {address:address(entry.pubkey),amount:token.amount};
+    });
+  }
+  async ownerPortfolio(owner:Address,index=0){
+    requireValue(Number.isInteger(index)&&index>=0&&index<=3,'Portfolio index must be 0–3.');
+    const [portfolio,bump]=await protocol.findPortfolioPda({group:this.config.group,owner,index});
+    const response=await this.rpc.call('getAccountInfo',[portfolio,{encoding:'base64',commitment:'finalized'}]);
+    if(response.value===null)return {address:portfolio,account:null};
+    requireValue(response.value?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&response.value.data?.[1]==='base64','Foreign owner portfolio.');
+    const bytes=fromBase64(response.value.data[0]);
+    requireValue(hex(bytes.slice(0,8))===hex(protocol.PORTFOLIO_V2_DISCRIMINATOR),'Wrong portfolio discriminator.');
+    const account=protocol.getPortfolioV2Decoder().decode(bytes);
+    requireValue(account.schemaVersion===2&&account.group===this.config.group&&account.owner===owner&&account.index===index&&account.bump===bump,'Portfolio identity mismatch.');
+    return {address:portfolio,account};
   }
   async common(){
     const [eventAuthority]=await getProgramDerivedAddress({programAddress:protocol.CLEARING_PROGRAM_ADDRESS,seeds:[new TextEncoder().encode('__event_authority')]});

@@ -469,6 +469,9 @@ funding expiry after unrelated group progress, preserving unknown-fee reserves.
 
 ### P21B — UI and successor qualification
 
+Current UI/qualification contract: [P21B](P21B-QUALIFICATION.md). Build preparation
+and sequential browser checks do not substitute for the concurrent workload.
+
 **Deliverable:** Portfolio-zero UI with isolated/cross account selection, explicit
 allocation, two market positions, unpaid/funded claims, per-account authority and
 conditional risk displays; operations/runbooks and bounded qualification.

@@ -744,3 +744,20 @@ dialog dl {
     scroll-behavior: auto !important;
   }
 }
+
+/* Schema-2 account views retain the existing venue palette and controls. */
+.group-selection {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, 180px) auto;
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.group-selection .caption { grid-column: 1 / -1; margin: 0; overflow-wrap: anywhere; }
+.group-review { border-color: var(--accent); margin-bottom: 20px; }
+main > .panel { margin-bottom: 20px; }
+.trade-ticket details { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 16px; }
+summary { cursor: pointer; min-height: 44px; padding: 10px 0; }
+@media (max-width: 680px) {
+  .group-selection { grid-template-columns: 1fr; }
+}
