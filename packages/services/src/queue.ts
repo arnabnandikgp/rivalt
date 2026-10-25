@@ -5,9 +5,10 @@ import * as sdk from '@rivalt/sdk';
 import { Store } from '../../indexer/src/store.js';
 import { Rpc, integer } from '../../indexer/src/rpc.js';
 import { json } from '../../indexer/src/events.js';
+import {groupAuthorityValue, type GroupAuthority} from './group-authority.js';
 
 export const RESERVATION=20_000n;
-export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string};
+export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string} | GroupAuthority;
 export function signedWire(wire:string) {
   if(typeof wire!=='string' || wire.length>1644)throw new Error('Invalid transaction size');
   const bytes=Buffer.from(wire,'base64');if(bytes.length>1232 || bytes.toString('base64')!==wire)throw new Error('Noncanonical transaction');
@@ -53,7 +54,7 @@ export function userAuthority(wire:string,market:string,program:Address=sdk.CLEA
   throw new Error('Unsupported financial action');
 }
 export class Queue {
-  constructor(readonly store:Store,readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS){}
+  constructor(readonly store:Pick<Store,'pool'|'runId'>,readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS){}
   async budget(name:string,wallet:string,cap:bigint){
     await this.store.pool.query('INSERT INTO service_budgets(run_id,name,wallet,cap) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[this.store.runId,name,wallet,cap.toString()]);
     const r=(await this.store.pool.query('SELECT * FROM service_budgets WHERE run_id=$1 AND name=$2',[this.store.runId,name])).rows[0];
@@ -101,7 +102,7 @@ export class Queue {
             const a=await this.rpc.call('getAccountInfo',[r.authority.account,{encoding:'base64',commitment:'finalized',minContextSlot:integer(valid.context.slot)}]);
             if(a.value?.owner===this.program){
               const bytes=Buffer.from(a.value.data[0],'base64');
-              const value=r.authority.kind==='nonce'?sdk.getParticipantDecoder().decode(bytes).nonce:
+              const value=['marginNonce','groupSequence','groupQuoteEpoch'].includes(r.authority.kind)?groupAuthorityValue(r.authority,bytes):r.authority.kind==='nonce'?sdk.getParticipantDecoder().decode(bytes).nonce:
                 r.authority.kind==='quoteEpoch'?sdk.getMakerRegistrationDecoder().decode(bytes).quoteEpoch:
                 sdk.getMarketStateDecoder().decode(bytes).sequence;
               // Unchanged authority rules out the economic effect, not a failed

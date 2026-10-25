@@ -63,6 +63,32 @@ remains null and `withdrawalStatus` requires a fresh complete-group certificate
 and simulation. Portfolio cash is never pooled implicitly. Direct user signing,
 API-disabled exits and immutable service recovery are remaining P21A work.
 
+## Durable execution infrastructure
+
+`packages/services/src/group-execution.ts` uses the same immutable signed-byte
+queue as V1 with a schema-2 run. Finalized expiry proofs distinguish margin nonce,
+group sequence and per-market maker quote epoch, authenticate the account schema
+and group, and leave unknown network fees reserved. Wallet ingress permits one
+owner/delegate action or the explicit owner transfer plus route; the latter uses
+700,000 CU and binds recipient/next group sequence. No additional signer,
+nonzero priority price, arbitrary program or replacement wallet message is accepted.
+Operator request prefixes remain reserved; ordinary client retries use identical
+bytes and request identities.
+
+The separately runnable `group-executor-main.ts` consumes this queue. It does not
+discover or decide financial maintenance. Group financial workers remain phase
+work; their market-specific liveness records use `(run, marketIndex, makerId)`.
+
+| Explicit local fee budget | Cap (lamports) |
+|---|---:|
+| Each BTC/ETH A/B maker | 1,000,000 |
+| Each BTC/ETH funding worker | 5,000,000 |
+| Group orders, settlement and risk (each) | 5,000,000 |
+
+Caps bind a payer once, share the existing 20,000-lamport reservation per pending
+intent and reconcile independently fetched actual fees. No automatic top-up or
+collateral deduction exists. Same-owner internal makers remain internal actors.
+
 ## Scoped verification
 
 `bash ops/group-indexer-smoke.sh` deploys the explicitly qualified local artifact

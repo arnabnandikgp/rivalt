@@ -1,3 +1,4 @@
+import {enqueueOperator} from './operator-enqueue.js';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -150,20 +151,9 @@ export class Runtime {
       instructions:[sdk.routeComputeBudget(),ix].map(i=>({programAddress:i.programAddress,accounts:i.accounts?.map(a=>({address:a.address,role:a.role})),data:Buffer.from(i.data??[]).toString('base64')}))};
   }
   async enqueue(id:string,ixs:Instruction[],payer:Keypair,budget:string,authority:Authority|null,preflight=false){
-    // Retain every signed attempt. Unknown or successful attempts block a new
-    // signature; only independently proven non-success can use the next ID.
-    let attempt:string|undefined;
-    for(let n=0;n<16;n++){
-      const candidate=n?`${id}:retry:${n}`:id,prior=await this.queue.get(candidate);
-      if(!prior){attempt=candidate;break;}
-      if(!['failed','expired-unexecuted'].includes(prior.status))return;
-    }
-    if(!attempt)throw new Error('Operator request retry limit reached');
-    const {transaction}=await sdk.signInstructions(this.connection,payer,ixs);
-    const wire=Buffer.from(transaction.serialize()).toString('base64');
-    if(preflight){const simulation=await this.rpc.call('simulateTransaction',[wire,{encoding:'base64',sigVerify:true,commitment:'confirmed'}]);if(simulation.value.err)throw new Error('Risk action presently unavailable');}
-    await this.queue.put(attempt,wire,authority,budget);
+    return enqueueOperator(this,id,ixs,payer,budget,authority,preflight);
   }
+
   async maker(id:number,key:Keypair){
     const s=await this.snapshot(),x=s.makers.find(x=>x.r.makerId===id);if(!x || x.r.owner!==key.address)throw new Error('Maker key binding');
     const budget=`maker-${id}`;await this.queue.budget(budget,key.address,this.budgets.maker);

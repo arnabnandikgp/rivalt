@@ -474,3 +474,13 @@ an interface choice, not a change to financial/on-chain authority or economics.
 P21A's direct clients, immutable worker budgets/recovery and complete fresh
 qualification remain required before Review; prior P20/P16A evidence is not a
 substitute. P15B/P16B stay Open and D42 stays Deferred.
+
+D53 group execution realization: keep the existing immutable queue and 16-attempt
+operator ceiling. Extend expiry proofs with explicit V2 schema/group identity and
+separate account nonce, group sequence and market maker-epoch stamps. Incomplete
+history never releases an unknown fee reservation. Group wallet ingress admits
+only a reviewed single action or the explicit transfer/route pair under P20's
+measured compute declarations. Per-market maker/funding heartbeat and SOL budget
+identities are separate; the fixed local caps in P21A-INTERFACES fund infrastructure
+only and do not alter collateral, fee economics or external authorization. Actual
+process recovery and full service qualification remain evidence gates.

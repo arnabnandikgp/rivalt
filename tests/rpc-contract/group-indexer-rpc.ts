@@ -8,6 +8,7 @@ import {json} from '../../packages/indexer/src/events.js';
 import {groupApi} from '../../packages/indexer/src/group-api.js';
 import {groupRuntimeHarness} from './group-runtime-harness.js';
 import {crossBudgetCases} from './cross-budget-cases.js';
+import {groupQueueFault} from './group-queue-fault.js';
 
 const directory = process.env.RIVALT_RUN_DIR!;
 const revision = execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
@@ -53,6 +54,8 @@ try {
   await transport.send('deposit observed on live group subscription', [await setup.cashInstruction(setup.fixture.cross,1n,false)], [setup.fixture.owner]);
   await transport.finalize(); await indexer.cycle();
   assert(indexer.metrics.notifications > 0, 'Actual group WS notification');
+  const queueFault=await groupQueueFault({databaseUrl:config.databaseUrl,runId:config.runId,rpcUrl:config.rpcUrl,directory},setup,transport);
+  await indexer.cycle();
   const final = await indexer.store.snapshot(), reconciliation = await indexer.reconcile();
   app = groupApi(indexer);
   const apiUrl = await app.listen({host:'127.0.0.1',port:0});
@@ -88,9 +91,9 @@ try {
   assert.equal(counts.events, final.state.sequence); assert.equal(counts.outbox, counts.events); assert.equal(counts.unresolved, '0');
   const finishedRevision = execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
   writeFileSync(`${directory}/summary.json`,json({revision, finishedRevision, trackedDirty:startedDirty || dirty() || revision !== finishedRevision,
-    scope:'P21A indexer/API/preview checkpoint only; durable services/direct SDK and complete A26A remain pending',
+    scope:'P21A indexer/API/preview and durable execution checkpoint; financial workers/direct SDK and full A26A remain pending',
     runtime:await transport.rpc.call('getVersion'), binding:final.binding, counts, reconciliation, replayReconciliation,
-    ws:indexer.metrics.notifications, http:{group:true,account:true,portfolio:true,trades:true,unhealthy503:true}, failedSignature:rejected.signature, recoveredSignature:depositSignature, liveSignature,
+    ws:indexer.metrics.notifications, queueFault, http:{group:true,account:true,portfolio:true,trades:true,unhealthy503:true}, failedSignature:rejected.signature, recoveredSignature:depositSignature, liveSignature,
     checks:transport.checks.map(({history,...check})=>check), networkFees:transport.checks.reduce((total,check)=>total+BigInt(check.feeLamports),0n)}));
   console.log(json({stage:'fresh-group-postgres-recovery-pass', counts, reconciliation, expectedPhaseStatus:'In progress'}));
 } finally {await app?.close(); await replay?.close(); await indexer.close();}
