@@ -30,6 +30,43 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn initialize_group_v2(ctx: Context<InitializeGroupV2>, domain: [u8; 32]) -> Result<()> {
+        group_custody::initialize(ctx, domain)
+    }
+    pub fn initialize_group_market_v2(
+        ctx: Context<InitializeGroupMarketV2>,
+        index: u8,
+    ) -> Result<()> {
+        group_custody::initialize_market(ctx, index)
+    }
+    pub fn create_portfolio_v2(ctx: Context<CreatePortfolioV2>, index: u16) -> Result<()> {
+        group_custody::create_portfolio(ctx, index)
+    }
+    pub fn register_margin_v2(
+        ctx: Context<RegisterMarginV2>,
+        subaccount_index: u16,
+        mode: u8,
+        isolated_market_index: u8,
+        role: u8,
+    ) -> Result<()> {
+        group_custody::register(ctx, subaccount_index, mode, isolated_market_index, role)
+    }
+    pub fn deposit_group_v2(ctx: Context<GroupCashTransferV2>, amount: u64) -> Result<()> {
+        group_custody::cash(ctx, amount, false)
+    }
+    pub fn withdraw_group_custody_v2(ctx: Context<GroupCashTransferV2>, amount: u64) -> Result<()> {
+        group_custody::cash(ctx, amount, true)
+    }
+    pub fn transfer_group_custody_v2(ctx: Context<TransferGroupCashV2>, amount: u64) -> Result<()> {
+        group_custody::transfer(ctx, amount)
+    }
+    pub fn pause_group_custody_v2(ctx: Context<ControlGroupV2>, paused: bool) -> Result<()> {
+        group_custody::pause(ctx, paused)
+    }
+    pub fn classify_group_surplus_v2(ctx: Context<ControlGroupV2>) -> Result<()> {
+        group_custody::classify_surplus(ctx)
+    }
+
     pub fn initialize_resolution(ctx: Context<InitializeResolution>) -> Result<()> {
         resolution::initialize(ctx)
     }

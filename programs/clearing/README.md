@@ -21,8 +21,10 @@ src/
     settlement.rs        Complete-cohort exit certificate
     resolution.rs        Frozen cohort header and participant rows
     probe.rs             Nonfinancial SDK/RPC conformance record
+    v2/                  Fresh group/portfolio/two-position margin layouts (P17)
   instructions/          Anchor account contexts, handlers and validation
     custody.rs           Register, deposit, custody-only withdrawal and controls
+    group_custody.rs     Versioned successor custody; no trading activation (P18A)
     makers.rs            Register, approve, sync, quarantine and preview makers
     routes.rs            Immediate and stored-order atomic execution
     orders.rs            Place, replace, cancel and manage protection

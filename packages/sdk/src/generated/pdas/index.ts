@@ -8,8 +8,13 @@
 
 export * from "./binding.js";
 export * from "./capital.js";
+export * from "./classifyGroupSurplusV2Vault.js";
+export * from "./group.js";
 export * from "./guard.js";
+export * from "./initializeGroupV2Registry.js";
+export * from "./margin.js";
 export * from "./market.js";
+export * from "./portfolio.js";
 export * from "./receiver.js";
 export * from "./receiverBinding.js";
 export * from "./record.js";

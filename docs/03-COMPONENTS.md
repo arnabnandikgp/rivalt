@@ -3,10 +3,11 @@ Rivalt · baseline R1 · 20 October 2026
 
 The following describes V1. [P17](P17-MARGIN-CONTRACT.md) audits these actual
 interfaces and defines the additive schema-2 group/portfolio/margin layout.
-`programs/clearing/src/state/v2/` contains its inert layout contract. P18–P21
-add versioned instructions/events/SDK and group-aware services without mixing V1
-history or granting maker CPI new authority. No successor financial path exists
-merely because these state types compile.
+`programs/clearing/src/state/v2/` contains its layout contract. [P18A custody](P18A-GROUP-CUSTODY.md)
+adds separate group/portfolio/root instructions and generated codecs behind the
+explicit successor local profile; trading remains disabled. P18B–P21 add financial
+instructions and group-aware services without mixing V1 history or granting maker
+CPI new authority. WORKLOG records actual acceptance.
 
 ## Program-level boundary
 

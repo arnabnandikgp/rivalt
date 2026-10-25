@@ -7,6 +7,7 @@
  */
 
 export * from "./custodyChanged.js";
+export * from "./groupCustodyChangedV2.js";
 export * from "./liquidationApplied.js";
 export * from "./makerChanged.js";
 export * from "./oracleObserved.js";

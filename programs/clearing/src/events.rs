@@ -267,3 +267,51 @@ pub struct ProbeRecorded {
     pub optional_value: Option<u64>,
     pub choice: ProbeChoice,
 }
+/// V2 custody events are separate from V1's market-scoped journal.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct GroupMemberCashV2 {
+    pub margin: Pubkey,
+    pub portfolio: Pubkey,
+    pub owner: Pubkey,
+    pub subaccount_index: u16,
+    pub id: u16,
+    pub mode: u8,
+    pub isolated_market_index: u8,
+    pub role: u8,
+    pub cash: u64,
+    pub state_version: u64,
+}
+
+#[event]
+pub struct GroupCustodyChangedV2 {
+    pub schema_version: u16,
+    pub profile_version: u16,
+    pub domain: [u8; 32],
+    pub group: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    /// 0 group, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdraw,
+    /// 6 internal transfer, 7 custody pause, 8 unsolicited surplus to insurance.
+    pub kind: u8,
+    pub actor: Pubkey,
+    pub subject: Pubkey,
+    pub index: u16,
+    pub amount: u64,
+    pub members: Vec<GroupMemberCashV2>,
+    pub authority: Pubkey,
+    pub quote_mint: Pubkey,
+    pub vault: Pubkey,
+    pub markets: [Pubkey; 2],
+    pub market_count: u8,
+    pub mode: u8,
+    pub paused: bool,
+    pub terms_epoch: u64,
+    pub config_epoch: u64,
+    pub total_cash: u64,
+    pub settlement: u64,
+    pub insurance: u64,
+    pub fees: u64,
+    pub allocated_vault: u64,
+    /// None when this operation does not read the token account.
+    pub actual_vault: Option<u64>,
+}

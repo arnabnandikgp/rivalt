@@ -12,6 +12,7 @@ name = "clearing"
 default = []
 devnet-test-profile = ["oracle-fixture/devnet-test-profile"]
 local-test-profile = []
+successor-test-profile = ["local-test-profile"]
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

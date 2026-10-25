@@ -3,6 +3,25 @@
 pub mod orders;
 pub use orders::{CancelOrder, CleanupOrders, ManageOrder};
 
+pub mod group_custody;
+pub(crate) use group_custody::{
+    __client_accounts_control_group_v2, __client_accounts_create_portfolio_v2,
+    __client_accounts_group_cash_transfer_v2, __client_accounts_initialize_group_market_v2,
+    __client_accounts_initialize_group_v2, __client_accounts_register_margin_v2,
+    __client_accounts_transfer_group_cash_v2,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use group_custody::{
+    __cpi_client_accounts_control_group_v2, __cpi_client_accounts_create_portfolio_v2,
+    __cpi_client_accounts_group_cash_transfer_v2, __cpi_client_accounts_initialize_group_market_v2,
+    __cpi_client_accounts_initialize_group_v2, __cpi_client_accounts_register_margin_v2,
+    __cpi_client_accounts_transfer_group_cash_v2,
+};
+pub use group_custody::{
+    ControlGroupV2, CreatePortfolioV2, GroupCashTransferV2, InitializeGroupMarketV2,
+    InitializeGroupV2, RegisterMarginV2, TransferGroupCashV2,
+};
+
 pub(crate) use orders::{
     __client_accounts_cancel_order, __client_accounts_cleanup_orders,
     __client_accounts_manage_order,
