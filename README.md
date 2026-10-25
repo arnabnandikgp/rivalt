@@ -81,3 +81,10 @@ D41 extends the completed engineering MVP with **P15A** maker integration/econom
 The [reference maker kit](docs/P15A-MAKER-KIT.md) packages operator configuration, SDK examples, a bot entrypoint and exact economics reporting. `pnpm maker:build` builds its four local artifacts; `pnpm maker:qualify` runs its bounded workflow on fresh Surfpool/PostgreSQL state. Both makers and all prices/collateral remain explicitly internal/synthetic. WORKLOG records the actual acceptance status.
 
 [Operational readiness](docs/P16A-OPERATIONS.md) explains the original 71.19% availability with explicit quote/submission/fill denominators and recorded refusal causes. `pnpm test:readiness` exercises bounded source/signature/indexer recovery and direct exit; `pnpm report:availability` analyzes retained attempt records without claiming a new load or endurance result.
+
+P21A adds the versioned group SDK, PostgreSQL/read API and durable maker/funding/
+order/settlement/risk services on P20's explicit qualified local artifacts.
+[Fresh interface evidence](docs/evidence/P21A.md) includes complete 64-member
+default, process recovery, independent accounting, exact program identity and
+API-independent exits. P21B still owns the successor UI and bounded concurrent
+workload; WORKLOG records Review/integration status.

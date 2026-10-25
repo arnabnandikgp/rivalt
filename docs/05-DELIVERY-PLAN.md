@@ -450,8 +450,9 @@ failure; reduce bounded capacity or split authenticated maintenance safely.
 
 ### P21A — Group-aware client, indexing and services
 
-Current interface work: [P21A versioned group services](P21A-INTERFACES.md).
-Partial checkpoints do not close the full A26A acceptance below.
+Current contract: [P21A versioned group services](P21A-INTERFACES.md).
+[A26A evidence](evidence/P21A.md) maps the incremental pinned runtime checks and
+independent audits; WORKLOG owns Review/integration status.
 
 **Deliverable:** Versioned generated SDK and direct builders; finalized group event
 projection/API with per-account cash and per-market claims; market-specific maker,

@@ -1,7 +1,7 @@
 # P21A — group clients and services
 
-This is the in-progress schema-2 interface contract on P20's qualified local
-artifact. WORKLOG owns progress and actual evidence. It does not qualify P21B or
+This is the schema-2 interface contract on P20's qualified local artifact.
+[A26A evidence](evidence/P21A.md) records scoped qualification; WORKLOG owns status. It does not qualify P21B or
 change financial authority, risk thresholds, source policy or external gates.
 
 ## Versioned journal and reconciliation
@@ -271,8 +271,9 @@ the entry, and a context older than verified finality fails. Same-slot or pendin
 upgrades require full verification until later finality. This relies on the same
 standard RPC/finality and upgradeable-loader contract as the rest of the local
 profile. The gate observes deployment identity; it does not authorize any upgrade.
-Actual RPC verification and measured cache behavior remain acceptance work until
-recorded in WORKLOG.
+The fresh R049 RPC continuation verifies cold binary reads, warm header-only
+checks and actual wrong-hash/authority refusal. See the evidence report for its
+measured local samples and limits.
 
 `bash ops/group-indexer-smoke.sh --recovery-services` owns the focused actual
 artifact identity/cache and missing-price AwaitValuation restart/recovery check,

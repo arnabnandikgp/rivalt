@@ -548,3 +548,9 @@ full bytes only after a strictly later finalized context, rechecking current
 headers/authority/allocated size and context on every use; unfinalized or same-slot
 changes must be rehashed. No binary/profile, V1 history, source or economic rule
 changes, and no new deployment authority is granted.
+
+D53 A26A verification: [P21A evidence](evidence/P21A.md) records fresh incremental
+SDK/service/RPC/WS/PostgreSQL acceptance through `882f832`, with corrected raw-byte
+auditor `ac828f6`. The full 64-member risk run and separate missing-price recovery
+qualify these interfaces, not UI, busy-group availability or M7 completion. P21B
+retains those gates; P15B/P16B and D42 are unchanged.
