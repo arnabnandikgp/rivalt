@@ -23,9 +23,15 @@ Later explicit user instructions take precedence. The documents divide authority
 - Participant PDAs, durable on-chain order authority and explicit shared market coordination.
 - Never give maker CPI the vault signer or arbitrary writable clearing accounts.
 
+The authorized schema-2 successor supersedes the one-market/isolated-only and
+market-local settlement/default boundaries only for its fresh bounded test group.
+Read docs/P17-MARGIN-CONTRACT.md and D45–D48 before successor work. Preserve V1,
+two-market/one-mint scope, no positive unpaid margin credit, isolated maker capital,
+and disabled cross trading until P20 acceptance. P15B/P16B stay external gates.
+
 ## Work phase by phase
 
-Use P01–P16 as the delivery units. Each normally produces one cohesive PR or equivalent reviewable local branch/commit set, with its own runnable acceptance evidence. A phase may span several runs. Do not split it into dozens of task PRs or combine several phases into an unreviewable change. If implementation evidence requires splitting a phase, preserve its original ID, add a justified suffix and update plan/worklog.
+Use P01–P21 as the delivery units, retaining existing IDs and the documented successor suffixes. Each normally produces one cohesive PR or equivalent reviewable local branch/commit set, with its own runnable acceptance evidence. A phase may span several runs. Do not split it into dozens of task PRs or combine several phases into an unreviewable change. If implementation evidence requires splitting a phase, preserve its original ID, add a justified suffix and update plan/worklog.
 
 Proceed through authorized routine implementation without asking to start each run. Finish and verify each deliverable before moving on, then continue its dependent phase without waiting for the previous PR to merge. A verified predecessor in Review satisfies the implementation dependency when its exact commits are included in the new branch. Use `gh stack` to manage these branches and their parent/base relationships. Submit ready-to-review PRs with `gh stack submit --auto --open`; never create draft PRs. If remote access is unavailable, leave reviewable local commits and mark publication pending. Keep unmerged phases in Review, not Closed; do not claim a PR exists or is merged when it does not.
 

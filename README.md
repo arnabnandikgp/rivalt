@@ -5,6 +5,11 @@ Rivalt is a new Solana perpetual venue with common clearing, isolated collateral
 
 ## Start here
 
+The isolated/cross successor starts at [P17's account/group contract](docs/P17-MARGIN-CONTRACT.md)
+and P17–P21 in the delivery plan. It targets a fresh local two-market test group;
+the existing V1 implementation is preserved. Cross trading remains disabled until
+its whole-account liquidation/default acceptance. WORKLOG records actual progress.
+
 Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product scope](docs/01-PRODUCT.md) and [the delivery plan](docs/05-DELIVERY-PLAN.md). Before implementing a phase, read its domain documents and decision gates. For program code, start with the [clearing source map](programs/clearing/README.md).
 
 | File | Authority / purpose |

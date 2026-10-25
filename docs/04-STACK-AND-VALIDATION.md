@@ -1,6 +1,15 @@
 # Stack, validation and measurement
 Rivalt · baseline R1 · 20 October 2026
 
+P17–P21 retain these pinned tools. [P17](P17-MARGIN-CONTRACT.md) defines fresh
+successor golden cases, versioned layout/authority tests, whole-account funding,
+reservation/transfer/protection checks and complete-group liquidation/default
+qualification. A22–A26 in the delivery plan are new evidence gates; prior A01–A21
+or the proposal's arithmetic checks do not qualify changed economic behavior.
+Use actual signed SBF and Surfpool/RPC/WS/PostgreSQL integration where required;
+record bounded load, transaction budgets and group/root contention. D42's full-day
+deferral and separate P15B/P16B external gates remain unchanged.
+
 ## Selected stack
 
 These are implementation starting selections, not an installed/tested lockfile.

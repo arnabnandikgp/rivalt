@@ -18,3 +18,5 @@ mod route;
 pub use route::*;
 mod settlement;
 pub use settlement::*;
+/// Successor layout contract; no V2 financial entrypoint is enabled by these types.
+pub mod v2;
