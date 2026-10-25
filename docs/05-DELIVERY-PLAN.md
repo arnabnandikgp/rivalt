@@ -371,6 +371,7 @@ transfer. No financial activation, delegation or automatic old-balance migration
 **A23A:** Generated SDK/isolated Anchor parity; signed SBF and Surfpool custody
 round trips independently fetched/decoded; duplicate/foreign/alias/overflow/frozen/
 wrong-owner/mint/mode rejection; registry cap and exact cash/vault conservation.
+[Recorded A23A acceptance](evidence/P18A.md) passes on `6389c3e`; integration is tracked in WORKLOG.
 Both position slots stay zero; cross mode cannot trade. Record actual account sizes,
 transaction packets/accounts/CU and independent owner cash/token deltas. Existing
 V1 instruction/accounts stay distinct; no unrelated full matrix.
