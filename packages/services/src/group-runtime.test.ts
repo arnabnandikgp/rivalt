@@ -1,3 +1,4 @@
+import {AccountRole} from '@solana/kit';
 import {expect,it,vi} from 'vitest';
 import * as sdk from '@rivalt/sdk';
 import {fixtureKey} from '../../../tests/rpc-contract/custody-cases.js';
@@ -34,7 +35,7 @@ it('keeps all four maker heartbeats/budgets distinct even under one internal ope
     const other=await fixtureKey('p21-wrong-maker');await expect(fixture.runtime.maker(0,0,other)).rejects.toThrow(/key binding/);
   }finally{await fixture.runtime.close();}
 });
-it('publishes an expired market-specific maker epoch and syncs it in one immutable intent',async()=>{
+it('publishes and syncs expired maker epochs in separate immutable transactions',async()=>{
   const fixture=await environment();
   try{
     fixture.snapshot.slot=200n;
@@ -42,8 +43,16 @@ it('publishes an expired market-specific maker epoch and syncs it in one immutab
     const [id,instructions,,budget,authority]=fixture.enqueue.mock.calls[0] as unknown as Parameters<GroupRuntime['enqueue']>;
     expect(id).toBe('maker:1:0:1');expect(budget).toBe('group-maker-1-0');
     expect(sdk.makerA.getPublishGroupEpochInstructionDataDecoder().decode(instructions[1].data!).duration).toBe(3600n);
-    expect(sdk.getUpdateGroupMakerV2InstructionDataDecoder().decode(instructions[2].data!).operation).toBe(1);
-    expect(authority).toEqual({kind:'groupQuoteEpoch',group:fixture.key.address,account:fixture.snapshot.makers[2].registration,value:'1'});
+    expect(instructions).toHaveLength(2);expect(authority).toBeNull();
+    expect(instructions.every(instruction=>instruction.programAddress!==sdk.CLEARING_PROGRAM_ADDRESS)).toBe(true);
+    const maker=fixture.snapshot.makers[2];Object.assign(maker.state,{quoteEpoch:2n,startSlot:200n,expirySlot:3800n});maker.synchronized=false;
+    expect((await fixture.runtime.maker(1,0,fixture.key)).reason).toBe('owner-epoch-sync');
+    const [,syncInstructions,,syncBudget,syncAuthority]=fixture.enqueue.mock.calls[1] as unknown as Parameters<GroupRuntime['enqueue']>;
+    expect(syncInstructions).toHaveLength(2);expect(syncBudget).toBe(budget);
+    expect(sdk.getUpdateGroupMakerV2InstructionDataDecoder().decode(syncInstructions[1].data!).operation).toBe(1);
+    const config=syncInstructions[1].accounts![8];
+    expect(config).toEqual({address:maker.registrationState.config,role:AccountRole.READONLY});
+    expect(syncAuthority).toEqual({kind:'groupQuoteEpoch',group:fixture.key.address,account:maker.registration,value:'1'});
   }finally{await fixture.runtime.close();}
 });
 it('samples each canonical market despite unavailable maker heartbeats/epochs and leaves enforcement on chain',async()=>{

@@ -215,8 +215,12 @@ export class GroupRuntime extends GroupExecution {
     if(snapshot.slot>=maker.state.expirySlot){
       const api=makerId===0?sdk.makerA:sdk.makerB;
       const publish=api.getPublishGroupEpochInstruction({owner:key,config:registration.config,duration:3600n});
-      await this.enqueue(`maker:${marketIndex}:${makerId}:${maker.state.quoteEpoch}`,[sdk.routeComputeBudget(),publish,update],key,budget,authority);
-      return {status:'queued',reason:'expired-maker-epoch'};
+      // Clearing authenticates a read-only config; transaction-wide writability
+      // promotion forbids combining publication with its later clearing sync.
+      // Publication does not change the registration epoch, so that epoch also
+      // cannot prove nonexecution when original publication history is missing.
+      await this.enqueue(`maker:${marketIndex}:${makerId}:${maker.state.quoteEpoch}`,[sdk.routeComputeBudget(),publish],key,budget,null);
+      return {status:'queued',reason:'expired-maker-epoch-publication'};
     }
     if(!maker.synchronized){
       await this.enqueue(`maker-sync:${marketIndex}:${makerId}:${maker.state.quoteEpoch}`,[sdk.routeComputeBudget(),update],key,budget,authority);

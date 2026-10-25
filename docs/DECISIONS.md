@@ -529,3 +529,12 @@ resume and cross reactivation remain unavailable. One-second discovery, two defa
 probes per iteration and bounded 64-lot liquidation search are local operational
 choices to measure in P21, not financial guarantees. Guard-only proof transactions
 have no group-sequence nonexecution inference because they do not advance it.
+
+
+D53 maker-publication correction: supersede the R044 combined publication/sync
+service envelope. Actual P21A expiry execution rejects it because publishing
+promotes config writability while clearing requires that account read-only. Use
+two separately persisted original transactions, publication then finalized owner
+sync; an intermediate unsynchronized maker stays unavailable. Publication cannot
+use the unchanged registration epoch to infer nonexecution. No program/read-only
+CPI, approval, risk or source safeguard changes.

@@ -145,8 +145,8 @@ are reported separately. Unknown or foreign dependencies reject the snapshot.
 Run `group-worker-main.ts` with the explicit group run/RPC/PostgreSQL configuration,
 `RIVALT_GROUP_ROLE=maker|funding|orders|settlement|risk`, `RIVALT_MARKET_INDEX=0|1` for market workers, a private
 `RIVALT_SIGNER_PATH`, and `RIVALT_MAKER_ID=0|1` for makers. Makers own only their
-registered isolated capital/config permissions. Expired publication plus owner sync
-is one immutable queued intent; it never grants code approval or collateral access.
+registered isolated capital/config permissions. Expired publication and owner sync
+are separate immutable queued intents; it never grants code approval or collateral access.
 Funding cadence is 2–5 seconds, default two, independently budgeted per market.
 Missing heartbeat or stale quotes do not suppress the on-chain source/coverage
 sample: clearing still records its restrictive result. Pending/unresolved original
@@ -242,3 +242,11 @@ does not advance that sequence. Missing original proof history stays unresolved
 until independent evidence arrives; it cannot authorize replacement bytes or a
 fee release. Busy-group proof progress and discovery latency remain measured
 operational limits, not risk exceptions.
+
+
+Maker publication writes its config; clearing epoch synchronization requires the
+same config read-only. Submit publication first and wait for its original finalized
+result, then sign a separate owner-sync transaction. Between them the maker is
+unsynchronized and cannot quote. This preserves the on-chain read-only boundary
+under Solana transaction-wide writability promotion. Publication carries no
+registration-epoch expiry proof because it does not change that registration.

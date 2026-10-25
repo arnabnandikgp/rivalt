@@ -171,6 +171,17 @@ try{
   const audit=execFileSync('python3',['tests/financial/group-service-risk-reference.py',directory],{encoding:'utf8'});
   writeFileSync(`${directory}/independent-audit.json`,audit);console.log(audit.trim());
   console.log(json({stage:'group-risk-services-pass',transactions:transactions.length,reconciliation}));
+}catch(error){
+  // Retain original failures while RPC/PG are still alive, before owned cleanup.
+  try{
+    const failed=(await runtime.store.pool.query('SELECT request_id,signature,wire,status,budget,result FROM service_intents WHERE run_id=$1 ORDER BY created_at',[config.runId])).rows;
+    writeFileSync(`${directory}/failed-run-intents.json`,json(failed));
+    for(const [index,intent] of failed.entries()){
+      const transaction=await transport.rpc.call('getTransaction',[intent.signature,{encoding:'json',commitment:'confirmed',maxSupportedTransactionVersion:0}]);
+      writeFileSync(`${directory}/failed-run-original-${index}.json`,json(transaction));
+    }
+  }catch{ /* Cleanup still runs if the failed transport is unavailable. */ }
+  throw error;
 }finally{
   for(const child of children)await stop(child).catch(()=>child.kill('SIGKILL'));
   await replay?.close();await indexer.close();await runtime.close();
