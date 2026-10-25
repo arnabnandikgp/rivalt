@@ -1,9 +1,8 @@
 # P18C — isolated group safety and activation
 
-Implementation is in progress above P18B PR #26. A23C/G14 is not yet passed.
-The isolated safety candidate is now executable only in the explicit local test
-profile for acceptance. Cross remains hard-disabled. No A23C qualification is
-claimed yet; default/devnet builds reject V2 trading.
+[A23C/G14](evidence/P18C.md) passes on clean `b43261f` above P18B PR #26.
+The verified isolated implementation is executable only in the explicit local
+test profile. Cross remains hard-disabled; default/devnet builds reject V2 trading.
 The contract remains [P17](P17-MARGIN-CONTRACT.md); D50 resolves ordinary lifecycle
 choices without changing fees, loss ownership or source safeguards.
 
@@ -61,16 +60,14 @@ no automatic fee insurance. Frozen mode rejects these operations. Permissionless
 order cleanup may remove stale authority or refresh changed reserves; identical
 no-op cleanup rejects. Owner authority remains required for other order changes.
 
-## Acceptance still required
+## Acceptance and remaining scope
 
-Focused host golden tests cover actual arithmetic and the actual page ledger;
-they do not establish deployed acceptance. Required next checks: compiled signed
-activation, authority/substitution/rollback cases, both-market route/order/funding/
-settlement/withdrawal lifecycles, liquidation and complete default/recovery with
-all legal pages and 64 registered members, independent raw-account accounting,
-IDL/legacy parity, fresh Surfpool RPC/WS fetch and resource budgets. Cross trading
-must still reject. P21 owns new PostgreSQL/service/UI qualification and contention
-measurement. No old P16A result qualifies this code, and no endurance run is implied.
+[A23C evidence](evidence/P18C.md) records the actual candidate/host tests, 1,132
+signed SVM scenarios, complete insured/emergency default and independent ledgers,
+legacy parity and 148 finalized fresh Surfpool RPC outcomes with all expected WS
+notifications. Cross remains rejected. P21 owns PostgreSQL/service/UI qualification
+and contention measurement. No old P16A result qualifies this code, and no endurance
+run is implied. Integration status remains in WORKLOG.
 
 ## Development findings (not A23C closure)
 

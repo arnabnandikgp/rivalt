@@ -17,9 +17,9 @@ P18B's [normal-path primitives](P18B-ISOLATED-PRIMITIVES.md) implement D49's BTC
 lot/source domains with unchanged fees and conservative margin. Source sampling and
 maker setup are executable locally; both financial gates were false at its tested
 checkpoint. Their pure candidates alone do not establish liquidation/default readiness.
-[P18C safety](P18C-GROUP-SAFETY.md) now provides the complete-group safety candidate
-for explicit local-profile testing. Cross remains hard-disabled; A23C activation
-qualification is pending. D50 preserves dormant cross cash access and complete-group
+[P18C safety](P18C-GROUP-SAFETY.md) qualifies complete-group safety and isolated
+activation in the explicit local profile on `b43261f`; see [A23C evidence](evidence/P18C.md).
+Cross remains hard-disabled. D50 preserves dormant cross cash access and complete-group
 loss ownership without granting cross trading authority.
 
 ## 1. State, units and invariants

@@ -358,4 +358,6 @@ surplus classification remain the insurance funding route. Permissionless order
 cleanup requires a real state/reserve change; other order changes retain owner
 authority. None of these choices supersedes fees, positive-unpaid-credit exclusion,
 complete-group loss ownership or external P15B/P16B gates. See
-[P18C](P18C-GROUP-SAFETY.md). A23C remains pending until recorded acceptance.
+[P18C](P18C-GROUP-SAFETY.md). [A23C/G14](evidence/P18C.md) is verified on
+`b43261f` for the explicit isolated local profile. This grants no cross or
+default/devnet activation and does not close P15B/P16B.

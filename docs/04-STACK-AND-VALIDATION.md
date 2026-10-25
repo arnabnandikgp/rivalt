@@ -243,7 +243,7 @@ Retain raw files in unique ignored `.local/group-trading/` run directories and
 scoped build artifacts/logs in `.local/successor-p18b/`. No V1 history/load/soak
 rerun is required by this phase.
 
-## P18C scoped safety verification (in progress)
+## P18C scoped safety verification
 
 `bash ops/build-group-safety.sh` builds default/successor clearing and A/B plus the
 unchanged source fixture with the pinned SBF frame guard and regenerated clients.
@@ -266,6 +266,11 @@ financial vectors. Failed runs stay local with their transaction/log capture.
 The local candidate declares 600,000 CU for group routes, 1,200,000 for full-source
 sampling/default pages and 400,000 otherwise; acceptance requires 20% measured
 headroom and <=1,232 bytes. These are provisional envelopes, not throughput or
-contention results. The default 32 KiB SBF heap is retained. Fresh RPC/WS,
-additional emergency/order coverage and committed acceptance remain due in A23C;
-P21 owns PostgreSQL/UI/services and new bounded contention qualification.
+contention results. The default 32 KiB SBF heap is retained. `bash ops/group-safety-smoke.sh` deploys
+fresh local programs and verifies both-market lifecycle over real RPC/WS, fetching
+every original signature finalized. The auditor
+`python3 tests/financial/group-safety-reference.py RUN_DIRECTORY --ordinary`
+uses literal maker-curve and cash expectations and rejects four mutations.
+[A23C/G14](evidence/P18C.md) records committed acceptance on `b43261f`, including
+orders, emergency recovery and legacy account/event parity. P21 owns
+PostgreSQL/UI/services and new bounded contention qualification.

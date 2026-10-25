@@ -12,6 +12,7 @@ import { groupDefaultCases } from './group-default-cases.js';
 import { groupOrderCases } from './group-order-cases.js';
 import { groupEmergencyCases } from './group-emergency-cases.js';
 import { decodeGroupEvent,groupLiveParity } from './group-live-parity.js';
+import { groupRouteNegatives } from './group-route-negatives.js';
 import { ORACLE_FIXTURE } from './oracle-fixture.js';
 
 const artifact = '.local/successor-p18c';
@@ -80,6 +81,7 @@ async function capture(label:string,keys:import('@solana/kit').Address[]) {
   writeFileSync(`${output}/captures.json`,json(captures));
 }
 const result=await groupSafetyCases(h,capture);
+await groupRouteNegatives(h,result);
 await groupOrderCases(h,result,capture);
 const defaults=await groupDefaultCases(h,result,capture);
 await groupEmergencyCases(h,result,defaults,capture);
