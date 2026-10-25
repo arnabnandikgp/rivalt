@@ -81,8 +81,8 @@ consumption, cash and claims unchanged.
 
 Focused Rust golden cases exercise the real account/order/route/funding candidates,
 with literal independent cash, claim, reserve, fee, trigger and funding expectations.
-Signed SVM tests will establish the actual four-maker/six-source setup, CPI/authority
-negative cases and compiled activation rejection. ABI generation/conformance and
+[Committed A23B acceptance](evidence/P18B.md) establishes the signed four-maker/six-source
+setup, CPI/authority negative cases and compiled activation rejection on `286cb4e`. ABI generation/conformance and
 SBF frame/packet/account/CU checks are scoped to these new surfaces. Actual results
 and tested revisions belong in WORKLOG and the phase evidence note when verified.
 

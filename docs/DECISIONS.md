@@ -334,3 +334,7 @@ netting, liquidation/default or external-gate rules. Isolated activation remains
 false through P18B; cross activation remains false through P19. See
 [P18B primitives](P18B-ISOLATED-PRIMITIVES.md) and the actual acceptance status in
 WORKLOG; the choice of parameters alone closes no gate.
+
+D49 verification: [A23B](evidence/P18B.md) passes on `286cb4e` with actual signed
+source/maker setup and compiled gate rejection. This verifies G14 trading
+primitives only; G14 closes after P18C safety and activated lifecycle acceptance.
