@@ -7,7 +7,8 @@ case "${1:-indexer}" in
   indexer) RIVALT_GROUP_CHECK=indexer; RIVALT_GROUP_DRIVER=tests/rpc-contract/group-indexer-rpc.ts ;;
   --direct-sdk) RIVALT_GROUP_CHECK=direct; RIVALT_GROUP_DRIVER=tests/rpc-contract/group-direct-rpc.ts ;;
   --market-workers) RIVALT_GROUP_CHECK=workers; RIVALT_GROUP_DRIVER=tests/rpc-contract/group-market-workers-rpc.ts ;;
-  *) echo 'Expected indexer, --direct-sdk or --market-workers' >&2; exit 2 ;;
+  --trading-services) RIVALT_GROUP_CHECK=trading-services; RIVALT_GROUP_DRIVER=tests/rpc-contract/group-trading-services-rpc.ts ;;
+  *) echo 'Expected indexer, --direct-sdk, --market-workers or --trading-services' >&2; exit 2 ;;
 esac
 test "$(surfpool --version)" = 'surfpool 1.6.1'
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18921}"

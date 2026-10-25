@@ -143,7 +143,7 @@ same group snapshot. Actual approved code hash and quote-epoch synchronization
 are reported separately. Unknown or foreign dependencies reject the snapshot.
 
 Run `group-worker-main.ts` with the explicit group run/RPC/PostgreSQL configuration,
-`RIVALT_GROUP_ROLE=maker|funding`, `RIVALT_MARKET_INDEX=0|1`, a private
+`RIVALT_GROUP_ROLE=maker|funding|orders`, `RIVALT_MARKET_INDEX=0|1` for market workers, a private
 `RIVALT_SIGNER_PATH`, and `RIVALT_MAKER_ID=0|1` for makers. Makers own only their
 registered isolated capital/config permissions. Expired publication plus owner sync
 is one immutable queued intent; it never grants code approval or collateral access.
@@ -177,3 +177,12 @@ builders and simulate the actual reviewed message. Missing/unmatched pending
 funding evidence blocks a service quote. A matching original confirmed sample may
 be recognized while its queue/budget still awaits finality. Observed availability
 and signed flow acceptance belong in WORKLOG, not in these interface declarations.
+
+
+The standalone `orders` role uses the group-wide orders budget and an explicit
+operator signer. It discovers live market-bound order prefixes, tries at most a
+64-lot subfill with bounded halving, and queues the original signed instruction;
+clearing validates the persistent authority, prefix, fee and whole-account state.
+It does not acquire owner transfer/netting authority. The scoped command
+`bash ops/group-indexer-smoke.sh --trading-services` owns fresh route/order service
+checks; preparation or unit success alone does not qualify its signed outcomes.
