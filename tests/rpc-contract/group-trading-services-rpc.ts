@@ -55,7 +55,8 @@ try{
     const finalized=await eventually(()=>client.reconcile(intent),result=>['failed','finalized'].includes(result.status),label);
     assert.equal(finalized.status,'finalized',`${label}: ${finalized.error}`);
     const queued=await eventually(()=>runtime.queue.get(intent.id),row=>row?.status==='finalized',label);
-    assert.equal(queued.wire,intent.wire);assert.equal(queued.result.fee,finalized.fee);
+    const persisted=(await runtime.store.pool.query('SELECT wire FROM service_intents WHERE run_id=$1 AND request_id=$2',[config.runId,intent.id])).rows[0];
+    assert.equal(persisted.wire===intent.wire,true,'Persisted original wallet bytes');assert.equal(queued.result.fee,finalized.fee);
     wallet.push({label,signature:intent.signature,wire:intent.wire,fee:finalized.fee!});
   }
   await signed('fund cross trading account',[await client.deposit(await client.snapshot(),fixture.owner.address,fixture.cross,fixture.operators[0].token.address,1_000_000n)]);
