@@ -560,7 +560,8 @@ fn isolated_candidate_requires_test_profile_and_cross_stays_closed() {
     cross.mode = MODE_CROSS;
     cross.subaccount_index = 0;
     cross.isolated_market_index = 255;
-    assert!(model(&cross).is_err());
+    assert!(model(&cross).is_ok());
+    assert!(crate::instructions::group_margin::trading(&group(), &cross).is_err());
 }
 
 #[test]

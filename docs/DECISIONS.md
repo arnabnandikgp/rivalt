@@ -384,3 +384,11 @@ These are ordinary realizations of D46–D48, not new collateral or fee economic
 [P19](P19-CROSS-CORE.md) is in progress; A24/G15 core is not yet passed. Cross
 activation remains false until P20's actual liquidation/default checks. The phase
 does not authorize any new deployment outside the fresh local test profile.
+
+D51 authority realization deliberately supersedes D50's temporary no-delegate
+restriction on dormant cross cash roots. A grant does not permit cross exposure,
+claims or orders while activation is false, and it cannot lock an otherwise valid
+owner cash exit. Allow owner grants/revocation in qualified unfrozen financial
+mode, including while paused; reject custody and frozen resolution mutation.
+Owner replacement reauthorizes an order at epoch zero; a delegate replacement
+adopts the live grant epoch so its edits cannot survive revocation as owner authority.

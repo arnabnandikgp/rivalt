@@ -1,4 +1,5 @@
 //! Successor trading primitives. P18C supplies local-only isolated safety; cross remains gated.
+pub(crate) use super::group_margin::{commit_model, model};
 use crate::{error::ClearingError, state::v2::*};
 use anchor_lang::prelude::*;
 use financial_core as math;
@@ -18,7 +19,7 @@ pub(crate) fn profile(group: &ClearingGroupV2) -> Result<()> {
             && group.schema_version == SCHEMA_VERSION
             && group.profile_version == PROFILE_VERSION
             && group.market_count == 2
-            && group.mode <= 1,
+            && (group.mode <= 1 || (CROSS_TRADING_IMPLEMENTED && group.mode == 2)),
         ClearingError::Profile
     );
     require!(!group.paused, ClearingError::Paused);
@@ -28,55 +29,10 @@ pub(crate) fn profile(group: &ClearingGroupV2) -> Result<()> {
 pub(crate) fn activated(group: &ClearingGroupV2) -> Result<()> {
     profile(group)?;
     require!(
-        ISOLATED_TRADING_IMPLEMENTED && group.mode == 1,
+        ISOLATED_TRADING_IMPLEMENTED
+            && (group.mode == 1 || (CROSS_TRADING_IMPLEMENTED && group.mode == 2)),
         ClearingError::Profile
     );
-    Ok(())
-}
-
-pub(crate) fn model(root: &MarginAccountV2) -> Result<math::margin::Margin> {
-    require!(
-        root.schema_version == SCHEMA_VERSION
-            && root.mode == MODE_ISOLATED
-            && root.subaccount_index > 0
-            && root.subaccount_index <= MAX_SUBACCOUNT
-            && root.role <= ROLE_RECEIVER
-            && usize::from(root.isolated_market_index) < MARKET_COUNT
-            && root.delegate == Pubkey::default()
-            && root.delegate_expiry_slot == 0
-            && root.delegate_epoch == 1,
-        ClearingError::Profile
-    );
-    let model = math::margin::Margin {
-        id: root.id,
-        mode: math::margin::Mode::Isolated(usize::from(root.isolated_market_index)),
-        cash: root.cash,
-        reserved: root.reserved,
-        positions: root.positions.map(|position| math::margin::Position {
-            lots: position.lots,
-            virtual_scaled: position.virtual_scaled,
-            funding_checkpoint: position.funding_checkpoint_scaled,
-            generation: position.generation,
-        }),
-    };
-    checked(model.validate())?;
-    Ok(model)
-}
-
-pub(crate) fn commit_model(root: &mut MarginAccountV2, model: math::margin::Margin) -> Result<()> {
-    require!(
-        model.id == root.id
-            && model.mode == math::margin::Mode::Isolated(usize::from(root.isolated_market_index)),
-        ClearingError::Profile
-    );
-    checked(model.validate())?;
-    root.cash = model.cash;
-    root.positions = model.positions.map(|position| PositionV2 {
-        lots: position.lots,
-        virtual_scaled: position.virtual_scaled,
-        funding_checkpoint_scaled: position.funding_checkpoint,
-        generation: position.generation,
-    });
     Ok(())
 }
 

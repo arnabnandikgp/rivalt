@@ -18,8 +18,9 @@ pub(crate) fn next(value: u64) -> Result<u64> {
 /// Ordinary safety operations include dormant cross identities in the complete
 /// group. They may hold cash but cannot carry exposure, claims or order authority.
 pub(crate) fn account_model(root: &MarginAccountV2) -> Result<math::margin::Margin> {
+    let model = crate::instructions::group_margin::model(root)?;
     if root.mode == MODE_ISOLATED {
-        return group_trading::model(root);
+        return Ok(model);
     }
     require!(
         root.schema_version == SCHEMA_VERSION
@@ -32,9 +33,6 @@ pub(crate) fn account_model(root: &MarginAccountV2) -> Result<math::margin::Marg
             )
             && root.mode == MODE_CROSS
             && root.reserved == 0
-            && root.delegate == Pubkey::default()
-            && root.delegate_expiry_slot == 0
-            && root.delegate_epoch == 1
             && root.positions.iter().all(|position| position.lots == 0
                 && position.virtual_scaled == 0
                 && position.generation == 0)
@@ -50,19 +48,6 @@ pub(crate) fn account_model(root: &MarginAccountV2) -> Result<math::margin::Marg
                 .all(|entry| entry.protection.remaining == 0),
         ClearingError::Profile
     );
-    let model = math::margin::Margin {
-        id: root.id,
-        mode: math::margin::Mode::Cross,
-        cash: root.cash,
-        reserved: 0,
-        positions: root.positions.map(|position| math::margin::Position {
-            lots: position.lots,
-            virtual_scaled: position.virtual_scaled,
-            funding_checkpoint: position.funding_checkpoint_scaled,
-            generation: position.generation,
-        }),
-    };
-    checked(model.validate())?;
     Ok(model)
 }
 

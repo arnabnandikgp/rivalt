@@ -31,6 +31,14 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn set_margin_delegate_v2(
+        ctx: Context<SetMarginDelegate>,
+        delegate: Pubkey,
+        expiry_slot: u64,
+    ) -> Result<()> {
+        group_margin::authority::set(ctx, delegate, expiry_slot)
+    }
+
     pub fn allocate_group_fees_v2(ctx: Context<ControlGroupV2>, amount: u64) -> Result<()> {
         group_custody::allocate_fees(ctx, amount)
     }

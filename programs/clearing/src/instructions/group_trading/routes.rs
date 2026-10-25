@@ -76,90 +76,32 @@ pub fn manage(ctx: Context<ManageGroupOrder>, operation: GroupOrderAction) -> Re
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     activated(&ctx.accounts.group)?;
     let accounts = &mut *ctx.accounts;
-    require!(
-        matches!(&operation, GroupOrderAction::Cleanup)
-            || accounts.owner.key() == accounts.margin.owner,
-        ClearingError::Authority
-    );
+    crate::instructions::group_margin::trading(&accounts.group, &accounts.margin)?;
     let clock = Clock::get()?;
-    let funding = oracle::effective(accounts.group.mode, &accounts.market, &clock)?;
-    let next = match operation {
-        GroupOrderAction::Place { expected_id, terms } => {
-            oracle::action(&accounts.market, &clock, !terms.reduce_only)?;
-            book::place(
-                &accounts.margin,
-                &accounts.market,
-                funding,
-                clock.slot,
-                expected_id,
-                terms,
-            )?
-        }
-        GroupOrderAction::Replace { id, version, terms } => {
-            oracle::action(&accounts.market, &clock, !terms.reduce_only)?;
-            book::replace(
-                &accounts.margin,
-                &accounts.market,
-                funding,
-                clock.slot,
-                id,
-                version,
-                terms,
-            )?
-        }
-        GroupOrderAction::Protect {
-            expected_id,
-            take_profit,
-            stop_loss,
-        } => {
-            oracle::action(&accounts.market, &clock, false)?;
-            book::protect(
-                &accounts.margin,
-                &accounts.market,
-                funding,
-                clock.slot,
-                expected_id,
-                take_profit,
-                stop_loss,
-            )?
-        }
-        GroupOrderAction::Cancel {
-            id,
-            version,
-            protection_group,
-        } => book::cancel(
+    let delegate_epoch = if matches!(&operation, GroupOrderAction::Cleanup) {
+        0
+    } else {
+        crate::instructions::group_margin::trade_authority(
             &accounts.margin,
-            &accounts.market,
+            accounts.owner.key(),
             clock.slot,
-            id,
-            version,
-            protection_group,
-            oracle::action(&accounts.market, &clock, false).is_ok(),
-        )?,
-        GroupOrderAction::Cleanup => {
-            let mut next = (**accounts.margin).clone();
-            book::validate(&next)?;
-            book::refresh(
-                &mut next,
-                &accounts.market,
-                clock.slot,
-                oracle::action(&accounts.market, &clock, false).is_ok(),
-            )?;
-            require!(
-                next.reserved != accounts.margin.reserved
-                    || next.book.reserve_observations != accounts.margin.book.reserve_observations
-                    || next
-                        .book
-                        .orders
-                        .iter()
-                        .zip(&accounts.margin.book.orders)
-                        .any(|(current, previous)| current.order.state != previous.order.state),
-                ClearingError::OrderState
-            );
-            advance(&mut next)?;
-            next
-        }
+        )?
     };
+    match &operation {
+        GroupOrderAction::Place { terms, .. } | GroupOrderAction::Replace { terms, .. } => {
+            oracle::action(&accounts.market, &clock, !terms.reduce_only)?
+        }
+        GroupOrderAction::Protect { .. } => oracle::action(&accounts.market, &clock, false)?,
+        GroupOrderAction::Cancel { .. } | GroupOrderAction::Cleanup => {}
+    }
+    let funding = oracle::effective(accounts.group.mode, &accounts.market, &clock)?;
+    let environment = book::Environment::isolated(
+        &accounts.market,
+        funding,
+        clock.slot,
+        oracle::action(&accounts.market, &clock, false).is_ok(),
+    )?;
+    let next = manage_candidate(&accounts.margin, &environment, operation, delegate_epoch)?;
     accounts.margin.set_inner(next);
     oracle::materialize(accounts.group.mode, &mut accounts.market, &clock)?;
     accounts.group.sequence = accounts
@@ -175,6 +117,59 @@ pub fn manage(ctx: Context<ManageGroupOrder>, operation: GroupOrderAction) -> Re
     );
     emit_cpi!(*emitted);
     Ok(())
+}
+
+/// Shared book transition; entrypoints authenticate actor, canonical dependencies
+/// and relevant source actions before using this candidate.
+pub(crate) fn manage_candidate(
+    root: &MarginAccountV2,
+    environment: &book::Environment,
+    operation: GroupOrderAction,
+    delegate_epoch: u64,
+) -> Result<MarginAccountV2> {
+    match operation {
+        GroupOrderAction::Place { expected_id, terms } => {
+            book::place_with_environment(root, environment, expected_id, terms, delegate_epoch)
+        }
+        GroupOrderAction::Replace { id, version, terms } => {
+            book::replace_with_environment(root, environment, id, version, terms, delegate_epoch)
+        }
+        GroupOrderAction::Protect {
+            expected_id,
+            take_profit,
+            stop_loss,
+        } => book::protect_with_environment(
+            root,
+            environment,
+            expected_id,
+            take_profit,
+            stop_loss,
+            delegate_epoch,
+        ),
+        GroupOrderAction::Cancel {
+            id,
+            version,
+            protection_group,
+        } => book::cancel_with_environment(root, environment, id, version, protection_group),
+        GroupOrderAction::Cleanup => {
+            let mut next = root.clone();
+            book::validate(&next)?;
+            book::refresh_with_environment(&mut next, environment)?;
+            require!(
+                next.reserved != root.reserved
+                    || next.book.reserve_observations != root.book.reserve_observations
+                    || next
+                        .book
+                        .orders
+                        .iter()
+                        .zip(&root.book.orders)
+                        .any(|(current, previous)| current.order.state != previous.order.state),
+                ClearingError::OrderState
+            );
+            advance(&mut next)?;
+            Ok(next)
+        }
+    }
 }
 
 #[inline(never)]
@@ -204,11 +199,21 @@ pub(crate) fn stored_intent(
 ) -> Result<(RouteIntent, usize)> {
     book::validate(trader)?;
     require!(
-        trader.group == market.group && trader.isolated_market_index == market.index,
+        trader.group == market.group && model(trader)?.allows(usize::from(market.index)),
         ClearingError::OrderState
     );
     let index = book::find(trader, args.id, args.version)?;
-    let order = trader.book.orders[index].order;
+    let stored = trader.book.orders[index];
+    require!(
+        stored.market_index == market.index
+            && crate::instructions::group_margin::live_order_authority(
+                trader,
+                stored.delegate_epoch,
+                clock.slot
+            ),
+        ClearingError::Authority
+    );
+    let order = stored.order;
     require!(
         order.filled == args.filled
             && order.terms_epoch == market.terms_epoch
@@ -446,33 +451,37 @@ fn finish_maker(
 }
 
 pub fn execute(ctx: Context<ExecuteGroupRoute>, intent: RouteIntent) -> Result<()> {
-    require!(
-        ctx.accounts.actor.key() == ctx.accounts.trader.owner,
-        ClearingError::Authority
-    );
-    execute_core(ctx, intent, None)
+    let clock = Clock::get()?;
+    crate::instructions::group_margin::trade_authority(
+        &ctx.accounts.trader,
+        ctx.accounts.actor.key(),
+        clock.slot,
+    )?;
+    execute_core(ctx, intent, None, &clock)
 }
 
 pub fn execute_order(ctx: Context<ExecuteGroupRoute>, args: OrderExecution) -> Result<()> {
+    let clock = Clock::get()?;
     let (intent, index) = stored_intent(
         &ctx.accounts.group,
         &ctx.accounts.market,
         &ctx.accounts.trader,
         args,
-        &Clock::get()?,
+        &clock,
     )?;
-    execute_core(ctx, intent, Some(index))
+    execute_core(ctx, intent, Some(index), &clock)
 }
 
 fn execute_core(
     ctx: Context<ExecuteGroupRoute>,
     intent: RouteIntent,
     order_index: Option<usize>,
+    clock: &Clock,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     activated(&ctx.accounts.group)?;
     let accounts = &mut *ctx.accounts;
-    let clock = Clock::get()?;
+    crate::instructions::group_margin::trading(&accounts.group, &accounts.trader)?;
     crate::instructions::group_custody::reconciled(&accounts.group, accounts.vault.amount)?;
     oracle::action(&accounts.market, &clock, !intent.reduce_only)?;
     let has_second = intent.legs.len() == 2;

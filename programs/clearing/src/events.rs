@@ -338,6 +338,15 @@ pub struct GroupOracleChangedV2 {
 }
 
 #[event]
+pub struct MarginAuthorityChangedV2 {
+    pub group: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub margin: Pubkey,
+    pub state: MarginAccountSnapshotV2,
+}
+
+#[event]
 pub struct GroupOrderChangedV2 {
     pub group: Pubkey,
     pub sequence: u64,

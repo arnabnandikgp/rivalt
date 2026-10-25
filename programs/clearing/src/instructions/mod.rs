@@ -165,6 +165,10 @@ pub(crate) use group_trading::routes::{
 pub use group_trading::routes::{ExecuteGroupRoute, ManageGroupOrder};
 
 pub mod group_margin;
+pub(crate) use group_margin::authority::__client_accounts_set_margin_delegate;
+#[cfg(feature = "cpi")]
+pub(crate) use group_margin::authority::__cpi_client_accounts_set_margin_delegate;
+pub use group_margin::authority::SetMarginDelegate;
 pub mod group_safety;
 pub(crate) use group_safety::resolution::{
     __client_accounts_advance_group_resolution, __client_accounts_freeze_group,

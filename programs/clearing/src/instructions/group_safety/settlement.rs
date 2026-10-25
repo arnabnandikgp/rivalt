@@ -628,12 +628,13 @@ pub fn transfer(
     group_custody::reconciled(&accounts.group, accounts.vault.amount)?;
     certified(&accounts.guard, &accounts.group, market_refs, &clock)?;
     refresh(&mut accounts.donor, market_refs, &clock)?;
-    let donor = checked(
-        account_model(&accounts.donor)?
-            .withdraw(amount, risks(accounts.group.mode, market_refs, &clock)?),
-    )?;
-    let mut recipient = account_model(&accounts.recipient)?;
-    recipient.cash = checked(math::cash_add(recipient.cash, amount))?;
+    refresh(&mut accounts.recipient, market_refs, &clock)?;
+    let (donor, recipient) = checked(math::margin::transfer_candidate(
+        account_model(&accounts.donor)?,
+        account_model(&accounts.recipient)?,
+        amount,
+        risks(accounts.group.mode, market_refs, &clock)?,
+    ))?;
     commit(&mut accounts.donor, donor)?;
     commit(&mut accounts.recipient, recipient)?;
     finish(

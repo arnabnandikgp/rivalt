@@ -5,6 +5,8 @@ use crate::{error::ClearingError, state::v2::*};
 use anchor_lang::prelude::*;
 use financial_core as math;
 
+pub mod authority;
+
 pub(crate) fn model(root: &MarginAccountV2) -> Result<math::margin::Margin> {
     require!(
         root.schema_version == SCHEMA_VERSION

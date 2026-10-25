@@ -35,6 +35,10 @@ P20's liquidation/default acceptance. No P19 deployment or A24 pass is claimed.
   revocation/expiry prevents execution and safe cleanup releases reservations.
   Cancellation makes a protection inactive when it has no live child; a historical
   allowance field alone cannot grant authority. TP/SL stays market/generation-bound.
+- Grants require a qualified unfrozen financial group; custody/frozen modes reject.
+  Owner revocation remains available during pause. Dormant cross roots may hold a
+  grant without exposure/order rights or loss of their guarded owner cash exit.
+  Owner replacement reauthorizes epoch zero; delegate replacement adopts its epoch.
 
 These choices implement D45–D48 and D51. They do not change 2 bps taker/zero provider
 fees, oracle safeguards, default ownership or external-gate authorization.
@@ -48,7 +52,12 @@ donor boundary, fractions through net/reopen and divided funding ownership.
 Owner/group/order authority remains a clearing-handler responsibility and is not
 claimed by those arithmetic tests.
 
-Next implement the actual dependency/authority/book/route handlers and their
+The shared book and isolated authority handlers now use both-market candidate
+machinery, with per-root grants and critical events. Twenty-eight affected clearing
+host tests pass during development, including the unchanged cross gate. Signed
+runtime and new generated ABI verification are still pending.
+
+Next implement the complete two-market route/netting handlers and remaining
 independent G01–G04/G09–G11 checks. Verify legacy/generated ABI, bounded default and
 successor builds, signed isolated/delegation regression and both cross-activation
 negative profiles. P20 owns signed enabled-cross safety and transaction budgets;
