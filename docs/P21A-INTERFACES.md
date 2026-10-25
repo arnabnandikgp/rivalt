@@ -77,8 +77,9 @@ Operator request prefixes remain reserved; ordinary client retries use identical
 bytes and request identities.
 
 The separately runnable `group-executor-main.ts` consumes this queue. It does not
-discover or decide financial maintenance. Group financial workers remain phase
-work; their market-specific liveness records use `(run, marketIndex, makerId)`.
+discover or decide financial maintenance. Maker/funding discovery is now implemented in `group-runtime.ts`; order, settlement
+and risk/default workers remain phase work. Liveness records use
+`(run, marketIndex, makerId)`.
 
 | Explicit local fee budget | Cap (lamports) |
 |---|---:|
@@ -133,3 +134,25 @@ No local preview or positive unpaid claim is withdrawable cash authority.
 PostgreSQL check. It shuts down a real read API before SDK actions and deliberately
 expires the sources before cancellation/flat exit. WORKLOG records actual results;
 this account checkpoint does not cover route quoting, resolution workers or P21B.
+
+## Market workers
+
+`readGroupMakers` authenticates four canonical market-local registrations, isolated
+capital roots, config identities and executable/ProgramData bindings against the
+same group snapshot. Actual approved code hash and quote-epoch synchronization
+are reported separately. Unknown or foreign dependencies reject the snapshot.
+
+Run `group-worker-main.ts` with the explicit group run/RPC/PostgreSQL configuration,
+`RIVALT_GROUP_ROLE=maker|funding`, `RIVALT_MARKET_INDEX=0|1`, a private
+`RIVALT_SIGNER_PATH`, and `RIVALT_MAKER_ID=0|1` for makers. Makers own only their
+registered isolated capital/config permissions. Expired publication plus owner sync
+is one immutable queued intent; it never grants code approval or collateral access.
+Funding cadence is 2–5 seconds, default two, independently budgeted per market.
+Missing heartbeat or stale quotes do not suppress the on-chain source/coverage
+sample: clearing still records its restrictive result. Pending/unresolved original
+intents prevent replacement signing.
+
+`bash ops/group-indexer-smoke.sh --market-workers` checks the actual separate
+processes, source-loss sampling, maker restart, independent market stop and exact
+queue-fee/PostgreSQL reconstruction. WORKLOG owns actual results. This does not
+establish funded-position health, expired-epoch publication or full A26A acceptance.

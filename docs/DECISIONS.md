@@ -493,3 +493,11 @@ cash mutations because Solana promotes writability across a transaction. Preserv
 stale-source cancellation and already-authorized flat-cohort exits without changing
 source deadlines, funding, reservations or owner authority. Direct SDK checkpoints
 do not close A26A's financial workers or A26B's UI/contention gates.
+
+D53 market-worker realization: use four distinct maker liveness identities and two
+funding budgets even when internal operator keys are shared across markets. Bind
+actual config, isolated capital and approved ProgramData independently of daemon
+liveness. Owner publication/sync never grants approval authority. Continue signed
+source sampling during stale/unavailable inputs so clearing records restrictive
+modes; retaining its original cadence and freshness checks is mandatory. This adds
+service discovery only, not new economics or an external-maker claim.
