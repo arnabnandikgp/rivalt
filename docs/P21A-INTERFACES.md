@@ -304,7 +304,8 @@ write between scan/reconciliation, a never-broadcast funding original, unrelated
 ETH progress, real blockhash expiry, the signed retry and fresh PostgreSQL replay.
 WORKLOG records its actual pinned outcome; the command alone is not evidence.
 
-The qualified artifact gate rejects any different maker code, authority or padding.
+The qualified artifact gate rejects different maker code/authority, nonzero padding
+and allocated ProgramData larger than 45 header bytes plus twice the pinned ELF.
 The maker ELF lengths are 252,760 (A) and 252,824 (B) bytes. ProgramData's on-chain
 1 MiB structural ceiling is not a compute-capacity promise. Every new image or
 allocation requires fresh single/two-maker route and source CU/packet qualification
