@@ -4,6 +4,7 @@ export type Attempt = {
   quoteMs?: number; validationMs?: number; signingMs?: number; submitMs?: number; signedAtEpochMs?: number; firstBroadcastMs?: number;
   processedMs?: number; confirmedMs?: number; finalizedMs?: number;
   bytes?: number; accounts?: number; units?: number; fee?: string;
+  diagnostic?: Record<string, string | number>;
 };
 export function distribution(values: number[]) {
   if (!values.length) return { count: 0, p50: null, p95: null, p99: null, max: null };
@@ -13,10 +14,13 @@ export function distribution(values: number[]) {
   return {count:sorted.length,p50:q(.5),p95:q(.95),p99:q(.99),max:sorted.at(-1)!};
 }
 export function summarize(rows: Attempt[]) {
-  const submitted=rows.filter(r=>r.signature), normal=submitted.filter(r=>r.eligible&&!r.fault);
+  const submitted=rows.filter(r=>r.signature), normal=submitted.filter(r=>!r.fault);
   const counts:Record<string,number>={},causes:Record<string,number>={},mix:Record<string,any>={};for(const row of rows){counts[row.status]=(counts[row.status]??0)+1;if(row.code)causes[row.code]=(causes[row.code]??0)+1;const key=`${row.side??'unknown'}:${row.lots??'unknown'}`,m=mix[key]??={offered:0,submitted:0,successful:0};m.offered++;if(row.signature)m.submitted++;if(row.status==='finalized')m.successful++;}
   const normalOffered=rows.filter(r=>!r.fault).length;
-  return {offered:rows.length,submitted:submitted.length,normalOffered,normalAvailability:normalOffered?normal.length/normalOffered:null,normalEligible:normal.length,
+  const normalEligible=rows.filter(row=>!row.fault&&row.eligible).length;
+  return {offered:rows.length,submitted:submitted.length,normalOffered,normalAvailability:normalOffered?normal.length/normalOffered:null,normalEligible,
+    normalSubmitted:normal.length,normalQuoteAvailability:normalOffered?normalEligible/normalOffered:null,
+    normalFinalizedAvailability:normalOffered?normal.filter(row=>row.status==='finalized').length/normalOffered:null,
     normalSuccessful:normal.filter(r=>r.status==='finalized').length,
     normalSuccess:normal.length?normal.filter(r=>r.status==='finalized').length/normal.length:null,
     statusCounts:counts,causeCounts:causes,sideSizeMix:mix,quote:distribution(rows.flatMap(r=>r.quoteMs===undefined?[]:[r.quoteMs])),

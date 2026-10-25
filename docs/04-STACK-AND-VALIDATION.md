@@ -97,8 +97,10 @@ IDs are stable references from the delivery plan/worklog. A finite suite is evid
 | A17 | Load/soak | Declared load/resources, D35 bounded qualification, >10,000 actual RPC history replay and final exit | P12 |
 | A18 | Real dependency verification | Actual deployed verifier/update path and mint/authority/source provenance | P13 |
 | A19 | Devnet parity | Core lifecycle, real wallet signing/landing and provider backfill/recovery | P14 |
-| A20 | Independent maker evidence | Genuine operator records, observed hedges/capital/costs, missing-data labels | P15 |
-| A21 | Pilot readiness | Measured risk/capital, external review findings, incident/exit drill and separate go/no-go | P16 |
+| A20A | Maker kit/tooling | Fresh operator qualification over actual RPC/WS/PostgreSQL; independent economics and labelled hedge assumptions | P15A |
+| A21A | Engineering reliability | Explicit availability populations/reasons, targeted bounded checks for actionable fixes, affected recovery/reconciliation/exit and measured limits; 24-hour endurance deferred (D42) | P16A |
+| A20B (original A20) | Independent maker evidence | Genuine operator records, observed hedges/capital/costs, missing-data labels; A20A cannot substitute | P15B |
+| A21B | External/funded readiness | Independent review/source assurance, measured funded risk/capital and separately authorized go/no-go; A21A cannot substitute | P16B |
 
 D37 scopes A18/A19 to bounded engineering checks with intermittent sponsored devnet feeds. Record availability and notification gaps; do not require continuous feed availability or repeat a soak. An actual original-signature WS recovery plus independently finalized RPC history may qualify a missed live A18 notification while retaining the original failure. A19 still requires the focused service/wallet lifecycle and provider/backfill recovery. Neither accounting/authentication failures nor unresolved signed outcomes can be waived. P13's accepted trade uses 20-second source age; the approved 30-second devnet-only configuration must be separately implemented/tested before use.
 
@@ -167,7 +169,7 @@ Initial engineering objectives retained from the build specification:
 - load sweeps start at 1, 5 and 10 attempted orders/second with declared account mix; report saturation;
 - required transactions fit real limits, target >=20% measured CU headroom for declared worst-case fixtures;
 - under D35, >=50% normal offered availability and real 1,800-second local qualification with affected recovery, final withdrawal and >10,000-transaction RPC reconstruction;
-- a continuous 24-hour endurance run with restarts/backfill/maker outages and final reconciliation remains deferred to P16 before funded-pilot readiness.
+- a continuous 24-hour endurance run with restarts/backfill/maker outages and final reconciliation remains deferred under D42 and is not required for current P16A completion; future funded-readiness assessment must revisit it separately.
 
 These are targets, not achieved measurements or promises. Report failed/unfilled attempts, unpaid profits and degraded intervals. Do not combine local/devnet latency populations. Tune one measured bottleneck at a time after correctness.
 
@@ -202,3 +204,5 @@ P10 runtime acceptance refinement: full integrated acceptance uses `RIVALT_SLOT_
 P12 verification is scoped to its resource options, measurement logic, actual offered-load sweep, D35 bounded qualification and actual large-history replay; unchanged financial programs retain P11 evidence. [LOAD-SOAK](P12-LOAD-SOAK.md) defines complete offered/submitted populations and the explicit local fee/history profile. A short sweep alone is not A17 and a raised recovery bound is not proof of a large replay. D35 explicitly supersedes the blocking P12 full-day duration; it does not claim full-day endurance passed.
 
 D38: retain raw run files locally at their current paths, untracked/ignored; keep concise Markdown reports and necessary bounded regression fixtures in Git. A fresh clone runs ordinary tests without the local captures. Full retained-run auditors require actual local input and must fail if it is unavailable. See [storage policy](EVIDENCE.md). A source-preserving cleanup is not another financial/soak run.
+
+D41 separates engineering and external evidence: P15A supplies reproducible internal operator qualification and exact economics tooling; P16A supplies explicit availability denominators/classification and bounded, change-focused operational verification; D42 supersedes D41's full-day requirement. A20B/A21B retain the independent-participant/review/funded gates. No new full-body checks are required for unrelated changes; continuous 24-hour qualification stays explicitly Deferred, not passed or replaced by a bounded check.

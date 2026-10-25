@@ -8,10 +8,17 @@ export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18899}" RIVALT_WS_PORT="${RIVALT_WS_P
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT" RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
 RIVALT_RUN_KIND=load
 if [[ "${1:-}" == '--manual-ui' ]]; then RIVALT_RUN_KIND=demo; fi
+if [[ "${1:-}" == '--maker-kit' ]]; then RIVALT_RUN_KIND=maker-qualification; fi
+if [[ "${1:-}" == '--readiness' ]]; then RIVALT_RUN_KIND=readiness; fi
 export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/$RIVALT_RUN_KIND/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
 mkdir -p "$RIVALT_RUN_DIR"
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" 15432 18081 18083 18084
+if [[ "$RIVALT_RUN_KIND" == maker-qualification || "$RIVALT_RUN_KIND" == readiness ]]; then
+  node ops/record-toolchain.mjs --runtime-only > "$RIVALT_RUN_DIR/toolchain.json"
+else
+  node ops/record-toolchain.mjs > "$RIVALT_RUN_DIR/toolchain.json"
+fi
 surfpool start --offline --no-deploy --no-tui --no-studio --disable-instruction-profiling --port "$RIVALT_RPC_PORT" --ws-port "$RIVALT_WS_PORT" \
   --slot-time 50 --airdrop-keypair-path .local/keys/payer.json --log-path "$RIVALT_RUN_DIR/logs" > "$RIVALT_RUN_DIR/surfpool.log" 2>&1 &
 export RIVALT_SURFPOOL_PID=$!
@@ -31,8 +38,13 @@ for program in clearing maker_a maker_b oracle_fixture; do
     --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/deployment-$key.json"
 done
 source ops/postgres.sh
-node ops/record-toolchain.mjs > "$RIVALT_RUN_DIR/toolchain.json"
-if [[ "${1:-}" == '--manual-ui' ]]; then
+if [[ "${1:-}" == '--readiness' ]]; then
+  shift
+  node --import tsx tests/rpc-contract/readiness.ts "$@"
+elif [[ "${1:-}" == '--maker-kit' ]]; then
+  shift
+  node --import tsx tests/rpc-contract/maker-kit.ts "$@"
+elif [[ "${1:-}" == '--manual-ui' ]]; then
   shift
   node --import tsx tests/load/manual-ui.ts "$@"
 else

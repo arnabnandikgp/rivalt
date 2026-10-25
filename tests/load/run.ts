@@ -57,7 +57,7 @@ try{
     writeFileSync(`${dir}/broadcasts.json`,json(records.filter(r=>r.firstBroadcastMs!==undefined).map(r=>({id:r.id,signature:r.signature,signedAtEpochMs:r.signedAtEpochMs,firstBroadcastMs:r.firstBroadcastMs}))));
   }
   const busy=new Set<number>(),positions=[0n,0n,0n],pending=new Set<Promise<void>>();let offered=0;
-  async function request(path:string,body:any){const response=await fetch('http://127.0.0.1:18081'+path,{method:'POST',headers:{'content-type':'application/json'},body:json(body),signal:AbortSignal.timeout(5000)});const result=await response.json() as any;if(!response.ok)throw Object.assign(new Error(result.error??String(response.status)),{code:result.code});return result;}
+  async function request(path:string,body:any){const response=await fetch('http://127.0.0.1:18081'+path,{method:'POST',headers:{'content-type':'application/json'},body:json(body),signal:AbortSignal.timeout(5000)});const result=await response.json() as any;if(!response.ok)throw Object.assign(new Error(result.error??String(response.status)),{code:result.code,diagnostic:result.diagnostic});return result;}
   async function attempt(phase:string,fault:boolean,scheduled:number){
     const number=offered++,actor=number%3,row:Attempt={id:`load:${number}`,phase,offeredAt:scheduled,actor,fault,status:'offered'};
     records.push(row);
@@ -101,7 +101,7 @@ try{
         }
         await delay(100);
       }
-    }catch(error){row.status=row.signature?'unresolved':'quote-unavailable';row.code=error instanceof Error?String((error as Error&{code?:string}).code??error.message):'request failed';}
+    }catch(error){row.diagnostic=(error as {diagnostic?:Record<string,string|number>})?.diagnostic;row.status=row.signature?'unresolved':'quote-unavailable';row.code=error instanceof Error?String((error as Error&{code?:string}).code??error.message):'request failed';}
     finally{
       // An unresolved signed action retains this account's admission lock for the run.
       if(row.status!=='unresolved')busy.delete(actor);
@@ -196,7 +196,7 @@ try{
     samplingSensitivity:'Not varied in this run; selected cadence five seconds. P07/P11 hold/accrual reference evidence is unchanged.'};
   await indexer.close();
   const reference=JSON.parse(execFileSync('python3',['tests/load/reference.py',`${dir}/quotes.jsonl.gz`],{encoding:'utf8'}));writeFileSync(`${dir}/reference.json`,json(reference));
-  const baseline=phases[0],targets={quote:baseline.quote.p95!==null&&baseline.quote.p95<=200,normalSuccess:baseline.normalEligible>0&&baseline.normalSuccess>=.99,routeHeadroom:Math.max(...phases.map(x=>x.maxUnits))<=320_000,...(qualification?{normalOfferedAvailability:baseline.normalAvailability>=.5}: {})};
+  const baseline=phases[0],targets={quote:baseline.quote.p95!==null&&baseline.quote.p95<=200,normalSuccess:baseline.normalSubmitted>0&&baseline.normalSuccess>=.99,routeHeadroom:Math.max(...phases.map(x=>x.maxUnits))<=320_000,...(qualification?{normalOfferedAvailability:baseline.normalAvailability>=.5}: {})};
   const result={...manifest,finishedUtc:new Date().toISOString(),result:Object.values(targets).every(Boolean)?'pass':'fail',scope:long?'actual 24-hour sustained run':qualification?'D35 bounded 1800-second qualification plus >10000 actual RPC history replay; 24-hour endurance deferred':extended?`${seconds}-second ${mode==='--final-check-seconds'?'final-check probe':'sustained harness exercise'}; A17 not-run`:'finite qualification; A17 not-run',reference,readApi,fundingQuality,sustained:sustainedResult,visibility,history:historyResult,rebuildMetrics,rebuildKind:extended?'fresh PostgreSQL database':'fresh projection in same database',sourceBudget:{...e.sourceBudget,closingLamports:sourceClosing},targets,phases,faults,final,rebuiltFinal,finalSnapshot,intents,budgets,closingBalances,sourceErrors:e.sourceErrors};
   writeFileSync(`${dir}/load.json`,json(result));assert.equal(e.sourceErrors.length,0,'source publisher errors retained');
   console.log(`Load targets ${result.result}: ${dir}/load.json`);if(result.result==='fail')process.exitCode=2;

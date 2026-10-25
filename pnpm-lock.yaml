@@ -83,6 +83,25 @@ importers:
         specifier: 8.23.1
         version: 8.23.1
 
+  packages/maker-kit:
+    dependencies:
+      '@rivalt/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@rivalt/services':
+        specifier: workspace:*
+        version: link:../services
+      '@solana/kit':
+        specifier: 8.5.0
+        version: 8.5.0(typescript@5.9.3)
+      '@solana/web3.js':
+        specifier: 3.1.1
+        version: 3.1.1(typescript@5.9.3)
+    devDependencies:
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+
   packages/sdk:
     dependencies:
       '@solana-program/token':
