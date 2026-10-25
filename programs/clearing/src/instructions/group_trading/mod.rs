@@ -19,7 +19,7 @@ pub(crate) fn profile(group: &ClearingGroupV2) -> Result<()> {
             && group.schema_version == SCHEMA_VERSION
             && group.profile_version == PROFILE_VERSION
             && group.market_count == 2
-            && (group.mode <= 1 || (CROSS_TRADING_IMPLEMENTED && group.mode == 2)),
+            && (group.mode <= 1 || (cross_profile_enabled() && group.mode == 2)),
         ClearingError::Profile
     );
     require!(!group.paused, ClearingError::Paused);
@@ -30,7 +30,7 @@ pub(crate) fn activated(group: &ClearingGroupV2) -> Result<()> {
     profile(group)?;
     require!(
         ISOLATED_TRADING_IMPLEMENTED
-            && (group.mode == 1 || (CROSS_TRADING_IMPLEMENTED && group.mode == 2)),
+            && (group.mode == 1 || (cross_profile_enabled() && group.mode == 2)),
         ClearingError::Profile
     );
     Ok(())

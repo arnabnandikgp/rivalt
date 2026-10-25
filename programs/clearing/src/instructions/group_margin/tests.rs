@@ -105,7 +105,10 @@ fn generic_model_does_not_grant_cross_trading() {
             mode,
             ..ClearingGroupV2::default()
         };
-        assert!(trading(&group, &root).is_err());
+        assert_eq!(
+            trading(&group, &root).is_ok(),
+            mode == 2 && cross_profile_enabled()
+        );
     }
 }
 

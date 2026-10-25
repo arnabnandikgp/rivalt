@@ -15,11 +15,11 @@ pub(crate) fn next(value: u64) -> Result<u64> {
         .ok_or_else(|| error!(ClearingError::Arithmetic))
 }
 
-/// Ordinary safety operations include dormant cross identities in the complete
-/// group. They may hold cash but cannot carry exposure, claims or order authority.
+/// Include every mode in the cohort. Until the cross release gate qualifies,
+/// cross identities may hold cash but not exposure, claims or order authority.
 pub(crate) fn account_model(root: &MarginAccountV2) -> Result<math::margin::Margin> {
     let model = crate::instructions::group_margin::model(root)?;
-    if root.mode == MODE_ISOLATED {
+    if root.mode == MODE_ISOLATED || cross_profile_enabled() {
         return Ok(model);
     }
     require!(
@@ -107,19 +107,22 @@ pub(crate) fn risks(
 pub(crate) fn refresh(
     root: &mut MarginAccountV2,
     markets: [&GroupMarketV2; 2],
+    mode: u8,
     clock: &Clock,
 ) -> Result<()> {
     account_model(root)?;
-    if root.mode == MODE_ISOLATED {
-        let market = markets[usize::from(root.isolated_market_index)];
-        group_trading::book::refresh(
-            root,
-            market,
-            clock.slot,
-            oracle::action(market, clock, false).is_ok(),
-        )?;
-    }
-    Ok(())
+    let environment = group_trading::book::Environment {
+        markets: markets.map(Some),
+        selected: if root.mode == MODE_CROSS {
+            0
+        } else {
+            usize::from(root.isolated_market_index)
+        },
+        funding: risks(mode, markets, clock)?.map(|risk| risk.funding),
+        slot: clock.slot,
+        credible: markets.map(|market| oracle::action(market, clock, false).is_ok()),
+    };
+    group_trading::book::refresh_with_environment(root, &environment)
 }
 
 pub(crate) fn registry_hash(registry: &GroupRegistryV2) -> Result<[u8; 32]> {

@@ -419,3 +419,19 @@ the same explicit release gate while pure candidates are verified.
 [P20](P20-CROSS-SAFETY.md) owns complete-group net default, missing-price recovery,
 full endpoint certification and signed qualification before cross release. P19
 acceptance does not close these checks. P15B/P16B remain Open and D42 remains Deferred.
+
+D52 candidate verification: the ordinary cross release constant remains false.
+A separately named `cross-safety-qualification` local build executes the actual
+safety instructions solely in the bounded P20 harness before release promotion;
+default, devnet and ordinary successor artifacts retain their rejection boundary.
+Do not cite candidate build/host checks as signed A25 acceptance. No unsafe profile
+is added to a general runtime launcher. The existing local/devnet feature exclusion
+also rejects combining the candidate with devnet.
+
+D52 activation/recovery realization: explicit authority promotion from isolated to
+cross mode requires both markets Normal and complete current certification. Keep
+already-earned funding and materialize both prefixes; do not reuse custody's
+funding reset. Resolved groups return to isolated mode, and require fresh Normal
+observations/certification and authority promotion before cross resumes. Recovery
+never changes a root's immutable margin mode. The funding-endpoint certificate
+must cover mode 2 and all adverse mixed corners. No layout migration is required.

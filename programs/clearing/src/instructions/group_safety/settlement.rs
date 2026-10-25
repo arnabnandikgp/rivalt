@@ -191,6 +191,68 @@ pub fn activate(ctx: Context<ActivateIsolatedGroup>) -> Result<()> {
     Ok(())
 }
 
+pub(super) fn cross_activation(
+    group: &ClearingGroupV2,
+    markets: [&GroupMarketV2; 2],
+    guard: &GroupExitGuardV2,
+    resolution: &GroupResolutionV2,
+    clock: &Clock,
+) -> Result<()> {
+    require!(
+        group.mode == 1
+            && resolution.schema_version == SCHEMA_VERSION
+            && matches!(
+                resolution.header.stage,
+                crate::constants::resolution::IDLE | crate::constants::resolution::RESUMED
+            ),
+        ClearingError::Profile
+    );
+    for market in markets {
+        oracle::action(market, clock, true)?;
+    }
+    certified(guard, group, markets, clock)
+}
+
+/// Cross promotion preserves already-earned funding. Unlike custody activation,
+/// it must never reset an existing isolated group's causal funding interval.
+pub fn activate_cross(ctx: Context<ActivateIsolatedGroup>) -> Result<()> {
+    require!(
+        ctx.remaining_accounts.is_empty() && cross_profile_enabled(),
+        ClearingError::Profile
+    );
+    let accounts = &mut *ctx.accounts;
+    group_trading::profile(&accounts.group)?;
+    markets(
+        &accounts.group,
+        accounts.group.key(),
+        [&accounts.btc, &accounts.eth],
+    )?;
+    group_custody::reconciled(&accounts.group, accounts.vault.amount)?;
+    let clock = Clock::get()?;
+    cross_activation(
+        &accounts.group,
+        [&accounts.btc, &accounts.eth],
+        &accounts.guard,
+        &accounts.resolution,
+        &clock,
+    )?;
+    oracle::materialize(accounts.group.mode, &mut accounts.btc, &clock)?;
+    oracle::materialize(accounts.group.mode, &mut accounts.eth, &clock)?;
+    accounts.group.mode = 2;
+    accounts.group.sequence = next(accounts.group.sequence)?;
+    let emitted = event(
+        &accounts.group,
+        [&accounts.btc, &accounts.eth],
+        6,
+        0,
+        vec![],
+        accounts.vault.amount,
+        &clock,
+    );
+    crate::event_cpi::emit(&emitted, ctx.accounts.event_authority.to_account_info())?;
+    Ok(())
+}
+
 pub(crate) fn reset_oracle(market: &mut GroupMarketV2, now: i64, skipped: u64) -> Result<()> {
     let previous = market.oracle;
     market.oracle = crate::state::OracleState {
@@ -224,11 +286,11 @@ pub(crate) fn live(
     Ok(())
 }
 
-fn funding_bounds(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Result<[i128; 2]> {
+pub(super) fn funding_bounds(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Result<[i128; 2]> {
     let current = oracle::effective(mode, market, clock)?;
     let mut end = current;
     let observation = &market.oracle;
-    if mode == 1
+    if matches!(mode, 1 | 2)
         && observation.held_epoch == market.config_epoch
         && observation.held_until > observation.sampled_at
         && clock.slot < observation.held_slot
@@ -244,6 +306,26 @@ fn funding_bounds(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Result<[i1
         ))?;
     }
     Ok([current.min(end), current.max(end)])
+}
+
+/// Funding can move in opposite directions across markets. Testing just the
+/// two diagonal snapshots misses the adverse mixed corner for a cross root.
+pub(super) fn solvent_endpoints(
+    model: math::margin::Margin,
+    mut risk: [math::margin::Risk; 2],
+    bounds: [[i128; 2]; 2],
+) -> Result<()> {
+    for first in bounds[0] {
+        for second in bounds[1] {
+            risk[0].funding = first;
+            risk[1].funding = second;
+            require!(
+                checked(model.risk_equity(risk))? >= 0,
+                ClearingError::ExitCohort
+            );
+        }
+    }
+    Ok(())
 }
 
 pub(crate) fn certified(
@@ -347,17 +429,11 @@ pub fn check(
             credible || root.positions.iter().all(|position| position.lots == 0),
             ClearingError::ExitCohort
         );
-        let mut risk = risks(accounts.group.mode, market_refs, &clock)?;
-        for first in guard.funding_bounds[0] {
-            for second in guard.funding_bounds[1] {
-                risk[0].funding = first;
-                risk[1].funding = second;
-                require!(
-                    checked(model.risk_equity(risk))? >= 0,
-                    ClearingError::ExitCohort
-                );
-            }
-        }
+        solvent_endpoints(
+            model,
+            risks(accounts.group.mode, market_refs, &clock)?,
+            guard.funding_bounds,
+        )?;
         guard.cash = checked(math::cash_add(guard.cash, root.cash))?;
         for index in 0..2 {
             guard.lots[index] = guard.lots[index]
@@ -448,8 +524,7 @@ pub fn change(
         certified(&accounts.guard, &accounts.group, market_refs, &clock)?;
     }
     require!(
-        accounts.margin.mode == MODE_ISOLATED
-            && accounts.margin.isolated_market_index == market_index,
+        account_model(&accounts.margin)?.allows(usize::from(market_index)),
         ClearingError::Profile
     );
     require!(
@@ -457,7 +532,12 @@ pub fn change(
             || oracle::action(market_refs[usize::from(market_index)], &clock, false).is_ok(),
         ClearingError::OraclePolicy
     );
-    refresh(&mut accounts.margin, market_refs, &clock)?;
+    refresh(
+        &mut accounts.margin,
+        market_refs,
+        accounts.group.mode,
+        &clock,
+    )?;
     let risk = risks(accounts.group.mode, market_refs, &clock)?;
     let (candidate, pools) = checked(account_model(&accounts.margin)?.settle_claim(
         math::Pools {
@@ -537,7 +617,12 @@ pub fn cash(
     let clock = Clock::get()?;
     let candidate = if withdraw {
         certified(&accounts.guard, &accounts.cash.group, market_refs, &clock)?;
-        refresh(&mut accounts.cash.margin, market_refs, &clock)?;
+        refresh(
+            &mut accounts.cash.margin,
+            market_refs,
+            accounts.cash.group.mode,
+            &clock,
+        )?;
         checked(account_model(&accounts.cash.margin)?.withdraw(
             amount,
             risks(accounts.cash.group.mode, market_refs, &clock)?,
@@ -627,8 +712,18 @@ pub fn transfer(
     let clock = Clock::get()?;
     group_custody::reconciled(&accounts.group, accounts.vault.amount)?;
     certified(&accounts.guard, &accounts.group, market_refs, &clock)?;
-    refresh(&mut accounts.donor, market_refs, &clock)?;
-    refresh(&mut accounts.recipient, market_refs, &clock)?;
+    refresh(
+        &mut accounts.donor,
+        market_refs,
+        accounts.group.mode,
+        &clock,
+    )?;
+    refresh(
+        &mut accounts.recipient,
+        market_refs,
+        accounts.group.mode,
+        &clock,
+    )?;
     let (donor, recipient) = checked(math::margin::transfer_candidate(
         account_model(&accounts.donor)?,
         account_model(&accounts.recipient)?,

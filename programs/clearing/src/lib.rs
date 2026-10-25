@@ -81,6 +81,9 @@ pub mod clearing {
     pub fn activate_isolated_group_v2(ctx: Context<ActivateIsolatedGroup>) -> Result<()> {
         group_safety::settlement::activate(ctx)
     }
+    pub fn activate_cross_group_v2(ctx: Context<ActivateIsolatedGroup>) -> Result<()> {
+        group_safety::settlement::activate_cross(ctx)
+    }
     pub fn check_group_exit_v2(
         ctx: Context<CheckGroupExit>,
         sequence: u64,

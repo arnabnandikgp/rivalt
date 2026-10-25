@@ -29,6 +29,11 @@ pub const ROLE_RECEIVER: u8 = 2;
 /// This is a compile-time release gate, not an administrator-settable flag.
 /// P20 may change it only with complete liquidation/default acceptance evidence.
 pub const CROSS_TRADING_IMPLEMENTED: bool = false;
+/// A separately named, local-only candidate binary exercises actual signed
+/// cross safety paths before promotion. It is not a qualified release artifact.
+pub(crate) const fn cross_profile_enabled() -> bool {
+    CROSS_TRADING_IMPLEMENTED || cfg!(feature = "cross-safety-qualification")
+}
 /// P18C safety candidate is executable only in the explicit local test profile.
 /// Publication still requires A23C acceptance; default/devnet builds reject it.
 pub const ISOLATED_TRADING_IMPLEMENTED: bool = cfg!(feature = "successor-test-profile");

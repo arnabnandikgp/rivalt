@@ -258,6 +258,48 @@ fn freeze_coverage(market: &mut GroupMarketV2, now: i64) -> Result<()> {
     Ok(())
 }
 
+/// The caller authenticates both sources and the complete target identity.
+/// A conservative risk deficit alone does not authorize default. Missing prices
+/// authorize only the explicit group-authority emergency after exposed-source
+/// grace, and pin no partial valuation.
+fn freeze_prices(
+    target: &MarginAccountV2,
+    markets: [&GroupMarketV2; 2],
+    bounds: [Option<policy::Bounds>; 2],
+    funding: [i128; 2],
+    emergency: bool,
+    authority: bool,
+    now: i64,
+) -> Result<[u64; 2]> {
+    if let [Some(btc), Some(eth)] = bounds {
+        require!(
+            !emergency
+                && checked(
+                    crate::instructions::group_margin::model(target)?
+                        .net_equity([btc.reference, eth.reference], funding)
+                )? < 0,
+            ClearingError::Resolution
+        );
+        return Ok([btc.reference, eth.reference]);
+    }
+    require!(
+        emergency
+            && authority
+            && markets.iter().enumerate().any(|(index, market)| {
+                bounds[index].is_none()
+                    && market.gross_lots > 0
+                    && market.oracle.source_deadline > 0
+                    && market
+                        .oracle
+                        .source_deadline
+                        .checked_add(30)
+                        .is_some_and(|deadline| now >= deadline)
+            }),
+        ClearingError::Resolution
+    );
+    Ok([0; 2])
+}
+
 pub fn freeze(
     ctx: Context<FreezeGroup>,
     sequence: u64,
@@ -273,7 +315,7 @@ pub fn freeze(
             && accounts.group.schema_version == SCHEMA_VERSION
             && accounts.group.profile_version == PROFILE_VERSION
             && accounts.group.market_count == 2
-            && accounts.group.mode == 1,
+            && (accounts.group.mode == 1 || (cross_profile_enabled() && accounts.group.mode == 2)),
         ClearingError::Profile
     );
     require!(
@@ -321,35 +363,16 @@ pub fn freeze(
         accounts.btc.funding_index_scaled,
         accounts.eth.funding_index_scaled,
     ];
-    let prices = if let [Some(btc), Some(eth)] = bounds {
-        require!(
-            !emergency
-                && checked(
-                    account_model(&accounts.target)?
-                        .net_equity([btc.reference, eth.reference], funding)
-                )? < 0,
-            ClearingError::Resolution
-        );
-        [btc.reference, eth.reference]
-    } else {
-        require!(
-            emergency
-                && accounts.caller.key() == accounts.group.authority
-                && [&**accounts.btc, &**accounts.eth]
-                    .iter()
-                    .enumerate()
-                    .any(|(index, market)| bounds[index].is_none()
-                        && market.gross_lots > 0
-                        && market.oracle.source_deadline > 0
-                        && market
-                            .oracle
-                            .source_deadline
-                            .checked_add(30)
-                            .is_some_and(|deadline| clock.unix_timestamp >= deadline)),
-            ClearingError::Resolution
-        );
-        [0; 2]
-    };
+    account_model(&accounts.target)?;
+    let prices = freeze_prices(
+        &accounts.target,
+        [&accounts.btc, &accounts.eth],
+        bounds,
+        funding,
+        emergency,
+        accounts.caller.key() == accounts.group.authority,
+        clock.unix_timestamp,
+    )?;
     freeze_coverage(&mut accounts.btc, clock.unix_timestamp)?;
     freeze_coverage(&mut accounts.eth, clock.unix_timestamp)?;
     let header = GroupResolutionHeaderV2 {

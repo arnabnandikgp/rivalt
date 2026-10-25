@@ -1,4 +1,5 @@
 use super::*;
+mod cross;
 
 fn root(
     id: u16,
@@ -286,8 +287,8 @@ fn dormant_cross_cannot_hide_a_claim_or_order_in_group_recovery() {
     };
     account_model(&root).unwrap();
     root.positions[1].virtual_scaled = 1;
-    assert!(account_model(&root).is_err());
+    assert_eq!(account_model(&root).is_ok(), cross_profile_enabled());
     root.positions[1].virtual_scaled = 0;
     root.book.orders[0].order.state = crate::constants::orders::OPEN;
-    assert!(account_model(&root).is_err());
+    assert_eq!(account_model(&root).is_ok(), cross_profile_enabled());
 }

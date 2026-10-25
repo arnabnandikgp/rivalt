@@ -13,6 +13,9 @@ default = []
 devnet-test-profile = ["oracle-fixture/devnet-test-profile"]
 local-test-profile = []
 successor-test-profile = ["local-test-profile"]
+# Internal SBF qualification only. Normal successor/default/devnet artifacts do
+# not include this feature; release still requires the recorded P20 acceptance.
+cross-safety-qualification = ["successor-test-profile"]
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

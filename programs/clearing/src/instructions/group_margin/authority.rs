@@ -67,8 +67,7 @@ pub fn set(ctx: Context<SetMarginDelegate>, delegate: Pubkey, expiry_slot: u64) 
             && accounts.group.schema_version == SCHEMA_VERSION
             && accounts.group.profile_version == PROFILE_VERSION
             && accounts.group.market_count == 2
-            && (accounts.group.mode == 1
-                || (CROSS_TRADING_IMPLEMENTED && accounts.group.mode == 2)),
+            && (accounts.group.mode == 1 || (cross_profile_enabled() && accounts.group.mode == 2)),
         ClearingError::Profile
     );
     super::super::group_safety::account_model(&accounts.margin)?;

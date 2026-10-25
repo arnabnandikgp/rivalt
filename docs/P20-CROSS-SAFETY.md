@@ -37,3 +37,27 @@ bounds, preserving at least 20% CU headroom. P21 owns PostgreSQL/services/UI and
 fresh contention qualification. Prior P16A or P19 results do not close A25.
 
 P15B/P16B remain external Open gates, and 24-hour endurance remains Deferred.
+
+## Candidate implementation boundary
+
+The ordinary `successor-test-profile`, default and devnet builds still disable
+cross trading. `cross-safety-qualification` is a separate internal local feature
+for signed SBF testing of the now-implemented safety paths. Its explicitly named
+`clearing-cross-qualification.so` is not a release artifact; the build script
+restores the ordinary gated artifact in `target/deploy` even on failure. Only the
+P20 fresh local harness may load it. This is test execution before promotion, not
+an A25 pass or authorization for devnet/funded deployment.
+
+The authority-only `activate_cross_group_v2` entrypoint remains release-gated in
+ordinary builds. In the candidate it requires isolated mode, a current complete
+group certificate, both markets Normal and an idle or resumed resolution. It
+materializes both pending funding prefixes without resetting their causal history,
+advances the group sequence and emits financial event kind 6. No account layout or
+authority changes. Recovery deliberately returns to isolated mode; cross requires
+fresh Normal observations, complete certification and explicit authority activation.
+
+Normal claim settlement, cash and transfers refresh the complete order book;
+exit certificates check all four combinations of held funding endpoints in both
+financial modes. The exact ledger accepts both root modes internally, while its
+external member/profile checks retain the release gate. Economic default and
+emergency eligibility are separate from loss-only risk admission.

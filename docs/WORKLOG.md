@@ -32,7 +32,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5a | P11–P12 | Complete local engineering evidence | Closed | [P11 A01–A16](evidence/P11.md) and [P12 revised A17](evidence/P12.md) verified; 1,249/1,249 submitted trades, 71.19% normal offered availability, affected recoveries, actual exit and 12,454-transaction fresh PostgreSQL replay; merged PR #14 records the indexer pause during separate history generation; integrated at `2bc298e`; 24-hour endurance deferred to P16 under D35 |
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
-| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | R034: A22/G13 contract/layout checks pass on `5a4dc84`, five scoped tests and 190 local links; P17/P18A/P18B Review; A23A custody passes on `6389c3e` with 136 signed SVM / 51 finalized RPC scenarios; A23B passes on `286cb4e` with 154 signed SVM scenarios; R037 A23C/G14 passes on clean `b43261f`: 1,132 signed SVM / 148 finalized RPC scenarios, both-market lifecycle, complete default/recovery and independent audits; P18C Review; R039 A24/G15 core passes on clean `4274d28`: 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC, independent audit/parity; P19 Review in #28; P20 In progress, cross/service gates pending |
+| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | R034: A22/G13 contract/layout checks pass on `5a4dc84`, five scoped tests and 190 local links; P17/P18A/P18B Review; A23A custody passes on `6389c3e` with 136 signed SVM / 51 finalized RPC scenarios; A23B passes on `286cb4e` with 154 signed SVM scenarios; R037 A23C/G14 passes on clean `b43261f`: 1,132 signed SVM / 148 finalized RPC scenarios, both-market lifecycle, complete default/recovery and independent audits; P18C Review; R039 A24/G15 core passes on clean `4274d28`: 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC, independent audit/parity; P19 Review in #28; P20 In progress (19 focused safety checks pass), cross/service gates pending |
 
 ## Phase overview
 
@@ -61,7 +61,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P18B | Two-market isolated sources/makers/routes/orders | Review | [PR #26](https://github.com/arnabnandikgp/rivalt/pull/26), tested `286cb4e`, above P18A `1d08944` | [A23B](evidence/P18B.md): 17 focused Rust tests, ABI parity and 154 signed scenarios; isolated activation subsequently qualified in P18C; integration pending |
 | M7 | P18C | Isolated group settlement/liquidation/default and activation | Review | [PR #27](https://github.com/arnabnandikgp/rivalt/pull/27), tested `b43261f`; active-route extension `298f446`, above P18B `a912ebb` / #26 | [A23C/G14](evidence/P18C.md): 1,132 signed SVM scenarios, two complete 64-member audits, 148 finalized RPC / 81 expected WS outcomes; cross remains disabled |
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
-| M7 | P20 | Cross liquidation/default and qualified activation | In progress | `phase/p20-cross-safety`, above exact P19 #28 `c0b7898` | R040: whole-account safety candidates underway; A25/G15 completion pending, release gate unchanged |
+| M7 | P20 | Cross liquidation/default and qualified activation | In progress | `phase/p20-cross-safety`, above exact P19 #28 `c0b7898` | R040: 19 focused host safety checks pass; mixed 64-member ledger/restart goldens, endpoint and activation candidates; signed A25/G15 pending, ordinary cross release unchanged |
 | M7 | P21A | Group SDK/indexer/API and durable services | Open | — | P20; A26A/G16 interfaces |
 | M7 | P21B | UI/operations and fresh successor qualification | Open | — | P21A; A26B/G16/M7 exit |
 
@@ -914,3 +914,31 @@ R039 publication: `gh stack submit --auto --open` publishes [ready PR #28](https
 - Development verification: `CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo test -p clearing --lib instructions::group_safety::tests --features successor-test-profile --locked --offline` passes five focused tests (44 filtered out) in `.local/successor-p20/liquidation-development.log`. Independent cases exercise both-market funding, receiver reservations, stale secondary exposure, exact fee/progress boundary and G05's worsening post-fee deficit. The earlier three inherited cases also pass at `.local/successor-p19/p20-safety-inherited-development.log`; preserve that original path. These are dirty host development checks, not signed acceptance. Only inherited Anchor host cfg warnings remain.
 - Not run: P20 SBF/RPC/WS, mixed complete-group default, unrelated inherited suites, PostgreSQL/services/UI, devnet, endurance or external gates. No activation or A25 pass claimed; P19 evidence retains its original scope.
 - Blockers: none. Exact next action: recreate mixed cross/isolated net-default and fractional page/restart cases against the frozen ledger, then finish source-missing recovery and exit certification before local signed cross qualification.
+
+
+R040 safety/ledger checkpoint: generalize the frozen ledger's pure model, preserving
+external member/profile gates. Independent G06/G07/G08/G12 cases verify economic
+versus risk equity, literal final cash `[0,50,370]`, no sibling seizure, 64 mixed
+roots, both registration orders, all page sizes and serialization/restart after
+every page. Verify both-market derived bounds without storing oversized terminal
+claims. Ordinary exits now refresh the full book and certify mode-2 held funding
+endpoints, including the adverse mixed corner. Add gated cross activation with
+complete certification/Normal sources and preserved funding history; recovery
+returns to isolated mode and requires explicit cross reactivation.
+
+Ten ledger tests pass at `.local/successor-p20/default-development-2.log`. The
+first attempt failed to compile a test-only comparison of PositionV2 without
+PartialEq/Debug; compare exact fields instead, preserving the original log. Full
+affected safety verification passes 19 tests at `safety-development.log` (39
+filtered) and again under the separate internal candidate feature at
+`safety-candidate-development.log`. These are development checks above `54d6aa6`,
+not clean/SBF/RPC acceptance. Add `ops/build-cross-safety.sh` for the separately
+named local candidate; normal artifacts retain the false release constant.
+
+P19 hosted scope/client/financial/shell checks are observed SUCCESS on exact
+`c0b7898894a7b70bc8a1873014fcbea15fdd2f7e`; report is SKIPPED. PR #28 remains OPEN
+and non-draft. No independent review approval or merge claimed. P20/M7 remain In
+progress in both tables. No unrelated full suite, PG/services/UI/devnet/soak or
+external gate was run. Exact next action: build the gated and local candidate SBF
+artifacts/IDL, then exercise signed cross lifecycle/liquidation/default with fresh
+RPC/WS and independent raw-account reconciliation before release promotion.

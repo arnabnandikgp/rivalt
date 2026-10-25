@@ -109,8 +109,8 @@ pub(crate) fn trading(group: &ClearingGroupV2, root: &MarginAccountV2) -> Result
         match root.mode {
             MODE_ISOLATED =>
                 ISOLATED_TRADING_IMPLEMENTED
-                    && (group.mode == 1 || (CROSS_TRADING_IMPLEMENTED && group.mode == 2)),
-            MODE_CROSS => CROSS_TRADING_IMPLEMENTED && group.mode == 2,
+                    && (group.mode == 1 || (cross_profile_enabled() && group.mode == 2)),
+            MODE_CROSS => cross_profile_enabled() && group.mode == 2,
             _ => false,
         },
         ClearingError::Profile
@@ -172,6 +172,6 @@ pub(crate) fn markets<'a>(
 }
 
 #[cfg(test)]
-mod tests;
-#[cfg(test)]
 mod financial_tests;
+#[cfg(test)]
+mod tests;

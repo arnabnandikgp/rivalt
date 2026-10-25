@@ -1,5 +1,6 @@
 //! Exact terminal claims remain in the resolution ledger, never ordinary stored v.
 use super::*;
+use crate::instructions::group_margin::model;
 
 fn sum(left: u128, right: u128) -> Result<u128> {
     left.checked_add(right)
@@ -38,7 +39,7 @@ fn floor_end(header: &mut GroupResolutionHeaderV2, total: u128) -> Result<()> {
     Ok(())
 }
 fn claim(root: &MarginAccountV2, header: &GroupResolutionHeaderV2) -> Result<i128> {
-    checked(account_model(root)?.claims(header.prices, header.funding))?
+    checked(model(root)?.claims(header.prices, header.funding))?
         .into_iter()
         .try_fold(0, signed_sum)
 }
@@ -306,7 +307,7 @@ pub(crate) fn process_row(
             group.total_cash = checked(math::cash_add(group.total_cash, row.paid))?;
             group.settlement = checked(math::cash_sub(group.settlement, row.paid))?;
             header.paid_applied = checked(math::cash_add(header.paid_applied, row.paid))?;
-            account_model(root)?;
+            model(root)?;
         }
         RECONCILE => {
             require!(
@@ -349,7 +350,7 @@ pub(crate) fn process_row(
                     ClearingError::Reconciliation
                 );
             }
-            account_model(root)?;
+            model(root)?;
             header.scanned_cash = checked(math::cash_add(header.scanned_cash, root.cash))?;
         }
         _ => return err!(ClearingError::Resolution),

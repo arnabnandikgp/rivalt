@@ -1,6 +1,147 @@
 use super::*;
 
 #[test]
+fn cross_certificate_checks_adverse_mixed_funding_corner() {
+    let mut account = MarginAccountV2 {
+        mode: MODE_CROSS,
+        isolated_market_index: CROSS_MARKET_SENTINEL,
+        subaccount_index: 0,
+        ..root(0, 1)
+    };
+    account.positions[0].lots = 1;
+    account.positions[0].virtual_scaled = -1_000 * math::SCALE;
+    account.positions[1].lots = -1;
+    account.positions[1].virtual_scaled = 1_000 * math::SCALE;
+    let risks = [math::margin::Risk {
+        lower: 1_000,
+        upper: 1_000,
+        funding: 0,
+    }; 2];
+    let bounds = [[-math::SCALE, math::SCALE]; 2];
+    let model = crate::instructions::group_margin::model(&account).unwrap();
+    for funding in [-math::SCALE, math::SCALE] {
+        assert_eq!(
+            model
+                .risk_equity(risks.map(|risk| math::margin::Risk { funding, ..risk }))
+                .unwrap(),
+            0
+        );
+    }
+    // Both diagonal endpoints pass; BTC=+1, ETH=-1 loses two cash atoms.
+    assert!(settlement::solvent_endpoints(model, risks, bounds).is_err());
+    account.cash = 2;
+    settlement::solvent_endpoints(
+        crate::instructions::group_margin::model(&account).unwrap(),
+        risks,
+        bounds,
+    )
+    .unwrap();
+}
+
+#[test]
+fn cross_certificate_includes_both_future_held_funding_endpoints() {
+    let mut markets = [market(0), market(1)];
+    for (index, market) in markets.iter_mut().enumerate() {
+        market.oracle.funding_base = 100;
+        market.oracle.premium_scaled = if index == 0 { 36_000 } else { -36_000 };
+        market.oracle.sampled_at = 149;
+        market.oracle.held_until = 155;
+        market.oracle.held_slot = 200;
+        market.oracle.held_epoch = 1;
+    }
+    // One elapsed second of a six-second hold: +/-10 now, +/-60 at end.
+    assert_eq!(
+        settlement::funding_bounds(2, &markets[0], &clock()).unwrap(),
+        [110, 160]
+    );
+    assert_eq!(
+        settlement::funding_bounds(2, &markets[1], &clock()).unwrap(),
+        [40, 90]
+    );
+    assert_eq!(
+        settlement::funding_bounds(0, &markets[0], &clock()).unwrap(),
+        [0, 0]
+    );
+    let mut expired = clock();
+    expired.slot = 200;
+    assert_eq!(
+        settlement::funding_bounds(2, &markets[0], &expired).unwrap(),
+        [0, 0]
+    );
+}
+
+#[test]
+fn cross_activation_requires_normal_complete_certificate_and_keeps_funding_history() {
+    let group = ClearingGroupV2 {
+        sequence: 7,
+        mode: 1,
+        ..Default::default()
+    };
+    let mut markets = [market(0), market(1)];
+    for market in &mut markets {
+        market.oracle.held_epoch = 1;
+        market.oracle.last_qualified = 149;
+        market.oracle.held_until = 155;
+        market.oracle.held_slot = 200;
+        market.oracle.funding_base = 100;
+        market.oracle.premium_scaled = 36_000;
+    }
+    let mut guard = GroupExitGuardV2 {
+        schema_version: SCHEMA_VERSION,
+        sequence: 7,
+        observations: [3, 3],
+        count: 2,
+        next: 2,
+        source_deadlines: [160, 160],
+        funding_bounds: [[110, 160]; 2],
+        ..Default::default()
+    };
+    let mut resolution = GroupResolutionV2 {
+        schema_version: SCHEMA_VERSION,
+        ..Default::default()
+    };
+    settlement::cross_activation(&group, markets.each_ref(), &guard, &resolution, &clock())
+        .unwrap();
+    oracle::materialize(1, &mut markets[0], &clock()).unwrap();
+    assert_eq!(markets[0].funding_index_scaled, 110);
+    assert_eq!(markets[0].oracle.funding_base, 100);
+    assert_eq!(markets[0].oracle.sampled_at, 149);
+    assert_eq!(markets[0].oracle.held_until, 155);
+    guard.next = 1;
+    assert!(settlement::cross_activation(
+        &group,
+        markets.each_ref(),
+        &guard,
+        &resolution,
+        &clock()
+    )
+    .is_err());
+    guard.next = 2;
+    markets[1].oracle.status = 1;
+    assert!(settlement::cross_activation(
+        &group,
+        markets.each_ref(),
+        &guard,
+        &resolution,
+        &clock()
+    )
+    .is_err());
+    markets[1].oracle.status = 2;
+    resolution.header.stage = crate::constants::resolution::COMPLETE;
+    assert!(settlement::cross_activation(
+        &group,
+        markets.each_ref(),
+        &guard,
+        &resolution,
+        &clock()
+    )
+    .is_err());
+    resolution.header.stage = crate::constants::resolution::RESUMED;
+    settlement::cross_activation(&group, markets.each_ref(), &guard, &resolution, &clock())
+        .unwrap();
+}
+
+#[test]
 fn cross_liquidation_includes_other_market_funding_and_receiver_reservations() {
     let mut markets = [market(0), market(1)];
     markets[1].funding_index_scaled = 50 * math::SCALE;

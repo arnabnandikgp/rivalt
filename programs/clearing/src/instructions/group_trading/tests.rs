@@ -555,7 +555,7 @@ fn isolated_candidate_requires_test_profile_and_cross_stays_closed() {
     );
     let mut cross_group = group();
     cross_group.mode = 2;
-    assert!(activated(&cross_group).is_err());
+    assert_eq!(activated(&cross_group).is_ok(), cross_profile_enabled());
     let mut cross = root(0, 1, 0);
     cross.mode = MODE_CROSS;
     cross.subaccount_index = 0;
