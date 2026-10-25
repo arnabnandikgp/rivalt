@@ -381,7 +381,7 @@ Historical protection allowance with no live child is inactive; no stored stale
 field can revive an order on another market or generation.
 
 These are ordinary realizations of D46–D48, not new collateral or fee economics.
-[P19](P19-CROSS-CORE.md) is in progress; A24/G15 core is not yet passed. Cross
+[P19](P19-CROSS-CORE.md) has [A24/G15 core acceptance](evidence/P19.md) on `4274d28`. Cross
 activation remains false until P20's actual liquidation/default checks. The phase
 does not authorize any new deployment outside the fresh local test profile.
 

@@ -1,9 +1,9 @@
 # P19 — bounded whole-account core
 
-Implementation is in progress above verified P18C PR #27. This phase implements
+[A24/G15 core acceptance](evidence/P19.md) passes on clean `4274d28` above verified P18C PR #27. This phase implements
 P17's shared engine, complete funding/reservation dependencies, explicit flat
 netting and per-root trade delegation. Cross trading remains hard-disabled until
-P20's liquidation/default acceptance. No P19 deployment or A24 pass is claimed.
+P20's liquidation/default acceptance. Only the fresh local test deployment is qualified; no enabled-cross deployment is claimed.
 
 ## Contract and ordinary implementation choices
 
@@ -53,9 +53,8 @@ Owner/group/order authority remains a clearing-handler responsibility and is not
 claimed by those arithmetic tests.
 
 The shared book and isolated authority handlers now use both-market candidate
-machinery, with per-root grants and critical events. Twenty-eight affected clearing
-host tests pass during development, including the unchanged cross gate. Signed
-runtime and new generated ABI verification are still pending.
+machinery, with per-root grants and critical events. Thirty-four affected clearing host tests pass, including the unchanged cross gate.
+Scoped signed runtime and generated/legacy ABI verification also pass.
 
 Complete two-market route/order entrypoints now reuse the existing maker CPI and
 candidate pipeline. Both market funding prefixes materialize together; a later
@@ -65,10 +64,9 @@ cost to measure in P20/P21. Existing single-market isolated entrypoints retain t
 footprint. New whole-account events include both actual market snapshots.
 
 Owner-only flat netting and full-dependency route candidates are implemented behind
-the unchanged cross gate. Thirty-four affected clearing host tests now pass. Remaining
-independent G01–G04/G09–G11 checks. Verify legacy/generated ABI, bounded default and
-successor builds, signed isolated/delegation regression and both cross-activation
-negative profiles. P20 owns signed enabled-cross safety and transaction budgets;
+the unchanged cross gate. Independent G01–G04/G09–G11 checks, legacy/generated ABI, bounded default/successor
+builds, signed isolated/delegation regression and both cross-activation negative
+profiles pass at the recorded scope. P20 owns signed enabled-cross safety and transaction budgets;
 P21 owns fresh services/PostgreSQL/UI/contention qualification. No old P16A result
 qualifies these changes. P15B/P16B remain Open; endurance remains Deferred.
 
@@ -94,5 +92,5 @@ mutated captures must reject. Setup uses real signed instructions. No cross expo
 is injected into SVM accounts. Both build profiles reject submitted cross routes;
 P19's enabled-cross arithmetic/handler candidates remain host tests until P20.
 
-Development runtime checks pass; WORKLOG records exact tested revisions and whether
-the tracked tree was clean. Final pinned A24 acceptance/publication remains pending.
+Pinned A24 acceptance passes; [evidence](evidence/P19.md) records exact commands,
+artifacts, budgets and clean source identities. WORKLOG owns publication/integration status.
