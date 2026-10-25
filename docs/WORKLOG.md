@@ -32,7 +32,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5a | P11–P12 | Complete local engineering evidence | Closed | [P11 A01–A16](evidence/P11.md) and [P12 revised A17](evidence/P12.md) verified; 1,249/1,249 submitted trades, 71.19% normal offered availability, affected recoveries, actual exit and 12,454-transaction fresh PostgreSQL replay; merged PR #14 records the indexer pause during separate history generation; integrated at `2bc298e`; 24-hour endurance deferred to P16 under D35 |
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
-| M7 | P17–P21 | Bounded two-market isolated/cross successor | Review | P17–P20 Review in #23/#24/#26/#27/#28/#29; P21A Review in #30. [A26B/G16 evidence](evidence/P21B.md): clean a0ed6de browser, 6e9fd2f 150-offer workload/runtime/replay and clean 813ee20 independent 104-fill/eight-mutation audit. All engineering phases verified; P21B publication/integration pending. 0/3 busy versus 3/3 quiescent exits is explicit; no funded readiness. External gates Open; endurance Deferred |
+| M7 | P17–P21 | Bounded two-market isolated/cross successor | Review | P17–P20 Review in #23/#24/#26/#27/#28/#29; P21A Review in #30. [A26B/G16 evidence](evidence/P21B.md): clean a0ed6de browser, 6e9fd2f 150-offer workload/runtime/replay and clean 813ee20 independent 104-fill/eight-mutation audit. All engineering phases verified; P21B ready in [#31](https://github.com/arnabnandikgp/rivalt/pull/31), stack integration pending. 0/3 busy versus 3/3 quiescent exits is explicit; no funded readiness. External gates Open; endurance Deferred |
 
 ## Phase overview
 
@@ -63,7 +63,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
 | M7 | P20 | Cross liquidation/default and qualified activation | Review | [PR #29](https://github.com/arnabnandikgp/rivalt/pull/29), published `459c84c`, tested `3c7ab4e` core / `aadb69f` budgets, above P19 #28 `c0b7898` | [A25/G15](evidence/P20.md): 1,224 SVM / 1,221 finalized RPC + 215 SVM / 212 finalized RPC maximum-book cases; 820/820 and 95/95 WS; byte-identical qualified local profile; integration pending |
 | M7 | P21A | Group SDK/indexer/API and durable services | Review | [PR #30](https://github.com/arnabnandikgp/rivalt/pull/30), published `286d083`, above exact P20 #29 `459c84c` | [A26A/G16 interfaces](evidence/P21A.md): scoped pinned execution/direct SDK/workers/trading/settlement, `2767cdd` 64-member liquidation/default/restart/audit and 134-account replay; `882f832` artifacts/AwaitValuation/API-stopped exits/replay plus clean `ac828f6` corrected independent audit. No P21B or integration claim |
-| M7 | P21B | UI/operations and fresh successor qualification | Review | `phase/p21b-group-ui`, tested a0ed6de / 6e9fd2f / 813ee20, above exact P21A #30 a3a9807; ready publication pending | [A26B/G16](evidence/P21B.md): 25 wallet originals/12 browser checks, 150 offers/101 fills, actual faults, flat drain, three quiescent token exits, independent 104-fill audit and fresh PostgreSQL replay. Busy exits 0/3 documented; integration pending |
+| M7 | P21B | UI/operations and fresh successor qualification | Review | [PR #31](https://github.com/arnabnandikgp/rivalt/pull/31), published b5c9813; tested a0ed6de / 6e9fd2f / 813ee20, above exact P21A #30 a3a9807 | [A26B/G16](evidence/P21B.md): 25 wallet originals/12 browser checks, 150 offers/101 fills, actual faults, flat drain, three quiescent token exits, independent 104-fill audit and fresh PostgreSQL replay. Busy exits 0/3 documented; integration pending |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -74,7 +74,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Verification: original 12 signed checks on `b95b970` establish old-hash rejection/joint approval/account preservation; the independent auditor rejects their test config domain. Eight corrected ownership checks on clean `a1c793c` pass with the stored market domain; no repeated upgrade/approval. Independent raw-byte continuation and five adverse mutations pass. Fresh PostgreSQL 18.6 reconstructs 75 transactions/62 events, retains both rejected upgrade attempts without events, has zero unresolved jobs and serves the exact approved hashes over HTTP. Vault/allocated collateral remain 1,000,000,470 atoms.
 - Storage: original raw evidence remains local/ignored. R030 writes separate rollout, corrected-ownership and indexer directories; no archive/upload or raw JSON enters Git.
-- Exact next action: publish P21B ready above #30 with `gh stack submit --auto --open`, inspect publication/CI state, and keep the successor stack open. No external action is authorized.
+- Exact next action: inspect scoped CI and review findings on P21B #31 and the open successor stack; address actionable findings without merging. P15B/P16B and live exit-availability redesign remain separate future gates. No external action is authorized.
 - Deferred gates: P15B/P16B independent maker/source/review, funded-risk calibration and explicit pilot authorization. Continuous 24-hour endurance remains Deferred under D42 and is not a current P16A requirement. No funded readiness or independent review is claimed.
 
 ## Blocker register
@@ -1592,3 +1592,15 @@ move P21B and M7 to Review, with every predecessor exact commit included. No mer
 funded readiness or always-live exit is claimed. No access/product blocker. Exact
 next action: publish ready P21B above #30, verify its base/draft state and CI status,
 and keep the stack open as instructed.
+
+R051 publication: `gh stack submit --auto --open` creates ready, non-draft
+[PR #31](https://github.com/arnabnandikgp/rivalt/pull/31) at
+`b5c98139e79fde56a911d8583cd472b0d9a59865`, base `phase/p21a-group-services`.
+Stack #25 contains eight OPEN successor PRs; none merged. Title/body describe the
+final qualification and explicit busy-exit limit. Initial hosted
+[run 40218864000](https://github.com/arnabnandikgp/rivalt/actions/runs/40218864000)
+has scope SUCCESS and client/report/financial/shell IN_PROGRESS; CodeRabbit status
+SUCCESS is not independent review approval. Both tables retain P21B/M7 Review.
+No additional local test was needed for publication/documentation. Exact next action:
+inspect scoped CI/review findings and fix actionable issues while keeping the stack
+open; no external/funded/24-hour action is authorized.
