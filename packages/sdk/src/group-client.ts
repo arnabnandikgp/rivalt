@@ -4,6 +4,8 @@ import {testRpcUrl} from './test-deployment.js';
 import {WalletClient, hex, requireValue} from './wallet-client.js';
 import {walletComputeBudget, resolutionComputeBudget} from './route-budget.js';
 import {readGroupSnapshot, type GroupSnapshot} from './group-snapshot.js';
+import {readGroupMakers} from './group-makers.js';
+import {buildGroupRoute} from './group-route.js';
 import {effectiveGroupFunding, groupSourceMode, groupBalanceView} from './group-balance.js';
 
 export type GroupUserConfig = {
@@ -86,6 +88,10 @@ export class GroupUserClient extends WalletClient {
   balance(snapshot:GroupSnapshot,margin:Address){
     this.bound(snapshot);requireValue(snapshot.roots[margin],'Unknown margin account.');
     return groupBalanceView(snapshot.roots[margin],snapshot.state,snapshot.marketStates,snapshot.now,snapshot.slot);
+  }
+  async quote(actor:Address,margin:Address,marketIndex:0|1,side:0|1,lots:bigint,limits:{maxFee:bigint;allInLimit:bigint;reduceOnly?:boolean}){
+    const snapshot=await this.snapshot('confirmed'),makers=await readGroupMakers(this.rpc,snapshot);
+    return buildGroupRoute({snapshot,trader:margin,marketIndex,side,lots,makers,...limits},actor);
   }
   async createPortfolio(owner:Address,index=0){
     requireValue(Number.isInteger(index)&&index>=0&&index<=3,'Portfolio index must be 0–3.');

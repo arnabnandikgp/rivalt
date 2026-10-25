@@ -156,3 +156,24 @@ intents prevent replacement signing.
 processes, source-loss sampling, maker restart, independent market stop and exact
 queue-fee/PostgreSQL reconstruction. WORKLOG owns actual results. This does not
 establish funded-position health, expired-epoch publication or full A26A acceptance.
+
+## Whole-account quote candidate
+
+`allocateGroupRoute` retains the fixed A/B search, integer fee prefixes and stable
+allocation ties. Its explicit admission callback reconstructs each full root,
+accrues both funding indexes, applies the selected fill/generation and remaining
+order/protection reservations, then tests whole-account equity. Positive unpaid
+claims do not increase cash or offset another loss. A reduction below IM must
+strictly improve the full MM deficit after fees. This read-only client calculation
+is never on-chain authority; signed acceptance remains required.
+
+`buildGroupRoute` rebuilds exact route or stored-order instructions from the
+confirmed snapshot, using both observations, group sequence and durable account/
+order terms. Direct `GroupUserClient.quote` reads actual RPC maker/code bindings.
+The execution service at loopback port 18091 exposes `/v2/quote`, `/v2/submit`,
+`/v2/submissions/:id` and `/v2/operators`, separate from the finalized read API.
+Quotes serialize messages for inspection only; wallet flows must use trusted SDK
+builders and simulate the actual reviewed message. Missing/unmatched pending
+funding evidence blocks a service quote. A matching original confirmed sample may
+be recognized while its queue/budget still awaits finality. Observed availability
+and signed flow acceptance belong in WORKLOG, not in these interface declarations.

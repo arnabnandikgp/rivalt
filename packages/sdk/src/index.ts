@@ -24,3 +24,5 @@ export * from './group-balance.js';
 export * from './group-snapshot.js';
 export * from './group-client.js';
 export * from './group-makers.js';
+export * from './group-allocation.js';
+export * from './group-route.js';

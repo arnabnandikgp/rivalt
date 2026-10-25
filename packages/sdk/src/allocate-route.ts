@@ -22,6 +22,9 @@ export function allocateRoute(input: {
   trader: RouteBalance; candidates: RouteCandidate[]; grossLots: bigint;
   maxFee: bigint; allInLimit: bigint; notionalPrefix?:bigint;
   postReserve?:(before:RouteBalance,after:RouteBalance,gross:bigint,fee:bigint)=>bigint;
+  /** An explicitly selected account engine may replace single-position admission.
+   * Allocation, maker pricing, fees, bounds and tie-breaking remain unchanged. */
+  admissible?:(before:RouteBalance,after:RouteBalance,gross:bigint,fee:bigint)=>boolean;
 }): Allocation | null {
   const { side, lots, lower, upper, trader, candidates, snapshotSlot } = input;
   if (![0, 1].includes(side) || lots < 1n || lots > 4608n || lower < 1n || upper < lower || upper > 1_000_000n ||
@@ -57,7 +60,7 @@ export function allocateRoute(input: {
         const direction = side === 0 ? -1n : 1n, before = candidate.balance;
         const after = { ...before, lots: before.lots + direction * quantity, virtualScaled: before.virtualScaled - direction * q.grossQuote * scale };
         if(input.postReserve)after.reserved=input.postReserve(before,after,q.grossQuote,0n);
-        if (!healthy(after, lower, upper) || abs(after.lots) > candidate.request.inventoryLimit) { valid = false;break; }
+        if (!(input.admissible ? input.admissible(before,after,q.grossQuote,0n) : healthy(after, lower, upper)) || abs(after.lots) > candidate.request.inventoryLimit) { valid = false;break; }
         deltaGross += abs(after.lots) - abs(before.lots);
         total += q.grossQuote;legs.push({ makerId: candidate.state.makerId, lots: quantity, grossQuote: q.grossQuote });
       } catch { valid = false;break; }
@@ -69,7 +72,7 @@ export function allocateRoute(input: {
     const after = { ...trader, cash: trader.cash - fee, lots: trader.lots + sign * lots, virtualScaled: trader.virtualScaled - sign * total * scale };
     if(input.postReserve)after.reserved=input.postReserve(trader,after,total,fee);
     const gross = input.grossLots + deltaGross + abs(after.lots) - abs(trader.lots);
-    if (!healthy(after, lower, upper) || gross < 0n || gross > 200_000_000n || fee > input.maxFee ||
+    if (!(input.admissible ? input.admissible(trader,after,total,fee) : healthy(after, lower, upper)) || gross < 0n || gross > 200_000_000n || fee > input.maxFee ||
       (side === 0 ? allIn > input.allInLimit : allIn < input.allInLimit)) continue;
     // Equal all-in outcomes prefer fewer legs, then the lower stable maker ID,
     // then more A lots. This tie rule is independent of caller candidate order.

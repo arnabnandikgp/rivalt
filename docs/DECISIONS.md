@@ -501,3 +501,11 @@ liveness. Owner publication/sync never grants approval authority. Continue signe
 source sampling during stale/unavailable inputs so clearing records restrictive
 modes; retaining its original cadence and freshness checks is mandatory. This adds
 service discovery only, not new economics or an external-maker claim.
+
+D53 quote realization: retain the fixed A/B search and pricing strategies, replacing
+only its explicitly selected group admission callback with full-root funding,
+negative-claim equity and remaining reservations. Match a pending confirmed oracle
+sample to its exact group/market snapshot before using it for quote availability;
+queue effects/fees still require original-signature finality. Direct SDK messages
+bind both observations and group sequence and sign exact reviewed fee/all-in bounds.
+Client candidate tests do not replace new signed A26A financial integration evidence.

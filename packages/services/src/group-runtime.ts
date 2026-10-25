@@ -2,6 +2,8 @@ import {address,getProgramDerivedAddress,type Address} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {json} from '../../indexer/src/events.js';
+import {decodeGroup} from '../../indexer/src/group-events.js';
+import {groupSampleMatches,GroupQuoteUnavailable} from './group-quote.js';
 import {GroupExecution,groupBudget} from './group-execution.js';
 
 export const GROUP_HEARTBEAT_MS=3000;
@@ -20,6 +22,63 @@ export class GroupRuntime extends GroupExecution {
   }
   private async pendingBudget(budget:string){
     return (await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND budget=$2 AND status IN ('pending','unresolved') LIMIT 1",[this.runId,budget])).rowCount!==0;
+  }
+  async quote(actor:Address,trader:Address,marketIndex:0|1,side:0|1,lots:bigint,stored?:sdk.GroupStoredFill){
+    const snapshot=await this.snapshot('confirmed'),market=snapshot.marketStates[marketIndex];
+    if(!market)throw new Error('Unknown quote market');
+    const diagnostic={snapshotCommitment:snapshot.commitment,snapshotSlot:snapshot.slot.toString(),sequence:snapshot.state.sequence.toString(),
+      marketIndex,observation:market.observationSequence.toString(),sourceMode:sdk.groupSourceMode(snapshot.state,market,snapshot.now,snapshot.slot)};
+    const pending=(await this.store.pool.query("SELECT signature FROM service_intents WHERE run_id=$1 AND budget IN ('group-funding-0','group-funding-1') AND status IN ('pending','unresolved')",[this.runId])).rows;
+    const confirmedSamples:string[]=[];
+    for(const {signature} of pending){
+      let applied=false;
+      try{
+        const transaction=await this.rpc.call('getTransaction',[signature,{encoding:'json',commitment:'confirmed',maxSupportedTransactionVersion:0}]);
+        const events=decodeGroup(signature,transaction,snapshot.eventAuthority,snapshot.group).filter(event=>event.type==='group-oracle');
+        applied=events.length===1&&BigInt(transaction.slot)<=snapshot.slot&&groupSampleMatches(events[0].data,snapshot);
+      }catch{ /* A missing/foreign sample still blocks the quote; no fee/history inference. */ }
+      if(!applied)throw new GroupQuoteUnavailable('group-observation-update-pending',diagnostic);
+      confirmedSamples.push(signature);
+    }
+    let quote;
+    try{quote=await sdk.buildGroupRoute({snapshot,trader,marketIndex,side,lots,stored,makers:snapshot.makers.filter(maker=>maker.online),
+      maxFee:1_000_000_000n,allInLimit:side===0?1_000_000_000_000_000n:0n},actor);}
+    catch(error){
+      const code=error instanceof Error&&error.message.includes('source unavailable')?'required-market-source-unavailable':
+        error instanceof Error&&error.message.includes('Stored group order')?'stored-order-unavailable':'group-account-or-authority-unavailable';
+      throw new GroupQuoteUnavailable(code,diagnostic);
+    }
+    if(!quote)return {available:false as const,code:'maker-capacity-or-whole-account-health',diagnostic};
+    const processed=await this.rpc.call('getSlot',[{commitment:'processed'}]);
+    if(!Number.isSafeInteger(processed)||processed<0||quote.expirySlot<=BigInt(processed)+10n)throw new GroupQuoteUnavailable('group-quote-expiring',diagnostic);
+    return {available:true as const,...quote,diagnostic,confirmedSamples};
+  }
+  async orders(key:Keypair):Promise<GroupWorkerOutcome>{
+    const budget=await this.budget('orders',key);
+    if(await this.pendingBudget(budget))return {status:'blocked',reason:'original-order-intent-pending'};
+    const snapshot=await this.snapshot();
+    if(![1,2].includes(snapshot.state.mode)||snapshot.state.paused)return {status:'blocked',reason:'group-mode'};
+    for(const trader of snapshot.members){const root=snapshot.roots[trader];
+      for(const entry of root.book.orders){
+        const marketIndex=entry.marketIndex as 0|1,market=snapshot.marketStates[marketIndex];if(!market)continue;
+        const remaining=sdk.groupOrderRemaining(root,entry,market,snapshot.slot);
+        if(remaining===0n||!sdk.orderTriggered(entry.order,market.referencePrice,snapshot.slot))continue;
+        let lots=remaining<64n?remaining:64n;
+        while(lots>0n){
+          try{
+            const quote=await this.quote(key.address,trader,marketIndex,entry.order.side as 0|1,lots,
+              {id:entry.order.id,version:entry.order.version,filled:entry.order.filled});
+            if(quote.available){
+              await this.enqueue(`order:${root.id}:${marketIndex}:${entry.order.id}:${entry.order.version}:${entry.order.filled}:${quote.sequence}`,
+                quote.instructions,key,budget,{kind:'marginNonce',group:snapshot.group,account:trader,value:quote.nonce.toString()});
+              return {status:'queued',reason:'durable-group-order-fill'};
+            }
+          }catch(error){if(!(error instanceof GroupQuoteUnavailable))throw error;break;}
+          lots/=2n;
+        }
+      }
+    }
+    return {status:'idle',reason:'no-admissible-triggered-order'};
   }
   async maker(marketIndex:0|1,makerId:0|1,key:Keypair):Promise<GroupWorkerOutcome>{
     const budget=groupBudget('maker',marketIndex,makerId).name,snapshot=await this.snapshot();
