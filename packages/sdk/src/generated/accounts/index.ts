@@ -7,11 +7,13 @@
  */
 
 export * from "./capitalBinding.js";
+export * from "./capitalBindingV2.js";
 export * from "./clearingGroupV2.js";
 export * from "./exitGuard.js";
 export * from "./groupMarketV2.js";
 export * from "./groupRegistryV2.js";
 export * from "./makerRegistration.js";
+export * from "./makerRegistrationV2.js";
 export * from "./marginAccountV2.js";
 export * from "./marketState.js";
 export * from "./participant.js";

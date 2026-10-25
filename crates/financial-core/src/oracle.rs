@@ -47,6 +47,39 @@ pub struct Bounds {
 pub fn bounds(primary: [Price; 2], guard: Option<[Price; 2]>, now: i64) -> Result<Bounds> {
     bounds_at_age(primary, guard, now, SOURCE_AGE)
 }
+/// Successor's explicit test-market units. BTC has 1e6 lots/unit and ETH 1e5.
+/// Normalize value AND confidence before ratio/interval rounding. This keeps
+/// the 1,000–10,000 USD ETH range separate from BTC's 10,000–100,000 USD range.
+/// Unsupported lot sizes reject; this is not a general market-listing mechanism.
+pub fn market_bounds(
+    lots_per_unit: u64,
+    primary: [Price; 2],
+    guard: Option<[Price; 2]>,
+    now: i64,
+) -> Result<Bounds> {
+    let multiplier = match lots_per_unit {
+        1_000_000 => 1,
+        100_000 => 10,
+        _ => return Err(Error::Bounds),
+    };
+    let normalize = |mut prices: [Price; 2]| -> Result<[Price; 2]> {
+        prices[0].value = prices[0]
+            .value
+            .checked_mul(multiplier)
+            .ok_or(Error::Overflow)?;
+        prices[0].confidence = prices[0]
+            .confidence
+            .checked_mul(multiplier as u64)
+            .ok_or(Error::Overflow)?;
+        Ok(prices)
+    };
+    // A malformed optional guard must degrade like V1, never validate by wrapping.
+    bounds(
+        normalize(primary)?,
+        guard.and_then(|prices| normalize(prices).ok()),
+        now,
+    )
+}
 /// D37's explicitly selected devnet-only allowance. No funding/recovery change.
 pub fn devnet_bounds(primary: [Price; 2], guard: Option<[Price; 2]>, now: i64) -> Result<Bounds> {
     bounds_at_age(primary, guard, now, DEVNET_SOURCE_AGE)

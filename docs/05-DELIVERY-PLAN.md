@@ -389,7 +389,9 @@ claim or administrator bypass until exceptional paths are ready.
 all-in limits and once-only effects, owner-alias self-trade rejection and no cash/
 claims leakage between isolated roots. New instruction/codec/authority negative
 tests and measured SBF compilation/resource constraints. Six local sources and
-four distinct funded maker bindings are explicit. G14 trading constants pinned.
+four distinct funded maker bindings are explicit. G14 trading constants are pinned by
+D49; [P18B implementation](P18B-ISOLATED-PRIMITIVES.md) retains disabled financial
+entrypoints and separate event payloads. Actual acceptance remains in WORKLOG.
 
 ### P18C — Isolated group safety and activation
 

@@ -1461,6 +1461,296 @@
       ]
     },
     {
+      "name": "execute_group_order_v2",
+      "discriminator": [
+        40,
+        58,
+        221,
+        117,
+        50,
+        75,
+        244,
+        156
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "relations": [
+            "market",
+            "trader"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "trader.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "first_capital",
+          "writable": true
+        },
+        {
+          "name": "first_registration",
+          "writable": true
+        },
+        {
+          "name": "first_program"
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config"
+        },
+        {
+          "name": "second_capital",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_registration",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_program",
+          "optional": true
+        },
+        {
+          "name": "second_program_data",
+          "optional": true
+        },
+        {
+          "name": "second_config",
+          "optional": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "OrderExecution"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_group_route_v2",
+      "discriminator": [
+        100,
+        62,
+        127,
+        30,
+        128,
+        163,
+        243,
+        168
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "relations": [
+            "market",
+            "trader"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "trader.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "first_capital",
+          "writable": true
+        },
+        {
+          "name": "first_registration",
+          "writable": true
+        },
+        {
+          "name": "first_program"
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config"
+        },
+        {
+          "name": "second_capital",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_registration",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_program",
+          "optional": true
+        },
+        {
+          "name": "second_program_data",
+          "optional": true
+        },
+        {
+          "name": "second_config",
+          "optional": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "intent",
+          "type": {
+            "defined": {
+              "name": "RouteIntent"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "execute_order",
       "discriminator": [
         115,
@@ -2309,6 +2599,55 @@
       ]
     },
     {
+      "name": "initialize_group_oracle_v2",
+      "discriminator": [
+        15,
+        171,
+        94,
+        126,
+        82,
+        67,
+        251,
+        220
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "primary",
+          "type": "pubkey"
+        },
+        {
+          "name": "guard",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "initialize_group_v2",
       "discriminator": [
         43,
@@ -3070,6 +3409,88 @@
       ]
     },
     {
+      "name": "manage_group_order_v2",
+      "discriminator": [
+        104,
+        186,
+        58,
+        235,
+        253,
+        234,
+        64,
+        80
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "margin"
+          ]
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "relations": [
+            "market",
+            "margin"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "margin",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "margin.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "margin.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "operation",
+          "type": {
+            "defined": {
+              "name": "GroupOrderAction"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "pause_group_custody_v2",
       "discriminator": [
         229,
@@ -3427,6 +3848,105 @@
           }
         }
       ]
+    },
+    {
+      "name": "preview_group_maker_v2",
+      "discriminator": [
+        166,
+        89,
+        63,
+        129,
+        186,
+        89,
+        137,
+        85
+      ],
+      "accounts": [
+        {
+          "name": "group",
+          "relations": [
+            "market",
+            "capital",
+            "registration"
+          ]
+        },
+        {
+          "name": "market",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "capital.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          },
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "registration"
+        },
+        {
+          "name": "pricing_program",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "program_data",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "config",
+          "relations": [
+            "registration"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "PreviewArgs"
+            }
+          }
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QuoteResponse"
+        }
+      }
     },
     {
       "name": "preview_maker",
@@ -3962,6 +4482,143 @@
         {
           "name": "resume",
           "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "register_group_maker_v2",
+      "discriminator": [
+        116,
+        244,
+        112,
+        118,
+        126,
+        48,
+        174,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "capital"
+          ]
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "relations": [
+            "market",
+            "capital"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "capital.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "group_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              },
+              {
+                "kind": "account",
+                "path": "capital"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pricing_program"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "config"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "maker_id",
+          "type": "u8"
+        },
+        {
+          "name": "inventory_limit",
+          "type": "u64"
         }
       ]
     },
@@ -4549,6 +5206,81 @@
           }
         }
       ]
+    },
+    {
+      "name": "sample_group_oracle_v2",
+      "discriminator": [
+        52,
+        201,
+        124,
+        89,
+        140,
+        29,
+        104,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "group",
+          "writable": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "primary_asset"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_asset"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "first_capital"
+        },
+        {
+          "name": "first_registration"
+        },
+        {
+          "name": "first_program"
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config"
+        },
+        {
+          "name": "second_capital"
+        },
+        {
+          "name": "second_registration"
+        },
+        {
+          "name": "second_program"
+        },
+        {
+          "name": "second_program_data"
+        },
+        {
+          "name": "second_config"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
     },
     {
       "name": "sample_oracle",
@@ -5263,6 +5995,117 @@
       ]
     },
     {
+      "name": "update_group_maker_v2",
+      "discriminator": [
+        39,
+        60,
+        188,
+        96,
+        187,
+        42,
+        121,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "docs": [
+            "Both signers required only for code approval; sync is owner-only, quarantine authority-only."
+          ],
+          "signer": true
+        },
+        {
+          "name": "co_signer",
+          "signer": true,
+          "optional": true
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "relations": [
+            "market",
+            "capital",
+            "registration"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "capital.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          },
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "pricing_program",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "program_data",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "config",
+          "relations": [
+            "registration"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "operation",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "withdraw",
       "discriminator": [
         183,
@@ -5748,6 +6591,19 @@
       ]
     },
     {
+      "name": "CapitalBindingV2",
+      "discriminator": [
+        50,
+        242,
+        210,
+        82,
+        231,
+        160,
+        189,
+        1
+      ]
+    },
+    {
       "name": "ClearingGroupV2",
       "discriminator": [
         60,
@@ -5810,6 +6666,19 @@
         213,
         13,
         66
+      ]
+    },
+    {
+      "name": "MakerRegistrationV2",
+      "discriminator": [
+        240,
+        139,
+        7,
+        8,
+        254,
+        47,
+        173,
+        133
       ]
     },
     {
@@ -5942,6 +6811,58 @@
         42,
         100,
         208
+      ]
+    },
+    {
+      "name": "GroupMakerChangedV2",
+      "discriminator": [
+        244,
+        148,
+        141,
+        125,
+        103,
+        10,
+        245,
+        8
+      ]
+    },
+    {
+      "name": "GroupOracleChangedV2",
+      "discriminator": [
+        221,
+        6,
+        239,
+        172,
+        159,
+        158,
+        52,
+        107
+      ]
+    },
+    {
+      "name": "GroupOrderChangedV2",
+      "discriminator": [
+        42,
+        250,
+        100,
+        36,
+        26,
+        114,
+        102,
+        144
+      ]
+    },
+    {
+      "name": "GroupRouteExecutedV2",
+      "discriminator": [
+        178,
+        61,
+        6,
+        143,
+        1,
+        3,
+        17,
+        113
       ]
     },
     {
@@ -6232,6 +7153,30 @@
         "fields": [
           {
             "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "registration",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapitalBindingV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "group",
             "type": "pubkey"
           },
           {
@@ -6707,6 +7652,139 @@
       }
     },
     {
+      "name": "GroupMakerChangedV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "registration",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MakerRegistrationSnapshotV2"
+              }
+            }
+          },
+          {
+            "name": "operation",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupMarketSnapshotV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "symbol",
+            "type": {
+              "array": [
+                "u8",
+                8
+              ]
+            }
+          },
+          {
+            "name": "lots_per_unit",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "gross_lots",
+            "type": "u64"
+          },
+          {
+            "name": "observation_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          },
+          {
+            "name": "lower",
+            "type": "u64"
+          },
+          {
+            "name": "upper",
+            "type": "u64"
+          },
+          {
+            "name": "valid_from",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until",
+            "type": "u64"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "OracleState"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "GroupMarketV2",
       "type": {
         "kind": "struct",
@@ -6847,6 +7925,173 @@
       }
     },
     {
+      "name": "GroupOracleChangedV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "GroupMarketSnapshotV2"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupOrderAction",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Place",
+            "fields": [
+              {
+                "name": "expected_id",
+                "type": "u64"
+              },
+              {
+                "name": "terms",
+                "type": {
+                  "defined": {
+                    "name": "OrderTerms"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Replace",
+            "fields": [
+              {
+                "name": "id",
+                "type": "u64"
+              },
+              {
+                "name": "version",
+                "type": "u64"
+              },
+              {
+                "name": "terms",
+                "type": {
+                  "defined": {
+                    "name": "OrderTerms"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Protect",
+            "fields": [
+              {
+                "name": "expected_id",
+                "type": "u64"
+              },
+              {
+                "name": "take_profit",
+                "type": {
+                  "defined": {
+                    "name": "OrderTerms"
+                  }
+                }
+              },
+              {
+                "name": "stop_loss",
+                "type": {
+                  "defined": {
+                    "name": "OrderTerms"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "Cancel",
+            "fields": [
+              {
+                "name": "id",
+                "type": "u64"
+              },
+              {
+                "name": "version",
+                "type": "u64"
+              },
+              {
+                "name": "protection_group",
+                "type": "bool"
+              }
+            ]
+          },
+          {
+            "name": "Cleanup"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupOrderChangedV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_state",
+            "type": {
+              "defined": {
+                "name": "GroupMarketSnapshotV2"
+              }
+            }
+          },
+          {
+            "name": "margin",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MarginAccountSnapshotV2"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "GroupRegistryV2",
       "type": {
         "kind": "struct",
@@ -6872,6 +8117,97 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupRouteExecutedV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_state",
+            "type": {
+              "defined": {
+                "name": "GroupMarketSnapshotV2"
+              }
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross_quote",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "order_id",
+            "type": "u64"
+          },
+          {
+            "name": "order_version",
+            "type": "u64"
+          },
+          {
+            "name": "root_states",
+            "docs": [
+              "At most three roots; keys derive from each immutable portfolio/child identity."
+            ],
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarginAccountSnapshotV2"
+                }
+              }
+            }
+          },
+          {
+            "name": "maker_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MakerRegistrationSnapshotV2"
+                }
+              }
+            }
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
           }
         ]
       }
@@ -7123,6 +8459,289 @@
           {
             "name": "quarantined",
             "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerRegistrationSnapshotV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_index",
+            "type": "u8"
+          },
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pricing_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "program_data",
+            "type": "pubkey"
+          },
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "approved_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "inventory_limit",
+            "type": "u64"
+          },
+          {
+            "name": "buy_consumed",
+            "type": "u64"
+          },
+          {
+            "name": "sell_consumed",
+            "type": "u64"
+          },
+          {
+            "name": "quarantined",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerRegistrationV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_index",
+            "type": "u8"
+          },
+          {
+            "name": "maker_id",
+            "type": "u8"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pricing_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "program_data",
+            "type": "pubkey"
+          },
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "approved_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "quote_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "inventory_limit",
+            "type": "u64"
+          },
+          {
+            "name": "buy_consumed",
+            "type": "u64"
+          },
+          {
+            "name": "sell_consumed",
+            "type": "u64"
+          },
+          {
+            "name": "quarantined",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarginAccountSnapshotV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "portfolio",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "subaccount_index",
+            "type": "u16"
+          },
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "mode",
+            "type": "u8"
+          },
+          {
+            "name": "isolated_market_index",
+            "type": "u8"
+          },
+          {
+            "name": "role",
+            "type": "u8"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "positions",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "PositionV2"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "state_version",
+            "type": "u64"
+          },
+          {
+            "name": "delegate",
+            "type": "pubkey"
+          },
+          {
+            "name": "delegate_expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "delegate_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "reserved",
+            "type": "u64"
+          },
+          {
+            "name": "book",
+            "type": {
+              "defined": {
+                "name": "OrderBookV2"
+              }
+            }
           },
           {
             "name": "bump",

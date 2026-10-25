@@ -29,6 +29,8 @@ pub const ROLE_RECEIVER: u8 = 2;
 /// This is a compile-time release gate, not an administrator-settable flag.
 /// P20 may change it only with complete liquidation/default acceptance evidence.
 pub const CROSS_TRADING_IMPLEMENTED: bool = false;
+/// P18C owns complete isolated group recovery before this can be enabled.
+pub const ISOLATED_TRADING_IMPLEMENTED: bool = false;
 
 /// Validate immutable account identity separately from runtime health/authority.
 pub fn valid_identity(

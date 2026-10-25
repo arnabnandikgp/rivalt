@@ -8,6 +8,10 @@
 
 export * from "./custodyChanged.js";
 export * from "./groupCustodyChangedV2.js";
+export * from "./groupMakerChangedV2.js";
+export * from "./groupOracleChangedV2.js";
+export * from "./groupOrderChangedV2.js";
+export * from "./groupRouteExecutedV2.js";
 export * from "./liquidationApplied.js";
 export * from "./makerChanged.js";
 export * from "./oracleObserved.js";

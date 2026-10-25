@@ -13,6 +13,11 @@ and activation evidence is phase-owned; cross trading remains disabled through P
 
 P02's concrete precision, bounds, synthetic risk profile and deterministic fractional extension are specified in [ACCOUNTING-AND-CUSTODY](P02-ACCOUNTING-AND-CUSTODY.md). This includes exact scaled-unit insurance/impairment and an explicit zero-sum terminal rounding transfer bounded below one quote atom per participant. Ordinary settlement retains all sub-atom claims. P02 originally permits custody only. [P04 routes](P04-ATOMIC-ROUTES.md) extend the local build through an explicit synthetic observation profile; [P06 ordinary settlement/exits](P06-LIFECYCLE.md) add whole-atom collection, funded settlement and complete-cohort guarded withdrawals. [P07 controlled oracle/funding](P07-ORACLE-AND-FUNDING.md) implements the controlled local profile, with acceptance and integration tracked in WORKLOG. [P08 orders](P08-ORDERS.md) adds bounded persistent authority and existing-position protection in mode 2, with current-bound reservations and exact cumulative fees. P09 local liquidation and staged resolution are being implemented under [RESOLUTION](P09-RESOLUTION.md); their acceptance status is recorded in WORKLOG. Default builds reject these financial paths.
 
+P18B's [normal-path primitives](P18B-ISOLATED-PRIMITIVES.md) implement D49's BTC/ETH
+lot/source domains with unchanged fees and conservative margin. Source sampling and
+maker setup are executable locally; both financial activation constants remain
+false. Their pure candidates do not establish liquidation/default readiness.
+
 ## 1. State, units and invariants
 
 The equations use exact economic quantities. The implementation must map them to checked integer/fixed-point representations and explicit participant-owned fractional components. Never interpret a display decimal count as a funding precision proof.

@@ -75,6 +75,135 @@
       ]
     },
     {
+      "name": "initialize_group_config",
+      "discriminator": [
+        218,
+        62,
+        50,
+        190,
+        163,
+        16,
+        225,
+        116
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group"
+        },
+        {
+          "name": "market"
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "capital.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                203,
+                88,
+                155,
+                202,
+                90,
+                219,
+                148,
+                43,
+                250,
+                4,
+                140,
+                111,
+                46,
+                96,
+                211,
+                139,
+                13,
+                246,
+                221,
+                44,
+                68,
+                81,
+                197,
+                87,
+                135,
+                138,
+                167,
+                122,
+                240,
+                193,
+                192,
+                202
+              ]
+            }
+          }
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "duration",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "publish_epoch",
       "discriminator": [
         222,
@@ -110,6 +239,57 @@
                 "kind": "account",
                 "path": "config.state.capital",
                 "account": "MakerConfig"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "duration",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "publish_group_epoch",
+      "discriminator": [
+        146,
+        31,
+        217,
+        133,
+        75,
+        59,
+        115,
+        29
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.state.capital",
+                "account": "MakerGroupConfig"
               }
             ]
           }
@@ -173,6 +353,61 @@
           "name": "QuoteResponse"
         }
       }
+    },
+    {
+      "name": "quote_group",
+      "discriminator": [
+        201,
+        69,
+        231,
+        90,
+        159,
+        170,
+        190,
+        87
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.state.capital",
+                "account": "MakerGroupConfig"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "request",
+          "type": {
+            "defined": {
+              "name": "GroupQuoteRequest"
+            }
+          }
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QuoteResponse"
+        }
+      }
     }
   ],
   "accounts": [
@@ -187,6 +422,19 @@
         211,
         115,
         209
+      ]
+    },
+    {
+      "name": "MakerGroupConfig",
+      "discriminator": [
+        3,
+        173,
+        181,
+        180,
+        176,
+        103,
+        166,
+        58
       ]
     }
   ],
@@ -214,10 +462,246 @@
   ],
   "types": [
     {
+      "name": "ClearingGroupV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "profile_version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "markets",
+            "docs": [
+              "Canonical index 0 BTC, 1 ETH; immutable after both registrations."
+            ],
+            "type": {
+              "array": [
+                "pubkey",
+                2
+              ]
+            }
+          },
+          {
+            "name": "market_count",
+            "type": "u8"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "mode",
+            "docs": [
+              "0 custody, 1 isolated trading, 2 cross trading, 3 frozen resolution."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "settlement",
+            "type": "u64"
+          },
+          {
+            "name": "insurance",
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
+          },
+          {
+            "name": "allocated_vault",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupMarketV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "symbol",
+            "type": {
+              "array": [
+                "u8",
+                8
+              ]
+            }
+          },
+          {
+            "name": "lots_per_unit",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "gross_lots",
+            "type": "u64"
+          },
+          {
+            "name": "observation_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          },
+          {
+            "name": "lower",
+            "type": "u64"
+          },
+          {
+            "name": "upper",
+            "type": "u64"
+          },
+          {
+            "name": "valid_from",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until",
+            "type": "u64"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "OracleState"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupQuoteRequest",
+      "docs": [
+        "Separate V2 contract binds the group as well as market and isolated capital."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote",
+            "type": {
+              "defined": {
+                "name": "QuoteRequest"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "MakerConfig",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MakerState"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerGroupConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
           {
             "name": "state",
             "type": {
@@ -277,6 +761,329 @@
           },
           {
             "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarginAccountV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "portfolio",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "subaccount_index",
+            "type": "u16"
+          },
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "mode",
+            "type": "u8"
+          },
+          {
+            "name": "isolated_market_index",
+            "type": "u8"
+          },
+          {
+            "name": "role",
+            "type": "u8"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "positions",
+            "docs": [
+              "Index equals the immutable group's market index, even for empty entries."
+            ],
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "PositionV2"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "state_version",
+            "type": "u64"
+          },
+          {
+            "name": "delegate",
+            "type": "pubkey"
+          },
+          {
+            "name": "delegate_expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "delegate_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "reserved",
+            "docs": [
+              "Diagnostic cache only; admission recomputes the complete order book."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "book",
+            "type": {
+              "defined": {
+                "name": "OrderBookV2"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sources",
+            "type": {
+              "array": [
+                "pubkey",
+                4
+              ]
+            }
+          },
+          {
+            "name": "source_sequences",
+            "type": {
+              "array": [
+                "u64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "sampled_at",
+            "type": "i64"
+          },
+          {
+            "name": "source_deadline",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "0 no credible bounds, 1 degraded, 2 normal (subject to live clock checks)."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "outcome",
+            "type": "u8"
+          },
+          {
+            "name": "valid_since",
+            "type": "i64"
+          },
+          {
+            "name": "last_qualified",
+            "type": "i64"
+          },
+          {
+            "name": "held_until",
+            "type": "i64"
+          },
+          {
+            "name": "held_slot",
+            "type": "u64"
+          },
+          {
+            "name": "held_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "funding_base",
+            "type": "i128"
+          },
+          {
+            "name": "premium_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "quantity",
+            "type": "u64"
+          },
+          {
+            "name": "bid",
+            "type": "u64"
+          },
+          {
+            "name": "ask",
+            "type": "u64"
+          },
+          {
+            "name": "covered_seconds",
+            "type": "u64"
+          },
+          {
+            "name": "skipped_seconds",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderBookV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "last_order_id",
+            "type": "u64"
+          },
+          {
+            "name": "last_group_id",
+            "type": "u64"
+          },
+          {
+            "name": "reserve_observations",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "orders",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "StoredOrderV2"
+                  }
+                },
+                4
+              ]
+            }
+          },
+          {
+            "name": "protections",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "ProtectionV2"
+                  }
+                },
+                2
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PositionV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lots",
+            "type": "i64"
+          },
+          {
+            "name": "virtual_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_checkpoint_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProtectionV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_index",
+            "type": "u8"
+          },
+          {
+            "name": "protection",
+            "type": {
+              "defined": {
+                "name": "ProtectiveGroup"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProtectiveGroup",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "version",
+            "type": "u64"
+          },
+          {
+            "name": "original",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "side",
             "type": "u8"
           }
         ]
@@ -425,6 +1232,124 @@
           {
             "name": "reference_price",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StoredOrder",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "version",
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "original_lots",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "filled",
+            "type": "u64"
+          },
+          {
+            "name": "notional",
+            "type": "u64"
+          },
+          {
+            "name": "fee_charged",
+            "type": "u64"
+          },
+          {
+            "name": "fee_budget",
+            "type": "u64"
+          },
+          {
+            "name": "limit",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "trigger",
+            "docs": [
+              "0 none, 1 central reference >= threshold, 2 <= threshold."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "threshold",
+            "type": "u64"
+          },
+          {
+            "name": "reduce_only",
+            "type": "bool"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "group_id",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "reserve",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StoredOrderV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_index",
+            "type": "u8"
+          },
+          {
+            "name": "delegate_epoch",
+            "docs": [
+              "Zero for owner-created authority, otherwise the root's delegate epoch."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "order",
+            "type": {
+              "defined": {
+                "name": "StoredOrder"
+              }
+            }
           }
         ]
       }

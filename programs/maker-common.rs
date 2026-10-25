@@ -1,4 +1,5 @@
 // Shared implementation compiled into two distinct first-party program deployments.
+include!("maker-group.rs");
 use anchor_lang::prelude::*;
 use maker_interface::{
     MakerState, QuoteRequest, QuoteResponse, MAX_EPOCH_SLOTS, MIN_EPOCH_SLOTS, VERSION,

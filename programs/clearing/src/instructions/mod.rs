@@ -134,3 +134,32 @@ pub(crate) use settlement::{
     __cpi_client_accounts_check_exit_cohort, __cpi_client_accounts_initialize_exit_guard,
     __cpi_client_accounts_ledger_change, __cpi_client_accounts_withdraw_trading,
 };
+
+pub mod group_trading;
+pub(crate) use group_trading::makers::{
+    __client_accounts_preview_group_maker, __client_accounts_register_group_maker,
+    __client_accounts_update_group_maker,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use group_trading::makers::{
+    __cpi_client_accounts_preview_group_maker, __cpi_client_accounts_register_group_maker,
+    __cpi_client_accounts_update_group_maker,
+};
+pub use group_trading::makers::{PreviewGroupMaker, RegisterGroupMaker, UpdateGroupMaker};
+pub(crate) use group_trading::oracle::{
+    __client_accounts_initialize_group_oracle, __client_accounts_sample_group_oracle,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use group_trading::oracle::{
+    __cpi_client_accounts_initialize_group_oracle, __cpi_client_accounts_sample_group_oracle,
+};
+pub use group_trading::oracle::{InitializeGroupOracle, SampleGroupOracle};
+pub use group_trading::routes::GroupOrderAction;
+pub(crate) use group_trading::routes::{
+    __client_accounts_execute_group_route, __client_accounts_manage_group_order,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use group_trading::routes::{
+    __cpi_client_accounts_execute_group_route, __cpi_client_accounts_manage_group_order,
+};
+pub use group_trading::routes::{ExecuteGroupRoute, ManageGroupOrder};

@@ -7,3 +7,4 @@
  */
 
 export * from "./makerConfig.js";
+export * from "./makerGroupConfig.js";

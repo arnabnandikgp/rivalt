@@ -7,12 +7,18 @@
  */
 
 export * from "./executedLeg.js";
+export * from "./groupMarketSnapshotV2.js";
 export * from "./groupMemberCashV2.js";
+export * from "./groupOrderAction.js";
+export * from "./makerRegistrationSnapshotV2.js";
+export * from "./marginAccountSnapshotV2.js";
 export * from "./oracleState.js";
 export * from "./orderBook.js";
 export * from "./orderBookV2.js";
+export * from "./orderExecution.js";
 export * from "./orderTerms.js";
 export * from "./positionV2.js";
+export * from "./previewArgs.js";
 export * from "./probeChoice.js";
 export * from "./protectionV2.js";
 export * from "./protectiveGroup.js";
@@ -22,6 +28,7 @@ export * from "./resolutionParticipant.js";
 export * from "./resolutionRow.js";
 export * from "./resolutionUpdate.js";
 export * from "./riskParticipant.js";
+export * from "./routeIntent.js";
 export * from "./routeLeg.js";
 export * from "./storedOrder.js";
 export * from "./storedOrderV2.js";

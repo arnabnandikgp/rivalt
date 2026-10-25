@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 use financial_core::{MAX_CASH, MAX_LOTS, MAX_PRICE};
 
 pub const VERSION: u16 = 1;
+pub const GROUP_VERSION: u16 = 2;
 pub const MIN_EPOCH_SLOTS: u64 = 64;
 pub const MAX_EPOCH_SLOTS: u64 = 3_600;
 pub const RESPONSE_BYTES: usize = 92;
@@ -59,6 +60,35 @@ pub struct QuoteResponse {
     pub expiry_slot: u64,
     pub consumed_before: u64,
     pub reference_price: u64,
+}
+
+/// Separate V2 contract binds the group as well as market and isolated capital.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+pub struct GroupQuoteRequest {
+    pub group: Pubkey,
+    pub quote: QuoteRequest,
+}
+
+pub fn group_quote(
+    group: Pubkey,
+    state: &MakerState,
+    request: &GroupQuoteRequest,
+) -> QuoteResult<QuoteResponse> {
+    if group == Pubkey::default()
+        || request.group != group
+        || state.version != GROUP_VERSION
+        || request.quote.version != GROUP_VERSION
+    {
+        return Err(QuoteError::Binding);
+    }
+    // Strategy arithmetic is identical. Only the authenticated envelope changes.
+    let mut strategy_state = state.clone();
+    let mut strategy_request = request.quote.clone();
+    strategy_state.version = VERSION;
+    strategy_request.version = VERSION;
+    let mut response = quote(&strategy_state, &strategy_request)?;
+    response.version = GROUP_VERSION;
+    Ok(response)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

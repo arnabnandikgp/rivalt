@@ -149,7 +149,7 @@ fn active(group: &ClearingGroupV2) -> Result<()> {
     Ok(())
 }
 
-fn reconciled(group: &ClearingGroupV2, actual: u64) -> Result<()> {
+pub(crate) fn reconciled(group: &ClearingGroupV2, actual: u64) -> Result<()> {
     let allocated = u128::from(group.total_cash)
         + u128::from(group.settlement)
         + u128::from(group.insurance)

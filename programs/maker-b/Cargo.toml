@@ -10,12 +10,13 @@ name = "maker_b"
 
 [features]
 default = []
-devnet-test-profile = []
+devnet-test-profile = ["clearing/devnet-test-profile"]
+successor-test-profile = ["clearing/successor-test-profile"]
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build", "maker-interface/idl-build"]
+idl-build = ["anchor-lang/idl-build", "maker-interface/idl-build", "clearing/idl-build"]
 anchor-debug = []
 custom-heap = []
 custom-panic = []
@@ -23,3 +24,5 @@ custom-panic = []
 [dependencies]
 anchor-lang = { workspace = true }
 maker-interface = { path = "../../crates/maker-interface" }
+
+clearing = { path = "../clearing", features = ["no-entrypoint"] }

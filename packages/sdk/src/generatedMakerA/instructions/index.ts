@@ -7,5 +7,8 @@
  */
 
 export * from "./initializeConfig.js";
+export * from "./initializeGroupConfig.js";
 export * from "./publishEpoch.js";
+export * from "./publishGroupEpoch.js";
 export * from "./quote.js";
+export * from "./quoteGroup.js";

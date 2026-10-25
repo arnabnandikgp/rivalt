@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { createFromRoot } from 'codama';
+import { createFromRoot, bottomUpTransformerVisitor, flattenInstructionDataArgumentsVisitor, isNode } from 'codama';
 import { rootNodeFromAnchor } from '@codama/nodes-from-anchor';
 import { renderVisitor } from '@codama/renderers-js';
 
@@ -17,6 +17,24 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
   const before = process.argv.includes('--check') ? snapshot(path) : undefined;
   const idl = JSON.parse(readFileSync(`packages/sdk/idl/${program}.json`, 'utf8'));
   const codama = createFromRoot(rootNodeFromAnchor(idl));
+  // Codama normally flattens structs used by only one instruction. Reusing V1
+  // request types in V2 must not silently nest the existing public SDK inputs.
+  const legacyRequests = program === 'clearing'
+    ? new Set(['executeRoute', 'executeOrder', 'previewMaker']) : new Set(['quote']);
+  const definitions = new Map(codama.getRoot().program.definedTypes?.map(type => [type.name, type.type]));
+  codama.update(bottomUpTransformerVisitor([{
+    select: '[instructionNode]',
+    transform(node) {
+      if (!isNode(node, 'instructionNode') || !legacyRequests.has(node.name)) return node;
+      return { ...node, arguments: node.arguments?.map(argument => {
+        if (!isNode(argument.type, 'definedTypeLinkNode')) return argument;
+        const type = definitions.get(argument.type.name);
+        assert(type && isNode(type, 'structTypeNode'), `Missing legacy request ${argument.type.name}`);
+        return { ...argument, type };
+      }) };
+    },
+  }]));
+  codama.update(flattenInstructionDataArgumentsVisitor());
   await codama.accept(renderVisitor('packages/sdk', {
     generatedFolder: `src/${folder}`,
     kitImportStrategy: 'rootOnly',

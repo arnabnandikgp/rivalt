@@ -9,6 +9,13 @@ explicit successor local profile; trading remains disabled. P18B–P21 add finan
 instructions and group-aware services without mixing V1 history or granting maker
 CPI new authority. WORKLOG records actual acceptance.
 
+[P18B](P18B-ISOLATED-PRIMITIVES.md) adds `instructions/group_trading/`,
+`financial-core::margin` and the group-bound `maker-group.rs` interface. Account
+snapshots have separate event payload types without account discriminators.
+The Codama generator explicitly retains V1's flattened instruction arguments
+when a request type becomes shared; new contexts use distinct PDA names.
+V2 PostgreSQL/API/workers/UI remain P21 deliverables.
+
 ## Program-level boundary
 
 ```mermaid

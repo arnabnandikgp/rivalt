@@ -307,3 +307,30 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 - **D48 / activation and evidence:** Fresh local test deployment/domain; no V1 byte migration or devnet upgrade. Old funds move only through separately admissible owner withdrawal and explicit new deposit; never relabel claims, fractions or reserves. P18 isolated activation waits for its liquidation/group-default checks; cross activation is compile-time disabled until P20's actual acceptance, plus explicit successor local profile. Independent golden cases must test the real code, then signed SBF and actual Surfpool/RPC/WS/PostgreSQL flows. Measure packet/CU/account bounds and contention. P16A or proposal arithmetic is not successor acceptance. D42 remains Deferred; P15B/P16B stay Open and external/funded/outreach authorization is unchanged.
 
 - **D46 P18A custody realization / G14 custody:** Owner-selected immutable role is validated at registration; maker admission remains a separate future authority operation. Initialize BTC then ETH with fixed identities before portfolios. Custody mode permits real deposits, owner exits and explicit same-owner/same-group transfers only with canonical empty financial fields, plus authority pause and surplus-to-insurance classification. Default/devnet cannot activate this successor profile. Critical group events use nullable actual-vault observations rather than a fake zero for operations that did not read it. [P18A](P18A-GROUP-CUSTODY.md) pins the ABI/profile and focused checks; [A23A evidence](evidence/P18A.md) records custody acceptance on `6389c3e`. G14 trading/recovery remains pending.
+
+
+### D49 — Successor two-market test primitives (P18B / G14 trading)
+
+BTC source prices retain the USD 10,000–100,000 range and 1,000,000 lots/unit.
+ETH uses USD 1,000–10,000 and 100,000 lots/unit: checked multiplication of both
+asset value and confidence by ten precedes the existing conservative ratio and
+interval rounding. Collateral remains six-decimal classic SPL. Both therefore use
+the bounded 10,000–100,000 quote-atoms/lot reference range, existing strategy and
+execution bands, order bounds and 10%/5% synthetic margin. These are provisional
+local test limits, not calibrated production parameters or correlation discounts.
+
+Six signed local fixture accounts bind primary/guard BTC IDs 1/3, shared collateral
+2/4 and primary/guard ETH 5/6. V1/devnet adapters are unchanged. Local age remains
+20 seconds; no new freshness relaxation. Each market has its own observation,
+held premium, funding index and recovery history. Pre-activation samples cannot
+charge funding. Maker config/requests carry version 2 and the group identity;
+read-only CPI still receives only the config, with actual ProgramData hash approval.
+Four distinct isolated capital bindings serve two A/B markets, using unchanged
+strategy arithmetic and 2 bps taker/zero provider fees. Approval is joint owner /
+group authority, epoch sync owner-only and quarantine authority-only.
+
+This implements D45–D48's selected scope; it does not supersede their activation,
+netting, liquidation/default or external-gate rules. Isolated activation remains
+false through P18B; cross activation remains false through P19. See
+[P18B primitives](P18B-ISOLATED-PRIMITIVES.md) and the actual acceptance status in
+WORKLOG; the choice of parameters alone closes no gate.

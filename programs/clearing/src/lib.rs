@@ -30,6 +30,51 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn register_group_maker_v2(
+        ctx: Context<RegisterGroupMaker>,
+        maker_id: u8,
+        inventory_limit: u64,
+    ) -> Result<()> {
+        group_trading::makers::register(ctx, maker_id, inventory_limit)
+    }
+    pub fn update_group_maker_v2(ctx: Context<UpdateGroupMaker>, operation: u8) -> Result<()> {
+        group_trading::makers::update(ctx, operation)
+    }
+    pub fn preview_group_maker_v2(
+        ctx: Context<PreviewGroupMaker>,
+        args: PreviewArgs,
+    ) -> Result<QuoteResponse> {
+        group_trading::makers::preview(ctx, args)
+    }
+    pub fn initialize_group_oracle_v2(
+        ctx: Context<InitializeGroupOracle>,
+        primary: Pubkey,
+        guard: Pubkey,
+    ) -> Result<()> {
+        group_trading::oracle::initialize(ctx, primary, guard)
+    }
+    pub fn sample_group_oracle_v2(ctx: Context<SampleGroupOracle>) -> Result<()> {
+        group_trading::oracle::sample(ctx)
+    }
+    pub fn manage_group_order_v2(
+        ctx: Context<ManageGroupOrder>,
+        operation: GroupOrderAction,
+    ) -> Result<()> {
+        group_trading::routes::manage(ctx, operation)
+    }
+    pub fn execute_group_route_v2(
+        ctx: Context<ExecuteGroupRoute>,
+        intent: RouteIntent,
+    ) -> Result<()> {
+        group_trading::routes::execute(ctx, intent)
+    }
+    pub fn execute_group_order_v2(
+        ctx: Context<ExecuteGroupRoute>,
+        args: OrderExecution,
+    ) -> Result<()> {
+        group_trading::routes::execute_order(ctx, args)
+    }
+
     pub fn initialize_group_v2(ctx: Context<InitializeGroupV2>, domain: [u8; 32]) -> Result<()> {
         group_custody::initialize(ctx, domain)
     }
