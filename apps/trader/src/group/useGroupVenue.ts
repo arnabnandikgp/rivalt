@@ -4,6 +4,7 @@ import { address } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import type { GroupTraderConfig } from './types.js';
 import { terminal, retain, mergeReconciled } from '../receipts.js';
+import { useReceiptRecords } from './useReceiptRecords.js';
 
 export type Review = sdk.PreparedTransaction & {
   scope: string;
@@ -57,9 +58,7 @@ export function useGroupVenue(config: GroupTraderConfig, scope: string) {
     [apiError, setApiError] = useState(''),
     [notice, setNotice] = useState(''),
     [error, setError] = useState('');
-  const [records, setRecords] = useState<sdk.SignedIntent[]>([]),
-    recordsRef = useRef(records);
-  recordsRef.current = records;
+  const { records, recordsRef, replaceRecords } = useReceiptRecords();
   const [review, setReview] = useState<Review>(),
     [busy, setBusy] = useState(''),
     operation = useRef(0),
@@ -76,11 +75,10 @@ export function useGroupVenue(config: GroupTraderConfig, scope: string) {
       const retained = retain(items);
       localStorage.setItem(target, JSON.stringify(retained));
       if (current.current.key === target) {
-        recordsRef.current = retained;
-        setRecords(retained);
+        replaceRecords(retained);
       }
     },
-    [key],
+    [key, replaceRecords],
   );
   useEffect(() => {
     current.current.epoch++;
@@ -92,10 +90,10 @@ export function useGroupVenue(config: GroupTraderConfig, scope: string) {
     setNotice('');
     setError('');
     try {
-      setRecords(readReceipts(key));
+      replaceRecords(readReceipts(key));
     } catch (e) {
       setError((e as Error).message);
-      setRecords([]);
+      replaceRecords([]);
     }
   }, [key, scope, wallet.account?.chains.join(',')]);
   const refresh = useCallback(async () => {

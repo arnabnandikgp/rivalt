@@ -145,3 +145,12 @@ certificate and execute admissible withdrawals through direct RPC. Report the pa
 do not present it as continuous availability or extend oracle/proof lifetimes to
 hide it. Preserve unpaid claims/fractions, restart workers and requalify sources
 before returning to trading. Do not apply this procedure as funded-pilot approval.
+
+
+Saved-receipt concurrency regression: `node --import tsx tests/browser/receipts.ts`
+uses real React/Chrome to suspend a receipt-state update, interrupt it with a higher
+priority render, then merge an older poll response and reload local storage. The
+latest saved original must survive. The harness deliberately restores the old
+render-time ref assignment in a separate isolated run to prove the test detects
+that loss. These are client-state fixtures, not wallet/chain transactions; WORKLOG
+records the actual tested source and outcome.

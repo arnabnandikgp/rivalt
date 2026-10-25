@@ -600,3 +600,11 @@ maintenance window for this bounded test profile. A live exit-availability redes
 is separately scoped future work, not a stronger claim from A26B or a funded gate
 waiver. The independent audit canonically orders decimal event sequences and rejects
 missing/duplicate entries; no accepted financial event is discarded to improve metrics.
+
+
+D54 receipt concurrency clarification (R052): saved receipt memory advances only
+at explicit save/reload/clear writes, synchronously with the queued presentation
+update. React renders cannot roll it back to an older presentation state. Polling
+merges against the latest written list; storage must still succeed before broadcast.
+This preserves immutable originals through concurrent rendering without changing
+wallet authority or treating client fixtures as financial acceptance.
