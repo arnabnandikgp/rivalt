@@ -290,7 +290,7 @@ fn materialized_both_market_prefix_survives_expired_hold_without_reverse_funding
         ..clock()
     };
     let pending = oracle::effective(2, &markets[1], &later).unwrap();
-    assert!(pending > 0);
+    assert_eq!(pending, 555_555); // trunc(1e9 scaled premium * 2 seconds / 3,600).
     let mut trader = root();
     trader.positions[1] = PositionV2 {
         lots: 3,
@@ -312,4 +312,149 @@ fn materialized_both_market_prefix_survives_expired_hold_without_reverse_funding
         accrued.positions
     );
     assert_eq!(markets[0].funding_index_scaled, 0);
+}
+
+#[test]
+fn cumulative_cross_fill_fee_is_one_one_two_for_three_two_thousand_atom_fills() {
+    // Kernel fee golden, independent of the local oracle's 10,000 minimum price.
+    let mut trader = model(&root()).unwrap();
+    let mut provider = model(&maker()).unwrap();
+    let mut notional = 0;
+    for cumulative_fee in [1, 1, 2] {
+        let (next, providers, fee) = math::margin::route_candidate(
+            trader,
+            &[provider],
+            0,
+            &[(1, 2_000)],
+            0,
+            [0; 2],
+            notional,
+        )
+        .unwrap();
+        notional += 2_000;
+        assert_eq!(next.cash, 100_000 - cumulative_fee);
+        assert_eq!(providers[0].cash, 1_000_000);
+        assert_eq!(trader.cash - next.cash, fee);
+        trader = next;
+        provider = providers[0];
+    }
+    assert_eq!(trader.positions[0].lots, 3);
+    assert_eq!(trader.positions[0].virtual_scaled, -6_000 * math::SCALE);
+    assert_eq!(provider.positions[0].virtual_scaled, 6_000 * math::SCALE);
+}
+
+#[test]
+fn triggered_cross_protection_uses_real_route_and_consumes_only_its_market_allowance() {
+    use crate::instructions::{OrderExecution, OrderTerms};
+    let mut markets = markets();
+    markets[0].gross_lots = 10;
+    let mut trader = root();
+    trader.cash = 1_000_000;
+    trader.positions[0] = PositionV2 {
+        lots: 10,
+        virtual_scaled: -600_000 * math::SCALE,
+        generation: 7,
+        ..Default::default()
+    };
+    trader.positions[1] = PositionV2 {
+        lots: 10,
+        virtual_scaled: -300_000 * math::SCALE,
+        generation: 9,
+        ..Default::default()
+    };
+    let mut environment = environment(&markets);
+    environment.funding = [0; 2];
+    for (index, generation, threshold) in [(0, 7, 61_000), (1, 9, 31_000)] {
+        environment.selected = index;
+        let terms = OrderTerms {
+            side: 1,
+            lots: 10,
+            limit: threshold - 1_000,
+            fee_budget: 1_000,
+            start_slot: 90,
+            expiry_slot: 180,
+            trigger: 1,
+            threshold,
+            reduce_only: true,
+            generation,
+        };
+        trader = book::protect_with_environment(
+            &trader,
+            &environment,
+            1 + 2 * index as u64,
+            terms.clone(),
+            OrderTerms {
+                trigger: 2,
+                threshold: threshold - 2_000,
+                ..terms
+            },
+            0,
+        )
+        .unwrap();
+    }
+    let execution = || OrderExecution {
+        id: 1,
+        version: 1,
+        filled: 0,
+        observation_sequence: 1,
+        start_slot: 90,
+        expiry_slot: 150,
+        lots: 4,
+        legs: vec![RouteLeg {
+            lots: 4,
+            quote_epoch: 1,
+            authority_epoch: 1,
+        }],
+    };
+    let group = ClearingGroupV2::default();
+    assert!(routes::stored_intent(&group, &markets[0], &trader, execution(), &clock()).is_err());
+    markets[0].reference_price = 62_000;
+    markets[0].lower = 61_380;
+    markets[0].upper = 62_620;
+    let (request, index) =
+        routes::stored_intent(&group, &markets[0], &trader, execution(), &clock()).unwrap();
+    let mut environment = book::Environment {
+        markets: markets.each_ref().map(Some),
+        selected: 0,
+        funding: [0; 2],
+        slot: 100,
+        credible: [true; 2],
+    };
+    let quotes = [QuoteResponse {
+        side: 1,
+        lots: 4,
+        gross_quote: 248_000,
+        reference_price: 62_000,
+        ..quote()
+    }];
+    let result = routes::candidate_with_environment(
+        &group,
+        &trader,
+        &[maker()],
+        &quotes,
+        &request,
+        Some(index),
+        &environment,
+        &clock(),
+    )
+    .unwrap();
+    assert_eq!(result.fee, 50);
+    assert_eq!(result.trader.cash, 999_950);
+    assert_eq!(result.trader.positions[0].lots, 6);
+    assert_eq!(
+        result.trader.positions[0].virtual_scaled,
+        -352_000 * math::SCALE
+    );
+    assert_eq!(result.trader.book.protections[0].protection.remaining, 6);
+    assert_eq!(result.trader.book.protections[1].protection.remaining, 10);
+    assert_eq!(
+        book::eligible(&result.trader, &result.trader.book.orders[1].order).unwrap(),
+        6
+    );
+    let mut changed = *result.trader;
+    changed.positions[1].generation += 1;
+    environment.selected = 1;
+    book::refresh_with_environment(&mut changed, &environment).unwrap();
+    assert!(changed.book.orders[0].order.active() && changed.book.orders[1].order.active());
+    assert!(!changed.book.orders[2].order.active() && !changed.book.orders[3].order.active());
 }

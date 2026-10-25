@@ -5,8 +5,9 @@ import { groupFixture } from './group-fixture.js';
 import type { GroupTradingHarness } from './group-trading-cases.js';
 import type { Keypair } from '@solana/web3.js';
 
-export async function groupSafetyCases(h: GroupTradingHarness, capture: (label:string,keys:Address[])=>Promise<void>) {
-  const fixture=await groupFixture(h), {common,safety,owner,payer,markets,roots,makers,operators}=fixture;
+export async function groupSafetyCases(h: GroupTradingHarness, capture: (label:string,keys:Address[])=>Promise<void>,
+  options: {namespace?:string;setupOnly?:boolean} = {}) {
+  const fixture=await groupFixture(h,options.namespace), {common,safety,owner,payer,markets,roots,makers,operators}=fixture;
   const protectedKeys=()=>[fixture.group,fixture.registry,fixture.vault,fixture.guard,fixture.resolution,...markets,...roots,...operators.map(operator=>operator.token.address)];
   async function reject(label:string,instructions:Instruction[],signers:Keypair[],error:number) {
     const before=await Promise.all(protectedKeys().map(h.read));
@@ -58,6 +59,7 @@ export async function groupSafetyCases(h: GroupTradingHarness, capture: (label:s
   await reject('reject repeat activation',[sdk.getActivateIsolatedGroupV2Instruction({...safety,authority:payer})],[],sdk.CLEARING_ERROR__PROFILE);
   await fixture.qualify();
   await capture('activated-empty',protectedKeys());
+  if(options.setupOnly)return {fixture,certificate,route,cashInstruction,reject,protectedKeys};
   for(const index of [0,1]) {
     const open=await route(index,0,[20n,30n]);
     await h.send('both-market atomic split open',[open.instruction],[owner]);

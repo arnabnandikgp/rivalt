@@ -65,9 +65,34 @@ cost to measure in P20/P21. Existing single-market isolated entrypoints retain t
 footprint. New whole-account events include both actual market snapshots.
 
 Owner-only flat netting and full-dependency route candidates are implemented behind
-the unchanged cross gate. Thirty-two affected clearing host tests now pass. Remaining
+the unchanged cross gate. Thirty-four affected clearing host tests now pass. Remaining
 independent G01–G04/G09–G11 checks. Verify legacy/generated ABI, bounded default and
 successor builds, signed isolated/delegation regression and both cross-activation
 negative profiles. P20 owns signed enabled-cross safety and transaction budgets;
 P21 owns fresh services/PostgreSQL/UI/contention qualification. No old P16A result
 qualifies these changes. P15B/P16B remain Open; endurance remains Deferred.
+
+
+## Focused verification commands
+
+```sh
+source ops/env.sh
+RIVALT_GROUP_ARTIFACT_DIR=.local/successor-p19 bash ops/build-group-safety.sh
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo test -p clearing --lib instructions::group --features successor-test-profile --locked --offline
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo test -p financial-core --test cross_core --locked --offline
+pnpm exec vitest run tests/rpc-contract/margin-core-conformance.test.ts tests/rpc-contract/group-trading-conformance.test.ts tests/rpc-contract/group-safety-conformance.test.ts
+node --import tsx tests/rpc-contract/margin-core-svm.ts
+bash ops/margin-core-smoke.sh
+```
+
+The RPC runner creates a fresh owned Surfpool deployment, retains submitted wires,
+independently fetches every original signature finalized, checks all expected WS
+notifications and compares live accounts/events with isolated legacy Anchor.
+`margin-core-reference.py` audits raw account bytes, literal maker-price/fee sums,
+funded cash, unpaid claims, fractional funding and authority epochs/nonces; five
+mutated captures must reject. Setup uses real signed instructions. No cross exposure
+is injected into SVM accounts. Both build profiles reject submitted cross routes;
+P19's enabled-cross arithmetic/handler candidates remain host tests until P20.
+
+Development runtime checks pass; WORKLOG records exact tested revisions and whether
+the tracked tree was clean. Final pinned A24 acceptance/publication remains pending.

@@ -282,3 +282,22 @@ PDA seeds, error numbers, authority and economic rules remain unchanged. Descrip
 local names do not rename published wire fields. Anchor requires `ctx` in handlers
 using `emit_cpi!`; generated client/CPI exports are explicit. A fresh IDL build also
 refreshes the existing top-level profile description; its wire ABI is unchanged.
+
+## P19 whole-account interfaces
+
+The successor adds `setMarginDelegateV2`, `netMarginClaimsV2`,
+`manageMarginOrderV2`, `executeMarginRouteV2` and `executeMarginOrderV2`.
+The latter three nest the existing single-market account context and append the
+other canonical writable market. Whole-account calls bind group sequence and both
+observation sequences, use one Clock and materialize both funding prefixes. They
+reuse the same book, maker authentication/read-only CPI and financial candidates.
+The original isolated entrypoints retain their wire/account shapes.
+
+Owner-only grants change root epoch/nonce and invalidate delegated orders; cash,
+netting and maker configuration still require their original owner authorities.
+`MarginAuthorityChangedV2` and `MarginClaimsNettedV2` carry the actual root snapshot.
+`MarginOrderChangedV2` and `MarginRouteExecutedV2` use flat fields and include the
+other market's actual state, so no materialized funding mutation is missing from
+replay. Existing event layouts remain unchanged. Account sizes/PDA identities are
+unchanged. New SDK generation and isolated legacy conformance verify the interface;
+P21 owns its indexer/service consumers. Cross release remains gated through P19.

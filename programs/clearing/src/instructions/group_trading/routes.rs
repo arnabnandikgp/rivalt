@@ -119,24 +119,29 @@ pub(crate) fn manage_core(
         .sequence
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
-    let emitted = order_event(
-        &accounts.group,
-        &accounts.market,
-        &accounts.margin,
-        clock.slot,
-    );
     if let Some(other) = other_market.as_deref_mut() {
         oracle::materialize(accounts.group.mode, other, clock)?;
-        let whole = crate::events::MarginOrderChangedV2 {
-            change: *emitted,
-            other_market: other.key(),
-            other_market_state: crate::events::GroupMarketSnapshotV2::from(&**other),
-        };
-        crate::event_cpi::emit(&whole, accounts.event_authority.to_account_info())?;
-    } else {
-        crate::event_cpi::emit(&*emitted, accounts.event_authority.to_account_info())?;
     }
-    Ok(())
+    emit_order(accounts, other_market.as_deref(), clock.slot)
+}
+
+#[inline(never)]
+fn emit_order(
+    accounts: &ManageGroupOrder,
+    other_market: Option<&Account<GroupMarketV2>>,
+    slot: u64,
+) -> Result<()> {
+    let emitted = order_event(&accounts.group, &accounts.market, &accounts.margin, slot);
+    if let Some(other) = other_market {
+        let whole = crate::events::MarginOrderChangedV2::with_other(
+            *emitted,
+            other.key(),
+            crate::events::GroupMarketSnapshotV2::from(&**other),
+        );
+        crate::event_cpi::emit(&*whole, accounts.event_authority.to_account_info())
+    } else {
+        crate::event_cpi::emit(&*emitted, accounts.event_authority.to_account_info())
+    }
 }
 
 fn route_environment<'a>(
@@ -170,6 +175,7 @@ fn route_environment<'a>(
 
 /// Shared book transition; entrypoints authenticate actor, canonical dependencies
 /// and relevant source actions before using this candidate.
+#[inline(never)]
 pub(crate) fn manage_candidate(
     root: &MarginAccountV2,
     environment: &book::Environment,
@@ -702,12 +708,12 @@ pub(crate) fn execute_core(
     };
     if let Some(other) = other_market.as_deref_mut() {
         oracle::materialize(accounts.group.mode, other, clock)?;
-        let whole = crate::events::MarginRouteExecutedV2 {
-            execution: emitted,
-            other_market: other.key(),
-            other_market_state: crate::events::GroupMarketSnapshotV2::from(&**other),
-        };
-        crate::event_cpi::emit(&whole, accounts.event_authority.to_account_info())?;
+        let whole = crate::events::MarginRouteExecutedV2::with_other(
+            emitted,
+            other.key(),
+            crate::events::GroupMarketSnapshotV2::from(&**other),
+        );
+        crate::event_cpi::emit(&*whole, accounts.event_authority.to_account_info())?;
     } else {
         crate::event_cpi::emit(&emitted, accounts.event_authority.to_account_info())?;
     }

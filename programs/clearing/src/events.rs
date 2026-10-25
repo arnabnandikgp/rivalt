@@ -359,16 +359,87 @@ pub struct MarginAuthorityChangedV2 {
 
 #[event]
 pub struct MarginOrderChangedV2 {
-    pub change: GroupOrderChangedV2,
+    pub group: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub market_state: GroupMarketSnapshotV2,
+    pub margin: Pubkey,
+    pub state: MarginAccountSnapshotV2,
     pub other_market: Pubkey,
     pub other_market_state: GroupMarketSnapshotV2,
 }
 
 #[event]
 pub struct MarginRouteExecutedV2 {
-    pub execution: GroupRouteExecutedV2,
+    pub group: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub market_state: GroupMarketSnapshotV2,
+    pub nonce: u64,
+    pub side: u8,
+    pub lots: u64,
+    pub gross_quote: u64,
+    pub fee: u64,
+    pub order_id: u64,
+    pub order_version: u64,
+    pub root_states: Vec<MarginAccountSnapshotV2>,
+    pub maker_states: Vec<MakerRegistrationSnapshotV2>,
+    pub total_cash: u64,
+    pub fees: u64,
     pub other_market: Pubkey,
     pub other_market_state: GroupMarketSnapshotV2,
+}
+
+impl MarginOrderChangedV2 {
+    #[inline(never)]
+    pub(crate) fn with_other(
+        change: GroupOrderChangedV2,
+        other_market: Pubkey,
+        other_market_state: GroupMarketSnapshotV2,
+    ) -> Box<Self> {
+        Box::new(Self {
+            group: change.group,
+            sequence: change.sequence,
+            slot: change.slot,
+            market: change.market,
+            market_state: change.market_state,
+            margin: change.margin,
+            state: change.state,
+            other_market,
+            other_market_state,
+        })
+    }
+}
+impl MarginRouteExecutedV2 {
+    #[inline(never)]
+    pub(crate) fn with_other(
+        execution: GroupRouteExecutedV2,
+        other_market: Pubkey,
+        other_market_state: GroupMarketSnapshotV2,
+    ) -> Box<Self> {
+        Box::new(Self {
+            group: execution.group,
+            sequence: execution.sequence,
+            slot: execution.slot,
+            market: execution.market,
+            market_state: execution.market_state,
+            nonce: execution.nonce,
+            side: execution.side,
+            lots: execution.lots,
+            gross_quote: execution.gross_quote,
+            fee: execution.fee,
+            order_id: execution.order_id,
+            order_version: execution.order_version,
+            root_states: execution.root_states,
+            maker_states: execution.maker_states,
+            total_cash: execution.total_cash,
+            fees: execution.fees,
+            other_market,
+            other_market_state,
+        })
+    }
 }
 
 #[event]

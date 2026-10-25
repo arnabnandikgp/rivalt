@@ -73,15 +73,29 @@ pub fn net(ctx: Context<NetMarginClaims>, sequence: u64, observations: [u64; 2])
         .sequence
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
-    let emitted = crate::events::MarginClaimsNettedV2 {
+    emit_netting(accounts, clock.slot, cancelled_scaled)
+}
+
+#[inline(never)]
+fn emit_netting(accounts: &NetMarginClaims, slot: u64, cancelled_scaled: i128) -> Result<()> {
+    let emitted = netting_event(accounts, slot, cancelled_scaled);
+    crate::event_cpi::emit(&*emitted, accounts.event_authority.to_account_info())?;
+    Ok(())
+}
+
+#[inline(never)]
+fn netting_event(
+    accounts: &NetMarginClaims,
+    slot: u64,
+    cancelled_scaled: i128,
+) -> Box<crate::events::MarginClaimsNettedV2> {
+    Box::new(crate::events::MarginClaimsNettedV2 {
         group: accounts.group.key(),
         sequence: accounts.group.sequence,
-        slot: clock.slot,
+        slot,
         margin: accounts.margin.key(),
         state: crate::events::MarginAccountSnapshotV2::from(&**accounts.margin),
         markets: [&**accounts.btc, &**accounts.eth].map(crate::events::GroupMarketSnapshotV2::from),
         cancelled_scaled,
-    };
-    crate::event_cpi::emit(&emitted, ctx.accounts.event_authority.to_account_info())?;
-    Ok(())
+    })
 }

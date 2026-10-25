@@ -74,6 +74,7 @@ impl<'a> Environment<'a> {
 
     /// Source relevance is derived after terminal authority is cleaned up. Empty
     /// unrelated slots need no price, but cannot hide an open loss or live order.
+    #[inline(never)]
     pub fn admit_sources(
         &self,
         root: &MarginAccountV2,

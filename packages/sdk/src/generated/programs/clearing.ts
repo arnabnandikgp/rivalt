@@ -111,6 +111,8 @@ import {
   getDepositInstructionAsync,
   getExecuteGroupOrderV2InstructionAsync,
   getExecuteGroupRouteV2InstructionAsync,
+  getExecuteMarginOrderV2InstructionAsync,
+  getExecuteMarginRouteV2InstructionAsync,
   getExecuteOrderInstructionAsync,
   getExecuteRouteInstructionAsync,
   getFreezeGroupV2InstructionAsync,
@@ -129,6 +131,8 @@ import {
   getLiquidateGroupV2InstructionAsync,
   getLiquidateInstructionAsync,
   getManageGroupOrderV2Instruction,
+  getManageMarginOrderV2Instruction,
+  getNetMarginClaimsV2Instruction,
   getPauseGroupCustodyV2InstructionAsync,
   getPlaceOrderInstructionAsync,
   getPlaceProtectionInstructionAsync,
@@ -147,6 +151,7 @@ import {
   getSampleGroupOracleV2Instruction,
   getSampleOracleInstructionAsync,
   getSetCustodyPauseInstructionAsync,
+  getSetMarginDelegateV2Instruction,
   getSettleGainInstructionAsync,
   getSyncMakerEpochInstructionAsync,
   getTransferGroupCustodyV2InstructionAsync,
@@ -174,6 +179,8 @@ import {
   parseDepositInstruction,
   parseExecuteGroupOrderV2Instruction,
   parseExecuteGroupRouteV2Instruction,
+  parseExecuteMarginOrderV2Instruction,
+  parseExecuteMarginRouteV2Instruction,
   parseExecuteOrderInstruction,
   parseExecuteRouteInstruction,
   parseFreezeGroupV2Instruction,
@@ -192,6 +199,8 @@ import {
   parseLiquidateGroupV2Instruction,
   parseLiquidateInstruction,
   parseManageGroupOrderV2Instruction,
+  parseManageMarginOrderV2Instruction,
+  parseNetMarginClaimsV2Instruction,
   parsePauseGroupCustodyV2Instruction,
   parsePlaceOrderInstruction,
   parsePlaceProtectionInstruction,
@@ -210,6 +219,7 @@ import {
   parseSampleGroupOracleV2Instruction,
   parseSampleOracleInstruction,
   parseSetCustodyPauseInstruction,
+  parseSetMarginDelegateV2Instruction,
   parseSettleGainInstruction,
   parseSyncMakerEpochInstruction,
   parseTransferGroupCustodyV2Instruction,
@@ -237,6 +247,8 @@ import {
   type DepositGroupV2AsyncInput,
   type ExecuteGroupOrderV2AsyncInput,
   type ExecuteGroupRouteV2AsyncInput,
+  type ExecuteMarginOrderV2AsyncInput,
+  type ExecuteMarginRouteV2AsyncInput,
   type ExecuteOrderAsyncInput,
   type ExecuteRouteAsyncInput,
   type FreezeGroupV2AsyncInput,
@@ -255,6 +267,8 @@ import {
   type LiquidateAsyncInput,
   type LiquidateGroupV2AsyncInput,
   type ManageGroupOrderV2Input,
+  type ManageMarginOrderV2Input,
+  type NetMarginClaimsV2Input,
   type ParsedActivateIsolatedGroupV2Instruction,
   type ParsedAdvanceGroupResolutionV2Instruction,
   type ParsedAdvanceResolutionInstruction,
@@ -274,6 +288,8 @@ import {
   type ParsedDepositInstruction,
   type ParsedExecuteGroupOrderV2Instruction,
   type ParsedExecuteGroupRouteV2Instruction,
+  type ParsedExecuteMarginOrderV2Instruction,
+  type ParsedExecuteMarginRouteV2Instruction,
   type ParsedExecuteOrderInstruction,
   type ParsedExecuteRouteInstruction,
   type ParsedFreezeGroupV2Instruction,
@@ -292,6 +308,8 @@ import {
   type ParsedLiquidateGroupV2Instruction,
   type ParsedLiquidateInstruction,
   type ParsedManageGroupOrderV2Instruction,
+  type ParsedManageMarginOrderV2Instruction,
+  type ParsedNetMarginClaimsV2Instruction,
   type ParsedPauseGroupCustodyV2Instruction,
   type ParsedPlaceOrderInstruction,
   type ParsedPlaceProtectionInstruction,
@@ -310,6 +328,7 @@ import {
   type ParsedSampleGroupOracleV2Instruction,
   type ParsedSampleOracleInstruction,
   type ParsedSetCustodyPauseInstruction,
+  type ParsedSetMarginDelegateV2Instruction,
   type ParsedSettleGainInstruction,
   type ParsedSyncMakerEpochInstruction,
   type ParsedTransferGroupCustodyV2Instruction,
@@ -336,6 +355,7 @@ import {
   type SampleGroupOracleV2Input,
   type SampleOracleAsyncInput,
   type SetCustodyPauseAsyncInput,
+  type SetMarginDelegateV2Input,
   type SettleGainAsyncInput,
   type SyncMakerEpochAsyncInput,
   type TransferGroupCustodyV2AsyncInput,
@@ -611,6 +631,10 @@ export enum ClearingEvent {
   GroupSafetyChangedV2,
   LiquidationApplied,
   MakerChanged,
+  MarginAuthorityChangedV2,
+  MarginClaimsNettedV2,
+  MarginOrderChangedV2,
+  MarginRouteExecutedV2,
   OracleObserved,
   OrderChanged,
   ProbeRecorded,
@@ -749,6 +773,50 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([64, 70, 28, 91, 96, 157, 199, 224]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarginAuthorityChangedV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([210, 155, 171, 115, 156, 90, 164, 200]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarginClaimsNettedV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([47, 171, 99, 223, 204, 38, 135, 66]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarginOrderChangedV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([10, 252, 13, 34, 170, 212, 83, 91]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarginRouteExecutedV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([251, 25, 221, 41, 50, 211, 179, 216]),
       ),
       0,
@@ -847,6 +915,8 @@ export enum ClearingInstruction {
   DepositGroupV2,
   ExecuteGroupOrderV2,
   ExecuteGroupRouteV2,
+  ExecuteMarginOrderV2,
+  ExecuteMarginRouteV2,
   ExecuteOrder,
   ExecuteRoute,
   FreezeGroupV2,
@@ -865,6 +935,8 @@ export enum ClearingInstruction {
   Liquidate,
   LiquidateGroupV2,
   ManageGroupOrderV2,
+  ManageMarginOrderV2,
+  NetMarginClaimsV2,
   PauseGroupCustodyV2,
   PlaceOrder,
   PlaceProtection,
@@ -883,6 +955,7 @@ export enum ClearingInstruction {
   SampleGroupOracleV2,
   SampleOracle,
   SetCustodyPause,
+  SetMarginDelegateV2,
   SettleGain,
   SyncMakerEpoch,
   TransferGroupCustodyV2,
@@ -1110,6 +1183,28 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([54, 118, 150, 186, 35, 159, 30, 221]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteMarginOrderV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([134, 81, 232, 64, 100, 127, 209, 163]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteMarginRouteV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([115, 61, 180, 24, 168, 32, 215, 20]),
       ),
       0,
@@ -1303,6 +1398,28 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ManageGroupOrderV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([53, 7, 56, 106, 194, 46, 39, 211]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ManageMarginOrderV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([71, 239, 164, 181, 10, 0, 5, 187]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.NetMarginClaimsV2;
   }
   if (
     containsBytes(
@@ -1506,6 +1623,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([115, 128, 87, 51, 123, 182, 46, 182]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SetMarginDelegateV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([36, 171, 80, 119, 51, 41, 156, 177]),
       ),
       0,
@@ -1657,6 +1785,12 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ExecuteGroupRouteV2;
     } & ParsedExecuteGroupRouteV2Instruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ExecuteMarginOrderV2;
+    } & ParsedExecuteMarginOrderV2Instruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ExecuteMarginRouteV2;
+    } & ParsedExecuteMarginRouteV2Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ExecuteOrder;
     } & ParsedExecuteOrderInstruction<TProgram>)
   | ({
@@ -1711,6 +1845,12 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ManageGroupOrderV2;
     } & ParsedManageGroupOrderV2Instruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ManageMarginOrderV2;
+    } & ParsedManageMarginOrderV2Instruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.NetMarginClaimsV2;
+    } & ParsedNetMarginClaimsV2Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.PauseGroupCustodyV2;
     } & ParsedPauseGroupCustodyV2Instruction<TProgram>)
   | ({
@@ -1764,6 +1904,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.SetCustodyPause;
     } & ParsedSetCustodyPauseInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.SetMarginDelegateV2;
+    } & ParsedSetMarginDelegateV2Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.SettleGain;
     } & ParsedSettleGainInstruction<TProgram>)
@@ -1927,6 +2070,20 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseExecuteGroupRouteV2Instruction(instruction),
       };
     }
+    case ClearingInstruction.ExecuteMarginOrderV2: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteMarginOrderV2,
+        ...parseExecuteMarginOrderV2Instruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteMarginRouteV2: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteMarginRouteV2,
+        ...parseExecuteMarginRouteV2Instruction(instruction),
+      };
+    }
     case ClearingInstruction.ExecuteOrder: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2053,6 +2210,20 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseManageGroupOrderV2Instruction(instruction),
       };
     }
+    case ClearingInstruction.ManageMarginOrderV2: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ManageMarginOrderV2,
+        ...parseManageMarginOrderV2Instruction(instruction),
+      };
+    }
+    case ClearingInstruction.NetMarginClaimsV2: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.NetMarginClaimsV2,
+        ...parseNetMarginClaimsV2Instruction(instruction),
+      };
+    }
     case ClearingInstruction.PauseGroupCustodyV2: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2177,6 +2348,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.SetCustodyPause,
         ...parseSetCustodyPauseInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.SetMarginDelegateV2: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SetMarginDelegateV2,
+        ...parseSetMarginDelegateV2Instruction(instruction),
       };
     }
     case ClearingInstruction.SettleGain: {
@@ -2386,6 +2564,16 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getExecuteGroupRouteV2InstructionAsync> &
     SelfPlanAndSendFunctions;
+  executeMarginOrderV2: (
+    input: ExecuteMarginOrderV2AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteMarginOrderV2InstructionAsync> &
+    SelfPlanAndSendFunctions;
+  executeMarginRouteV2: (
+    input: ExecuteMarginRouteV2AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteMarginRouteV2InstructionAsync> &
+    SelfPlanAndSendFunctions;
   executeOrder: (
     input: ExecuteOrderAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -2476,6 +2664,16 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getManageGroupOrderV2Instruction> &
     SelfPlanAndSendFunctions;
+  manageMarginOrderV2: (
+    input: ManageMarginOrderV2Input,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getManageMarginOrderV2Instruction> &
+    SelfPlanAndSendFunctions;
+  netMarginClaimsV2: (
+    input: NetMarginClaimsV2Input,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getNetMarginClaimsV2Instruction> &
+    SelfPlanAndSendFunctions;
   pauseGroupCustodyV2: (
     input: PauseGroupCustodyV2AsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -2564,6 +2762,11 @@ export type ClearingPluginInstructions = {
     input: SetCustodyPauseAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSetCustodyPauseInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  setMarginDelegateV2: (
+    input: SetMarginDelegateV2Input,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSetMarginDelegateV2Instruction> &
     SelfPlanAndSendFunctions;
   settleGain: (
     input: SettleGainAsyncInput,
@@ -2853,6 +3056,22 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          executeMarginOrderV2: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteMarginOrderV2InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeMarginRouteV2: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteMarginRouteV2InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           executeOrder: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -3000,6 +3219,22 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          manageMarginOrderV2: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getManageMarginOrderV2Instruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          netMarginClaimsV2: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getNetMarginClaimsV2Instruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           pauseGroupCustodyV2: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -3140,6 +3375,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getSetCustodyPauseInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          setMarginDelegateV2: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetMarginDelegateV2Instruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

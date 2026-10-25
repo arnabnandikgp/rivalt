@@ -2464,6 +2464,340 @@
       ]
     },
     {
+      "name": "execute_margin_order_v2",
+      "discriminator": [
+        54,
+        118,
+        150,
+        186,
+        35,
+        159,
+        30,
+        221
+      ],
+      "accounts": [
+        {
+          "name": "route",
+          "accounts": [
+            {
+              "name": "actor",
+              "signer": true
+            },
+            {
+              "name": "group",
+              "writable": true,
+              "relations": [
+                "market",
+                "trader"
+              ]
+            },
+            {
+              "name": "market",
+              "writable": true
+            },
+            {
+              "name": "vault",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116,
+                      45,
+                      118,
+                      50
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "group"
+                  }
+                ]
+              },
+              "relations": [
+                "group"
+              ]
+            },
+            {
+              "name": "trader",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      97,
+                      114,
+                      103,
+                      105,
+                      110,
+                      45,
+                      118,
+                      50
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "trader.portfolio",
+                    "account": "MarginAccountV2"
+                  },
+                  {
+                    "kind": "account",
+                    "path": "trader.subaccount_index",
+                    "account": "MarginAccountV2"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "first_capital",
+              "writable": true
+            },
+            {
+              "name": "first_registration",
+              "writable": true
+            },
+            {
+              "name": "first_program"
+            },
+            {
+              "name": "first_program_data"
+            },
+            {
+              "name": "first_config"
+            },
+            {
+              "name": "second_capital",
+              "writable": true,
+              "optional": true
+            },
+            {
+              "name": "second_registration",
+              "writable": true,
+              "optional": true
+            },
+            {
+              "name": "second_program",
+              "optional": true
+            },
+            {
+              "name": "second_program_data",
+              "optional": true
+            },
+            {
+              "name": "second_config",
+              "optional": true
+            },
+            {
+              "name": "event_authority"
+            },
+            {
+              "name": "program"
+            }
+          ]
+        },
+        {
+          "name": "other_market",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observations",
+          "type": {
+            "array": [
+              "u64",
+              2
+            ]
+          }
+        },
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "OrderExecution"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_margin_route_v2",
+      "discriminator": [
+        134,
+        81,
+        232,
+        64,
+        100,
+        127,
+        209,
+        163
+      ],
+      "accounts": [
+        {
+          "name": "route",
+          "accounts": [
+            {
+              "name": "actor",
+              "signer": true
+            },
+            {
+              "name": "group",
+              "writable": true,
+              "relations": [
+                "market",
+                "trader"
+              ]
+            },
+            {
+              "name": "market",
+              "writable": true
+            },
+            {
+              "name": "vault",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116,
+                      45,
+                      118,
+                      50
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "group"
+                  }
+                ]
+              },
+              "relations": [
+                "group"
+              ]
+            },
+            {
+              "name": "trader",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      97,
+                      114,
+                      103,
+                      105,
+                      110,
+                      45,
+                      118,
+                      50
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "trader.portfolio",
+                    "account": "MarginAccountV2"
+                  },
+                  {
+                    "kind": "account",
+                    "path": "trader.subaccount_index",
+                    "account": "MarginAccountV2"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "first_capital",
+              "writable": true
+            },
+            {
+              "name": "first_registration",
+              "writable": true
+            },
+            {
+              "name": "first_program"
+            },
+            {
+              "name": "first_program_data"
+            },
+            {
+              "name": "first_config"
+            },
+            {
+              "name": "second_capital",
+              "writable": true,
+              "optional": true
+            },
+            {
+              "name": "second_registration",
+              "writable": true,
+              "optional": true
+            },
+            {
+              "name": "second_program",
+              "optional": true
+            },
+            {
+              "name": "second_program_data",
+              "optional": true
+            },
+            {
+              "name": "second_config",
+              "optional": true
+            },
+            {
+              "name": "event_authority"
+            },
+            {
+              "name": "program"
+            }
+          ]
+        },
+        {
+          "name": "other_market",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observations",
+          "type": {
+            "array": [
+              "u64",
+              2
+            ]
+          }
+        },
+        {
+          "name": "intent",
+          "type": {
+            "defined": {
+              "name": "RouteIntent"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "execute_order",
       "discriminator": [
         115,
@@ -4900,6 +5234,199 @@
       ]
     },
     {
+      "name": "manage_margin_order_v2",
+      "discriminator": [
+        53,
+        7,
+        56,
+        106,
+        194,
+        46,
+        39,
+        211
+      ],
+      "accounts": [
+        {
+          "name": "order",
+          "accounts": [
+            {
+              "name": "owner",
+              "signer": true
+            },
+            {
+              "name": "group",
+              "writable": true,
+              "relations": [
+                "market",
+                "margin"
+              ]
+            },
+            {
+              "name": "market",
+              "writable": true
+            },
+            {
+              "name": "margin",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      97,
+                      114,
+                      103,
+                      105,
+                      110,
+                      45,
+                      118,
+                      50
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "margin.portfolio",
+                    "account": "MarginAccountV2"
+                  },
+                  {
+                    "kind": "account",
+                    "path": "margin.subaccount_index",
+                    "account": "MarginAccountV2"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "event_authority"
+            },
+            {
+              "name": "program"
+            }
+          ]
+        },
+        {
+          "name": "other_market",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observations",
+          "type": {
+            "array": [
+              "u64",
+              2
+            ]
+          }
+        },
+        {
+          "name": "operation",
+          "type": {
+            "defined": {
+              "name": "GroupOrderAction"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "net_margin_claims_v2",
+      "discriminator": [
+        71,
+        239,
+        164,
+        181,
+        10,
+        0,
+        5,
+        187
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "margin"
+          ]
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "relations": [
+            "btc",
+            "eth",
+            "margin"
+          ]
+        },
+        {
+          "name": "btc",
+          "writable": true
+        },
+        {
+          "name": "eth",
+          "writable": true
+        },
+        {
+          "name": "margin",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "margin.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "margin.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observations",
+          "type": {
+            "array": [
+              "u64",
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "pause_group_custody_v2",
       "discriminator": [
         229,
@@ -7138,6 +7665,83 @@
       ]
     },
     {
+      "name": "set_margin_delegate_v2",
+      "discriminator": [
+        115,
+        128,
+        87,
+        51,
+        123,
+        182,
+        46,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "margin"
+          ]
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "relations": [
+            "margin"
+          ]
+        },
+        {
+          "name": "margin",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "margin.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "margin.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "delegate",
+          "type": "pubkey"
+        },
+        {
+          "name": "expiry_slot",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "settle_gain",
       "discriminator": [
         36,
@@ -8743,6 +9347,58 @@
         221,
         0,
         171
+      ]
+    },
+    {
+      "name": "MarginAuthorityChangedV2",
+      "discriminator": [
+        64,
+        70,
+        28,
+        91,
+        96,
+        157,
+        199,
+        224
+      ]
+    },
+    {
+      "name": "MarginClaimsNettedV2",
+      "discriminator": [
+        210,
+        155,
+        171,
+        115,
+        156,
+        90,
+        164,
+        200
+      ]
+    },
+    {
+      "name": "MarginOrderChangedV2",
+      "discriminator": [
+        47,
+        171,
+        99,
+        223,
+        204,
+        38,
+        135,
+        66
+      ]
+    },
+    {
+      "name": "MarginRouteExecutedV2",
+      "discriminator": [
+        10,
+        252,
+        13,
+        34,
+        170,
+        212,
+        83,
+        91
       ]
     },
     {
@@ -11351,6 +12007,243 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarginAuthorityChangedV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "margin",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MarginAccountSnapshotV2"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarginClaimsNettedV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "margin",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MarginAccountSnapshotV2"
+              }
+            }
+          },
+          {
+            "name": "markets",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "GroupMarketSnapshotV2"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "cancelled_scaled",
+            "type": "i128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarginOrderChangedV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_state",
+            "type": {
+              "defined": {
+                "name": "GroupMarketSnapshotV2"
+              }
+            }
+          },
+          {
+            "name": "margin",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MarginAccountSnapshotV2"
+              }
+            }
+          },
+          {
+            "name": "other_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "other_market_state",
+            "type": {
+              "defined": {
+                "name": "GroupMarketSnapshotV2"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarginRouteExecutedV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_state",
+            "type": {
+              "defined": {
+                "name": "GroupMarketSnapshotV2"
+              }
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross_quote",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "order_id",
+            "type": "u64"
+          },
+          {
+            "name": "order_version",
+            "type": "u64"
+          },
+          {
+            "name": "root_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarginAccountSnapshotV2"
+                }
+              }
+            }
+          },
+          {
+            "name": "maker_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MakerRegistrationSnapshotV2"
+                }
+              }
+            }
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
+          },
+          {
+            "name": "other_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "other_market_state",
+            "type": {
+              "defined": {
+                "name": "GroupMarketSnapshotV2"
+              }
+            }
           }
         ]
       }
