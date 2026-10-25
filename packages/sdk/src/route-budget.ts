@@ -11,8 +11,8 @@ export function zeroPriorityFee(): Instruction {
   const ix = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 0n });
   return { programAddress: address(ix.programId.toBase58()), accounts: [], data: ix.data };
 }
-export function walletComputeBudget(instructions: Instruction[]): Instruction[] {
-  const limit = routeComputeBudget(), price = zeroPriorityFee(), seen = new Set<string>();
+export function walletComputeBudget(instructions: Instruction[], units: 400_000 | 600_000 | 700_000 | 1_200_000 = 400_000): Instruction[] {
+  const limit = units === 400_000 ? routeComputeBudget() : units === 600_000 ? groupRouteComputeBudget() : units === 700_000 ? groupTransferRouteComputeBudget() : resolutionComputeBudget(), price = zeroPriorityFee(), seen = new Set<string>();
   const equal = (a: Instruction, b: Instruction) => a.data?.length === b.data?.length && a.data?.every((v, i) => v === b.data![i]);
   const economic = instructions.filter(ix => {
     if (ix.programAddress !== limit.programAddress) return true;

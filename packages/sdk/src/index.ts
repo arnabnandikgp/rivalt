@@ -21,3 +21,5 @@ export * from './user-client.js';
 export * from './test-deployment.js';
 export * from './group-addresses.js';
 export * from './group-balance.js';
+export * from './group-snapshot.js';
+export * from './group-client.js';

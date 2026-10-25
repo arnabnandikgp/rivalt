@@ -60,8 +60,9 @@ Frozen root data is accompanied by the resolution ledger, not a spendable payout
 
 `localCashHeadroom` is only the account's previewed capacity. `withdrawableCash`
 remains null and `withdrawalStatus` requires a fresh complete-group certificate
-and simulation. Portfolio cash is never pooled implicitly. Direct user signing,
-API-disabled exits and immutable service recovery are remaining P21A work.
+and simulation. Portfolio cash is never pooled implicitly. The direct account client now shares immutable wallet signing with V1. Pinned
+executor recovery passes; direct RPC exit acceptance and full financial workers
+remain P21A work.
 
 ## Durable execution infrastructure
 
@@ -106,3 +107,29 @@ never new chain/PG acceptance. Full A26A still requires explicit worker budgets,
 deployment artifact binding, real process recovery, fresh independent financial
 audit and direct SDK cancellation/admissible exit with the API stopped. P21B owns
 the browser and measured contention workload. No full-day run is required.
+
+## Direct account client
+
+`GroupUserClient` requires a credential-free local deployment configuration with
+schema 2, the explicit qualified profile, genesis, group/domain/mint, initialization
+signature and exact initialization transaction hash. `readGroupSnapshot` authenticates
+registry, two markets, every root/portfolio, SPL mint/vault and safety identities.
+Every dependent RPC request repeats the group bytes; an intervening group mutation
+requires a retry. Finalized balances and confirmed execution previews stay labelled.
+Empty portfolios with no registered roots are not enumerated by this root snapshot;
+owner-selected creation/registration uses canonical indexed identities.
+
+Direct builders support explicit account registration, mode-specific deposits,
+market-bound order management, account delegates, flat claim netting and owner
+allocation/withdrawal. All signed actions still simulate before wallet review and
+reconcile the original signature/bytes. They neither synthesize a successful action
+nor replace an unresolved signature. Complete-group proof pages precede withdrawals
+and transfers in separate transactions. An expired exposed certificate cannot be
+reset under an unchanged sequence; a fresh market observation is needed. Flat
+cohorts retain the existing price-independent exit path with funding bounds checked.
+No local preview or positive unpaid claim is withdrawable cash authority.
+
+`bash ops/group-indexer-smoke.sh --direct-sdk` is the scoped direct-account RPC/WS/
+PostgreSQL check. It shuts down a real read API before SDK actions and deliberately
+expires the sources before cancellation/flat exit. WORKLOG records actual results;
+this account checkpoint does not cover route quoting, resolution workers or P21B.

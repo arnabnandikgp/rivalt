@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# P21A focused fresh group indexer/RPC/WS/PostgreSQL integration. Test assets only.
+# P21A focused fresh group service/RPC/WS/PostgreSQL integration. Test assets only.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
+case "${1:-indexer}" in
+  indexer) RIVALT_GROUP_CHECK=indexer; RIVALT_GROUP_DRIVER=tests/rpc-contract/group-indexer-rpc.ts ;;
+  --direct-sdk) RIVALT_GROUP_CHECK=direct; RIVALT_GROUP_DRIVER=tests/rpc-contract/group-direct-rpc.ts ;;
+  *) echo 'Expected indexer or --direct-sdk' >&2; exit 2 ;;
+esac
 test "$(surfpool --version)" = 'surfpool 1.6.1'
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18921}"
 export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18922}"
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
 export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
-export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/group-indexer-rpc/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/group-$RIVALT_GROUP_CHECK-rpc/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
 for component in clearing maker_a maker_b oracle_fixture; do test -f ".local/successor-p20/${component/clearing/clearing-cross-qualification}.so"; done
 export RIVALT_PG_PORT="${RIVALT_PG_PORT:-15442}"
@@ -36,5 +41,5 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/deployment-$key.json"
 done
 source ops/postgres.sh
-node --import tsx tests/rpc-contract/group-indexer-rpc.ts
-printf 'P21A indexer development evidence: %s\n' "$RIVALT_RUN_DIR"
+node --import tsx "$RIVALT_GROUP_DRIVER"
+printf 'P21A scoped group evidence: %s\n' "$RIVALT_RUN_DIR"

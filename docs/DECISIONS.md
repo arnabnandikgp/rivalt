@@ -484,3 +484,12 @@ measured compute declarations. Per-market maker/funding heartbeat and SOL budget
 identities are separate; the fixed local caps in P21A-INTERFACES fund infrastructure
 only and do not alter collateral, fee economics or external authorization. Actual
 process recovery and full service qualification remain evidence gates.
+
+D53 direct-client realization: share V1's immutable message/signature/fee recovery
+transport while binding schema-2 snapshots to the configured group and exact
+initialization transaction hash. Repeat group bytes across bounded account requests
+and reject mixed snapshots. Keep complete-group certificate pages separate from
+cash mutations because Solana promotes writability across a transaction. Preserve
+stale-source cancellation and already-authorized flat-cohort exits without changing
+source deadlines, funding, reservations or owner authority. Direct SDK checkpoints
+do not close A26A's financial workers or A26B's UI/contention gates.
