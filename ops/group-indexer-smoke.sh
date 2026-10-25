@@ -13,7 +13,8 @@ case "${1:-indexer}" in
   --recovery-services) RIVALT_GROUP_CHECK=recovery-services; RIVALT_GROUP_DRIVER=tests/rpc-contract/group-recovery-services-rpc.ts ;;
   --review-recovery) RIVALT_GROUP_CHECK=review-recovery; RIVALT_GROUP_DRIVER=tests/rpc-contract/group-review-rpc.ts ;;
   --browser) RIVALT_GROUP_CHECK=browser; RIVALT_GROUP_DRIVER=tests/browser/group-lifecycle.ts ;;
-  *) echo 'Expected indexer, --direct-sdk, --market-workers, --trading-services, --settlement-services, --risk-services, --recovery-services, --review-recovery or --browser' >&2; exit 2 ;;
+  --workload) RIVALT_GROUP_CHECK=workload; RIVALT_GROUP_DRIVER=tests/load/group-workload.ts ;;
+  *) echo 'Expected indexer, --direct-sdk, --market-workers, --trading-services, --settlement-services, --risk-services, --recovery-services, --review-recovery, --browser or --workload' >&2; exit 2 ;;
 esac
 test "$(surfpool --version)" = 'surfpool 1.6.1'
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18921}"
@@ -49,4 +50,4 @@ for component in clearing maker_a maker_b oracle_fixture; do
 done
 source ops/postgres.sh
 node --import tsx "$RIVALT_GROUP_DRIVER"
-printf 'P21A scoped group evidence: %s\n' "$RIVALT_RUN_DIR"
+printf 'Scoped group evidence: %s\n' "$RIVALT_RUN_DIR"

@@ -72,3 +72,38 @@ property of this browser check. Existing maker epochs/budgets remain unchanged.
 A build warning about bundle size is a measurement, not acceptance of UI latency.
 No new continuous 24-hour, devnet/funded, paid-service, hedge or external-review
 work is authorized. P15B/P16B remain Open and D42 remains Deferred.
+
+## Bounded workload profile
+
+`bash ops/group-indexer-smoke.sh --workload` creates a fresh local deployment and
+PostgreSQL database, uses the qualified P20 binaries and requires a clean revision.
+It declares 150 attempts at absolute two-second intervals over 300 seconds. Late
+scheduler offers and pending-account refusals stay in the offered denominator;
+rejected unsigned previews, failed signed transactions and finalized fills remain
+separate. Finality latency uses finalized originals only, with its count; p95/p99
+are nearest-rank samples. Closing inventory after the offered window is a separate
+drain population, never added to offered availability or throughput.
+
+Cross capital is 1,000,000 atoms and isolated BTC/ETH each 500,000. Real unsigned
+100-lot probes compare the same source/risk settings and equal combined capital;
+these are not additional fills or a correlation discount. Synthetic source updates
+run continuously, except ETH publication at seconds 50–85. The first signed workload
+original after second 100 receives a real accepted-send acknowledgement loss and
+executor SIGKILL/restart. BTC maker A stops at 125 and restarts at 205; ETH funding
+stops/restarts at 220/226 and indexer at 232/238. Recovery windows remain in their
+explicit fault populations; actual times and process identities are retained.
+
+The workload closes trader and internal maker inventory with real routes. It
+attempts one-atom exits while samplers still run, records every certification and
+refusal, then explicitly stops samplers/makers/publication for final drain if needed.
+A quiescent exit does not establish busy-group availability. Final originals and
+operator fees must reconcile with no unresolved signed effect, all inventory flat,
+retained account claims, actual token exits and fresh PostgreSQL reconstruction.
+The independent auditor recalculates per-fill maker notional, whole-account funding
+realization from observed endpoints, generations and fee/cash/token conservation.
+It does not reuse the SDK allocator or claim independent oracle-policy calibration.
+
+The browser checkpoint passed on `a0ed6de`: 25 finalized wallet originals, twelve
+checks, 101 WS observations, fresh 22-account replay and independent raw audit with
+six adverse mutations. WORKLOG records exact local paths and limitations; this
+checkpoint does not qualify the concurrent workload.
