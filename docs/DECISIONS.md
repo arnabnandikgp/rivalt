@@ -405,7 +405,7 @@ Normal for every relevant market on increases and credible bounds for reductions
 empty unrelated slots need no fresh price. No oracle deadline is relaxed.
 
 
-## D52 — whole-account safety realization (P20, in progress)
+## D52 — whole-account safety realization (P20)
 
 Extend the existing consenting-receiver liquidation candidate to both root modes,
 including all pending funding and surviving receiver reservations. Preserve
@@ -443,3 +443,15 @@ budget. Preserve 600,000 for standalone routes and 1,200,000 for source sampling
 and default pages. This changes a client resource declaration, not fees, margin,
 source safeguards or bounded account/order capacity. Final actual RPC measurements
 and qualification status belong in WORKLOG/evidence.
+
+D52 qualified release supersedes its temporary candidate-only wording above:
+[A25/G15](evidence/P20.md) passes on pinned core and focused maximum-book runs.
+`CROSS_TRADING_IMPLEMENTED` now reflects the explicit
+`cross-safety-qualification` feature; retain the historical name for reproducibility.
+The ordinary isolated successor, default and devnet profiles keep cross disabled.
+This preserves the existing isolated environment while P21 explicitly selects the
+qualified cross artifact for new local groups. Rebuilding the release marker with
+preserved code locations produces byte-identical clearing artifacts in all three
+profiles; no financial opcode changes accompany this promotion. Six scoped host
+identity/profile checks pass. This qualifies local engineering only, not P21,
+M7 completion or any external/funded gate.

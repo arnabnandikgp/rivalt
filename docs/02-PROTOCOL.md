@@ -19,8 +19,12 @@ maker setup are executable locally; both financial gates were false at its teste
 checkpoint. Their pure candidates alone do not establish liquidation/default readiness.
 [P18C safety](P18C-GROUP-SAFETY.md) qualifies complete-group safety and isolated
 activation in the explicit local profile on `b43261f`; see [A23C evidence](evidence/P18C.md).
-Cross remains hard-disabled. D50 preserves dormant cross cash access and complete-group
-loss ownership without granting cross trading authority.
+Cross remained hard-disabled at that checkpoint. D50 preserved dormant cross cash
+access and complete-group loss ownership without granting cross trading authority.
+[P20 safety](P20-CROSS-SAFETY.md) now qualifies explicit local cross activation
+under D52 and its own [A25/G15 evidence](evidence/P20.md). Default/devnet and the
+older isolated profile retain their gates; no V1 account or funded deployment is
+reinterpreted. P21 still owns integrated service/UI qualification.
 
 ## 1. State, units and invariants
 

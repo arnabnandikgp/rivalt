@@ -92,7 +92,10 @@ fn v2_mode_indices_and_maker_isolation_are_protocol_rules() {
             invalid.0, invalid.1, invalid.2, invalid.3, invalid.4
         ));
     }
-    assert!(!CROSS_TRADING_IMPLEMENTED);
+    assert_eq!(
+        CROSS_TRADING_IMPLEMENTED,
+        cfg!(feature = "cross-safety-qualification")
+    );
 }
 
 #[test]

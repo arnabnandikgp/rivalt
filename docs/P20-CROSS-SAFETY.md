@@ -1,8 +1,9 @@
 # P20 — whole-account liquidation and complete-group default
 
-In progress above verified P19 PR #28 (`c0b7898`). P19's core acceptance remains
-separate. Cross release stays disabled while safety candidates and their independent
-cases are implemented; no P20 deployment or A25 pass is claimed.
+[A25/G15 acceptance](evidence/P20.md) passes above verified P19 PR #28 (`c0b7898`).
+The explicit local cross profile is qualified; ordinary isolated/default/devnet
+profiles retain their gates. WORKLOG owns Review/integration status. P21 service,
+PostgreSQL, UI and contention qualification remains separate.
 
 ## Safety contract
 
@@ -26,30 +27,29 @@ cases are implemented; no P20 deployment or A25 pass is claimed.
   must use the complete root after cross activation. Frozen state remains immutable
   outside its explicit resolution transitions.
 
-## Acceptance still required
+## Acceptance boundary
 
-Recreate G05–G08/G12 with independent literal/Rational expectations against the real
-candidates and paginated ledger. Then qualify signed cross routes, netting, pending
-funding, TP/SL, transfers/withdrawal races, liquidation, mixed 64-member default,
-interruption/resumption and missing-price recovery over actual SBF and Surfpool
-RPC/WS. Recheck default/devnet rejection and measure full cross packet/CU/account
-bounds, preserving at least 20% CU headroom. P21 owns PostgreSQL/services/UI and
-fresh contention qualification. Prior P16A or P19 results do not close A25.
+Independent G05–G08/G12 candidates/ledger, signed cross lifecycle/default and
+fresh Surfpool RPC/WS acceptance now have their own [evidence](evidence/P20.md).
+Maximum-book/receiver transactions meet the measured 20% headroom requirement.
+Page state is restored across every host boundary; actual durable service-process
+restart, PostgreSQL replay, UI and concurrent contention remain P21's gates.
+Neither prior P16A nor P19 results substitute for this new qualification.
 
 P15B/P16B remain external Open gates, and 24-hour endurance remains Deferred.
 
-## Candidate implementation boundary
+## Qualified local implementation boundary
 
 The ordinary `successor-test-profile`, default and devnet builds still disable
-cross trading. `cross-safety-qualification` is a separate internal local feature
-for signed SBF testing of the now-implemented safety paths. Its explicitly named
-`clearing-cross-qualification.so` is not a release artifact; the build script
-restores the ordinary gated artifact in `target/deploy` even on failure. Only the
-P20 fresh local harness may load it. This is test execution before promotion, not
-an A25 pass or authorization for devnet/funded deployment.
+cross trading. `cross-safety-qualification` retains its historical feature name
+and selects the A25-qualified local cross profile. Its explicitly named
+`clearing-cross-qualification.so` is the byte-verified artifact for P20/P21 fresh
+local groups. The build script restores the ordinary isolated artifact in
+`target/deploy` even on failure. Cross launches must select their deployment
+configuration explicitly. No devnet or funded deployment is authorized.
 
 The authority-only `activate_cross_group_v2` entrypoint remains release-gated in
-ordinary builds. In the candidate it requires isolated mode, a current complete
+ordinary builds. In the qualified cross profile it requires isolated mode, a current complete
 group certificate, both markets Normal and an idle or resumed resolution. It
 materializes both pending funding prefixes without resetting their causal history,
 advances the group sequence and emits financial event kind 6. No account layout or

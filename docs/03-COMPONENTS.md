@@ -307,5 +307,5 @@ account context. Financial event kind 6 identifies explicit isolated-to-cross
 group promotion; serialized account/event layouts are unchanged. The shared
 safety handlers consume both markets, preserve both funding prefixes and apply
 whole-account reservations/health. Complete resolution recovers to isolated group
-mode before any explicit reactivation. [P20's candidate boundary](P20-CROSS-SAFETY.md)
+mode before any explicit reactivation. [P20's qualified local boundary](P20-CROSS-SAFETY.md)
 distinguishes internal signed qualification from the ordinary disabled release.

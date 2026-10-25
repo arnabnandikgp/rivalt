@@ -548,7 +548,10 @@ fn isolated_candidate_requires_test_profile_and_cross_stays_closed() {
         ISOLATED_TRADING_IMPLEMENTED,
         cfg!(feature = "successor-test-profile")
     );
-    assert!(!CROSS_TRADING_IMPLEMENTED);
+    assert_eq!(
+        CROSS_TRADING_IMPLEMENTED,
+        cfg!(feature = "cross-safety-qualification")
+    );
     assert_eq!(
         activated(&group()).is_ok(),
         cfg!(feature = "successor-test-profile")

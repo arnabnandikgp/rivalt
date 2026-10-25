@@ -3,7 +3,7 @@ Baseline R1 · initialized 20 October 2026
 
 **Current position:** P01–P14 and M1–M5b are Closed. The original phase stack, readability maintenance and [R030 devnet closeout PR #19](https://github.com/arnabnandikgp/rivalt/pull/19) are integrated into `main`. PR #19 merged at `67059fc99ca3b48cff4d89e9f97aa9c1c51538eb`; its tree exactly matches verified head `633892c`. Actual maker upgrades/joint approvals, corrected ownership checks, independent accounting and fresh PostgreSQL/HTTP verification close the remaining engineering follow-up. P15A maker kit/tooling and P16A engineering reliability are now Closed: PRs #20/#21 merged at `74fc2963341a5a4cfacb027fed7d51c071e72265` under D44, with both review findings resolved and scoped CI passing. M6 remains In progress because external P15B/P16B remain Open. Continuous 24-hour endurance stays Deferred under D42.
 
-**Successor work (R034):** The user authorizes the bounded isolated/cross proposal. P17 is Review on `phase/p17-margin-contract`: A22/G13 contract/layout verification passes on `5a4dc84602dc6b559e6de01aa6b6f4cbb5616e46`; [ready PR #23](https://github.com/arnabnandikgp/rivalt/pull/23) is published. P18A is Review above exact P17 head `20daf32`: [A23A custody acceptance](evidence/P18A.md) passes on `6389c3e`, including a fresh local deployment. P18B is Review in [ready PR #26](https://github.com/arnabnandikgp/rivalt/pull/26) above P18A `1d08944`: [A23B](evidence/P18B.md) passes on `286cb4e`; P18C is Review in [ready PR #27](https://github.com/arnabnandikgp/rivalt/pull/27) above #26: [A23C/G14](evidence/P18C.md) passes on clean `b43261f`, including full signed safety and fresh RPC/WS lifecycle. P19 is Review above #27: [A24/G15 core](evidence/P19.md) passes on clean `4274d28` in [ready PR #28](https://github.com/arnabnandikgp/rivalt/pull/28). P20 is In progress above exact #28 head `c0b7898`; P21 remains Open. Successor cross/service qualification remains pending. No migration or cross activation is claimed. P15B/P16B stay Open; 24-hour endurance stays Deferred.
+**Successor work (R034):** The user authorizes the bounded isolated/cross proposal. P17 is Review on `phase/p17-margin-contract`: A22/G13 contract/layout verification passes on `5a4dc84602dc6b559e6de01aa6b6f4cbb5616e46`; [ready PR #23](https://github.com/arnabnandikgp/rivalt/pull/23) is published. P18A is Review above exact P17 head `20daf32`: [A23A custody acceptance](evidence/P18A.md) passes on `6389c3e`, including a fresh local deployment. P18B is Review in [ready PR #26](https://github.com/arnabnandikgp/rivalt/pull/26) above P18A `1d08944`: [A23B](evidence/P18B.md) passes on `286cb4e`; P18C is Review in [ready PR #27](https://github.com/arnabnandikgp/rivalt/pull/27) above #26: [A23C/G14](evidence/P18C.md) passes on clean `b43261f`, including full signed safety and fresh RPC/WS lifecycle. P19 is Review above #27: [A24/G15 core](evidence/P19.md) passes on clean `4274d28` in [ready PR #28](https://github.com/arnabnandikgp/rivalt/pull/28). P20 is Review above exact #28 head `c0b7898`: [A25/G15](evidence/P20.md) passes on `3c7ab4e` plus the focused `aadb69f` budget flow; publication is pending. P21 remains Open. Local cross safety/activation is qualified; successor service/UI qualification remains pending. No migration, devnet or funded cross deployment is claimed. P15B/P16B stay Open; 24-hour endurance stays Deferred.
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
@@ -32,7 +32,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5a | P11–P12 | Complete local engineering evidence | Closed | [P11 A01–A16](evidence/P11.md) and [P12 revised A17](evidence/P12.md) verified; 1,249/1,249 submitted trades, 71.19% normal offered availability, affected recoveries, actual exit and 12,454-transaction fresh PostgreSQL replay; merged PR #14 records the indexer pause during separate history generation; integrated at `2bc298e`; 24-hour endurance deferred to P16 under D35 |
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
-| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | R034: A22/G13 contract/layout checks pass on `5a4dc84`, five scoped tests and 190 local links; P17/P18A/P18B Review; A23A custody passes on `6389c3e` with 136 signed SVM / 51 finalized RPC scenarios; A23B passes on `286cb4e` with 154 signed SVM scenarios; R037 A23C/G14 passes on clean `b43261f`: 1,132 signed SVM / 148 finalized RPC scenarios, both-market lifecycle, complete default/recovery and independent audits; P18C Review; R039 A24/G15 core passes on clean `4274d28`: 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC, independent audit/parity; P19 Review in #28; P20 In progress (clean 1,224 SVM / 1,221 finalized RPC core checks pass; maximum-book budget gate pending), cross/service gates pending |
+| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | R034: A22/G13 contract/layout checks pass on `5a4dc84`, five scoped tests and 190 local links; P17/P18A/P18B Review; A23A custody passes on `6389c3e` with 136 signed SVM / 51 finalized RPC scenarios; A23B passes on `286cb4e` with 154 signed SVM scenarios; R037 A23C/G14 passes on clean `b43261f`: 1,132 signed SVM / 148 finalized RPC scenarios, both-market lifecycle, complete default/recovery and independent audits; P18C Review; R039 A24/G15 core passes on clean `4274d28`: 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC, independent audit/parity; P19 Review in #28; P20 Review: clean 1,224 SVM / 1,221 finalized RPC core plus 215 SVM / 212 finalized RPC maximum-book acceptance; explicit local cross profile qualified; P21 service/UI gates pending |
 
 ## Phase overview
 
@@ -61,7 +61,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P18B | Two-market isolated sources/makers/routes/orders | Review | [PR #26](https://github.com/arnabnandikgp/rivalt/pull/26), tested `286cb4e`, above P18A `1d08944` | [A23B](evidence/P18B.md): 17 focused Rust tests, ABI parity and 154 signed scenarios; isolated activation subsequently qualified in P18C; integration pending |
 | M7 | P18C | Isolated group settlement/liquidation/default and activation | Review | [PR #27](https://github.com/arnabnandikgp/rivalt/pull/27), tested `b43261f`; active-route extension `298f446`, above P18B `a912ebb` / #26 | [A23C/G14](evidence/P18C.md): 1,132 signed SVM scenarios, two complete 64-member audits, 148 finalized RPC / 81 expected WS outcomes; cross remains disabled |
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
-| M7 | P20 | Cross liquidation/default and qualified activation | In progress | `phase/p20-cross-safety`, above exact P19 #28 `c0b7898` | R040: clean 1,224 SVM / 1,221 finalized RPC and 820/820 WS outcomes pass on `3c7ab4e`; independent mixed-cohort audits; separate maximum-book budget qualification pending, ordinary release unchanged |
+| M7 | P20 | Cross liquidation/default and qualified activation | Review | `phase/p20-cross-safety`, tested `3c7ab4e` core / `aadb69f` budgets, above P19 #28 `c0b7898`; publication pending | [A25/G15](evidence/P20.md): 1,224 SVM / 1,221 finalized RPC + 215 SVM / 212 finalized RPC maximum-book cases; 820/820 and 95/95 WS; byte-identical qualified local profile; integration pending |
 | M7 | P21A | Group SDK/indexer/API and durable services | Open | — | P20; A26A/G16 interfaces |
 | M7 | P21B | UI/operations and fresh successor qualification | Open | — | P21A; A26B/G16/M7 exit |
 
@@ -74,7 +74,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Verification: original 12 signed checks on `b95b970` establish old-hash rejection/joint approval/account preservation; the independent auditor rejects their test config domain. Eight corrected ownership checks on clean `a1c793c` pass with the stored market domain; no repeated upgrade/approval. Independent raw-byte continuation and five adverse mutations pass. Fresh PostgreSQL 18.6 reconstructs 75 transactions/62 events, retains both rejected upgrade attempts without events, has zero unresolved jobs and serves the exact approved hashes over HTTP. Vault/allocated collateral remain 1,000,000,470 atoms.
 - Storage: original raw evidence remains local/ignored. R030 writes separate rollout, corrected-ownership and indexer directories; no archive/upload or raw JSON enters Git.
-- Exact next action: implement and independently verify P20 whole-account liquidation and mixed-cohort default above exact P19 `c0b7898`; cross release stays disabled until qualification. No external action is authorized.
+- Exact next action: publish the accepted P20 ready above #28, then implement P21A group-aware SDK/indexer/API and durable services on its exact head. No external action is authorized.
 - Deferred gates: P15B/P16B independent maker/source/review, funded-risk calibration and explicit pilot authorization. Continuous 24-hour endurance remains Deferred under D42 and is not a current P16A requirement. No funded readiness or independent review is claimed.
 
 ## Blocker register
@@ -1040,3 +1040,33 @@ focused maximum-book RPC budget check and recorded release promotion. No
 PG/services/UI/devnet deployment, endurance or external gate is claimed. Exact
 next action: pin the focused budget change, run its SVM/RPC checks, then promote
 the byte-verified local artifact and publish P20 ready above #28.
+
+
+R040 focused budget acceptance: clean `aadb69f478625c26af4e33313845fbd0df99479f`
+passes 215 SVM outcomes (209 success / 6 rejection) at
+`.local/cross-budget/20261025T085049170Z-8610`, and 212 independently finalized RPC
+outcomes (209 success / 3 rejection) at
+`.local/cross-budget-rpc/20261025T085050Z-8674`. All 95 expected WS outcomes arrive;
+five account/79-event legacy parity and independent raw conservation pass. Both
+run identities are clean and unchanged. Actual RPC maximum-book transfer/route is
+489,126/700,000 CU, 1,154 bytes/22 accounts; full-book standalone reduction is
+417,604/600,000 CU, 1,037 bytes/20 accounts; two-market receiver liquidation with
+four remaining orders is 83,908/400,000 CU, 589 bytes/11 accounts. All meet 20%
+headroom. Scenario network fees are 1,820,000 local lamports excluding deployment.
+
+R040 release qualification: promote the release marker only for the same explicit
+local `cross-safety-qualification` feature, preserving the older isolated/default/
+devnet gates. No general-profile cross launch or migration is introduced. The first
+comparison detected different binaries after formatting moved diagnostic code
+locations; retain `promotion-parity.json` and those logs. Preserve the existing
+locations and rebuild: `promotion-verified-parity.json` now confirms byte identity
+for all three clearing profiles, including qualified hash `dce212e4...b28a7`. Six
+focused identity/profile checks also pass. No full financial rerun is needed for
+byte-identical artifacts. [P20 evidence](evidence/P20.md) records exact sources,
+outcomes, hashes, scopes and remaining service/PG/UI/contention limits.
+
+Both tables move P20 to Review; M7 remains In progress, P21A/B Open, P15B/P16B
+external Open and 24-hour endurance Deferred. PR publication/integration is still
+pending at this checkpoint. No unrelated full suite, new devnet/funded deployment
+or external review is claimed. Exact next action: commit the qualification record,
+publish P20 ready above #28 through gh stack, then begin P21A on that exact head.
