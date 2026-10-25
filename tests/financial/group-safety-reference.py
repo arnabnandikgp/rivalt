@@ -168,6 +168,7 @@ def default_audit(states,keys,label,*,count=64,prices=(10_000,40_000)):
     frozen,complete=states[f'frozen-{label}'],states[f'complete-{label}']
     header,_=resolution(frozen['accounts'][keys['resolution']]);finished,rows=resolution(complete['accounts'][keys['resolution']])
     assert header['stage']==2 and finished['stage']==12 and header['count']==finished['count']==count
+    assert len(rows)==len(frozen['roots'])==len(complete['roots'])==count
     assert header['prices']==list(prices) and header['funding']==[market['funding'] for market in frozen['markets']]
     assert header['registry_hash']==hashlib.sha256(frozen['registry'][48:48+count*32]).digest()
     assert complete['members']==frozen['members']

@@ -22,7 +22,8 @@ def audit(summary,captures):
     assert valued['funding']==waiting['funding'] and valued['epoch']==waiting['epoch']
     result=reference.default_audit(states,keys,'emergency',count=7,prices=(60_000,30_000))
     before,after=states['resumed-emergency'],states['emergency-exit']
-    assert before['group'][205]==after['group'][205]==1
+    # 204 is market count; three u64 epochs/sequence follow before mode at 229.
+    assert before['group'][229]==after['group'][229]==1
     for key in ['cash','vault']:assert after['pools'][key]==before['pools'][key]-2
     for key in ['pool','insurance','fees']:assert after['pools'][key]==before['pools'][key]
     assert reference.integer(after['accounts'][keys['token']],64)==reference.integer(before['accounts'][keys['token']],64)+2
@@ -35,7 +36,8 @@ if __name__=='__main__':
     directory=Path(sys.argv[1]);summary=json.loads((directory/'summary.json').read_text());captures=json.loads((directory/'captures.json').read_text())
     result=audit(summary,captures);keys=summary['keys']
     changes=[('waiting-unchanged',keys['cross'],113),('frozen-emergency',keys['resolution'],87),
-      ('complete-emergency',keys['resolution'],478),('emergency-exit',keys['cross'],113),('emergency-exit',keys['token'],64)]
+      ('complete-emergency',keys['resolution'],478),('emergency-exit',keys['cross'],113),
+      ('emergency-exit',keys['token'],64),('resumed-emergency',keys['group'],229)]
     for label,key,offset in changes:
         altered=copy.deepcopy(captures);raw=bytearray(base64.b64decode(altered[label][key]));raw[offset]^=1;altered[label][key]=base64.b64encode(raw).decode()
         try:audit(summary,altered)

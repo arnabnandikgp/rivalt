@@ -62,7 +62,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P18C | Isolated group settlement/liquidation/default and activation | Review | [PR #27](https://github.com/arnabnandikgp/rivalt/pull/27), tested `b43261f`; active-route extension `298f446`, above P18B `a912ebb` / #26 | [A23C/G14](evidence/P18C.md): 1,132 signed SVM scenarios, two complete 64-member audits, 148 finalized RPC / 81 expected WS outcomes; cross remains disabled |
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
 | M7 | P20 | Cross liquidation/default and qualified activation | Review | [PR #29](https://github.com/arnabnandikgp/rivalt/pull/29), published `459c84c`, tested `3c7ab4e` core / `aadb69f` budgets, above P19 #28 `c0b7898` | [A25/G15](evidence/P20.md): 1,224 SVM / 1,221 finalized RPC + 215 SVM / 212 finalized RPC maximum-book cases; 820/820 and 95/95 WS; byte-identical qualified local profile; integration pending |
-| M7 | P21A | Group SDK/indexer/API and durable services | In progress | `phase/p21a-group-services`, exact P20 #29 `459c84c`; no PR yet | R043: ff34275 pinned execution/HTTP/PostgreSQL recovery passes; fed5f55 direct SDK passes 20 signed actions/API-stopped stale cancel and flat funded exit; fbc70b9 maker/funding processes pass 24 original transactions/replay; 9093e88 whole-account routing unit checkpoint passes; 345ddc5 signed trading/orders pass (7 wallet transactions + 1 keeper fill), exact audit/fresh replay; 4fe5ed6 mixed-mode settlement passes 12 original transactions/funding/restart/fraction audit/fresh replay; risk/default worker passes scoped checks; 2767cdd risk services pass 173 original transactions, 64-member default/restart/audit and 134-account fresh replay; artifact binding passes 15 focused checks; 32940f9 actual artifact RPC/cache checks pass; recovery harness log-start race corrected, full continuation pending |
+| M7 | P21A | Group SDK/indexer/API and durable services | In progress | `phase/p21a-group-services`, exact P20 #29 `459c84c`; no PR yet | R043: ff34275 pinned execution/HTTP/PostgreSQL recovery passes; fed5f55 direct SDK passes 20 signed actions/API-stopped stale cancel and flat funded exit; fbc70b9 maker/funding processes pass 24 original transactions/replay; 9093e88 whole-account routing unit checkpoint passes; 345ddc5 signed trading/orders pass (7 wallet transactions + 1 keeper fill), exact audit/fresh replay; 4fe5ed6 mixed-mode settlement passes 12 original transactions/funding/restart/fraction audit/fresh replay; risk/default worker passes scoped checks; 2767cdd risk services pass 173 original transactions, 64-member default/restart/audit and 134-account fresh replay; artifact binding passes 15 focused checks; 882f832 actual artifact/recovery/exits and fresh replay complete; final independent auditor correction pending pin |
 | M7 | P21B | UI/operations and fresh successor qualification | Open | — | P21A; A26B/G16/M7 exit |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
@@ -1342,3 +1342,30 @@ creates it (ENOENT); no worker recovery/default/exit pass is claimed. Create the
 owned log synchronously before polling it. No service/program/risk change. Both
 tables retain In progress; exact next action is pin this harness correction and
 rerun the still-unexercised recovery continuation.
+
+R049 second pinned continuation: clean, unchanged
+`882f8328532309076d46468918d57e4f88d9d9ba` at
+`.local/group-recovery-services-rpc/20261025T163703Z-80883` (log
+`.local/p21a-recovery-pinned-2.log`) completes all real financial/service checks:
+176 fixture outcomes, 25 original risk transactions (one valuation, 20 pages, four
+completed recovery checks), four original SDK proof/withdrawal transactions,
+AwaitValuation SIGKILL/restart (81589 → 81600), unchanged partial-price frozen state,
+actual stopped API, stale post-resolution exits, 31 WS observations and exact fresh
+PostgreSQL replay. Both prices pin atomically; worker never resumes, and explicit
+authority returns mode 1. Artifact cold reads are eight headers then four binaries;
+warm checks read only eight headers. Wrong authority/hash fail against actual RPC.
+
+The command exits at its final independent auditor: its mode assertion reads
+offset 205 (terms epoch), rather than layout offset 229. The generated decoder
+and live transaction assertion already verify mode 1; fix the independent raw
+offset, add a deliberate mode-byte corruption, and require the complete exact
+resolution row count. The corrected auditor passes all retained fresh captures
+and six corruptions: 222 atoms collected/paid, no insurance or impairment, zero
+rounding, two atoms withdrawn, ending funded cash 2,002,999,906 and vault
+2,002,999,998. Risk fees are 125,000 lamports, wallet fees 20,000, zero reservations;
+maximum service transaction 226,821 CU / 659 bytes, wallet 88,362 CU / 686 bytes.
+The unchanged R048 64-member auditor also passes with its six corruptions. These
+are auditor corrections/rechecks, not another live run or an unqualified claim
+that the original command exited successfully. No runtime needs redeployment.
+Exact next action: pin the auditor correction, rerun only these independent byte
+audits, then close A26A coverage and publish P21A ready above #29.
