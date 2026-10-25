@@ -338,3 +338,24 @@ WORKLOG; the choice of parameters alone closes no gate.
 D49 verification: [A23B](evidence/P18B.md) passes on `286cb4e` with actual signed
 source/maker setup and compiled gate rejection. This verifies G14 trading
 primitives only; G14 closes after P18C safety and activated lifecycle acceptance.
+
+## D50 — successor isolated safety lifecycle and dormant cross cash
+
+P18C retains the D45–D49 economics and resolves the ordinary lifecycle detail that
+schema-2 child zero can already exist and hold cash before cross activation.
+Include these dormant cross roots in complete-group certification/default and
+permit explicit owner cash allocation/withdrawal after isolated activation. Reject
+any exposure, claim, active order/protection or delegate on them until their own
+phase permits it. Activating isolated mode must not lock their previously deposited
+cash or grant cross trading authority.
+
+Keep bounded source qualification at activation and resume; reset held funding so
+no custody/frozen interval is charged. Registration and authority pause/surplus
+classification work in unfrozen isolated mode; frozen default blocks them. A pause
+does not block credible insolvency or qualified emergency default. Existing T
+moves to I only via an explicit authority instruction. Actual SPL donations plus
+surplus classification remain the insurance funding route. Permissionless order
+cleanup requires a real state/reserve change; other order changes retain owner
+authority. None of these choices supersedes fees, positive-unpaid-credit exclusion,
+complete-group loss ownership or external P15B/P16B gates. See
+[P18C](P18C-GROUP-SAFETY.md). A23C remains pending until recorded acceptance.

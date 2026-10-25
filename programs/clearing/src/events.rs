@@ -291,7 +291,7 @@ pub struct GroupCustodyChangedV2 {
     pub sequence: u64,
     pub slot: u64,
     /// 0 group, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdraw,
-    /// 6 internal transfer, 7 custody pause, 8 unsolicited surplus to insurance.
+    /// 6 internal transfer, 7 unfrozen pause, 8 unsolicited surplus to insurance, 9 explicit fee allocation.
     pub kind: u8,
     pub actor: Pubkey,
     pub subject: Pubkey,
@@ -514,4 +514,70 @@ impl From<&crate::state::v2::MakerRegistrationV2> for MakerRegistrationSnapshotV
             bump: state.bump,
         }
     }
+}
+
+#[event]
+pub struct GroupSafetyChangedV2 {
+    pub group: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub mode: u8,
+    pub paused: bool,
+    pub terms_epoch: u64,
+    pub config_epoch: u64,
+    /// 0 activate, 1 collect, 2 pay, 3 deposit, 4 withdraw, 5 transfer.
+    pub kind: u8,
+    pub amount: u64,
+    pub roots: Vec<MarginAccountSnapshotV2>,
+    pub markets: [GroupMarketSnapshotV2; 2],
+    pub total_cash: u64,
+    pub settlement: u64,
+    pub insurance: u64,
+    pub fees: u64,
+    pub allocated_vault: u64,
+    pub actual_vault: u64,
+}
+
+#[event]
+pub struct GroupLiquidationV2 {
+    pub group: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market_index: u8,
+    pub lots: u64,
+    pub price: u64,
+    pub fee: u64,
+    pub deficit_before: i128,
+    pub deficit_after: i128,
+    pub target: MarginAccountSnapshotV2,
+    pub receiver: MarginAccountSnapshotV2,
+    pub markets: [GroupMarketSnapshotV2; 2],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct GroupResolutionUpdateV2 {
+    pub id: u16,
+    pub row: crate::state::v2::GroupResolutionRowV2,
+}
+
+#[event]
+pub struct GroupResolutionProgressV2 {
+    pub group: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub kind: u8,
+    pub mode: u8,
+    pub paused: bool,
+    pub terms_epoch: u64,
+    pub config_epoch: u64,
+    pub markets: [GroupMarketSnapshotV2; 2],
+    pub header: crate::state::v2::GroupResolutionHeaderV2,
+    pub rows: Vec<GroupResolutionUpdateV2>,
+    pub roots: Vec<MarginAccountSnapshotV2>,
+    pub total_cash: u64,
+    pub settlement: u64,
+    pub insurance: u64,
+    pub fees: u64,
+    pub allocated_vault: u64,
+    pub actual_vault: u64,
 }

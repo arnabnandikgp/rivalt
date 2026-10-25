@@ -11,6 +11,8 @@ export * from "./capital.js";
 export * from "./classifyGroupSurplusV2Vault.js";
 export * from "./group.js";
 export * from "./groupBinding.js";
+export * from "./groupExitGuard.js";
+export * from "./groupResolution.js";
 export * from "./guard.js";
 export * from "./initializeGroupV2Registry.js";
 export * from "./margin.js";

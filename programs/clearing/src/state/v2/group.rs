@@ -34,6 +34,7 @@ pub struct GroupRegistryV2 {
     pub group: Pubkey,
     pub count: u16,
     #[max_len(64)]
+    #[borsh(deserialize_with = "deserialize_cohort")]
     pub members: Vec<Pubkey>,
     pub bump: u8,
 }

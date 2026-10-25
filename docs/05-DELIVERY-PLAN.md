@@ -396,6 +396,8 @@ on `286cb4e`; integration remains tracked in WORKLOG.
 
 ### P18C — Isolated group safety and activation
 
+Current implementation: [P18C safety](P18C-GROUP-SAFETY.md), D50. In progress; A23C is pending.
+
 **Deliverable:** Group collection/payment/exit proofs, single-market-position
 funded liquidation and complete two-market group default across isolated roots.
 Only after safety acceptance, activate isolated trading in the fresh local profile.

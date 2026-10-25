@@ -33,3 +33,11 @@ export function resolutionComputeBudget(): Instruction {
   const ix=ComputeBudgetProgram.setComputeUnitLimit({units:1_200_000});
   return {programAddress:address(ix.programId.toBase58()),accounts:[],data:ix.data};
 }
+
+/** P18C candidate envelope for two authenticated V2 maker hashes and root events.
+ * Final measured acceptance, not this declared limit, establishes headroom. */
+export const GROUP_ROUTE_COMPUTE_UNITS = 600_000;
+export function groupRouteComputeBudget(): Instruction {
+  const ix = ComputeBudgetProgram.setComputeUnitLimit({ units: GROUP_ROUTE_COMPUTE_UNITS });
+  return { programAddress: address(ix.programId.toBase58()), accounts: [], data: ix.data };
+}

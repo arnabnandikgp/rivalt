@@ -163,3 +163,34 @@ pub(crate) use group_trading::routes::{
     __cpi_client_accounts_execute_group_route, __cpi_client_accounts_manage_group_order,
 };
 pub use group_trading::routes::{ExecuteGroupRoute, ManageGroupOrder};
+
+pub mod group_safety;
+pub(crate) use group_safety::resolution::{
+    __client_accounts_advance_group_resolution, __client_accounts_freeze_group,
+    __client_accounts_recover_group_resolution,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use group_safety::resolution::{
+    __cpi_client_accounts_advance_group_resolution, __cpi_client_accounts_freeze_group,
+    __cpi_client_accounts_recover_group_resolution,
+};
+pub use group_safety::resolution::{AdvanceGroupResolution, FreezeGroup, RecoverGroupResolution};
+pub(crate) use group_safety::risk::__client_accounts_liquidate_group;
+#[cfg(feature = "cpi")]
+pub(crate) use group_safety::risk::__cpi_client_accounts_liquidate_group;
+pub use group_safety::risk::LiquidateGroup;
+pub(crate) use group_safety::settlement::{
+    __client_accounts_activate_isolated_group, __client_accounts_change_group_claim,
+    __client_accounts_check_group_exit, __client_accounts_group_trading_cash,
+    __client_accounts_initialize_group_safety, __client_accounts_transfer_trading_cash,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use group_safety::settlement::{
+    __cpi_client_accounts_activate_isolated_group, __cpi_client_accounts_change_group_claim,
+    __cpi_client_accounts_check_group_exit, __cpi_client_accounts_group_trading_cash,
+    __cpi_client_accounts_initialize_group_safety, __cpi_client_accounts_transfer_trading_cash,
+};
+pub use group_safety::settlement::{
+    ActivateIsolatedGroup, ChangeGroupClaim, CheckGroupExit, GroupTradingCash,
+    InitializeGroupSafety, TransferTradingCash,
+};

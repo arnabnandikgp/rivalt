@@ -5,7 +5,7 @@ The following describes V1. [P17](P17-MARGIN-CONTRACT.md) audits these actual
 interfaces and defines the additive schema-2 group/portfolio/margin layout.
 `programs/clearing/src/state/v2/` contains its layout contract. [P18A custody](P18A-GROUP-CUSTODY.md)
 adds separate group/portfolio/root instructions and generated codecs behind the
-explicit successor local profile; trading remains disabled. P18B–P21 add financial
+explicit successor local profile; P18A itself grants no trading activation. P18B–P21 add financial
 instructions and group-aware services without mixing V1 history or granting maker
 CPI new authority. WORKLOG records actual acceptance.
 
@@ -15,6 +15,18 @@ snapshots have separate event payload types without account discriminators.
 The Codama generator explicitly retains V1's flattened instruction arguments
 when a request type becomes shared; new contexts use distinct PDA names.
 V2 PostgreSQL/API/workers/UI remain P21 deliverables.
+
+[P18C](P18C-GROUP-SAFETY.md) separates `group_safety/settlement`, `risk` and
+`resolution/{mod,ledger}`. The cash context nests its unchanged identity/token
+constraints to fit the SBF frame while retaining all market/guard PDA checks.
+Bounded cohort deserialization preserves the same Vec wire layout while allocating
+once. V2 event CPI retains Anchor's exact tag/discriminator/authority and serializes
+into one bounded buffer; legacy emission is unchanged. The generator now binds
+public PDA helper names to seed schemas, preventing new alphabetical instruction
+names from renaming the published V1/V2 helpers. New safety instructions and
+resolution account/events remain separately typed. No new PostgreSQL projection
+or operational service deployment is claimed by these program primitives.
+
 
 ## Program-level boundary
 

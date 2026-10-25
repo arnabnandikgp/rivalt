@@ -35,6 +35,105 @@ pub struct Risk {
 }
 
 impl Margin {
+    pub fn claims(
+        &self,
+        prices: [u64; MARKETS],
+        funding: [i128; MARKETS],
+    ) -> Result<[i128; MARKETS]> {
+        self.validate()?;
+        let mut claims = [0; MARKETS];
+        for market in 0..MARKETS {
+            if self.allows(market) {
+                claims[market] = self
+                    .selected(market)?
+                    .unpaid(prices[market], funding[market])?;
+            }
+        }
+        Ok(claims)
+    }
+
+    /// Economic solvency uses common claims, including positive claims. This is
+    /// deliberately different from conservative admission equity.
+    pub fn net_equity(&self, prices: [u64; MARKETS], funding: [i128; MARKETS]) -> Result<i128> {
+        self.claims(prices, funding)?
+            .into_iter()
+            .try_fold(scaled(self.cash)?, add)
+    }
+
+    pub fn deficit(&self, risks: [Risk; MARKETS]) -> Result<i128> {
+        Ok(sub(
+            scaled(self.requirement(risks, MM_BPS)?)?,
+            self.risk_equity(risks)?,
+        )?
+        .max(0))
+    }
+
+    pub fn withdraw(&self, amount: u64, risks: [Risk; MARKETS]) -> Result<Self> {
+        if amount == 0 {
+            return Err(Error::Bounds);
+        }
+        let mut next = self.accrued(risks.map(|risk| risk.funding))?;
+        next.cash = cash_sub(next.cash, amount)?;
+        next.admissible(risks)?;
+        Ok(next)
+    }
+
+    /// Explicit whole-atom movement between a market claim and funded cash.
+    /// The caller supplies a complete-group certificate before paying a gain.
+    pub fn settle_claim(
+        &self,
+        pools: Pools,
+        market: usize,
+        amount: u64,
+        prices: [u64; MARKETS],
+        risks: [Risk; MARKETS],
+        gain: bool,
+    ) -> Result<(Self, Pools)> {
+        if !self.allows(market) {
+            return Err(Error::Bounds);
+        }
+        let accrued = self.accrued(risks.map(|risk| risk.funding))?;
+        let change = if gain { settle } else { collect };
+        let (selected, pools) = change(
+            accrued.selected(market)?,
+            pools,
+            amount,
+            prices[market],
+            risks[market].funding,
+        )?;
+        let next = accrued.with_selected(market, selected)?;
+        if gain {
+            next.admissible(risks)?;
+        }
+        Ok((next, pools))
+    }
+
+    /// Reduce-only execution below IM requires a strict decrease in absolute
+    /// selected exposure AND whole-account MM deficit after fees.
+    pub fn admit_reduction(
+        &self,
+        next: &Self,
+        market: usize,
+        risks: [Risk; MARKETS],
+    ) -> Result<()> {
+        if self.id != next.id || self.mode != next.mode || !self.allows(market) {
+            return Err(Error::Invariant);
+        }
+        if next.admissible(risks).is_ok() {
+            return Ok(());
+        }
+        let before = self.positions[market].lots;
+        let after = next.positions[market].lots;
+        if before == 0
+            || after.unsigned_abs() >= before.unsigned_abs()
+            || (after != 0 && before.signum() != after.signum())
+            || next.deficit(risks)? >= self.deficit(risks)?
+        {
+            return Err(Error::Health);
+        }
+        Ok(())
+    }
+
     pub fn allows(&self, market: usize) -> bool {
         market < MARKETS
             && match self.mode {
@@ -141,6 +240,129 @@ impl Margin {
         }
         Ok(())
     }
+}
+
+/// A bounded, consenting receiver takes one selected position. Both cash balances
+/// are unique root balances, and all markets participate in health after the fee.
+/// Order cancellation/reservation refresh and receiver admission belong to the
+/// caller, which must commit all candidates atomically.
+pub fn liquidation_candidate(
+    target: Margin,
+    receiver: Margin,
+    market: usize,
+    lots: u64,
+    price: u64,
+    reference: u64,
+    risks: [Risk; MARKETS],
+) -> Result<(Margin, Margin, u64)> {
+    target.validate()?;
+    receiver.validate()?;
+    if !target.allows(market)
+        || !receiver.allows(market)
+        || target.id == receiver.id
+        || lots == 0
+        || lots > liquidation::MAX_LIQUIDATION_LOTS
+        || lots > target.positions[market].lots.unsigned_abs()
+        || reference == 0
+        || reference > MAX_PRICE
+        || price == 0
+        || price > MAX_PRICE
+        || u128::from(price) * 10 < u128::from(reference) * 9
+        || u128::from(price) * 10 > u128::from(reference) * 11
+    {
+        return Err(Error::Bounds);
+    }
+    let before = target.deficit(risks)?;
+    if before == 0 {
+        return Err(Error::Health);
+    }
+    let funding = risks.map(|risk| risk.funding);
+    let target = target.accrued(funding)?;
+    let receiver = receiver.accrued(funding)?;
+    let notional = lots.checked_mul(price).ok_or(Error::Overflow)?;
+    let (target_position, receiver_position) = if target.positions[market].lots > 0 {
+        let (receiver_position, target_position) = fill(
+            receiver.selected(market)?,
+            target.selected(market)?,
+            lots,
+            notional,
+            funding[market],
+        )?;
+        (target_position, receiver_position)
+    } else {
+        fill(
+            target.selected(market)?,
+            receiver.selected(market)?,
+            lots,
+            notional,
+            funding[market],
+        )?
+    };
+    let mut next_target = target.with_selected(market, target_position)?;
+    let mut next_receiver = receiver.with_selected(market, receiver_position)?;
+    let fee = notional
+        .div_ceil(2_000)
+        .min(liquidation::MAX_LIQUIDATION_FEE)
+        .min(next_target.cash);
+    next_target.cash = cash_sub(next_target.cash, fee)?;
+    next_receiver.cash = cash_add(next_receiver.cash, fee)?;
+    if next_target.positions[market].lots.unsigned_abs()
+        >= target.positions[market].lots.unsigned_abs()
+        || next_target.deficit(risks)? >= before
+    {
+        return Err(Error::Health);
+    }
+    Ok((next_target, next_receiver, fee))
+}
+
+/// Complete-cohort invariants; callers cannot establish solvency by selecting a
+/// profitable subset. Claim aggregation never stores a derived claim as ordinary v.
+pub fn reconcile(
+    cohort: &[Margin],
+    pools: Pools,
+    prices: [u64; MARKETS],
+    funding: [i128; MARKETS],
+) -> Result<()> {
+    if cohort.is_empty()
+        || cohort.len() > MAX_PARTICIPANTS
+        || [pools.vault, pools.settlement, pools.insurance, pools.fees]
+            .iter()
+            .any(|value| *value > MAX_CASH)
+    {
+        return Err(Error::Bounds);
+    }
+    let mut cash = 0;
+    let mut lots = [0i128; MARKETS];
+    let mut gross = [0u64; MARKETS];
+    let mut claims = 0;
+    for (index, root) in cohort.iter().enumerate() {
+        root.validate()?;
+        if cohort[..index].iter().any(|other| other.id == root.id) {
+            return Err(Error::Invariant);
+        }
+        cash = cash_add(cash, root.cash)?;
+        for market in 0..MARKETS {
+            lots[market] = add(lots[market], i128::from(root.positions[market].lots))?;
+            gross[market] = gross[market]
+                .checked_add(root.positions[market].lots.unsigned_abs())
+                .ok_or(Error::Overflow)?;
+        }
+        claims = root
+            .claims(prices, funding)?
+            .into_iter()
+            .try_fold(claims, add)?;
+    }
+    if lots != [0; MARKETS]
+        || gross.iter().any(|value| *value > MAX_GROSS_LOTS)
+        || claims != scaled(pools.settlement)?
+        || cash_add(
+            cash_add(cash_add(cash, pools.settlement)?, pools.insurance)?,
+            pools.fees,
+        )? != pools.vault
+    {
+        return Err(Error::Invariant);
+    }
+    Ok(())
 }
 
 /// Shared paired fill and cumulative fee arithmetic. The caller must recompute

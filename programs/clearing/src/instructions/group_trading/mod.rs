@@ -1,4 +1,4 @@
-//! Successor trading primitives. Financial entrypoints stay closed until P18C safety acceptance.
+//! Successor trading primitives. P18C supplies local-only isolated safety; cross remains gated.
 use crate::{error::ClearingError, state::v2::*};
 use anchor_lang::prelude::*;
 use financial_core as math;

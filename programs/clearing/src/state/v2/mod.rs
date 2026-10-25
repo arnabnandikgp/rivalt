@@ -29,8 +29,29 @@ pub const ROLE_RECEIVER: u8 = 2;
 /// This is a compile-time release gate, not an administrator-settable flag.
 /// P20 may change it only with complete liquidation/default acceptance evidence.
 pub const CROSS_TRADING_IMPLEMENTED: bool = false;
-/// P18C owns complete isolated group recovery before this can be enabled.
-pub const ISOLATED_TRADING_IMPLEMENTED: bool = false;
+/// P18C safety candidate is executable only in the explicit local test profile.
+/// Publication still requires A23C acceptance; default/devnet builds reject it.
+pub const ISOLATED_TRADING_IMPLEMENTED: bool = cfg!(feature = "successor-test-profile");
+
+/// Borsh's generic Vec reader grows its allocation while decoding. The SBF
+/// bump allocator cannot reclaim those buffers. Allocate the bounded cohort once
+/// while retaining precisely the same u32-length + element wire representation.
+pub(crate) fn deserialize_cohort<R: std::io::Read, T: AnchorDeserialize>(
+    reader: &mut R,
+) -> std::io::Result<Vec<T>> {
+    let count = u32::deserialize_reader(reader)? as usize;
+    if count > MAX_MEMBERS {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "group cohort exceeds 64 members",
+        ));
+    }
+    let mut entries = Vec::with_capacity(count);
+    for _ in 0..count {
+        entries.push(T::deserialize_reader(reader)?);
+    }
+    Ok(entries)
+}
 
 /// Validate immutable account identity separately from runtime health/authority.
 pub fn valid_identity(

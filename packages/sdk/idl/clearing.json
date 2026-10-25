@@ -10,6 +10,313 @@
   ],
   "instructions": [
     {
+      "name": "activate_isolated_group_v2",
+      "discriminator": [
+        140,
+        146,
+        201,
+        150,
+        206,
+        229,
+        99,
+        15
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          },
+          "relations": [
+            "btc",
+            "eth",
+            "guard",
+            "resolution"
+          ]
+        },
+        {
+          "name": "btc",
+          "writable": true
+        },
+        {
+          "name": "eth",
+          "writable": true
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "advance_group_resolution_v2",
+      "discriminator": [
+        137,
+        254,
+        147,
+        209,
+        130,
+        80,
+        136,
+        138
+      ],
+      "accounts": [
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          },
+          "relations": [
+            "btc",
+            "eth",
+            "registry",
+            "resolution"
+          ]
+        },
+        {
+          "name": "btc",
+          "writable": true
+        },
+        {
+          "name": "eth",
+          "writable": true
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "stage",
+          "type": "u8"
+        },
+        {
+          "name": "start",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "advance_resolution",
       "discriminator": [
         112,
@@ -176,6 +483,93 @@
         {
           "name": "start",
           "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "allocate_group_fees_v2",
+      "discriminator": [
+        209,
+        166,
+        216,
+        237,
+        209,
+        208,
+        254,
+        13
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
         }
       ]
     },
@@ -504,6 +898,176 @@
       ]
     },
     {
+      "name": "change_group_claim_v2",
+      "discriminator": [
+        148,
+        204,
+        239,
+        67,
+        234,
+        167,
+        238,
+        19
+      ],
+      "accounts": [
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          },
+          "relations": [
+            "btc",
+            "eth",
+            "margin",
+            "guard"
+          ]
+        },
+        {
+          "name": "btc",
+          "writable": true
+        },
+        {
+          "name": "eth",
+          "writable": true
+        },
+        {
+          "name": "margin",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "margin.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "margin.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observations",
+          "type": {
+            "array": [
+              "u64",
+              2
+            ]
+          }
+        },
+        {
+          "name": "market_index",
+          "type": "u8"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "gain",
+          "type": "bool"
+        }
+      ]
+    },
+    {
       "name": "check_exit_cohort",
       "discriminator": [
         218,
@@ -658,6 +1222,155 @@
         {
           "name": "observation",
           "type": "u64"
+        },
+        {
+          "name": "start",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "check_group_exit_v2",
+      "discriminator": [
+        143,
+        82,
+        107,
+        48,
+        136,
+        76,
+        27,
+        41
+      ],
+      "accounts": [
+        {
+          "name": "group",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          },
+          "relations": [
+            "btc",
+            "eth",
+            "registry",
+            "guard"
+          ]
+        },
+        {
+          "name": "btc"
+        },
+        {
+          "name": "eth"
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observations",
+          "type": {
+            "array": [
+              "u64",
+              2
+            ]
+          }
         },
         {
           "name": "start",
@@ -2133,6 +2846,224 @@
       ]
     },
     {
+      "name": "freeze_group_v2",
+      "discriminator": [
+        128,
+        106,
+        151,
+        57,
+        243,
+        152,
+        7,
+        239
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          },
+          "relations": [
+            "btc",
+            "eth",
+            "registry",
+            "resolution",
+            "target"
+          ]
+        },
+        {
+          "name": "btc",
+          "writable": true
+        },
+        {
+          "name": "eth",
+          "writable": true
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "target",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "target.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "target.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "primary_btc"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_btc"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "primary_eth"
+        },
+        {
+          "name": "guard_eth"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observations",
+          "type": {
+            "array": [
+              "u64",
+              2
+            ]
+          }
+        },
+        {
+          "name": "emergency",
+          "type": "bool"
+        }
+      ]
+    },
+    {
       "name": "freeze_market",
       "discriminator": [
         184,
@@ -2452,6 +3383,197 @@
       ]
     },
     {
+      "name": "group_trading_cash_v2",
+      "discriminator": [
+        222,
+        223,
+        223,
+        172,
+        164,
+        27,
+        162,
+        117
+      ],
+      "accounts": [
+        {
+          "name": "cash",
+          "accounts": [
+            {
+              "name": "owner",
+              "signer": true,
+              "relations": [
+                "margin"
+              ]
+            },
+            {
+              "name": "group",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      103,
+                      114,
+                      111,
+                      117,
+                      112,
+                      45,
+                      118,
+                      50
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "group.domain",
+                    "account": "ClearingGroupV2"
+                  }
+                ]
+              },
+              "relations": [
+                "margin"
+              ]
+            },
+            {
+              "name": "margin",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      97,
+                      114,
+                      103,
+                      105,
+                      110,
+                      45,
+                      118,
+                      50
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "margin.portfolio",
+                    "account": "MarginAccountV2"
+                  },
+                  {
+                    "kind": "account",
+                    "path": "margin.subaccount_index",
+                    "account": "MarginAccountV2"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "quote_mint",
+              "relations": [
+                "group"
+              ]
+            },
+            {
+              "name": "vault",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116,
+                      45,
+                      118,
+                      50
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "group"
+                  }
+                ]
+              },
+              "relations": [
+                "group"
+              ]
+            },
+            {
+              "name": "user_token",
+              "writable": true
+            },
+            {
+              "name": "token_program",
+              "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+            }
+          ]
+        },
+        {
+          "name": "btc",
+          "writable": true
+        },
+        {
+          "name": "eth",
+          "writable": true
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "cash.group",
+                "account": "GroupCashIdentity"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observations",
+          "type": {
+            "array": [
+              "u64",
+              2
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "withdraw",
+          "type": "bool"
+        }
+      ]
+    },
+    {
       "name": "initialize_exit_guard",
       "discriminator": [
         119,
@@ -2646,6 +3768,113 @@
           "type": "pubkey"
         }
       ]
+    },
+    {
+      "name": "initialize_group_safety_v2",
+      "discriminator": [
+        238,
+        144,
+        153,
+        254,
+        11,
+        114,
+        255,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "group",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "initialize_group_v2",
@@ -3409,6 +4638,189 @@
       ]
     },
     {
+      "name": "liquidate_group_v2",
+      "discriminator": [
+        41,
+        162,
+        84,
+        38,
+        191,
+        217,
+        216,
+        209
+      ],
+      "accounts": [
+        {
+          "name": "receiver_owner",
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          },
+          "relations": [
+            "btc",
+            "eth",
+            "target",
+            "receiver"
+          ]
+        },
+        {
+          "name": "btc",
+          "writable": true
+        },
+        {
+          "name": "eth",
+          "writable": true
+        },
+        {
+          "name": "target",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "target.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "target.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "receiver",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "receiver.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "receiver.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observations",
+          "type": {
+            "array": [
+              "u64",
+              2
+            ]
+          }
+        },
+        {
+          "name": "market_index",
+          "type": "u8"
+        },
+        {
+          "name": "lots",
+          "type": "u64"
+        },
+        {
+          "name": "price",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "manage_group_order_v2",
       "discriminator": [
         104,
@@ -3423,10 +4835,7 @@
       "accounts": [
         {
           "name": "owner",
-          "signer": true,
-          "relations": [
-            "margin"
-          ]
+          "signer": true
         },
         {
           "name": "group",
@@ -4302,6 +5711,183 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "recover_group_resolution_v2",
+      "discriminator": [
+        40,
+        78,
+        229,
+        212,
+        204,
+        162,
+        12,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          },
+          "relations": [
+            "btc",
+            "eth",
+            "registry",
+            "resolution"
+          ]
+        },
+        {
+          "name": "btc",
+          "writable": true
+        },
+        {
+          "name": "eth",
+          "writable": true
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "primary_btc"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_btc"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "primary_eth"
+        },
+        {
+          "name": "guard_eth"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "resume",
+          "type": "bool"
+        }
+      ]
     },
     {
       "name": "recover_resolution",
@@ -5995,6 +7581,209 @@
       ]
     },
     {
+      "name": "transfer_trading_cash_v2",
+      "discriminator": [
+        112,
+        133,
+        138,
+        5,
+        181,
+        18,
+        52,
+        28
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "donor",
+            "recipient"
+          ]
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          },
+          "relations": [
+            "btc",
+            "eth",
+            "donor",
+            "recipient",
+            "guard"
+          ]
+        },
+        {
+          "name": "btc",
+          "writable": true
+        },
+        {
+          "name": "eth",
+          "writable": true
+        },
+        {
+          "name": "donor",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "donor.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "donor.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "recipient.portfolio",
+                "account": "MarginAccountV2"
+              },
+              {
+                "kind": "account",
+                "path": "recipient.subaccount_index",
+                "account": "MarginAccountV2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence",
+          "type": "u64"
+        },
+        {
+          "name": "observations",
+          "type": {
+            "array": [
+              "u64",
+              2
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "update_group_maker_v2",
       "discriminator": [
         39,
@@ -6630,6 +8419,19 @@
       ]
     },
     {
+      "name": "GroupExitGuardV2",
+      "discriminator": [
+        43,
+        24,
+        130,
+        93,
+        85,
+        191,
+        99,
+        107
+      ]
+    },
+    {
       "name": "GroupMarketV2",
       "discriminator": [
         89,
@@ -6653,6 +8455,19 @@
         228,
         207,
         239
+      ]
+    },
+    {
+      "name": "GroupResolutionV2",
+      "discriminator": [
+        143,
+        217,
+        71,
+        136,
+        198,
+        140,
+        107,
+        141
       ]
     },
     {
@@ -6814,6 +8629,19 @@
       ]
     },
     {
+      "name": "GroupLiquidationV2",
+      "discriminator": [
+        76,
+        130,
+        107,
+        121,
+        57,
+        127,
+        72,
+        199
+      ]
+    },
+    {
       "name": "GroupMakerChangedV2",
       "discriminator": [
         244,
@@ -6853,6 +8681,19 @@
       ]
     },
     {
+      "name": "GroupResolutionProgressV2",
+      "discriminator": [
+        138,
+        119,
+        145,
+        131,
+        103,
+        201,
+        226,
+        217
+      ]
+    },
+    {
       "name": "GroupRouteExecutedV2",
       "discriminator": [
         178,
@@ -6863,6 +8704,19 @@
         3,
         17,
         113
+      ]
+    },
+    {
+      "name": "GroupSafetyChangedV2",
+      "discriminator": [
+        251,
+        55,
+        56,
+        51,
+        190,
+        238,
+        95,
+        95
       ]
     },
     {
@@ -7548,7 +9402,7 @@
             "name": "kind",
             "docs": [
               "0 group, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdraw,",
-              "6 internal transfer, 7 custody pause, 8 unsolicited surplus to insurance."
+              "6 internal transfer, 7 unfrozen pause, 8 unsolicited surplus to insurance, 9 explicit fee allocation."
             ],
             "type": "u8"
           },
@@ -7646,6 +9500,169 @@
             ],
             "type": {
               "option": "u64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupExitGuardV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "observations",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "funding_bounds",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "i128",
+                    2
+                  ]
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "source_deadlines",
+            "type": {
+              "array": [
+                "i64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "type": "u16"
+          },
+          {
+            "name": "next",
+            "type": "u16"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": {
+              "array": [
+                "i128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "gross_lots",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "unpaid_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupLiquidationV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market_index",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "deficit_before",
+            "type": "i128"
+          },
+          {
+            "name": "deficit_after",
+            "type": "i128"
+          },
+          {
+            "name": "target",
+            "type": {
+              "defined": {
+                "name": "MarginAccountSnapshotV2"
+              }
+            }
+          },
+          {
+            "name": "receiver",
+            "type": {
+              "defined": {
+                "name": "MarginAccountSnapshotV2"
+              }
+            }
+          },
+          {
+            "name": "markets",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "GroupMarketSnapshotV2"
+                  }
+                },
+                2
+              ]
             }
           }
         ]
@@ -8122,6 +10139,397 @@
       }
     },
     {
+      "name": "GroupResolutionHeaderV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          },
+          {
+            "name": "cursor",
+            "type": "u16"
+          },
+          {
+            "name": "count",
+            "type": "u16"
+          },
+          {
+            "name": "registry_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "prices",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "funding",
+            "type": {
+              "array": [
+                "i128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "frozen_at",
+            "type": "i64"
+          },
+          {
+            "name": "initial_cash",
+            "type": "u64"
+          },
+          {
+            "name": "initial_pool",
+            "type": "u64"
+          },
+          {
+            "name": "initial_insurance",
+            "type": "u64"
+          },
+          {
+            "name": "initial_fees",
+            "type": "u64"
+          },
+          {
+            "name": "initial_vault",
+            "type": "u64"
+          },
+          {
+            "name": "scanned_cash",
+            "type": "u64"
+          },
+          {
+            "name": "scanned_lots",
+            "type": {
+              "array": [
+                "i128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "scanned_gross",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "claim_sum",
+            "type": "i128"
+          },
+          {
+            "name": "remaining_lots",
+            "type": {
+              "array": [
+                "i128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "remaining_gross",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "debt",
+            "type": "u128"
+          },
+          {
+            "name": "positive",
+            "type": "u128"
+          },
+          {
+            "name": "insured_atoms",
+            "type": "u64"
+          },
+          {
+            "name": "plan_pool",
+            "type": "u64"
+          },
+          {
+            "name": "assigned",
+            "type": "u128"
+          },
+          {
+            "name": "extra",
+            "type": "u16"
+          },
+          {
+            "name": "rounding_sum",
+            "type": "i128"
+          },
+          {
+            "name": "collected_total",
+            "type": "u64"
+          },
+          {
+            "name": "paid_applied",
+            "type": "u64"
+          },
+          {
+            "name": "insurance_moved",
+            "type": "bool"
+          },
+          {
+            "name": "recovery_since",
+            "type": "i64"
+          },
+          {
+            "name": "recovery_last",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupResolutionProgressV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "mode",
+            "type": "u8"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "markets",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "GroupMarketSnapshotV2"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "header",
+            "type": {
+              "defined": {
+                "name": "GroupResolutionHeaderV2"
+              }
+            }
+          },
+          {
+            "name": "rows",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "GroupResolutionUpdateV2"
+                }
+              }
+            }
+          },
+          {
+            "name": "roots",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarginAccountSnapshotV2"
+                }
+              }
+            }
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "settlement",
+            "type": "u64"
+          },
+          {
+            "name": "insurance",
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
+          },
+          {
+            "name": "allocated_vault",
+            "type": "u64"
+          },
+          {
+            "name": "actual_vault",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupResolutionRowV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cash_before",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": {
+              "array": [
+                "i64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "generations",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "claim_scaled",
+            "docs": [
+              "Both fully valued claims net once, inside this margin account only."
+            ],
+            "type": "i128"
+          },
+          {
+            "name": "collected",
+            "type": "u64"
+          },
+          {
+            "name": "insured_scaled",
+            "type": "u128"
+          },
+          {
+            "name": "impaired_scaled",
+            "type": "u128"
+          },
+          {
+            "name": "paid",
+            "type": "u64"
+          },
+          {
+            "name": "rounding_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "remainder",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupResolutionUpdateV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "row",
+            "type": {
+              "defined": {
+                "name": "GroupResolutionRowV2"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupResolutionV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "header",
+            "type": {
+              "defined": {
+                "name": "GroupResolutionHeaderV2"
+              }
+            }
+          },
+          {
+            "name": "rows",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "GroupResolutionRowV2"
+                }
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "GroupRouteExecutedV2",
       "type": {
         "kind": "struct",
@@ -8207,6 +10615,100 @@
           },
           {
             "name": "fees",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupSafetyChangedV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "mode",
+            "type": "u8"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "docs": [
+              "0 activate, 1 collect, 2 pay, 3 deposit, 4 withdraw, 5 transfer."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "roots",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarginAccountSnapshotV2"
+                }
+              }
+            }
+          },
+          {
+            "name": "markets",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "GroupMarketSnapshotV2"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "settlement",
+            "type": "u64"
+          },
+          {
+            "name": "insurance",
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
+          },
+          {
+            "name": "allocated_vault",
+            "type": "u64"
+          },
+          {
+            "name": "actual_vault",
             "type": "u64"
           }
         ]

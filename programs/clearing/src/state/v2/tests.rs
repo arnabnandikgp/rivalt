@@ -184,3 +184,38 @@ fn v2_discriminators_do_not_reinterpret_legacy_accounts() {
     bytes[..8].copy_from_slice(crate::state::Participant::DISCRIMINATOR);
     assert!(MarginAccountV2::try_deserialize(&mut bytes.as_slice()).is_err());
 }
+
+#[test]
+fn cohort_decode_retains_wire_and_preallocates_bounded_capacity() {
+    let resolution = GroupResolutionV2 {
+        rows: vec![GroupResolutionRowV2::default(); 64],
+        ..Default::default()
+    };
+    let mut bytes = Vec::new();
+    resolution.try_serialize(&mut bytes).unwrap();
+    let decoded = GroupResolutionV2::try_deserialize(&mut bytes.as_slice()).unwrap();
+    assert_eq!((decoded.rows.len(), decoded.rows.capacity()), (64, 64));
+    let mut roundtrip = Vec::new();
+    decoded.try_serialize(&mut roundtrip).unwrap();
+    assert_eq!(bytes, roundtrip);
+    // The vector count follows discriminator, schema, group and the 376-byte header.
+    assert_eq!(&bytes[418..422], &64u32.to_le_bytes());
+    for count in [65u32, u32::MAX] {
+        let mut invalid = bytes.clone();
+        invalid[418..422].copy_from_slice(&count.to_le_bytes());
+        assert!(GroupResolutionV2::try_deserialize(&mut invalid.as_slice()).is_err());
+    }
+    let registry = GroupRegistryV2 {
+        count: 64,
+        members: (0..64).map(|_| Pubkey::new_unique()).collect(),
+        ..Default::default()
+    };
+    let mut bytes = Vec::new();
+    registry.try_serialize(&mut bytes).unwrap();
+    let decoded = GroupRegistryV2::try_deserialize(&mut bytes.as_slice()).unwrap();
+    assert_eq!(
+        (decoded.members.len(), decoded.members.capacity()),
+        (64, 64)
+    );
+    assert_eq!(decoded.members, registry.members);
+}

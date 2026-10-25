@@ -67,7 +67,7 @@ export type GroupCustodyChangedV2Event = {
   slot: bigint;
   /**
    * 0 group, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdraw,
-   * 6 internal transfer, 7 custody pause, 8 unsolicited surplus to insurance.
+   * 6 internal transfer, 7 unfrozen pause, 8 unsolicited surplus to insurance, 9 explicit fee allocation.
    */
   kind: number;
   actor: Address;
@@ -102,7 +102,7 @@ export type GroupCustodyChangedV2EventArgs = {
   slot: number | bigint;
   /**
    * 0 group, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdraw,
-   * 6 internal transfer, 7 custody pause, 8 unsolicited surplus to insurance.
+   * 6 internal transfer, 7 unfrozen pause, 8 unsolicited surplus to insurance, 9 explicit fee allocation.
    */
   kind: number;
   actor: Address | HasAddress;

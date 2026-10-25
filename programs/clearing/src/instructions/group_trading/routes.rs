@@ -44,7 +44,7 @@ pub struct ManageGroupOrder<'info> {
     #[account(mut, seeds = [b"market-v2", group.key().as_ref(), &[market.index]], bump = market.bump, has_one = group)]
     pub market: Box<Account<'info, GroupMarketV2>>,
     #[account(mut, seeds = [b"margin-v2", margin.portfolio.as_ref(), &margin.subaccount_index.to_le_bytes()],
-        bump = margin.bump, has_one = group, has_one = owner)]
+        bump = margin.bump, has_one = group)]
     pub margin: Box<Account<'info, MarginAccountV2>>,
 }
 
@@ -76,6 +76,11 @@ pub fn manage(ctx: Context<ManageGroupOrder>, operation: GroupOrderAction) -> Re
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     activated(&ctx.accounts.group)?;
     let accounts = &mut *ctx.accounts;
+    require!(
+        matches!(&operation, GroupOrderAction::Cleanup)
+            || accounts.owner.key() == accounts.margin.owner,
+        ClearingError::Authority
+    );
     let clock = Clock::get()?;
     let funding = oracle::effective(accounts.group.mode, &accounts.market, &clock)?;
     let next = match operation {
@@ -140,6 +145,17 @@ pub fn manage(ctx: Context<ManageGroupOrder>, operation: GroupOrderAction) -> Re
                 clock.slot,
                 oracle::action(&accounts.market, &clock, false).is_ok(),
             )?;
+            require!(
+                next.reserved != accounts.margin.reserved
+                    || next.book.reserve_observations != accounts.margin.book.reserve_observations
+                    || next
+                        .book
+                        .orders
+                        .iter()
+                        .zip(&accounts.margin.book.orders)
+                        .any(|(current, previous)| current.order.state != previous.order.state),
+                ClearingError::OrderState
+            );
             advance(&mut next)?;
             next
         }
@@ -373,13 +389,16 @@ pub(crate) fn candidate(
         .ok_or(ClearingError::Arithmetic)?;
     book::refresh(&mut trader_next, market, clock.slot, true)?;
     let risks = risk(market, funding)?;
-    model(&trader_next)?
-        .admissible(risks)
-        .map_err(|_| error!(ClearingError::RouteHealth))?;
+    let admitted = if intent.reduce_only {
+        trader_model.admit_reduction(&model(&trader_next)?, usize::from(market.index), risks)
+    } else {
+        model(&trader_next)?.admissible(risks)
+    };
+    admitted.map_err(|_| error!(ClearingError::RouteHealth))?;
     advance(&mut trader_next)?;
-    let mut makers_next = Vec::with_capacity(makers.len());
-    for (maker, next_model) in makers.iter().zip(next_makers) {
-        makers_next.push(*finish_maker(maker, next_model, market, clock.slot, risks)?);
+    let mut makers_next = makers.to_vec();
+    for (maker, next_model) in makers_next.iter_mut().zip(next_makers) {
+        finish_maker(maker, next_model, market, clock.slot, risks)?;
     }
     let market_index = usize::from(market.index);
     let before = trader.positions[market_index].lots.unsigned_abs()
@@ -412,20 +431,18 @@ pub(crate) fn candidate(
 
 #[inline(never)]
 fn finish_maker(
-    root: &MarginAccountV2,
+    root: &mut MarginAccountV2,
     candidate: math::margin::Margin,
     market: &GroupMarketV2,
     slot: u64,
     risks: [math::margin::Risk; 2],
-) -> Result<Box<MarginAccountV2>> {
-    let mut next = Box::new(root.clone());
-    commit_model(&mut next, candidate)?;
-    book::refresh(&mut next, market, slot, true)?;
-    model(&next)?
+) -> Result<()> {
+    commit_model(root, candidate)?;
+    book::refresh(root, market, slot, true)?;
+    model(root)?
         .admissible(risks)
         .map_err(|_| error!(ClearingError::RouteHealth))?;
-    advance(&mut next)?;
-    Ok(next)
+    advance(root)
 }
 
 pub fn execute(ctx: Context<ExecuteGroupRoute>, intent: RouteIntent) -> Result<()> {
@@ -557,13 +574,17 @@ fn execute_core(
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
     crate::instructions::group_custody::reconciled(&accounts.group, accounts.vault.amount)?;
-    let mut root_states = vec![
-        crate::events::MarginAccountSnapshotV2::from(&**accounts.trader),
-        crate::events::MarginAccountSnapshotV2::from(&**accounts.first_capital),
-    ];
-    let mut maker_states = vec![crate::events::MakerRegistrationSnapshotV2::from(
+    let mut root_states = Vec::with_capacity(if has_second { 3 } else { 2 });
+    root_states.push(crate::events::MarginAccountSnapshotV2::from(
+        &**accounts.trader,
+    ));
+    root_states.push(crate::events::MarginAccountSnapshotV2::from(
+        &**accounts.first_capital,
+    ));
+    let mut maker_states = Vec::with_capacity(if has_second { 2 } else { 1 });
+    maker_states.push(crate::events::MakerRegistrationSnapshotV2::from(
         &**accounts.first_registration,
-    )];
+    ));
     if has_second {
         root_states.push(crate::events::MarginAccountSnapshotV2::from(
             &***accounts.second_capital.as_ref().unwrap(),
@@ -590,6 +611,6 @@ fn execute_core(
         total_cash: accounts.group.total_cash,
         fees: accounts.group.fees,
     };
-    emit_cpi!(emitted);
+    crate::event_cpi::emit(&emitted, ctx.accounts.event_authority.to_account_info())?;
     Ok(())
 }

@@ -4,6 +4,7 @@ use maker_interface::QuoteResponse;
 
 pub mod constants;
 pub mod error;
+mod event_cpi;
 pub mod events;
 pub mod instructions;
 #[cfg(any(test, feature = "devnet-test-profile"))]
@@ -29,6 +30,84 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 #[program]
 pub mod clearing {
     use super::*;
+
+    pub fn allocate_group_fees_v2(ctx: Context<ControlGroupV2>, amount: u64) -> Result<()> {
+        group_custody::allocate_fees(ctx, amount)
+    }
+    pub fn initialize_group_safety_v2(ctx: Context<InitializeGroupSafety>) -> Result<()> {
+        group_safety::settlement::initialize(ctx)
+    }
+    pub fn activate_isolated_group_v2(ctx: Context<ActivateIsolatedGroup>) -> Result<()> {
+        group_safety::settlement::activate(ctx)
+    }
+    pub fn check_group_exit_v2(
+        ctx: Context<CheckGroupExit>,
+        sequence: u64,
+        observations: [u64; 2],
+        start: u16,
+    ) -> Result<()> {
+        group_safety::settlement::check(ctx, sequence, observations, start)
+    }
+    pub fn change_group_claim_v2(
+        ctx: Context<ChangeGroupClaim>,
+        sequence: u64,
+        observations: [u64; 2],
+        market_index: u8,
+        amount: u64,
+        gain: bool,
+    ) -> Result<()> {
+        group_safety::settlement::change(ctx, sequence, observations, market_index, amount, gain)
+    }
+    pub fn group_trading_cash_v2(
+        ctx: Context<GroupTradingCash>,
+        sequence: u64,
+        observations: [u64; 2],
+        amount: u64,
+        withdraw: bool,
+    ) -> Result<()> {
+        group_safety::settlement::cash(ctx, sequence, observations, amount, withdraw)
+    }
+    pub fn transfer_trading_cash_v2(
+        ctx: Context<TransferTradingCash>,
+        sequence: u64,
+        observations: [u64; 2],
+        amount: u64,
+    ) -> Result<()> {
+        group_safety::settlement::transfer(ctx, sequence, observations, amount)
+    }
+    pub fn liquidate_group_v2(
+        ctx: Context<LiquidateGroup>,
+        sequence: u64,
+        observations: [u64; 2],
+        market_index: u8,
+        lots: u64,
+        price: u64,
+    ) -> Result<()> {
+        group_safety::risk::liquidate(ctx, sequence, observations, market_index, lots, price)
+    }
+    pub fn freeze_group_v2(
+        ctx: Context<FreezeGroup>,
+        sequence: u64,
+        observations: [u64; 2],
+        emergency: bool,
+    ) -> Result<()> {
+        group_safety::resolution::freeze(ctx, sequence, observations, emergency)
+    }
+    pub fn advance_group_resolution_v2(
+        ctx: Context<AdvanceGroupResolution>,
+        epoch: u64,
+        stage: u8,
+        start: u16,
+    ) -> Result<()> {
+        group_safety::resolution::advance(ctx, epoch, stage, start)
+    }
+    pub fn recover_group_resolution_v2(
+        ctx: Context<RecoverGroupResolution>,
+        epoch: u64,
+        resume: bool,
+    ) -> Result<()> {
+        group_safety::resolution::recover(ctx, epoch, resume)
+    }
 
     pub fn register_group_maker_v2(
         ctx: Context<RegisterGroupMaker>,

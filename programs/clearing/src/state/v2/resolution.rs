@@ -57,6 +57,7 @@ pub struct GroupResolutionV2 {
     pub group: Pubkey,
     pub header: GroupResolutionHeaderV2,
     #[max_len(64)]
+    #[borsh(deserialize_with = "deserialize_cohort")]
     pub rows: Vec<GroupResolutionRowV2>,
     pub bump: u8,
 }

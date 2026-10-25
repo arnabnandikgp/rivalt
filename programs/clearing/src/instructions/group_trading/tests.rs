@@ -543,10 +543,19 @@ fn stale_cancel_reprices_survivors_and_pending_funding_blocks_admission() {
 }
 
 #[test]
-fn isolated_and_cross_activation_stay_compile_time_closed() {
-    assert!(!ISOLATED_TRADING_IMPLEMENTED);
+fn isolated_candidate_requires_test_profile_and_cross_stays_closed() {
+    assert_eq!(
+        ISOLATED_TRADING_IMPLEMENTED,
+        cfg!(feature = "successor-test-profile")
+    );
     assert!(!CROSS_TRADING_IMPLEMENTED);
-    assert!(activated(&group()).is_err());
+    assert_eq!(
+        activated(&group()).is_ok(),
+        cfg!(feature = "successor-test-profile")
+    );
+    let mut cross_group = group();
+    cross_group.mode = 2;
+    assert!(activated(&cross_group).is_err());
     let mut cross = root(0, 1, 0);
     cross.mode = MODE_CROSS;
     cross.subaccount_index = 0;

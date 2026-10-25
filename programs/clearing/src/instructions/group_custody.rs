@@ -149,6 +149,29 @@ fn active(group: &ClearingGroupV2) -> Result<()> {
     Ok(())
 }
 
+// Membership/control remain available after isolated activation; custody-only
+// withdrawals still use their original mode-0 guard.
+fn identity_profile(group: &ClearingGroupV2) -> Result<()> {
+    if group.mode == 0 {
+        return custody_profile(group);
+    }
+    require!(
+        cfg!(feature = "successor-test-profile")
+            && ISOLATED_TRADING_IMPLEMENTED
+            && group.schema_version == SCHEMA_VERSION
+            && group.profile_version == PROFILE_VERSION
+            && group.market_count == 2
+            && group.mode == 1,
+        ClearingError::Profile
+    );
+    Ok(())
+}
+fn identity_active(group: &ClearingGroupV2) -> Result<()> {
+    identity_profile(group)?;
+    require!(!group.paused, ClearingError::Paused);
+    Ok(())
+}
+
 pub(crate) fn reconciled(group: &ClearingGroupV2, actual: u64) -> Result<()> {
     let allocated = u128::from(group.total_cash)
         + u128::from(group.settlement)
@@ -336,7 +359,7 @@ pub fn initialize_market(ctx: Context<InitializeGroupMarketV2>, index: u8) -> Re
 
 pub fn create_portfolio(ctx: Context<CreatePortfolioV2>, index: u16) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    active(&ctx.accounts.group)?;
+    identity_active(&ctx.accounts.group)?;
     require!(
         index < MAX_PORTFOLIOS && usize::from(ctx.accounts.group.market_count) == MARKET_COUNT,
         ClearingError::Profile
@@ -370,7 +393,7 @@ pub fn register(
     role: u8,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    active(&ctx.accounts.group)?;
+    identity_active(&ctx.accounts.group)?;
     let portfolio = &mut ctx.accounts.portfolio;
     require!(
         portfolio.schema_version == SCHEMA_VERSION
@@ -514,7 +537,7 @@ pub fn transfer(ctx: Context<TransferGroupCashV2>, amount: u64) -> Result<()> {
 
 pub fn pause(ctx: Context<ControlGroupV2>, paused: bool) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    custody_profile(&ctx.accounts.group)?;
+    identity_profile(&ctx.accounts.group)?;
     reconciled(&ctx.accounts.group, ctx.accounts.vault.amount)?;
     ctx.accounts.group.paused = paused;
     emit_cpi!(event(
@@ -532,7 +555,7 @@ pub fn pause(ctx: Context<ControlGroupV2>, paused: bool) -> Result<()> {
 
 pub fn classify_surplus(ctx: Context<ControlGroupV2>) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    active(&ctx.accounts.group)?;
+    identity_active(&ctx.accounts.group)?;
     reconciled(&ctx.accounts.group, ctx.accounts.vault.amount)?;
     let surplus = ctx
         .accounts
@@ -554,5 +577,29 @@ pub fn classify_surplus(ctx: Context<ControlGroupV2>) -> Result<()> {
         Some(ctx.accounts.vault.amount),
         vec![]
     )?);
+    Ok(())
+}
+
+/// Explicit authority allocation. Fees never enter insurance automatically.
+pub fn allocate_fees(ctx: Context<ControlGroupV2>, amount: u64) -> Result<()> {
+    require!(
+        ctx.remaining_accounts.is_empty() && amount > 0,
+        ClearingError::Amount
+    );
+    identity_active(&ctx.accounts.group)?;
+    reconciled(&ctx.accounts.group, ctx.accounts.vault.amount)?;
+    ctx.accounts.group.fees = arithmetic(cash_sub(ctx.accounts.group.fees, amount))?;
+    ctx.accounts.group.insurance = arithmetic(cash_add(ctx.accounts.group.insurance, amount))?;
+    let emitted = event(
+        &mut ctx.accounts.group,
+        9,
+        ctx.accounts.authority.key(),
+        Pubkey::default(),
+        0,
+        amount,
+        Some(ctx.accounts.vault.amount),
+        vec![],
+    )?;
+    emit_cpi!(emitted);
     Ok(())
 }

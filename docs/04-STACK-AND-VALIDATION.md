@@ -242,3 +242,30 @@ budgets nor RPC/WS/PostgreSQL service qualification; P18C/P21 own those checks.
 Retain raw files in unique ignored `.local/group-trading/` run directories and
 scoped build artifacts/logs in `.local/successor-p18b/`. No V1 history/load/soak
 rerun is required by this phase.
+
+## P18C scoped safety verification (in progress)
+
+`bash ops/build-group-safety.sh` builds default/successor clearing and A/B plus the
+unchanged source fixture with the pinned SBF frame guard and regenerated clients.
+Development iterations may rebuild only changed clearing; final acceptance must
+record all exact program hashes and generated-output parity. `pnpm typecheck`
+covers the changed public interfaces. Legacy Anchor remains isolated.
+
+Run `cargo test -p financial-core --test margin_safety --locked --offline` and
+`cargo test -p clearing --lib instructions::group_ --features successor-test-profile
+--locked --offline` for actual safety/trading candidates, plus the changed
+`state::v2::tests` codec bounds and `event_cpi` wire-parity test. Use
+`CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0` for bounded local build storage.
+`node --import tsx tests/rpc-contract/group-safety-svm.ts` submits signed, verified
+transactions to compiled programs and writes unique ignored `.local/group-safety/`
+runs. `python3 tests/financial/group-safety-reference.py RUN_DIRECTORY` independently
+decodes cash/exposure/funding/default ownership and rejects six byte mutations.
+Counts include setup/source observations and exact rejection cases, not distinct
+financial vectors. Failed runs stay local with their transaction/log capture.
+
+The local candidate declares 600,000 CU for group routes, 1,200,000 for full-source
+sampling/default pages and 400,000 otherwise; acceptance requires 20% measured
+headroom and <=1,232 bytes. These are provisional envelopes, not throughput or
+contention results. The default 32 KiB SBF heap is retained. Fresh RPC/WS,
+additional emergency/order coverage and committed acceptance remain due in A23C;
+P21 owns PostgreSQL/UI/services and new bounded contention qualification.
