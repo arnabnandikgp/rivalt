@@ -74,10 +74,18 @@ pub enum GroupOrderAction {
 
 pub fn manage(ctx: Context<ManageGroupOrder>, operation: GroupOrderAction) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    activated(&ctx.accounts.group)?;
-    let accounts = &mut *ctx.accounts;
+    manage_core(ctx.accounts, operation, None, None, &Clock::get()?)
+}
+
+pub(crate) fn manage_core(
+    accounts: &mut ManageGroupOrder,
+    operation: GroupOrderAction,
+    mut other_market: Option<&mut Account<GroupMarketV2>>,
+    snapshot: Option<(u64, [u64; 2])>,
+    clock: &Clock,
+) -> Result<()> {
+    activated(&accounts.group)?;
     crate::instructions::group_margin::trading(&accounts.group, &accounts.margin)?;
-    let clock = Clock::get()?;
     let delegate_epoch = if matches!(&operation, GroupOrderAction::Cleanup) {
         0
     } else {
@@ -87,20 +95,22 @@ pub fn manage(ctx: Context<ManageGroupOrder>, operation: GroupOrderAction) -> Re
             clock.slot,
         )?
     };
+    let environment = route_environment(
+        &accounts.group,
+        &accounts.market,
+        other_market.as_deref(),
+        snapshot,
+        clock,
+    )?;
     match &operation {
         GroupOrderAction::Place { terms, .. } | GroupOrderAction::Replace { terms, .. } => {
-            oracle::action(&accounts.market, &clock, !terms.reduce_only)?
+            environment.admit_sources(&accounts.margin, clock, !terms.reduce_only)?
         }
-        GroupOrderAction::Protect { .. } => oracle::action(&accounts.market, &clock, false)?,
+        GroupOrderAction::Protect { .. } => {
+            environment.admit_sources(&accounts.margin, clock, false)?
+        }
         GroupOrderAction::Cancel { .. } | GroupOrderAction::Cleanup => {}
     }
-    let funding = oracle::effective(accounts.group.mode, &accounts.market, &clock)?;
-    let environment = book::Environment::isolated(
-        &accounts.market,
-        funding,
-        clock.slot,
-        oracle::action(&accounts.market, &clock, false).is_ok(),
-    )?;
     let next = manage_candidate(&accounts.margin, &environment, operation, delegate_epoch)?;
     accounts.margin.set_inner(next);
     oracle::materialize(accounts.group.mode, &mut accounts.market, &clock)?;
@@ -115,8 +125,47 @@ pub fn manage(ctx: Context<ManageGroupOrder>, operation: GroupOrderAction) -> Re
         &accounts.margin,
         clock.slot,
     );
-    emit_cpi!(*emitted);
+    if let Some(other) = other_market.as_deref_mut() {
+        oracle::materialize(accounts.group.mode, other, clock)?;
+        let whole = crate::events::MarginOrderChangedV2 {
+            change: *emitted,
+            other_market: other.key(),
+            other_market_state: crate::events::GroupMarketSnapshotV2::from(&**other),
+        };
+        crate::event_cpi::emit(&whole, accounts.event_authority.to_account_info())?;
+    } else {
+        crate::event_cpi::emit(&*emitted, accounts.event_authority.to_account_info())?;
+    }
     Ok(())
+}
+
+fn route_environment<'a>(
+    group: &Account<ClearingGroupV2>,
+    selected: &'a Account<GroupMarketV2>,
+    other: Option<&'a Account<GroupMarketV2>>,
+    snapshot: Option<(u64, [u64; 2])>,
+    clock: &Clock,
+) -> Result<book::Environment<'a>> {
+    match (other, snapshot) {
+        (Some(other), Some((sequence, observations))) => {
+            crate::instructions::group_margin::environment(
+                group,
+                group.key(),
+                selected,
+                other,
+                sequence,
+                observations,
+                clock,
+            )
+        }
+        (None, None) => book::Environment::isolated(
+            selected,
+            oracle::effective(group.mode, selected, clock)?,
+            clock.slot,
+            oracle::action(selected, clock, false).is_ok(),
+        ),
+        _ => err!(ClearingError::Profile),
+    }
 }
 
 /// Shared book transition; entrypoints authenticate actor, canonical dependencies
@@ -276,11 +325,36 @@ pub(crate) fn candidate(
     funding: i128,
     clock: &Clock,
 ) -> Result<Candidate> {
+    let environment = book::Environment::isolated(market, funding, clock.slot, true)?;
+    candidate_with_environment(
+        group,
+        trader,
+        makers,
+        quotes,
+        intent,
+        order_index,
+        &environment,
+        clock,
+    )
+}
+
+pub(crate) fn candidate_with_environment(
+    group: &ClearingGroupV2,
+    trader: &MarginAccountV2,
+    makers: &[MarginAccountV2],
+    quotes: &[QuoteResponse],
+    intent: &RouteIntent,
+    order_index: Option<usize>,
+    environment: &book::Environment,
+    clock: &Clock,
+) -> Result<Candidate> {
+    environment.validate(trader)?;
+    let market = environment.market(environment.selected)?;
     let trader_model = model(trader)?;
     book::validate(trader)?;
     require!(
         trader.group == market.group
-            && trader.isolated_market_index == market.index
+            && trader_model.allows(usize::from(market.index))
             && makers.len() == quotes.len()
             && makers.len() == intent.legs.len()
             && (1..=2).contains(&makers.len())
@@ -299,7 +373,7 @@ pub(crate) fn candidate(
                 .is_some_and(|duration| duration <= 150),
         ClearingError::RouteIntent
     );
-    oracle::action(market, clock, !intent.reduce_only)?;
+    environment.admit_sources(trader, clock, !intent.reduce_only)?;
     let position = trader.positions[usize::from(market.index)];
     if let Some(generation) = intent.generation {
         require!(
@@ -359,15 +433,13 @@ pub(crate) fn candidate(
     let prefix = order_index
         .map(|index| trader.book.orders[index].order.notional)
         .unwrap_or(0);
-    let mut indexes = [0; 2];
-    indexes[usize::from(market.index)] = funding;
     let (next, next_makers, fee) = checked(math::margin::route_candidate(
         trader_model,
         &models,
         usize::from(market.index),
         &legs,
         intent.side,
-        indexes,
+        environment.funding,
         prefix,
     ))?;
     require!(
@@ -392,8 +464,8 @@ pub(crate) fn candidate(
         .nonce
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
-    book::refresh(&mut trader_next, market, clock.slot, true)?;
-    let risks = risk(market, funding)?;
+    book::refresh_with_environment(&mut trader_next, environment)?;
+    let risks = environment.risks();
     let admitted = if intent.reduce_only {
         trader_model.admit_reduction(&model(&trader_next)?, usize::from(market.index), risks)
     } else {
@@ -451,16 +523,18 @@ fn finish_maker(
 }
 
 pub fn execute(ctx: Context<ExecuteGroupRoute>, intent: RouteIntent) -> Result<()> {
+    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let clock = Clock::get()?;
     crate::instructions::group_margin::trade_authority(
         &ctx.accounts.trader,
         ctx.accounts.actor.key(),
         clock.slot,
     )?;
-    execute_core(ctx, intent, None, &clock)
+    execute_core(ctx.accounts, intent, None, None, None, &clock)
 }
 
 pub fn execute_order(ctx: Context<ExecuteGroupRoute>, args: OrderExecution) -> Result<()> {
+    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let clock = Clock::get()?;
     let (intent, index) = stored_intent(
         &ctx.accounts.group,
@@ -469,18 +543,18 @@ pub fn execute_order(ctx: Context<ExecuteGroupRoute>, args: OrderExecution) -> R
         args,
         &clock,
     )?;
-    execute_core(ctx, intent, Some(index), &clock)
+    execute_core(ctx.accounts, intent, Some(index), None, None, &clock)
 }
 
-fn execute_core(
-    ctx: Context<ExecuteGroupRoute>,
+pub(crate) fn execute_core(
+    accounts: &mut ExecuteGroupRoute,
     intent: RouteIntent,
     order_index: Option<usize>,
+    mut other_market: Option<&mut Account<GroupMarketV2>>,
+    snapshot: Option<(u64, [u64; 2])>,
     clock: &Clock,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    activated(&ctx.accounts.group)?;
-    let accounts = &mut *ctx.accounts;
+    activated(&accounts.group)?;
     crate::instructions::group_margin::trading(&accounts.group, &accounts.trader)?;
     crate::instructions::group_custody::reconciled(&accounts.group, accounts.vault.amount)?;
     oracle::action(&accounts.market, &clock, !intent.reduce_only)?;
@@ -498,7 +572,14 @@ fn execute_core(
             .all(|present| *present == has_second),
         ClearingError::RouteIntent
     );
-    let funding = oracle::effective(accounts.group.mode, &accounts.market, &clock)?;
+    let environment = route_environment(
+        &accounts.group,
+        &accounts.market,
+        other_market.as_deref(),
+        snapshot,
+        clock,
+    )?;
+    environment.admit_sources(&accounts.trader, clock, !intent.reduce_only)?;
     let mut views = vec![makers::View {
         capital: &accounts.first_capital,
         registration: &accounts.first_registration,
@@ -530,16 +611,15 @@ fn execute_core(
         quotes.push(view.quote(&state, &request)?);
         roots.push((**view.capital).clone());
     }
-    let next = candidate(
+    let next = candidate_with_environment(
         &accounts.group,
-        &accounts.market,
         &accounts.trader,
         &roots,
         &quotes,
         &intent,
         order_index,
-        funding,
-        &clock,
+        &environment,
+        clock,
     )?;
     for (view, root) in views.iter().zip(&next.makers) {
         require!(
@@ -620,6 +700,16 @@ fn execute_core(
         total_cash: accounts.group.total_cash,
         fees: accounts.group.fees,
     };
-    crate::event_cpi::emit(&emitted, ctx.accounts.event_authority.to_account_info())?;
+    if let Some(other) = other_market.as_deref_mut() {
+        oracle::materialize(accounts.group.mode, other, clock)?;
+        let whole = crate::events::MarginRouteExecutedV2 {
+            execution: emitted,
+            other_market: other.key(),
+            other_market_state: crate::events::GroupMarketSnapshotV2::from(&**other),
+        };
+        crate::event_cpi::emit(&whole, accounts.event_authority.to_account_info())?;
+    } else {
+        crate::event_cpi::emit(&emitted, accounts.event_authority.to_account_info())?;
+    }
     Ok(())
 }

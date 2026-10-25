@@ -392,3 +392,14 @@ owner cash exit. Allow owner grants/revocation in qualified unfrozen financial
 mode, including while paused; reject custody and frozen resolution mutation.
 Owner replacement reauthorizes an order at epoch zero; a delegate replacement
 adopts the live grant epoch so its edits cannot survive revocation as owner authority.
+
+D51 funding realization: whole-account mutations materialize both canonical market
+funding prefixes at one Clock snapshot, even when only BTC exposure changes. A
+read-only ETH endpoint applied to a root could otherwise be forgotten after the
+hold expires and later reverse that previously applied debit. This requires both
+market write locks for whole-account instructions; measure that contention in
+P20/P21. Existing single-market isolated entrypoints retain their footprint. P17
+G02's no-write wording describes pending-funding valuation, not a permission to
+omit an authoritative prefix when committing a whole-account mutation. Require
+Normal for every relevant market on increases and credible bounds for reductions;
+empty unrelated slots need no fresh price. No oracle deadline is relaxed.

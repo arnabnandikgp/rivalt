@@ -31,6 +31,39 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn execute_margin_route_v2(
+        ctx: Context<ExecuteMarginRoute>,
+        sequence: u64,
+        observations: [u64; 2],
+        intent: RouteIntent,
+    ) -> Result<()> {
+        group_margin::trading::execute(ctx, sequence, observations, intent)
+    }
+    pub fn execute_margin_order_v2(
+        ctx: Context<ExecuteMarginRoute>,
+        sequence: u64,
+        observations: [u64; 2],
+        args: OrderExecution,
+    ) -> Result<()> {
+        group_margin::trading::execute_order(ctx, sequence, observations, args)
+    }
+    pub fn manage_margin_order_v2(
+        ctx: Context<ManageMarginOrder>,
+        sequence: u64,
+        observations: [u64; 2],
+        operation: GroupOrderAction,
+    ) -> Result<()> {
+        group_margin::trading::manage(ctx, sequence, observations, operation)
+    }
+
+    pub fn net_margin_claims_v2(
+        ctx: Context<NetMarginClaims>,
+        sequence: u64,
+        observations: [u64; 2],
+    ) -> Result<()> {
+        group_margin::netting::net(ctx, sequence, observations)
+    }
+
     pub fn set_margin_delegate_v2(
         ctx: Context<SetMarginDelegate>,
         delegate: Pubkey,

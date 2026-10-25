@@ -6,6 +6,45 @@ use anchor_lang::prelude::*;
 use financial_core as math;
 
 pub mod authority;
+pub mod netting;
+pub mod trading;
+
+pub(crate) fn environment<'a>(
+    group: &ClearingGroupV2,
+    group_key: Pubkey,
+    selected: &'a Account<GroupMarketV2>,
+    other: &'a Account<GroupMarketV2>,
+    sequence: u64,
+    observations: [u64; 2],
+    clock: &Clock,
+) -> Result<super::group_trading::book::Environment<'a>> {
+    require!(
+        selected.index < 2 && group.sequence == sequence,
+        ClearingError::Profile
+    );
+    let dependencies = if selected.index == 0 {
+        [(selected.key(), &**selected), (other.key(), &**other)]
+    } else {
+        [(other.key(), &**other), (selected.key(), &**selected)]
+    };
+    let states = markets(group, group_key, &dependencies)?;
+    require!(
+        states.map(|market| market.observation_sequence) == observations,
+        ClearingError::OraclePolicy
+    );
+    let oracle = super::group_trading::oracle::effective;
+    Ok(super::group_trading::book::Environment {
+        markets: states.map(Some),
+        selected: usize::from(selected.index),
+        funding: [
+            oracle(group.mode, states[0], clock)?,
+            oracle(group.mode, states[1], clock)?,
+        ],
+        slot: clock.slot,
+        credible: states
+            .map(|market| super::group_trading::oracle::action(market, clock, false).is_ok()),
+    })
+}
 
 pub(crate) fn model(root: &MarginAccountV2) -> Result<math::margin::Margin> {
     require!(
@@ -134,3 +173,5 @@ pub(crate) fn markets<'a>(
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod financial_tests;

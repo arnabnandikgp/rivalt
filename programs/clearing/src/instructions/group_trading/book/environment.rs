@@ -71,4 +71,28 @@ impl<'a> Environment<'a> {
             })
         })
     }
+
+    /// Source relevance is derived after terminal authority is cleaned up. Empty
+    /// unrelated slots need no price, but cannot hide an open loss or live order.
+    pub fn admit_sources(
+        &self,
+        root: &MarginAccountV2,
+        clock: &Clock,
+        increase: bool,
+    ) -> Result<()> {
+        require!(clock.slot == self.slot, ClearingError::Profile);
+        let mut refreshed = root.clone();
+        refresh_with_environment(&mut refreshed, self)?;
+        for index in 0..2 {
+            let relevant = index == self.selected
+                || refreshed.positions[index].lots != 0
+                || refreshed.book.orders.iter().any(|stored| {
+                    stored.order.active() && usize::from(stored.market_index) == index
+                });
+            if relevant {
+                oracle::action(self.market(index)?, clock, increase)?;
+            }
+        }
+        Ok(())
+    }
 }

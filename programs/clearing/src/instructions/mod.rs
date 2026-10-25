@@ -169,6 +169,18 @@ pub(crate) use group_margin::authority::__client_accounts_set_margin_delegate;
 #[cfg(feature = "cpi")]
 pub(crate) use group_margin::authority::__cpi_client_accounts_set_margin_delegate;
 pub use group_margin::authority::SetMarginDelegate;
+pub(crate) use group_margin::netting::__client_accounts_net_margin_claims;
+#[cfg(feature = "cpi")]
+pub(crate) use group_margin::netting::__cpi_client_accounts_net_margin_claims;
+pub use group_margin::netting::NetMarginClaims;
+pub(crate) use group_margin::trading::{
+    __client_accounts_execute_margin_route, __client_accounts_manage_margin_order,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use group_margin::trading::{
+    __cpi_client_accounts_execute_margin_route, __cpi_client_accounts_manage_margin_order,
+};
+pub use group_margin::trading::{ExecuteMarginRoute, ManageMarginOrder};
 pub mod group_safety;
 pub(crate) use group_safety::resolution::{
     __client_accounts_advance_group_resolution, __client_accounts_freeze_group,

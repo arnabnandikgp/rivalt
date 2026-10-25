@@ -105,7 +105,7 @@ pub fn initialize(
 
 pub(crate) fn effective(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Result<i128> {
     let observation = &market.oracle;
-    if mode != 1
+    if !matches!(mode, 1 | 2)
         || observation.held_epoch != market.config_epoch
         || observation.held_until <= observation.sampled_at
         || clock.slot >= observation.held_slot
@@ -126,7 +126,7 @@ pub(crate) fn effective(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Resu
 pub(crate) fn materialize(mode: u8, market: &mut GroupMarketV2, clock: &Clock) -> Result<()> {
     market.funding_index_scaled = effective(mode, market, clock)?;
     let observation = &market.oracle;
-    if mode == 1
+    if matches!(mode, 1 | 2)
         && observation.held_epoch == market.config_epoch
         && observation.held_until > observation.sampled_at
         && clock.slot < observation.held_slot
@@ -192,7 +192,7 @@ pub(crate) fn sample_candidate(
     } else {
         0
     };
-    let covered = if mode != 1 {
+    let covered = if !matches!(mode, 1 | 2) {
         0
     } else if preserve {
         (now.min(old.held_until) - old.sampled_at).max(0) as u64

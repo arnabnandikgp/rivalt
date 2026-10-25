@@ -57,7 +57,15 @@ machinery, with per-root grants and critical events. Twenty-eight affected clear
 host tests pass during development, including the unchanged cross gate. Signed
 runtime and new generated ABI verification are still pending.
 
-Next implement the complete two-market route/netting handlers and remaining
+Complete two-market route/order entrypoints now reuse the existing maker CPI and
+candidate pipeline. Both market funding prefixes materialize together; a later
+expired hold must not reverse funding already applied to a root. Both markets are
+therefore writable on these whole-account instructions, an explicit serialization
+cost to measure in P20/P21. Existing single-market isolated entrypoints retain their
+footprint. New whole-account events include both actual market snapshots.
+
+Owner-only flat netting and full-dependency route candidates are implemented behind
+the unchanged cross gate. Thirty-two affected clearing host tests now pass. Remaining
 independent G01–G04/G09–G11 checks. Verify legacy/generated ABI, bounded default and
 successor builds, signed isolated/delegation regression and both cross-activation
 negative profiles. P20 owns signed enabled-cross safety and transaction budgets;

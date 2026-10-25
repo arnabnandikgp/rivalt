@@ -338,12 +338,37 @@ pub struct GroupOracleChangedV2 {
 }
 
 #[event]
+pub struct MarginClaimsNettedV2 {
+    pub group: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub margin: Pubkey,
+    pub state: MarginAccountSnapshotV2,
+    pub markets: [GroupMarketSnapshotV2; 2],
+    pub cancelled_scaled: i128,
+}
+
+#[event]
 pub struct MarginAuthorityChangedV2 {
     pub group: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub margin: Pubkey,
     pub state: MarginAccountSnapshotV2,
+}
+
+#[event]
+pub struct MarginOrderChangedV2 {
+    pub change: GroupOrderChangedV2,
+    pub other_market: Pubkey,
+    pub other_market_state: GroupMarketSnapshotV2,
+}
+
+#[event]
+pub struct MarginRouteExecutedV2 {
+    pub execution: GroupRouteExecutedV2,
+    pub other_market: Pubkey,
+    pub other_market_state: GroupMarketSnapshotV2,
 }
 
 #[event]
