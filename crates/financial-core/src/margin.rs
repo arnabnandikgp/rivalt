@@ -78,6 +78,33 @@ impl Margin {
         Ok(next)
     }
 
+    /// Exact closed-claim cancellation inside one cross root. The caller also
+    /// authenticates owner/group and rejects active order/protection authority.
+    /// No settlement cash, insurance or sibling balance participates.
+    pub fn net_closed_claims(&self, funding: [i128; MARKETS]) -> Result<Self> {
+        self.validate()?;
+        if self.mode != Mode::Cross
+            || self.reserved != 0
+            || self.positions.iter().any(|position| position.lots != 0)
+        {
+            return Err(Error::Bounds);
+        }
+        let mut next = self.accrued(funding)?;
+        let claims = next.positions.map(|position| position.virtual_scaled);
+        let (positive, negative) = if claims[0] > 0 && claims[1] < 0 {
+            (0, 1)
+        } else if claims[1] > 0 && claims[0] < 0 {
+            (1, 0)
+        } else {
+            return Err(Error::Bounds);
+        };
+        let cancelled = claims[positive].min(sub(0, claims[negative])?);
+        next.positions[positive].virtual_scaled = sub(claims[positive], cancelled)?;
+        next.positions[negative].virtual_scaled = add(claims[negative], cancelled)?;
+        next.validate()?;
+        Ok(next)
+    }
+
     /// Explicit whole-atom movement between a market claim and funded cash.
     /// The caller supplies a complete-group certificate before paying a gain.
     pub fn settle_claim(
@@ -240,6 +267,25 @@ impl Margin {
         }
         Ok(())
     }
+}
+
+/// Same-owner/group authority and the complete-group exit certificate belong to
+/// the caller. Donor admission includes all pending funding and refreshed reserves;
+/// adding cash may improve an unhealthy recipient without granting trading rights.
+pub fn transfer_candidate(
+    donor: Margin,
+    recipient: Margin,
+    amount: u64,
+    risks: [Risk; MARKETS],
+) -> Result<(Margin, Margin)> {
+    if donor.id == recipient.id {
+        return Err(Error::Invariant);
+    }
+    let next_donor = donor.withdraw(amount, risks)?;
+    let mut next_recipient = recipient.accrued(risks.map(|risk| risk.funding))?;
+    next_recipient.cash = cash_add(next_recipient.cash, amount)?;
+    next_recipient.validate()?;
+    Ok((next_donor, next_recipient))
 }
 
 /// A bounded, consenting receiver takes one selected position. Both cash balances

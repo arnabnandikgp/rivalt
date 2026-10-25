@@ -412,6 +412,8 @@ Measure declared worst-case transaction budgets. Keep cross activation rejected.
 
 ### P19 — Bounded cross-margin core
 
+Current implementation: [P19 core](P19-CROSS-CORE.md), D51. In progress; A24 is pending.
+
 **Deliverable:** Same engine for one/two-position roots; full dependency assembly,
 whole-account pending funding/health/reservations, owner transfers/transfer-and-open,
 explicit flat-claim netting and per-account expiring/revocable trade delegation.

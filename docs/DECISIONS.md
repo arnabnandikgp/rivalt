@@ -361,3 +361,26 @@ complete-group loss ownership or external P15B/P16B gates. See
 [P18C](P18C-GROUP-SAFETY.md). [A23C/G14](evidence/P18C.md) is verified on
 `b43261f` for the explicit isolated local profile. This grants no cross or
 default/devnet activation and does not close P15B/P16B.
+
+## D51 — whole-account core and explicit delegated authority (P19 / G15 core)
+
+Implement P17's complete two-slot funding/health/reservations using the existing
+root layout and accounting engine. Authenticate both canonical group market
+dependencies; price availability is required only for relevant exposure/authority
+and the selected operation. Explicit transfer admits the donor after refreshed
+reserves and accrues both recipient slots without granting recipient trading rights.
+Flat-only opposite-claim cancellation preserves exact fractions and all cash pools;
+owner/group/active-order checks belong to clearing, not the arithmetic helper.
+
+Per-root delegate grants use exclusive expiry bounded by the existing 216,000-slot
+order lifetime. Every owner change/revocation advances both delegate epoch and
+route nonce, so revoking and regranting the same key cannot revive an old signed
+immediate intent. Owner orders use epoch zero; delegated orders require the live
+grant epoch. No cash allocation/netting/maker-config authority is delegated.
+Historical protection allowance with no live child is inactive; no stored stale
+field can revive an order on another market or generation.
+
+These are ordinary realizations of D46–D48, not new collateral or fee economics.
+[P19](P19-CROSS-CORE.md) is in progress; A24/G15 core is not yet passed. Cross
+activation remains false until P20's actual liquidation/default checks. The phase
+does not authorize any new deployment outside the fresh local test profile.
