@@ -250,3 +250,33 @@ result, then sign a separate owner-sync transaction. Between them the maker is
 unsynchronized and cannot quote. This preserves the on-chain read-only boundary
 under Solana transaction-wide writability promotion. Publication carries no
 registration-epoch expiry proof because it does not change that registration.
+
+
+## Qualified deployment artifacts
+
+`GROUP_ARTIFACT_SET=p20-qualified-local-v1` names the exact P20 clearing, maker A,
+maker B and synthetic source program ELF hashes/lengths. Live clients authenticate
+loader/executable/ProgramData PDAs, code, zero allocated padding and the local
+group authority as upgrade authority. Public HTTP/configuration cannot supply
+alternate hashes. A changed/unqualified program blocks SDK preparation, execution
+and indexer reconciliation, without interpreting compatible IDL bytes as proof of
+the qualified profile. A schema-2 journal now records its artifact set; opening an
+older unbound run fails, requiring explicit fresh replay. Historical offline
+projection adapters do not imply permission to execute from such a journal.
+
+Full bytes enter the cache only at a finalized RPC context strictly after their
+recorded deployment slot. Each live check still fetches the executable and
+ProgramData headers, authority and allocated size; changed metadata invalidates
+the entry, and a context older than verified finality fails. Same-slot or pending
+upgrades require full verification until later finality. This relies on the same
+standard RPC/finality and upgradeable-loader contract as the rest of the local
+profile. The gate observes deployment identity; it does not authorize any upgrade.
+Actual RPC verification and measured cache behavior remain acceptance work until
+recorded in WORKLOG.
+
+`bash ops/group-indexer-smoke.sh --recovery-services` owns the focused actual
+artifact identity/cache and missing-price AwaitValuation restart/recovery check,
+including direct SDK exits from both account modes after explicit authority
+resume. It uses a seven-member group; the separate maximum-cohort risk command
+owns 64-member budgets/reconstruction. Neither command substitutes for P21B's
+concurrent workload or wallet UI qualification.

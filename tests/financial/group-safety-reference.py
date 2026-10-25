@@ -164,12 +164,12 @@ def audit(summary,captures,allow_cross=False):
         if check['status']=='pass':assert int(check['computeUnits'])*5<=check['declaredComputeUnits']*4
     return result
 
-def default_audit(states,keys,label):
+def default_audit(states,keys,label,*,count=64,prices=(10_000,40_000)):
     frozen,complete=states[f'frozen-{label}'],states[f'complete-{label}']
     header,_=resolution(frozen['accounts'][keys['resolution']]);finished,rows=resolution(complete['accounts'][keys['resolution']])
-    assert header['stage']==2 and finished['stage']==12 and header['count']==finished['count']==64
-    assert header['prices']==[10_000,40_000] and header['funding']==[market['funding'] for market in frozen['markets']]
-    assert header['registry_hash']==hashlib.sha256(frozen['registry'][48:48+64*32]).digest()
+    assert header['stage']==2 and finished['stage']==12 and header['count']==finished['count']==count
+    assert header['prices']==list(prices) and header['funding']==[market['funding'] for market in frozen['markets']]
+    assert header['registry_hash']==hashlib.sha256(frozen['registry'][48:48+count*32]).digest()
     assert complete['members']==frozen['members']
     cash=[entry['cash'] for entry in frozen['roots']]
     initial_claims=[sum(claims(entry,header['prices'],header['funding'])) for entry in frozen['roots']]
@@ -186,7 +186,7 @@ def default_audit(states,keys,label):
     pool=header['initial_pool']+sum(collected)+insurance
     assert sum(entitlement)==pool*SCALE
     paid=[claim//SCALE for claim in entitlement]
-    order=sorted(range(64),key=lambda index:(-(entitlement[index]%SCALE),index))
+    order=sorted(range(count),key=lambda index:(-(entitlement[index]%SCALE),index))
     for index in order[:pool-sum(paid)]:paid[index]+=1
     rounding=[amount*SCALE-claim for amount,claim in zip(paid,entitlement)]
     assert sum(rounding)==0 and all(abs(value)<SCALE for value in rounding)
@@ -202,7 +202,7 @@ def default_audit(states,keys,label):
     assert complete['pools']['fees']==frozen['pools']['fees'] and complete['pools']['vault']==frozen['pools']['vault']
     assert complete['pools']['pool']==0 and complete['pools']['insurance']==header['initial_insurance']-insurance
     assert states[f'resumed-{label}']['pools']==complete['pools']
-    return dict(members=64,collected=str(sum(collected)),insurance=str(insurance),paid=str(pool),impairedScaled=str(sum(impaired)),roundingSum=str(sum(rounding)))
+    return dict(members=count,collected=str(sum(collected)),insurance=str(insurance),paid=str(pool),impairedScaled=str(sum(impaired)),roundingSum=str(sum(rounding)))
 
 def ordinary_audit(summary,captures):
     states={name:snapshot(raw,summary['keys']) for name,raw in captures.items()}

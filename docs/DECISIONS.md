@@ -538,3 +538,13 @@ two separately persisted original transactions, publication then finalized owner
 sync; an intermediate unsynchronized maker stays unavailable. Publication cannot
 use the unchanged registration epoch to infer nonexecution. No program/read-only
 CPI, approval, risk or source safeguard changes.
+
+
+D53 artifact binding: name the exact P20-qualified four-program test deployment as
+`p20-qualified-local-v1`; pin code hashes/lengths, canonical loader identity, zero
+padding and the local group authority as upgrade authority. Live SDK, execution
+and indexing reject unqualified code and older unbound execution journals. Cache
+full bytes only after a strictly later finalized context, rechecking current
+headers/authority/allocated size and context on every use; unfinalized or same-slot
+changes must be rehashed. No binary/profile, V1 history, source or economic rule
+changes, and no new deployment authority is granted.

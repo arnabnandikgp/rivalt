@@ -1,7 +1,8 @@
 import {AccountRole, address, createNoopSigner, getProgramDerivedAddress, type Address, type Instruction} from '@solana/kit';
 import * as protocol from './generated/index.js';
 import {testRpcUrl} from './test-deployment.js';
-import {WalletClient, hex, requireValue} from './wallet-client.js';
+import {GroupArtifactVerifier} from './group-artifacts.js';
+import {WalletClient, hex, requireValue, fromBase64} from './wallet-client.js';
 import {walletComputeBudget, resolutionComputeBudget} from './route-budget.js';
 import {readGroupSnapshot, type GroupSnapshot} from './group-snapshot.js';
 import {readGroupMakers} from './group-makers.js';
@@ -63,7 +64,8 @@ export function groupExitProof(snapshot:GroupSnapshot):{complete:boolean;start:n
  * certification, allocation or an admissible funded withdrawal. */
 export class GroupUserClient extends WalletClient {
   readonly config:GroupUserConfig;
-  constructor(config:GroupUserConfig){super(groupUserConfig(config).rpcUrl);this.config=groupUserConfig(config);}
+  private readonly artifacts:GroupArtifactVerifier;
+  constructor(config:GroupUserConfig){super(groupUserConfig(config).rpcUrl);this.config=groupUserConfig(config);this.artifacts=new GroupArtifactVerifier(this.rpc);}
   protected override walletInstructions(instructions:Instruction[]){return groupWalletInstructions(instructions);}
   async environment():Promise<void>{
     const [genesis,anchor]=await Promise.all([this.rpc.call('getGenesisHash'),this.rpc.call('getTransaction',[
@@ -72,6 +74,12 @@ export class GroupUserClient extends WalletClient {
     requireValue(anchor?.meta?.err===null&&anchor.transaction?.signatures?.[0]===this.config.anchor,'Group initialization history unavailable.');
     const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(anchor.transaction)));
     requireValue(hex(new Uint8Array(digest))===this.config.anchorHash,'Group initialization history mismatch.');
+    const account=await this.rpc.call('getAccountInfo',[this.config.group,{encoding:'base64',commitment:'confirmed'}]);
+    requireValue(account.value?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&account.value.data?.[1]==='base64','Missing group deployment authority.');
+    const bytes=fromBase64(account.value.data[0]);requireValue(hex(bytes.slice(0,8))===hex(protocol.CLEARING_GROUP_V2_DISCRIMINATOR),'Wrong group deployment schema.');
+    const group=protocol.getClearingGroupV2Decoder().decode(bytes);
+    requireValue(group.schemaVersion===2&&group.profileVersion===2&&hex(group.domain)===this.config.domain&&group.quoteMint===this.config.mint,'Group deployment identity mismatch.');
+    await this.artifacts.verify(group.authority);
   }
   async snapshot(commitment:'confirmed'|'finalized'='finalized'){
     await this.environment();return readGroupSnapshot(this.rpc,this.config,commitment);

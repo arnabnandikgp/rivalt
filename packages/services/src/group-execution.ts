@@ -1,5 +1,5 @@
 import {readFileSync} from 'node:fs';
-import type {Instruction} from '@solana/kit';
+import {address,type Instruction} from '@solana/kit';
 import {Connection, type Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {GroupStore} from '../../indexer/src/group-store.js';
@@ -35,10 +35,11 @@ export class GroupExecution {
   readonly rpc:Rpc;
   readonly connection:Connection;
   readonly queue:Queue;
+  private readonly artifacts:sdk.GroupArtifactVerifier;
   constructor(database:string, readonly runId:string, url:string) {
     sdk.testRpcUrl(url,'solana:localnet');
     this.store=new GroupStore(database,runId); this.rpc=new Rpc(url);
-    this.connection=new Connection(url,'confirmed');this.queue=new Queue(this.store,this.rpc);
+    this.connection=new Connection(url,'confirmed');this.queue=new Queue(this.store,this.rpc);this.artifacts=new sdk.GroupArtifactVerifier(this.rpc);
   }
   async open() {
     await this.store.migrate();
@@ -47,11 +48,12 @@ export class GroupExecution {
     await this.environment();
   }
   async environment() {
-    const {binding}=await this.store.snapshot();
-    if (binding.program !== sdk.CLEARING_PROGRAM_ADDRESS || binding.profile !== 'cross-safety-qualification') throw new Error('Group service deployment mismatch');
+    const {binding,state}=await this.store.snapshot();
+    if (binding.program !== sdk.CLEARING_PROGRAM_ADDRESS || binding.profile !== 'cross-safety-qualification' || binding.artifactSet !== sdk.GROUP_ARTIFACT_SET || !state.group) throw new Error('Group service deployment mismatch');
     if (await this.rpc.call('getGenesisHash') !== binding.genesis) throw new Error('Group service genesis mismatch');
     const anchor=await this.rpc.call('getTransaction',[binding.anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:0}]);
     if (anchor?.meta?.err !== null || anchor.transaction?.signatures?.[0] !== binding.anchor || hash(anchor.transaction) !== binding.anchorHash) throw new Error('Group service initialization mismatch');
+    await this.artifacts.verify(address(state.group.authority));
     return binding;
   }
   async submit(requestId:string,wire:string) {

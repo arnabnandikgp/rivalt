@@ -32,7 +32,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5a | P11–P12 | Complete local engineering evidence | Closed | [P11 A01–A16](evidence/P11.md) and [P12 revised A17](evidence/P12.md) verified; 1,249/1,249 submitted trades, 71.19% normal offered availability, affected recoveries, actual exit and 12,454-transaction fresh PostgreSQL replay; merged PR #14 records the indexer pause during separate history generation; integrated at `2bc298e`; 24-hour endurance deferred to P16 under D35 |
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
-| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | R034: A22/G13 contract/layout checks pass on `5a4dc84`, five scoped tests and 190 local links; P17/P18A/P18B Review; A23A custody passes on `6389c3e` with 136 signed SVM / 51 finalized RPC scenarios; A23B passes on `286cb4e` with 154 signed SVM scenarios; R037 A23C/G14 passes on clean `b43261f`: 1,132 signed SVM / 148 finalized RPC scenarios, both-market lifecycle, complete default/recovery and independent audits; P18C Review; R039 A24/G15 core passes on clean `4274d28`: 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC, independent audit/parity; P19 Review in #28; P20 Review: clean 1,224 SVM / 1,221 finalized RPC core plus 215 SVM / 212 finalized RPC maximum-book acceptance; explicit local cross profile qualified in #29; R043 P21A In progress: pinned ff34275 recovery passes, 104 group transactions/83 events, original-signature executor restart, HTTP and fresh PostgreSQL replay; direct SDK pinned fed5f55 lifecycle passes; pinned fbc70b9 market workers pass 24 original transactions/replay; 9093e88 whole-account allocation/direct route checkpoint verified by scoped units; 345ddc5 signed trading/orders pass (7 wallet transactions + 1 keeper fill), exact both-market cash/fee audit and fresh PostgreSQL replay; 4fe5ed6 mixed-mode settlement passes 12 original transactions, funding preview/fraction audit, actual worker restart and fresh replay; risk/default worker implemented, 16 focused risk/settlement checks pass, f41cfff risk run passes initial funded liquidation but real epoch renewal rejects combined publish/sync; corrected separate original transactions, full default continuation pending |
+| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | R034: A22/G13 contract/layout checks pass on `5a4dc84`, five scoped tests and 190 local links; P17/P18A/P18B Review; A23A custody passes on `6389c3e` with 136 signed SVM / 51 finalized RPC scenarios; A23B passes on `286cb4e` with 154 signed SVM scenarios; R037 A23C/G14 passes on clean `b43261f`: 1,132 signed SVM / 148 finalized RPC scenarios, both-market lifecycle, complete default/recovery and independent audits; P18C Review; R039 A24/G15 core passes on clean `4274d28`: 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC, independent audit/parity; P19 Review in #28; P20 Review: clean 1,224 SVM / 1,221 finalized RPC core plus 215 SVM / 212 finalized RPC maximum-book acceptance; explicit local cross profile qualified in #29; R043 P21A In progress: pinned ff34275 recovery passes, 104 group transactions/83 events, original-signature executor restart, HTTP and fresh PostgreSQL replay; direct SDK pinned fed5f55 lifecycle passes; pinned fbc70b9 market workers pass 24 original transactions/replay; 9093e88 whole-account allocation/direct route checkpoint verified by scoped units; 345ddc5 signed trading/orders pass (7 wallet transactions + 1 keeper fill), exact both-market cash/fee audit and fresh PostgreSQL replay; 4fe5ed6 mixed-mode settlement passes 12 original transactions, funding preview/fraction audit, actual worker restart and fresh replay; risk/default worker implemented, 16 focused risk/settlement checks pass, 2767cdd risk services pass 173 originals, real maker renewal, 64-member default/restart, independent audit and 134-account fresh PostgreSQL replay; artifact binding and missing-price recovery remain |
 
 ## Phase overview
 
@@ -62,7 +62,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P18C | Isolated group settlement/liquidation/default and activation | Review | [PR #27](https://github.com/arnabnandikgp/rivalt/pull/27), tested `b43261f`; active-route extension `298f446`, above P18B `a912ebb` / #26 | [A23C/G14](evidence/P18C.md): 1,132 signed SVM scenarios, two complete 64-member audits, 148 finalized RPC / 81 expected WS outcomes; cross remains disabled |
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
 | M7 | P20 | Cross liquidation/default and qualified activation | Review | [PR #29](https://github.com/arnabnandikgp/rivalt/pull/29), published `459c84c`, tested `3c7ab4e` core / `aadb69f` budgets, above P19 #28 `c0b7898` | [A25/G15](evidence/P20.md): 1,224 SVM / 1,221 finalized RPC + 215 SVM / 212 finalized RPC maximum-book cases; 820/820 and 95/95 WS; byte-identical qualified local profile; integration pending |
-| M7 | P21A | Group SDK/indexer/API and durable services | In progress | `phase/p21a-group-services`, exact P20 #29 `459c84c`; no PR yet | R043: ff34275 pinned execution/HTTP/PostgreSQL recovery passes; fed5f55 direct SDK passes 20 signed actions/API-stopped stale cancel and flat funded exit; fbc70b9 maker/funding processes pass 24 original transactions/replay; 9093e88 whole-account routing unit checkpoint passes; 345ddc5 signed trading/orders pass (7 wallet transactions + 1 keeper fill), exact audit/fresh replay; 4fe5ed6 mixed-mode settlement passes 12 original transactions/funding/restart/fraction audit/fresh replay; risk/default worker passes scoped checks; f41cfff real epoch renewal exposes read-only config violation in combined publication/sync; separate-intent correction prepared, default continuation/full A26A pending |
+| M7 | P21A | Group SDK/indexer/API and durable services | In progress | `phase/p21a-group-services`, exact P20 #29 `459c84c`; no PR yet | R043: ff34275 pinned execution/HTTP/PostgreSQL recovery passes; fed5f55 direct SDK passes 20 signed actions/API-stopped stale cancel and flat funded exit; fbc70b9 maker/funding processes pass 24 original transactions/replay; 9093e88 whole-account routing unit checkpoint passes; 345ddc5 signed trading/orders pass (7 wallet transactions + 1 keeper fill), exact audit/fresh replay; 4fe5ed6 mixed-mode settlement passes 12 original transactions/funding/restart/fraction audit/fresh replay; risk/default worker passes scoped checks; 2767cdd risk services pass 173 original transactions, 64-member default/restart/audit and 134-account fresh replay; artifact binding passes 15 focused checks; real missing-price recovery/artifact harness prepared; A26A acceptance still pending |
 | M7 | P21B | UI/operations and fresh successor qualification | Open | — | P21A; A26B/G16/M7 exit |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
@@ -74,7 +74,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Verification: original 12 signed checks on `b95b970` establish old-hash rejection/joint approval/account preservation; the independent auditor rejects their test config domain. Eight corrected ownership checks on clean `a1c793c` pass with the stored market domain; no repeated upgrade/approval. Independent raw-byte continuation and five adverse mutations pass. Fresh PostgreSQL 18.6 reconstructs 75 transactions/62 events, retains both rejected upgrade attempts without events, has zero unresolved jobs and serves the exact approved hashes over HTTP. Vault/allocated collateral remain 1,000,000,470 atoms.
 - Storage: original raw evidence remains local/ignored. R030 writes separate rollout, corrected-ownership and indexer directories; no archive/upload or raw JSON enters Git.
-- Exact next action: pin and run `bash ops/group-indexer-smoke.sh --risk-services` for complete-group service recovery, then finish artifact binding and remaining A26A checks. No external action is authorized.
+- Exact next action: finish the explicit artifact-binding and missing-price recovery check, then audit A26A coverage and publish P21A ready above #29 before P21B. No external action is authorized.
 - Deferred gates: P15B/P16B independent maker/source/review, funded-risk calibration and explicit pilot authorization. Continuous 24-hour endurance remains Deferred under D42 and is not a current P16A requirement. No funded readiness or independent review is claimed.
 
 ## Blocker register
@@ -1283,3 +1283,51 @@ authority. Typecheck, diff and evidence-policy checks pass. Logs remain local at
 `.local/p21a-maker-renewal-tests.log` and `.local/p21a-maker-renewal-typecheck.log`.
 No unrelated regression was repeated. Signed correction/default acceptance remains
 the next pinned run; no P21 PR or phase completion is claimed.
+
+
+R048 pinned risk acceptance: clean, unchanged
+`2767cdd172366b51c0450ab012820432b751c606` passes
+`bash ops/group-indexer-smoke.sh --risk-services` at
+`.local/group-risk-services-rpc/20261025T160635Z-71689` (log
+`.local/p21a-risk-pinned-2.log`). All 459 fixture/provisioning outcomes finalize;
+173 original service transactions independently match stored/fetched wire and
+finalized success: four publications plus four separate owner syncs, one funded
+64-lot liquidation, one authenticated paused-group freeze, 160 complete-registry
+resolution pages and three permissionless recovery checks. Explicit authority
+resume returns to isolated mode, without automatic cross activation.
+
+An actual risk SIGKILL after collection begins (PID 72837 → 73100, observed stage
+3/cursor 4), original-intent drain, indexer close/reopen and exact partial-state
+reconstruction pass. The maximum cohort has 64 roots and 60 distinct portfolios;
+134-account reconciliation uses actual RPC chunks of 100 and 35 (repeated group),
+318 WS observations and exact fresh PostgreSQL replay. Actual/allocated vault is
+2,004,000,007 atoms, with zero surplus. Each maker spends 10,000 lamports; risk
+spends 825,000, all reservations zero. Overall largest transaction is 272,934 CU
+(maximum default page) / 708 bytes (freeze). The 64-lot liquidation uses 74,365 CU,
+493 bytes and transfers exactly 1,664 funded fee atoms, with strict whole-account
+post-fee progress and both-market receiver accrual.
+
+The independent raw-byte audit and six deliberate corruptions pass: 1,097,771
+atoms collected, 1,007 insurance, 1,098,778 paid, 548117504344380 scaled impairment,
+zero aggregate terminal rounding. Every final root/claim/pool/fee and unchanged
+sibling is checked; prior reference code is exercised against this new run, not
+counted as historical evidence. Missing-price AwaitValuation service recovery,
+explicit artifact identity and final A26A coverage remain separate; no P21B,
+endurance, devnet/funded or independent-review acceptance follows.
+
+### R049 — 25 October 2026 — P21A deployment binding preparation
+
+- Prepare the exact P20-qualified clearing/A/B/source artifact set (binary hashes and lengths, loader/PDA, zero padding and local deployment authority), then connect its verifier to live SDK environment checks, indexer initialization/reconciliation and execution. The journal records the artifact set; older unbound service journals require a fresh explicit replay. No V1 migration, binary rebuild, source/risk change or deployment occurs.
+- Develop this independent gate in an isolated local worktree while R048's pinned source remains unchanged; apply it only after R048 finishes. Eight artifact-boundary cases plus seven affected direct-client checks pass (15 total), covering bad code/authority/pointer/padding, same-slot and unfinalized upgrades, finality regression and cached header rechecks. Full binary caching requires a finalized context strictly later than deployment, matching header/authority/allocated size and a current context at least as new; same-slot/unfinalized code is rehashed. Worktree typecheck passes. These are preparation/consumer checks, not actual artifact-bound RPC acceptance.
+- Both tables keep M7/P21A In progress; P20 Review, P21B/external gates Open and endurance Deferred. No P21 PR or access/product blocker. Exact next action: implement the focused real artifact-binding/AwaitValuation recovery continuation, pin and run it, then audit A26A acceptance coverage before publication.
+
+R049 continuation preparation: add `--recovery-services` for a fresh seven-root
+actual AwaitValuation refusal/restart, both-source restoration, permissionless
+pages/recovery and owner SDK withdrawals with the read API stopped. The harness
+also measures actual cold/warm artifact reads and rejects wrong authority/hash
+against RPC. These signed checks have not run yet. Typecheck, diff and evidence
+policy pass. Generalize the independent default auditor's explicit count/price
+inputs while preserving its 64-member defaults; replaying R048's retained bytes
+still passes its financial audit and six corruptions (auditor regression only).
+No SBF/IDL, broad matrix, browser, devnet or endurance rerun is needed. Pin this
+checkpoint, then run the focused recovery command; no phase/PR completion claim.

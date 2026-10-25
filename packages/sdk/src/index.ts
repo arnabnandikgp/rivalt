@@ -26,3 +26,4 @@ export * from './group-client.js';
 export * from './group-makers.js';
 export * from './group-allocation.js';
 export * from './group-route.js';
+export * from './group-artifacts.js';
