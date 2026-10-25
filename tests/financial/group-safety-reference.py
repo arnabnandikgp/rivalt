@@ -25,7 +25,7 @@ def account(data, name, size):
     assert data[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
     assert integer(data, 8, 2) == 2
 
-def root(data):
+def root(data, allow_cross=False):
     account(data, 'MarginAccountV2', 970)
     positions = [dict(lots=integer(data, start, signed=True), virtual=integer(data, start+8,16,True),
                       checkpoint=integer(data,start+24,16,True), generation=integer(data,start+40)) for start in [121,169]]
@@ -35,7 +35,9 @@ def root(data):
         assert market in [0,1]
         assert all(value == 0 for value in positions[1-market].values())
     else:
-        assert market == 255 and all(position['lots'] == position['virtual'] == 0 for position in positions)
+        assert market == 255 and data[112] != 1
+        if not allow_cross:
+            assert all(position['lots'] == position['virtual'] == 0 for position in positions)
     return dict(id=integer(data,108,2), cash=integer(data,113), positions=positions,
                 mode=mode, market=market, reserved=integer(data,281), raw=data)
 
@@ -86,7 +88,7 @@ def resolution(data):
         row['rounding_scaled']=reader.number(16,True);row['remainder']=reader.number(16);rows.append(row)
     return header,rows
 
-def snapshot(raw,keys):
+def snapshot(raw,keys,allow_cross=False):
     accounts={key:base64.b64decode(value,validate=True) for key,value in raw.items() if value is not None}
     group=accounts[keys['group']];account(group,'ClearingGroupV2',273)
     assert group[204]==2 and integer(group,10,2)==2
@@ -99,7 +101,7 @@ def snapshot(raw,keys):
     by_address={address_bytes(key):key for key in keys['roots']}
     members=[by_address[registry[48+32*index:80+32*index]] for index in range(count)]
     assert len(set(members))==count
-    roots=[root(accounts[key]) for key in members]
+    roots=[root(accounts[key],allow_cross) for key in members]
     for index,entry in enumerate(roots):
         assert entry['id']==index and entry['raw'][10:42]==address_bytes(keys['group'])
     assert sum(root['cash'] for root in roots)==pools['cash']
@@ -131,13 +133,14 @@ def allocate(total,weights):
     assert sum(floors)==total
     return floors
 
-def audit(summary,captures):
+def audit(summary,captures,allow_cross=False):
     keys=summary['keys']
-    states={name:snapshot(raw,keys) for name,raw in captures.items()}
+    states={name:snapshot(raw,keys,allow_cross) for name,raw in captures.items()}
     for name,state in states.items():
         if not name.startswith('frozen-'):normal(state)
     before,after=states['before-liquidation'],states['after-liquidation']
-    target_before,target_after=before['roots'][0],after['roots'][0]
+    target_id=keys['roots'].index(keys.get('liquidationTarget',keys['roots'][0]))
+    target_before,target_after=before['roots'][target_id],after['roots'][target_id]
     receiver_before,receiver_after=before['roots'][7],after['roots'][7]
     assert target_before['positions'][0]['lots']==100 and target_after['positions'][0]['lots']==50
     assert receiver_before['positions'][0]['lots']==0 and receiver_after['positions'][0]['lots']==50
@@ -171,7 +174,8 @@ def default_audit(states,keys,label):
     cash=[entry['cash'] for entry in frozen['roots']]
     initial_claims=[sum(claims(entry,header['prices'],header['funding'])) for entry in frozen['roots']]
     assert sum(initial_claims)==header['initial_pool']*SCALE
-    if label=='default':assert cash[0]*SCALE+initial_claims[0]<0
+    target_id=keys['roots'].index(keys.get('liquidationTarget',keys['roots'][0]))
+    if label=='default':assert cash[target_id]*SCALE+initial_claims[target_id]<0
     collected=[min(balance,max(-claim,0)//SCALE) for balance,claim in zip(cash,initial_claims)]
     residual=[claim+amount*SCALE for claim,amount in zip(initial_claims,collected)]
     debt=[max(-claim,0) for claim in residual];positive=[max(claim,0) for claim in residual]

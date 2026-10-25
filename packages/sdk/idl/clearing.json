@@ -10,6 +10,154 @@
   ],
   "instructions": [
     {
+      "name": "activate_cross_group_v2",
+      "discriminator": [
+        49,
+        156,
+        2,
+        35,
+        97,
+        140,
+        24,
+        135
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  114,
+                  111,
+                  117,
+                  112,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.domain",
+                "account": "ClearingGroupV2"
+              }
+            ]
+          },
+          "relations": [
+            "btc",
+            "eth",
+            "guard",
+            "resolution"
+          ]
+        },
+        {
+          "name": "btc",
+          "writable": true
+        },
+        {
+          "name": "eth",
+          "writable": true
+        },
+        {
+          "name": "guard",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  105,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              }
+            ]
+          },
+          "relations": [
+            "group"
+          ]
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "activate_isolated_group_v2",
       "discriminator": [
         140,

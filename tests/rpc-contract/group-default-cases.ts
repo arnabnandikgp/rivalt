@@ -10,17 +10,19 @@ import type { GroupTradingHarness } from './group-trading-cases.js';
 import type { groupSafetyCases } from './group-safety-cases.js';
 
 type Lifecycle = Awaited<ReturnType<typeof groupSafetyCases>>;
-export async function groupDefaultCases(h:GroupTradingHarness, lifecycle:Lifecycle,capture:(label:string,keys:Address[])=>Promise<void>) {
+export async function groupDefaultCases(h:GroupTradingHarness, lifecycle:Lifecycle,capture:(label:string,keys:Address[])=>Promise<void>,
+  options:{crossReceiver?:boolean}={}) {
   const {fixture,route,certificate,reject,protectedKeys}=lifecycle;
   const {common,safety,payer,owner,operators,roots}=fixture;
   const encoder=getAddressEncoder();
   const receiverOwner=await fixtureKey('p18c-receiver');
   await h.send('receiver rent funding',[getTransferSolInstruction({source:payer,destination:receiverOwner.address,amount:1_000_000_000n})]);
   const portfolio=await groupPda('portfolio-v2',encoder.encode(fixture.group),encoder.encode(receiverOwner.address),u16(0));
-  const receiver=await groupPda('margin-v2',encoder.encode(portfolio),u16(1));
+  const receiverIndex=options.crossReceiver?0:1;
+  const receiver=await groupPda('margin-v2',encoder.encode(portfolio),u16(receiverIndex));
   await h.send('register receiver portfolio during trading',[await sdk.getCreatePortfolioV2InstructionAsync({...common,owner:receiverOwner,portfolio,index:0})],[receiverOwner]);
   await h.send('register consenting receiver root',[await sdk.getRegisterMarginV2InstructionAsync({...common,owner:receiverOwner,portfolio,margin:receiver,
-    subaccountIndex:1,mode:1,isolatedMarketIndex:0,role:2})],[receiverOwner]);roots.push(receiver);
+    subaccountIndex:receiverIndex,mode:options.crossReceiver?0:1,isolatedMarketIndex:options.crossReceiver?255:0,role:2})],[receiverOwner]);roots.push(receiver);
   // Owner cash cannot be moved to a receiver with a different owner; the receiver
   // instead owns its own minted test collateral and signs an actual token deposit.
   const {getCreateAccountInstruction}=await import('@solana-program/system');
@@ -34,6 +36,8 @@ export async function groupDefaultCases(h:GroupTradingHarness, lifecycle:Lifecyc
   await reject('reject sibling transfer to another owner',[sdk.getTransferTradingCashV2Instruction({...safety,...await fixture.stamp(),owner,
     donor:operators[0].capital[0],recipient:receiver,amount:1n})],[owner],2001);
   await fixture.qualify();
+  if(options.crossReceiver)await h.send('receiver holds actual ETH dependency before BTC liquidation',[
+    (await route(1,0,[1n],false,receiver,receiverOwner)).instruction],[receiverOwner]);
   const open=await route(0,0,[50n,50n]);await h.send('open position for funded liquidation',[open.instruction],[owner]);
   await fixture.publish(0,{price:52_000_000_000n});await fixture.publish(2,{price:52_000_000_000n});await fixture.qualify();
   const liquidation=async(lots:bigint,price:bigint,receiving=receiver,signer=receiverOwner)=>sdk.getLiquidateGroupV2Instruction({...safety,...await fixture.stamp(),receiverOwner:signer,
@@ -57,12 +61,14 @@ export async function groupDefaultCases(h:GroupTradingHarness, lifecycle:Lifecyc
   for(const root of roots) {
     const account=await fixture.rootState(root);if(account.mode!==1)continue;
     const index=account.isolatedMarketIndex,claim=account.positions[index].virtualScaled;
+    if(account.positions[index].lots!==0n)continue;
     if(claim<=-1_000_000_000n)await h.send('collect funded liquidation lifecycle loss',[sdk.getChangeGroupClaimV2Instruction({...safety,...await fixture.stamp(),margin:root,
       marketIndex:index,amount:-claim/1_000_000_000n,gain:false})]);
   }
   for(const root of roots) {
     const account=await fixture.rootState(root);if(account.mode!==1)continue;
     const index=account.isolatedMarketIndex,entitlement=account.positions[index].virtualScaled/1_000_000_000n;
+    if(account.positions[index].lots!==0n)continue;
     // Whole-atom loss collection can leave fractional losses unpaid. A positive
     // claim is paid only from P; the unbacked remainder is still an unpaid claim.
     const pool=(await fixture.groupState()).settlement,amount=entitlement<pool?entitlement:pool;
@@ -91,7 +97,9 @@ export async function groupDefaultCases(h:GroupTradingHarness, lifecycle:Lifecyc
   await reject('reject same-stamp completed certificate rewind',[{...rewind,accounts:[...rewind.accounts!,{address:roots[0],role:AccountRole.READONLY}]}],[],sdk.CLEARING_ERROR__EXIT_COHORT);
   await fixture.qualify();
   await h.send('open BTC loss root before complete-group default',[(await route(0,0,[10n,10n])).instruction],[owner]);
-  await h.send('open ETH gain sibling before complete-group default',[(await route(1,0,[20n,30n])).instruction],[owner]);
+  // The cross variant shares the BTC root's remaining funded cash. Its ETH
+  // exposure must fit the summed IM; the isolated baseline has separate cash.
+  await h.send('open ETH exposure before complete-group default',[(await route(1,0,options.crossReceiver?[5n,5n]:[20n,30n])).instruction],[owner]);
   await fixture.publish(0,{price:10_000_000_000n});await fixture.publish(2,{price:10_000_000_000n});
   await fixture.publish(4,{price:4_000_000_000n});await fixture.publish(5,{price:4_000_000_000n});
   await fixture.qualify();

@@ -19,6 +19,7 @@ test('group safety matches isolated Anchor including nested cash authority and b
   const add=(name:string,args:unknown[],instruction:Instruction)=>cases.push({name,args,instruction});
   add('initialize_group_safety_v2',[],await sdk.getInitializeGroupSafetyV2InstructionAsync(common));
   add('activate_isolated_group_v2',[],sdk.getActivateIsolatedGroupV2Instruction(common));
+  add('activate_cross_group_v2',[],sdk.getActivateCrossGroupV2Instruction(common));
   add('check_group_exit_v2',[large,common.observations,63],sdk.getCheckGroupExitV2Instruction({...common,start:63}));
   for(const choice of [false,true]) {
     add('change_group_claim_v2',[large,common.observations,1,large,choice],sdk.getChangeGroupClaimV2Instruction({...common,marketIndex:1,amount:large,gain:choice}));
@@ -46,7 +47,7 @@ test('group safety matches isolated Anchor including nested cash authority and b
   try {
     const file=join(directory,'input.json');writeFileSync(file,JSON.stringify(input));
     const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/group-trading.cjs',file],{encoding:'utf8'}));
-    assert.equal(legacy.length,15);
+    assert.equal(legacy.length,16);
     for(const [index,result] of legacy.entries()) {
       assert.equal(result.data,Buffer.from(cases[index].instruction.data!).toString('hex'),cases[index].name);
       assert.deepEqual(result.accounts,cases[index].instruction.accounts!.map(account=>({address:account.address,

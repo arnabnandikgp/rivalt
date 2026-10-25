@@ -149,7 +149,7 @@ fn active(group: &ClearingGroupV2) -> Result<()> {
     Ok(())
 }
 
-// Membership/control remain available after isolated activation; custody-only
+// Membership/control remain available in either qualified mode; custody-only
 // withdrawals still use their original mode-0 guard.
 fn identity_profile(group: &ClearingGroupV2) -> Result<()> {
     if group.mode == 0 {
@@ -161,7 +161,7 @@ fn identity_profile(group: &ClearingGroupV2) -> Result<()> {
             && group.schema_version == SCHEMA_VERSION
             && group.profile_version == PROFILE_VERSION
             && group.market_count == 2
-            && group.mode == 1,
+            && (group.mode == 1 || (cross_profile_enabled() && group.mode == 2)),
         ClearingError::Profile
     );
     Ok(())
@@ -170,6 +170,25 @@ fn identity_active(group: &ClearingGroupV2) -> Result<()> {
     identity_profile(group)?;
     require!(!group.paused, ClearingError::Paused);
     Ok(())
+}
+
+#[test]
+fn membership_control_requires_an_unfrozen_qualified_financial_mode() {
+    let mut group = ClearingGroupV2 {
+        schema_version: SCHEMA_VERSION,
+        profile_version: PROFILE_VERSION,
+        market_count: 2,
+        mode: 1,
+        ..Default::default()
+    };
+    assert_eq!(identity_active(&group).is_ok(), ISOLATED_TRADING_IMPLEMENTED);
+    group.mode = 2;
+    assert_eq!(identity_active(&group).is_ok(), cross_profile_enabled());
+    group.mode = 3;
+    assert!(identity_profile(&group).is_err());
+    group.mode = 1;
+    group.paused = true;
+    assert!(identity_active(&group).is_err());
 }
 
 pub(crate) fn reconciled(group: &ClearingGroupV2, actual: u64) -> Result<()> {

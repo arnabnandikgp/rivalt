@@ -26,7 +26,7 @@ export async function groupSafetyCases(h: GroupTradingHarness, capture: (label:s
   }
   const cashInstruction=async(margin:Address,amount:bigint,withdraw:boolean,signer=owner,token=operators[0].token.address)=>
     sdk.getGroupTradingCashV2Instruction({...safety,...await fixture.stamp(),owner:signer,margin,quoteMint:fixture.mint.address,userToken:token,amount,withdraw});
-  async function route(index:number,side:0|1,parts:bigint[],reduceOnly=false,root=operators[0].capital[index],signer=owner) {
+  async function route(index:number,side:0|1,parts:bigint[],reduceOnly=false,root=operators[0].capital[index],signer=owner):Promise<{instruction:Instruction;gross:bigint;fee:bigint}> {
     const market=await fixture.marketState(index),trader=await fixture.rootState(root),slot=await h.slot();
     const quotes=[];const legs=[];
     for(const [makerIndex,lots] of parts.entries()) {

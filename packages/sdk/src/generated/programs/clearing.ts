@@ -92,6 +92,7 @@ import {
   type TestRouteStateArgs,
 } from "../accounts/index.js";
 import {
+  getActivateCrossGroupV2InstructionAsync,
   getActivateIsolatedGroupV2InstructionAsync,
   getAdvanceGroupResolutionV2InstructionAsync,
   getAdvanceResolutionInstructionAsync,
@@ -160,6 +161,7 @@ import {
   getWithdrawGroupCustodyV2InstructionAsync,
   getWithdrawInstructionAsync,
   getWithdrawTradingInstructionAsync,
+  parseActivateCrossGroupV2Instruction,
   parseActivateIsolatedGroupV2Instruction,
   parseAdvanceGroupResolutionV2Instruction,
   parseAdvanceResolutionInstruction,
@@ -228,6 +230,7 @@ import {
   parseWithdrawGroupCustodyV2Instruction,
   parseWithdrawInstruction,
   parseWithdrawTradingInstruction,
+  type ActivateCrossGroupV2AsyncInput,
   type ActivateIsolatedGroupV2AsyncInput,
   type AdvanceGroupResolutionV2AsyncInput,
   type AdvanceResolutionAsyncInput,
@@ -269,6 +272,7 @@ import {
   type ManageGroupOrderV2Input,
   type ManageMarginOrderV2Input,
   type NetMarginClaimsV2Input,
+  type ParsedActivateCrossGroupV2Instruction,
   type ParsedActivateIsolatedGroupV2Instruction,
   type ParsedAdvanceGroupResolutionV2Instruction,
   type ParsedAdvanceResolutionInstruction,
@@ -896,6 +900,7 @@ export function identifyClearingEvent(
 }
 
 export enum ClearingInstruction {
+  ActivateCrossGroupV2,
   ActivateIsolatedGroupV2,
   AdvanceGroupResolutionV2,
   AdvanceResolution,
@@ -970,6 +975,17 @@ export function identifyClearingInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([49, 156, 2, 35, 97, 140, 24, 135]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ActivateCrossGroupV2;
+  }
   if (
     containsBytes(
       data,
@@ -1728,6 +1744,9 @@ export type ParsedClearingInstruction<
   TProgram extends string = "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
 > =
   | ({
+      instructionType: ClearingInstruction.ActivateCrossGroupV2;
+    } & ParsedActivateCrossGroupV2Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ActivateIsolatedGroupV2;
     } & ParsedActivateIsolatedGroupV2Instruction<TProgram>)
   | ({
@@ -1937,6 +1956,13 @@ export function parseClearingInstruction<TProgram extends string>(
 ): ParsedClearingInstruction<TProgram> {
   const instructionType = identifyClearingInstruction(instruction);
   switch (instructionType) {
+    case ClearingInstruction.ActivateCrossGroupV2: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ActivateCrossGroupV2,
+        ...parseActivateCrossGroupV2Instruction(instruction),
+      };
+    }
     case ClearingInstruction.ActivateIsolatedGroupV2: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2470,6 +2496,11 @@ export type ClearingPluginAccounts = {
 };
 
 export type ClearingPluginInstructions = {
+  activateCrossGroupV2: (
+    input: ActivateCrossGroupV2AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getActivateCrossGroupV2InstructionAsync> &
+    SelfPlanAndSendFunctions;
   activateIsolatedGroupV2: (
     input: ActivateIsolatedGroupV2AsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -2904,6 +2935,14 @@ export function clearingProgram(
           ),
         },
         instructions: {
+          activateCrossGroupV2: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getActivateCrossGroupV2InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           activateIsolatedGroupV2: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,

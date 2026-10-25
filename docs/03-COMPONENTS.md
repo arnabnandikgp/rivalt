@@ -301,3 +301,11 @@ other market's actual state, so no materialized funding mutation is missing from
 replay. Existing event layouts remain unchanged. Account sizes/PDA identities are
 unchanged. New SDK generation and isolated legacy conformance verify the interface;
 P21 owns its indexer/service consumers. Cross release remains gated through P19.
+
+P20 adds authority-only `activateCrossGroupV2` using the existing activation
+account context. Financial event kind 6 identifies explicit isolated-to-cross
+group promotion; serialized account/event layouts are unchanged. The shared
+safety handlers consume both markets, preserve both funding prefixes and apply
+whole-account reservations/health. Complete resolution recovers to isolated group
+mode before any explicit reactivation. [P20's candidate boundary](P20-CROSS-SAFETY.md)
+distinguishes internal signed qualification from the ordinary disabled release.
