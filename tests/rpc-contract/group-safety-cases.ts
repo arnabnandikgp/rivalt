@@ -6,8 +6,8 @@ import type { GroupTradingHarness } from './group-trading-cases.js';
 import type { Keypair } from '@solana/web3.js';
 
 export async function groupSafetyCases(h: GroupTradingHarness, capture: (label:string,keys:Address[])=>Promise<void>,
-  options: {namespace?:string;setupOnly?:boolean} = {}) {
-  const fixture=await groupFixture(h,options.namespace), {common,safety,owner,payer,markets,roots,makers,operators}=fixture;
+  options: {namespace?:string;setupOnly?:boolean;makerDuration?:bigint} = {}) {
+  const fixture=await groupFixture(h,options.namespace,options.makerDuration), {common,safety,owner,payer,markets,roots,makers,operators}=fixture;
   const protectedKeys=()=>[fixture.group,fixture.registry,fixture.vault,fixture.guard,fixture.resolution,...markets,...roots,...operators.map(operator=>operator.token.address)];
   async function reject(label:string,instructions:Instruction[],signers:Keypair[],error:number) {
     const before=await Promise.all(protectedKeys().map(h.read));

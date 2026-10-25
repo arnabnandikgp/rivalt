@@ -143,7 +143,7 @@ same group snapshot. Actual approved code hash and quote-epoch synchronization
 are reported separately. Unknown or foreign dependencies reject the snapshot.
 
 Run `group-worker-main.ts` with the explicit group run/RPC/PostgreSQL configuration,
-`RIVALT_GROUP_ROLE=maker|funding|orders`, `RIVALT_MARKET_INDEX=0|1` for market workers, a private
+`RIVALT_GROUP_ROLE=maker|funding|orders|settlement|risk`, `RIVALT_MARKET_INDEX=0|1` for market workers, a private
 `RIVALT_SIGNER_PATH`, and `RIVALT_MAKER_ID=0|1` for makers. Makers own only their
 registered isolated capital/config permissions. Expired publication plus owner sync
 is one immutable queued intent; it never grants code approval or collateral access.
@@ -208,3 +208,37 @@ funding bounds. Active sequence/observation changes can interrupt proof progress
 this worker neither pauses samplers nor promises continuous exit availability.
 The scoped `--settlement-services` command owns mixed-mode funding/settlement,
 restart and fresh PostgreSQL checks; WORKLOG records actual outcomes.
+
+
+## Liquidation and complete-group resolution worker
+
+The `risk` role uses `group-risk` and optionally an explicit
+`RIVALT_RECEIVER_MARGIN` owned by its private signer. A missing receiver permits
+permissionless bankruptcy/page work but no liquidation; makers/empty/foreign
+capital cannot consent. The one-second loop rotates through at most two open or
+flat-net-negative roots, simulating ordinary freeze against the six current signed
+source accounts. This works during administrative pause and does not use cached
+negative risk equity to prove bankruptcy. No emergency freeze is automated.
+
+If no default probe succeeds, one selected distressed target may be simulated for
+liquidation at the actual index reference, at most 64 lots with bounded halving in
+each permitted market. Clearing enforces current sources, strict post-fee progress,
+receiver IM and reservations. A rejected simulation has no broadcast/fee; transport,
+budget or unknown queue errors stop candidate selection. The ephemeral discovery
+cursor carries no financial authority; durable signed intents and canonical
+resolution state determine all committed progress.
+
+Frozen progression uses the exact canonical next 1–4 members, epoch/stage/cursor
+and measured resolution budget. Only collect/apply stages make members writable.
+AwaitValuation and completed-group source checks remain permissionless; `resume`
+is always false. At most eight paid completed-recovery attempts occur per epoch;
+qualification stops at the existing six-second requirement and awaits explicit
+authority resume. Resume returns to isolated mode; enabling cross requires its
+separate existing activation. The worker never holds group authority for these
+actions. `--risk-services` owns fresh process/database/resource qualification.
+
+Proof-only settlement intents carry no group-sequence expiry proof: guard progress
+does not advance that sequence. Missing original proof history stays unresolved
+until independent evidence arrives; it cannot authorize replacement bytes or a
+fee release. Busy-group proof progress and discovery latency remain measured
+operational limits, not risk exceptions.

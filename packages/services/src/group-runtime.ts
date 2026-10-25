@@ -4,12 +4,15 @@ import * as sdk from '@rivalt/sdk';
 import {json} from '../../indexer/src/events.js';
 import {decodeGroup} from '../../indexer/src/group-events.js';
 import {groupSampleMatches,GroupQuoteUnavailable} from './group-quote.js';
+import {groupDefaultProbeMembers,groupReceiver,groupResolutionPage,groupRiskSources} from './group-risk.js';
 import {groupClaimAmount,groupCertificatePage} from './group-settlement.js';
 import {GroupExecution,groupBudget} from './group-execution.js';
 
 export const GROUP_HEARTBEAT_MS=3000;
 export type GroupWorkerOutcome={status:'idle'|'queued'|'blocked';reason:string};
 export class GroupRuntime extends GroupExecution {
+  // Discovery only; no financial progress/authority lives in this cursor.
+  private riskProbeCursor=0;
   async snapshot(commitment:'confirmed'|'finalized'='finalized'){
     const binding=await this.environment(),projection=await this.store.snapshot();
     if(!projection.state.group)throw new Error('Group projection unavailable');
@@ -110,7 +113,9 @@ export class GroupRuntime extends GroupExecution {
     let page;
     try{page=groupCertificatePage(snapshot);}catch{return {status:'blocked',reason:'group-certificate-needs-fresh-observation'};}
     if(page){
-      await this.enqueue(`${base}:proof:${page.start}`,[sdk.resolutionComputeBudget(),page.instruction],key,budget,authority,true);
+      // Proofs change the guard without advancing group sequence. An unchanged
+      // group stamp cannot prove their nonexecution after missing history.
+      await this.enqueue(`${base}:proof:${page.start}`,[sdk.resolutionComputeBudget(),page.instruction],key,budget,null,true);
       return {status:'queued',reason:'complete-group-proof-page'};
     }
     for(const margin of snapshot.members)for(const marketIndex of [0,1] as const){
@@ -118,6 +123,78 @@ export class GroupRuntime extends GroupExecution {
       if(amount>0n)return change(margin,marketIndex,amount,true);
     }
     return {status:'idle',reason:'no-admissible-whole-atom-claim'};
+  }
+  async riskWork(key:Keypair,receiver?:Address):Promise<GroupWorkerOutcome>{
+    const budget=await this.budget('risk',key);
+    if(await this.pendingBudget(budget))return {status:'blocked',reason:'original-risk-intent-pending'};
+    const snapshot=await this.snapshot('confirmed'),header=snapshot.resolutionState?.header;
+    if(!header)throw new Error('Group resolution state missing');
+    const authority={kind:'groupSequence' as const,group:snapshot.group,account:snapshot.group,value:snapshot.state.sequence.toString()};
+    const submit=async(id:string,instruction:Parameters<typeof this.enqueue>[1][number],resolution=false)=>{
+      try{
+        await this.enqueue(`risk:${id}:${snapshot.state.sequence}`,
+          [resolution?sdk.resolutionComputeBudget():sdk.routeComputeBudget(),instruction],key,budget,authority,true);
+        return true;
+      }catch(error){
+        // A rejected signed simulation was never persisted/broadcast. Transport,
+        // identity, budget and ambiguous-queue errors must not select new bytes.
+        if(error instanceof Error&&error.message==='Risk action presently unavailable')return false;
+        throw error;
+      }
+    };
+    if(snapshot.state.mode===3){
+      if(header.stage>=2&&header.stage<=11){
+        return await submit(`page:${header.epoch}:${header.stage}:${header.cursor}`,groupResolutionPage(snapshot),true)?
+          {status:'queued',reason:'complete-group-resolution-page'}:{status:'blocked',reason:'resolution-page-simulation-rejected'};
+      }
+      if(header.stage===1||header.stage===12){
+        if(header.stage===12){
+          if(snapshot.now-header.recoveryLast<2n)return {status:'idle',reason:'recovery-check-not-due'};
+          if(header.recoverySince>0n&&header.recoveryLast-header.recoverySince>=6n)return {status:'blocked',reason:'explicit-authority-resume-required'};
+          const attempts=await this.store.pool.query('SELECT count(*)::int AS count FROM service_intents WHERE run_id=$1 AND starts_with(request_id,$2)',
+            [this.runId,`risk:check:${header.epoch}:12:`]);
+          if(attempts.rows[0].count>=8)return {status:'blocked',reason:'bounded-recovery-checks-exhausted'};
+        }
+        const instruction=sdk.getRecoverGroupResolutionV2Instruction({...snapshot,...groupRiskSources(snapshot),caller:key,epoch:header.epoch,resume:false});
+        return await submit(`check:${header.epoch}:${header.stage}:${header.recoveryLast}`,instruction,true)?
+          {status:'queued',reason:header.stage===1?'awaited-complete-group-valuation':'permissionless-group-recovery-check'}:
+          {status:'blocked',reason:'fresh-group-recovery-sources-unavailable'};
+      }
+      return {status:'blocked',reason:'unsupported-frozen-stage'};
+    }
+    if(![1,2].includes(snapshot.state.mode))return {status:'blocked',reason:'group-mode'};
+    const stamp={sequence:snapshot.state.sequence,observations:snapshot.marketStates.map(market=>market.observationSequence)};
+    const members=groupDefaultProbeMembers(snapshot),probes:Address[]=[];
+    // At most two current-source bankruptcy probes per iteration, in registry
+    // order. This also works during a pause or stale cached oracle observation.
+    for(let offset=0;offset<Math.min(2,members.length);offset++)probes.push(members[(this.riskProbeCursor+offset)%members.length]);
+    this.riskProbeCursor=members.length?(this.riskProbeCursor+probes.length)%members.length:0;
+    for(const target of probes){
+      const instruction=sdk.getFreezeGroupV2Instruction({...snapshot,...groupRiskSources(snapshot),...stamp,caller:key,target,emergency:false});
+      if(await submit(`freeze:${snapshot.roots[target].id}`,instruction))return {status:'queued',reason:'authenticated-net-insolvency'};
+    }
+    // Workers never initiate authority-only emergency freeze or resume. A
+    // consenting receiver is an explicit account, never an inferred sibling.
+    if(snapshot.state.paused)return {status:'blocked',reason:'group-paused-after-default-probes'};
+    const capital=groupReceiver(snapshot,key.address,receiver);
+    if(!capital||!receiver)return {status:'blocked',reason:'no-configured-funded-receiver'};
+    const target=probes.find(margin=>margin!==receiver&&(()=>{
+      const view=sdk.groupBalanceView(snapshot.roots[margin],snapshot.state,snapshot.marketStates,snapshot.now,snapshot.slot);
+      return view.maintenanceDeficitScaled!==null&&BigInt(view.maintenanceDeficitScaled)>0n;
+    })());
+    if(!target)return {status:'idle',reason:'no-current-liquidation-candidate'};
+    for(const marketIndex of [0,1] as const){
+      if(capital.mode===1&&capital.isolatedMarketIndex!==marketIndex)continue;
+      const quantity=snapshot.roots[target].positions[marketIndex].lots;
+      let lots=quantity<0n?-quantity:quantity;if(lots>64n)lots=64n;
+      while(lots>0n){
+        const instruction=sdk.getLiquidateGroupV2Instruction({...snapshot,...stamp,receiverOwner:key,target,receiver,marketIndex,lots,
+          price:snapshot.marketStates[marketIndex].referencePrice});
+        if(await submit(`liquidate:${snapshot.roots[target].id}:${marketIndex}:${lots}`,instruction))return {status:'queued',reason:'funded-whole-account-liquidation'};
+        lots/=2n;
+      }
+    }
+    return {status:'blocked',reason:'no-post-fee-progress-or-receiver-capacity'};
   }
   async maker(marketIndex:0|1,makerId:0|1,key:Keypair):Promise<GroupWorkerOutcome>{
     const budget=groupBudget('maker',marketIndex,makerId).name,snapshot=await this.snapshot();

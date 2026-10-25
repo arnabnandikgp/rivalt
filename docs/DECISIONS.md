@@ -518,3 +518,14 @@ fractions, full-root funding/reservations and owner-only closed netting. Canonic
 read-only certificate pages remain separate from cash mutations; all funding
 corners and complete-group authority stay on chain. Busy global sequences may
 invalidate progress; no sampler cadence or freshness relaxation is authorized.
+
+
+D53 risk-worker realization: ordinary bankruptcy candidates authenticate current
+source accounts through actual program simulation, including under pause; bounded
+discovery never turns conservative risk equity into a default proof. Receivers
+are explicit owned funded non-maker accounts. Frozen work uses canonical complete
+registry pages, durable originals and existing budgets; automatic emergency freeze,
+resume and cross reactivation remain unavailable. One-second discovery, two default
+probes per iteration and bounded 64-lot liquidation search are local operational
+choices to measure in P21, not financial guarantees. Guard-only proof transactions
+have no group-sequence nonexecution inference because they do not advance it.

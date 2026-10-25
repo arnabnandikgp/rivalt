@@ -85,3 +85,15 @@ it('retains ambiguous settlement intents and sends collection only through the s
     expect(sdk.getChangeGroupClaimV2InstructionDataDecoder().decode(call[1][1].data!)).toMatchObject({gain:false,amount:2n,marketIndex:0});
   }finally{await runtime.close();}
 });
+
+it('never infers proof-page nonexecution from an unchanged group sequence',async()=>{
+  const {snapshot}=fixture(),key=await fixtureKey('group-proof-worker');
+  const runtime=new GroupRuntime('postgresql://unused:unused@127.0.0.1:1/unused','test','http://127.0.0.1:2');
+  runtime.snapshot=async()=>snapshot as any;runtime.queue.budget=vi.fn(async()=>{});
+  runtime.store.pool.query=(async()=>({rows:[],rowCount:0})) as any;
+  const enqueue=vi.fn(async(..._args:Parameters<typeof runtime.enqueue>)=>{});runtime.enqueue=enqueue;
+  try{
+    expect((await runtime.settle(key)).reason).toBe('complete-group-proof-page');
+    expect(enqueue.mock.calls[0][4]).toBeNull();expect(enqueue.mock.calls[0][5]).toBe(true);
+  }finally{await runtime.close();}
+});

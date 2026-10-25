@@ -15,7 +15,7 @@ const encoder = getAddressEncoder();
 export const u16 = (value: number) => { const bytes = Buffer.alloc(2); bytes.writeUInt16LE(value); return bytes; };
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0,8);
 
-export async function groupFixture(h: GroupTradingHarness, namespace = 'p18c') {
+export async function groupFixture(h: GroupTradingHarness, namespace = 'p18c', makerDuration=3600n) {
   const payer = await payerKey(), deployment = await addresses();
   const owner = await fixtureKey(`${namespace}-trader`), mint = await fixtureKey(`${namespace}-mint`);
   const makerOwners = await Promise.all([0,1].map(index => fixtureKey(`${namespace}-maker-${index}`)));
@@ -74,7 +74,7 @@ export async function groupFixture(h: GroupTradingHarness, namespace = 'p18c') {
       const registration=await groupPda('registration-v2',encoder.encode(market),Uint8Array.of(makerId));
       const groupBinding=await groupPda('binding-v2',encoder.encode(group),encoder.encode(capital));
       const accounts={...common,owner:signer,authority:payer,market,capital,config,registration,groupBinding,pricingProgram,programData};
-      await h.send('setup maker config',[await api.getInitializeGroupConfigInstructionAsync({...accounts,duration:3600n})],[signer]);
+      await h.send('setup maker config',[await api.getInitializeGroupConfigInstructionAsync({...accounts,duration:makerDuration})],[signer]);
       await h.send('admit funded maker',[await sdk.getRegisterGroupMakerV2InstructionAsync({...accounts,makerId,inventoryLimit:100_000n})],[signer]);
       pair.push({...accounts,api,makerId});
     }
