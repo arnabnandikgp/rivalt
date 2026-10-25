@@ -186,3 +186,25 @@ clearing validates the persistent authority, prefix, fee and whole-account state
 It does not acquire owner transfer/netting authority. The scoped command
 `bash ops/group-indexer-smoke.sh --trading-services` owns fresh route/order service
 checks; preparation or unit success alone does not qualify its signed outcomes.
+
+
+## Ordinary settlement worker
+
+The `settlement` role uses `group-settlement` and one immutable pending attempt at
+a time. It reads a coherent confirmed snapshot, accrues both market funding
+prefixes for candidate calculations, collects whole-atom negative claims from
+actual cash, and preserves each root's fractional claims. It never performs the
+owner's explicit flat-claim netting. Gains require funded P, full post-payment
+IM/reservations and the current complete-group certificate. Candidate simulation
+and on-chain checks precede effects; failed/missing history never releases an
+unknown fee reservation.
+
+Proof pages contain the next 1–8 canonical read-only members, in a transaction
+separate from any cash change. An invalidated certificate restarts at zero; an
+expired matching certificate waits for a new observation. Negative adverse equity
+can block ordinary certification but never substitutes for a default proof.
+A flat cohort can collect and certify after prices expire under the existing
+funding bounds. Active sequence/observation changes can interrupt proof progress;
+this worker neither pauses samplers nor promises continuous exit availability.
+The scoped `--settlement-services` command owns mixed-mode funding/settlement,
+restart and fresh PostgreSQL checks; WORKLOG records actual outcomes.

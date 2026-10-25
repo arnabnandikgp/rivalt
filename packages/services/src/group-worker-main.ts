@@ -3,8 +3,8 @@ import {Keypair} from '@solana/web3.js';
 import {GroupRuntime} from './group-runtime.js';
 
 const required=(name:string)=>{const value=process.env[name];if(!value)throw new Error(`Missing ${name}`);return value;};
-const role=required('RIVALT_GROUP_ROLE'),marketText=role==='orders'?undefined:required('RIVALT_MARKET_INDEX');
-if(!['maker','funding','orders'].includes(role)||(marketText!==undefined&&!['0','1'].includes(marketText)))throw new Error('Unsupported market worker identity');
+const role=required('RIVALT_GROUP_ROLE'),marketText=['orders','settlement'].includes(role)?undefined:required('RIVALT_MARKET_INDEX');
+if(!['maker','funding','orders','settlement'].includes(role)||(marketText!==undefined&&!['0','1'].includes(marketText)))throw new Error('Unsupported market worker identity');
 const makerText=role==='maker'?required('RIVALT_MAKER_ID'):undefined;
 if(makerText!==undefined&&!['0','1'].includes(makerText))throw new Error('Unsupported market maker identity');
 const marketIndex=Number(marketText) as 0|1,makerId=Number(makerText) as 0|1;
@@ -16,12 +16,12 @@ const runtime=new GroupRuntime(required('RIVALT_DATABASE_URL'),required('RIVALT_
 let stopping=false,lastStatus='';for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>{stopping=true;});
 try{
   await runtime.open();
-  console.log(JSON.stringify({role,marketIndex:role==='orders'?undefined:marketIndex,makerId:role==='maker'?makerId:undefined,pid:process.pid,status:'started'}));
+  console.log(JSON.stringify({role,marketIndex:marketText===undefined?undefined:marketIndex,makerId:role==='maker'?makerId:undefined,pid:process.pid,status:'started'}));
   while(!stopping){
     let outcome;
-    try{outcome=role==='maker'?await runtime.maker(marketIndex,makerId,signer):role==='orders'?await runtime.orders(signer):await runtime.funding(marketIndex,signer,BigInt(cadence));}
+    try{outcome=role==='maker'?await runtime.maker(marketIndex,makerId,signer):role==='orders'?await runtime.orders(signer):role==='settlement'?await runtime.settle(signer):await runtime.funding(marketIndex,signer,BigInt(cadence));}
     catch{outcome={status:'unavailable',reason:'worker-input-or-execution-error'};}
-    const status=JSON.stringify(outcome);if(status!==lastStatus){console.log(JSON.stringify({role,marketIndex:role==='orders'?undefined:marketIndex,...outcome}));lastStatus=status;}
+    const status=JSON.stringify(outcome);if(status!==lastStatus){console.log(JSON.stringify({role,marketIndex:marketText===undefined?undefined:marketIndex,...outcome}));lastStatus=status;}
     await new Promise(resolve=>setTimeout(resolve,250));
   }
 }finally{await runtime.close();}

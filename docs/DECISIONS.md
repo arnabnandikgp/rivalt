@@ -509,3 +509,12 @@ sample to its exact group/market snapshot before using it for quote availability
 queue effects/fees still require original-signature finality. Direct SDK messages
 bind both observations and group sequence and sign exact reviewed fee/all-in bounds.
 Client candidate tests do not replace new signed A26A financial integration evidence.
+
+
+D53 ordinary-settlement realization: use a separate group-wide fee budget and
+confirmed snapshots for unsigned claim/proof preparation, retaining finalized
+original-signature effects and fees. Whole-atom collection/payment preserves
+fractions, full-root funding/reservations and owner-only closed netting. Canonical
+read-only certificate pages remain separate from cash mutations; all funding
+corners and complete-group authority stay on chain. Busy global sequences may
+invalidate progress; no sampler cadence or freshness relaxation is authorized.

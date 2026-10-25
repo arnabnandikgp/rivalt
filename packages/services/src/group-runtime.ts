@@ -4,6 +4,7 @@ import * as sdk from '@rivalt/sdk';
 import {json} from '../../indexer/src/events.js';
 import {decodeGroup} from '../../indexer/src/group-events.js';
 import {groupSampleMatches,GroupQuoteUnavailable} from './group-quote.js';
+import {groupClaimAmount,groupCertificatePage} from './group-settlement.js';
 import {GroupExecution,groupBudget} from './group-execution.js';
 
 export const GROUP_HEARTBEAT_MS=3000;
@@ -79,6 +80,44 @@ export class GroupRuntime extends GroupExecution {
       }
     }
     return {status:'idle',reason:'no-admissible-triggered-order'};
+  }
+  async settle(key:Keypair):Promise<GroupWorkerOutcome>{
+    const budget=await this.budget('settlement',key);
+    if(await this.pendingBudget(budget))return {status:'blocked',reason:'original-settlement-intent-pending'};
+    const snapshot=await this.snapshot('confirmed');
+    if(![1,2].includes(snapshot.state.mode)||snapshot.state.paused)return {status:'blocked',reason:'group-mode'};
+    const stamp={sequence:snapshot.state.sequence,observations:snapshot.marketStates.map(market=>market.observationSequence)};
+    const authority={kind:'groupSequence' as const,group:snapshot.group,account:snapshot.group,value:stamp.sequence.toString()};
+    const base=`keeper:${stamp.sequence}:${stamp.observations.join(':')}`;
+    const change=async(margin:Address,marketIndex:0|1,amount:bigint,gain:boolean)=>{
+      const instruction=sdk.getChangeGroupClaimV2Instruction({...snapshot,...stamp,margin,marketIndex,amount,gain});
+      await this.enqueue(`${base}:${gain?'gain':'loss'}:${snapshot.roots[margin].id}:${marketIndex}`,
+        [sdk.routeComputeBudget(),instruction],key,budget,authority,true);
+      return {status:'queued' as const,reason:gain?'guarded-group-gain':'funded-group-loss'};
+    };
+    // Collection is permissionless and requires no gain certificate. Neither
+    // collection nor this worker may net opposite closed claims for their owner.
+    for(const margin of snapshot.members)for(const marketIndex of [0,1] as const){
+      const amount=groupClaimAmount(snapshot,margin,marketIndex,false);
+      if(amount>0n)return change(margin,marketIndex,amount,false);
+    }
+    // A current adverse preview can refuse a scan, never authorize an exit or
+    // prove default. The on-chain proof also checks all funding-bound corners.
+    for(const margin of snapshot.members){
+      const view=sdk.groupBalanceView(snapshot.roots[margin],snapshot.state,snapshot.marketStates,snapshot.now,snapshot.slot);
+      if(view.riskEquityScaled===null||BigInt(view.riskEquityScaled)<0n)return {status:'blocked',reason:'cohort-solvency-or-source-unavailable'};
+    }
+    let page;
+    try{page=groupCertificatePage(snapshot);}catch{return {status:'blocked',reason:'group-certificate-needs-fresh-observation'};}
+    if(page){
+      await this.enqueue(`${base}:proof:${page.start}`,[sdk.resolutionComputeBudget(),page.instruction],key,budget,authority,true);
+      return {status:'queued',reason:'complete-group-proof-page'};
+    }
+    for(const margin of snapshot.members)for(const marketIndex of [0,1] as const){
+      const amount=groupClaimAmount(snapshot,margin,marketIndex,true);
+      if(amount>0n)return change(margin,marketIndex,amount,true);
+    }
+    return {status:'idle',reason:'no-admissible-whole-atom-claim'};
   }
   async maker(marketIndex:0|1,makerId:0|1,key:Keypair):Promise<GroupWorkerOutcome>{
     const budget=groupBudget('maker',marketIndex,makerId).name,snapshot=await this.snapshot();
