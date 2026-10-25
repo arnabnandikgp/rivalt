@@ -32,7 +32,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5a | P11–P12 | Complete local engineering evidence | Closed | [P11 A01–A16](evidence/P11.md) and [P12 revised A17](evidence/P12.md) verified; 1,249/1,249 submitted trades, 71.19% normal offered availability, affected recoveries, actual exit and 12,454-transaction fresh PostgreSQL replay; merged PR #14 records the indexer pause during separate history generation; integrated at `2bc298e`; 24-hour endurance deferred to P16 under D35 |
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
-| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | R034: A22/G13 contract/layout checks pass on `5a4dc84`, five scoped tests and 190 local links; P17/P18A/P18B Review; A23A custody passes on `6389c3e` with 136 signed SVM / 51 finalized RPC scenarios; A23B passes on `286cb4e` with 154 signed SVM scenarios; R037 A23C/G14 passes on clean `b43261f`: 1,132 signed SVM / 148 finalized RPC scenarios, both-market lifecycle, complete default/recovery and independent audits; P18C Review; R039 A24/G15 core passes on clean `4274d28`: 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC, independent audit/parity; P19 Review in #28; P20 In progress (20 scoped host checks and 1,224 signed development scenarios pass), cross/service gates pending |
+| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | R034: A22/G13 contract/layout checks pass on `5a4dc84`, five scoped tests and 190 local links; P17/P18A/P18B Review; A23A custody passes on `6389c3e` with 136 signed SVM / 51 finalized RPC scenarios; A23B passes on `286cb4e` with 154 signed SVM scenarios; R037 A23C/G14 passes on clean `b43261f`: 1,132 signed SVM / 148 finalized RPC scenarios, both-market lifecycle, complete default/recovery and independent audits; P18C Review; R039 A24/G15 core passes on clean `4274d28`: 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC, independent audit/parity; P19 Review in #28; P20 In progress (clean 1,224 SVM / 1,221 finalized RPC core checks pass; maximum-book budget gate pending), cross/service gates pending |
 
 ## Phase overview
 
@@ -61,7 +61,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P18B | Two-market isolated sources/makers/routes/orders | Review | [PR #26](https://github.com/arnabnandikgp/rivalt/pull/26), tested `286cb4e`, above P18A `1d08944` | [A23B](evidence/P18B.md): 17 focused Rust tests, ABI parity and 154 signed scenarios; isolated activation subsequently qualified in P18C; integration pending |
 | M7 | P18C | Isolated group settlement/liquidation/default and activation | Review | [PR #27](https://github.com/arnabnandikgp/rivalt/pull/27), tested `b43261f`; active-route extension `298f446`, above P18B `a912ebb` / #26 | [A23C/G14](evidence/P18C.md): 1,132 signed SVM scenarios, two complete 64-member audits, 148 finalized RPC / 81 expected WS outcomes; cross remains disabled |
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
-| M7 | P20 | Cross liquidation/default and qualified activation | In progress | `phase/p20-cross-safety`, above exact P19 #28 `c0b7898` | R040: 20 scoped host checks, 16 ABI cases and 1,224 signed SVM development scenarios pass; independent mixed-cohort audits; fresh RPC/pinned A25 pending, ordinary release unchanged |
+| M7 | P20 | Cross liquidation/default and qualified activation | In progress | `phase/p20-cross-safety`, above exact P19 #28 `c0b7898` | R040: clean 1,224 SVM / 1,221 finalized RPC and 820/820 WS outcomes pass on `3c7ab4e`; independent mixed-cohort audits; separate maximum-book budget qualification pending, ordinary release unchanged |
 | M7 | P21A | Group SDK/indexer/API and durable services | Open | — | P20; A26A/G16 interfaces |
 | M7 | P21B | UI/operations and fresh successor qualification | Open | — | P21A; A26B/G16/M7 exit |
 
@@ -1006,3 +1006,37 @@ adapters and independent raw auditor. The source remains gated in ordinary build
 Exact next action: pin this candidate, rebuild its artifacts and run clean scoped
 checks plus the complete expanded SVM/fresh RPC/WS flow; then promote only on
 recorded acceptance. No P20 PR/closure or external-gate progress is claimed.
+
+
+R040 pinned safety/core qualification: clean `3c7ab4e83e14cb0f3f91f5a3ddb2f34d22b0ef4c`
+passes the full rebuild/frame guard, generated drift/type checks, 16 safety ABI
+cases, 19 safety tests and three distinct release/membership/root checks across
+ordinary successor, internal candidate and devnet host profiles (28 Rust test
+invocations total). SVM `.local/cross-safety/20261025T084148915Z-6056` passes 1,224
+outcomes (1,172 success / 52 exact rejection); fresh RPC
+`.local/cross-safety-rpc/20261025T084150Z-6088` independently fetches/finalizes all
+1,221 outcomes (1,172 success / 49 rejection), receives all 820 expected WS
+outcomes and matches five accounts/704 events across ten types with legacy Anchor.
+Both runs are clean with matching start/end revision. Independent complete default,
+emergency recovery, economic sign and seven corrupted-capture checks pass.
+Scenario fees are 8,690,000 local lamports, excluding deployment. RPC maxima are
+177,048/400,000, 470,829/600,000 and 804,379/1,200,000 CU; route/atomic packet maximum
+is 1,154 bytes/22 accounts. These actual exercised paths meet 20% headroom.
+
+R040 maximum-book follow-up: a separate focused harness fills all four cross order
+slots with both positions exposed, then submits an actual owner transfer plus
+two-maker open. It succeeds at 487,360 CU but correctly fails the 20% headroom
+assertion under 600,000 (`budget-development.log`). Add the SDK's distinct
+`groupTransferRouteComputeBudget` at 700,000 CU for this combined transaction;
+standalone routes keep 600,000 and risk/fee/capacity rules stay unchanged. The
+focused harness also liquidates a two-market receiver with all four receiver order
+slots occupied and cancels all four target risk orders. SVM development and raw
+conservation pass (`budget-development-2.log`, `budget-development-3.log`);
+program artifacts are unchanged from the clean core run. Do not rerun the full
+resolution lifecycle for this client-budget-only addition.
+
+Both tables retain P20/M7 In progress. Full P20 acceptance still needs the pinned
+focused maximum-book RPC budget check and recorded release promotion. No
+PG/services/UI/devnet deployment, endurance or external gate is claimed. Exact
+next action: pin the focused budget change, run its SVM/RPC checks, then promote
+the byte-verified local artifact and publish P20 ready above #28.

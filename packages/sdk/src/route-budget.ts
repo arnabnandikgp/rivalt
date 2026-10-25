@@ -41,3 +41,11 @@ export function groupRouteComputeBudget(): Instruction {
   const ix = ComputeBudgetProgram.setComputeUnitLimit({ units: GROUP_ROUTE_COMPUTE_UNITS });
   return { programAddress: address(ix.programId.toBase58()), accounts: [], data: ix.data };
 }
+
+/** P20 owner cash transfer + two-maker route, with all four cross order slots
+ * occupied. This combined transaction has a separately measured CU envelope. */
+export const GROUP_TRANSFER_ROUTE_COMPUTE_UNITS = 700_000;
+export function groupTransferRouteComputeBudget(): Instruction {
+  const ix = ComputeBudgetProgram.setComputeUnitLimit({ units: GROUP_TRANSFER_ROUTE_COMPUTE_UNITS });
+  return { programAddress: address(ix.programId.toBase58()), accounts: [], data: ix.data };
+}

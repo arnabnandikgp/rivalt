@@ -435,3 +435,11 @@ funding reset. Resolved groups return to isolated mode, and require fresh Normal
 observations/certification and authority promotion before cross resumes. Recovery
 never changes a root's immutable margin mode. The funding-endpoint certificate
 must cover mode 2 and all adverse mixed corners. No layout migration is required.
+
+D52 transaction envelope: the maximum four-order cross book makes an atomic
+owner transfer plus two-maker route exceed the 20% headroom threshold under the
+standalone 600,000-CU budget. Give that combined path an explicit 700,000-CU SDK
+budget. Preserve 600,000 for standalone routes and 1,200,000 for source sampling
+and default pages. This changes a client resource declaration, not fees, margin,
+source safeguards or bounded account/order capacity. Final actual RPC measurements
+and qualification status belong in WORKLOG/evidence.

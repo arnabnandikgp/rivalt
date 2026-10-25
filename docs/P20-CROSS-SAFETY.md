@@ -61,3 +61,11 @@ exit certificates check all four combinations of held funding endpoints in both
 financial modes. The exact ledger accepts both root modes internally, while its
 external member/profile checks retain the release gate. Economic default and
 emergency eligibility are separate from loss-only risk admission.
+
+The focused `cross-budget` harness fills every order slot and both position slots
+before measuring an owner transfer plus two-maker open, standalone reduction and
+a two-market liquidation receiver with four surviving orders. Use
+`groupTransferRouteComputeBudget()` (700,000 CU) for the combined transfer/trade;
+`groupRouteComputeBudget()` remains 600,000 for a standalone route. The lower
+combined budget executed successfully but failed the required 20% headroom check.
+This client-only change does not alter risk or fee economics.
