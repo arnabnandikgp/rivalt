@@ -67,7 +67,11 @@ try{
     // Treat the HTTP message as advisory. Rebuild from independent direct RPC
     // state and sign only the SDK's reviewed message.
     const quote=await client.quote(fixture.owner.address,fixture.cross,marketIndex,side,lots,{maxFee:1_000_000n,allInLimit:side===0?1_000_000_000n:0n});
-    assert(quote);assert.deepEqual(JSON.parse(json(quote.allocation)),apiQuote.allocation);
+    assert(quote);
+    const {snapshotSlot:advisorySlot,...advisoryAllocation}=apiQuote.allocation;
+    const {snapshotSlot:directSlot,...directAllocation}=JSON.parse(json(quote.allocation));
+    assert(BigInt(directSlot)>=BigInt(advisorySlot),'Direct quote reads at or after advisory RPC context');
+    assert.deepEqual(directAllocation,advisoryAllocation);
     const before=(await client.snapshot()).roots[fixture.cross];
     await signed(`direct rebuilt ${marketIndex===0?'BTC':'ETH'} ${side===0?'open':'close'}`,quote.instructions);
     const after=(await client.snapshot()).roots[fixture.cross];
