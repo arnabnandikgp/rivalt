@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react';
+import { cloneElement, type ReactElement, type ReactNode } from 'react';
 import { fixed, short } from '../amount.js';
 import type { useGroupVenue } from './useGroupVenue.js';
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, children }: { label: string; children: ReactElement<{'aria-label'?:string}> }) {
   return (
     <label className="field">
       <span>{label}</span>
-      {children}
+      {cloneElement(children,{'aria-label':label})}
     </label>
   );
 }

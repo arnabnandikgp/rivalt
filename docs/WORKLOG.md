@@ -32,7 +32,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5a | P11–P12 | Complete local engineering evidence | Closed | [P11 A01–A16](evidence/P11.md) and [P12 revised A17](evidence/P12.md) verified; 1,249/1,249 submitted trades, 71.19% normal offered availability, affected recoveries, actual exit and 12,454-transaction fresh PostgreSQL replay; merged PR #14 records the indexer pause during separate history generation; integrated at `2bc298e`; 24-hour endurance deferred to P16 under D35 |
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
-| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | P17–P20 Review in #23/#24/#26/#27/#28/#29; [A26A/G16 interfaces](evidence/P21A.md) pass through pinned `882f832` plus independent auditor `ac828f6`: fresh immutable execution, direct SDK, signed routes/orders, funding/settlement, 64-member default/restart, artifact and missing-price recovery, exact PostgreSQL replay. P21A Review in ready #30; P21B UI implemented with 13 scoped checks/typecheck/build passing; real browser/workload acceptance remains In progress. P15B/P16B external Open; endurance Deferred |
+| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | P17–P20 Review in #23/#24/#26/#27/#28/#29; [A26A/G16 interfaces](evidence/P21A.md) pass through pinned `882f832` plus independent auditor `ac828f6`: fresh immutable execution, direct SDK, signed routes/orders, funding/settlement, 64-member default/restart, artifact and missing-price recovery, exact PostgreSQL replay. P21A Review in ready #30; P21B UI implemented with 13 scoped checks/typecheck/build passing; d514d1d browser finalizes first three wallet actions, then finds selector naming issue; correction/remainder and workload In progress. P15B/P16B external Open; endurance Deferred |
 
 ## Phase overview
 
@@ -63,7 +63,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
 | M7 | P20 | Cross liquidation/default and qualified activation | Review | [PR #29](https://github.com/arnabnandikgp/rivalt/pull/29), published `459c84c`, tested `3c7ab4e` core / `aadb69f` budgets, above P19 #28 `c0b7898` | [A25/G15](evidence/P20.md): 1,224 SVM / 1,221 finalized RPC + 215 SVM / 212 finalized RPC maximum-book cases; 820/820 and 95/95 WS; byte-identical qualified local profile; integration pending |
 | M7 | P21A | Group SDK/indexer/API and durable services | Review | [PR #30](https://github.com/arnabnandikgp/rivalt/pull/30), published `286d083`, above exact P20 #29 `459c84c` | [A26A/G16 interfaces](evidence/P21A.md): scoped pinned execution/direct SDK/workers/trading/settlement, `2767cdd` 64-member liquidation/default/restart/audit and 134-account replay; `882f832` artifacts/AwaitValuation/API-stopped exits/replay plus clean `ac828f6` corrected independent audit. No P21B or integration claim |
-| M7 | P21B | UI/operations and fresh successor qualification | In progress | `phase/p21b-group-ui`, above P21A #30 `a3a9807`; no PR yet | R050: owner portfolio-zero UI, isolated/cross allocation and both-market orders/claims; 13 focused checks, typecheck/build pass. Actual browser and 300-second workload/recovery/audit still pending; A26B/G16/M7 remains open |
+| M7 | P21B | UI/operations and fresh successor qualification | In progress | `phase/p21b-group-ui`, above P21A #30 `a3a9807`; no PR yet | R050: owner portfolio-zero UI, isolated/cross allocation and both-market orders/claims; 13 focused checks, typecheck/build pass. d514d1d actual browser creates portfolio/cross root/deposit; selector accessible-name correction and remaining browser/300-second workload acceptance pending; A26B/G16/M7 remains open |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -1418,3 +1418,22 @@ create P21B above this verified parent and implement the account-aware wallet UI
   P21A Review, P21B In progress, external gates Open/endurance Deferred. No access
   or product blocker. Exact next action: pin this checkpoint and run the scoped
   browser command, fix observed failures, then implement the bounded workload.
+
+R050 first pinned browser attempt: clean `d514d1d` at
+`.local/group-browser-rpc/20261025T170527Z-91287` (log
+`.local/p21b-browser-pinned.log`) finalizes actual portfolio creation, cross account
+registration and 1,000,000-atom deposit through the instrumented Wallet Standard
+provider; each original is independently fetched and compared. Rejecting the next
+wallet prompt creates no signed transaction. The unsigned wallet-switch review
+clears, then exact-label account selection times out: the wrapping select label
+includes option text rather than a stable control name. No JavaScript page error
+or financial failure; screenshot and failure capture remain local. Add explicit
+accessible names to the shared group fields. No on-chain/risk change. Both tables
+retain P21B In progress. Exact next action: pin this UI correction, rebuild only
+the affected browser bundle and rerun the still-unexercised lifecycle continuation.
+
+R050 continuation adds the independent raw-byte browser auditor before the next
+pin: literal six-fill venue-fee/cash expectations, explicit seven-atom allocation,
+two-atom token exit, complete account/claim/pool conservation and six corruptions.
+This auditor has not yet received a completed browser capture; no pass is claimed.
+It checks browser cash/fees/tokens, not the future workload's per-fill contention.

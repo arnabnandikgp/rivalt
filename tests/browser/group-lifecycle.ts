@@ -175,6 +175,8 @@ try{
     scope:'P21B wallet/browser checkpoint; continuous mixed-market workload and final qualification still pending',binding,checks,outcomes,unsignedRefusals,
     keys:{group:fixture.group,registry:fixture.registry,vault:fixture.vault,resolution:fixture.resolution,markets:fixture.markets,roots:[...fixture.roots,cross,isolated],cross,isolated,token:token.address},
     reconciliation,freshReplay:true,ws:indexer.metrics.notifications,fixtureOutcomes:transport.checks.map(({history,...check})=>check)}));
+  const audit=execFileSync('python3',['tests/financial/group-browser-reference.py',directory],{encoding:'utf8'});
+  writeFileSync(`${directory}/independent-audit.json`,audit);console.log(audit.trim());
   console.log(json({stage:'group-browser-pass',checks:checks.length,walletTransactions:outcomes.length,reconciliation}));
 }catch(error){
   writeFileSync(`${directory}/browser-failure.json`,json({error:String(error),checks,outcomes,unsignedRefusals,errors,walletWires}));
