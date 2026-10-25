@@ -32,7 +32,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5a | P11–P12 | Complete local engineering evidence | Closed | [P11 A01–A16](evidence/P11.md) and [P12 revised A17](evidence/P12.md) verified; 1,249/1,249 submitted trades, 71.19% normal offered availability, affected recoveries, actual exit and 12,454-transaction fresh PostgreSQL replay; merged PR #14 records the indexer pause during separate history generation; integrated at `2bc298e`; 24-hour endurance deferred to P16 under D35 |
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
-| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | P17–P20 Review in #23/#24/#26/#27/#28/#29; [A26A/G16 interfaces](evidence/P21A.md) pass through pinned `882f832` plus independent auditor `ac828f6`: fresh immutable execution, direct SDK, signed routes/orders, funding/settlement, 64-member default/restart, artifact and missing-price recovery, exact PostgreSQL replay. P21A Review in ready #30; P21B UI implemented with 13 scoped checks/typecheck/build passing; d514d1d browser finalizes first three wallet actions, then finds selector naming issue; correction/remainder and workload In progress. P15B/P16B external Open; endurance Deferred |
+| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | P17–P20 Review in #23/#24/#26/#27/#28/#29; [A26A/G16 interfaces](evidence/P21A.md) pass through pinned `882f832` plus independent auditor `ac828f6`: fresh immutable execution, direct SDK, signed routes/orders, funding/settlement, 64-member default/restart, artifact and missing-price recovery, exact PostgreSQL replay. P21A Review in ready #30; P21B UI implemented with 13 scoped checks/typecheck/build passing; 56d1f59 browser finalizes 16 wallet transactions through both-mode trades/TP-SL/allocation; unsigned persistent-order terms corrected with five focused checks/typecheck; final browser checks and workload In progress. P15B/P16B external Open; endurance Deferred |
 
 ## Phase overview
 
@@ -63,7 +63,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
 | M7 | P20 | Cross liquidation/default and qualified activation | Review | [PR #29](https://github.com/arnabnandikgp/rivalt/pull/29), published `459c84c`, tested `3c7ab4e` core / `aadb69f` budgets, above P19 #28 `c0b7898` | [A25/G15](evidence/P20.md): 1,224 SVM / 1,221 finalized RPC + 215 SVM / 212 finalized RPC maximum-book cases; 820/820 and 95/95 WS; byte-identical qualified local profile; integration pending |
 | M7 | P21A | Group SDK/indexer/API and durable services | Review | [PR #30](https://github.com/arnabnandikgp/rivalt/pull/30), published `286d083`, above exact P20 #29 `459c84c` | [A26A/G16 interfaces](evidence/P21A.md): scoped pinned execution/direct SDK/workers/trading/settlement, `2767cdd` 64-member liquidation/default/restart/audit and 134-account replay; `882f832` artifacts/AwaitValuation/API-stopped exits/replay plus clean `ac828f6` corrected independent audit. No P21B or integration claim |
-| M7 | P21B | UI/operations and fresh successor qualification | In progress | `phase/p21b-group-ui`, above P21A #30 `a3a9807`; no PR yet | R050: owner portfolio-zero UI, isolated/cross allocation and both-market orders/claims; 13 focused checks, typecheck/build pass. d514d1d actual browser creates portfolio/cross root/deposit; selector accessible-name correction and remaining browser/300-second workload acceptance pending; A26B/G16/M7 remains open |
+| M7 | P21B | UI/operations and fresh successor qualification | In progress | `phase/p21b-group-ui`, above P21A #30 `a3a9807`; no PR yet | R050: owner portfolio-zero UI, isolated/cross allocation and both-market orders/claims; 13 focused checks, typecheck/build pass. 56d1f59 actual browser verifies 16 finalized wallet transactions through both-mode trades/TP-SL/allocation; order generation/price/replace correction passes five scoped checks/typecheck; remaining browser/300-second workload acceptance pending; A26B/G16/M7 remains open |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -1437,3 +1437,21 @@ pin: literal six-fill venue-fee/cash expectations, explicit seven-atom allocatio
 two-atom token exit, complete account/claim/pool conservation and six corruptions.
 This auditor has not yet received a completed browser capture; no pass is claimed.
 It checks browser cash/fees/tokens, not the future workload's per-fill contention.
+
+R050 second pinned browser attempt: clean `56d1f59` at
+`.local/group-browser-rpc/20261025T170924Z-92642`, log
+`.local/p21b-browser-pinned-2.log`, finalizes 16 independently fetched wallet
+originals: creation, both account registrations/deposits, six actual fills,
+TP/SL placement/cancellation and complete-group pages followed by seven-atom
+allocation. Eight named checks pass; zero page errors. The next unsigned order
+simulation rejects `OrderTerms` (6126): UI supplied the closed position generation
+for a non-reduce order, and the harness left ETH selected with a BTC trigger value.
+No malformed transaction was signed or broadcast. Correct ordinary generation,
+market-unit limit/trigger validation, reduction/replacement invariants and prefill;
+explicitly select BTC and add actual replacement to the browser continuation.
+Five focused model tests and typecheck pass (`.local/p21b-order-model.log`,
+`.local/p21b-order-typecheck.log`). No unchanged on-chain/IDL or broad regression
+rerun. D54/contract and both tables updated; P21B/M7 remain In progress. No access
+or product blocker. Exact next action: commit this correction, rebuild the affected
+bundle, rerun `bash ops/group-indexer-smoke.sh --browser`, then implement the
+separate 300-second workload. No browser or A26B completion claimed yet.

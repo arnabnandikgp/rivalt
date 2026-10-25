@@ -8,7 +8,8 @@ import {
   GROUP_MARKETS,
   accountLabel,
   portfolioAccounts,
-  groupPrice,
+  groupOrderPrice,
+  groupOrderTerms,
   groupQuantity,
 } from './model.js';
 
@@ -192,18 +193,32 @@ export function useGroupController(config: GroupTraderConfig) {
         ],
       };
     });
-  const terms = (state: sdk.GroupSnapshot, account: sdk.MarginAccountV2) => ({
-    side,
-    lots: groupQuantity(quantity, marketIndex),
-    limit: groupPrice(limit, marketIndex),
-    feeBudget: units(fee, 6, 'Lifetime fee budget'),
-    startSlot: state.slot,
-    expirySlot: state.slot + integer(expiry, 'Expiry slots', 216_000n),
-    trigger,
-    threshold: trigger ? groupPrice(threshold, marketIndex) : 0n,
-    reduceOnly,
-    generation: account.positions[marketIndex].generation,
-  });
+  const terms = (
+    state: sdk.GroupSnapshot,
+    account: sdk.MarginAccountV2,
+    previous?: sdk.StoredOrder,
+    protection?: { trigger: number; threshold: string; limit: string },
+  ) => {
+    const position = account.positions[marketIndex];
+    const orderTrigger = protection?.trigger ?? trigger;
+    return groupOrderTerms(
+      {
+        side: protection ? (position.lots > 0n ? 1 : 0) : side,
+        lots: groupQuantity(quantity, marketIndex),
+        limit: groupOrderPrice(protection?.limit ?? limit, marketIndex),
+        feeBudget: units(fee, 6, 'Lifetime fee budget'),
+        startSlot: state.slot,
+        expirySlot: state.slot + integer(expiry, 'Expiry slots', 216_000n),
+        trigger: orderTrigger,
+        threshold: orderTrigger
+          ? groupOrderPrice(protection?.threshold ?? threshold, marketIndex, true)
+          : 0n,
+        reduceOnly: protection ? true : reduceOnly,
+      },
+      position,
+      previous,
+    );
+  };
   const order = () =>
     prepare(replaceId ? 'Replace order' : 'Place order', async (state, owner) => {
       const account = currentRoot(state, owner),
@@ -221,7 +236,7 @@ export function useGroupController(config: GroupTraderConfig) {
         ? sdk.groupOrderAction('Replace', {
             id: existing.order.id,
             version: existing.order.version,
-            terms: terms(state, account),
+            terms: terms(state, account, existing.order),
           })
         : sdk.groupOrderAction('Place', {
             expectedId: account.book.lastOrderId + 1n,
@@ -247,28 +262,19 @@ export function useGroupController(config: GroupTraderConfig) {
         lots = groupQuantity(quantity, marketIndex);
       if (position.lots === 0n || lots > abs(position.lots))
         throw new Error('TP/SL must protect at most this existing position.');
-      const long = position.lots > 0n,
-        common = {
-          ...terms(state, account),
-          side: long ? 1 : 0,
-          lots,
-          reduceOnly: true,
-          generation: position.generation,
-        };
+      const long = position.lots > 0n;
       const operation = sdk.groupOrderAction('Protect', {
         expectedId: account.book.lastOrderId + 1n,
-        takeProfit: {
-          ...common,
+        takeProfit: terms(state, account, undefined, {
           trigger: long ? 1 : 2,
-          threshold: groupPrice(takeProfit, marketIndex),
-          limit: groupPrice(tpLimit, marketIndex),
-        },
-        stopLoss: {
-          ...common,
+          threshold: takeProfit,
+          limit: tpLimit,
+        }),
+        stopLoss: terms(state, account, undefined, {
           trigger: long ? 2 : 1,
-          threshold: groupPrice(stopLoss, marketIndex),
-          limit: groupPrice(slLimit, marketIndex),
-        },
+          threshold: stopLoss,
+          limit: slLimit,
+        }),
       });
       return {
         instructions: [
@@ -281,6 +287,29 @@ export function useGroupController(config: GroupTraderConfig) {
         ],
       };
     });
+  const selectReplacement = (id: string) => {
+    setReplaceId(id);
+    const previous = activeOrders.find(
+      (entry) => String(entry.order.id) === id && entry.marketIndex === marketIndex,
+    )?.order;
+    if (!previous) return;
+    const decimal = (value: bigint, decimals: number) => fixed(value, decimals).replaceAll(',', '');
+    const price = (value: bigint) => decimal(value * GROUP_MARKETS[marketIndex].lotsPerUnit, 6);
+    setSide(previous.side as 0 | 1);
+    setReduceOnly(previous.reduceOnly);
+    setQuantity(decimal(previous.lots, selectedMarket.decimals));
+    setLimit(price(previous.limit));
+    setFee(decimal(previous.feeBudget, 6));
+    setTrigger(previous.trigger);
+    setThreshold(price(previous.threshold));
+    setExpiry(
+      String(
+        previous.expirySlot > (snapshot?.slot ?? 0n)
+          ? previous.expirySlot - (snapshot?.slot ?? 0n)
+          : 600n,
+      ),
+    );
+  };
   const cancel = (id: bigint, protectionGroup = false) =>
     prepare(protectionGroup ? 'Cancel protection' : 'Cancel order', async (state, owner) => {
       const account = currentRoot(state, owner),
@@ -366,7 +395,7 @@ export function useGroupController(config: GroupTraderConfig) {
     threshold,
     setThreshold,
     replaceId,
-    setReplaceId,
+    setReplaceId: selectReplacement,
     takeProfit,
     setTakeProfit,
     stopLoss,

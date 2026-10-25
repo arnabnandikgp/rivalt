@@ -35,6 +35,11 @@ are saved before broadcast under the schema/genesis/anchor/group/owner identity;
 receipts survive reload and unknown outcomes cannot silently become new signatures.
 Direct cancellation/exit remain available when read/execution APIs are unavailable.
 All balances and input conversions use integers; BTC/ETH lot scales differ.
+Persistent order limits are checked against 9,000–110,000 atoms/lot and triggers
+against 10,000–100,000 before review. Ordinary orders use generation zero even
+after closing/reopening; reductions bind the live position. Replacement loads
+existing terms and rejects changes to immutable side/mode/generation or a fee
+budget below already charged fees. The program remains the final authority.
 
 `/v2/events` and `/v2/trades` add optional `latest=true`, with at most 100 rows,
 a repeatable-read snapshot and ascending returned display order. Cursor reads

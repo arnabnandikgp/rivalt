@@ -137,10 +137,20 @@ try{
   }
   assert.equal(state.roots[cross].cash,beforeAllocation.roots[cross].cash-7n);assert.equal(state.roots[isolated].cash,beforeAllocation.roots[isolated].cash+7n);
   record('explicit allocation debits donor once after a separate complete-group proof');
-  // Place an untriggered stop for actual stale cancellation; no synthetic fill.
+  // Place an untriggered BTC stop for actual stale cancellation; no synthetic fill.
+  await page.getByLabel('Market',{exact:true}).selectOption('0');
   await page.getByText('Persistent limit / stop-limit',{exact:true}).click();await page.getByLabel('Side',{exact:true}).selectOption('0');
   await page.getByLabel('Trigger',{exact:true}).selectOption('1');await page.getByLabel('Trigger price',{exact:true}).fill('100000');
   await fixture.qualify();await action('Review persistent order');
+  const placed=(await client.snapshot()).roots[cross].book.orders.find(entry=>[1,2].includes(entry.order.state))!.order;
+  assert.equal(placed.generation,0n);
+  await page.getByLabel('Order to replace',{exact:true}).selectOption(String(placed.id));
+  await page.getByLabel('Limit price (test USD per unit)',{exact:true}).fill('59000');
+  await fixture.qualify();await action('Review replacement');
+  const replaced=(await client.snapshot()).roots[cross].book.orders.find(entry=>entry.order.id===placed.id)!.order;
+  assert.equal(replaced.version,placed.version+1n);assert.equal(replaced.generation,0n);assert.equal(replaced.limit,59000n);
+  assert.equal(replaced.filled,placed.filled);assert.equal(replaced.feeCharged,placed.feeCharged);
+  record('post-close persistent order uses zero generation and replacement preserves fee/fill prefixes');
   const beforeStale=(await client.snapshot()).roots[cross];await h.advance(21n);await button('Refresh').click();
   const beforeUnsafe=walletWires.length;await button('Review atomic trade').click();
   await wait(()=>page.getByRole('alert').allTextContents(),alerts=>alerts.length>0,'stale route refusal');assert(!await review().isVisible());assert.equal(walletWires.length,beforeUnsafe);

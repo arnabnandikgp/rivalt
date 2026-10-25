@@ -1,7 +1,14 @@
 import { expect, it } from 'vitest';
 import { address } from '@solana/kit';
-import type { GroupSnapshot } from '@rivalt/sdk';
-import { accountLabel, groupPrice, groupQuantity, portfolioAccounts } from './model.js';
+import type { GroupSnapshot, OrderTerms, StoredOrder } from '@rivalt/sdk';
+import {
+  accountLabel,
+  groupPrice,
+  groupQuantity,
+  portfolioAccounts,
+  groupOrderPrice,
+  groupOrderTerms,
+} from './model.js';
 
 it('converts BTC and ETH UI units to exact distinct program lots/prices', () => {
   expect(groupQuantity('0.000015', 0)).toBe(15n);
@@ -71,4 +78,79 @@ it('shows only the selected owner portfolio-zero trader roots without combining 
   ]);
   expect(accountLabel(result.accounts[1][1])).toBe('Isolated ETH · 2');
   expect(portfolioAccounts(snapshot, null).accounts).toEqual([]);
+});
+
+it('checks market-specific persistent limit and trigger ranges before asking for a signature', () => {
+  expect(groupOrderPrice('9000', 0)).toBe(9000n);
+  expect(groupOrderPrice('11000', 1)).toBe(110000n);
+  expect(groupOrderPrice('10000', 1, true)).toBe(100000n);
+  expect(() => groupOrderPrice('100000', 1, true)).toThrow(/1000 and 10000/);
+  expect(() => groupOrderPrice('899.9', 1)).toThrow(/900 and 11000/);
+  expect(() => groupOrderPrice('110001', 0)).toThrow(/9000 and 110000/);
+});
+it('ordinary orders after closing a position use zero generation; reductions bind the live position', () => {
+  const input: Omit<OrderTerms, 'generation'> = {
+    side: 0,
+    lots: 5n,
+    limit: 60000n,
+    feeBudget: 100n,
+    startSlot: 100n,
+    expirySlot: 700n,
+    trigger: 0,
+    threshold: 0n,
+    reduceOnly: false,
+  };
+  expect(groupOrderTerms(input, { lots: 0n, generation: 2n }).generation).toBe(0n);
+  expect(
+    groupOrderTerms({ ...input, reduceOnly: true }, { lots: -5n, generation: 3n }).generation,
+  ).toBe(3n);
+  expect(() =>
+    groupOrderTerms({ ...input, reduceOnly: true }, { lots: 5n, generation: 3n }),
+  ).toThrow(/oppose/);
+  expect(() =>
+    groupOrderTerms({ ...input, lots: 6n, reduceOnly: true }, { lots: -5n, generation: 3n }),
+  ).toThrow(/fit/);
+  expect(() =>
+    groupOrderTerms({ ...input, feeBudget: 1000001n }, { lots: 0n, generation: 2n }),
+  ).toThrow(/cannot exceed/);
+});
+it('replacement retains generation/side and charged fee prefixes, accounting for already filled lots', () => {
+  const input: Omit<OrderTerms, 'generation'> = {
+    side: 1,
+    lots: 10n,
+    limit: 60000n,
+    feeBudget: 100n,
+    startSlot: 100n,
+    expirySlot: 700n,
+    trigger: 0,
+    threshold: 0n,
+    reduceOnly: true,
+  };
+  const previous = {
+    ...input,
+    id: 1n,
+    version: 1n,
+    state: 1,
+    generation: 3n,
+    filled: 6n,
+    feeCharged: 80n,
+    originalLots: 10n,
+    groupId: 0n,
+    notional: 360000n,
+    termsEpoch: 0n,
+    reserve: 0n,
+  } satisfies StoredOrder;
+  expect(groupOrderTerms(input, { lots: 4n, generation: 3n }, previous).lots).toBe(10n);
+  expect(() =>
+    groupOrderTerms({ ...input, feeBudget: 79n }, { lots: 4n, generation: 3n }, previous),
+  ).toThrow(/fees already charged/);
+  expect(() => groupOrderTerms(input, { lots: 4n, generation: 4n }, previous)).toThrow(
+    /generation/,
+  );
+  expect(() =>
+    groupOrderTerms({ ...input, lots: 6n }, { lots: 4n, generation: 3n }, previous),
+  ).toThrow(/already filled/);
+  expect(() =>
+    groupOrderTerms({ ...input, reduceOnly: false }, { lots: 4n, generation: 3n }, previous),
+  ).toThrow(/retain/);
 });

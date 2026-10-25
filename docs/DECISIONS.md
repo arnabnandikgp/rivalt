@@ -581,3 +581,8 @@ finalized history adds bounded latest ordering alongside unchanged cursor reads.
 the required 300-second/0.5-offer-per-second concurrent qualification, complete
 outcome populations and independent reconciliation. No inherited P16A/P21A result
 closes those checks; external gates and deferred endurance are unchanged.
+
+D54 browser realization: preserve the program's distinct ordinary-order generation
+zero and live reduction generation, immutable replacement fields and charged fee
+prefixes. Validate persistent limit/trigger bounds in each market's UI units before
+review; do not loosen the program or source policy to accept malformed inputs.
