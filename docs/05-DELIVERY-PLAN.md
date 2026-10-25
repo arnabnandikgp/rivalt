@@ -429,6 +429,8 @@ negative profiles. Host tests do not substitute for P20's signed cross acceptanc
 
 ### P20 — Cross liquidation and complete-group resolution
 
+Current implementation: [P20 safety candidates](P20-CROSS-SAFETY.md); A25 remains pending.
+
 **Deliverable:** Whole-account eligibility and strict post-fee deficit progress,
 funded receiver checks, terminal account-net claims, mixed isolated/cross/maker
 cohort and restart-safe complete-group default. Remove the compile-time cross gate

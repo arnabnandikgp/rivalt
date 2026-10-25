@@ -1,5 +1,6 @@
 //! Consenting non-maker receiver; strict whole-root progress after funded fees.
 use super::*;
+use crate::instructions::group_margin;
 use anchor_spl::token::TokenAccount;
 
 #[event_cpi]
@@ -43,13 +44,15 @@ pub(crate) fn candidate(
     price: u64,
     clock: &Clock,
 ) -> Result<Candidate> {
+    let target_model = group_margin::model(target)?;
+    let receiver_model = group_margin::model(receiver)?;
+    group_trading::book::validate(target)?;
+    group_trading::book::validate(receiver)?;
     require!(
         market_index < 2
             && target.group == receiver.group
-            && target.mode == MODE_ISOLATED
-            && receiver.mode == MODE_ISOLATED
-            && usize::from(target.isolated_market_index) == market_index
-            && usize::from(receiver.isolated_market_index) == market_index
+            && target_model.allows(market_index)
+            && receiver_model.allows(market_index)
             && receiver.role != ROLE_MAKER
             && receiver.cash > 0,
         ClearingError::Liquidation
@@ -57,8 +60,21 @@ pub(crate) fn candidate(
     let market = markets[market_index];
     oracle::action(market, clock, false)?;
     let risks = risks(mode, markets, clock)?;
-    let target_model = account_model(target)?;
-    let receiver_model = account_model(receiver)?;
+    let environment = group_trading::book::Environment {
+        markets: markets.map(Some),
+        selected: market_index,
+        funding: risks.map(|risk| risk.funding),
+        slot: clock.slot,
+        credible: markets.map(|market| oracle::action(market, clock, false).is_ok()),
+    };
+    // Target risk orders are cancelled by this candidate. They cannot force an
+    // otherwise irrelevant stale market into the exposure valuation universe.
+    for (index, position) in target.positions.iter().enumerate() {
+        if position.lots != 0 {
+            oracle::action(markets[index], clock, false)?;
+        }
+    }
+    environment.admit_sources(receiver, clock, false)?;
     let before = checked(target_model.deficit(risks))?;
     let (next_target, next_receiver, fee) = checked(math::margin::liquidation_candidate(
         target_model,
@@ -88,19 +104,21 @@ pub(crate) fn candidate(
     );
     let mut target = Box::new(target.clone());
     let mut receiver = Box::new(receiver.clone());
-    commit(&mut target, next_target)?;
-    commit(&mut receiver, next_receiver)?;
+    group_margin::commit_model(&mut target, next_target)?;
+    group_margin::commit_model(&mut receiver, next_receiver)?;
     for entry in &mut target.book.orders {
         if entry.order.active() && !entry.order.reduce_only {
             entry.order.state = crate::constants::orders::INVALIDATED;
             entry.order.reserve = 0;
         }
     }
-    refresh(&mut target, markets, clock)?;
-    refresh(&mut receiver, markets, clock)?;
-    checked(account_model(&receiver)?.admissible(risks))?;
-    let after = checked(account_model(&target)?.deficit(risks))?;
+    group_trading::book::refresh_with_environment(&mut target, &environment)?;
+    group_trading::book::refresh_with_environment(&mut receiver, &environment)?;
+    checked(group_margin::model(&receiver)?.admissible(risks))?;
+    let after = checked(group_margin::model(&target)?.deficit(risks))?;
     require!(after < before, ClearingError::Liquidation);
+    group_trading::advance(&mut target)?;
+    group_trading::advance(&mut receiver)?;
     Ok(Candidate {
         target,
         receiver,
@@ -135,6 +153,8 @@ pub fn liquidate(
         sequence,
         observations,
     )?;
+    group_margin::trading(&accounts.group, &accounts.target)?;
+    group_margin::trading(&accounts.group, &accounts.receiver)?;
     group_custody::reconciled(&accounts.group, accounts.vault.amount)?;
     let clock = Clock::get()?;
     let candidate = candidate(

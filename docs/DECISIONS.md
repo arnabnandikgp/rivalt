@@ -403,3 +403,19 @@ G02's no-write wording describes pending-funding valuation, not a permission to
 omit an authoritative prefix when committing a whole-account mutation. Require
 Normal for every relevant market on increases and credible bounds for reductions;
 empty unrelated slots need no fresh price. No oracle deadline is relaxed.
+
+
+## D52 — whole-account safety realization (P20, in progress)
+
+Extend the existing consenting-receiver liquidation candidate to both root modes,
+including all pending funding and surviving receiver reservations. Preserve
+credible-bound liquidation in degraded mode and the strict post-fee whole-account
+MM-deficit decrease. Target risk orders cancelled atomically by the liquidation
+cannot make an otherwise empty market a required price input; target exposure and
+all remaining receiver authority still require credible bounds. No fee, margin,
+source deadline or default loss ownership changes. Runtime cross liquidation keeps
+the same explicit release gate while pure candidates are verified.
+
+[P20](P20-CROSS-SAFETY.md) owns complete-group net default, missing-price recovery,
+full endpoint certification and signed qualification before cross release. P19
+acceptance does not close these checks. P15B/P16B remain Open and D42 remains Deferred.
