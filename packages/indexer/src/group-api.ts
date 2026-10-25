@@ -1,9 +1,11 @@
 import Fastify from 'fastify';
+import {address} from '@solana/kit';
 import {groupBalanceView} from '@rivalt/sdk';
 import type {GroupIndexer} from './group-indexer.js';
 import {integer} from './rpc.js';
 
 const publicKey = {type:'string',pattern:'^[1-9A-HJ-NP-Za-km-z]{32,44}$'} as const;
+const clockAddress = address('SysvarC1ock11111111111111111111111111111111');
 const cursor = {type:'object',additionalProperties:false,properties:{after:{type:'string',pattern:'^(0|[1-9][0-9]{0,19})$'},limit:{type:'integer',minimum:1,maximum:100}}} as const;
 /** Schema-2 read surface. Confirmed/host-clock hints cannot rewrite the finalized
  * projection; current risk views disclose their separate on-chain Clock input. */
@@ -36,7 +38,7 @@ export function groupApi(indexer: GroupIndexer) {
   app.get<{Params:{margin:string}}>('/v2/accounts/:margin',{schema:{params:{type:'object',required:['margin'],additionalProperties:false,properties:{margin:publicKey}}}},async (request,reply) => {
     const row = await indexer.store.snapshot(), root = row.state.roots[request.params.margin];
     if (!root) return reply.code(404).send({error:'UnknownMarginAccount'});
-    const response = await indexer.rpc.call('getAccountInfo',['SysvarC1ock11111111111111111111111111111111111',
+    const response = await indexer.rpc.call('getAccountInfo',[clockAddress,
       {encoding:'base64',commitment:'finalized',...(row.checkpoint_slot ? {minContextSlot:integer(Number(row.checkpoint_slot))} : {})}]);
     integer(response.context.slot);
     if (response.value?.owner !== 'Sysvar1111111111111111111111111111111111111') throw new Error('Clock owner');

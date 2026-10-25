@@ -32,7 +32,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5a | P11–P12 | Complete local engineering evidence | Closed | [P11 A01–A16](evidence/P11.md) and [P12 revised A17](evidence/P12.md) verified; 1,249/1,249 submitted trades, 71.19% normal offered availability, affected recoveries, actual exit and 12,454-transaction fresh PostgreSQL replay; merged PR #14 records the indexer pause during separate history generation; integrated at `2bc298e`; 24-hour endurance deferred to P16 under D35 |
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
-| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | R034: A22/G13 contract/layout checks pass on `5a4dc84`, five scoped tests and 190 local links; P17/P18A/P18B Review; A23A custody passes on `6389c3e` with 136 signed SVM / 51 finalized RPC scenarios; A23B passes on `286cb4e` with 154 signed SVM scenarios; R037 A23C/G14 passes on clean `b43261f`: 1,132 signed SVM / 148 finalized RPC scenarios, both-market lifecycle, complete default/recovery and independent audits; P18C Review; R039 A24/G15 core passes on clean `4274d28`: 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC, independent audit/parity; P19 Review in #28; P20 Review: clean 1,224 SVM / 1,221 finalized RPC core plus 215 SVM / 212 finalized RPC maximum-book acceptance; explicit local cross profile qualified in #29; R041 P21A In progress: group journal/replay and initial fresh PostgreSQL recovery pass; full service/UI gates pending |
+| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | R034: A22/G13 contract/layout checks pass on `5a4dc84`, five scoped tests and 190 local links; P17/P18A/P18B Review; A23A custody passes on `6389c3e` with 136 signed SVM / 51 finalized RPC scenarios; A23B passes on `286cb4e` with 154 signed SVM scenarios; R037 A23C/G14 passes on clean `b43261f`: 1,132 signed SVM / 148 finalized RPC scenarios, both-market lifecycle, complete default/recovery and independent audits; P18C Review; R039 A24/G15 core passes on clean `4274d28`: 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC, independent audit/parity; P19 Review in #28; P20 Review: clean 1,224 SVM / 1,221 finalized RPC core plus 215 SVM / 212 finalized RPC maximum-book acceptance; explicit local cross profile qualified in #29; R041 P21A In progress: group journal/replay and initial fresh PostgreSQL recovery pass; HTTP Clock typo corrected with focused regression, full service/UI gates pending |
 
 ## Phase overview
 
@@ -62,7 +62,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P18C | Isolated group settlement/liquidation/default and activation | Review | [PR #27](https://github.com/arnabnandikgp/rivalt/pull/27), tested `b43261f`; active-route extension `298f446`, above P18B `a912ebb` / #26 | [A23C/G14](evidence/P18C.md): 1,132 signed SVM scenarios, two complete 64-member audits, 148 finalized RPC / 81 expected WS outcomes; cross remains disabled |
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
 | M7 | P20 | Cross liquidation/default and qualified activation | Review | [PR #29](https://github.com/arnabnandikgp/rivalt/pull/29), published `459c84c`, tested `3c7ab4e` core / `aadb69f` budgets, above P19 #28 `c0b7898` | [A25/G15](evidence/P20.md): 1,224 SVM / 1,221 finalized RPC + 215 SVM / 212 finalized RPC maximum-book cases; 820/820 and 95/95 WS; byte-identical qualified local profile; integration pending |
-| M7 | P21A | Group SDK/indexer/API and durable services | In progress | `phase/p21a-group-services`, exact P20 #29 `459c84c`; no PR yet | R041: group projection/indexer, fresh RPC/WS/PostgreSQL recovery, read API and SDK previews; full A26A/G16 service/direct-client qualification pending |
+| M7 | P21A | Group SDK/indexer/API and durable services | In progress | `phase/p21a-group-services`, exact P20 #29 `459c84c`; no PR yet | R041: group projection/indexer, initial fresh RPC/WS/PostgreSQL recovery, read API and SDK previews; pinned HTTP failure corrected, full A26A/G16 qualification pending |
 | M7 | P21B | UI/operations and fresh successor qualification | Open | — | P21A; A26B/G16/M7 exit |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
@@ -74,7 +74,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Verification: original 12 signed checks on `b95b970` establish old-hash rejection/joint approval/account preservation; the independent auditor rejects their test config domain. Eight corrected ownership checks on clean `a1c793c` pass with the stored market domain; no repeated upgrade/approval. Independent raw-byte continuation and five adverse mutations pass. Fresh PostgreSQL 18.6 reconstructs 75 transactions/62 events, retains both rejected upgrade attempts without events, has zero unresolved jobs and serves the exact approved hashes over HTTP. Vault/allocated collateral remain 1,000,000,470 atoms.
 - Storage: original raw evidence remains local/ignored. R030 writes separate rollout, corrected-ownership and indexer directories; no archive/upload or raw JSON enters Git.
-- Exact next action: verify the P21A versioned HTTP/balance checkpoint on a pinned commit, then integrate group-aware durable workers and direct SDK recovery/exit paths. No external action is authorized.
+- Exact next action: integrate schema-2 immutable queue authority and market-specific workers, then verify fresh HTTP/service/direct-SDK recovery and exit. No external action is authorized.
 - Deferred gates: P15B/P16B independent maker/source/review, funded-risk calibration and explicit pilot authorization. Continuous 24-hour endurance remains Deferred under D42 and is not a current P16A requirement. No funded readiness or independent review is claimed.
 
 ## Blocker register
@@ -1082,3 +1082,25 @@ publish P20 ready above #28 through gh stack, then begin P21A on that exact head
 - Fresh development run `bash ops/group-indexer-smoke.sh` at `.local/group-indexer-rpc/20261025T134839Z-28330` passes: 215 original signed outcomes independently fetched finalized; 102 group-related canonical transactions, 81 events/outbox entries, zero unresolved jobs, actual live group WS, a reverted first-instruction deposit excluded, original-signature recovery after actual WS disconnect/restart, and exact replay into a new PostgreSQL 18.6 database. Eight roots/21 accounts reconcile; actual/allocated vault both 2,003,200,018 test atoms, zero surplus. This run is explicitly dirty development code; HTTP and the subsequently added SDK preview are not covered by it. Raw local logs: `.local/p21a-indexer-development*.log`, `.local/p21a-projection-tests.log`, `.local/p21a-typecheck.log`.
 - Not rerun: unchanged P20 SBF financial/default suites, generation/IDL parity, V1 broad lifecycle, browser/load/endurance or devnet. New services/direct-client/whole-resolution process interruption and API-disabled exits are incomplete; prior P20 financial evidence does not close these P21 gates. P21B contention/UI and external P15B/P16B remain Open; 24-hour endurance Deferred.
 - Status: both tables keep M7/P21A In progress, P20 Review; no P21 PR/acceptance or merge claimed. No access/product blocker after the local container restart. Exact next action: commit the indexer/API/preview checkpoint, run its scoped pinned HTTP/PostgreSQL check, then implement the group queue/workers and direct SDK paths.
+
+R041 pinned checkpoint: `705e1a63dc5bcdd03a1a4777e51d7148f1ab82ce` runs the
+new HTTP continuation at `.local/group-indexer-rpc/20261025T135923Z-31547`. All 215
+original signatures finalize; initial group reconstruction and deposit rollback/
+WS recovery complete, but `/v2/accounts` returns 503 before fresh-database replay.
+This attempt is **not acceptance**. The account endpoint contained three extra
+characters in its Clock public key. A short independent Surfpool Clock-only RPC
+check confirms the canonical 43-character account, sysvar owner and 40-byte layout.
+The SDK preview reproduces successfully from retained finalized account projections.
+
+Correct the constant and validate it with `address()` at module load. One focused
+HTTP-injection regression asserts the exact Clock RPC parameters, finalized context,
+exact cash/risk output, no implied withdrawal and unhealthy 503 behavior. It passes;
+this fixture check is not real HTTP/chain acceptance. Typecheck and evidence-policy
+checks pass. Preserve both the failed pinned run and prior passing development
+indexer run. Do not repeat the complete financial fixture for a string correction;
+the next fresh group-service qualification will include the repaired HTTP endpoint.
+
+Both tables remain M7/P21A In progress; P20 stays Review in #29. No P21 PR exists.
+Exact next action: implement schema-2 immutable queue authority and market-specific
+worker budgets, then extend the fresh service qualification through the repaired
+HTTP and direct-client paths.
