@@ -62,7 +62,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P18C | Isolated group settlement/liquidation/default and activation | Review | [PR #27](https://github.com/arnabnandikgp/rivalt/pull/27), tested `b43261f`; active-route extension `298f446`, above P18B `a912ebb` / #26 | [A23C/G14](evidence/P18C.md): 1,132 signed SVM scenarios, two complete 64-member audits, 148 finalized RPC / 81 expected WS outcomes; cross remains disabled |
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
 | M7 | P20 | Cross liquidation/default and qualified activation | Review | [PR #29](https://github.com/arnabnandikgp/rivalt/pull/29), published `459c84c`, tested `3c7ab4e` core / `aadb69f` budgets, above P19 #28 `c0b7898` | [A25/G15](evidence/P20.md): 1,224 SVM / 1,221 finalized RPC + 215 SVM / 212 finalized RPC maximum-book cases; 820/820 and 95/95 WS; byte-identical qualified local profile; integration pending |
-| M7 | P21A | Group SDK/indexer/API and durable services | In progress | `phase/p21a-group-services`, exact P20 #29 `459c84c`; no PR yet | R043: ff34275 pinned execution/HTTP/PostgreSQL recovery passes; fed5f55 direct SDK passes 20 signed actions/API-stopped stale cancel and flat funded exit; fbc70b9 maker/funding processes pass 24 original transactions/replay; 9093e88 whole-account routing unit checkpoint passes; 345ddc5 signed trading/orders pass (7 wallet transactions + 1 keeper fill), exact audit/fresh replay; 4fe5ed6 mixed-mode settlement passes 12 original transactions/funding/restart/fraction audit/fresh replay; risk/default worker passes scoped checks; 2767cdd risk services pass 173 original transactions, 64-member default/restart/audit and 134-account fresh replay; artifact binding passes 15 focused checks; real missing-price recovery/artifact harness prepared; A26A acceptance still pending |
+| M7 | P21A | Group SDK/indexer/API and durable services | In progress | `phase/p21a-group-services`, exact P20 #29 `459c84c`; no PR yet | R043: ff34275 pinned execution/HTTP/PostgreSQL recovery passes; fed5f55 direct SDK passes 20 signed actions/API-stopped stale cancel and flat funded exit; fbc70b9 maker/funding processes pass 24 original transactions/replay; 9093e88 whole-account routing unit checkpoint passes; 345ddc5 signed trading/orders pass (7 wallet transactions + 1 keeper fill), exact audit/fresh replay; 4fe5ed6 mixed-mode settlement passes 12 original transactions/funding/restart/fraction audit/fresh replay; risk/default worker passes scoped checks; 2767cdd risk services pass 173 original transactions, 64-member default/restart/audit and 134-account fresh replay; artifact binding passes 15 focused checks; 32940f9 actual artifact RPC/cache checks pass; recovery harness log-start race corrected, full continuation pending |
 | M7 | P21B | UI/operations and fresh successor qualification | Open | — | P21A; A26B/G16/M7 exit |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
@@ -1331,3 +1331,14 @@ inputs while preserving its 64-member defaults; replaying R048's retained bytes
 still passes its financial audit and six corruptions (auditor regression only).
 No SBF/IDL, broad matrix, browser, devnet or endurance rerun is needed. Pin this
 checkpoint, then run the focused recovery command; no phase/PR completion claim.
+
+R049 first pinned attempt: clean `32940f9` at
+`.local/group-recovery-services-rpc/20261025T163334Z-79662` (log
+`.local/p21a-recovery-pinned.log`) verifies actual artifact hashes/authority,
+wrong-authority/hash rejection, one cold eight-header plus four-code read and
+one warm eight-header-only read. Actual emergency freeze reaches AwaitValuation
+after ETH source grace. The harness then reads the worker log before the stream
+creates it (ENOENT); no worker recovery/default/exit pass is claimed. Create the
+owned log synchronously before polling it. No service/program/risk change. Both
+tables retain In progress; exact next action is pin this harness correction and
+rerun the still-unexercised recovery continuation.

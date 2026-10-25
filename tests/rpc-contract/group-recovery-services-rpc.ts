@@ -41,7 +41,8 @@ function start(role:'risk'|'executor'){
   writeFileSync(path,JSON.stringify(Array.from(fixture.owner.secretKey)),{mode:0o600});
   const child=spawn(process.execPath,['--import','tsx',`packages/services/src/${role==='executor'?'group-executor-main':'group-worker-main'}.ts`],{
     cwd:process.cwd(),env:{...process.env,RIVALT_RUN_ID:config.runId,RIVALT_GROUP_ROLE:role,RIVALT_SIGNER_PATH:path,RIVALT_RECEIVER_MARGIN:''},stdio:['ignore','pipe','pipe']});
-  const log=`${directory}/${name}.log`,output=createWriteStream(log);child.stdout!.pipe(output,{end:false});child.stderr!.pipe(output,{end:false});child.once('exit',()=>output.end());
+  const log=`${directory}/${name}.log`;writeFileSync(log,'');
+  const output=createWriteStream(log);child.stdout!.pipe(output,{end:false});child.stderr!.pipe(output,{end:false});child.once('exit',()=>output.end());
   children.push(child);return {child,log};
 }
 async function capture(label:string){
