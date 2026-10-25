@@ -60,7 +60,9 @@ def audit(summary, initial_raw, final_raw, events):
     total_withdrawn = 0
     fills = 0
     route_signatures = set()
-    for row in events:
+    # Exported sequences are decimal strings; input order is not journal authority.
+    # Consecutive sequence checks below still reject omissions and duplicates.
+    for row in sorted(events, key=lambda row: int(row['sequence'])):
         event = row['payload']
         sequence += 1
         assert int(row['sequence']) == int(event['sequence']) == sequence
@@ -136,6 +138,8 @@ def audit(summary, initial_raw, final_raw, events):
     successful = {offer['signature'] for offer in summary['offers'] if offer['status'] == 'finalized'}
     assert successful == route_signatures
     assert fills == len(successful) > 0
+    failed = {intent['signature'] for intent in summary['intents'] if intent['status'] == 'failed'}
+    assert not any(row['signature'] in failed for row in events), 'Failed originals cannot produce financial events'
     assert not any(offer['status'] == 'unresolved' for offer in summary['offers'])
     for index, token in enumerate(keys['tokens']):
         before = reference.integer(initial['accounts'][token],64)
@@ -155,6 +159,7 @@ if __name__ == '__main__':
     final = json.loads((directory/'final-accounts.json').read_text())
     events = json.loads((directory/'financial-events.json').read_text())
     result = audit(summary, initial, final, events)
+    assert audit(summary, initial, final, list(reversed(events))) == result
     corrupted_cases = []
     for key, offset in [(summary['keys']['roots'][6],113),(summary['keys']['group'],255),(summary['keys']['vault'],64),(summary['keys']['tokens'][0],64)]:
         corrupted = copy.deepcopy(final)
@@ -166,6 +171,7 @@ if __name__ == '__main__':
         payload = next(row['payload'] for row in modified if row['kind']=='margin-route')
         payload[field] = str(int(payload[field])+1)
         corrupted_cases.append((final,modified))
+    corrupted_cases.extend([(final, events + [events[0]]), (final, events[1:])])
     for corrupted, modified in corrupted_cases:
         try:
             audit(summary, initial, corrupted, modified)

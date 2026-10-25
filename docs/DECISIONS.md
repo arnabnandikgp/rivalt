@@ -591,3 +591,12 @@ D54 history realization: order on the underlying numeric event sequence, then
 serialize it as a decimal string. A textual SELECT alias must not turn cursor or
 latest history into lexicographic order. Certification/withdrawal stay on direct
 RPC; service ingress authority is unchanged by the workload harness correction.
+
+D54 qualification limits: confirmed state supplies provisional unsigned reviews;
+displayed balances stay finalized. R051 measures certificate invalidation under
+continuous group updates (0/3 exits) and actual quiescent exits (3/3). Preserve the
+read-only proof-page contract and all source/sequence guards; document an explicit
+maintenance window for this bounded test profile. A live exit-availability redesign
+is separately scoped future work, not a stronger claim from A26B or a funded gate
+waiver. The independent audit canonically orders decimal event sequences and rejects
+missing/duplicate entries; no accepted financial event is discarded to improve metrics.

@@ -311,3 +311,12 @@ safety handlers consume both markets, preserve both funding prefixes and apply
 whole-account reservations/health. Complete resolution recovers to isolated group
 mode before any explicit reactivation. [P20's qualified local boundary](P20-CROSS-SAFETY.md)
 distinguishes internal signed qualification from the ordinary disabled release.
+
+## P21B account-aware trader
+
+The trader shell selects explicit configuration version 1 or 2. Schema 2 separates
+wallet transport, account-aware preparation, exact unit helpers and panel rendering
+under `apps/trader/src/group/`. Empty portfolios and owned classic token accounts
+are authenticated directly; finalized displays and confirmed unsigned preparation
+remain distinct. [P21B](P21B-QUALIFICATION.md) records direct exit versus service
+route ingress and the measured certification coordination limit.

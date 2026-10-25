@@ -1,7 +1,8 @@
 # P21B — group wallet UI and bounded qualification
 
-This is implementation preparation on P21A's verified stacked head. WORKLOG owns
-actual status. Browser/build preparation does not close A26B or M7.
+The [qualification report](evidence/P21B.md) records incremental browser/workload
+checks and measured limits on P21A's exact parent. WORKLOG owns actual status;
+Review remains distinct from integration or funded readiness.
 
 ## Wallet and account contract
 
@@ -29,7 +30,9 @@ is signed. The owner-portfolio UI displays and manages delegate permissions; the
 SDK/service retain delegated execution, without presenting an owner’s sibling
 cash as delegated authority.
 
-Unsigned reviews bind wallet, selected account and selected market. Any change
+Unsigned preparation reads provisional confirmed state; displayed balances remain
+finalized. Execution rechecks the signed dependencies. Unsigned reviews bind wallet,
+selected account and selected market. Any change
 invalidates them, including a change during a wallet prompt. Exact signed bytes
 are saved before broadcast under the schema/genesis/anchor/group/owner identity;
 receipts survive reload and unknown outcomes cannot silently become new signatures.
@@ -107,3 +110,38 @@ The browser checkpoint passed on `a0ed6de`: 25 finalized wallet originals, twelv
 checks, 101 WS observations, fresh 22-account replay and independent raw audit with
 six adverse mutations. WORKLOG records exact local paths and limitations; this
 checkpoint does not qualify the concurrent workload.
+
+## Operate the bounded local UI
+
+Use a fresh qualified group and the explicit deployment/operator configuration in
+[P21A interfaces](P21A-INTERFACES.md). Start the group indexer, executor and four
+market/maker identities plus two funding workers with their own budget identities.
+Keep each private signer in a mode-0600 file. The UI's public JSON contains version
+2, `solana:localnet`, the qualified profile, public RPC/WS URLs, genesis, group,
+mint, domain and exact initialization signature/hash. It contains no private key,
+provider credential or acceptance-dump dependency.
+
+Build with `source ops/env.sh` then `pnpm build:trader`. Set `RIVALT_TRADER_CONFIG`
+to that explicit public JSON, `RIVALT_INDEXER_ORIGIN` to the running group read API
+and `RIVALT_SERVICE_ORIGIN` to the execution API when starting the trader Vite
+server (`pnpm trader`). Browser configuration selects schema 2 automatically.
+The instrumented local Wallet Standard fixture is exercised by `--browser`;
+a wallet provider must independently support the configured chain and v0 signing.
+No successor Phantom/devnet support is inferred from the older V1 check.
+
+Select portfolio-zero cross/isolated child and market before review. Fund each
+account explicitly; sibling balances are never pooled. Inspect cash, negative
+claims, reserved margin and fee/all-in limits. A saved signature is authoritative
+for retry: reconcile it over RPC and resend only its original bytes. A source or
+maker loss can reject unsigned or signed work; a failed signed transaction may still
+pay a network fee. API loss does not disable direct cancellation/certification/exit.
+
+**Exit coordination is a measured limit.** In the 300-second qualification, all
+three busy exits were invalidated by intervening samples despite twelve successful
+proof transactions. For the bounded operator-controlled test group, stop new trade
+submission, reconcile originals, close inventory, then explicitly coordinate a
+maintenance window by stopping funding/maker/publication workers. Rebuild the full
+certificate and execute admissible withdrawals through direct RPC. Report the pause;
+do not present it as continuous availability or extend oracle/proof lifetimes to
+hide it. Preserve unpaid claims/fractions, restart workers and requalify sources
+before returning to trading. Do not apply this procedure as funded-pilot approval.

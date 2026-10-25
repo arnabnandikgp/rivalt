@@ -231,14 +231,15 @@ export function useGroupVenue(config: GroupTraderConfig, scope: string) {
     }
     setBusy('Preparing transaction');
     try {
-      const s = await client.snapshot();
+      // Unsigned preparation uses the current provisional stamp; displayed balances
+      // remain finalized and execution still rechecks the signed dependencies.
+      const s = await client.snapshot('confirmed');
       const prepared = await build(s, owner);
       if (epoch !== current.current.epoch || current.current.scope !== scope) return;
       if (recordsRef.current.some((x) => !terminal(x) && x.label === prepared.label))
         throw new Error(
           'This action has an unresolved saved transaction. Reconcile its signature before repeating it.',
         );
-      setSnapshot(s);
       setReview({ ...prepared, scope });
     } catch (e) {
       if (epoch === current.current.epoch) setError((e as Error).message);

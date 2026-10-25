@@ -172,7 +172,7 @@ try{
     const latest=(await runtime.store.pool.query("SELECT max(sequence)::text AS sequence FROM events WHERE run_id=$1 AND kind='margin-route'",[config.runId])).rows[0].sequence;
     assert.equal(String(sequences.at(-1)),latest);
   }finally{await historyApi.close();}
-  const events=(await runtime.store.pool.query('SELECT sequence::text,signature,kind,payload,bytes FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence',[config.runId,initial.state.sequence.toString()])).rows;
+  const events=(await runtime.store.pool.query('SELECT sequence::text,signature,kind,payload,bytes FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY events.sequence',[config.runId,initial.state.sequence.toString()])).rows;
   writeFileSync(`${directory}/financial-events.json`,json(events));
   const intents=(await runtime.store.pool.query('SELECT request_id,signature,wire,status,budget,result FROM service_intents WHERE run_id=$1 ORDER BY created_at',[config.runId])).rows;
   const fees=new Map<string,bigint>();

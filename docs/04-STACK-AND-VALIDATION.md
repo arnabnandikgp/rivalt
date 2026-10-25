@@ -274,3 +274,15 @@ uses literal maker-curve and cash expectations and rejects four mutations.
 [A23C/G14](evidence/P18C.md) records committed acceptance on `b43261f`, including
 orders, emergency recovery and legacy account/event parity. P21 owns
 PostgreSQL/UI/services and new bounded contention qualification.
+
+## P21B scoped UI and contention qualification
+
+`bash ops/group-indexer-smoke.sh --browser` uses actual Wallet Standard signing,
+RPC/WS and PostgreSQL; `--workload` is the separate 300-second/150-offer population
+on a clean revision with the unchanged qualified binaries. Independent auditors
+under `tests/financial/group-{browser,workload}-reference.py` read retained captures
+without regenerating financial runs. The PostgreSQL history regression executes
+`tests/rpc-contract/group-history-postgres.ts` against an isolated actual database.
+[The report](evidence/P21B.md) preserves command failures, corrected standalone audit
+attribution, all denominators and the 0/3 busy versus 3/3 quiescent exit distinction.
+No source/sequence guards are relaxed and no continuous 24-hour test is implied.
