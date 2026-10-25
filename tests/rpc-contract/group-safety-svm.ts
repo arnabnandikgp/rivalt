@@ -15,6 +15,8 @@ import { decodeGroupEvent,groupLiveParity } from './group-live-parity.js';
 import { ORACLE_FIXTURE } from './oracle-fixture.js';
 
 const artifact = '.local/successor-p18c';
+const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+const startedDirty=execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='';
 const output = `.local/group-safety/${new Date().toISOString().replaceAll(/[-:.]/g,'')}-${process.pid}`;
 mkdirSync(output,{recursive:true});
 const svm = new LiteSVM().withSigverify(true).withBlockhashCheck(true);
@@ -82,12 +84,18 @@ await groupOrderCases(h,result,capture);
 const defaults=await groupDefaultCases(h,result,capture);
 await groupEmergencyCases(h,result,defaults,capture);
 const fixture=result.fixture;
+const defaultInstruction=await result.cashInstruction(fixture.cross,1n,false);
+svm.addProgramFromFile(sdk.CLEARING_PROGRAM_ADDRESS,`${artifact}/clearing-default.so`);
+await result.reject('default build rejects activated successor cash',[defaultInstruction],[fixture.owner],sdk.CLEARING_ERROR__PROFILE);
+svm.addProgramFromFile(sdk.CLEARING_PROGRAM_ADDRESS,`${artifact}/clearing.so`);
 const parity=groupLiveParity(output,await Promise.all([
   ['groupExitGuardV2',fixture.guard],['groupResolutionV2',fixture.resolution],['marginAccountV2',fixture.roots[0]],
 ].map(async([name,key])=>({name,bytes:(await h.read(key as import('@solana/kit').Address))!.toString('base64')}))),eventBytes);
-writeFileSync(`${output}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
-  trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',checks,parity,
+const finishedRevision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+writeFileSync(`${output}/summary.json`,json({revision,finishedRevision,
+  trackedDirty:startedDirty||finishedRevision!==revision||execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',checks,parity,
   hashes:Object.fromEntries(programs.map(([,name])=>[name,createHash('sha256').update(readFileSync(`${artifact}/${name}.so`)).digest('hex')])),
+  defaultClearingSha256:createHash('sha256').update(readFileSync(`${artifact}/clearing-default.so`)).digest('hex'),
   keys:{group:fixture.group,registry:fixture.registry,vault:fixture.vault,markets:fixture.markets,roots:fixture.roots,
     guard:fixture.guard,resolution:fixture.resolution,tokens:fixture.operators.map(operator=>operator.token.address)},captures:Object.keys(captures)}));
 console.log(`P18C development: ${checks.length} signed scenarios recorded in ${output}`);

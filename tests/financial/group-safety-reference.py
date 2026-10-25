@@ -205,7 +205,8 @@ def ordinary_audit(summary,captures):
     for state in states.values():normal(state)
     assert states['activated-empty']['pools']==dict(cash=2_002_000_000,pool=0,insurance=0,fees=0,vault=2_002_000_000)
     # Literal independent maker-curve sums: A buy 20 at reference+10+[0..19],
-    # then sell at reference-10-[20..39]; B buys/sells 30 at reference +/-30.
+    # then sell at reference-10-[0..19] (separate side consumption counters);
+    # B buys/sells 30 at reference +/-30. A earns 780, B earns 1,800 per market.
     for market,price,fee in [(0,60_000,601),(1,30_000,301)]:
         opened=states[f'opened-{market}'];position=opened['roots'][market]['positions'][market]
         assert position['lots']==50 and position['virtual']==-(50*price+1_290)*SCALE
@@ -213,7 +214,8 @@ def ordinary_audit(summary,captures):
         assert opened['roots'][2+market]['positions'][market]['lots']==-20
         assert opened['roots'][4+market]['positions'][market]['lots']==-30
     final=states['ordinary-lifecycle']
-    assert [entry['cash'] for entry in final['roots']]==[995_809,996_329,500_001_180,500_001_180,500_001_800,500_001_800,0]
+    assert integer(final['accounts'][summary['keys']['vault']],64)==final['pools']['vault']
+    assert [entry['cash'] for entry in final['roots']]==[996_209,996_729,500_000_780,500_000_780,500_001_800,500_001_800,0]
     assert final['pools']==dict(cash=2_001_998_098,pool=0,insurance=0,fees=1_802,vault=2_001_999_900)
     assert all(position['lots']==position['virtual']==0 for entry in final['roots'] for position in entry['positions'])
     for check in summary['checks']:
@@ -226,11 +228,13 @@ if __name__=='__main__':
     ordinary='--ordinary' in sys.argv
     check_audit=ordinary_audit if ordinary else audit
     result=check_audit(summary,captures)
-    changes=[('complete-default',summary['keys']['roots'][0],113),('complete-default',summary['keys']['group'],255),
-             ('frozen-default',summary['keys']['resolution'],87),('complete-default',summary['keys']['resolution'],478),
-             ('complete-default',summary['keys']['roots'][1],129),('after-liquidation',summary['keys']['roots'][7],113)]
-    if ordinary:changes=[('ordinary-lifecycle',summary['keys']['roots'][0],113),('ordinary-lifecycle',summary['keys']['group'],255),
-                         ('opened-1',summary['keys']['roots'][1],169),('ordinary-lifecycle',summary['keys']['vault'],64)]
+    if ordinary:
+        changes=[('ordinary-lifecycle',summary['keys']['roots'][0],113),('ordinary-lifecycle',summary['keys']['group'],255),
+                 ('opened-1',summary['keys']['roots'][1],169),('ordinary-lifecycle',summary['keys']['vault'],64)]
+    else:
+        changes=[('complete-default',summary['keys']['roots'][0],113),('complete-default',summary['keys']['group'],255),
+                 ('frozen-default',summary['keys']['resolution'],87),('complete-default',summary['keys']['resolution'],478),
+                 ('complete-default',summary['keys']['roots'][1],129),('after-liquidation',summary['keys']['roots'][7],113)]
     for label,key,offset in changes:
         altered=copy.deepcopy(captures);data=bytearray(base64.b64decode(altered[label][key]));data[offset]^=1;altered[label][key]=base64.b64encode(data).decode()
         try:check_audit(summary,altered)

@@ -13,6 +13,8 @@ import {decodeGroupEvent,groupLiveParity} from './group-live-parity.js';
 import {WireRpc,WireSubscriptions,eventually} from './wire.js';
 
 const url=process.env.RIVALT_RPC_URL!,directory=process.env.RIVALT_RUN_DIR!;
+const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+const startedDirty=execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='';
 assert.equal(new URL(url).hostname,'127.0.0.1');
 const rpc=new WireRpc(url),connection=new Connection(url,'confirmed'),ws=new WireSubscriptions(process.env.RIVALT_WS_URL!);
 const payer=await payerKey(),base58=getBase58Encoder();
@@ -52,7 +54,8 @@ async function send(label:string,instructions:Instruction[],signers:Parameters<H
     }
   } else assert.equal(history.meta.err?.InstructionError?.[1]?.Custom,expectedError,label);
   checks.push({label,signature,status:expectedError===undefined?'pass':'rejected',bytes:wire.length,accounts:history.transaction.message.accountKeys.length,
-    computeUnits:String(history.meta.computeUnitsConsumed),declaredComputeUnits,feeLamports:String(history.meta.fee),error:history.meta.err});
+    computeUnits:String(history.meta.computeUnitsConsumed),declaredComputeUnits,feeLamports:String(history.meta.fee),error:history.meta.err,
+    expectsNotification:history.transaction.message.accountKeys.includes(program)});
   confirmedHistories.push(history);
   writeFileSync(`${directory}/checks.json`,json(checks));
   if(checks.length%10===0)console.log(`P18C RPC: ${checks.length} signed outcomes independently fetched`);
@@ -91,12 +94,15 @@ try {
   const sequences=events.map(event=>BigInt((event!.data as {sequence:bigint}).sequence));
   for(let index=1;index<sequences.length;index++)assert.equal(sequences[index],sequences[index-1]+1n,'committed event continuity');
   const observed=new Set(ws.notifications.map(entry=>entry.params?.result?.value?.signature));
-  const missed=checks.filter(check=>!observed.has(check.signature)).map(check=>check.signature);
+  const expectedNotifications=checks.filter(check=>check.expectsNotification);
+  const missed=expectedNotifications.filter(check=>!observed.has(check.signature)).map(check=>check.signature);
+  assert.equal(missed.length,0,'all subscribed clearing outcomes observed over actual WS');
   writeFileSync(`${directory}/ws-notifications.json`,json(ws.notifications));
-  writeFileSync(`${directory}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
-    trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
+  const finishedRevision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+  writeFileSync(`${directory}/summary.json`,json({revision,finishedRevision,
+    trackedDirty:startedDirty||finishedRevision!==revision||execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     runtime:await rpc.call('getVersion'),genesis:await rpc.call('getGenesisHash'),checks,parity,
-    wsNotifications:ws.notifications.length,missedNotifications:missed,
+    wsNotifications:ws.notifications.length,expectedNotifications:expectedNotifications.length,missedNotifications:missed,
     hashes:Object.fromEntries(['clearing','maker_a','maker_b','oracle_fixture'].map(name=>[name,createHash('sha256').update(readFileSync(`.local/successor-p18c/${name}.so`)).digest('hex')])),
     keys:{group:fixture.group,registry:fixture.registry,vault:fixture.vault,markets:fixture.markets,roots:fixture.roots,
       guard:fixture.guard,resolution:fixture.resolution,tokens:fixture.operators.map(operator=>operator.token.address)},captures:Object.keys(captures)}));
