@@ -32,7 +32,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5a | P11–P12 | Complete local engineering evidence | Closed | [P11 A01–A16](evidence/P11.md) and [P12 revised A17](evidence/P12.md) verified; 1,249/1,249 submitted trades, 71.19% normal offered availability, affected recoveries, actual exit and 12,454-transaction fresh PostgreSQL replay; merged PR #14 records the indexer pause during separate history generation; integrated at `2bc298e`; 24-hour endurance deferred to P16 under D35 |
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
-| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | P17–P20 Review in #23/#24/#26/#27/#28/#29; [A26A/G16 interfaces](evidence/P21A.md) pass through pinned `882f832` plus independent auditor `ac828f6`: fresh immutable execution, direct SDK, signed routes/orders, funding/settlement, 64-member default/restart, artifact and missing-price recovery, exact PostgreSQL replay. P21A Review in ready #30; P21B browser passes on clean a0ed6de: 25 finalized wallet originals, 12 checks, independent six-corruption audit, 101 WS and exact 22-account/fresh PostgreSQL replay. R051 prepares the required concurrent workload; A26B/M7 remain open. P15B/P16B external Open; endurance Deferred |
+| M7 | P17–P21 | Bounded two-market isolated/cross successor | In progress | P17–P20 Review in #23/#24/#26/#27/#28/#29; [A26A/G16 interfaces](evidence/P21A.md) pass through pinned `882f832` plus independent auditor `ac828f6`: fresh immutable execution, direct SDK, signed routes/orders, funding/settlement, 64-member default/restart, artifact and missing-price recovery, exact PostgreSQL replay. P21A Review in ready #30; P21B browser passes on clean a0ed6de: 25 finalized wallet originals, 12 checks, independent six-corruption audit, 101 WS and exact 22-account/fresh PostgreSQL replay. R051 first 150-offer workload finalizes 94/100 submissions, exercises faults and flattens inventory; final-exit harness sends certification to the wrong ingress. Direct-RPC correction and actual PostgreSQL history-order fix verified; pinned workload rerun pending. A26B/M7 remain open. P15B/P16B external Open; endurance Deferred |
 
 ## Phase overview
 
@@ -63,7 +63,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P19 | Bounded cross engine/funding/reserves/transfers/netting | Review | [PR #28](https://github.com/arnabnandikgp/rivalt/pull/28), tested `4274d28`, published `c0b7898`, above #27 | [A24/G15 core](evidence/P19.md): 40 scoped Rust tests, 226 signed SVM / 224 finalized RPC and 109 expected WS outcomes; cross disabled; integration pending |
 | M7 | P20 | Cross liquidation/default and qualified activation | Review | [PR #29](https://github.com/arnabnandikgp/rivalt/pull/29), published `459c84c`, tested `3c7ab4e` core / `aadb69f` budgets, above P19 #28 `c0b7898` | [A25/G15](evidence/P20.md): 1,224 SVM / 1,221 finalized RPC + 215 SVM / 212 finalized RPC maximum-book cases; 820/820 and 95/95 WS; byte-identical qualified local profile; integration pending |
 | M7 | P21A | Group SDK/indexer/API and durable services | Review | [PR #30](https://github.com/arnabnandikgp/rivalt/pull/30), published `286d083`, above exact P20 #29 `459c84c` | [A26A/G16 interfaces](evidence/P21A.md): scoped pinned execution/direct SDK/workers/trading/settlement, `2767cdd` 64-member liquidation/default/restart/audit and 134-account replay; `882f832` artifacts/AwaitValuation/API-stopped exits/replay plus clean `ac828f6` corrected independent audit. No P21B or integration claim |
-| M7 | P21B | UI/operations and fresh successor qualification | In progress | `phase/p21b-group-ui`, above P21A #30 `a3a9807`; no PR yet | R050: clean a0ed6de passes 25 signed wallet originals/12 browser checks, independent audit, 101 WS/22-account fresh replay. R051 300-second workload preparation; A26B/G16/M7 remains open |
+| M7 | P21B | UI/operations and fresh successor qualification | In progress | `phase/p21b-group-ui`, above P21A #30 `a3a9807`; no PR yet | R050: clean a0ed6de passes 25 signed wallet originals/12 browser checks, independent audit, 101 WS/22-account fresh replay. R051 first 150-offer workload reaches flat drain; direct-exit harness correction and actual PostgreSQL numeric history regression pass, final workload acceptance pending; A26B/G16/M7 remains open |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -1495,3 +1495,41 @@ external/devnet/funded or review claim. Both tables retain P21B/M7 In progress,
 P15B/P16B Open and 24-hour Deferred. No access/product blocker. Exact next action:
 pin this preparation and run `bash ops/group-indexer-smoke.sh --workload`, investigate
 actual failures, then qualify the pinned correction and publish the ready child PR.
+
+R051 first pinned workload: `26ac8b7`,
+`.local/group-workload-rpc/20261025T173016Z-98844`, log
+`.local/p21b-workload-pinned.log`. All 150 scheduled offers complete over 300 seconds:
+101 quotes, 100 prepared/submitted originals, 94 finalized fills, six on-chain
+rejections; 48 quote refusals and two preparation refusals. Codes: required-market
+source unavailable 27, observation-update pending 20, maker-capacity/health one,
+snapshot changed one, simulation 6108 one, chain 6108 six. Retained chain logs bind
+6108 to `group_margin/mod.rs:21`'s group-sequence guard; this is contention, not an
+activation change. Successful-offer latency p95 2,613 ms / p99 3,232 ms (94 samples).
+Five additional drain attempts produce four fills/one guarded race and flatten all
+participants. These are partial-run measurements, not completed A26B acceptance.
+
+Actual ETH publisher outage/recovery, accepted-send acknowledgement loss and executor
+SIGKILL/restart, maker/funding/indexer kills/restarts execute; zero source publication
+errors. Final exits fail before queue admission: the harness sent signed certification
+pages to the trade-only ingress (HTTP 400), instead of the established direct SDK RPC
+path. It makes no token-withdrawal, final replay or independent-audit claim. Correct
+the harness, retain direct originals before broadcast, reconcile lost acknowledgements
+and abort rather than replace any unresolved direct signature. No service authority
+or program/risk guard changes. The full bounded checkpoint must rerun because this
+attempt ended before final capture/reconciliation.
+
+A separate read-only live mobile check uses a 390×844 initial viewport and two paint
+frames, sends zero signatures and shows a single 5,084-pixel page with no horizontal
+overflow. `.local/p21b-mobile-{viewport,balances,full}.png` inspected; the earlier
+post-resize tiled capture was not representative of this actual layout. This extra
+read client ran at UTC milliseconds 1792949571175–1792949572561 during the first
+workload; its partial metrics are not a controlled UI performance benchmark.
+
+That check exposes numeric history sorted by the textual SELECT alias (`97` above
+`180`). Qualify `events.sequence` in ORDER BY; actual PostgreSQL 18.6 endpoint
+regression now returns latest `101,999,1000,1001` and cursor `10,99,100`.
+`.local/p21b-history-postgres.log`, four affected API/metric tests and typecheck pass.
+D54/contract updated; no unchanged Rust/SBF/IDL, broad matrix, external or devnet work.
+Both tables retain P21B/M7 In progress. Exact next action: pin the corrections and
+rerun only `bash ops/group-indexer-smoke.sh --workload` through final independent
+accounting and replay, then prepare the ready stacked PR.

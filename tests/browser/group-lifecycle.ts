@@ -171,6 +171,8 @@ try{
   await page.reload();await wait(()=>page.getByTestId('group-cash').textContent(),value=>value!==null&&value!=='—','reload direct account view');
   assert.equal((await receipts()).length,walletWires.length);record('reload retains every original wallet signature');
   await page.screenshot({path:`${directory}/desktop.png`,fullPage:true});await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await page.screenshot({path:`${directory}/mobile-viewport.png`});
   await page.screenshot({path:`${directory}/mobile.png`,fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'mobile page does not overflow');
   stopping=true;await indexing;await executing;await making;
   await wait(async()=>{await runtime.execute();return runtime.queue.pending();},pending=>pending.length===0,'all service originals drain');

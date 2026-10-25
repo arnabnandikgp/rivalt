@@ -586,3 +586,8 @@ D54 browser realization: preserve the program's distinct ordinary-order generati
 zero and live reduction generation, immutable replacement fields and charged fee
 prefixes. Validate persistent limit/trigger bounds in each market's UI units before
 review; do not loosen the program or source policy to accept malformed inputs.
+
+D54 history realization: order on the underlying numeric event sequence, then
+serialize it as a decimal string. A textual SELECT alias must not turn cursor or
+latest history into lexicographic order. Certification/withdrawal stay on direct
+RPC; service ingress authority is unchanged by the workload harness correction.

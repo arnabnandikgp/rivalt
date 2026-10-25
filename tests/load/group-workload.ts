@@ -9,6 +9,7 @@ import * as sdk from '@rivalt/sdk';
 import {GroupIndexer,type GroupConfig} from '../../packages/indexer/src/group-indexer.js';
 import {GroupRuntime} from '../../packages/services/src/group-runtime.js';
 import {GroupQuoteUnavailable} from '../../packages/services/src/group-quote.js';
+import {groupApi} from '../../packages/indexer/src/group-api.js';
 import {groupServiceApi} from '../../packages/services/src/group-service-api.js';
 import {json} from '../../packages/indexer/src/events.js';
 import {groupRuntimeHarness} from '../rpc-contract/group-runtime-harness.js';
@@ -66,16 +67,24 @@ try{
     if(offer){offer.signature=intent.signature;offer.wire=intent.wire;offer.bytes=Buffer.from(intent.wire,'base64').length;}
     writeFileSync(`${directory}/original-${intent.id}.json`,json(intent));
     if(offer?.population==='scheduled'&&Date.now()-started>=100_000&&!actors.expectedWire){actors.expectedWire=intent.wire;actors.expectedSignature=intent.signature;}
-    const response=await fetch(`${endpoint}/v2/submit`,{method:'POST',headers:{'content-type':'application/json'},body:json({requestId:intent.id,wire:intent.wire})});
-    assert.equal(response.status,200);const submitted=await response.json();assert.equal(submitted.signature,intent.signature);if(offer)offer.submittedMs=Date.now();
+    const directReceipt=offer?undefined:{label,signature:intent.signature,wire:intent.wire,status:'pending'};
+    if(directReceipt)otherWallet.push(directReceipt);
+    if(offer){
+      const response=await fetch(`${endpoint}/v2/submit`,{method:'POST',headers:{'content-type':'application/json'},body:json({requestId:intent.id,wire:intent.wire})});
+      assert.equal(response.status,200);const submitted=await response.json();assert.equal(submitted.signature,intent.signature);offer.submittedMs=Date.now();
+    }else{
+      // Certification and cash exit are direct SDK actions, outside service ingress.
+      // A lost acknowledgement still reconciles the same saved signature.
+      await client.broadcast(intent).catch(()=>{});
+    }
     const final=await until(()=>client.reconcile(intent),row=>['finalized','failed'].includes(row.status),`original ${label}`,35_000);
-    await until(()=>runtime.queue.get(intent.id),row=>['finalized','failed'].includes(row?.status),'original service reconciliation');
+    if(offer)await until(()=>runtime.queue.get(intent.id),row=>['finalized','failed'].includes(row?.status),'original service reconciliation');
     const transaction=await transport.rpc.call('getTransaction',[intent.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:0}]);
     assert.equal(transaction.transaction[0],intent.wire);assert.equal(String(transaction.meta.fee),final.fee);
     const result={label,signature:intent.signature,wire:intent.wire,status:final.status,error:transaction.meta.err,fee:String(transaction.meta.fee),units:transaction.meta.computeUnitsConsumed,bytes:Buffer.from(intent.wire,'base64').length};
     writeFileSync(`${directory}/original-finalized-${intent.id}.json`,json(transaction));
-    if(offer)Object.assign(offer,{status:final.status,reason:final.status==='failed'?`chain:${json(transaction.meta.err)}`:undefined,finalizedMs:Date.now(),fee:result.fee,units:result.units});
-    else otherWallet.push(result);return result;
+    if(offer)Object.assign(offer,{status:final.status,reason:final.status==='failed'?(transaction.meta.logMessages?.some((line:string)=>line.includes('group_margin/mod.rs:21'))?'group-sequence-race':`chain:${json(transaction.meta.err)}`):undefined,finalizedMs:Date.now(),fee:result.fee,units:result.units});
+    else Object.assign(directReceipt!,result);return result;
   }
   async function attempt(id:number,margin:Address,marketIndex:0|1,scheduledMs:number,population:'scheduled'|'drain',key=fixture.owner){
     const offer:WorkloadOffer={id,population,phase:population==='scheduled'?phase(scheduledMs-started):'position-drain',margin,marketIndex,scheduledMs,startedMs:Date.now(),status:'offered'};offers.push(offer);
@@ -143,7 +152,7 @@ try{
       const record:any={root,busy,attempt:attemptIndex,at:Date.now()};exitAttempts.push(record);
       try{const snapshot=await client.snapshot('confirmed'),plan=await client.exit(snapshot,fixture.owner.address,root,fixture.operators[0].token.address,1n);
         record.verificationOnly=plan.verificationOnly;const result=await submit('admissible one-atom exit',plan.instructions,fixture.owner);Object.assign(record,{signature:result.signature,status:result.status});}
-      catch(error){record.status='unsigned-refused';record.error=String(error);}
+      catch(error){record.status='unsigned-refused';record.error=String(error);if(otherWallet.some(receipt=>receipt.status==='pending'))throw error;}
     }
     return (await client.snapshot()).roots[root].cash===exitBaseline.roots[root].cash-1n;
   }
@@ -156,6 +165,13 @@ try{
   await actors.stop(actors.executor!);await actors.stop(indexerChild!);await transport.finalize();
   indexer=new GroupIndexer(config);await indexer.open();await indexer.cycle();const final=await indexer.store.snapshot(),reconciliation=await indexer.reconcile();
   await capture('final-accounts');
+  const historyApi=groupApi(indexer);
+  try{const history=await historyApi.inject('/v2/trades?latest=true&limit=30');assert.equal(history.statusCode,200);
+    const sequences=history.json().items.map((row:any)=>BigInt(row.sequence));assert(sequences.length>0);
+    assert(sequences.every((value:bigint,index:number)=>index===0||value>sequences[index-1]),'Actual PostgreSQL history is numerically ordered');
+    const latest=(await runtime.store.pool.query("SELECT max(sequence)::text AS sequence FROM events WHERE run_id=$1 AND kind='margin-route'",[config.runId])).rows[0].sequence;
+    assert.equal(String(sequences.at(-1)),latest);
+  }finally{await historyApi.close();}
   const events=(await runtime.store.pool.query('SELECT sequence::text,signature,kind,payload,bytes FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence',[config.runId,initial.state.sequence.toString()])).rows;
   writeFileSync(`${directory}/financial-events.json`,json(events));
   const intents=(await runtime.store.pool.query('SELECT request_id,signature,wire,status,budget,result FROM service_intents WHERE run_id=$1 ORDER BY created_at',[config.runId])).rows;
@@ -172,7 +188,7 @@ try{
   writeFileSync(`${directory}/summary.json`,json({revision,finishedRevision,trackedDirty:false,binding,keys,initialSequence:initial.state.sequence,
     durationMs:300000,offeredIntervalMs:2000,started,metrics:workloadMetrics(offers),offers,otherWallet,capitalComparison,busyExits,exitAttempts,
     faults:actors.faults,sourceErrors,originalAcknowledgementFault:{signature:actors.expectedSignature,persistedBeforeBroadcast:actors.persistedBeforeBroadcast,dropped:actors.dropped},
-    budgets,intents,reconciliation,freshReplay:true,ws,allInventoryFlat:true,actualWithdrawnAtoms:'3',fixtureTransactions:transport.checks.length}));
+    budgets,intents,reconciliation,freshReplay:true,numericHistoryChecked:true,ws,allInventoryFlat:true,actualWithdrawnAtoms:'3',fixtureTransactions:transport.checks.length}));
   const audit=execFileSync('python3',['tests/financial/group-workload-reference.py',directory],{encoding:'utf8'});writeFileSync(`${directory}/independent-audit.json`,audit);console.log(audit.trim());
   console.log(json({stage:'group-workload-pass',metrics:workloadMetrics(offers),reconciliation}));
 }catch(error){writeFileSync(`${directory}/workload-failure.json`,json({revision,error:String(error),offers,otherWallet,exitAttempts,faults:actors.faults,sourceErrors}));throw error;}

@@ -57,7 +57,7 @@ export function groupApi(indexer: GroupIndexer) {
       const row = (await client.query('SELECT * FROM runs WHERE run_id=$1',[indexer.config.runId])).rows[0];
       const result = await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload FROM events
         WHERE run_id=$1 AND sequence>$2 ${endpoint === 'trades' ? "AND kind IN ('group-route','margin-route')" : ''}
-        ORDER BY sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`,[indexer.config.runId,request.query.after ?? '0',request.query.limit ?? 50]);
+        ORDER BY events.sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`,[indexer.config.runId,request.query.after ?? '0',request.query.limit ?? 50]);
       await client.query('COMMIT');
       const items=request.query.latest?result.rows.reverse():result.rows;
       return {...envelope(row),items,next:items.at(-1)?.sequence ?? null};

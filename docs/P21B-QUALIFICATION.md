@@ -43,7 +43,7 @@ budget below already charged fees. The program remains the final authority.
 
 `/v2/events` and `/v2/trades` add optional `latest=true`, with at most 100 rows,
 a repeatable-read snapshot and ascending returned display order. Cursor reads
-retain their existing ascending semantics; latest plus an explicit cursor is
+retain their existing ascending semantics on the underlying numeric sequence; latest plus an explicit cursor is
 rejected. This supports recent actual venue fills, not synthetic candles or fills.
 
 ## Acceptance sequence
@@ -94,7 +94,7 @@ stops/restarts at 220/226 and indexer at 232/238. Recovery windows remain in the
 explicit fault populations; actual times and process identities are retained.
 
 The workload closes trader and internal maker inventory with real routes. It
-attempts one-atom exits while samplers still run, records every certification and
+attempts direct-RPC one-atom exits while samplers still run, records every certification and
 refusal, then explicitly stops samplers/makers/publication for final drain if needed.
 A quiescent exit does not establish busy-group availability. Final originals and
 operator fees must reconcile with no unresolved signed effect, all inventory flat,
