@@ -246,7 +246,7 @@ export class GroupRuntime extends GroupExecution {
       firstCapital:firstRegistration.capital,firstRegistration:first.registration,firstProgram:firstRegistration.pricingProgram,firstProgramData:firstRegistration.programData,firstConfig:firstRegistration.config,
       secondCapital:secondRegistration.capital,secondRegistration:second.registration,secondProgram:secondRegistration.pricingProgram,secondProgramData:secondRegistration.programData,secondConfig:secondRegistration.config});
     await this.enqueue(`funding:${marketIndex}:${market.observationSequence}`,[sdk.fundingComputeBudget(),instruction],key,budget,
-      {kind:'groupSequence',group:snapshot.group,account:snapshot.group,value:snapshot.state.sequence.toString()});
+      {kind:'groupObservationSequence',group:snapshot.group,account:snapshot.markets[marketIndex],value:market.observationSequence.toString()});
     return {status:'queued',reason:'market-observation-due'};
   }
 }

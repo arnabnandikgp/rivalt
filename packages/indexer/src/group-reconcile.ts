@@ -3,6 +3,7 @@ import {address, getAddressDecoder, type ReadonlyUint8Array} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
 import {integer} from './rpc.js';
+import {compareReconciliationSequence} from './reconciliation-progress.js';
 import {reconcileGroupLedger, type GroupState} from './group-projection.js';
 import type {GroupBinding} from './group-store.js';
 
@@ -32,6 +33,11 @@ export async function reconcileGroupSnapshot(state: GroupState, binding: GroupBi
     assert.equal(response.value.length, chunk.length, 'RPC account count');
     const current = response.value[0];
     assert(current && current.owner === program && current.data[1] === 'base64', 'Group account owner/encoding');
+    const currentBytes=Buffer.from(current.data[0],'base64');
+    assert(currentBytes.subarray(0,8).equals(Buffer.from(sdk.CLEARING_GROUP_V2_DISCRIMINATOR)), 'Group account discriminator');
+    const observedGroup=sdk.getClearingGroupV2Decoder().decode(currentBytes);
+    assert.equal(observedGroup.schemaVersion,2);assert.equal(observedGroup.profileVersion,2);
+    compareReconciliationSequence(observedGroup.sequence,BigInt(state.sequence));
     if (referenceGroup) assert.equal(current.data[0], referenceGroup, 'Group changed during reconciliation; retry required');
     referenceGroup = current.data[0];
     minSlot = Math.min(minSlot ?? response.context.slot, response.context.slot);
@@ -50,7 +56,7 @@ export async function reconcileGroupSnapshot(state: GroupState, binding: GroupBi
     assert.deepEqual(fields, expected, label);
   };
   const currentGroup = sdk.getClearingGroupV2Decoder().decode(raw(group, sdk.CLEARING_GROUP_V2_DISCRIMINATOR));
-  assert.equal(currentGroup.sequence.toString(), state.sequence, 'Group sequence differs; backfill required');
+  compareReconciliationSequence(currentGroup.sequence,BigInt(state.sequence));
   assert.equal(currentGroup.bump, groupBump); assert.equal(currentGroup.vaultBump, vaultBump);
   compare(currentGroup, state.group, 'Group projection');
   const members = sdk.getGroupRegistryV2Decoder().decode(raw(registry, sdk.GROUP_REGISTRY_V2_DISCRIMINATOR));

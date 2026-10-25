@@ -5,6 +5,15 @@ import {groupAuthorityValue} from './group-authority.js';
 import {groupBudget} from './group-execution.js';
 
 const group=sdk.CLEARING_PROGRAM_ADDRESS, other=address('11111111111111111111111111111111');
+it('binds funding expiry to the selected market observation and rejects foreign schemas/groups',()=>{
+  const decoder=sdk.getGroupMarketV2Decoder(),market={...decoder.decode(new Uint8Array(decoder.fixedSize)),schemaVersion:2,group,index:0,observationSequence:17n};
+  const encode=(value:sdk.GroupMarketV2Args)=>Buffer.from(sdk.getGroupMarketV2Encoder().encode(value));
+  const authority={kind:'groupObservationSequence' as const,group,account:other,value:'17'};
+  expect(groupAuthorityValue(authority,encode(market))).toBe(17n);
+  expect(groupAuthorityValue(authority,encode({...market,index:1,observationSequence:18n}))).toBe(18n);
+  for(const mutation of [{schemaVersion:1},{group:other},{index:2}])expect(()=>groupAuthorityValue(authority,encode({...market,...mutation}))).toThrow(/binding/);
+  const wrong=encode(market);wrong[0]^=1;expect(()=>groupAuthorityValue(authority,wrong)).toThrow(/schema/);
+});
 it('separates all four maker fee budgets and both funding budgets',()=>{
   expect(new Set([0,1].flatMap(market=>[0,1].map(maker=>groupBudget('maker',market,maker).name))).size).toBe(4);
   expect(groupBudget('maker',1,0)).toEqual({name:'group-maker-1-0',cap:1_000_000n});

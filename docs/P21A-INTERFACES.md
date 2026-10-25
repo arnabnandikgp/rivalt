@@ -31,8 +31,12 @@ against finalized account bytes, plus token mint/authority/vault allocation. Eac
 100-or-fewer-account request includes the group; differing group bytes reject the
 candidate. This supports a bounded cohort whose portfolio identities make the
 complete set larger than one RPC request. Exit certificates are authenticated
-direct inputs, not fabricated journal events. The remaining acceptance must cover
-maximum identities and process interruption during complete-group resolution.
+direct inputs, not fabricated journal events. [A26A evidence](evidence/P21A.md)
+records actual 64-member/134-account reconciliation and interrupted complete-group
+resolution. A strictly newer authenticated group sequence permits at most three
+new-tail catch-ups in one cycle, within the cumulative history bound. Older
+sequences, missing events and financial mismatches remain failures. No candidate
+becomes a durable checkpoint until complete reconciliation succeeds.
 
 ## Read API and SDK previews
 
@@ -61,14 +65,14 @@ Frozen root data is accompanied by the resolution ledger, not a spendable payout
 `localCashHeadroom` is only the account's previewed capacity. `withdrawableCash`
 remains null and `withdrawalStatus` requires a fresh complete-group certificate
 and simulation. Portfolio cash is never pooled implicitly. The direct account client now shares immutable wallet signing with V1. Pinned
-executor recovery passes; direct RPC exit acceptance and full financial workers
-remain P21A work.
+executor recovery, direct RPC exits and financial workers pass in the incremental
+[A26A evidence](evidence/P21A.md).
 
 ## Durable execution infrastructure
 
 `packages/services/src/group-execution.ts` uses the same immutable signed-byte
 queue as V1 with a schema-2 run. Finalized expiry proofs distinguish margin nonce,
-group sequence and per-market maker quote epoch, authenticate the account schema
+group sequence, per-market observation sequence and maker quote epoch, authenticate the account schema
 and group, and leave unknown network fees reserved. Wallet ingress permits one
 owner/delegate action or the explicit owner transfer plus route; the latter uses
 700,000 CU and binds recipient/next group sequence. No additional signer,
@@ -77,8 +81,8 @@ Operator request prefixes remain reserved; ordinary client retries use identical
 bytes and request identities.
 
 The separately runnable `group-executor-main.ts` consumes this queue. It does not
-discover or decide financial maintenance. Maker/funding discovery is now implemented in `group-runtime.ts`; order, settlement
-and risk/default workers remain phase work. Liveness records use
+discover or decide financial maintenance. Maker/funding/order/settlement/risk discovery is implemented in `group-runtime.ts`
+and qualified by the scoped A26A runs. Liveness records use
 `(run, marketIndex, makerId)`.
 
 | Explicit local fee budget | Cap (lamports) |
@@ -99,14 +103,15 @@ signed market/account operations, then verifies finalized reconstruction, revert
 event exclusion, actual WS disconnection/restart and fresh PostgreSQL replay.
 The artifact directory is `.local/successor-p20`, produced by
 `bash ops/build-cross-safety.sh`; no raw evidence serves as runtime configuration.
-The fixture transport is not a substitute for the forthcoming service queue.
+The fixture transport provisions the environment; actual service acceptance uses
+the durable signed queue.
 
 Targeted tests cover authenticated schemas, V1 scanner compatibility, negative
 cash/claim mutations, whole-account preview arithmetic, funding expiry, delegated
 orders and TP/SL. Read-only replay of retained P20 history is a consumer regression,
-never new chain/PG acceptance. Full A26A still requires explicit worker budgets,
-deployment artifact binding, real process recovery, fresh independent financial
-audit and direct SDK cancellation/admissible exit with the API stopped. P21B owns
+never new chain/PG acceptance. The [A26A report](evidence/P21A.md) maps actual
+worker budgets, deployment artifact binding, process recovery, independent financial
+audits and direct SDK cancellation/admissible exits with the API stopped. P21B owns
 the browser and measured contention workload. No full-day run is required.
 
 ## Direct account client
@@ -281,3 +286,28 @@ including direct SDK exits from both account modes after explicit authority
 resume. It uses a seven-member group; the separate maximum-cohort risk command
 owns 64-member budgets/reconstruction. Neither command substitutes for P21B's
 concurrent workload or wallet UI qualification.
+
+
+## Review recovery boundaries
+
+Funding originals bind expiry to their canonical market's `observationSequence`,
+which every successful sample increments along with the group sequence. Another
+market sample or account action does not change that market-local stamp. Only
+finalized blockhash expiry plus an unchanged authenticated stamp proves economic
+nonexecution. Missing history keeps the original immutable and its 20,000-lamport
+unknown-fee reservation; a separately budgeted retry may then use the next request
+attempt. Already persisted group-sequence originals retain their conservative
+original authority; never rewrite them to claim stronger recovery retrospectively.
+
+`bash ops/group-indexer-smoke.sh --review-recovery` exercises an actual finalized
+write between scan/reconciliation, a never-broadcast funding original, unrelated
+ETH progress, real blockhash expiry, the signed retry and fresh PostgreSQL replay.
+WORKLOG records its actual pinned outcome; the command alone is not evidence.
+
+The qualified artifact gate rejects any different maker code, authority or padding.
+The maker ELF lengths are 252,760 (A) and 252,824 (B) bytes. ProgramData's on-chain
+1 MiB structural ceiling is not a compute-capacity promise. Every new image or
+allocation requires fresh single/two-maker route and source CU/packet qualification
+and an explicit qualified artifact-set update before these clients/services admit
+it. Preserve full ProgramData hashing, including header and padding. No larger
+maker image is qualified by the existing reports.

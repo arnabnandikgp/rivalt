@@ -554,3 +554,15 @@ SDK/service/RPC/WS/PostgreSQL acceptance through `882f832`, with corrected raw-b
 auditor `ac828f6`. The full 64-member risk run and separate missing-price recovery
 qualify these interfaces, not UI, busy-group availability or M7 completion. P21B
 retains those gates; P15B/P16B and D42 are unchanged.
+
+
+D53 review recovery clarification (R052): strictly newer authenticated finalized
+sequences permit at most three tail extensions before reconciliation/commit;
+the cumulative history bound still applies. Older sequences, missing events or
+financial mismatches cannot advance a checkpoint. Apply this scanner rule to
+both versioned adapters. Funding expiry authority is the selected market's
+observation sequence, superseding group sequence for newly signed funding intents.
+Samples increment both counters; unrelated group writes cannot obscure an
+unchanged market stamp. Original bytes/authority remain immutable and unknown
+fees remain reserved even after proven economic nonexecution. Existing broader
+stamps are not rewritten. No risk, oracle cadence, financial or fee rule changes.

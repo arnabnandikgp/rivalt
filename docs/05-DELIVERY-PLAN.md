@@ -463,7 +463,9 @@ Explicit run binding, schema migration and operator fee budgets, no V1 history m
 cross accounts; exactly-once immutable transaction recovery, failed logs excluded,
 interleaved market/group sequences, funding-derived health without account writes,
 fresh database replay/reconciliation, interrupted resolution and direct SDK cancel/
-admissible exit with API stopped. Independent raw account/token/fee audit.
+admissible exit with API stopped. Independent raw account/token/fee audit. Review
+recovery additionally covers bounded finalized-tail catch-up and market-local
+funding expiry after unrelated group progress, preserving unknown-fee reserves.
 
 ### P21B — UI and successor qualification
 

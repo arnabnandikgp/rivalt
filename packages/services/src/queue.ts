@@ -102,7 +102,7 @@ export class Queue {
             const a=await this.rpc.call('getAccountInfo',[r.authority.account,{encoding:'base64',commitment:'finalized',minContextSlot:integer(valid.context.slot)}]);
             if(a.value?.owner===this.program){
               const bytes=Buffer.from(a.value.data[0],'base64');
-              const value=['marginNonce','groupSequence','groupQuoteEpoch'].includes(r.authority.kind)?groupAuthorityValue(r.authority,bytes):r.authority.kind==='nonce'?sdk.getParticipantDecoder().decode(bytes).nonce:
+              const value=['marginNonce','groupSequence','groupQuoteEpoch','groupObservationSequence'].includes(r.authority.kind)?groupAuthorityValue(r.authority,bytes):r.authority.kind==='nonce'?sdk.getParticipantDecoder().decode(bytes).nonce:
                 r.authority.kind==='quoteEpoch'?sdk.getMakerRegistrationDecoder().decode(bytes).quoteEpoch:
                 sdk.getMarketStateDecoder().decode(bytes).sequence;
               // Unchanged authority rules out the economic effect, not a failed

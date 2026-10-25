@@ -63,7 +63,8 @@ it('samples each canonical market despite unavailable maker heartbeats/epochs an
     const calls=fixture.enqueue.mock.calls as unknown as Parameters<GroupRuntime['enqueue']>[];
     expect(calls.map(call=>[call[0],call[3]])).toEqual([['funding:0:1','group-funding-0'],['funding:1:1','group-funding-1']]);
     expect(calls.map(call=>call[1][1].accounts![1].address)).toEqual(fixture.snapshot.markets);
-    expect(calls.every(call=>call[4]?.kind==='groupSequence')).toBe(true);
+    expect(calls.map(call=>call[4])).toEqual(fixture.snapshot.markets.map(account=>({
+      kind:'groupObservationSequence',group:fixture.snapshot.group,account,value:'1'})));
     await expect(fixture.runtime.funding(0,fixture.key,1n)).rejects.toThrow(/cadence/);
   }finally{await fixture.runtime.close();}
 });

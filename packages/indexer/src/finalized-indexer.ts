@@ -3,6 +3,9 @@ import * as sdk from '@rivalt/sdk';
 import { Rpc, Subscription, integer } from './rpc.js';
 import { hash, json, type JournalEvent } from './events.js';
 import { JournalStore, type JournalBinding } from './store.js';
+import {ReconciliationAhead} from './reconciliation-progress.js';
+
+export const MAX_RECONCILIATION_CATCHUPS=3;
 
 export type TransportConfig = { rpcUrl:string; wsUrl:string; databaseUrl:string; runId:string; anchor:string;
   pageSize?:number; maxRecoveryTransactions?:number; chain?:sdk.TestChain };
@@ -15,7 +18,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string}, Binding 
   ws?: Subscription;
   eventAuthority = '';
   healthy = false;
-  metrics = { cycles: 0, pages: 0, fetched: 0, notifications: 0, reconnects: 0, failures: 0 };
+  metrics = { cycles: 0, pages: 0, fetched: 0, notifications: 0, reconnects: 0, failures: 0, catchups: 0 };
   private busy = false;
   constructor(readonly config: TransportConfig, store: JournalStore<State, Binding, Event>) {
     this.deployment = sdk.testDeployment(config.chain);
@@ -55,38 +58,50 @@ export abstract class FinalizedIndexer<State extends {sequence:string}, Binding 
       const row = await this.store.snapshot();
       if (row.binding.genesis !== await this.rpc.call('getGenesisHash') ||
           row.binding.anchorHash !== hash((await this.transaction(this.config.anchor)).transaction)) throw new Error('Chain identity changed');
-      const boundary = row.checkpoint ?? this.config.anchor;
+      let boundary = row.checkpoint ?? this.config.anchor, includeBoundary = !row.checkpoint;
       const signatures: any[] = [], seen = new Set<string>();
-      let before: string | undefined, found = false;
-      for (let page = 0; page < 10_000; page++) {
-        const batch = await this.rpc.call('getSignaturesForAddress', [this.historyAddress,{commitment:'finalized',limit:this.config.pageSize ?? 100,...(before ? {before} : {})}]);
-        this.metrics.pages++;
-        if (!Array.isArray(batch) || !batch.length) break;
-        for (const item of batch) {
-          integer(item.slot);
-          if (item.signature === boundary) { if (!row.checkpoint) signatures.push(item); found = true; break; }
-          if (seen.has(item.signature)) throw new Error('History pagination failed to advance');
-          seen.add(item.signature); signatures.push(item);
-          if (signatures.length > (this.config.maxRecoveryTransactions ?? 10_000)) throw new Error(`History recovery exceeds ${this.config.maxRecoveryTransactions ?? 10_000}-transaction local batch bound`);
-        }
-        if (found) break;
-        before = batch.at(-1).signature;
-      }
-      if (!found) throw new Error('History gap: checkpoint/initialization not reachable');
       const txs: {signature:string;tx:any}[] = [], events: Event[] = [];
-      for (const item of signatures) {
-        const tx = await this.transaction(item.signature); this.metrics.fetched++;
-        if (tx.slot !== item.slot || json(tx.meta.err) !== json(item.err)) throw new Error('Finalized history conflict');
-        await this.store.observe('rpc-finalized',item.signature,tx);
-        txs.push({signature:item.signature,tx}); events.push(...this.decodeTransaction(item.signature,tx));
-      }
-      // Verify the entire candidate against one chain snapshot before advancing the
-      // durable cursor. In particular, missing tail events must not strand it ahead
-      // of an incomplete projection. Chain progress simply retries this batch.
       const candidate=structuredClone(row.state);
-      for(const event of [...events].sort((a,b)=>BigInt(a.data.sequence)<BigInt(b.data.sequence)?-1:1))
-        if(BigInt(event.data.sequence)>BigInt(row.state.sequence))this.store.projection.project(candidate,event,row.binding);
-      await this.reconcile({state:candidate,binding:row.binding});
+      for(let attempt=0;;attempt++){
+        const added:any[]=[];
+        let before:string|undefined,found=false;
+        for(let page=0;page<10_000;page++){
+          const batch=await this.rpc.call('getSignaturesForAddress',[this.historyAddress,{commitment:'finalized',limit:this.config.pageSize??100,...(before?{before}:{})}]);
+          this.metrics.pages++;
+          if(!Array.isArray(batch)||!batch.length)break;
+          for(const item of batch){
+            integer(item.slot);
+            if(item.signature===boundary){if(includeBoundary)added.push(item);found=true;break;}
+            if(seen.has(item.signature))throw new Error('History pagination failed to advance');
+            seen.add(item.signature);added.push(item);
+            if(signatures.length+added.length>(this.config.maxRecoveryTransactions??10_000))throw new Error(`History recovery exceeds ${this.config.maxRecoveryTransactions??10_000}-transaction local batch bound`);
+          }
+          if(found)break;
+          before=batch.at(-1).signature;
+        }
+        if(!found)throw new Error('History gap: checkpoint/initialization not reachable');
+        if(signatures.length+added.length>(this.config.maxRecoveryTransactions??10_000))throw new Error('History recovery exceeds local batch bound');
+        signatures.unshift(...added);
+        const newEvents:Event[]=[];
+        for(const item of added){
+          const tx=await this.transaction(item.signature);this.metrics.fetched++;
+          if(tx.slot!==item.slot||json(tx.meta.err)!==json(item.err))throw new Error('Finalized history conflict');
+          await this.store.observe('rpc-finalized',item.signature,tx);
+          txs.push({signature:item.signature,tx});newEvents.push(...this.decodeTransaction(item.signature,tx));
+        }
+        events.push(...newEvents);
+        for(const event of [...newEvents].sort((left,right)=>BigInt(left.data.sequence)<BigInt(right.data.sequence)?-1:1))
+          if(BigInt(event.data.sequence)>BigInt(row.state.sequence))this.store.projection.project(candidate,event,row.binding);
+        try{
+          await this.reconcile({state:candidate,binding:row.binding});
+          break;
+        }catch(error){
+          // Extend only the new finalized tail. Never advance a durable cursor
+          // after a missing event, older chain state or an economic mismatch.
+          if(!(error instanceof ReconciliationAhead)||attempt>=MAX_RECONCILIATION_CATCHUPS)throw error;
+          this.metrics.catchups++;boundary=signatures[0]?.signature??boundary;includeBoundary=false;
+        }
+      }
       await this.store.commit(txs,events,signatures[0] ?? null,row.checkpoint);
       // A missing status is not proof of a fork or nonexecution. Keep it retryable.
       const jobs=(await this.store.pool.query(`SELECT signature FROM jobs WHERE run_id=$1 AND status IN ('pending','unresolved')

@@ -6,6 +6,7 @@ import { decode, hash, json, type Event } from './events.js';
 import { Store, type Binding } from './store.js';
 import { type State } from './projection.js';
 import { FinalizedIndexer, type TransportConfig } from './finalized-indexer.js';
+import {compareReconciliationSequence} from './reconciliation-progress.js';
 
 export { Store, Rpc };
 export { GroupIndexer, type GroupConfig } from './group-indexer.js';
@@ -37,7 +38,7 @@ export class Indexer extends FinalizedIndexer<State, Binding, Event> {
       return Buffer.from(a.data[0],'base64');
     };
     const chain = sdk.getMarketStateDecoder().decode(data(0));
-    if (chain.sequence !== BigInt(state.sequence)) throw new Error('Reconciliation sequence differs; backfill required');
+    compareReconciliationSequence(chain.sequence,BigInt(state.sequence));
     const m = state.market;
     assert.equal(Buffer.from(chain.domain).toString('hex'),binding.domain);
     for (const key of ['termsEpoch','configEpoch','totalCash','settlement','insurance','fees','allocatedVault','paused','mode','fundingIndexScaled','fundingTime'] as const)
