@@ -42,7 +42,7 @@ M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. 
 
 The engineering path is P01–P14 → P15A → P16A. External P15B/P16B do not block the authorized A work; their own prerequisites remain mandatory. Do not reopen architecture research or ask to start every phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
 
-Workflow amendment, 20 October 2026: submit ready-to-review PRs using `gh stack submit --auto --open`. Once a phase's deliverable and acceptance checks pass, continue its dependent phase on top of those exact commits without waiting for merge. `gh stack` manages the chain and PR bases. An unmerged phase remains Review; this removes a development scheduling barrier, not the integration requirement for Closed. For the D41 work, keep the new ready PRs stacked and open until the user explicitly requests integration; earlier merge authorization does not apply to this stack.
+Workflow amendment, 20 October 2026: submit ready-to-review PRs using `gh stack submit --auto --open`. Once a phase's deliverable and acceptance checks pass, continue its dependent phase on top of those exact commits without waiting for merge. `gh stack` manages the chain and PR bases. An unmerged phase remains Review; this removes a development scheduling barrier, not the integration requirement for Closed. D41 originally required keeping the new PRs stacked and open; D44 records the user's subsequent explicit authorization to address reviews and merge PRs #20/#21. WORKLOG records verified integration.
 
 ## PR contract
 
@@ -292,7 +292,7 @@ Milestone: **M6 engineering extension**. Depends on: **P14**.
 
 **Acceptance — A20A:** A fresh operator environment runs documented setup → quote/publication → actual fills → inventory/funding reconciliation → funded settlement/admissible exit. Record instructions and exact executable commands, tested revision, artifact identities and actual pass/fail outcomes. Economics tooling reports fills/notional, inventory, funding, funded cash/P&L versus unpaid claims, network costs and funding injections separately. Hedge cost is either observed with provenance or an explicitly labelled assumption; internal makers, synthetic prices and simulated hedges never count as independent/observed evidence. Meaningful independent vectors reject duplicate/dropped effects, wrong costs and cash/unpaid conflation.
 
-**Expected artifacts:** Operator guide/config examples, executable SDK examples, reference-bot entrypoint, fresh-environment qualification harness and independently checked economics report. Publish one cohesive ready PR; keep it open.
+**Expected artifacts:** Operator guide/config examples, executable SDK examples, reference-bot entrypoint, fresh-environment qualification harness and independently checked economics report. Publish one cohesive ready PR; D44 authorizes integration after review remediation and verification.
 
 ## P16A — Engineering reliability and operational readiness
 
@@ -306,7 +306,7 @@ Milestone: **M6 engineering extension**. Depends on: **P15A's exact verified bas
 
 **Acceptance — A21A:** Explain the actual P12 availability population and classifications, then verify actionable fixes with targeted tests and bounded real Surfpool RPC/WS/PostgreSQL checks. Include affected incident/recovery paths, durable original-signature reconciliation and an actual admissible exit when the changed behavior can affect them. Report measured durations, successful/rejected/unknown populations, resource/latency limits and provisional risk assumptions. Unexplained accounting/authority faults or unresolved signed outcomes cannot be waived. Preserve risk/oracle admission safeguards and clearly label synthetic/internal inputs. Unchanged inherited checks retain their recorded evidence. Continuous 24-hour qualification stays Deferred under D42; neither the earlier 2h44m interruption nor bounded checks are a full-day pass.
 
-**Expected artifacts:** Availability diagnosis, focused fixes/tests and bounded verification report, incident/recovery/exit runbooks, measured technical/provisional-risk limits and an explicit deferred-endurance item. Keep the stacked PR open; move to Review only after the scoped engineering acceptance passes. P16A completion does not claim long-duration endurance or close P15B/P16B.
+**Expected artifacts:** Availability diagnosis, focused fixes/tests and bounded verification report, incident/recovery/exit runbooks, measured technical/provisional-risk limits and an explicit deferred-endurance item. Move to Review only after scoped engineering acceptance passes; D44 authorizes integration after review remediation and verification. P16A completion does not claim long-duration endurance or close P15B/P16B.
 
 ## P15B — Independent maker validation
 
