@@ -1,6 +1,13 @@
 # Protocol contract
 Rivalt · baseline R1 · 20 October 2026
 
+D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
+and supersedes the earlier P22B-incomplete wording below. The exact normal
+settlement, bounded terminal arithmetic and layouts apply only to the new profile.
+[A27B evidence](evidence/P22B.md) and WORKLOG own acceptance; no new runtime
+activation or inherited qualification follows from contract completion.
+
+
 This is the normative economic and execution contract for the engineering MVP. It selects behavior, not final machine layouts or production calibration. G02/G03 in [DECISIONS](DECISIONS.md) must be resolved in P02; G08–G10 close before their owning features are marked complete.
 
 D56 authorizes [P22's account-centric redesign](P22-ACCOUNT-CENTRIC-CLEARING.md).

@@ -1,6 +1,11 @@
 # P22B — complete-cohort clearing references
 
-26 October 2026 · D59 · incomplete G17 · specification reference, not a program
+26 October 2026 · D59 reference · specification evidence, not a program
+
+D60 completes the [bounded executable contract](P22B-EXECUTABLE-CONTRACT.md).
+This document retains the original Fraction benchmark and its development limits;
+the separate integer schedule and inert layouts address those G17 obligations.
+Actual program/runtime acceptance remains phase-owned.
 
 This develops D57's selected market-attributed loss policy with D58's attributed
 insurance. It covers mixed-sign accounts and cycles that the earlier restricted

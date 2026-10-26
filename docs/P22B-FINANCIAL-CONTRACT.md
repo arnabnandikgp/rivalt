@@ -1,12 +1,15 @@
 # P22B — funded-exit proof and settlement decision
 
-26 October 2026 · G17 in progress · baseline `64615a4`
+26–27 October 2026 · design development record · baseline `64615a4`
 
 This is the developing contract for [P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md).
 Sections 1–3 establish independent arithmetic and proposed implementation obligations.
 Section 4 records the user's selection of market-attributed losses under D57.
-The complete financial/layout contract remains due before P23 can close its
-dependency. No V1/V2 behavior, new profile or deployment changes here.
+D60 completes the normative [executable contract](P22B-EXECUTABLE-CONTRACT.md),
+including bounded arithmetic, normal settlement, staged authority and inert layouts.
+The earlier incomplete checkpoints below remain development history; WORKLOG and
+[A27B evidence](evidence/P22B.md) own actual acceptance. No V1/V2 behavior or
+deployment changes here.
 
 ## 1. Independent reference and its limits
 
@@ -372,7 +375,7 @@ fees, insurance contributions and retained protocol revenue separately.
 | Seed/top up a market reserve | Authorized donor token transfer and canonical market/mint/vault; explicit attribution under the reserve authority; non-frozen custody state | `V += z; I_m += z`. An actual unclassified vault donation is not insurance until the authorized classification. No trading fee, investor share or claim is minted |
 | Allocate the automatic 25% | Clearing's accepted ordinary taker-fee transition; caller cannot opt out or choose a different market | The split above is atomic with the full fee debit and route/order effects; all touched accounts still satisfy final health including the complete fee |
 | Allocate additional collected fees | Fee authority; amount bounded by that market's remaining T, canonical identity and non-frozen custody | `T_m -= z; I_m += z`; no change to V, fee carry or gross fee revenue. Already allocated insurance is not counted a second time |
-| Consume insurance | Complete selected resolution's frozen valuation/collection and persisted stage; permissionless exact continuation, no caller-selected debtor/creditor subset | Move `min(I_m, floor(residual_debt_m))` whole atoms from I_m to P_m once, with matching debt extinguishment. Retain sub-atom liability for exact fractional resolution. T and foreign reserves are excluded |
+| Consume insurance | Complete selected resolution's frozen valuation/collection and persisted stage; permissionless exact continuation, no caller-selected debtor/creditor subset | Use the complete D59/D60 coupled plan and verified whole insurance amount once; the isolated residual formula below is only a restricted reference. Retain exact residual attribution; T and foreign reserves are excluded |
 | Withdraw retained protocol fees | Fee authority, canonical destination and applicable custody/safety gate; amount bounded by T_m | `T_m -= z; V -= z`; no reserve or carry reset, no borrowing from user cash or I |
 | Recover/retire an insurance reserve | No active-profile insurance withdrawal/reassignment instruction; terminal recovery requires the final G17 complete-liability discharge/authority contract | No live administrator sweep, cross-market transfer or early reserve-release bypass. Recovery must preserve the fee carry for any continuing market identity |
 

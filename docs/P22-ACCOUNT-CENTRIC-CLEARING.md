@@ -1,5 +1,12 @@
 # P22 — account-centric clearing redesign
 
+
+D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
+and supersedes the earlier P22B-incomplete wording below. The exact normal
+settlement, bounded terminal arithmetic and layouts apply only to the new profile.
+[A27B evidence](evidence/P22B.md) and WORKLOG own acceptance; no new runtime
+activation or inherited qualification follows from contract completion.
+
 26 October 2026 · roadmap and design brief · P22A / D56
 
 The user approves separating the responsibilities currently bundled into a clearing

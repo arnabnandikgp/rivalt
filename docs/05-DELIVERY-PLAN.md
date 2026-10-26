@@ -1,6 +1,13 @@
 # Delivery plan
 Rivalt · baseline R1 · 20 October 2026
 
+D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
+and supersedes the earlier P22B-incomplete wording below. The exact normal
+settlement, bounded terminal arithmetic and layouts apply only to the new profile.
+[A27B evidence](evidence/P22B.md) and WORKLOG own acceptance; no new runtime
+activation or inherited qualification follows from contract completion.
+
+
 The original six milestone families retain P01–P16, with P15/P16 split into engineering A and external-validation B deliverables. D45 adds M7 and P17–P21 for the authorized isolated/cross successor; D56 adds M8 and P22–P28 for account-centric clearing, without renumbering prior work. Each phase is a cohesive, independently reviewable PR-sized outcome; it depends on the preceding baseline rather than being a standalone application. A phase may take several work sessions. The live status is only in [WORKLOG](WORKLOG.md).
 
 ## Milestones

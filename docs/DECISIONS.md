@@ -771,3 +771,44 @@ rationals: do not call it an executable financial contract or close A27B/G17 unt
 bounded numeric representation, source/stage/recovery authority, normal payment/
 netting and layout obligations are satisfied. Disabled new-profile activation and
 all fee/risk/external gates remain unchanged.
+
+## D60 — complete schema-3 financial contract and bounded verification (P22B)
+
+27 October 2026. Complete G17's contract in
+[P22B-EXECUTABLE-CONTRACT](P22B-EXECUTABLE-CONTRACT.md). D57 market attribution and
+D58's 25% fee insurance remain unchanged. Independent models and inert layouts are
+specification evidence; phase acceptance and runtime activation are separate.
+
+For schema 3 only, supersede D47's group-bound identity/common pools/account-net
+waterfall/unfunded closed-claim cancellation and D51/D53's universal group validity/
+funded-exit certificate. Venue eligibility, account risk, market P/I/T and safety
+are separate. Ordinary funded exit checks that account atomically; normal profit
+payment still requires a complete scoped backing certificate. Flat cross netting
+moves actually funded source P to destination P in whole atoms; unpaid claims and
+fractions remain when backing is absent. Underfunded shared debtors cannot pay a
+keeper-selected market first. Complete exceptional clearing still owns cashless
+cycles. No implicit inter-market loan, positive unpaid margin credit or profit
+guarantee is added. Preserve V1/V2 and their historical evidence.
+
+D59's exact terminal economics have a bounded representation: at most 64 proportional
+collection factors yield a shared denominator below 2^5632; the specified schedule's
+intermediates stay below 2^6016 in 96 checked u64 limbs. A keeper proposes two rates;
+complete on-chain equations plus a right-slope test establish the greatest fixed
+point, rejecting smaller circular solutions. Verify prescribed insurance clipping,
+then deterministic conserving atom rounding. Exact writeoffs can remain factored;
+no fractional entitlement is silently truncated. This replaces arbitrary-precision
+internals as the executable contract, not as a claim of measured SBF cost.
+
+Freeze remains complete-venue operationally while losses are market-attributed.
+In addition to net bankruptcy/source emergency, a fully flat account with unfunded
+gross closed obligations may trigger complete clearing; mere exposed negative risk
+equity is not bankruptcy. Recovery requires full discharge/reconciliation, authority
+and qualified sources; normal trading resumes only through the qualified profile.
+Insurance has no live withdrawal. Irreversible liability-free retirement permits
+reserve-authority transfer to its immutable designated owner, without harming C/T.
+
+Exact version-3 layouts, PDA seeds, bounds, roles, dependency/invalidation matrix,
+stages, finite continuation, old-withdraw/new-deposit migration and phase-owned
+acceptance are pinned in the contract. P23 custody, P24/P25 harness execution and
+P26 safety activation retain distinct gates. P27/P28 require fresh actual services/
+UI qualification. Keep the stack open; P15B/P16B and deferred endurance are unchanged.

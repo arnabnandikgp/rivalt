@@ -1,6 +1,13 @@
 # Stack, validation and measurement
 Rivalt · baseline R1 · 20 October 2026
 
+D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
+and supersedes the earlier P22B-incomplete wording below. The exact normal
+settlement, bounded terminal arithmetic and layouts apply only to the new profile.
+[A27B evidence](evidence/P22B.md) and WORKLOG own acceptance; no new runtime
+activation or inherited qualification follows from contract completion.
+
+
 D56's [P22–P28 roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) retains the existing locked
 stack. A27A is documentation validation; A27B is independent contract/model work,
 not implementation acceptance. A28–A33 require fresh affected program, RPC/WS,

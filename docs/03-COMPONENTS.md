@@ -1,6 +1,13 @@
 # Components and interfaces
 Rivalt · baseline R1 · 20 October 2026
 
+D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
+and supersedes the earlier P22B-incomplete wording below. The exact normal
+settlement, bounded terminal arithmetic and layouts apply only to the new profile.
+[A27B evidence](evidence/P22B.md) and WORKLOG own acceptance; no new runtime
+activation or inherited qualification follows from contract completion.
+
+
 [P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) proposes separating account risk,
 market eligibility and settlement/default coordination under D56. Its diagrams
 describe responsibilities, not new implemented programs or final PDA layouts.
