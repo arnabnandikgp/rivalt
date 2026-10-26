@@ -666,3 +666,16 @@ comparative reference, not implementation evidence or a substitute financial spe
 Ready-to-review PRs remain stacked with verified predecessors; retain the new stack
 open pending review/merge direction. WORKLOG records actual publication/integration,
 not this authorization. Existing acceptance IDs/hashes are not reused as new tests.
+
+### D56 execution checkpoint — P22B financial decision
+
+The user explicitly approves proceeding through the roadmap with each phase
+stacked above its predecessor. P22B starts above PR #32's `64615a4`; no routine
+phase-start confirmation is needed. The [developing contract](P22B-FINANCIAL-CONTRACT.md)
+provides a separate funded-exit proof and independently checked loss/netting cases.
+It recommends market-attributed losses, but has not selected that new loss policy:
+the concrete example pays BTC/ETH winners 100/0 instead of V2's common 50/50.
+G17 therefore retains a material product decision before changed loss ownership
+or its dependent layouts/implementation. The common alternative would leave the
+isolated unpaid-profit contagion concern unchanged; do not quietly select it as
+an implementation convenience. No new production code or activation is implied.

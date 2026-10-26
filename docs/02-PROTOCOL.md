@@ -9,6 +9,12 @@ cash/claim, netting, loss-allocation and atomic-exit contract and its explicit
 versioned supersessions. Until then, the V1/V2 contracts below remain authoritative
 for their existing profiles; no new financial path is enabled.
 
+[P22B's developing contract](P22B-FINANCIAL-CONTRACT.md) separates the account-local
+funded-withdrawal proof from profit-payment/default policy and provides independent
+counterexamples. Its proposed market-attributed loss policy is awaiting a concrete
+product decision under D56; neither reference-model success nor this link changes
+V2's common account-net waterfall or completes G17.
+
 For the authorized fresh schema-2 test group, [P17's successor contract](P17-MARGIN-CONTRACT.md)
 is normative for the deliberately superseded account, group, multi-market health,
 closed-claim netting and complete-group default boundaries (D45–D48). The contract

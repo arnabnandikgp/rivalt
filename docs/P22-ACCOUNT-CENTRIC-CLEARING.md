@@ -9,6 +9,10 @@ not a completed financial contract or an audit. The inspected baseline is
 P22B must resolve the exact financial contract before dependent implementation.
 Existing V1/V2 behavior and its recorded qualifications remain unchanged.
 
+[P22B's developing financial contract](P22B-FINANCIAL-CONTRACT.md) now records the
+funded-exit arithmetic, independent model checks and a concrete common-versus-market
+loss-allocation decision. G17 is not complete; the reference is not on-chain evidence.
+
 ## 1. Current architecture and constraints
 
 ```mermaid

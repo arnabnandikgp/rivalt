@@ -516,6 +516,11 @@ resolves the financial contract and executable independent reference cases befor
 dependent implementation. Planning approval does not select an unspecified new
 loss bearer, cross-market credit guarantee or positive unpaid-profit margin policy.
 
+[P22B's developing contract](P22B-FINANCIAL-CONTRACT.md) supplies the funded-exit
+proof and literal default/netting counterexamples. Its common-versus-market loss
+decision must be recorded before the full G17 contract is finalized. Partial model
+checks do not satisfy A27B or permit P23 to bypass its predecessor gate.
+
 **P23 / A28 / G18** owns fresh versioned accounts, market eligibility and real
 custody with ABI/authority/token reconciliation. **P24 / A29 / G19 core** owns
 whole-account funding/risk, maker routes, orders and complete relevant dependencies.
