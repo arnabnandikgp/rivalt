@@ -78,7 +78,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P21A | Group SDK/indexer/API and durable services | Closed | [PR #30](https://github.com/arnabnandikgp/rivalt/pull/30), final head `61bbfba`, merged `d07fccc` | [A26A/G16 interfaces](evidence/P21A.md): exact incremental SDK/service/financial/recovery acceptance through `882f832` plus auditor `ac828f6`; R052 finalized-tail/funding-expiry RPC/WS/PostgreSQL checks pass on `e4a284c`; scoped CI and integration verified |
 | M7 | P21B | UI/operations and fresh successor qualification | Closed | [PR #31](https://github.com/arnabnandikgp/rivalt/pull/31), final head `1a3cc2c`, merged `d07fccc` | [A26B/G16/M7](evidence/P21B.md): browser `a0ed6de`, workload `6e9fd2f`, independent audit `813ee20`; 25 wallet originals, 150 offers/101 fills, fault recovery, flat drain, three quiescent token exits and fresh PostgreSQL replay. R052 receipt race passes on `c0e5274`; scoped CI/integration pass. Busy-exit follow-up now M8 under D56 |
 | M8 | P22A | Architecture roadmap and financial decision boundaries | Review | [PR #32](https://github.com/arnabnandikgp/rivalt/pull/32), checked `8321677`, above `9d3c295` | A27A: 244 local links, fences, phase rows/dependencies, D56 consistency and evidence policy pass; no code or financial acceptance |
-| M8 | P22B | Exact financial contract and independent reference cases | In progress | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; prior model `7f62c79`, R057 starts at `1563f0d` | D57 market attribution plus D58 approved 25% collected-fee insurance share; 15 focused reserve checks/2,048 histories pass. [Contract](P22B-FINANCIAL-CONTRACT.md) pins exact split/carry and phase obligations; general netting/default/layout G17 still due, not A27B acceptance |
+| M8 | P22B | Exact financial contract and independent reference cases | In progress | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; prior model `7f62c79`, reserve checked `6cd6e6c` | D57 market attribution plus D58 approved 25% collected-fee insurance share; 15 focused reserve checks/2,048 histories pass. [Contract](P22B-FINANCIAL-CONTRACT.md) pins exact split/carry and phase obligations; general netting/default/layout G17 still due, not A27B acceptance |
 | M8 | P23 | Registry, accounts and custody | Open | — | P22B / A28 / G18; new trading disabled |
 | M8 | P24 | Risk, funding, routes and orders | Open | — | P23 / A29 / G19 core; ordinary new-profile financial activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Open | — | P24 / A30 / G19 cash; busy-exit and conservation checks |
@@ -1923,3 +1923,12 @@ the worklog; no new financial test, CI pass or phase completion is inferred.
 - Exact next action: complete the general market-attributed netting/default
   reference for mixed-sign debtors, cycles and fractional ownership using D58's
   reserve ledger, then pin terminal recovery and versioned layouts before P23.
+
+R057 checked publication: `6cd6e6ca55104148103e20fdc7643f5fc3cbe031` passes the
+15 targeted reserve tests in 0.030 seconds. The scoped documentation command
+`python3 /private/tmp/rivalt-r057-doc-check.py` passes ten changed Markdown files,
+213 local links, balanced fences and D58/status/policy consistency. Evidence policy
+and parent-diff whitespace pass. `gh stack submit --auto --open` publishes that
+exact head to PR #33; independent GitHub metadata confirms OPEN/ready, base P22A,
+not merged. The PR description now records the approved split and remaining G17.
+This final worklog-only closeout adds no runtime or hosted-CI claim.
