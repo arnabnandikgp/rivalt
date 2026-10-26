@@ -566,3 +566,8 @@ and continue after verified acceptance without waiting for merges. Keep the new
 stack open for review; D55 authorized only the earlier stack's merge. If measured
 implementation size requires a suffix, preserve its parent gate and document why.
 
+
+P23 realization: [the custody contract](P23-ACCOUNT-CUSTODY.md) and
+[A28/G18 evidence](evidence/P23.md) pin its additive 11-instruction ABI, distinct
+reserve authority, actual SPL flows and default-profile rejection. Its verified
+Review commits satisfy P24 implementation dependency; they do not enable trading.
