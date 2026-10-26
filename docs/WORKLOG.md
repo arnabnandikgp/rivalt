@@ -79,7 +79,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P21A | Group SDK/indexer/API and durable services | Closed | [PR #30](https://github.com/arnabnandikgp/rivalt/pull/30), final head `61bbfba`, merged `d07fccc` | [A26A/G16 interfaces](evidence/P21A.md): exact incremental SDK/service/financial/recovery acceptance through `882f832` plus auditor `ac828f6`; R052 finalized-tail/funding-expiry RPC/WS/PostgreSQL checks pass on `e4a284c`; scoped CI and integration verified |
 | M7 | P21B | UI/operations and fresh successor qualification | Closed | [PR #31](https://github.com/arnabnandikgp/rivalt/pull/31), final head `1a3cc2c`, merged `d07fccc` | [A26B/G16/M7](evidence/P21B.md): browser `a0ed6de`, workload `6e9fd2f`, independent audit `813ee20`; 25 wallet originals, 150 offers/101 fills, fault recovery, flat drain, three quiescent token exits and fresh PostgreSQL replay. R052 receipt race passes on `c0e5274`; scoped CI/integration pass. Busy-exit follow-up now M8 under D56 |
 | M8 | P22A | Architecture roadmap and financial decision boundaries | Review | [PR #32](https://github.com/arnabnandikgp/rivalt/pull/32), checked `8321677`, above `9d3c295` | A27A: 244 local links, fences, phase rows/dependencies, D56 consistency and evidence policy pass; no code or financial acceptance |
-| M8 | P22B | Exact financial contract and independent reference cases | In progress | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; prior exit model `7f62c79`, reserve `6cd6e6c`; R058 starts `9f0b5b7` | [D59 clearing references](P22B-CLEARING-REFERENCE.md): 29 focused checks pass, with complete cycles, finite insurance clipping and per-market conserving atom output. Arbitrary-size rational internals are not executable qualification; numeric bounds/normal settlement/authority/layout G17 remains due |
+| M8 | P22B | Exact financial contract and independent reference cases | In progress | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; prior exit model `7f62c79`, reserve `6cd6e6c`, clearing checked `0e9ca91` | [D59 clearing references](P22B-CLEARING-REFERENCE.md): 29 focused checks pass, with complete cycles, finite insurance clipping and per-market conserving atom output. Arbitrary-size rational internals are not executable qualification; numeric bounds/normal settlement/authority/layout G17 remains due |
 | M8 | P23 | Registry, accounts and custody | Open | — | P22B / A28 / G18; new trading disabled |
 | M8 | P24 | Risk, funding, routes and orders | Open | — | P23 / A29 / G19 core; ordinary new-profile financial activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Open | — | P24 / A30 / G19 cash; busy-exit and conservation checks |
@@ -1987,3 +1987,14 @@ This final worklog-only closeout adds no runtime or hosted-CI claim.
 - Exact next action: derive bounded numeric representation and persisted work
   state for D59's clearing/rounding candidate, then finish normal settlement/
   recovery authority and exact versioned layouts before P23.
+
+R058 checked publication: `0e9ca912dca659fbdac8a93c9a3082016068b683` passes all 29
+new reference checks in 0.205 seconds, recorded locally in ignored
+`.local/r058-clearing-reference.log`. `python3 /private/tmp/rivalt-r058-doc-check.py`
+passes seven changed Markdown files, 181 local links, fences and D59/status/limit
+consistency. Evidence policy, shell syntax and parent-diff whitespace pass.
+`gh stack submit --auto --open` pushes successfully but reports a GitHub HTTP 504
+while querying PR #33; a separate metadata fetch verifies the exact new head,
+OPEN/ready state, unchanged P22A base and not merged. The PR description is updated
+and independently verified. This subsequent worklog-only closeout adds no new
+runtime or hosted-CI result; the stack stays open and G17 remains In progress.
