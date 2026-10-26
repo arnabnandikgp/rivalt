@@ -574,3 +574,8 @@ Review commits satisfy P24 implementation dependency; they do not enable trading
 
 P24 implementation contract: [risk, funding and trading](P24-ACCOUNT-TRADING.md).
 Its isolated candidate build is not P26 safety activation.
+
+P24 realization: [A29/G19 core evidence](evidence/P24.md) qualifies the distinct
+candidate ABI, whole-account risk/funding, atomic maker routes, orders/protection
+and market-attributed collected fees. Its verified Review source satisfies P25's
+implementation dependency, while ordinary activation still awaits P26.

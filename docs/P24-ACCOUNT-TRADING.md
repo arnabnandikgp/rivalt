@@ -1,8 +1,8 @@
 # P24 — account-centric risk, funding and trading
 
 D60 remains the financial authority. This phase implements A29/G19 core on the
-verified P23 stack; WORKLOG owns progress. No runtime acceptance is claimed by this
-implementation note. Ordinary schema-3 activation remains false until P26.
+verified P23 stack; WORKLOG owns progress. [A29/G19 core evidence](evidence/P24.md)
+records the actual tested revision. Ordinary schema-3 activation remains false until P26.
 
 `account-trading-qualification` is a separate local-only candidate artifact for
 clearing and both maker programs. Default, devnet and P23's custody artifact do not
@@ -50,4 +50,5 @@ allocation and wire-identical borrowed event views address those implementation
 limits. Full-book resource checks include all four orders on the trader and both
 maker roots, with immediate and permissionless partial execution. Maker binaries
 use release size optimization while complete ProgramData hash authentication stays
-mandatory. These are measured candidates; WORKLOG records the final accepted pin.
+mandatory. The final qualified candidate stays within the existing transaction
+envelope; the evidence report records its exact limits and withheld later gates.
