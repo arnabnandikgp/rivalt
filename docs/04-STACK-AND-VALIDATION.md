@@ -1,6 +1,14 @@
 # Stack, validation and measurement
 Rivalt · baseline R1 · 20 October 2026
 
+D56's [P22–P28 roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) retains the existing locked
+stack. A27A is documentation validation; A27B is independent contract/model work,
+not implementation acceptance. A28–A33 require fresh affected program, RPC/WS,
+PostgreSQL and browser evidence, with exits under continuous normal sampling,
+explicit outcome denominators and transaction/contention measurements. Neither
+Phoenix research nor prior P16A/P21B results qualify the changed implementation.
+No new 24-hour requirement or funded/external gate waiver is introduced.
+
 P17–P21 retain these pinned tools. [P17](P17-MARGIN-CONTRACT.md) defines fresh
 successor golden cases, versioned layout/authority tests, whole-account funding,
 reservation/transfer/protection checks and complete-group liquidation/default

@@ -9,6 +9,13 @@ The engineering objective is a reproducible local venue, followed by focused dev
 
 ## Selected scope
 
+D56 adds [P22–P28](P22-ACCOUNT-CENTRIC-CLEARING.md), a fresh bounded local redesign
+that separates account risk, market eligibility, funded exits and settlement/default
+rules. The intended UX removes technical group selection; BTC/ETH, one test mint,
+fees and zero positive unpaid-profit credit remain. P22B must resolve loss ownership
+and netting before implementation; this roadmap does not change existing V1/V2 behavior
+or promise guaranteed isolated profit payouts. External gates remain separate.
+
 The table below remains the V1 engineering MVP. D45–D48 authorize a fresh bounded
 schema-2 successor: BTC and ETH, one test mint, owner portfolios with isolated or
 two-position cross margin accounts, and common clearing-group settlement/default.

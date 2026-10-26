@@ -1,7 +1,7 @@
 # Delivery plan
 Rivalt · baseline R1 · 20 October 2026
 
-The original six milestone families retain P01–P16, with P15/P16 split into engineering A and external-validation B deliverables. D45 adds M7 and P17–P21 for the authorized isolated/cross successor without renumbering prior work. Each phase is a cohesive, independently reviewable PR-sized outcome; it depends on the preceding baseline rather than being a standalone application. A phase may take several work sessions. The live status is only in [WORKLOG](WORKLOG.md).
+The original six milestone families retain P01–P16, with P15/P16 split into engineering A and external-validation B deliverables. D45 adds M7 and P17–P21 for the authorized isolated/cross successor; D56 adds M8 and P22–P28 for account-centric clearing, without renumbering prior work. Each phase is a cohesive, independently reviewable PR-sized outcome; it depends on the preceding baseline rather than being a standalone application. A phase may take several work sessions. The live status is only in [WORKLOG](WORKLOG.md).
 
 ## Milestones
 
@@ -15,6 +15,7 @@ The original six milestone families retain P01–P16, with P15/P16 split into en
 | M5b | P13–P14 | Focused real-cluster parity | Actual dependency verification, wallet/core lifecycle and provider recovery |
 | M6 | P15A/P16A + P15B/P16B | Standalone maker tooling/reliability, followed by independent commercial/pilot readiness | A: reproducible operator qualification and bounded, change-focused reliability/operations evidence. B: independent observations/review, calibrated funded risk and a separate pilot decision. All four must close for M6 closure |
 | M7 | P17–P21 | Bounded isolated/cross successor, one mint and two markets | Versioned contract, isolated foundation, whole-account engine, safe liquidation/complete-group default and fresh service/UI/RPC/WS/PostgreSQL qualification; no funded-readiness claim |
+| M8 | P22–P28 | Account-centric clearing, one mint and two markets | Separate account/eligibility/settlement/default contract; qualified safety, atomic admissible funded exits during normal background activity, fresh service/UI/RPC/WS/PostgreSQL reconciliation; no funded-readiness claim |
 
 M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. M6 engineering extensions P15A/P16A can proceed with explicitly internal makers and test assets. P15B/P16B require independent people/data/review and separate funded authorization. Completing A never closes B or establishes funded readiness.
 
@@ -48,8 +49,16 @@ M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. 
 | P20 | M7 | Cross-account liquidation and complete-group default; qualified activation | P19 | A25 / G15 completion |
 | P21A | M7 | Group SDK/indexer/API and durable service integration | P20 | A26A / G16 interfaces |
 | P21B | M7 | Wallet UI, operations and fresh successor qualification | P21A | A26B / G16 completion / M7 exit |
+| P22A | M8 | Architecture roadmap, current-code map and decision boundaries | Integrated P21B baseline | A27A |
+| P22B | M8 | Exact financial/state/authority contract and independent reference cases | P22A | A27B / G17 |
+| P23 | M8 | Versioned market registry, accounts and custody | P22B | A28 / G18 |
+| P24 | M8 | Whole-account risk/funding, routes/orders and relevant dependency checks | P23 | A29 / G19 core |
+| P25 | M8 | Cash/claim settlement, transfers and atomic funded exits | P24 | A30 / G19 cash |
+| P26 | M8 | Liquidation, complete liability-cohort default and qualified local activation | P25 | A31 / G20 |
+| P27 | M8 | Account-centric SDK/indexer/API and durable services | P26 | A32 / G21 interfaces |
+| P28 | M8 | UI, operations and fresh bounded qualification | P27 | A33 / G21 completion / M8 exit |
 
-The engineering path is P01–P14 → P15A → P16A → P17 → P18A → P18B → P18C → P19 → P20 → P21A → P21B. External P15B/P16B do not block authorized test engineering; their own prerequisites remain mandatory. Do not reopen architecture research or ask to start every phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
+The engineering path is P01–P14 → P15A → P16A → P17 → P18A → P18B → P18C → P19 → P20 → P21A → P21B → P22A → P22B → P23 → P24 → P25 → P26 → P27 → P28. External P15B/P16B do not block authorized test engineering; their own prerequisites remain mandatory. Do not reopen settled architecture outside the explicit D56 redesign or ask to start every phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
 
 Workflow amendment, 20 October 2026: submit ready-to-review PRs using `gh stack submit --auto --open`. Once a phase's deliverable and acceptance checks pass, continue its dependent phase on top of those exact commits without waiting for merge. `gh stack` manages the chain and PR bases. An unmerged phase remains Review; this removes a development scheduling barrier, not the integration requirement for Closed. D41 originally required keeping the new PRs stacked and open; D44 records the user's subsequent explicit authorization to address reviews and merge PRs #20/#21. WORKLOG records verified integration.
 
@@ -491,4 +500,47 @@ Zero unexplained financial/authority differences or unresolved signed effects;
 report availability/latency limits without importing P12/P16A thresholds as proof.
 Compare isolated/cross capital use at identical risk settings and funded balances.
 No continuous 24-hour gate, devnet/funded rollout or external independence claim.
+
+## M8 — account-centric clearing (P22–P28)
+
+D56 resumes the deferred exit question as part of a broader explicitly authorized
+redesign. [P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) contains the current code
+map, diagrams, preserved scope, financial decision gates and phase acceptance
+details. Existing V1/V2 semantics stay intact. Keep one test mint, BTC/ETH, isolated
+maker capital, zero positive unpaid margin credit, current routing/fees/protection
+and complete deterministic loss accounting. P15B/P16B and D42 are unchanged.
+
+P22 is split deliberately: **P22A / A27A** delivers the approved architecture
+roadmap and checks links, dependencies and consistency; **P22B / A27B / G17**
+resolves the financial contract and executable independent reference cases before
+dependent implementation. Planning approval does not select an unspecified new
+loss bearer, cross-market credit guarantee or positive unpaid-profit margin policy.
+
+**P23 / A28 / G18** owns fresh versioned accounts, market eligibility and real
+custody with ABI/authority/token reconciliation. **P24 / A29 / G19 core** owns
+whole-account funding/risk, maker routes, orders and complete relevant dependencies.
+**P25 / A30 / G19 cash** owns the selected claim ledger, flat-only netting, transfers
+and same-transaction funded withdrawal checks. These phases keep ordinary financial
+activation disabled; qualification harnesses do not create an administrator bypass.
+
+**P26 / A31 / G20** owns whole-account post-fee liquidation and complete selected
+liability-cohort default, fractional ownership, restart/recovery and resource bounds.
+Only its signed program/RPC safety acceptance permits explicit new local activation;
+default/devnet builds remain disabled. **P27 / A32 / G21 interfaces** then qualifies
+the SDK, finalized events/PostgreSQL/API and durable workers on the new deployment.
+
+**P28 / A33 / G21 completion / M8 exit** delivers the account-centric UI and fresh
+bounded concurrent qualification. Pin duration, loads, account mixes and exit
+attempt schedule before execution; show every offer/refusal/submission/finalization,
+source and dependency cause, latency, packet/accounts/CU and contention. Require
+admissible funded exits while ordinary sampling/unrelated trading continue, plus
+source/maker/RPC/worker/indexer faults, complete default recovery, independent final
+reconciliation and fresh PostgreSQL replay. No pause-to-exit result, inherited
+P16A/P21B count or weakened oracle safeguard closes this gate. No 24-hour run or
+new devnet/funded deployment is required or authorized by M8.
+
+Publish ready PRs with `gh stack submit --auto --open`, retain exact parent commits
+and continue after verified acceptance without waiting for merges. Keep the new
+stack open for review; D55 authorized only the earlier stack's merge. If measured
+implementation size requires a suffix, preserve its parent gate and document why.
 

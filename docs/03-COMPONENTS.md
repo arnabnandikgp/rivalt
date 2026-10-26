@@ -1,6 +1,12 @@
 # Components and interfaces
 Rivalt · baseline R1 · 20 October 2026
 
+[P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) proposes separating account risk,
+market eligibility and settlement/default coordination under D56. Its diagrams
+describe responsibilities, not new implemented programs or final PDA layouts.
+P22B owns the exact versioned interface contract; P23–P28 implement and qualify it
+without reinterpreting existing V1/V2 state, events or deployment bindings.
+
 The following describes V1. [P17](P17-MARGIN-CONTRACT.md) audits these actual
 interfaces and defines the additive schema-2 group/portfolio/margin layout.
 `programs/clearing/src/state/v2/` contains its layout contract. [P18A custody](P18A-GROUP-CUSTODY.md)

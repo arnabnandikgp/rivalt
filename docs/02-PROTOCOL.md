@@ -3,6 +3,12 @@ Rivalt · baseline R1 · 20 October 2026
 
 This is the normative economic and execution contract for the engineering MVP. It selects behavior, not final machine layouts or production calibration. G02/G03 in [DECISIONS](DECISIONS.md) must be resolved in P02; G08–G10 close before their owning features are marked complete.
 
+D56 authorizes [P22's account-centric redesign](P22-ACCOUNT-CENTRIC-CLEARING.md).
+P22A is a roadmap, not a replacement economic specification. P22B owns the exact
+cash/claim, netting, loss-allocation and atomic-exit contract and its explicit
+versioned supersessions. Until then, the V1/V2 contracts below remain authoritative
+for their existing profiles; no new financial path is enabled.
+
 For the authorized fresh schema-2 test group, [P17's successor contract](P17-MARGIN-CONTRACT.md)
 is normative for the deliberately superseded account, group, multi-market health,
 closed-claim netting and complete-group default boundaries (D45–D48). The contract

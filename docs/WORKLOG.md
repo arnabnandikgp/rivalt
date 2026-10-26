@@ -7,6 +7,13 @@ Baseline R1 · initialized 20 October 2026
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
+**Current design work (R054 / D56):** The user now resumes exit work within the
+account-centric redesign. [P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) separates
+account risk, market eligibility, funded exits and settlement/default boundaries.
+P22A's roadmap is ready for review; P22B must settle the exact financial contract before
+dependent implementation. No new runtime path or payout guarantee is claimed.
+The earlier M7 closure/limitations stand; P15B/P16B stay Open and endurance Deferred.
+
 **Stack review checkpoint (R028):** All 21 inline review findings (15 original plus six follow-ups) are resolved with fixes or verified non-issues. The final 13-PR sweep found zero unresolved threads, no requested changes and no failing checks before the authorized atomic merge. Local `main` is fast-forwarded to the merge; its tree exactly matches tested remediation head `3b1c0be`. All 526 raw evidence files remain ignored at their original paths with matching hashes.
 
 ## Status rules
@@ -33,6 +40,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; exit redesign and endurance Deferred, P15B/P16B Open |
+| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R054: P22A roadmap passes scoped documentation checks; financial contract P22B and all runtime acceptance remain due. No inherited qualification, funded guarantee or external-gate closure |
 
 ## Phase overview
 
@@ -64,6 +72,14 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P20 | Cross liquidation/default and qualified activation | Closed | [PR #29](https://github.com/arnabnandikgp/rivalt/pull/29), published `459c84c`, tested `3c7ab4e` core / `aadb69f` budgets, above P19 #28 `c0b7898` | [A25/G15](evidence/P20.md): 1,224 SVM / 1,221 finalized RPC + 215 SVM / 212 finalized RPC maximum-book cases; 820/820 and 95/95 WS; byte-identical qualified local profile; integrated at `d07fccc` |
 | M7 | P21A | Group SDK/indexer/API and durable services | Closed | [PR #30](https://github.com/arnabnandikgp/rivalt/pull/30), final head `61bbfba`, merged `d07fccc` | [A26A/G16 interfaces](evidence/P21A.md): exact incremental SDK/service/financial/recovery acceptance through `882f832` plus auditor `ac828f6`; R052 finalized-tail/funding-expiry RPC/WS/PostgreSQL checks pass on `e4a284c`; scoped CI and integration verified |
 | M7 | P21B | UI/operations and fresh successor qualification | Closed | [PR #31](https://github.com/arnabnandikgp/rivalt/pull/31), final head `1a3cc2c`, merged `d07fccc` | [A26B/G16/M7](evidence/P21B.md): browser `a0ed6de`, workload `6e9fd2f`, independent audit `813ee20`; 25 wallet originals, 150 offers/101 fills, fault recovery, flat drain, three quiescent token exits and fresh PostgreSQL replay. R052 receipt race passes on `c0e5274`; scoped CI/integration pass. Busy-exit redesign Deferred |
+| M8 | P22A | Architecture roadmap and financial decision boundaries | Review | `phase/p22a-clearing-roadmap`, baseline `9d3c295`; publication pending | A27A: 243 local links, fences, phase rows and D56 consistency pass; no code or financial acceptance |
+| M8 | P22B | Exact financial contract and independent reference cases | Open | — | P22A; resolve G17 including loss/netting/exit proofs before dependent implementation |
+| M8 | P23 | Registry, accounts and custody | Open | — | P22B / A28 / G18; new trading disabled |
+| M8 | P24 | Risk, funding, routes and orders | Open | — | P23 / A29 / G19 core; ordinary new-profile financial activation disabled |
+| M8 | P25 | Cash, claim settlement, transfers and atomic exits | Open | — | P24 / A30 / G19 cash; busy-exit and conservation checks |
+| M8 | P26 | Liquidation, complete default and local activation | Open | — | P25 / A31 / G20; safety acceptance before enablement |
+| M8 | P27 | SDK, indexer/API and durable services | Open | — | P26 / A32 / G21 interfaces; fresh real integration |
+| M8 | P28 | UI, operations and bounded concurrent qualification | Open | — | P27 / A33 / G21 / M8 exit; normal background exits, complete outcomes/replay |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -74,8 +90,8 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Verification: final full-stack review has zero unresolved threads, no requested changes and all PRs mergeable with selected CI passing. Final tip `1a3cc2c` passes all five jobs in hosted run `40221453594`. Phase reports retain original executed pins and limitations; R052 actual service recovery uses `e4a284c` and receipt concurrency uses `c0e5274`. This run adds repository/review/integration verification, not new financial/runtime evidence.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: when the user resumes exit-availability work, scope and qualify atomic verification/withdrawal and larger-group progress separately. No remaining task in the authorized stack merge; P15B/P16B and any funded deployment require their independent inputs and authorization.
-- Deferred gates: the user defers busy-group/atomic-exit redesign under D55. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new deployment or external participation is claimed.
+- Exact next action: P22B — specify the funded-withdrawal proof separately from the profit-payment/default contract on baseline `9d3c295`, beginning with the complete cash/claim transition and dependency matrix.
+- Deferred gates: D56 resumes busy-group/atomic-exit redesign within P22–P28; the old runtime limitation remains. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new deployment or external participation is claimed.
 
 ## Blocker register
 
@@ -1707,3 +1723,36 @@ required participants/authorization.
 - `gh stack merge --yes --merge` succeeds atomically. GitHub independently reports all eight MERGED on 26 October, 08:22:46–08:22:54 UTC, with merge commit `d07fccc108384381c0c5df743d14c2a0bc4f5089`. `git diff --exit-code 1a3cc2c origin/main` passes, establishing byte-identical tracked tree before this documentation closeout; local `main` fast-forwards without touching unrelated work.
 - Local ignored review/merge captures: `.local/r053-open-prs.json`, `.local/r053-review-sweep.json`, `.local/r053-merge-status.json`. Original phase acceptance/economic audits retain their exact hashes and local paths; no historical count is claimed as a new test. Both status tables now mark P17–P21B and bounded M7 Closed after actual integration. M6 remains In progress with P15B/P16B Open; endurance and busy-exit redesign stay Deferred. README/roadmap/decisions reflect integration without weakening any financial guard.
 - No blocker remains for this merge. Exact next action: scope the deferred exit-availability work when the user returns to it; external validation and funded deployment remain separate, unauthorized gates.
+
+### R054 — 26 October 2026 — account-centric architecture roadmap (P22A)
+
+- User requests current/proposed diagrams, a PR-sized approach and a durable document
+  for the approved redesign direction. Read AGENTS/README/WORKLOG, product/decisions,
+  protocol/components/validation and successor contract/plan; inspected actual group
+  state, certificate/withdrawal, whole-account route/netting and financial-core paths
+  at `9d3c295871136c356bf0028b0b2f9506e9391218`. Existing tracked source was clean;
+  local `phoenix/` and the original design note remain untouched/untracked.
+- Delivered [P22 roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md): current/proposed diagrams,
+  concrete code map, preserved scope, cash-versus-profit proof distinction, explicit
+  loss/netting decisions, independent case inventory and eight cohesive stacked PRs
+  P22A/P22B/P23–P28. P22's justified split separates the roadmap from the exact
+  financial contract. D56 resumes the exit redesign without rewriting old acceptance
+  or authorizing an unspecified new loss bearer, credit facility or funded rollout.
+- Updated AGENTS, entry points, domain-document scope notes, roadmap and G17–G21;
+  both live tables add M8 and its phases. P22A is Review; P22B/P23–P28 are Open.
+  M7 remains Closed within its recorded limits, M6 In progress, P15B/P16B Open and
+  24-hour endurance Deferred. New ordinary financial activation remains gated until
+  P26 safety acceptance, with fresh integrated qualification in P27/P28.
+- Actual checks: `git diff --check` passes; scoped Python documentation validation
+  checks all ten changed Markdown files, 243 local links, balanced code fences,
+  unique M8 phase rows in plan/worklog and one D56 record. Manual review confirms
+  preserved baseline behavior, explicit future contract gates and sequential phase
+  ownership. These checks validate documentation, not financial behavior.
+- Not run: financial/unit/SBF/IDL, RPC/WS/PostgreSQL, browser, workload, devnet or
+  endurance suites; no executable behavior changed. No new runtime result or CI
+  success is inferred. Raw Phoenix binaries/research are not added to Git.
+- `gh stack init --base main phase/p22a-clearing-roadmap` creates the review branch
+  above `main`; publication is pending this run's commit. No runtime/access blocker
+  is established. Exact next action: P22B — specify the funded-withdrawal proof and
+  complete cash/claim transition/dependency matrix separately from profit-payment
+  and default rules, then resolve G17 before dependent implementation.

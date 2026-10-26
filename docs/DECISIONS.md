@@ -62,6 +62,11 @@ No generic “TBD” may escape into an executable phase. Missing a gate blocks 
 | G14 | Two-market source/lot/config identity, isolated capital, event/ABI and group custody/exit/default profile | P18A–C | Signed custody, isolated market lifecycles, independent accounting and measured complete-group recovery |
 | G15 | Whole-account funding/health/reserves, transfer/netting/delegation and cross activation | P19/P20 | Independent vectors, adversarial full-dependency checks and liquidation/default acceptance before enablement |
 | G16 | Group service/indexer/SDK/UI interfaces, operational budgets and bounded successor qualification | P21A–B | Actual RPC/WS/PostgreSQL/browser lifecycle, fresh replay, budget/contention and complete failure populations |
+| G17 | Exact account-centric financial contract, loss ownership, cross-market netting, source/funding dependencies and fresh-profile versioning | P22B | Concrete transitions/invariants/authority/layout bounds; independent model vectors and counterexamples; explicit economic decisions before dependent implementation |
+| G18 | New registry/account/custody ABI, immutable eligibility/mode, token ownership and deployment identity | P23 | Generated/legacy parity, signed SBF/RPC custody and negative authority/alias checks; no trading activation |
+| G19 | Whole-account risk/orders/funding, relevant validity dependencies, settlement ledger and atomic cash exits | P24/P25 | Independent real-implementation checks, signed rollback/conservation/fractions and live-sampler exit cases; ordinary new-profile activation still disabled |
+| G20 | Complete selected liability cohort, loss/insurance allocation, liquidation/default/recovery and activation | P26 | Independent maximum-cohort/shared-debtor/cycle cases, post-fee progress, real signed runtime reconciliation and activation gates |
+| G21 | Account-centric services/events/UI, operator budgets and bounded concurrent qualification | P27/P28 | Actual RPC/WS/PostgreSQL/browser/replay, normal background exits, complete populations and measured resource/contention limits |
 
 G02 is an implementation precision choice, not permission to change the cash/claims rules. Program addresses, keys and endpoints are deployment outputs; this documentation must not invent them.
 
@@ -623,3 +628,41 @@ No source/risk/authority safeguard is relaxed, no new financial path is enabled,
 and P15B/P16B remain separate external gates. D42's 24-hour deferral is unchanged.
 WORKLOG records actual merge hashes and status; this is authorization/scope, not
 new runtime or independent-review evidence.
+
+## D56 — account-centric clearing direction and gated contract (P22–P28)
+
+On 26 October 2026 the user approves separating account risk, market eligibility,
+funded cash exits and settlement/default responsibilities, and requests diagrams,
+PR-sized phases and a durable design document. Add M8/P22–P28 under
+[P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md). P22A records that direction and
+P22B resolves exact economics, state transitions, layouts/authority, dependency
+proofs, independent expected cases and deployment/versioning before implementation.
+This small split prevents a planning document from being called a finished contract.
+
+This supersedes D55's deferral of busy-group exit work for the newly scoped local
+redesign, and the prior prohibition on reopening these specific architecture
+boundaries. It does not erase D54/R053's measured limitations or supersede existing
+V1/V2 economics. The target replaces fixed account/group market bundles with
+explicit market eligibility and separates ordinary funded exits from broad group
+certificate invalidation where a complete account/custody/safety proof permits it.
+
+Market-attributed loss/default handling is an option to evaluate, not a claim that
+isolated profits become guaranteed. G17 must resolve cash/pool/insurance ownership,
+shared-debtor allocation, cross-market closed-claim netting/cycles, payment timing
+and freeze scope. Material changes to loss bearers, credit guarantees or margin
+economics require a concrete recorded product decision before implementing them.
+No invisible cross-market receivable may become cash; no keeper selects a convenient
+haircut subset. Preserve current fees/routing/TP-SL, one test mint/two markets,
+isolated maker capital, zero positive unpaid credit and source/risk safeguards.
+
+Use a fresh versioned local profile and preserve V1/V2 bytes/deployments. No live
+conversion or automatic migration of positions, claims or reserves. New financial
+activation stays disabled until P26 liquidation/default acceptance; P27/P28 own
+fresh services and bounded concurrent exit qualification. P15B/P16B remain external
+and D42 endurance stays Deferred. No funded deployment, outreach, paid service or
+external hedging authorization follows. Phoenix documentation/reconstruction is
+comparative reference, not implementation evidence or a substitute financial spec.
+
+Ready-to-review PRs remain stacked with verified predecessors; retain the new stack
+open pending review/merge direction. WORKLOG records actual publication/integration,
+not this authorization. Existing acceptance IDs/hashes are not reused as new tests.
