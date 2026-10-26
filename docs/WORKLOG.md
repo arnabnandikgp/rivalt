@@ -10,8 +10,8 @@ This is the sole implementation roadmap and live status record. The old research
 **Current design work (R054 / D56):** The user now resumes exit work within the
 account-centric redesign. [P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) separates
 account risk, market eligibility, funded exits and settlement/default boundaries.
-P22A's roadmap is ready for review; R055 starts P22B's independent financial model
-and developing contract. Its concrete loss-allocation decision remains open before
+P22A's roadmap is ready for review; R055 develops P22B's independent financial model
+and contract in stacked PR #33. Its concrete loss-allocation decision remains open before
 dependent implementation. No new runtime path or payout guarantee is claimed.
 The earlier M7 closure/limitations stand; P15B/P16B stay Open and endurance Deferred.
 
@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R055: P22A Review; P22B funded-exit proof and 20 independent model checks pass, but G17 loss/netting contract and all runtime acceptance remain due. No inherited qualification, funded guarantee or external-gate closure |
+| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R055: P22A Review; P22B funded-exit proof and 24 independent model checks pass; its material loss decision is pending (B04). G17 and all runtime acceptance remain due. No inherited qualification, funded guarantee or external-gate closure |
 
 ## Phase overview
 
@@ -74,7 +74,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P21A | Group SDK/indexer/API and durable services | Closed | [PR #30](https://github.com/arnabnandikgp/rivalt/pull/30), final head `61bbfba`, merged `d07fccc` | [A26A/G16 interfaces](evidence/P21A.md): exact incremental SDK/service/financial/recovery acceptance through `882f832` plus auditor `ac828f6`; R052 finalized-tail/funding-expiry RPC/WS/PostgreSQL checks pass on `e4a284c`; scoped CI and integration verified |
 | M7 | P21B | UI/operations and fresh successor qualification | Closed | [PR #31](https://github.com/arnabnandikgp/rivalt/pull/31), final head `1a3cc2c`, merged `d07fccc` | [A26B/G16/M7](evidence/P21B.md): browser `a0ed6de`, workload `6e9fd2f`, independent audit `813ee20`; 25 wallet originals, 150 offers/101 fills, fault recovery, flat drain, three quiescent token exits and fresh PostgreSQL replay. R052 receipt race passes on `c0e5274`; scoped CI/integration pass. Busy-exit follow-up now M8 under D56 |
 | M8 | P22A | Architecture roadmap and financial decision boundaries | Review | [PR #32](https://github.com/arnabnandikgp/rivalt/pull/32), checked `8321677`, above `9d3c295` | A27A: 244 local links, fences, phase rows/dependencies, D56 consistency and evidence policy pass; no code or financial acceptance |
-| M8 | P22B | Exact financial contract and independent reference cases | In progress | `phase/p22b-financial-contract` above #32 `64615a4`; publication pending | R055: 20 independent model checks, including 23,328 withdrawal inputs; [developing contract](P22B-FINANCIAL-CONTRACT.md). Material loss decision and remaining G17 contract pending; not A27B acceptance |
+| M8 | P22B | Exact financial contract and independent reference cases | Blocked | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; initial model checked `2f5edc5` | R055: 24 current independent model checks, including 23,328 withdrawal inputs; [developing contract](P22B-FINANCIAL-CONTRACT.md). B04: explicit loss-policy choice requested; complete G17 still due, not A27B acceptance |
 | M8 | P23 | Registry, accounts and custody | Open | — | P22B / A28 / G18; new trading disabled |
 | M8 | P24 | Risk, funding, routes and orders | Open | — | P23 / A29 / G19 core; ordinary new-profile financial activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Open | — | P24 / A30 / G19 cash; busy-exit and conservation checks |
@@ -87,7 +87,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Current financial work: R055 P22B proves the funded-exit arithmetic separately from gain payment and supplies independently checked default/netting counterexamples. The market/common alternatives allocate losses differently; the product choice and complete G17 contract remain due. No program/SBF/RPC qualification is claimed from model tests.
+- Current financial work: R055 publishes ready-to-review P22B [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32. It proves funded-exit arithmetic separately from gain payment and adds held-funding, authority/dependency and default/netting cases. The 24-check model suite is partial contract evidence; B04's user decision and the complete G17 remain due. No program/SBF/RPC qualification is claimed.
 - Current roadmap: R054 publishes P22A as ready-to-review [PR #32](https://github.com/arnabnandikgp/rivalt/pull/32). Documentation checks on `8321677` pass; no executable changes or new runtime/CI evidence. P22B owns the exact financial contract before implementation; M8 remains In progress and P22A Review pending integration.
 - Integrated baseline: R053 successor PRs #23/#24/#26/#27/#28/#29/#30/#31 merged atomically at `d07fccc108384381c0c5df743d14c2a0bc4f5089`; local `main` fast-forwards to it, with tree exactly equal to reviewed stack tip `1a3cc2c`. This integrates A22–A26/G13–G16 and the bounded M7 engineering exit, including all R052 fixes. Earlier R033 `74fc296`, R030 `67059fc` and the original MVP remain integrated.
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
@@ -103,6 +103,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 | B01 | P01 | Default SBF v1.57 download exhausted disk | `cargo_build_sbf::toolchain`: ENOSPC | Removed only this run's downloaded archives; verified existing platform-tools v1.52 on SBPF v0, recorded D16 | Resolved |
 | B02 | P05 | Multi-platform PostgreSQL image unpack exhausted disk | Apple container NSCocoa 640 / ENOSPC | Removed only new incomplete image (3.6 GB reclaimed); explicit arm64 pull 112.4 MB, then actual PostgreSQL 18.6 acceptance | Resolved |
 | B03 | P13 | No configured Hermes API access | Current documented Pyth Hermes endpoint returns HTTP 403 unauthenticated; official docs require API key; user reports no access | D36 user-approved sponsored Core account reads remove this API prerequisite; actual source/deployment verification remains due | Superseded |
+| B04 | P22B | Different loss policies pay different creditors; new loss ownership not yet selected | [P22B example B](P22B-FINANCIAL-CONTRACT.md): current common payout 50/50 versus proposed market attribution 100/0; independent model checks both | User choice requested asynchronously after reviewable PR #33; then finish netting/default/layout contract and G17 before P23 | Open |
 
 A runtime compatibility failure belongs here with the exact package/command/error and smallest viable alternative. Do not turn it into another general research phase.
 
@@ -1805,3 +1806,23 @@ remains P22B's separate funded-exit and profit/default contract proof.
 - Exact next action: record that loss-policy decision, then finish its full
   settlement/netting/default contract and versioned layouts. Independent authority,
   dependency and funding-proof work may continue meanwhile; P23 cannot start yet.
+
+R055 continuation/publication: committed `2f5edc5e9d38b0efc98483472948b4c4d7c98b09`
+passes all initial 20 model tests, shell syntax, parent-diff whitespace and evidence
+policy. The scoped documentation scan checks 177 local links. `gh stack submit
+--auto --open` creates ready PR #33 above #32 (GitHub stack #34); its base and
+`isDraft:false` are independently fetched. The exact financial decision is asked
+asynchronously after publication; no response/approval is inferred from elapsed time.
+The initial hosted run `40355281643` reports scope/financial/shell SUCCESS with
+client/report SKIPPED; this is distinct from local model and runtime evidence.
+
+While the decision is pending, the follow-up adds an authority/dependency matrix,
+post-withdrawal adverse held-funding corner coverage, immutable consumed-prefix
+counterexample and legitimate signed/fractional funding cases. The affected suite
+passes 24 tests in 0.277 seconds before commit. No unrelated local suite was added.
+The finite 23,328-input enumeration remains a bounded model check; the additional
+endpoint examples are separate checks, not an exhaustive source/concurrency proof.
+Both tables now record P22B Blocked on B04, while M8 remains In progress. P23–P28
+stay Open. The PR is ready for review of the work so far, not complete A27B/G17.
+Exact next action: apply the user's loss-policy choice and complete its full
+settlement/netting/default/layout contract in this same PR before starting P23.

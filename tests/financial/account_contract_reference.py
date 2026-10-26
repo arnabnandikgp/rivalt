@@ -64,7 +64,8 @@ def risk_equity(cash, risk_claims):
     return cash + sum(min(Fraction(claim), 0) for claim in risk_claims)
 
 
-def funded_withdraw(ledger, index, amount, risk_claims, initial_margin=0, reserved=0):
+def funded_withdraw(ledger, index, amount, risk_claims, initial_margin=0, reserved=0,
+                    funding_endpoint_claims=None):
     """Arithmetic candidate only; production must authenticate every precondition."""
     ledger.validate()
     account = ledger.accounts[index]
@@ -76,9 +77,28 @@ def funded_withdraw(ledger, index, amount, risk_claims, initial_margin=0, reserv
             "requirements must be whole nonnegative atoms")
     require(risk_equity(account.cash - amount, risk_claims) >= initial_margin + reserved,
             "post-withdrawal obligations are not covered")
+    endpoints = funding_endpoint_claims
+    if endpoints is None:
+        endpoints = tuple((claim, claim) for claim in risk_claims)
+    require(len(endpoints) == 2 and all(len(pair) == 2 for pair in endpoints),
+            "complete held-funding endpoint pairs required")
+    require(all(type(value) in (int, Fraction) for pair in endpoints for value in pair),
+            "funding endpoints must be exact")
+    require(all(min(pair) <= current <= max(pair) for pair, current in zip(endpoints, risk_claims)),
+            "current risk claim must lie within its funding endpoints")
+    require(risk_equity(account.cash - amount, tuple(min(pair) for pair in endpoints)) >= 0,
+            "post-withdrawal held-funding corner is insolvent")
     result = ledger.replace_account(index, replace(account, cash=account.cash - amount))
     require(result.allocated == ledger.allocated - amount, "cash mismatch")
     return result
+
+
+def accrue_claim(lots, virtual, checkpoint, funding):
+    """Exact claim ownership; signed funding may legitimately increase or decrease."""
+    require(type(lots) is int, "lots must be integral")
+    require(all(type(value) in (int, Fraction) for value in (virtual, checkpoint, funding)),
+            "funding values must be exact")
+    return Fraction(virtual) - lots * (funding - checkpoint)
 
 
 def collect(ledger, index, market, amount):

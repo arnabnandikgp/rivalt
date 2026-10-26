@@ -53,6 +53,28 @@ then add the amount to the recipient without duplicating it. The vault and total
 cash are unchanged. Receiving cash does not by itself grant trading permission.
 Owner, domain, freeze and recipient-binding checks still apply.
 
+### Preserve already-qualified funding-window safeguards
+
+The current certificate also checks held-funding endpoint combinations. The new
+cash path must not forget that obligation when removing the all-member scan:
+after withdrawal, require nonnegative account risk equity at every conservative
+combination of its still-valid held-funding endpoints, in addition to current
+`IM + R` admission. With two positions that means at most four corners. Equivalently
+for these additive claims, use the lower risk claim in each endpoint pair.
+
+For example, cash 100 covers each diagonal `(-60,+60)` and `(+60,-60)` separately,
+but not the mixed `(-60,-60)` corner. The independent reference rejects that exit.
+This is a proposed post-withdrawal requirement; it is not a claim that V2 already
+rechecks its full certificate after changing cash. It preserves the funding-window
+concern without demanding proofs about unrelated members.
+
+Funding history must be irreversible, but the signed funding index need not be
+numerically increasing. If an account consumes index 5 while the market persists
+only 0, later hold expiry must not return its effective index to 0 and refund the
+already-applied debit. Materialize every consumed relevant market prefix in the
+same transaction. New valid negative premiums can legitimately lower the index.
+The reference checks both the rollback counterexample and signed fractional accrual.
+
 ### Required program preconditions
 
 1. Derive the complete market dependency set from canonical positions, nonzero
@@ -61,6 +83,7 @@ Owner, domain, freeze and recipient-binding checks still apply.
 2. Authenticate source bounds and include every pending funding debit at one Clock
    snapshot. Materialize consumed funding prefixes where necessary: a later sampler
    expiry/config change must not reverse funding already applied to an account.
+   Check post-withdrawal held-funding corners as well as current admission.
 3. Recompute all remaining reservations, fee budgets and protection generations.
    Cached UI/worker equity is not authority; deposited cash is not counted twice.
 4. Serialize account/custody changes with Solana write locks; apply checks, state
@@ -191,3 +214,48 @@ and default/fraction contract, numeric/budget bounds, source/payment/freeze poli
 version-specific supersession record and full independent reference cases. Existing
 checks do not close those outputs. External P15B/P16B and deferred endurance remain
 unchanged; no funded deployment, paid service or outreach is authorized.
+
+## 6. Authority and dependency contract prepared independently
+
+This is the proposed non-loss-policy boundary for the fresh profile. Exact ABI
+layouts and selected resolution dependencies still belong to completed G17. A
+market source/configuration being unavailable is not a substitute for an on-chain
+permission check, and a worker's cached account view is not the canonical root.
+
+| Action | Authority | State/dependency obligations |
+|---|---|---|
+| Create portfolio/account | Owner signature; authorized venue/market admission | Canonical venue/owner/index/mode/role, fixed market eligibility, bounded complete member registry, unfrozen state; no initial cash from registration |
+| Deposit | Owner and bound source token account | Root, custody/vault/mint and safety state; real token transfer; no price-dependent trading permission from deposit |
+| Withdraw funded cash | Owner and bound destination | Complete root health/reservations, relevant sources and consumed funding, held-funding corners, custody and selected freeze state; token transfer and checks atomic |
+| Transfer allocated cash | Owner of both distinct roots in the same new deployment/mint | Donor full exit check; recipient funding/identity, no new trading permission; no claim transfer or implicit sibling guarantee |
+| Immediate route | Owner or current account-scoped delegate | Root replay nonce, delegate epoch/expiry, market terms, exact size/side/all-in fee limits, relevant sources/funding, selected maker approvals/config/consumption and complete final health |
+| Place/replace order | Owner or current account-scoped delegate | Persist exact market, version, fee prefix, expiry, reserve and protection authority; recompute every remaining risk-increasing reservation |
+| Cancel | Owner or allowed current delegate; stored permissionless cleanup only for its defined terminal cases | Root/order version and authority; no maker quote or fresh price prerequisite for releasing authority; respect frozen resolution ownership of the book |
+| Execute persisted order | Keeper acting under stored live authority | Same financial dependencies as a route plus remaining quantity/fee, version, trigger, delegate epoch and TP/SL generation/allowance |
+| Grant/revoke delegate | Root owner only | Root-scoped key/expiry/epoch; revoke stale immediate/order authority; no collateral or netting permission delegated |
+| Collect/pay/net claims | Existing role/owner restrictions plus selected settlement contract | Claim/funding ownership and complete selected pool/netting dependencies; the recipient's health check alone never authorizes payout. Final loss/payment policy pending section 4 |
+| Liquidate | Consenting funded receiver under protocol eligibility | Whole-account pre/post target deficit after fees, complete receiver health/reserves, current credible bounds and exact exposure reduction |
+| Freeze/resolve/recover | Defined permissionless bankruptcy proof or source-emergency authority; exact pages; authorized recovery | Complete selected liability membership, prices/funding/epoch and no omitted claims/fractions. No new financial activation before P26 |
+
+**Required dependency set:** derive market identities from every nonzero position,
+nonzero claim, active order/protection and selected action across all touched roots.
+Authenticate even a flat claim's market/ledger ownership. Fresh price is required
+where valuation, reservations or a trigger depends on it; fixed flat claims do not
+invent price exposure. Empty unrelated slots must not acquire an artificial price
+dependency. Shared collateral sources remain relevant wherever an exposed position
+needs collateral-denominated bounds. Missing/duplicate/foreign entries reject.
+
+**Writes versus invalidation:** funded-account mutation still writes the root;
+actual token movement writes custody/vault; consumed funding may write every
+exposed market; routes write selected maker consumption. Those locks are real and
+must be measured. An unrelated account's event must not invalidate the caller's
+intent merely by advancing a venue history counter. Changing genuine authority,
+terms, replay nonce, selected pricing commitments or relevant safety state must
+still be enforced. The final contract must distinguish exact-version commitments
+from user-authorized limits that are re-evaluated against current qualified state.
+
+**Reconstruction:** every changed financial object needs a versioned event and
+canonical sequence/identity. Removing a global validity counter cannot remove
+complete history discovery, immutable original-signature recovery, failed-event
+exclusion or atomic PostgreSQL projection/checkpoint updates. P27 owns the actual
+implementation and recovery evidence, not this dependency matrix.

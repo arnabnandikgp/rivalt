@@ -5,7 +5,7 @@ from fractions import Fraction
 from itertools import product
 
 from account_contract_reference import (
-    Account, CommonLedger, InvalidTransition, apportion_atoms, collect,
+    Account, CommonLedger, InvalidTransition, accrue_claim, apportion_atoms, collect,
     common_default, flat_net, funded_withdraw, market_default_example, pay, risk_equity,
 )
 
@@ -64,6 +64,43 @@ class FundedExitContract(unittest.TestCase):
         funded_withdraw(before, 0, 80, (-20, 0))
         with self.assertRaises(InvalidTransition):
             funded_withdraw(after, 0, 80, (-21, 0))
+
+    def test_all_held_funding_corners_survive_withdrawal(self):
+        ledger = CommonLedger((Account(110, (-60, 60)), Account(0, (60, -60))))
+        # Both diagonal snapshots are solvent at C_after=100, but their adverse
+        # mixed corner (-60,-60) is not. A current-only cash check would miss it.
+        self.assertEqual(risk_equity(100, (-60, 60)), 40)
+        self.assertEqual(risk_equity(100, (60, -60)), 40)
+        with self.assertRaises(InvalidTransition):
+            funded_withdraw(ledger, 0, 10, (-60, 60),
+                            funding_endpoint_claims=((-60, 60), (60, -60)))
+        funded = CommonLedger((Account(140, (-60, 60)), Account(0, (60, -60))))
+        result = funded_withdraw(funded, 0, 10, (-60, 60),
+                                 funding_endpoint_claims=((-60, 60), (60, -60)))
+        self.assertEqual(result.accounts[0].cash, 130)
+
+    def test_incomplete_funding_window_rejects(self):
+        ledger = CommonLedger((Account(10, (0, 0)),))
+        with self.assertRaises(InvalidTransition):
+            funded_withdraw(ledger, 0, 1, (0, 0), funding_endpoint_claims=((0, 0),))
+
+    def test_materialized_prefix_must_not_revert_after_hold_expires(self):
+        after_five_seconds = accrue_claim(3, 0, 0, 5)
+        self.assertEqual(after_five_seconds, -15)
+        # Persisting the consumed prefix keeps the debit after hold expiry.
+        self.assertEqual(accrue_claim(3, after_five_seconds, 5, 5), -15)
+        # This is the counterexample, not an allowed rollback transition:
+        self.assertEqual(accrue_claim(3, after_five_seconds, 5, 0), 0)
+
+    def test_signed_funding_and_split_accrual_retain_fractional_ownership(self):
+        first = accrue_claim(3, 0, 0, Fraction(1, 10))
+        split = accrue_claim(3, first, Fraction(1, 10), Fraction(3, 10))
+        whole = accrue_claim(3, 0, 0, Fraction(3, 10))
+        self.assertEqual(split, Fraction(-9, 10))
+        self.assertEqual(split, whole)
+        self.assertEqual(accrue_claim(0, split, Fraction(3, 10), -2), Fraction(-9, 10))
+        # Preserve funding history, not a numeric max(F): negative premiums are valid.
+        self.assertEqual(accrue_claim(3, 0, 0, Fraction(-1, 10)), Fraction(3, 10))
 
     def test_exhaustive_admitted_exits_preserve_full_negative_claim_backing(self):
         admitted = rejected = 0
