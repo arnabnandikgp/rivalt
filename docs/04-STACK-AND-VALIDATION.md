@@ -1,6 +1,15 @@
 # Stack, validation and measurement
 Rivalt · baseline R1 · 20 October 2026
 
+P17–P21 retain these pinned tools. [P17](P17-MARGIN-CONTRACT.md) defines fresh
+successor golden cases, versioned layout/authority tests, whole-account funding,
+reservation/transfer/protection checks and complete-group liquidation/default
+qualification. A22–A26 in the delivery plan are new evidence gates; prior A01–A21
+or the proposal's arithmetic checks do not qualify changed economic behavior.
+Use actual signed SBF and Surfpool/RPC/WS/PostgreSQL integration where required;
+record bounded load, transaction budgets and group/root contention. D42's full-day
+deferral and separate P15B/P16B external gates remain unchanged.
+
 ## Selected stack
 
 These are implementation starting selections, not an installed/tested lockfile.
@@ -206,3 +215,74 @@ P12 verification is scoped to its resource options, measurement logic, actual of
 D38: retain raw run files locally at their current paths, untracked/ignored; keep concise Markdown reports and necessary bounded regression fixtures in Git. A fresh clone runs ordinary tests without the local captures. Full retained-run auditors require actual local input and must fail if it is unavailable. See [storage policy](EVIDENCE.md). A source-preserving cleanup is not another financial/soak run.
 
 D41 separates engineering and external evidence: P15A supplies reproducible internal operator qualification and exact economics tooling; P16A supplies explicit availability denominators/classification and bounded, change-focused operational verification; D42 supersedes D41's full-day requirement. A20B/A21B retain the independent-participant/review/funded gates. No new full-body checks are required for unrelated changes; continuous 24-hour qualification stays explicitly Deferred, not passed or replaced by a bounded check.
+
+
+## P18B scoped primitive verification
+
+Use `bash ops/build-group-trading.sh` for the three changed default/successor
+programs and required signed local source fixture. Each SBF command fails the
+wrapper immediately on a 4,096-byte stack diagnostic. The generator retains
+legacy flattened arguments deliberately; isolated Anchor comparisons cover the
+new envelopes, optional accounts and order variants as well as affected V1 route
+and maker interfaces. `pnpm typecheck` checks the integrated client surface.
+
+`cargo test -p financial-core --test margin --test market_oracle --locked` and
+`cargo test -p clearing --lib instructions::group_trading::tests --features
+successor-test-profile --locked` exercise actual Rust candidates with independent
+expected results. `node --import tsx tests/rpc-contract/group-trading-svm.ts` sends
+real signed transactions to compiled programs, including four separately funded
+maker roots, six signed fixture sources and compile-time trading rejection.
+It compares actual account bytes with isolated legacy Anchor, then runs the
+independent Python raw-byte auditor and six adverse byte mutations.
+
+Declare 1,200,000 CU for complete-maker source samples and 400,000 CU for the other
+setup/quote scenarios; require 20% measured CU headroom and at most 1,232 packet
+bytes. Report actual accounts and populations. These are neither activated route
+budgets nor RPC/WS/PostgreSQL service qualification; P18C/P21 own those checks.
+Retain raw files in unique ignored `.local/group-trading/` run directories and
+scoped build artifacts/logs in `.local/successor-p18b/`. No V1 history/load/soak
+rerun is required by this phase.
+
+## P18C scoped safety verification
+
+`bash ops/build-group-safety.sh` builds default/successor clearing and A/B plus the
+unchanged source fixture with the pinned SBF frame guard and regenerated clients.
+Development iterations may rebuild only changed clearing; final acceptance must
+record all exact program hashes and generated-output parity. `pnpm typecheck`
+covers the changed public interfaces. Legacy Anchor remains isolated.
+
+Run `cargo test -p financial-core --test margin_safety --locked --offline` and
+`cargo test -p clearing --lib instructions::group_ --features successor-test-profile
+--locked --offline` for actual safety/trading candidates, plus the changed
+`state::v2::tests` codec bounds and `event_cpi` wire-parity test. Use
+`CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0` for bounded local build storage.
+`node --import tsx tests/rpc-contract/group-safety-svm.ts` submits signed, verified
+transactions to compiled programs and writes unique ignored `.local/group-safety/`
+runs. `python3 tests/financial/group-safety-reference.py RUN_DIRECTORY` independently
+decodes cash/exposure/funding/default ownership and rejects six byte mutations.
+Counts include setup/source observations and exact rejection cases, not distinct
+financial vectors. Failed runs stay local with their transaction/log capture.
+
+The local candidate declares 600,000 CU for group routes, 1,200,000 for full-source
+sampling/default pages and 400,000 otherwise; acceptance requires 20% measured
+headroom and <=1,232 bytes. These are provisional envelopes, not throughput or
+contention results. The default 32 KiB SBF heap is retained. `bash ops/group-safety-smoke.sh` deploys
+fresh local programs and verifies both-market lifecycle over real RPC/WS, fetching
+every original signature finalized. The auditor
+`python3 tests/financial/group-safety-reference.py RUN_DIRECTORY --ordinary`
+uses literal maker-curve and cash expectations and rejects four mutations.
+[A23C/G14](evidence/P18C.md) records committed acceptance on `b43261f`, including
+orders, emergency recovery and legacy account/event parity. P21 owns
+PostgreSQL/UI/services and new bounded contention qualification.
+
+## P21B scoped UI and contention qualification
+
+`bash ops/group-indexer-smoke.sh --browser` uses actual Wallet Standard signing,
+RPC/WS and PostgreSQL; `--workload` is the separate 300-second/150-offer population
+on a clean revision with the unchanged qualified binaries. Independent auditors
+under `tests/financial/group-{browser,workload}-reference.py` read retained captures
+without regenerating financial runs. The PostgreSQL history regression executes
+`tests/rpc-contract/group-history-postgres.ts` against an isolated actual database.
+[The report](evidence/P21B.md) preserves command failures, corrected standalone audit
+attribution, all denominators and the 0/3 busy versus 3/3 quiescent exit distinction.
+No source/sequence guards are relaxed and no continuous 24-hour test is implied.

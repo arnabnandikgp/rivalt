@@ -5,6 +5,12 @@ Rivalt is a new Solana perpetual venue with common clearing, isolated collateral
 
 ## Start here
 
+The isolated/cross successor starts at [P17's account/group contract](docs/P17-MARGIN-CONTRACT.md)
+and P17–P21 in the delivery plan. It targets a fresh local two-market test group;
+the existing V1 implementation is preserved. [P20](docs/evidence/P20.md) qualifies
+cross trading only in its explicit local profile after whole-account safety
+acceptance; service/UI qualification remains P21. WORKLOG records actual progress.
+
 Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product scope](docs/01-PRODUCT.md) and [the delivery plan](docs/05-DELIVERY-PLAN.md). Before implementing a phase, read its domain documents and decision gates. For program code, start with the [clearing source map](programs/clearing/README.md).
 
 | File | Authority / purpose |
@@ -75,3 +81,17 @@ D41 extends the completed engineering MVP with **P15A** maker integration/econom
 The [reference maker kit](docs/P15A-MAKER-KIT.md) packages operator configuration, SDK examples, a bot entrypoint and exact economics reporting. `pnpm maker:build` builds its four local artifacts; `pnpm maker:qualify` runs its bounded workflow on fresh Surfpool/PostgreSQL state. Both makers and all prices/collateral remain explicitly internal/synthetic. WORKLOG records the actual acceptance status.
 
 [Operational readiness](docs/P16A-OPERATIONS.md) explains the original 71.19% availability with explicit quote/submission/fill denominators and recorded refusal causes. `pnpm test:readiness` exercises bounded source/signature/indexer recovery and direct exit; `pnpm report:availability` analyzes retained attempt records without claiming a new load or endurance result.
+
+P21A adds the versioned group SDK, PostgreSQL/read API and durable maker/funding/
+order/settlement/risk services on P20's explicit qualified local artifacts.
+[Fresh interface evidence](docs/evidence/P21A.md) includes complete 64-member
+default, process recovery, independent accounting, exact program identity and
+API-independent exits. P21B still owns the successor UI and bounded concurrent
+workload; WORKLOG records Review/integration status.
+
+[P21B](docs/P21B-QUALIFICATION.md) adds the portfolio-zero isolated/cross wallet UI
+and a fresh bounded two-market workload. [Its report](docs/evidence/P21B.md) records
+real wallet/RPC/WS/PostgreSQL checks, exact financial reconciliation and measured
+limits: continuous sampling invalidated exit certificates; explicit quiescent exits
+succeeded. This is an operator-controlled test profile, not funded readiness or
+always-live exit availability. WORKLOG owns open-stack Review/integration status.

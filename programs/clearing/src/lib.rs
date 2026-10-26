@@ -4,6 +4,7 @@ use maker_interface::QuoteResponse;
 
 pub mod constants;
 pub mod error;
+mod event_cpi;
 pub mod events;
 pub mod instructions;
 #[cfg(any(test, feature = "devnet-test-profile"))]
@@ -29,6 +30,210 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 #[program]
 pub mod clearing {
     use super::*;
+
+    pub fn execute_margin_route_v2(
+        ctx: Context<ExecuteMarginRoute>,
+        sequence: u64,
+        observations: [u64; 2],
+        intent: RouteIntent,
+    ) -> Result<()> {
+        group_margin::trading::execute(ctx, sequence, observations, intent)
+    }
+    pub fn execute_margin_order_v2(
+        ctx: Context<ExecuteMarginRoute>,
+        sequence: u64,
+        observations: [u64; 2],
+        args: OrderExecution,
+    ) -> Result<()> {
+        group_margin::trading::execute_order(ctx, sequence, observations, args)
+    }
+    pub fn manage_margin_order_v2(
+        ctx: Context<ManageMarginOrder>,
+        sequence: u64,
+        observations: [u64; 2],
+        operation: GroupOrderAction,
+    ) -> Result<()> {
+        group_margin::trading::manage(ctx, sequence, observations, operation)
+    }
+
+    pub fn net_margin_claims_v2(
+        ctx: Context<NetMarginClaims>,
+        sequence: u64,
+        observations: [u64; 2],
+    ) -> Result<()> {
+        group_margin::netting::net(ctx, sequence, observations)
+    }
+
+    pub fn set_margin_delegate_v2(
+        ctx: Context<SetMarginDelegate>,
+        delegate: Pubkey,
+        expiry_slot: u64,
+    ) -> Result<()> {
+        group_margin::authority::set(ctx, delegate, expiry_slot)
+    }
+
+    pub fn allocate_group_fees_v2(ctx: Context<ControlGroupV2>, amount: u64) -> Result<()> {
+        group_custody::allocate_fees(ctx, amount)
+    }
+    pub fn initialize_group_safety_v2(ctx: Context<InitializeGroupSafety>) -> Result<()> {
+        group_safety::settlement::initialize(ctx)
+    }
+    pub fn activate_isolated_group_v2(ctx: Context<ActivateIsolatedGroup>) -> Result<()> {
+        group_safety::settlement::activate(ctx)
+    }
+    pub fn activate_cross_group_v2(ctx: Context<ActivateIsolatedGroup>) -> Result<()> {
+        group_safety::settlement::activate_cross(ctx)
+    }
+    pub fn check_group_exit_v2(
+        ctx: Context<CheckGroupExit>,
+        sequence: u64,
+        observations: [u64; 2],
+        start: u16,
+    ) -> Result<()> {
+        group_safety::settlement::check(ctx, sequence, observations, start)
+    }
+    pub fn change_group_claim_v2(
+        ctx: Context<ChangeGroupClaim>,
+        sequence: u64,
+        observations: [u64; 2],
+        market_index: u8,
+        amount: u64,
+        gain: bool,
+    ) -> Result<()> {
+        group_safety::settlement::change(ctx, sequence, observations, market_index, amount, gain)
+    }
+    pub fn group_trading_cash_v2(
+        ctx: Context<GroupTradingCash>,
+        sequence: u64,
+        observations: [u64; 2],
+        amount: u64,
+        withdraw: bool,
+    ) -> Result<()> {
+        group_safety::settlement::cash(ctx, sequence, observations, amount, withdraw)
+    }
+    pub fn transfer_trading_cash_v2(
+        ctx: Context<TransferTradingCash>,
+        sequence: u64,
+        observations: [u64; 2],
+        amount: u64,
+    ) -> Result<()> {
+        group_safety::settlement::transfer(ctx, sequence, observations, amount)
+    }
+    pub fn liquidate_group_v2(
+        ctx: Context<LiquidateGroup>,
+        sequence: u64,
+        observations: [u64; 2],
+        market_index: u8,
+        lots: u64,
+        price: u64,
+    ) -> Result<()> {
+        group_safety::risk::liquidate(ctx, sequence, observations, market_index, lots, price)
+    }
+    pub fn freeze_group_v2(
+        ctx: Context<FreezeGroup>,
+        sequence: u64,
+        observations: [u64; 2],
+        emergency: bool,
+    ) -> Result<()> {
+        group_safety::resolution::freeze(ctx, sequence, observations, emergency)
+    }
+    pub fn advance_group_resolution_v2(
+        ctx: Context<AdvanceGroupResolution>,
+        epoch: u64,
+        stage: u8,
+        start: u16,
+    ) -> Result<()> {
+        group_safety::resolution::advance(ctx, epoch, stage, start)
+    }
+    pub fn recover_group_resolution_v2(
+        ctx: Context<RecoverGroupResolution>,
+        epoch: u64,
+        resume: bool,
+    ) -> Result<()> {
+        group_safety::resolution::recover(ctx, epoch, resume)
+    }
+
+    pub fn register_group_maker_v2(
+        ctx: Context<RegisterGroupMaker>,
+        maker_id: u8,
+        inventory_limit: u64,
+    ) -> Result<()> {
+        group_trading::makers::register(ctx, maker_id, inventory_limit)
+    }
+    pub fn update_group_maker_v2(ctx: Context<UpdateGroupMaker>, operation: u8) -> Result<()> {
+        group_trading::makers::update(ctx, operation)
+    }
+    pub fn preview_group_maker_v2(
+        ctx: Context<PreviewGroupMaker>,
+        args: PreviewArgs,
+    ) -> Result<QuoteResponse> {
+        group_trading::makers::preview(ctx, args)
+    }
+    pub fn initialize_group_oracle_v2(
+        ctx: Context<InitializeGroupOracle>,
+        primary: Pubkey,
+        guard: Pubkey,
+    ) -> Result<()> {
+        group_trading::oracle::initialize(ctx, primary, guard)
+    }
+    pub fn sample_group_oracle_v2(ctx: Context<SampleGroupOracle>) -> Result<()> {
+        group_trading::oracle::sample(ctx)
+    }
+    pub fn manage_group_order_v2(
+        ctx: Context<ManageGroupOrder>,
+        operation: GroupOrderAction,
+    ) -> Result<()> {
+        group_trading::routes::manage(ctx, operation)
+    }
+    pub fn execute_group_route_v2(
+        ctx: Context<ExecuteGroupRoute>,
+        intent: RouteIntent,
+    ) -> Result<()> {
+        group_trading::routes::execute(ctx, intent)
+    }
+    pub fn execute_group_order_v2(
+        ctx: Context<ExecuteGroupRoute>,
+        args: OrderExecution,
+    ) -> Result<()> {
+        group_trading::routes::execute_order(ctx, args)
+    }
+
+    pub fn initialize_group_v2(ctx: Context<InitializeGroupV2>, domain: [u8; 32]) -> Result<()> {
+        group_custody::initialize(ctx, domain)
+    }
+    pub fn initialize_group_market_v2(
+        ctx: Context<InitializeGroupMarketV2>,
+        index: u8,
+    ) -> Result<()> {
+        group_custody::initialize_market(ctx, index)
+    }
+    pub fn create_portfolio_v2(ctx: Context<CreatePortfolioV2>, index: u16) -> Result<()> {
+        group_custody::create_portfolio(ctx, index)
+    }
+    pub fn register_margin_v2(
+        ctx: Context<RegisterMarginV2>,
+        subaccount_index: u16,
+        mode: u8,
+        isolated_market_index: u8,
+        role: u8,
+    ) -> Result<()> {
+        group_custody::register(ctx, subaccount_index, mode, isolated_market_index, role)
+    }
+    pub fn deposit_group_v2(ctx: Context<GroupCashTransferV2>, amount: u64) -> Result<()> {
+        group_custody::cash(ctx, amount, false)
+    }
+    pub fn withdraw_group_custody_v2(ctx: Context<GroupCashTransferV2>, amount: u64) -> Result<()> {
+        group_custody::cash(ctx, amount, true)
+    }
+    pub fn transfer_group_custody_v2(ctx: Context<TransferGroupCashV2>, amount: u64) -> Result<()> {
+        group_custody::transfer(ctx, amount)
+    }
+    pub fn pause_group_custody_v2(ctx: Context<ControlGroupV2>, paused: bool) -> Result<()> {
+        group_custody::pause(ctx, paused)
+    }
+    pub fn classify_group_surplus_v2(ctx: Context<ControlGroupV2>) -> Result<()> {
+        group_custody::classify_surplus(ctx)
+    }
 
     pub fn initialize_resolution(ctx: Context<InitializeResolution>) -> Result<()> {
         resolution::initialize(ctx)

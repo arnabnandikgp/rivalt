@@ -58,6 +58,10 @@ No generic “TBD” may escape into an executable phase. Missing a gate blocks 
 | G10 | Liquidation bands/fees/receiver constraints, default thresholds, page budgets and recovery authority | P09 | Strict post-fee progress, complete-cohort deterministic payouts and restart |
 | G11 | Cluster IDs, mint/authorities, real primary verification programs/feed IDs, declared guard trust and RPC configuration | P13 | Actual on-chain dependency checks; an operator-controlled guard is an explicitly limited engineering profile, never proof of independence |
 | G12 | Independent live source/guard assurance, liquidity, risk limits, insurance budgets, operational costs, review findings and pilot limits | P15B/P16B; A phases supply engineering inputs only | Independent observations/review; unresolved guard independence blocks funded-pilot readiness; funded use needs separate authorization |
+| G13 | Schema-2 identities/layouts, group terms, authority, immutable modes and successor migration contract | P17 | Code-to-contract audit, bounded serialization/identity checks; no financial activation |
+| G14 | Two-market source/lot/config identity, isolated capital, event/ABI and group custody/exit/default profile | P18A–C | Signed custody, isolated market lifecycles, independent accounting and measured complete-group recovery |
+| G15 | Whole-account funding/health/reserves, transfer/netting/delegation and cross activation | P19/P20 | Independent vectors, adversarial full-dependency checks and liquidation/default acceptance before enablement |
+| G16 | Group service/indexer/SDK/UI interfaces, operational budgets and bounded successor qualification | P21A–B | Actual RPC/WS/PostgreSQL/browser lifecycle, fresh replay, budget/contention and complete failure populations |
 
 G02 is an implementation precision choice, not permission to change the cash/claims rules. Program addresses, keys and endpoints are deployment outputs; this documentation must not invent them.
 
@@ -294,3 +298,313 @@ Changes to fee policy, custody authority, loss bearer, margin model, market scop
 
 - **D44:** The user explicitly authorizes addressing the posted findings and merging PRs #20/#21, superseding D41's keep-open instruction for this stack. Both phases remain Review until actual integration is verified. P15B/P16B remain external Open gates; D42's deferred endurance and all funded/outreach restrictions are unchanged.
 - Bind an opening economics checkpoint to the configured maker's owner and live capital before capture, in addition to the existing run/market/domain checks. Log a bounded failure reason once per maker outage, redacting the configured database URL and incidental URLs before truncation. No on-chain authority, economic arithmetic, signing, retry, fee or oracle policy changes. Verify the affected CLI boundary and diagnostic redaction; retain prior integrated-flow evidence with its original attribution instead of rerunning unrelated suites.
+
+## 25 October 2026 — authorized isolated/cross successor
+
+- **D45 / explicit supersession for schema 2 only:** The user authorizes the supplied isolated/cross proposal as the direction for a bounded test prototype, not an audited current specification. Supersede D02's isolated-only trader scope, D03's one-market limit, D12's market-only account/coordination boundary and D15's original 16-phase ceiling. Add P17–P21 and M7 without renumbering completed work or closing M6. Inspect actual `b005478`, not the proposal's uninspected `366b09d`. P17 records the concrete gap matrix and normative successor contract.
+- **D46 / G13:** Adopt group → owner portfolio → immutable margin-root identities in fresh versioned PDAs, two canonical position slots, 64 stable group members, portfolio indexes 0–3 and child indexes 0–8. Child zero is cross; positive children are isolated to one immutable market. Maker capital stays isolated with one registration binding. One six-decimal mint; BTC/ETH lot sizes 1,000,000/100,000 per unit; retain synthetic 10%/5% IM/MM and existing fixed-point bounds. Account-specific owner-set expiring delegate may trade/cancel but cannot transfer/withdraw/net claims; revocation increments an immediately checked epoch. No account deletion, role/mode conversion, automatic family collateral or owner rotation.
+- **D47 / intentional economic supersessions:** Generalize D07/D19/D20 to count funded cash once and sum negative market risk claims, with additive margin and remaining reservations. No positive open-gain offset or correlation credit. Add explicit owner-authorized flat-only same-root/group closed-claim cancellation with exact fractions and no cash creation. Generalize D10/D26/D30 from market-local to complete-group settlement/default: shared P/I/T/vault, complete group exit proof, terminal account-net claims before existing insurance/impairment/rounding waterfall. Normal settlement stays first-admissible; paid gains are not clawed back; sibling funded cash is not a guarantee. Conservative negative risk equity alone never proves default. Preserve strict post-fee whole-account liquidation progress and funded receiver requirements.
+- **D48 / activation and evidence:** Fresh local test deployment/domain; no V1 byte migration or devnet upgrade. Old funds move only through separately admissible owner withdrawal and explicit new deposit; never relabel claims, fractions or reserves. P18 isolated activation waits for its liquidation/group-default checks; cross activation is compile-time disabled until P20's actual acceptance, plus explicit successor local profile. Independent golden cases must test the real code, then signed SBF and actual Surfpool/RPC/WS/PostgreSQL flows. Measure packet/CU/account bounds and contention. P16A or proposal arithmetic is not successor acceptance. D42 remains Deferred; P15B/P16B stay Open and external/funded/outreach authorization is unchanged.
+
+- **D46 P18A custody realization / G14 custody:** Owner-selected immutable role is validated at registration; maker admission remains a separate future authority operation. Initialize BTC then ETH with fixed identities before portfolios. Custody mode permits real deposits, owner exits and explicit same-owner/same-group transfers only with canonical empty financial fields, plus authority pause and surplus-to-insurance classification. Default/devnet cannot activate this successor profile. Critical group events use nullable actual-vault observations rather than a fake zero for operations that did not read it. [P18A](P18A-GROUP-CUSTODY.md) pins the ABI/profile and focused checks; [A23A evidence](evidence/P18A.md) records custody acceptance on `6389c3e`. G14 trading/recovery remains pending.
+
+
+### D49 — Successor two-market test primitives (P18B / G14 trading)
+
+BTC source prices retain the USD 10,000–100,000 range and 1,000,000 lots/unit.
+ETH uses USD 1,000–10,000 and 100,000 lots/unit: checked multiplication of both
+asset value and confidence by ten precedes the existing conservative ratio and
+interval rounding. Collateral remains six-decimal classic SPL. Both therefore use
+the bounded 10,000–100,000 quote-atoms/lot reference range, existing strategy and
+execution bands, order bounds and 10%/5% synthetic margin. These are provisional
+local test limits, not calibrated production parameters or correlation discounts.
+
+Six signed local fixture accounts bind primary/guard BTC IDs 1/3, shared collateral
+2/4 and primary/guard ETH 5/6. V1/devnet adapters are unchanged. Local age remains
+20 seconds; no new freshness relaxation. Each market has its own observation,
+held premium, funding index and recovery history. Pre-activation samples cannot
+charge funding. Maker config/requests carry version 2 and the group identity;
+read-only CPI still receives only the config, with actual ProgramData hash approval.
+Four distinct isolated capital bindings serve two A/B markets, using unchanged
+strategy arithmetic and 2 bps taker/zero provider fees. Approval is joint owner /
+group authority, epoch sync owner-only and quarantine authority-only.
+
+This implements D45–D48's selected scope; it does not supersede their activation,
+netting, liquidation/default or external-gate rules. Isolated activation remains
+false through P18B; cross activation remains false through P19. See
+[P18B primitives](P18B-ISOLATED-PRIMITIVES.md) and the actual acceptance status in
+WORKLOG; the choice of parameters alone closes no gate.
+
+D49 verification: [A23B](evidence/P18B.md) passes on `286cb4e` with actual signed
+source/maker setup and compiled gate rejection. This verifies G14 trading
+primitives only; G14 closes after P18C safety and activated lifecycle acceptance.
+
+## D50 — successor isolated safety lifecycle and dormant cross cash
+
+P18C retains the D45–D49 economics and resolves the ordinary lifecycle detail that
+schema-2 child zero can already exist and hold cash before cross activation.
+Include these dormant cross roots in complete-group certification/default and
+permit explicit owner cash allocation/withdrawal after isolated activation. Reject
+any exposure, claim, active order/protection or delegate on them until their own
+phase permits it. Activating isolated mode must not lock their previously deposited
+cash or grant cross trading authority.
+
+Keep bounded source qualification at activation and resume; reset held funding so
+no custody/frozen interval is charged. Registration and authority pause/surplus
+classification work in unfrozen isolated mode; frozen default blocks them. A pause
+does not block credible insolvency or qualified emergency default. Existing T
+moves to I only via an explicit authority instruction. Actual SPL donations plus
+surplus classification remain the insurance funding route. Permissionless order
+cleanup requires a real state/reserve change; other order changes retain owner
+authority. None of these choices supersedes fees, positive-unpaid-credit exclusion,
+complete-group loss ownership or external P15B/P16B gates. See
+[P18C](P18C-GROUP-SAFETY.md). [A23C/G14](evidence/P18C.md) is verified on
+`b43261f` for the explicit isolated local profile. This grants no cross or
+default/devnet activation and does not close P15B/P16B.
+
+## D51 — whole-account core and explicit delegated authority (P19 / G15 core)
+
+Implement P17's complete two-slot funding/health/reservations using the existing
+root layout and accounting engine. Authenticate both canonical group market
+dependencies; price availability is required only for relevant exposure/authority
+and the selected operation. Explicit transfer admits the donor after refreshed
+reserves and accrues both recipient slots without granting recipient trading rights.
+Flat-only opposite-claim cancellation preserves exact fractions and all cash pools;
+owner/group/active-order checks belong to clearing, not the arithmetic helper.
+
+Per-root delegate grants use exclusive expiry bounded by the existing 216,000-slot
+order lifetime. Every owner change/revocation advances both delegate epoch and
+route nonce, so revoking and regranting the same key cannot revive an old signed
+immediate intent. Owner orders use epoch zero; delegated orders require the live
+grant epoch. No cash allocation/netting/maker-config authority is delegated.
+Historical protection allowance with no live child is inactive; no stored stale
+field can revive an order on another market or generation.
+
+These are ordinary realizations of D46–D48, not new collateral or fee economics.
+[P19](P19-CROSS-CORE.md) has [A24/G15 core acceptance](evidence/P19.md) on `4274d28`. Cross
+activation remains false until P20's actual liquidation/default checks. The phase
+does not authorize any new deployment outside the fresh local test profile.
+
+D51 authority realization deliberately supersedes D50's temporary no-delegate
+restriction on dormant cross cash roots. A grant does not permit cross exposure,
+claims or orders while activation is false, and it cannot lock an otherwise valid
+owner cash exit. Allow owner grants/revocation in qualified unfrozen financial
+mode, including while paused; reject custody and frozen resolution mutation.
+Owner replacement reauthorizes an order at epoch zero; a delegate replacement
+adopts the live grant epoch so its edits cannot survive revocation as owner authority.
+
+D51 funding realization: whole-account mutations materialize both canonical market
+funding prefixes at one Clock snapshot, even when only BTC exposure changes. A
+read-only ETH endpoint applied to a root could otherwise be forgotten after the
+hold expires and later reverse that previously applied debit. This requires both
+market write locks for whole-account instructions; measure that contention in
+P20/P21. Existing single-market isolated entrypoints retain their footprint. P17
+G02's no-write wording describes pending-funding valuation, not a permission to
+omit an authoritative prefix when committing a whole-account mutation. Require
+Normal for every relevant market on increases and credible bounds for reductions;
+empty unrelated slots need no fresh price. No oracle deadline is relaxed.
+
+
+## D52 — whole-account safety realization (P20)
+
+Extend the existing consenting-receiver liquidation candidate to both root modes,
+including all pending funding and surviving receiver reservations. Preserve
+credible-bound liquidation in degraded mode and the strict post-fee whole-account
+MM-deficit decrease. Target risk orders cancelled atomically by the liquidation
+cannot make an otherwise empty market a required price input; target exposure and
+all remaining receiver authority still require credible bounds. No fee, margin,
+source deadline or default loss ownership changes. Runtime cross liquidation keeps
+the same explicit release gate while pure candidates are verified.
+
+[P20](P20-CROSS-SAFETY.md) owns complete-group net default, missing-price recovery,
+full endpoint certification and signed qualification before cross release. P19
+acceptance does not close these checks. P15B/P16B remain Open and D42 remains Deferred.
+
+D52 candidate verification: the ordinary cross release constant remains false.
+A separately named `cross-safety-qualification` local build executes the actual
+safety instructions solely in the bounded P20 harness before release promotion;
+default, devnet and ordinary successor artifacts retain their rejection boundary.
+Do not cite candidate build/host checks as signed A25 acceptance. No unsafe profile
+is added to a general runtime launcher. The existing local/devnet feature exclusion
+also rejects combining the candidate with devnet.
+
+D52 activation/recovery realization: explicit authority promotion from isolated to
+cross mode requires both markets Normal and complete current certification. Keep
+already-earned funding and materialize both prefixes; do not reuse custody's
+funding reset. Resolved groups return to isolated mode, and require fresh Normal
+observations/certification and authority promotion before cross resumes. Recovery
+never changes a root's immutable margin mode. The funding-endpoint certificate
+must cover mode 2 and all adverse mixed corners. No layout migration is required.
+
+D52 transaction envelope: the maximum four-order cross book makes an atomic
+owner transfer plus two-maker route exceed the 20% headroom threshold under the
+standalone 600,000-CU budget. Give that combined path an explicit 700,000-CU SDK
+budget. Preserve 600,000 for standalone routes and 1,200,000 for source sampling
+and default pages. This changes a client resource declaration, not fees, margin,
+source safeguards or bounded account/order capacity. Final actual RPC measurements
+and qualification status belong in WORKLOG/evidence.
+
+D52 qualified release supersedes its temporary candidate-only wording above:
+[A25/G15](evidence/P20.md) passes on pinned core and focused maximum-book runs.
+`CROSS_TRADING_IMPLEMENTED` now reflects the explicit
+`cross-safety-qualification` feature; retain the historical name for reproducibility.
+The ordinary isolated successor, default and devnet profiles keep cross disabled.
+This preserves the existing isolated environment while P21 explicitly selects the
+qualified cross artifact for new local groups. Rebuilding the release marker with
+preserved code locations produces byte-identical clearing artifacts in all three
+profiles; no financial opcode changes accompany this promotion. Six scoped host
+identity/profile checks pass. This qualifies local engineering only, not P21,
+M7 completion or any external/funded gate.
+
+## D53 — versioned successor service boundary (P21A)
+
+Reuse the append-only PostgreSQL journal and finalized recovery machinery through
+an explicit protocol projection adapter. SQL journal schema 1 remains compatible;
+immutable `binding.schema=2` selects the fresh group contract and rejects V1 access
+to that run. Group events use one global sequence across both markets. Reconcile
+every projected account and exact frozen ledger before checkpoint advance; include
+the group in every bounded RPC account chunk to detect intervening mutations.
+
+Expose `/v2` group/portfolio/root/history reads, with finalized projection identity
+and separate on-chain Clock context for pending funding/reservation previews. Cash
+is counted once per margin account; neither positive unpaid open claims nor a
+portfolio-wide aggregate grants risk credit. Local cash headroom is not permission
+to withdraw: require complete-group certification and actual simulation. This is
+an interface choice, not a change to financial/on-chain authority or economics.
+P21A's direct clients, immutable worker budgets/recovery and complete fresh
+qualification remain required before Review; prior P20/P16A evidence is not a
+substitute. P15B/P16B stay Open and D42 stays Deferred.
+
+D53 group execution realization: keep the existing immutable queue and 16-attempt
+operator ceiling. Extend expiry proofs with explicit V2 schema/group identity and
+separate account nonce, group sequence and market maker-epoch stamps. Incomplete
+history never releases an unknown fee reservation. Group wallet ingress admits
+only a reviewed single action or the explicit transfer/route pair under P20's
+measured compute declarations. Per-market maker/funding heartbeat and SOL budget
+identities are separate; the fixed local caps in P21A-INTERFACES fund infrastructure
+only and do not alter collateral, fee economics or external authorization. Actual
+process recovery and full service qualification remain evidence gates.
+
+D53 direct-client realization: share V1's immutable message/signature/fee recovery
+transport while binding schema-2 snapshots to the configured group and exact
+initialization transaction hash. Repeat group bytes across bounded account requests
+and reject mixed snapshots. Keep complete-group certificate pages separate from
+cash mutations because Solana promotes writability across a transaction. Preserve
+stale-source cancellation and already-authorized flat-cohort exits without changing
+source deadlines, funding, reservations or owner authority. Direct SDK checkpoints
+do not close A26A's financial workers or A26B's UI/contention gates.
+
+D53 market-worker realization: use four distinct maker liveness identities and two
+funding budgets even when internal operator keys are shared across markets. Bind
+actual config, isolated capital and approved ProgramData independently of daemon
+liveness. Owner publication/sync never grants approval authority. Continue signed
+source sampling during stale/unavailable inputs so clearing records restrictive
+modes; retaining its original cadence and freshness checks is mandatory. This adds
+service discovery only, not new economics or an external-maker claim.
+
+D53 quote realization: retain the fixed A/B search and pricing strategies, replacing
+only its explicitly selected group admission callback with full-root funding,
+negative-claim equity and remaining reservations. Match a pending confirmed oracle
+sample to its exact group/market snapshot before using it for quote availability;
+queue effects/fees still require original-signature finality. Direct SDK messages
+bind both observations and group sequence and sign exact reviewed fee/all-in bounds.
+Client candidate tests do not replace new signed A26A financial integration evidence.
+
+
+D53 ordinary-settlement realization: use a separate group-wide fee budget and
+confirmed snapshots for unsigned claim/proof preparation, retaining finalized
+original-signature effects and fees. Whole-atom collection/payment preserves
+fractions, full-root funding/reservations and owner-only closed netting. Canonical
+read-only certificate pages remain separate from cash mutations; all funding
+corners and complete-group authority stay on chain. Busy global sequences may
+invalidate progress; no sampler cadence or freshness relaxation is authorized.
+
+
+D53 risk-worker realization: ordinary bankruptcy candidates authenticate current
+source accounts through actual program simulation, including under pause; bounded
+discovery never turns conservative risk equity into a default proof. Receivers
+are explicit owned funded non-maker accounts. Frozen work uses canonical complete
+registry pages, durable originals and existing budgets; automatic emergency freeze,
+resume and cross reactivation remain unavailable. One-second discovery, two default
+probes per iteration and bounded 64-lot liquidation search are local operational
+choices to measure in P21, not financial guarantees. Guard-only proof transactions
+have no group-sequence nonexecution inference because they do not advance it.
+
+
+D53 maker-publication correction: supersede the R044 combined publication/sync
+service envelope. Actual P21A expiry execution rejects it because publishing
+promotes config writability while clearing requires that account read-only. Use
+two separately persisted original transactions, publication then finalized owner
+sync; an intermediate unsynchronized maker stays unavailable. Publication cannot
+use the unchanged registration epoch to infer nonexecution. No program/read-only
+CPI, approval, risk or source safeguard changes.
+
+
+D53 artifact binding: name the exact P20-qualified four-program test deployment as
+`p20-qualified-local-v1`; pin code hashes/lengths, canonical loader identity, zero
+padding and the local group authority as upgrade authority. Live SDK, execution
+and indexing reject unqualified code and older unbound execution journals. Cache
+full bytes only after a strictly later finalized context, rechecking current
+headers/authority/allocated size and context on every use; unfinalized or same-slot
+changes must be rehashed. No binary/profile, V1 history, source or economic rule
+changes, and no new deployment authority is granted.
+
+D53 A26A verification: [P21A evidence](evidence/P21A.md) records fresh incremental
+SDK/service/RPC/WS/PostgreSQL acceptance through `882f832`, with corrected raw-byte
+auditor `ac828f6`. The full 64-member risk run and separate missing-price recovery
+qualify these interfaces, not UI, busy-group availability or M7 completion. P21B
+retains those gates; P15B/P16B and D42 are unchanged.
+
+
+D53 review recovery clarification (R052): strictly newer authenticated finalized
+sequences permit at most three tail extensions before reconciliation/commit;
+the cumulative history bound still applies. Older sequences, missing events or
+financial mismatches cannot advance a checkpoint. Apply this scanner rule to
+both versioned adapters. Funding expiry authority is the selected market's
+observation sequence, superseding group sequence for newly signed funding intents.
+Samples increment both counters; unrelated group writes cannot obscure an
+unchanged market stamp. Original bytes/authority remain immutable and unknown
+fees remain reserved even after proven economic nonexecution. Existing broader
+stamps are not rewritten. No risk, oracle cadence, financial or fee rule changes.
+
+## D54 — successor wallet presentation and qualification boundary (P21B)
+
+Select the explicit schema-2 local deployment in the existing trader shell.
+Portfolio zero presents owner trader accounts with immutable modes/markets and
+explicit allocation. Empty portfolio discovery authenticates its canonical PDA;
+wallet collateral reads authenticate classic token owner/mint/layout. No pooled
+portfolio risk, live conversion or new signing authority is added. SDK-rebuilt
+messages, scoped reviews and saved original bytes remain mandatory. Recent
+finalized history adds bounded latest ordering alongside unchanged cursor reads.
+
+[P21B](P21B-QUALIFICATION.md) separates actual sequential browser acceptance from
+the required 300-second/0.5-offer-per-second concurrent qualification, complete
+outcome populations and independent reconciliation. No inherited P16A/P21A result
+closes those checks; external gates and deferred endurance are unchanged.
+
+D54 browser realization: preserve the program's distinct ordinary-order generation
+zero and live reduction generation, immutable replacement fields and charged fee
+prefixes. Validate persistent limit/trigger bounds in each market's UI units before
+review; do not loosen the program or source policy to accept malformed inputs.
+
+D54 history realization: order on the underlying numeric event sequence, then
+serialize it as a decimal string. A textual SELECT alias must not turn cursor or
+latest history into lexicographic order. Certification/withdrawal stay on direct
+RPC; service ingress authority is unchanged by the workload harness correction.
+
+D54 qualification limits: confirmed state supplies provisional unsigned reviews;
+displayed balances stay finalized. R051 measures certificate invalidation under
+continuous group updates (0/3 exits) and actual quiescent exits (3/3). Preserve the
+read-only proof-page contract and all source/sequence guards; document an explicit
+maintenance window for this bounded test profile. A live exit-availability redesign
+is separately scoped future work, not a stronger claim from A26B or a funded gate
+waiver. The independent audit canonically orders decimal event sequences and rejects
+missing/duplicate entries; no accepted financial event is discarded to improve metrics.
+
+
+D54 receipt concurrency clarification (R052): saved receipt memory advances only
+at explicit save/reload/clear writes, synchronously with the queued presentation
+update. React renders cannot roll it back to an older presentation state. Polling
+merges against the latest written list; storage must still succeed before broadcast.
+This preserves immutable originals through concurrent rendering without changing
+wallet authority or treating client fixtures as financial acceptance.

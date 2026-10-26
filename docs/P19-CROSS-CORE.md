@@ -1,0 +1,96 @@
+# P19 — bounded whole-account core
+
+[A24/G15 core acceptance](evidence/P19.md) passes on clean `4274d28` above verified P18C PR #27. This phase implements
+P17's shared engine, complete funding/reservation dependencies, explicit flat
+netting and per-root trade delegation. Cross trading remains hard-disabled until
+P20's liquidation/default acceptance. Only the fresh local test deployment is qualified; no enabled-cross deployment is claimed.
+
+## Contract and ordinary implementation choices
+
+- Keep schema-2 account sizes and immutable group/portfolio/root identities.
+  One root cash balance is authoritative; both position slots retain their own
+  claim, funding checkpoint and generation. Makers remain isolated per market.
+- Authenticate canonical BTC and ETH dependencies in group order for whole-root
+  operations, with one Clock snapshot. Relevance controls price availability:
+  exposure, surviving active authority and the selected operation require current
+  source checks; an unrelated empty position cannot require a fresh price.
+  Missing, substituted, duplicated and reordered dependencies reject.
+- Accrue both allowed slots before exposure or cash admission. Sum each negative
+  adverse market claim, additive IM/MM and all remaining order reserves. No positive
+  unpaid claim funds another open loss. Keep existing paired fill and fee arithmetic.
+- Transfers retain same-owner/group and distinct-root authority. Donor health and
+  reservations pass after transfer; recipient funding is accrued and its cash is
+  added once. The recipient may still be unhealthy. A following fill must separately
+  pass admission in the same atomic transaction; no intermediate donor bypass.
+- Flat netting is owner-only, cross-only, same root/group and explicit. Both slots
+  must be flat and fully accrued, with no active order/protection authority.
+  Cancel opposite claims in exact scaled units; C/P/I/T and aggregate claims stay
+  unchanged. Zero cancellation rejects. Retain fractions and slot generations.
+- Delegate scope is trading/order management on one named root. Owner changes
+  increment the delegate epoch and route nonce, invalidating old immediate intents
+  even if the same key is later granted again. Revocation uses zero key/expiry;
+  a grant has exclusive future expiry bounded by the existing 216,000-slot order
+  lifetime. No withdrawal, transfer, netting, redelegation or maker-config authority.
+- Owner orders retain epoch zero. Delegate-created orders retain the grant epoch;
+  revocation/expiry prevents execution and safe cleanup releases reservations.
+  Cancellation makes a protection inactive when it has no live child; a historical
+  allowance field alone cannot grant authority. TP/SL stays market/generation-bound.
+- Grants require a qualified unfrozen financial group; custody/frozen modes reject.
+  Owner revocation remains available during pause. Dormant cross roots may hold a
+  grant without exposure/order rights or loss of their guarded owner cash exit.
+  Owner replacement reauthorizes epoch zero; delegate replacement adopts its epoch.
+
+These choices implement D45–D48 and D51. They do not change 2 bps taker/zero provider
+fees, oracle safeguards, default ownership or external-gate authorization.
+
+## Current implementation and remaining acceptance
+
+`financial-core::margin` now has candidate-only whole-account transfers and exact
+flat-claim netting. Six independent literal host cases exercise shared cash,
+uncredited open gains, pending ETH funding on BTC actions/withdrawals, the reserved
+donor boundary, fractions through net/reopen and divided funding ownership.
+Owner/group/order authority remains a clearing-handler responsibility and is not
+claimed by those arithmetic tests.
+
+The shared book and isolated authority handlers now use both-market candidate
+machinery, with per-root grants and critical events. Thirty-four affected clearing host tests pass, including the unchanged cross gate.
+Scoped signed runtime and generated/legacy ABI verification also pass.
+
+Complete two-market route/order entrypoints now reuse the existing maker CPI and
+candidate pipeline. Both market funding prefixes materialize together; a later
+expired hold must not reverse funding already applied to a root. Both markets are
+therefore writable on these whole-account instructions, an explicit serialization
+cost to measure in P20/P21. Existing single-market isolated entrypoints retain their
+footprint. New whole-account events include both actual market snapshots.
+
+Owner-only flat netting and full-dependency route candidates are implemented behind
+the unchanged cross gate. Independent G01–G04/G09–G11 checks, legacy/generated ABI, bounded default/successor
+builds, signed isolated/delegation regression and both cross-activation negative
+profiles pass at the recorded scope. P20 owns signed enabled-cross safety and transaction budgets;
+P21 owns fresh services/PostgreSQL/UI/contention qualification. No old P16A result
+qualifies these changes. P15B/P16B remain Open; endurance remains Deferred.
+
+
+## Focused verification commands
+
+```sh
+source ops/env.sh
+RIVALT_GROUP_ARTIFACT_DIR=.local/successor-p19 bash ops/build-group-safety.sh
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo test -p clearing --lib instructions::group --features successor-test-profile --locked --offline
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo test -p financial-core --test cross_core --locked --offline
+pnpm exec vitest run tests/rpc-contract/margin-core-conformance.test.ts tests/rpc-contract/group-trading-conformance.test.ts tests/rpc-contract/group-safety-conformance.test.ts
+node --import tsx tests/rpc-contract/margin-core-svm.ts
+bash ops/margin-core-smoke.sh
+```
+
+The RPC runner creates a fresh owned Surfpool deployment, retains submitted wires,
+independently fetches every original signature finalized, checks all expected WS
+notifications and compares live accounts/events with isolated legacy Anchor.
+`margin-core-reference.py` audits raw account bytes, literal maker-price/fee sums,
+funded cash, unpaid claims, fractional funding and authority epochs/nonces; five
+mutated captures must reject. Setup uses real signed instructions. No cross exposure
+is injected into SVM accounts. Both build profiles reject submitted cross routes;
+P19's enabled-cross arithmetic/handler candidates remain host tests until P20.
+
+Pinned A24 acceptance passes; [evidence](evidence/P19.md) records exact commands,
+artifacts, budgets and clean source identities. WORKLOG owns publication/integration status.

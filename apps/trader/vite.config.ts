@@ -1,7 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-const publicKeys = ['version', 'chain', 'rpcUrl', 'wsUrl', 'genesis', 'anchor', 'market', 'mint', 'domain'];
+const publicKeys = ['version', 'chain', 'profile', 'rpcUrl', 'wsUrl', 'genesis', 'anchor', 'anchorHash', 'market', 'group', 'mint', 'domain'];
 const configure = (server: any) => {
   server.middlewares.use('/rivalt-config.json', (_req: any, res: any) => {
     res.setHeader('content-type', 'application/json');

@@ -3,7 +3,28 @@ Rivalt · baseline R1 · 20 October 2026
 
 This is the normative economic and execution contract for the engineering MVP. It selects behavior, not final machine layouts or production calibration. G02/G03 in [DECISIONS](DECISIONS.md) must be resolved in P02; G08–G10 close before their owning features are marked complete.
 
+For the authorized fresh schema-2 test group, [P17's successor contract](P17-MARGIN-CONTRACT.md)
+is normative for the deliberately superseded account, group, multi-market health,
+closed-claim netting and complete-group default boundaries (D45–D48). The contract
+below remains V1; it does not silently reinterpret old bytes or balances. Fees,
+funded cash/unpaid claims, fixed-point ownership, source safeguards, routing and
+the complete-cohort waterfall are preserved as specified in P17. Implementation
+and activation evidence is phase-owned; cross trading remains disabled through P19.
+
 P02's concrete precision, bounds, synthetic risk profile and deterministic fractional extension are specified in [ACCOUNTING-AND-CUSTODY](P02-ACCOUNTING-AND-CUSTODY.md). This includes exact scaled-unit insurance/impairment and an explicit zero-sum terminal rounding transfer bounded below one quote atom per participant. Ordinary settlement retains all sub-atom claims. P02 originally permits custody only. [P04 routes](P04-ATOMIC-ROUTES.md) extend the local build through an explicit synthetic observation profile; [P06 ordinary settlement/exits](P06-LIFECYCLE.md) add whole-atom collection, funded settlement and complete-cohort guarded withdrawals. [P07 controlled oracle/funding](P07-ORACLE-AND-FUNDING.md) implements the controlled local profile, with acceptance and integration tracked in WORKLOG. [P08 orders](P08-ORDERS.md) adds bounded persistent authority and existing-position protection in mode 2, with current-bound reservations and exact cumulative fees. P09 local liquidation and staged resolution are being implemented under [RESOLUTION](P09-RESOLUTION.md); their acceptance status is recorded in WORKLOG. Default builds reject these financial paths.
+
+P18B's [normal-path primitives](P18B-ISOLATED-PRIMITIVES.md) implement D49's BTC/ETH
+lot/source domains with unchanged fees and conservative margin. Source sampling and
+maker setup are executable locally; both financial gates were false at its tested
+checkpoint. Their pure candidates alone do not establish liquidation/default readiness.
+[P18C safety](P18C-GROUP-SAFETY.md) qualifies complete-group safety and isolated
+activation in the explicit local profile on `b43261f`; see [A23C evidence](evidence/P18C.md).
+Cross remained hard-disabled at that checkpoint. D50 preserved dormant cross cash
+access and complete-group loss ownership without granting cross trading authority.
+[P20 safety](P20-CROSS-SAFETY.md) now qualifies explicit local cross activation
+under D52 and its own [A25/G15 evidence](evidence/P20.md). Default/devnet and the
+older isolated profile retain their gates; no V1 account or funded deployment is
+reinterpreted. P21 still owns integrated service/UI qualification.
 
 ## 1. State, units and invariants
 

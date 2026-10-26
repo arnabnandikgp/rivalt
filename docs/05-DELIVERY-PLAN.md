@@ -1,7 +1,7 @@
 # Delivery plan
 Rivalt · baseline R1 · 20 October 2026
 
-Six milestone families, with M5 explicitly split into local and devnet gates, retain **16 parent phase IDs**, with P15/P16 explicitly split into engineering A and external-validation B deliverables under D41. Each phase is a cohesive, independently reviewable PR-sized outcome; it depends on the preceding baseline rather than being a standalone application. A phase may take several work sessions. The live status is only in [WORKLOG](WORKLOG.md).
+The original six milestone families retain P01–P16, with P15/P16 split into engineering A and external-validation B deliverables. D45 adds M7 and P17–P21 for the authorized isolated/cross successor without renumbering prior work. Each phase is a cohesive, independently reviewable PR-sized outcome; it depends on the preceding baseline rather than being a standalone application. A phase may take several work sessions. The live status is only in [WORKLOG](WORKLOG.md).
 
 ## Milestones
 
@@ -14,6 +14,7 @@ Six milestone families, with M5 explicitly split into local and devnet gates, re
 | M5a | P11–P12 | Complete local engineering evidence | Whole fault matrix, measured load, bounded qualification and >10,000-transaction RPC replay (D35) |
 | M5b | P13–P14 | Focused real-cluster parity | Actual dependency verification, wallet/core lifecycle and provider recovery |
 | M6 | P15A/P16A + P15B/P16B | Standalone maker tooling/reliability, followed by independent commercial/pilot readiness | A: reproducible operator qualification and bounded, change-focused reliability/operations evidence. B: independent observations/review, calibrated funded risk and a separate pilot decision. All four must close for M6 closure |
+| M7 | P17–P21 | Bounded isolated/cross successor, one mint and two markets | Versioned contract, isolated foundation, whole-account engine, safe liquidation/complete-group default and fresh service/UI/RPC/WS/PostgreSQL qualification; no funded-readiness claim |
 
 M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. M6 engineering extensions P15A/P16A can proceed with explicitly internal makers and test assets. P15B/P16B require independent people/data/review and separate funded authorization. Completing A never closes B or establishes funded readiness.
 
@@ -39,8 +40,16 @@ M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. 
 | P16A | M6 | Engineering reliability and operational readiness | P15A verified baseline | A21A |
 | P15B | M6 | Independent maker validation | P15A + actual independent participation | A20B (original A20) |
 | P16B | M6 | Independent review and funded-pilot readiness | P16A + P15B + real review/authorization inputs | A21B (original A21 external gate) |
+| P17 | M7 | Account/group contract and implementation gap audit | Integrated P16A baseline | A22 / G13 |
+| P18A | M7 | Versioned group/portfolio/account custody and two market identities | P17 | A23A / G14 custody |
+| P18B | M7 | Isolated two-market sources, makers, routes and orders | P18A | A23B / G14 trading |
+| P18C | M7 | Isolated group settlement, liquidation/default and activation | P18B | A23C / G14 completion |
+| P19 | M7 | Bounded cross engine, funding/reserves/transfers/netting; cross disabled | P18C | A24 / G15 core |
+| P20 | M7 | Cross-account liquidation and complete-group default; qualified activation | P19 | A25 / G15 completion |
+| P21A | M7 | Group SDK/indexer/API and durable service integration | P20 | A26A / G16 interfaces |
+| P21B | M7 | Wallet UI, operations and fresh successor qualification | P21A | A26B / G16 completion / M7 exit |
 
-The engineering path is P01–P14 → P15A → P16A. External P15B/P16B do not block the authorized A work; their own prerequisites remain mandatory. Do not reopen architecture research or ask to start every phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
+The engineering path is P01–P14 → P15A → P16A → P17 → P18A → P18B → P18C → P19 → P20 → P21A → P21B. External P15B/P16B do not block authorized test engineering; their own prerequisites remain mandatory. Do not reopen architecture research or ask to start every phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
 
 Workflow amendment, 20 October 2026: submit ready-to-review PRs using `gh stack submit --auto --open`. Once a phase's deliverable and acceptance checks pass, continue its dependent phase on top of those exact commits without waiting for merge. `gh stack` manages the chain and PR bases. An unmerged phase remains Review; this removes a development scheduling barrier, not the integration requirement for Closed. D41 originally required keeping the new PRs stacked and open; D44 records the user's subsequent explicit authorization to address reviews and merge PRs #20/#21. WORKLOG records verified integration.
 
@@ -327,4 +336,156 @@ Milestone: **M6 external gate**. Depends on: **P16A + P15B + actual independent 
 ## Required closeout record
 
 For each completed phase record: integrated commit/revision, actual PR if any, config/IDL/program identity where relevant, commands and pass/fail/not-run outcomes, evidence paths, gate resolutions and one next task. Use the template in WORKLOG. Keep live status there; this file remains the scope/acceptance authority.
+
+## Successor phase sizing and activation
+
+The user's five sequential deliverables map to P17, P18A–C, P19, P20 and P21A–B.
+The audit finds custody, maker authentication, order/funding execution, staged
+default and all service projections tightly coupled to V1's single-position root.
+P18 splits custody, trading primitives and exceptional/exit enforcement so each
+PR remains reviewable; P21 splits protocol projection/SDK from UI/qualification.
+These are eight cohesive units, not permission to omit a parent's acceptance.
+Verified predecessors may remain in Review on exact stacked commits. Publish
+ready PRs through gh stack; D44's previous merge authorization was for #20/#21.
+
+### P17 — Account and clearing-group contract
+
+**Deliverable:** [P17 contract](P17-MARGIN-CONTRACT.md), exact baseline-to-code gap
+matrix, state transitions/invariants, schema-2 ordered layouts, immutable
+identities, permissions, fresh-deployment/migration policy and explicit D45–D48
+supersessions. Inert layouts can compile without activating financial instructions.
+
+**A22/G13:** Audit actual baseline; pin all technical bounds and source/precision
+choices; verify Borsh lengths/offsets/discriminators, modes/indexes, separate group/
+portfolio/child PDAs and disabled cross gate. Map independent financial vectors
+and adversarial cases to later runnable acceptance, without claiming note arithmetic
+or host-layout checks as financial evidence. No program deployment needed here.
+
+### P18A — Versioned custody and two-market identities
+
+**Deliverable:** Initialize fresh group, registry, classic SPL vault and exactly
+BTC/ETH identities; owner portfolios/margin accounts, immutable mode/role/market;
+real deposit and debt-free custody withdrawal/explicit same-owner same-group cash
+transfer. No financial activation, delegation or automatic old-balance migration.
+
+**A23A:** Generated SDK/isolated Anchor parity; signed SBF and Surfpool custody
+round trips independently fetched/decoded; duplicate/foreign/alias/overflow/frozen/
+wrong-owner/mint/mode rejection; registry cap and exact cash/vault conservation.
+[Recorded A23A acceptance](evidence/P18A.md) passes on `6389c3e`; integration is tracked in WORKLOG.
+Both position slots stay zero; cross mode cannot trade. Record actual account sizes,
+transaction packets/accounts/CU and independent owner cash/token deltas. Existing
+V1 instruction/accounts stay distinct; no unrelated full matrix.
+
+### P18B — Two-market isolated trading primitives
+
+**Deliverable:** One reusable position engine, market-specific authenticated
+sources/causal funding, A/B isolated capital/configs in each market, versioned
+read-only CPI authentication, exact one/two-maker routes and four-slot orders/TP-SL.
+Keep group financial activation disabled pending P18C. Pure candidates and direct
+handler tests may exercise implemented transitions; no on-chain full-lifecycle
+claim or administrator bypass until exceptional paths are ready.
+
+**A23B:** Independent BTC/ETH quote/funding/reserve/fee/protection cases, current
+all-in limits and once-only effects, owner-alias self-trade rejection and no cash/
+claims leakage between isolated roots. New instruction/codec/authority negative
+tests and measured SBF compilation/resource constraints. Six local sources and
+four distinct funded maker bindings are explicit. G14 trading constants are pinned by
+D49; [P18B implementation](P18B-ISOLATED-PRIMITIVES.md) retains disabled financial
+entrypoints and separate event payloads. [A23B acceptance](evidence/P18B.md) passes
+on `286cb4e`; integration remains tracked in WORKLOG.
+
+### P18C — Isolated group safety and activation
+
+Current implementation: [P18C safety](P18C-GROUP-SAFETY.md), D50.
+[A23C/G14 acceptance](evidence/P18C.md) passes on `b43261f`; WORKLOG owns integration status.
+
+**Deliverable:** Group collection/payment/exit proofs, single-market-position
+funded liquidation and complete two-market group default across isolated roots.
+Only after safety acceptance, activate isolated trading in the fresh local profile.
+
+**A23C/G14:** Independent cash/exposure/claim invariants and exact waterfall;
+no parent/sibling cash seizure; complete registry/price/funding pinning, all legal
+pages/restarts/64-member bound and fractional rounding; high-fee liquidation
+rejection and non-maker funded receiver. Actual signed Surfpool both-market
+deposit→split→close→settle→withdraw; fetch all signed outcomes and WS events.
+Measure declared worst-case transaction budgets. Keep cross activation rejected.
+
+### P19 — Bounded cross-margin core
+
+Current implementation: [P19 core](P19-CROSS-CORE.md), D51. [A24/G15 core evidence](evidence/P19.md) passes on `4274d28`; WORKLOG owns Review/integration status. Cross activation remains P20.
+
+**Deliverable:** Same engine for one/two-position roots; full dependency assembly,
+whole-account pending funding/health/reservations, owner transfers/transfer-and-open,
+explicit flat-claim netting and per-account expiring/revocable trade delegation.
+Cross trading remains hard-disabled externally until P20.
+
+**A24/G15 core:** Recreate P17 G01–G04/G09–G11 against real Rust candidate/handler
+code with independent expected vectors. Reject missing/foreign/duplicate dependencies,
+double-counted cash, pending-funding escape, unsafe reserved donor, live-claim
+netting, foreign modes and delegate allocation/revocation bypass. Verify fee prefixes,
+TP/SL across markets/roots/generations, concurrent-authority rollback and fixed
+bounded account shape. Retain affected isolated regression and both activation
+negative profiles. Host tests do not substitute for P20's signed cross acceptance.
+
+### P20 — Cross liquidation and complete-group resolution
+
+Current implementation: [P20 qualified local safety](P20-CROSS-SAFETY.md);
+[A25/G15 evidence](evidence/P20.md) records pinned core/maximum-book acceptance.
+WORKLOG owns Review/integration status; P21 qualification remains separate.
+
+**Deliverable:** Whole-account eligibility and strict post-fee deficit progress,
+funded receiver checks, terminal account-net claims, mixed isolated/cross/maker
+cohort and restart-safe complete-group default. Remove the compile-time cross gate
+only after implementation and all required cross safety checks pass; runtime
+activation remains explicit local-test-only.
+
+**A25/G15:** Independent G05–G08/G12, including negative risk but positive net
+economic equity, no admissible reduction, missing second price, funding endpoints,
+all page sizes/64 members and exact residual ownership. Signed SBF and actual
+Surfpool/RPC/WS full-account routes, funding, order/transfer/withdrawal races,
+liquidation/default and authorized recovery. Measure worst-case CU/packet/accounts
+including two-maker route, transfer-and-open and receiver dependencies; ≥20% CU
+headroom. Reject default/devnet activation. No weak-risk workaround for a budget
+failure; reduce bounded capacity or split authenticated maintenance safely.
+
+### P21A — Group-aware client, indexing and services
+
+Current contract: [P21A versioned group services](P21A-INTERFACES.md).
+[A26A evidence](evidence/P21A.md) maps the incremental pinned runtime checks and
+independent audits; WORKLOG owns Review/integration status.
+
+**Deliverable:** Versioned generated SDK and direct builders; finalized group event
+projection/API with per-account cash and per-market claims; market-specific maker,
+funding, order, settlement and risk workers through the immutable signed queue.
+Explicit run binding, schema migration and operator fee budgets, no V1 history mix.
+
+**A26A/G16 interfaces:** Real Surfpool/RPC/WS/PostgreSQL lifecycle for isolated and
+cross accounts; exactly-once immutable transaction recovery, failed logs excluded,
+interleaved market/group sequences, funding-derived health without account writes,
+fresh database replay/reconciliation, interrupted resolution and direct SDK cancel/
+admissible exit with API stopped. Independent raw account/token/fee audit. Review
+recovery additionally covers bounded finalized-tail catch-up and market-local
+funding expiry after unrelated group progress, preserving unknown-fee reserves.
+
+### P21B — UI and successor qualification
+
+Current UI/qualification contract: [P21B](P21B-QUALIFICATION.md); the
+[measured report](evidence/P21B.md) includes busy-exit availability limits. Build preparation
+and sequential browser checks do not substitute for the concurrent workload.
+
+**Deliverable:** Portfolio-zero UI with isolated/cross account selection, explicit
+allocation, two market positions, unpaid/funded claims, per-account authority and
+conditional risk displays; operations/runbooks and bounded qualification.
+
+**A26B/G16/M7 exit:** Actual signed local wallet/browser flows for both modes and
+blocked stale/unsafe actions. Run a declared 300-second mixed two-market workload
+at 0.5 offered attempts/second to exercise concurrent account/group/maker locks;
+record every offer, eligibility, submission, finalization, refusal cause, p95/p99
+and contention. Include source failure, maker loss, original-signature RPC ambiguity,
+worker/indexer restart, final admissible exits and fresh PostgreSQL replay. Correct
+identified problems and recheck affected behavior without changing risk limits.
+Zero unexplained financial/authority differences or unresolved signed effects;
+report availability/latency limits without importing P12/P16A thresholds as proof.
+Compare isolated/cross capital use at identical risk settings and funded balances.
+No continuous 24-hour gate, devnet/funded rollout or external independence claim.
 

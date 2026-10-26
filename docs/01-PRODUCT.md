@@ -9,6 +9,15 @@ The engineering objective is a reproducible local venue, followed by focused dev
 
 ## Selected scope
 
+The table below remains the V1 engineering MVP. D45–D48 authorize a fresh bounded
+schema-2 successor: BTC and ETH, one test mint, owner portfolios with isolated or
+two-position cross margin accounts, and common clearing-group settlement/default.
+[P17](P17-MARGIN-CONTRACT.md) specifies the account/authority/risk contract and
+P17–P21 deliver it. Maker capital remains isolated per market. Cross trading stays
+disabled until its liquidation/default acceptance. Multi-collateral borrowing,
+correlation discounts and live mode conversion remain excluded. This does not
+reclassify existing implementation evidence or close P15B/P16B.
+
 | Dimension | Baseline |
 |---|---|
 | Market/collateral | One BTC perpetual; one six-decimal classic SPL test USDC-like mint |

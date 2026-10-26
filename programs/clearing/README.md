@@ -21,8 +21,17 @@ src/
     settlement.rs        Complete-cohort exit certificate
     resolution.rs        Frozen cohort header and participant rows
     probe.rs             Nonfinancial SDK/RPC conformance record
+    v2/                  Fresh group/portfolio/two-position margin layouts (P17)
   instructions/          Anchor account contexts, handlers and validation
     custody.rs           Register, deposit, custody-only withdrawal and controls
+    group_custody.rs     Versioned successor custody; no trading activation (P18A)
+    group_margin/       Shared root model, canonical dependencies and authority
+      authority.rs      Owner grants/revocation; delegate epoch and nonce checks
+      trading.rs        Complete two-market adapters over the existing route engine
+      netting.rs        Explicit owner-only flat closed-claim cancellation
+    group_trading/      Successor oracle, maker CPI, atomic routes and whole-root book
+      book/             One-snapshot funding, source relevance and reservations
+    group_safety/       Complete-group exits, liquidation and frozen resolution
     makers.rs            Register, approve, sync, quarantine and preview makers
     routes.rs            Immediate and stored-order atomic execution
     orders.rs            Place, replace, cancel and manage protection
@@ -42,6 +51,13 @@ For a trade, read `lib.rs::execute_route`, `instructions/routes.rs::execute_core
 and `finish`, then `financial-core/src/route.rs` and `Participant::admissible` in
 `financial-core/src/lib.rs`. The route checks the trader and each maker's capital
 separately. Persistent order reservations are refreshed before final admission.
+
+For the schema-2 successor, start with `group_margin::trading`, then
+`group_trading::routes::candidate_with_environment` and `financial-core::margin`.
+Cash is stored once per root; both slot claims, funding and remaining reservations
+participate in admission. Single-market isolated handlers use the same candidate
+engine. `group_margin::trading` checks the separate cross release gate; candidate
+host tests do not enable externally submitted cross trades.
 
 For an exit, read `instructions/settlement.rs::check` and `withdraw`. A complete
 cohort solvency certificate and the withdrawing participant's post-action margin

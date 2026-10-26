@@ -864,6 +864,7 @@ name = "maker_a"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "clearing",
  "maker-interface",
 ]
 
@@ -872,6 +873,7 @@ name = "maker_b"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "clearing",
  "maker-interface",
 ]
 

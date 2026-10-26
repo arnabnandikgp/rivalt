@@ -1,6 +1,8 @@
-//! Rivalt synthetic profile 1. All quote amounts are atoms unless named `scaled`.
+//! Rivalt bounded test accounting, shared by V1 and the schema-2 successor.
+//! All quote amounts are atoms unless named `scaled`.
 //! No runtime, oracle, token, or authority assumptions are supplied by this crate.
 pub mod liquidation;
+pub mod margin;
 pub mod oracle;
 pub mod orders;
 pub mod route;

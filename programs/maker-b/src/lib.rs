@@ -15,6 +15,21 @@ pub mod maker_b {
     ) -> Result<()> {
         initialize(context, market, domain, duration)
     }
+    pub fn initialize_group_config(
+        context: Context<InitializeGroupConfig>,
+        duration: u64,
+    ) -> Result<()> {
+        initialize_group(context, duration)
+    }
+    pub fn publish_group_epoch(context: Context<PublishGroup>, duration: u64) -> Result<()> {
+        publish_group(context, duration)
+    }
+    pub fn quote_group(
+        context: Context<ReadGroupQuote>,
+        request: maker_interface::GroupQuoteRequest,
+    ) -> Result<QuoteResponse> {
+        read_group_quote(context, request)
+    }
     pub fn publish_epoch(context: Context<Publish>, duration: u64) -> Result<()> {
         publish(context, duration)
     }

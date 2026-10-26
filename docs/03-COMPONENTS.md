@@ -1,6 +1,35 @@
 # Components and interfaces
 Rivalt · baseline R1 · 20 October 2026
 
+The following describes V1. [P17](P17-MARGIN-CONTRACT.md) audits these actual
+interfaces and defines the additive schema-2 group/portfolio/margin layout.
+`programs/clearing/src/state/v2/` contains its layout contract. [P18A custody](P18A-GROUP-CUSTODY.md)
+adds separate group/portfolio/root instructions and generated codecs behind the
+explicit successor local profile; P18A itself grants no trading activation. P18B–P21 add financial
+instructions and group-aware services without mixing V1 history or granting maker
+CPI new authority. WORKLOG records actual acceptance.
+
+[P18B](P18B-ISOLATED-PRIMITIVES.md) adds `instructions/group_trading/`,
+`financial-core::margin` and the group-bound `maker-group.rs` interface. Account
+snapshots have separate event payload types without account discriminators.
+The Codama generator explicitly retains V1's flattened instruction arguments
+when a request type becomes shared; new contexts use distinct PDA names.
+V2 PostgreSQL/API/workers/UI remain P21 deliverables. [P21A's interface contract](P21A-INTERFACES.md)
+describes the versioned group journal, finalized reconstruction and labelled SDK
+previews; WORKLOG records the completed checks and remaining integration gates.
+
+[P18C](P18C-GROUP-SAFETY.md) separates `group_safety/settlement`, `risk` and
+`resolution/{mod,ledger}`. The cash context nests its unchanged identity/token
+constraints to fit the SBF frame while retaining all market/guard PDA checks.
+Bounded cohort deserialization preserves the same Vec wire layout while allocating
+once. V2 event CPI retains Anchor's exact tag/discriminator/authority and serializes
+into one bounded buffer; legacy emission is unchanged. The generator now binds
+public PDA helper names to seed schemas, preventing new alphabetical instruction
+names from renaming the published V1/V2 helpers. New safety instructions and
+resolution account/events remain separately typed. No new PostgreSQL projection
+or operational service deployment is claimed by these program primitives.
+
+
 ## Program-level boundary
 
 ```mermaid
@@ -255,3 +284,39 @@ PDA seeds, error numbers, authority and economic rules remain unchanged. Descrip
 local names do not rename published wire fields. Anchor requires `ctx` in handlers
 using `emit_cpi!`; generated client/CPI exports are explicit. A fresh IDL build also
 refreshes the existing top-level profile description; its wire ABI is unchanged.
+
+## P19 whole-account interfaces
+
+The successor adds `setMarginDelegateV2`, `netMarginClaimsV2`,
+`manageMarginOrderV2`, `executeMarginRouteV2` and `executeMarginOrderV2`.
+The latter three nest the existing single-market account context and append the
+other canonical writable market. Whole-account calls bind group sequence and both
+observation sequences, use one Clock and materialize both funding prefixes. They
+reuse the same book, maker authentication/read-only CPI and financial candidates.
+The original isolated entrypoints retain their wire/account shapes.
+
+Owner-only grants change root epoch/nonce and invalidate delegated orders; cash,
+netting and maker configuration still require their original owner authorities.
+`MarginAuthorityChangedV2` and `MarginClaimsNettedV2` carry the actual root snapshot.
+`MarginOrderChangedV2` and `MarginRouteExecutedV2` use flat fields and include the
+other market's actual state, so no materialized funding mutation is missing from
+replay. Existing event layouts remain unchanged. Account sizes/PDA identities are
+unchanged. New SDK generation and isolated legacy conformance verify the interface;
+P21 owns its indexer/service consumers. Cross release remains gated through P19.
+
+P20 adds authority-only `activateCrossGroupV2` using the existing activation
+account context. Financial event kind 6 identifies explicit isolated-to-cross
+group promotion; serialized account/event layouts are unchanged. The shared
+safety handlers consume both markets, preserve both funding prefixes and apply
+whole-account reservations/health. Complete resolution recovers to isolated group
+mode before any explicit reactivation. [P20's qualified local boundary](P20-CROSS-SAFETY.md)
+distinguishes internal signed qualification from the ordinary disabled release.
+
+## P21B account-aware trader
+
+The trader shell selects explicit configuration version 1 or 2. Schema 2 separates
+wallet transport, account-aware preparation, exact unit helpers and panel rendering
+under `apps/trader/src/group/`. Empty portfolios and owned classic token accounts
+are authenticated directly; finalized displays and confirmed unsigned preparation
+remain distinct. [P21B](P21B-QUALIFICATION.md) records direct exit versus service
+route ingress and the measured certification coordination limit.
