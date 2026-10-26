@@ -297,3 +297,8 @@ The worker must implement these as independently calculated assertions and add b
 
 
 D35 implementation clarification: a route quote is an explicitly confirmed provisional preview. It creates no cash, reservation release or execution guarantee. Finalized event projection and transaction receipts remain separate; clearing rechecks the signed observation, nonce, epochs, bounds and expiry on actual execution.
+
+P23 adds [schema-3 custody](P23-ACCOUNT-CUSTODY.md) under D61: real owner cash
+allocation and market-attributed insurance seed/classification, with trading and
+all unfinished financial paths disabled. Its own signed/ABI/RPC acceptance is
+recorded in WORKLOG and [P23 evidence](evidence/P23.md), not inherited from V2.

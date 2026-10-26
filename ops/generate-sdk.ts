@@ -34,6 +34,10 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
       vault: 'vault', 'vault-v2': 'classifyGroupSurplusV2Vault',
       resolution: 'resolution', 'resolution-v2': 'groupResolution',
       'exit-guard': 'guard', 'exit-v2': 'groupExitGuard',
+      'venue-v3': 'venueV3', 'custody-v3': 'custodyV3', 'safety-v3': 'safetyV3',
+      'registry-v3': 'venueRegistryV3', 'portfolio-v3': 'portfolioV3',
+      'margin-v3': 'marginAccountV3', 'vault-v3': 'venueVaultV3',
+      'market-v3': 'marketV3', 'ledger-v3': 'marketLedgerV3',
     }).map(([label, name]) => [seedIdentity(label), name]));
     const aliases = new Map();
     for (const pda of codama.getRoot().program.pdas ?? []) {

@@ -76,3 +76,8 @@ generic type parameters are not financial variable names.
 The explicit exports in `instructions/mod.rs` expose Anchor's generated client
 and CPI account modules without glob-exporting similarly named handler helpers.
 Program state and events are re-exported at the crate root for Anchor/IDL clients.
+
+Schema-3 account-centric custody lives in `src/instructions/account_custody/`
+(contexts and handlers), with independent layouts under `src/state/v3/`.
+[P23](../../docs/P23-ACCOUNT-CUSTODY.md) records its additive ABI/authority gates;
+financial trading remains disabled until its own safety acceptance.

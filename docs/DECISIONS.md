@@ -812,3 +812,22 @@ stages, finite continuation, old-withdraw/new-deposit migration and phase-owned
 acceptance are pinned in the contract. P23 custody, P24/P25 harness execution and
 P26 safety activation retain distinct gates. P27/P28 require fresh actual services/
 UI qualification. Keep the stack open; P15B/P16B and deferred endurance are unchanged.
+
+## D61 — schema-3 custody realization and unchanged wire storage (P23)
+
+Implement D60's initial custody under an explicit `account-test-profile`, mutually
+exclusive with devnet. Venue initialization pins separate fee/reserve authorities
+and reserve destination; registry initialization is a separate bounded instruction.
+BTC/ETH admission fixes both markets cross-eligible but supplies no trading authority.
+Register immutable roots, use actual SPL deposits/withdrawals and same-owner cash
+allocations, seed one market's insurance with donor plus reserve authority, and
+classify actual surplus once into an explicit attributed reserve. No active reserve
+withdrawal or other unfinished financial instruction is exposed.
+
+The 11 new instructions and `AccountCustodyChangedV3` event are additive; existing
+V1/V2 IDL definitions remain identical. D60 wire layouts remain unchanged after
+moving each 96-limb array into fixed-size heap ownership: the first actual SBF
+build rejected generated resolution stack frames, and a Box preserves the exact
+768-byte wire record while avoiding those oversized frames. This is representation
+hardening, not P26 arithmetic/resource qualification. P23's actual G18 results,
+profile rejection and packet/CU headroom must pass before Review.

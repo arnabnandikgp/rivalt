@@ -325,3 +325,8 @@ without regenerating financial runs. The PostgreSQL history regression executes
 [The report](evidence/P21B.md) preserves command failures, corrected standalone audit
 attribution, all denominators and the 0/3 busy versus 3/3 quiescent exit distinction.
 No source/sequence guards are relaxed and no continuous 24-hour test is implied.
+
+P23 adds [schema-3 custody](P23-ACCOUNT-CUSTODY.md) under D61: real owner cash
+allocation and market-attributed insurance seed/classification, with trading and
+all unfinished financial paths disabled. Its own signed/ABI/RPC acceptance is
+recorded in WORKLOG and [P23 evidence](evidence/P23.md), not inherited from V2.

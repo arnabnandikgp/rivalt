@@ -2,14 +2,17 @@ use super::*;
 
 /// Unsigned little-endian fixed width. Zero has exactly the all-zero encoding.
 /// Work arithmetic is checked; no integer truncation or floating point.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct WideV3 {
-    pub limbs: [u64; WIDE_LIMBS],
+    pub limbs: Box<[u64; WIDE_LIMBS]>,
+}
+impl Space for WideV3 {
+    const INIT_SPACE: usize = 8 * WIDE_LIMBS;
 }
 impl Default for WideV3 {
     fn default() -> Self {
         Self {
-            limbs: [0; WIDE_LIMBS],
+            limbs: Box::new([0; WIDE_LIMBS]),
         }
     }
 }

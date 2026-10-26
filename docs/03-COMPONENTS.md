@@ -340,3 +340,8 @@ under `apps/trader/src/group/`. Empty portfolios and owned classic token account
 are authenticated directly; finalized displays and confirmed unsigned preparation
 remain distinct. [P21B](P21B-QUALIFICATION.md) records direct exit versus service
 route ingress and the measured certification coordination limit.
+
+P23 adds [schema-3 custody](P23-ACCOUNT-CUSTODY.md) under D61: real owner cash
+allocation and market-attributed insurance seed/classification, with trading and
+all unfinished financial paths disabled. Its own signed/ABI/RPC acceptance is
+recorded in WORKLOG and [P23 evidence](evidence/P23.md), not inherited from V2.

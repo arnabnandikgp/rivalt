@@ -211,3 +211,26 @@ pub use group_safety::settlement::{
     ActivateIsolatedGroup, ChangeGroupClaim, CheckGroupExit, GroupTradingCash,
     InitializeGroupSafety, TransferTradingCash,
 };
+
+pub mod account_custody;
+pub(crate) use account_custody::{
+    __client_accounts_account_cash_v3, __client_accounts_classify_market_surplus_v3,
+    __client_accounts_create_portfolio_v3, __client_accounts_initialize_market_v3,
+    __client_accounts_initialize_venue_registry_v3, __client_accounts_initialize_venue_v3,
+    __client_accounts_pause_venue_v3, __client_accounts_register_margin_v3,
+    __client_accounts_seed_market_insurance_v3, __client_accounts_transfer_account_custody_v3,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use account_custody::{
+    __cpi_client_accounts_account_cash_v3, __cpi_client_accounts_classify_market_surplus_v3,
+    __cpi_client_accounts_create_portfolio_v3, __cpi_client_accounts_initialize_market_v3,
+    __cpi_client_accounts_initialize_venue_registry_v3, __cpi_client_accounts_initialize_venue_v3,
+    __cpi_client_accounts_pause_venue_v3, __cpi_client_accounts_register_margin_v3,
+    __cpi_client_accounts_seed_market_insurance_v3,
+    __cpi_client_accounts_transfer_account_custody_v3,
+};
+pub use account_custody::{
+    AccountCashV3, ClassifyMarketSurplusV3, CreatePortfolioV3, InitializeMarketV3,
+    InitializeVenueRegistryV3, InitializeVenueV3, PauseVenueV3, RegisterMarginV3,
+    SeedMarketInsuranceV3, TransferAccountCustodyV3,
+};

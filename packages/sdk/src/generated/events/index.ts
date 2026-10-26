@@ -6,6 +6,7 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./accountCustodyChangedV3.js";
 export * from "./custodyChanged.js";
 export * from "./groupCustodyChangedV2.js";
 export * from "./groupLiquidationV2.js";

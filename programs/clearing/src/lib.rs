@@ -31,6 +31,69 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn initialize_venue_v3(
+        ctx: Context<InitializeVenueV3>,
+        domain: [u8; 32],
+        fee_authority: Pubkey,
+        reserve_authority: Pubkey,
+        reserve_destination_owner: Pubkey,
+    ) -> Result<()> {
+        account_custody::initialize(
+            ctx,
+            domain,
+            fee_authority,
+            reserve_authority,
+            reserve_destination_owner,
+        )
+    }
+    pub fn initialize_venue_registry_v3(ctx: Context<InitializeVenueRegistryV3>) -> Result<()> {
+        account_custody::initialize_registry(ctx)
+    }
+    pub fn initialize_market_v3(ctx: Context<InitializeMarketV3>, index: u8) -> Result<()> {
+        account_custody::initialize_market(ctx, index)
+    }
+    pub fn create_portfolio_v3(ctx: Context<CreatePortfolioV3>, index: u16) -> Result<()> {
+        account_custody::create_portfolio(ctx, index)
+    }
+    pub fn register_margin_v3(
+        ctx: Context<RegisterMarginV3>,
+        subaccount_index: u16,
+        mode: u8,
+        isolated_market_index: u8,
+        role: u8,
+    ) -> Result<()> {
+        account_custody::register(ctx, subaccount_index, mode, isolated_market_index, role)
+    }
+    pub fn deposit_account_v3(ctx: Context<AccountCashV3>, amount: u64) -> Result<()> {
+        account_custody::cash(ctx, amount, false)
+    }
+    pub fn withdraw_account_custody_v3(ctx: Context<AccountCashV3>, amount: u64) -> Result<()> {
+        account_custody::cash(ctx, amount, true)
+    }
+    pub fn transfer_account_custody_v3(
+        ctx: Context<TransferAccountCustodyV3>,
+        amount: u64,
+    ) -> Result<()> {
+        account_custody::transfer(ctx, amount)
+    }
+    pub fn pause_venue_v3(ctx: Context<PauseVenueV3>, paused: bool) -> Result<()> {
+        account_custody::pause(ctx, paused)
+    }
+    pub fn classify_market_surplus_v3(
+        ctx: Context<ClassifyMarketSurplusV3>,
+        market_index: u8,
+        amount: u64,
+    ) -> Result<()> {
+        account_custody::classify_surplus(ctx, market_index, amount)
+    }
+    pub fn seed_market_insurance_v3(
+        ctx: Context<SeedMarketInsuranceV3>,
+        market_index: u8,
+        amount: u64,
+    ) -> Result<()> {
+        account_custody::seed_insurance(ctx, market_index, amount)
+    }
+
     pub fn execute_margin_route_v2(
         ctx: Context<ExecuteMarginRoute>,
         sequence: u64,

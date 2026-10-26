@@ -686,3 +686,69 @@ pub struct GroupResolutionProgressV2 {
     pub allocated_vault: u64,
     pub actual_vault: u64,
 }
+
+/// Version-3 custody payloads are scalar snapshots, never nested account types.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct AccountCashSnapshotV3 {
+    pub margin: Pubkey,
+    pub portfolio: Pubkey,
+    pub owner: Pubkey,
+    pub subaccount_index: u16,
+    pub id: u16,
+    pub mode: u8,
+    pub isolated_market_index: u8,
+    pub role: u8,
+    pub cash: u64,
+    pub state_version: u64,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct MarketLedgerSnapshotV3 {
+    pub ledger: Pubkey,
+    pub market: Pubkey,
+    pub market_index: u8,
+    pub settlement: u64,
+    pub insurance: u64,
+    pub fees: u64,
+    pub insurance_fee_remainder: u8,
+    pub version: u64,
+}
+
+#[event]
+pub struct AccountCustodyChangedV3 {
+    pub schema_version: u16,
+    pub profile_version: u16,
+    pub domain: [u8; 32],
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    /// 0 venue, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdrawal,
+    /// 6 cash transfer, 7 pause, 8 surplus classification, 9 reserve seed, 10 registry.
+    pub kind: u8,
+    pub actor: Pubkey,
+    pub subject: Pubkey,
+    pub index: u16,
+    pub amount: u64,
+    pub members: Vec<AccountCashSnapshotV3>,
+    pub ledgers: Vec<MarketLedgerSnapshotV3>,
+    pub authority: Pubkey,
+    pub fee_authority: Pubkey,
+    pub reserve_authority: Pubkey,
+    pub reserve_destination_owner: Pubkey,
+    pub quote_mint: Pubkey,
+    pub vault: Pubkey,
+    pub markets: [Pubkey; 2],
+    pub market_count: u8,
+    pub insurance_fee_share_bps: u16,
+    pub mode: u8,
+    pub paused: bool,
+    pub safety_epoch: u64,
+    pub terms_epoch: u64,
+    pub config_epoch: u64,
+    pub total_cash: u64,
+    pub allocated_vault: u64,
+    pub liability_versions: [u64; 2],
+    pub membership_version: Option<u64>,
+    pub member_count: Option<u16>,
+    pub actual_vault: Option<u64>,
+}
