@@ -40,7 +40,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R060: P22A/P22B/P23 Review. A27B/G17 and A28/G18 pass on their recorded pins; P23 has 139 signed SVM and 57 actual finalized RPC outcomes with exact token/legacy parity. P24 risk/trading next; no ordinary financial activation |
+| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R060: P22A/P22B/P23 Review. A27B/G17 and A28/G18 pass on their recorded pins; P23 has 139 signed SVM and 57 actual finalized RPC outcomes with exact token/legacy parity. R061 P24 signed risk/trading, orders, fee attribution and default gates pass preliminary SVM checks; final pinned RPC acceptance pending; no ordinary financial activation |
 
 ## Phase overview
 
@@ -74,8 +74,8 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P21B | UI/operations and fresh successor qualification | Closed | [PR #31](https://github.com/arnabnandikgp/rivalt/pull/31), final head `1a3cc2c`, merged `d07fccc` | [A26B/G16/M7](evidence/P21B.md): browser `a0ed6de`, workload `6e9fd2f`, independent audit `813ee20`; 25 wallet originals, 150 offers/101 fills, fault recovery, flat drain, three quiescent token exits and fresh PostgreSQL replay. R052 receipt race passes on `c0e5274`; scoped CI/integration pass. Busy-exit follow-up now M8 under D56 |
 | M8 | P22A | Architecture roadmap and financial decision boundaries | Review | [PR #32](https://github.com/arnabnandikgp/rivalt/pull/32), checked `8321677`, above `9d3c295` | A27A: 244 local links, fences, phase rows/dependencies, D56 consistency and evidence policy pass; no code or financial acceptance |
 | M8 | P22B | Exact financial contract and independent reference cases | Review | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; checked `0d78bf0`; R059 publication below | [A27B/G17](evidence/P22B.md): complete D60 normal/default/authority/migration/layout contract; bounded integer/independent Fraction parity, payment/netting/replay negatives, 14 inert layouts. 88 Python plus three Rust checks pass; no runtime qualification |
-| M8 | P23 | Registry, accounts and custody | Review | `phase/p23-account-custody` above P22B `c412bdb` / #33; checked `4500168`, publication below | [A28/G18](evidence/P23.md): 139 signed SVM / 57 actual RPC outcomes, 11-instruction and eight-account legacy parity, exact raw-byte/token audit, 64-member SVM bound; max 89,854 CU / 753 bytes / 16 accounts. Trading disabled |
-| M8 | P24 | Risk, funding, routes and orders | Open | — | P23 / A29 / G19 core; ordinary new-profile financial activation disabled |
+| M8 | P23 | Registry, accounts and custody | Review | [PR #35](https://github.com/arnabnandikgp/rivalt/pull/35), head `de5db9d`, above #33; checked `4500168` | [A28/G18](evidence/P23.md): 139 signed SVM / 57 actual RPC outcomes, 11-instruction and eight-account legacy parity, exact raw-byte/token audit, 64-member SVM bound; max 89,854 CU / 753 bytes / 16 accounts. Trading disabled |
+| M8 | P24 | Risk, funding, routes and orders | In progress | `phase/p24-account-trading` above verified P23 `de5db9d` / #35 | [Contract](P24-ACCOUNT-TRADING.md); D62 candidate build and 304 preliminary signed SVM outcomes pass, including maximum books, actual SL, pause/cancel and default gates; independent wire audit and 23 ABI variants pass. Final pinned real RPC acceptance pending. Ordinary activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Open | — | P24 / A30 / G19 cash; busy-exit and conservation checks |
 | M8 | P26 | Liquidation, complete default and local activation | Open | — | P25 / A31 / G20; safety acceptance before enablement |
 | M8 | P27 | SDK, indexer/API and durable services | Open | — | P26 / A32 / G21 interfaces; fresh real integration |
@@ -86,7 +86,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Current financial work: P22B #33/D60 completes A27B/G17 on `0d78bf0`; P23/D61 completes A28/G18 on clean `4500168`, with actual signed custody, RPC/WS/legacy decoding and independent token reconciliation. Both remain Review in the open stack; P24 is next.
+- Current financial work: P22B #33/D60 completes A27B/G17 on `0d78bf0`; P23/D61 completes A28/G18 on clean `4500168`, with actual signed custody, RPC/WS/legacy decoding and independent token reconciliation. Both remain Review in the open stack; R061 implements P24 on #35.
 - Current roadmap: R054 publishes P22A as ready-to-review [PR #32](https://github.com/arnabnandikgp/rivalt/pull/32). Documentation checks on `8321677` pass; no executable changes or new runtime/CI evidence. P22B owns the exact financial contract before implementation; M8 remains In progress and P22A Review pending integration.
 - Integrated baseline: R053 successor PRs #23/#24/#26/#27/#28/#29/#30/#31 merged atomically at `d07fccc108384381c0c5df743d14c2a0bc4f5089`; local `main` fast-forwards to it, with tree exactly equal to reviewed stack tip `1a3cc2c`. This integrates A22–A26/G13–G16 and the bounded M7 engineering exit, including all R052 fixes. Earlier R033 `74fc296`, R030 `67059fc` and the original MVP remain integrated.
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
@@ -2088,3 +2088,81 @@ Raw RPC data stays at `.local/account-custody/20261026T194527Z-85296/`, SVM at
 Closed; publication follows in the existing stack. No genuine blocker. Next: P24
 risk/funding/routes/orders and exact insurance split under the isolated candidate
 harness, preserving the P26 ordinary-activation gate.
+
+### R061 — 27 October 2026 — P24 account trading implementation
+
+- P23 documentation closeout `de5db9d60c614919b1625ef7ec9ae0856bbc70d2`
+  records the unchanged tested source `4500168`. Documentation/link/evidence checks
+  pass. `gh stack submit --auto --open` creates ready PR #35 above #33; `gh pr view`
+  verifies OPEN, not draft, correct base/head. No merge or independent approval.
+  Create P24 with `gh stack add phase/p24-account-trading`.
+- Implement the separate candidate build, schema-3 maker config/request namespace,
+  shared risk/order scalar adapters, authenticated source/funding handlers, root
+  delegate/order guards, atomic routes and market-specific collected fee split.
+  Current source and SBF checks are preliminary dirty-tree evidence only.
+- Targeted locked/offline host compilation passes for clearing and both makers.
+  First SBF guard rejects oversized route-context and order/route handler frames
+  (maximum 7,872 bytes). Split context validation/event assembly and retain only
+  needed position snapshots; rebuild and signed qualification remain in progress.
+- Raw build logs stay `.local/p24-*.log` and `.local/account-trading/`; P23 artifacts
+  remain at their recorded paths. No runtime success, CI, PostgreSQL, UI, devnet,
+  load/endurance or independent review is claimed. P15B/P16B stay external and the
+  24-hour test Deferred. No product/access blocker is established.
+- Both tables retain P22A/P22B/P23 Review, P24 In progress and P25–P28 Open.
+  Exact next action: pass the affected SBF frame guard, then independently verify
+  P24 funding, reservations, authority/rollback and fee carry in signed SVM/RPC.
+
+R061 targeted progress: corrected frame construction passes the SBF guard. A
+subsequent two-maker route exposes 32 KiB heap exhaustion at event serialization;
+borrow account snapshots with exact IDL wire-parity tests instead of copying them.
+The route then exposes insufficient 20% compute headroom at maximum three-root
+books. Retain the 600,000-CU ceiling and complete module hashes; size-optimize the
+maker binaries and remove repeated validation of one immutable model within a book
+scan. The measured maximum-book route then uses 470,479 CU / 1,169 bytes. These
+are preliminary local figures; final artifact/commit acceptance remains pending.
+
+Eight focused actual-adapter/event Rust checks pass. The first funding-vector run
+caught inconsistent test setup (stored historical F with a zero held funding base)
+and a test premium beyond the retained cap; correct the fixture to a consistent
+historical base and independently calculated sub-atom positive/negative funding.
+No production funding cap changes. The new live-event view exactly matches the
+owned IDL wire encoding. TypeScript and 23 isolated-Anchor ABI variants pass.
+Signed SVM currently passes 283 outcomes, including whole-account routes, actual
+maker/source setup, same-intent execution after sampling, delegates, TP/SL,
+maximum live books, permissionless partial fills, stale sources and rollback.
+The independent raw-byte audit checks 44 transitions/13 fills and rejects eight
+mutations. Raw path `.local/account-trading-runs/20261026T202552037Z-2441/`.
+
+Real Surfpool HTTP/WS acceptance is now running under the authorized local listener
+permission. RPC omits the three-minute idle epoch-expiry wait; signed SVM separately
+qualifies that rotation. No time warp or synthetic RPC success is used. P24 remains
+In progress, and no P24 PR/phase acceptance or downstream completion is claimed.
+
+R061 further qualification: 304 signed SVM outcomes (245 success / 59 expected
+reject) now include actual triggered SL execution, selected-maker consumption
+changes, pause/cancel authority, module changes and default-build rejection for
+both account modes. The raw-byte auditor checks 49 transitions / 16 fills and
+rejects eight mutations. Maximum stored two-maker execution with all three full
+books measures 472,160 CU; no route limit increase. Evidence remains preliminary
+at `.local/account-trading-runs/20261026T203711827Z-5652/`.
+
+Real RPC first rejects a sample only one second after its predecessor. Respect
+the existing two-second interval in the harness. Subsequent RPC runs correctly
+reject a risk-increasing BTC action: time spent in the order scenarios exceeds
+held sampling coverage, and one fresh sample does not satisfy the unchanged
+six-second recovery. Decode the actual committed oracle events to identify the
+Recovering state; explicitly complete four normal samples before the stale-ETH
+independence case. No source age, recovery, risk, funding or CU rule changes.
+Keep the failed runs at `.local/account-trading-rpc/` and their simulation/log
+files. Latest corrected RPC verification remains in progress.
+
+Pin the generated V1/V2 maker PDA helper names after finding Codama reassigned
+`findConfigPda` to the new namespace. The targeted conformance now checks all six
+old/new maker helper identities. All inherited IDL definitions remain identical
+(80 clearing instructions / 26 accounts / 23 events / 80 types / 32 errors;
+each maker six instructions / two accounts / 16 types / four errors). Ten affected
+shared route/order/oracle Rust tests, five maker arithmetic/authentication tests,
+and one affected event-CPI serialization test pass. Do not run unrelated full
+financial/UI/service suites; scoped hosted CI remains configured but no CI run
+is claimed here. Commit the cohesive source candidate, build its exact artifacts,
+then run final P24 SVM and actual RPC/WS acceptance before publishing the PR.

@@ -563,11 +563,19 @@ pub fn transfer(ctx: Context<TransferAccountCustodyV3>, amount: u64) -> Result<(
 
 pub fn pause(ctx: Context<PauseVenueV3>, paused: bool) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    custody_profile(
-        &ctx.accounts.venue,
-        &ctx.accounts.custody,
-        &ctx.accounts.safety,
-    )?;
+    if ctx.accounts.safety.mode == ACTIVE {
+        super::account_trading::base_profile(
+            &ctx.accounts.venue,
+            &ctx.accounts.custody,
+            &ctx.accounts.safety,
+        )?;
+    } else {
+        custody_profile(
+            &ctx.accounts.venue,
+            &ctx.accounts.custody,
+            &ctx.accounts.safety,
+        )?;
+    }
     require_keys_eq!(
         ctx.accounts.authority.key(),
         ctx.accounts.venue.authority,

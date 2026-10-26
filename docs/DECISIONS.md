@@ -831,3 +831,37 @@ build rejected generated resolution stack frames, and a Box preserves the exact
 768-byte wire record while avoiding those oversized frames. This is representation
 hardening, not P26 arithmetic/resource qualification. P23's actual G18 results,
 profile rejection and packet/CU headroom must pass before Review.
+
+
+## D62 — schema-3 trading candidates and scoped authority (P24)
+
+Implement D60's risk/funding/order/routing contract in the explicit local
+`account-trading-qualification` artifact. This does not change
+`v3::TRADING_IMPLEMENTED = false`, enable the default/devnet/custody builds, or
+satisfy P26 safety. The qualification transition requires the existing authenticated
+source recovery and resets pre-activation funding. No admin bypass is introduced.
+
+Schema-3 immediate and stored executions bind account nonce/state, safety and venue
+terms plus market terms/config, maker authority/quote epochs and each selected
+side's consumed quantity. Routine observation/event-sequence changes are not
+signed prerequisites; the landed complete relevant risk dependencies are checked
+again. Separate venue-bound maker envelopes reuse the unchanged reference curves.
+Whole-account funding, conservative reservations and shared existing-position
+TP/SL continue through the same pure financial/order engine. V1/V2 account handlers
+and wire contracts remain separate. Cancel/revoke can release authority while
+paused; frozen ownership remains immutable.
+
+Apply D58's per-market 25% I / 75% T allocation once after the existing cumulative
+2 bps taker fee. Emit gross fee, I/T credits and carry before/after. Borrowed event
+views avoid copying fixed account snapshots on SBF's non-reclaiming bump heap;
+exact IDL serialization parity is checked. Nested context validation and separated
+event construction address observed stack limits. Maker release compilation uses
+size optimization (`opt-level = "z"`) with checked arithmetic/fat LTO retained,
+because every route still authenticates complete ProgramData bytes. Do not replace
+that hash with a cached slot or weaken risk rules to meet a compute target.
+
+The provisional 600,000 route CU / 20% headroom / 1,232-byte packet limits remain
+in force, including full books on the trader and both maker roots. Current scoped
+checks and limitations belong to WORKLOG; no acceptance follows just from these
+implementation choices. P25 cash/claims/exits, P26 safety, P27 services and P28
+qualification remain separate gates, as do P15B/P16B and deferred endurance.

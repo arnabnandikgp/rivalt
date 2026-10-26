@@ -22,7 +22,15 @@ src/
     resolution.rs        Frozen cohort header and participant rows
     probe.rs             Nonfinancial SDK/RPC conformance record
     v2/                  Fresh group/portfolio/two-position margin layouts (P17)
+    v3/                  Venue/custody/safety, account roots and market ledgers (P22B)
   instructions/          Anchor account contexts, handlers and validation
+    account_custody/     Fresh schema-3 identity and actual SPL custody (P23)
+    account_trading/    Candidate-only whole-account trading and maker admission (P24)
+      engine.rs         Typed adapters to shared checked risk/order candidates
+      authority.rs      Root guards, delegates, orders and protective authority
+      routes.rs         Atomic fills, funding, attributed fees and borrowed events
+      oracle.rs         Canonical sources and causal common funding
+      activation.rs     Isolated qualification artifact; ordinary trading stays gated
     custody.rs           Register, deposit, custody-only withdrawal and controls
     group_custody.rs     Versioned successor custody; no trading activation (P18A)
     group_margin/       Shared root model, canonical dependencies and authority
@@ -62,6 +70,12 @@ host tests do not enable externally submitted cross trades.
 For an exit, read `instructions/settlement.rs::check` and `withdraw`. A complete
 cohort solvency certificate and the withdrawing participant's post-action margin
 are separate requirements. Resolution uses its own frozen accounting ledger.
+
+For schema 3, start with `account_trading::routes` and `account_trading::engine`.
+They use the same pure financial engine with a distinct account/authority ABI.
+The only P24 activation is in an isolated qualification build. The new cash/claim
+exit path belongs to P25 and liquidation/default to P26; V1/V2 exit certificates
+are not automatically the schema-3 funded-cash exit design.
 
 Account fields, instruction arguments, discriminants, PDA seeds, error codes and
 event layouts are wire contracts. Moving their Rust definitions must not rename

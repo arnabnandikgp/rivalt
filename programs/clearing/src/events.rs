@@ -752,3 +752,228 @@ pub struct AccountCustodyChangedV3 {
     pub member_count: Option<u16>,
     pub actual_vault: Option<u64>,
 }
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct MarginAccountSnapshotV3 {
+    pub schema_version: u16,
+    pub venue: Pubkey,
+    pub portfolio: Pubkey,
+    pub owner: Pubkey,
+    pub subaccount_index: u16,
+    pub id: u16,
+    pub mode: u8,
+    pub isolated_market_index: u8,
+    pub role: u8,
+    pub cash: u64,
+    pub positions: [crate::state::v2::PositionV2; 2],
+    pub nonce: u64,
+    pub state_version: u64,
+    pub delegate: Pubkey,
+    pub delegate_expiry_slot: u64,
+    pub delegate_epoch: u64,
+    pub reserved: u64,
+    pub book: crate::state::v2::OrderBookV2,
+    pub bump: u8,
+}
+
+impl From<&crate::state::v3::MarginAccountV3> for MarginAccountSnapshotV3 {
+    fn from(state: &crate::state::v3::MarginAccountV3) -> Self {
+        Self {
+            schema_version: state.schema_version,
+            venue: state.venue,
+            portfolio: state.portfolio,
+            owner: state.owner,
+            subaccount_index: state.subaccount_index,
+            id: state.id,
+            mode: state.mode,
+            isolated_market_index: state.isolated_market_index,
+            role: state.role,
+            cash: state.cash,
+            positions: state.positions,
+            nonce: state.nonce,
+            state_version: state.state_version,
+            delegate: state.delegate,
+            delegate_expiry_slot: state.delegate_expiry_slot,
+            delegate_epoch: state.delegate_epoch,
+            reserved: state.reserved,
+            book: state.book,
+            bump: state.bump,
+        }
+    }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct MarketSnapshotV3 {
+    pub schema_version: u16,
+    pub venue: Pubkey,
+    pub index: u8,
+    pub symbol: [u8; 8],
+    pub lots_per_unit: u64,
+    pub cross_eligible: bool,
+    pub terms_epoch: u64,
+    pub config_epoch: u64,
+    pub funding_index_scaled: i128,
+    pub funding_time: i64,
+    pub gross_lots: u64,
+    pub observation_sequence: u64,
+    pub reference_price: u64,
+    pub lower: u64,
+    pub upper: u64,
+    pub valid_from: u64,
+    pub valid_until: u64,
+    pub oracle: crate::state::OracleState,
+    pub bump: u8,
+}
+
+impl From<&crate::state::v3::MarketV3> for MarketSnapshotV3 {
+    fn from(state: &crate::state::v3::MarketV3) -> Self {
+        Self {
+            schema_version: state.schema_version,
+            venue: state.venue,
+            index: state.index,
+            symbol: state.symbol,
+            lots_per_unit: state.lots_per_unit,
+            cross_eligible: state.cross_eligible,
+            terms_epoch: state.terms_epoch,
+            config_epoch: state.config_epoch,
+            funding_index_scaled: state.funding_index_scaled,
+            funding_time: state.funding_time,
+            gross_lots: state.gross_lots,
+            observation_sequence: state.observation_sequence,
+            reference_price: state.reference_price,
+            lower: state.lower,
+            upper: state.upper,
+            valid_from: state.valid_from,
+            valid_until: state.valid_until,
+            oracle: state.oracle,
+            bump: state.bump,
+        }
+    }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct MakerRegistrationSnapshotV3 {
+    pub schema_version: u16,
+    pub venue: Pubkey,
+    pub market: Pubkey,
+    pub market_index: u8,
+    pub maker_id: u8,
+    pub capital: Pubkey,
+    pub owner: Pubkey,
+    pub pricing_program: Pubkey,
+    pub program_data: Pubkey,
+    pub config: Pubkey,
+    pub approved_hash: [u8; 32],
+    pub authority_epoch: u64,
+    pub quote_epoch: u64,
+    pub start_slot: u64,
+    pub expiry_slot: u64,
+    pub inventory_limit: u64,
+    pub buy_consumed: u64,
+    pub sell_consumed: u64,
+    pub quarantined: bool,
+    pub bump: u8,
+}
+
+impl From<&crate::state::v3::MakerRegistrationV3> for MakerRegistrationSnapshotV3 {
+    fn from(state: &crate::state::v3::MakerRegistrationV3) -> Self {
+        Self {
+            schema_version: state.schema_version,
+            venue: state.venue,
+            market: state.market,
+            market_index: state.market_index,
+            maker_id: state.maker_id,
+            capital: state.capital,
+            owner: state.owner,
+            pricing_program: state.pricing_program,
+            program_data: state.program_data,
+            config: state.config,
+            approved_hash: state.approved_hash,
+            authority_epoch: state.authority_epoch,
+            quote_epoch: state.quote_epoch,
+            start_slot: state.start_slot,
+            expiry_slot: state.expiry_slot,
+            inventory_limit: state.inventory_limit,
+            buy_consumed: state.buy_consumed,
+            sell_consumed: state.sell_consumed,
+            quarantined: state.quarantined,
+            bump: state.bump,
+        }
+    }
+}
+
+#[event]
+pub struct AccountMakerChangedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub market_state: MarketSnapshotV3,
+    pub registration: Pubkey,
+    pub state: MakerRegistrationSnapshotV3,
+    pub operation: u8,
+}
+
+#[event]
+pub struct AccountOracleChangedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub state: MarketSnapshotV3,
+}
+
+#[event]
+pub struct AccountOrderChangedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub margin: Pubkey,
+    pub state: MarginAccountSnapshotV3,
+    pub markets: [MarketSnapshotV3; 2],
+    pub liability_versions: [u64; 2],
+}
+#[event]
+pub struct AccountAuthorityChangedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub margin: Pubkey,
+    pub state: MarginAccountSnapshotV3,
+    pub liability_versions: [u64; 2],
+}
+
+#[event]
+pub struct AccountRouteExecutedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub market_state: MarketSnapshotV3,
+    pub other_market_state: MarketSnapshotV3,
+    pub nonce: u64,
+    pub side: u8,
+    pub lots: u64,
+    pub gross_quote: u64,
+    pub fee: u64,
+    pub insurance_credit: u64,
+    pub retained_fee: u64,
+    pub carry_before: u8,
+    pub carry_after: u8,
+    pub ledger: MarketLedgerSnapshotV3,
+    pub order_id: u64,
+    pub order_version: u64,
+    pub root_states: Vec<MarginAccountSnapshotV3>,
+    pub maker_states: Vec<MakerRegistrationSnapshotV3>,
+    pub total_cash: u64,
+    pub liability_versions: [u64; 2],
+}
+
+#[event]
+pub struct AccountQualificationV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub safety_epoch: u64,
+    pub markets: [MarketSnapshotV3; 2],
+}

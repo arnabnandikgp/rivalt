@@ -7,9 +7,12 @@
  */
 
 export * from "./binding.js";
+export * from "./btcLedgerV3.js";
 export * from "./capital.js";
+export * from "./capitalBinding.js";
 export * from "./classifyGroupSurplusV2Vault.js";
 export * from "./custodyV3.js";
+export * from "./ethLedgerV3.js";
 export * from "./group.js";
 export * from "./groupBinding.js";
 export * from "./groupExitGuard.js";
@@ -20,6 +23,7 @@ export * from "./margin.js";
 export * from "./marginAccountV3.js";
 export * from "./market.js";
 export * from "./marketLedgerV3.js";
+export * from "./otherMarketLedgerV3.js";
 export * from "./portfolio.js";
 export * from "./portfolioV3.js";
 export * from "./receiver.js";

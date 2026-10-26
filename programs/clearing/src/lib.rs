@@ -31,6 +31,64 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn register_account_maker_v3(
+        ctx: Context<RegisterAccountMaker>,
+        maker_id: u8,
+        inventory_limit: u64,
+    ) -> Result<()> {
+        account_trading::makers::register(ctx, maker_id, inventory_limit)
+    }
+    pub fn update_account_maker_v3(ctx: Context<UpdateAccountMaker>, operation: u8) -> Result<()> {
+        account_trading::makers::update(ctx, operation)
+    }
+    pub fn preview_account_maker_v3(
+        ctx: Context<PreviewAccountMaker>,
+        args: PreviewArgs,
+    ) -> Result<QuoteResponse> {
+        account_trading::makers::preview(ctx, args)
+    }
+    pub fn initialize_account_oracle_v3(
+        ctx: Context<InitializeAccountOracle>,
+        primary: Pubkey,
+        guard: Pubkey,
+    ) -> Result<()> {
+        account_trading::oracle::initialize(ctx, primary, guard)
+    }
+    pub fn sample_account_oracle_v3(ctx: Context<SampleAccountOracle>) -> Result<()> {
+        account_trading::oracle::sample(ctx)
+    }
+    pub fn qualify_account_trading_v3(ctx: Context<QualifyAccountTradingV3>) -> Result<()> {
+        account_trading::activation::qualify(ctx)
+    }
+    pub fn manage_account_order_v3(
+        ctx: Context<ManageAccountOrderV3>,
+        guard: account_trading::authority::AccountGuardV3,
+        market_index: u8,
+        operation: group_trading::routes::GroupOrderAction,
+    ) -> Result<()> {
+        account_trading::authority::manage(ctx, guard, market_index, operation)
+    }
+    pub fn set_account_delegate_v3(
+        ctx: Context<SetAccountDelegateV3>,
+        guard: account_trading::authority::AccountGuardV3,
+        delegate: Pubkey,
+        expiry_slot: u64,
+    ) -> Result<()> {
+        account_trading::authority::delegate(ctx, guard, delegate, expiry_slot)
+    }
+    pub fn execute_account_route_v3(
+        ctx: Context<ExecuteAccountRouteV3>,
+        intent: account_trading::routes::AccountRouteIntentV3,
+    ) -> Result<()> {
+        account_trading::routes::execute(ctx, intent)
+    }
+    pub fn execute_account_order_v3(
+        ctx: Context<ExecuteAccountRouteV3>,
+        args: account_trading::routes::AccountOrderExecutionV3,
+    ) -> Result<()> {
+        account_trading::routes::execute_order(ctx, args)
+    }
+
     pub fn initialize_venue_v3(
         ctx: Context<InitializeVenueV3>,
         domain: [u8; 32],

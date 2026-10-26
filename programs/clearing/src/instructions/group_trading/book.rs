@@ -21,7 +21,7 @@ fn bound(root: &MarginAccountV2, market: &GroupMarketV2) -> Result<()> {
 }
 
 pub(crate) fn validate(root: &MarginAccountV2) -> Result<()> {
-    model(root)?;
+    let account = model(root)?;
     let mut reserved = 0;
     for (index, stored) in root.book.orders.iter().enumerate() {
         let order = &stored.order;
@@ -31,7 +31,7 @@ pub(crate) fn validate(root: &MarginAccountV2) -> Result<()> {
         );
         if order.active() {
             require!(
-                model(root)?.allows(usize::from(stored.market_index))
+                account.allows(usize::from(stored.market_index))
                     && stored.delegate_epoch <= root.delegate_epoch
                     && order.id > 0
                     && order.version > 0

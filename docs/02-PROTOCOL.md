@@ -1,6 +1,11 @@
 # Protocol contract
 Rivalt · baseline R1 · 20 October 2026
 
+D62 records [P24's candidate trading interface](P24-ACCOUNT-TRADING.md): scoped
+account/safety/maker authority, current relevant risk and exact per-market fee
+allocation. It remains a separate qualification artifact pending P26 safety.
+
+
 D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
 and supersedes the earlier P22B-incomplete wording below. The exact normal
 settlement, bounded terminal arithmetic and layouts apply only to the new profile.

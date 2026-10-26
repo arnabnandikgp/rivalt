@@ -7,6 +7,8 @@
  */
 
 export * from "./accountCashSnapshotV3.js";
+export * from "./accountGuardV3.js";
+export * from "./accountRouteLegV3.js";
 export * from "./executedLeg.js";
 export * from "./groupMarketSnapshotV2.js";
 export * from "./groupMemberCashV2.js";
@@ -15,8 +17,11 @@ export * from "./groupResolutionHeaderV2.js";
 export * from "./groupResolutionRowV2.js";
 export * from "./groupResolutionUpdateV2.js";
 export * from "./makerRegistrationSnapshotV2.js";
+export * from "./makerRegistrationSnapshotV3.js";
 export * from "./marginAccountSnapshotV2.js";
+export * from "./marginAccountSnapshotV3.js";
 export * from "./marketLedgerSnapshotV3.js";
+export * from "./marketSnapshotV3.js";
 export * from "./oracleState.js";
 export * from "./orderBook.js";
 export * from "./orderBookV2.js";

@@ -38,6 +38,7 @@ import {
 import {
   getCapitalBindingCodec,
   getCapitalBindingV2Codec,
+  getCapitalBindingV3Codec,
   getClearingGroupV2Codec,
   getCustodyV3Codec,
   getExitGuardCodec,
@@ -47,6 +48,7 @@ import {
   getGroupResolutionV2Codec,
   getMakerRegistrationCodec,
   getMakerRegistrationV2Codec,
+  getMakerRegistrationV3Codec,
   getMarginAccountV2Codec,
   getMarginAccountV3Codec,
   getMarketLedgerV3Codec,
@@ -66,6 +68,8 @@ import {
   type CapitalBindingArgs,
   type CapitalBindingV2,
   type CapitalBindingV2Args,
+  type CapitalBindingV3,
+  type CapitalBindingV3Args,
   type ClearingGroupV2,
   type ClearingGroupV2Args,
   type CustodyV3,
@@ -84,6 +88,8 @@ import {
   type MakerRegistrationArgs,
   type MakerRegistrationV2,
   type MakerRegistrationV2Args,
+  type MakerRegistrationV3,
+  type MakerRegistrationV3Args,
   type MarginAccountV2,
   type MarginAccountV2Args,
   type MarginAccountV3,
@@ -137,6 +143,8 @@ import {
   getDepositAccountV3InstructionAsync,
   getDepositGroupV2InstructionAsync,
   getDepositInstructionAsync,
+  getExecuteAccountOrderV3InstructionAsync,
+  getExecuteAccountRouteV3InstructionAsync,
   getExecuteGroupOrderV2InstructionAsync,
   getExecuteGroupRouteV2InstructionAsync,
   getExecuteMarginOrderV2InstructionAsync,
@@ -147,6 +155,7 @@ import {
   getFreezeMarketInstructionAsync,
   getFundInsuranceInstructionAsync,
   getGroupTradingCashV2InstructionAsync,
+  getInitializeAccountOracleV3InstructionAsync,
   getInitializeExitGuardInstructionAsync,
   getInitializeGroupMarketV2Instruction,
   getInitializeGroupOracleV2Instruction,
@@ -161,6 +170,7 @@ import {
   getInitializeVenueV3InstructionAsync,
   getLiquidateGroupV2InstructionAsync,
   getLiquidateInstructionAsync,
+  getManageAccountOrderV3InstructionAsync,
   getManageGroupOrderV2Instruction,
   getManageMarginOrderV2Instruction,
   getNetMarginClaimsV2Instruction,
@@ -168,22 +178,27 @@ import {
   getPauseVenueV3InstructionAsync,
   getPlaceOrderInstructionAsync,
   getPlaceProtectionInstructionAsync,
+  getPreviewAccountMakerV3InstructionAsync,
   getPreviewGroupMakerV2Instruction,
   getPreviewMakerInstructionAsync,
   getProbeInstructionAsync,
   getPublishTestRiskInstructionAsync,
+  getQualifyAccountTradingV3InstructionAsync,
   getQuarantineMakerInstructionAsync,
   getRecoverGroupResolutionV2InstructionAsync,
   getRecoverResolutionInstructionAsync,
+  getRegisterAccountMakerV3InstructionAsync,
   getRegisterGroupMakerV2InstructionAsync,
   getRegisterMakerInstructionAsync,
   getRegisterMarginV2InstructionAsync,
   getRegisterMarginV3InstructionAsync,
   getRegisterParticipantInstructionAsync,
   getReplaceOrderInstructionAsync,
+  getSampleAccountOracleV3InstructionAsync,
   getSampleGroupOracleV2Instruction,
   getSampleOracleInstructionAsync,
   getSeedMarketInsuranceV3InstructionAsync,
+  getSetAccountDelegateV3InstructionAsync,
   getSetCustodyPauseInstructionAsync,
   getSetMarginDelegateV2Instruction,
   getSettleGainInstructionAsync,
@@ -191,6 +206,7 @@ import {
   getTransferAccountCustodyV3InstructionAsync,
   getTransferGroupCustodyV2InstructionAsync,
   getTransferTradingCashV2InstructionAsync,
+  getUpdateAccountMakerV3InstructionAsync,
   getUpdateGroupMakerV2Instruction,
   getWithdrawAccountCustodyV3InstructionAsync,
   getWithdrawGroupCustodyV2InstructionAsync,
@@ -217,6 +233,8 @@ import {
   parseDepositAccountV3Instruction,
   parseDepositGroupV2Instruction,
   parseDepositInstruction,
+  parseExecuteAccountOrderV3Instruction,
+  parseExecuteAccountRouteV3Instruction,
   parseExecuteGroupOrderV2Instruction,
   parseExecuteGroupRouteV2Instruction,
   parseExecuteMarginOrderV2Instruction,
@@ -227,6 +245,7 @@ import {
   parseFreezeMarketInstruction,
   parseFundInsuranceInstruction,
   parseGroupTradingCashV2Instruction,
+  parseInitializeAccountOracleV3Instruction,
   parseInitializeExitGuardInstruction,
   parseInitializeGroupMarketV2Instruction,
   parseInitializeGroupOracleV2Instruction,
@@ -241,6 +260,7 @@ import {
   parseInitializeVenueV3Instruction,
   parseLiquidateGroupV2Instruction,
   parseLiquidateInstruction,
+  parseManageAccountOrderV3Instruction,
   parseManageGroupOrderV2Instruction,
   parseManageMarginOrderV2Instruction,
   parseNetMarginClaimsV2Instruction,
@@ -248,22 +268,27 @@ import {
   parsePauseVenueV3Instruction,
   parsePlaceOrderInstruction,
   parsePlaceProtectionInstruction,
+  parsePreviewAccountMakerV3Instruction,
   parsePreviewGroupMakerV2Instruction,
   parsePreviewMakerInstruction,
   parseProbeInstruction,
   parsePublishTestRiskInstruction,
+  parseQualifyAccountTradingV3Instruction,
   parseQuarantineMakerInstruction,
   parseRecoverGroupResolutionV2Instruction,
   parseRecoverResolutionInstruction,
+  parseRegisterAccountMakerV3Instruction,
   parseRegisterGroupMakerV2Instruction,
   parseRegisterMakerInstruction,
   parseRegisterMarginV2Instruction,
   parseRegisterMarginV3Instruction,
   parseRegisterParticipantInstruction,
   parseReplaceOrderInstruction,
+  parseSampleAccountOracleV3Instruction,
   parseSampleGroupOracleV2Instruction,
   parseSampleOracleInstruction,
   parseSeedMarketInsuranceV3Instruction,
+  parseSetAccountDelegateV3Instruction,
   parseSetCustodyPauseInstruction,
   parseSetMarginDelegateV2Instruction,
   parseSettleGainInstruction,
@@ -271,6 +296,7 @@ import {
   parseTransferAccountCustodyV3Instruction,
   parseTransferGroupCustodyV2Instruction,
   parseTransferTradingCashV2Instruction,
+  parseUpdateAccountMakerV3Instruction,
   parseUpdateGroupMakerV2Instruction,
   parseWithdrawAccountCustodyV3Instruction,
   parseWithdrawGroupCustodyV2Instruction,
@@ -297,6 +323,8 @@ import {
   type DepositAccountV3AsyncInput,
   type DepositAsyncInput,
   type DepositGroupV2AsyncInput,
+  type ExecuteAccountOrderV3AsyncInput,
+  type ExecuteAccountRouteV3AsyncInput,
   type ExecuteGroupOrderV2AsyncInput,
   type ExecuteGroupRouteV2AsyncInput,
   type ExecuteMarginOrderV2AsyncInput,
@@ -307,6 +335,7 @@ import {
   type FreezeMarketAsyncInput,
   type FundInsuranceAsyncInput,
   type GroupTradingCashV2AsyncInput,
+  type InitializeAccountOracleV3AsyncInput,
   type InitializeExitGuardAsyncInput,
   type InitializeGroupMarketV2Input,
   type InitializeGroupOracleV2Input,
@@ -321,6 +350,7 @@ import {
   type InitializeVenueV3AsyncInput,
   type LiquidateAsyncInput,
   type LiquidateGroupV2AsyncInput,
+  type ManageAccountOrderV3AsyncInput,
   type ManageGroupOrderV2Input,
   type ManageMarginOrderV2Input,
   type NetMarginClaimsV2Input,
@@ -345,6 +375,8 @@ import {
   type ParsedDepositAccountV3Instruction,
   type ParsedDepositGroupV2Instruction,
   type ParsedDepositInstruction,
+  type ParsedExecuteAccountOrderV3Instruction,
+  type ParsedExecuteAccountRouteV3Instruction,
   type ParsedExecuteGroupOrderV2Instruction,
   type ParsedExecuteGroupRouteV2Instruction,
   type ParsedExecuteMarginOrderV2Instruction,
@@ -355,6 +387,7 @@ import {
   type ParsedFreezeMarketInstruction,
   type ParsedFundInsuranceInstruction,
   type ParsedGroupTradingCashV2Instruction,
+  type ParsedInitializeAccountOracleV3Instruction,
   type ParsedInitializeExitGuardInstruction,
   type ParsedInitializeGroupMarketV2Instruction,
   type ParsedInitializeGroupOracleV2Instruction,
@@ -369,6 +402,7 @@ import {
   type ParsedInitializeVenueV3Instruction,
   type ParsedLiquidateGroupV2Instruction,
   type ParsedLiquidateInstruction,
+  type ParsedManageAccountOrderV3Instruction,
   type ParsedManageGroupOrderV2Instruction,
   type ParsedManageMarginOrderV2Instruction,
   type ParsedNetMarginClaimsV2Instruction,
@@ -376,22 +410,27 @@ import {
   type ParsedPauseVenueV3Instruction,
   type ParsedPlaceOrderInstruction,
   type ParsedPlaceProtectionInstruction,
+  type ParsedPreviewAccountMakerV3Instruction,
   type ParsedPreviewGroupMakerV2Instruction,
   type ParsedPreviewMakerInstruction,
   type ParsedProbeInstruction,
   type ParsedPublishTestRiskInstruction,
+  type ParsedQualifyAccountTradingV3Instruction,
   type ParsedQuarantineMakerInstruction,
   type ParsedRecoverGroupResolutionV2Instruction,
   type ParsedRecoverResolutionInstruction,
+  type ParsedRegisterAccountMakerV3Instruction,
   type ParsedRegisterGroupMakerV2Instruction,
   type ParsedRegisterMakerInstruction,
   type ParsedRegisterMarginV2Instruction,
   type ParsedRegisterMarginV3Instruction,
   type ParsedRegisterParticipantInstruction,
   type ParsedReplaceOrderInstruction,
+  type ParsedSampleAccountOracleV3Instruction,
   type ParsedSampleGroupOracleV2Instruction,
   type ParsedSampleOracleInstruction,
   type ParsedSeedMarketInsuranceV3Instruction,
+  type ParsedSetAccountDelegateV3Instruction,
   type ParsedSetCustodyPauseInstruction,
   type ParsedSetMarginDelegateV2Instruction,
   type ParsedSettleGainInstruction,
@@ -399,6 +438,7 @@ import {
   type ParsedTransferAccountCustodyV3Instruction,
   type ParsedTransferGroupCustodyV2Instruction,
   type ParsedTransferTradingCashV2Instruction,
+  type ParsedUpdateAccountMakerV3Instruction,
   type ParsedUpdateGroupMakerV2Instruction,
   type ParsedWithdrawAccountCustodyV3Instruction,
   type ParsedWithdrawGroupCustodyV2Instruction,
@@ -408,22 +448,27 @@ import {
   type PauseVenueV3AsyncInput,
   type PlaceOrderAsyncInput,
   type PlaceProtectionAsyncInput,
+  type PreviewAccountMakerV3AsyncInput,
   type PreviewGroupMakerV2Input,
   type PreviewMakerAsyncInput,
   type ProbeAsyncInput,
   type PublishTestRiskAsyncInput,
+  type QualifyAccountTradingV3AsyncInput,
   type QuarantineMakerAsyncInput,
   type RecoverGroupResolutionV2AsyncInput,
   type RecoverResolutionAsyncInput,
+  type RegisterAccountMakerV3AsyncInput,
   type RegisterGroupMakerV2AsyncInput,
   type RegisterMakerAsyncInput,
   type RegisterMarginV2AsyncInput,
   type RegisterMarginV3AsyncInput,
   type RegisterParticipantAsyncInput,
   type ReplaceOrderAsyncInput,
+  type SampleAccountOracleV3AsyncInput,
   type SampleGroupOracleV2Input,
   type SampleOracleAsyncInput,
   type SeedMarketInsuranceV3AsyncInput,
+  type SetAccountDelegateV3AsyncInput,
   type SetCustodyPauseAsyncInput,
   type SetMarginDelegateV2Input,
   type SettleGainAsyncInput,
@@ -431,6 +476,7 @@ import {
   type TransferAccountCustodyV3AsyncInput,
   type TransferGroupCustodyV2AsyncInput,
   type TransferTradingCashV2AsyncInput,
+  type UpdateAccountMakerV3AsyncInput,
   type UpdateGroupMakerV2Input,
   type WithdrawAccountCustodyV3AsyncInput,
   type WithdrawAsyncInput,
@@ -439,9 +485,12 @@ import {
 } from "../instructions/index.js";
 import {
   findBindingPda,
+  findBtcLedgerV3Pda,
+  findCapitalBindingPda,
   findCapitalPda,
   findClassifyGroupSurplusV2VaultPda,
   findCustodyV3Pda,
+  findEthLedgerV3Pda,
   findGroupBindingPda,
   findGroupExitGuardPda,
   findGroupPda,
@@ -452,6 +501,7 @@ import {
   findMarginPda,
   findMarketLedgerV3Pda,
   findMarketPda,
+  findOtherMarketLedgerV3Pda,
   findPortfolioPda,
   findPortfolioV3Pda,
   findReceiverBindingPda,
@@ -473,6 +523,7 @@ export const CLEARING_PROGRAM_ADDRESS =
 export enum ClearingAccount {
   CapitalBinding,
   CapitalBindingV2,
+  CapitalBindingV3,
   ClearingGroupV2,
   CustodyV3,
   ExitGuard,
@@ -482,6 +533,7 @@ export enum ClearingAccount {
   GroupResolutionV2,
   MakerRegistration,
   MakerRegistrationV2,
+  MakerRegistrationV3,
   MarginAccountV2,
   MarginAccountV3,
   MarketLedgerV3,
@@ -524,6 +576,17 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.CapitalBindingV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([73, 122, 190, 75, 85, 174, 37, 138]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.CapitalBindingV3;
   }
   if (
     containsBytes(
@@ -623,6 +686,17 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.MakerRegistrationV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([178, 121, 174, 51, 57, 224, 24, 117]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.MakerRegistrationV3;
   }
   if (
     containsBytes(
@@ -796,7 +870,13 @@ export function identifyClearingAccount(
 }
 
 export enum ClearingEvent {
+  AccountAuthorityChangedV3,
   AccountCustodyChangedV3,
+  AccountMakerChangedV3,
+  AccountOracleChangedV3,
+  AccountOrderChangedV3,
+  AccountQualificationV3,
+  AccountRouteExecutedV3,
   CustodyChanged,
   GroupCustodyChangedV2,
   GroupLiquidationV2,
@@ -829,12 +909,78 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([251, 40, 242, 186, 173, 63, 170, 85]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountAuthorityChangedV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([116, 78, 173, 90, 240, 10, 196, 1]),
       ),
       0,
     )
   ) {
     return ClearingEvent.AccountCustodyChangedV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([54, 119, 236, 63, 241, 13, 201, 26]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountMakerChangedV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([110, 134, 123, 30, 250, 53, 165, 164]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountOracleChangedV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([138, 63, 159, 244, 107, 190, 119, 30]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountOrderChangedV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([78, 191, 27, 88, 192, 34, 235, 128]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountQualificationV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([127, 173, 157, 79, 126, 181, 21, 231]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountRouteExecutedV3;
   }
   if (
     containsBytes(
@@ -1105,6 +1251,8 @@ export enum ClearingInstruction {
   Deposit,
   DepositAccountV3,
   DepositGroupV2,
+  ExecuteAccountOrderV3,
+  ExecuteAccountRouteV3,
   ExecuteGroupOrderV2,
   ExecuteGroupRouteV2,
   ExecuteMarginOrderV2,
@@ -1115,6 +1263,7 @@ export enum ClearingInstruction {
   FreezeMarket,
   FundInsurance,
   GroupTradingCashV2,
+  InitializeAccountOracleV3,
   InitializeExitGuard,
   InitializeGroupMarketV2,
   InitializeGroupOracleV2,
@@ -1129,6 +1278,7 @@ export enum ClearingInstruction {
   InitializeVenueV3,
   Liquidate,
   LiquidateGroupV2,
+  ManageAccountOrderV3,
   ManageGroupOrderV2,
   ManageMarginOrderV2,
   NetMarginClaimsV2,
@@ -1136,22 +1286,27 @@ export enum ClearingInstruction {
   PauseVenueV3,
   PlaceOrder,
   PlaceProtection,
+  PreviewAccountMakerV3,
   PreviewGroupMakerV2,
   PreviewMaker,
   Probe,
   PublishTestRisk,
+  QualifyAccountTradingV3,
   QuarantineMaker,
   RecoverGroupResolutionV2,
   RecoverResolution,
+  RegisterAccountMakerV3,
   RegisterGroupMakerV2,
   RegisterMaker,
   RegisterMarginV2,
   RegisterMarginV3,
   RegisterParticipant,
   ReplaceOrder,
+  SampleAccountOracleV3,
   SampleGroupOracleV2,
   SampleOracle,
   SeedMarketInsuranceV3,
+  SetAccountDelegateV3,
   SetCustodyPause,
   SetMarginDelegateV2,
   SettleGain,
@@ -1159,6 +1314,7 @@ export enum ClearingInstruction {
   TransferAccountCustodyV3,
   TransferGroupCustodyV2,
   TransferTradingCashV2,
+  UpdateAccountMakerV3,
   UpdateGroupMakerV2,
   Withdraw,
   WithdrawAccountCustodyV3,
@@ -1405,6 +1561,28 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([227, 81, 78, 150, 222, 178, 206, 229]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteAccountOrderV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([19, 140, 42, 107, 134, 174, 49, 183]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteAccountRouteV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([40, 58, 221, 117, 50, 75, 244, 156]),
       ),
       0,
@@ -1510,6 +1688,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.GroupTradingCashV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([58, 25, 84, 47, 225, 194, 103, 162]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeAccountOracleV3;
   }
   if (
     containsBytes(
@@ -1669,6 +1858,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([222, 137, 80, 44, 228, 144, 103, 165]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ManageAccountOrderV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([104, 186, 58, 235, 253, 234, 64, 80]),
       ),
       0,
@@ -1746,6 +1946,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([4, 9, 219, 208, 111, 237, 103, 157]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PreviewAccountMakerV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([166, 89, 63, 129, 186, 89, 137, 85]),
       ),
       0,
@@ -1790,6 +2001,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([198, 106, 71, 214, 196, 62, 118, 65]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.QualifyAccountTradingV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([153, 18, 69, 131, 41, 154, 187, 101]),
       ),
       0,
@@ -1818,6 +2040,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.RecoverResolution;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([136, 50, 227, 15, 132, 196, 125, 61]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RegisterAccountMakerV3;
   }
   if (
     containsBytes(
@@ -1889,6 +2122,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([85, 241, 43, 118, 197, 109, 150, 171]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SampleAccountOracleV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([52, 201, 124, 89, 140, 29, 104, 145]),
       ),
       0,
@@ -1917,6 +2161,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.SeedMarketInsuranceV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([250, 140, 65, 24, 51, 121, 96, 88]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SetAccountDelegateV3;
   }
   if (
     containsBytes(
@@ -1994,6 +2249,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.TransferTradingCashV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([9, 35, 59, 247, 110, 33, 195, 33]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.UpdateAccountMakerV3;
   }
   if (
     containsBytes(
@@ -2123,6 +2389,12 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.DepositGroupV2;
     } & ParsedDepositGroupV2Instruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ExecuteAccountOrderV3;
+    } & ParsedExecuteAccountOrderV3Instruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ExecuteAccountRouteV3;
+    } & ParsedExecuteAccountRouteV3Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ExecuteGroupOrderV2;
     } & ParsedExecuteGroupOrderV2Instruction<TProgram>)
   | ({
@@ -2152,6 +2424,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.GroupTradingCashV2;
     } & ParsedGroupTradingCashV2Instruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.InitializeAccountOracleV3;
+    } & ParsedInitializeAccountOracleV3Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.InitializeExitGuard;
     } & ParsedInitializeExitGuardInstruction<TProgram>)
@@ -2195,6 +2470,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.LiquidateGroupV2;
     } & ParsedLiquidateGroupV2Instruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ManageAccountOrderV3;
+    } & ParsedManageAccountOrderV3Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ManageGroupOrderV2;
     } & ParsedManageGroupOrderV2Instruction<TProgram>)
   | ({
@@ -2216,6 +2494,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.PlaceProtection;
     } & ParsedPlaceProtectionInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.PreviewAccountMakerV3;
+    } & ParsedPreviewAccountMakerV3Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.PreviewGroupMakerV2;
     } & ParsedPreviewGroupMakerV2Instruction<TProgram>)
   | ({
@@ -2228,6 +2509,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.PublishTestRisk;
     } & ParsedPublishTestRiskInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.QualifyAccountTradingV3;
+    } & ParsedQualifyAccountTradingV3Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.QuarantineMaker;
     } & ParsedQuarantineMakerInstruction<TProgram>)
   | ({
@@ -2236,6 +2520,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.RecoverResolution;
     } & ParsedRecoverResolutionInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RegisterAccountMakerV3;
+    } & ParsedRegisterAccountMakerV3Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.RegisterGroupMakerV2;
     } & ParsedRegisterGroupMakerV2Instruction<TProgram>)
@@ -2255,6 +2542,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ReplaceOrder;
     } & ParsedReplaceOrderInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.SampleAccountOracleV3;
+    } & ParsedSampleAccountOracleV3Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.SampleGroupOracleV2;
     } & ParsedSampleGroupOracleV2Instruction<TProgram>)
   | ({
@@ -2263,6 +2553,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.SeedMarketInsuranceV3;
     } & ParsedSeedMarketInsuranceV3Instruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.SetAccountDelegateV3;
+    } & ParsedSetAccountDelegateV3Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.SetCustodyPause;
     } & ParsedSetCustodyPauseInstruction<TProgram>)
@@ -2284,6 +2577,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.TransferTradingCashV2;
     } & ParsedTransferTradingCashV2Instruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.UpdateAccountMakerV3;
+    } & ParsedUpdateAccountMakerV3Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.UpdateGroupMakerV2;
     } & ParsedUpdateGroupMakerV2Instruction<TProgram>)
@@ -2452,6 +2748,20 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseDepositGroupV2Instruction(instruction),
       };
     }
+    case ClearingInstruction.ExecuteAccountOrderV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteAccountOrderV3,
+        ...parseExecuteAccountOrderV3Instruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteAccountRouteV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteAccountRouteV3,
+        ...parseExecuteAccountRouteV3Instruction(instruction),
+      };
+    }
     case ClearingInstruction.ExecuteGroupOrderV2: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2520,6 +2830,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.GroupTradingCashV2,
         ...parseGroupTradingCashV2Instruction(instruction),
+      };
+    }
+    case ClearingInstruction.InitializeAccountOracleV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeAccountOracleV3,
+        ...parseInitializeAccountOracleV3Instruction(instruction),
       };
     }
     case ClearingInstruction.InitializeExitGuard: {
@@ -2620,6 +2937,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseLiquidateGroupV2Instruction(instruction),
       };
     }
+    case ClearingInstruction.ManageAccountOrderV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ManageAccountOrderV3,
+        ...parseManageAccountOrderV3Instruction(instruction),
+      };
+    }
     case ClearingInstruction.ManageGroupOrderV2: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2669,6 +2993,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parsePlaceProtectionInstruction(instruction),
       };
     }
+    case ClearingInstruction.PreviewAccountMakerV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PreviewAccountMakerV3,
+        ...parsePreviewAccountMakerV3Instruction(instruction),
+      };
+    }
     case ClearingInstruction.PreviewGroupMakerV2: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2697,6 +3028,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parsePublishTestRiskInstruction(instruction),
       };
     }
+    case ClearingInstruction.QualifyAccountTradingV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.QualifyAccountTradingV3,
+        ...parseQualifyAccountTradingV3Instruction(instruction),
+      };
+    }
     case ClearingInstruction.QuarantineMaker: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2716,6 +3054,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.RecoverResolution,
         ...parseRecoverResolutionInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.RegisterAccountMakerV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RegisterAccountMakerV3,
+        ...parseRegisterAccountMakerV3Instruction(instruction),
       };
     }
     case ClearingInstruction.RegisterGroupMakerV2: {
@@ -2760,6 +3105,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseReplaceOrderInstruction(instruction),
       };
     }
+    case ClearingInstruction.SampleAccountOracleV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SampleAccountOracleV3,
+        ...parseSampleAccountOracleV3Instruction(instruction),
+      };
+    }
     case ClearingInstruction.SampleGroupOracleV2: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2779,6 +3131,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.SeedMarketInsuranceV3,
         ...parseSeedMarketInsuranceV3Instruction(instruction),
+      };
+    }
+    case ClearingInstruction.SetAccountDelegateV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SetAccountDelegateV3,
+        ...parseSetAccountDelegateV3Instruction(instruction),
       };
     }
     case ClearingInstruction.SetCustodyPause: {
@@ -2828,6 +3187,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.TransferTradingCashV2,
         ...parseTransferTradingCashV2Instruction(instruction),
+      };
+    }
+    case ClearingInstruction.UpdateAccountMakerV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.UpdateAccountMakerV3,
+        ...parseUpdateAccountMakerV3Instruction(instruction),
       };
     }
     case ClearingInstruction.UpdateGroupMakerV2: {
@@ -2887,6 +3253,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<CapitalBindingArgs, CapitalBinding>;
   capitalBindingV2: ReturnType<typeof getCapitalBindingV2Codec> &
     SelfFetchFunctions<CapitalBindingV2Args, CapitalBindingV2>;
+  capitalBindingV3: ReturnType<typeof getCapitalBindingV3Codec> &
+    SelfFetchFunctions<CapitalBindingV3Args, CapitalBindingV3>;
   clearingGroupV2: ReturnType<typeof getClearingGroupV2Codec> &
     SelfFetchFunctions<ClearingGroupV2Args, ClearingGroupV2>;
   custodyV3: ReturnType<typeof getCustodyV3Codec> &
@@ -2905,6 +3273,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<MakerRegistrationArgs, MakerRegistration>;
   makerRegistrationV2: ReturnType<typeof getMakerRegistrationV2Codec> &
     SelfFetchFunctions<MakerRegistrationV2Args, MakerRegistrationV2>;
+  makerRegistrationV3: ReturnType<typeof getMakerRegistrationV3Codec> &
+    SelfFetchFunctions<MakerRegistrationV3Args, MakerRegistrationV3>;
   marginAccountV2: ReturnType<typeof getMarginAccountV2Codec> &
     SelfFetchFunctions<MarginAccountV2Args, MarginAccountV2>;
   marginAccountV3: ReturnType<typeof getMarginAccountV3Codec> &
@@ -3042,6 +3412,16 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getDepositGroupV2InstructionAsync> &
     SelfPlanAndSendFunctions;
+  executeAccountOrderV3: (
+    input: ExecuteAccountOrderV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteAccountOrderV3InstructionAsync> &
+    SelfPlanAndSendFunctions;
+  executeAccountRouteV3: (
+    input: ExecuteAccountRouteV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteAccountRouteV3InstructionAsync> &
+    SelfPlanAndSendFunctions;
   executeGroupOrderV2: (
     input: ExecuteGroupOrderV2AsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -3091,6 +3471,11 @@ export type ClearingPluginInstructions = {
     input: GroupTradingCashV2AsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getGroupTradingCashV2InstructionAsync> &
+    SelfPlanAndSendFunctions;
+  initializeAccountOracleV3: (
+    input: InitializeAccountOracleV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeAccountOracleV3InstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeExitGuard: (
     input: MakeOptional<InitializeExitGuardAsyncInput, "payer">,
@@ -3162,6 +3547,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getLiquidateGroupV2InstructionAsync> &
     SelfPlanAndSendFunctions;
+  manageAccountOrderV3: (
+    input: ManageAccountOrderV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getManageAccountOrderV3InstructionAsync> &
+    SelfPlanAndSendFunctions;
   manageGroupOrderV2: (
     input: ManageGroupOrderV2Input,
     config?: { programAddress?: Address | HasAddress },
@@ -3197,6 +3587,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getPlaceProtectionInstructionAsync> &
     SelfPlanAndSendFunctions;
+  previewAccountMakerV3: (
+    input: PreviewAccountMakerV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPreviewAccountMakerV3InstructionAsync> &
+    SelfPlanAndSendFunctions;
   previewGroupMakerV2: (
     input: PreviewGroupMakerV2Input,
     config?: { programAddress?: Address | HasAddress },
@@ -3216,6 +3611,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getPublishTestRiskInstructionAsync> &
     SelfPlanAndSendFunctions;
+  qualifyAccountTradingV3: (
+    input: QualifyAccountTradingV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getQualifyAccountTradingV3InstructionAsync> &
+    SelfPlanAndSendFunctions;
   quarantineMaker: (
     input: QuarantineMakerAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -3230,6 +3630,11 @@ export type ClearingPluginInstructions = {
     input: RecoverResolutionAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRecoverResolutionInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  registerAccountMakerV3: (
+    input: RegisterAccountMakerV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRegisterAccountMakerV3InstructionAsync> &
     SelfPlanAndSendFunctions;
   registerGroupMakerV2: (
     input: RegisterGroupMakerV2AsyncInput,
@@ -3261,6 +3666,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getReplaceOrderInstructionAsync> &
     SelfPlanAndSendFunctions;
+  sampleAccountOracleV3: (
+    input: SampleAccountOracleV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSampleAccountOracleV3InstructionAsync> &
+    SelfPlanAndSendFunctions;
   sampleGroupOracleV2: (
     input: SampleGroupOracleV2Input,
     config?: { programAddress?: Address | HasAddress },
@@ -3275,6 +3685,11 @@ export type ClearingPluginInstructions = {
     input: SeedMarketInsuranceV3AsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSeedMarketInsuranceV3InstructionAsync> &
+    SelfPlanAndSendFunctions;
+  setAccountDelegateV3: (
+    input: SetAccountDelegateV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSetAccountDelegateV3InstructionAsync> &
     SelfPlanAndSendFunctions;
   setCustodyPause: (
     input: SetCustodyPauseAsyncInput,
@@ -3310,6 +3725,11 @@ export type ClearingPluginInstructions = {
     input: TransferTradingCashV2AsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getTransferTradingCashV2InstructionAsync> &
+    SelfPlanAndSendFunctions;
+  updateAccountMakerV3: (
+    input: UpdateAccountMakerV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getUpdateAccountMakerV3InstructionAsync> &
     SelfPlanAndSendFunctions;
   updateGroupMakerV2: (
     input: UpdateGroupMakerV2Input,
@@ -3355,13 +3775,17 @@ export type ClearingPluginPdas = {
   venueVaultV3: typeof findVenueVaultV3Pda;
   portfolio: typeof findPortfolioPda;
   portfolioV3: typeof findPortfolioV3Pda;
-  group: typeof findGroupPda;
   marketLedgerV3: typeof findMarketLedgerV3Pda;
+  otherMarketLedgerV3: typeof findOtherMarketLedgerV3Pda;
+  group: typeof findGroupPda;
   venueRegistryV3: typeof findVenueRegistryV3Pda;
   venueV3: typeof findVenueV3Pda;
   receiver: typeof findReceiverPda;
   receiverBinding: typeof findReceiverBindingPda;
   record: typeof findRecordPda;
+  btcLedgerV3: typeof findBtcLedgerV3Pda;
+  ethLedgerV3: typeof findEthLedgerV3Pda;
+  capitalBinding: typeof findCapitalBindingPda;
   groupBinding: typeof findGroupBindingPda;
   binding: typeof findBindingPda;
   margin: typeof findMarginPda;
@@ -3392,6 +3816,10 @@ export function clearingProgram(
             client,
             getCapitalBindingV2Codec(),
           ),
+          capitalBindingV3: addSelfFetchFunctions(
+            client,
+            getCapitalBindingV3Codec(),
+          ),
           clearingGroupV2: addSelfFetchFunctions(
             client,
             getClearingGroupV2Codec(),
@@ -3418,6 +3846,10 @@ export function clearingProgram(
           makerRegistrationV2: addSelfFetchFunctions(
             client,
             getMakerRegistrationV2Codec(),
+          ),
+          makerRegistrationV3: addSelfFetchFunctions(
+            client,
+            getMakerRegistrationV3Codec(),
           ),
           marginAccountV2: addSelfFetchFunctions(
             client,
@@ -3625,6 +4057,22 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          executeAccountOrderV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteAccountOrderV3InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeAccountRouteV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteAccountRouteV3InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           executeGroupOrderV2: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -3701,6 +4149,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getGroupTradingCashV2InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          initializeAccountOracleV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeAccountOracleV3InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -3820,6 +4276,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          manageAccountOrderV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getManageAccountOrderV3InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           manageGroupOrderV2: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -3876,6 +4340,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          previewAccountMakerV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPreviewAccountMakerV3InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           previewGroupMakerV2: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -3908,6 +4380,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          qualifyAccountTradingV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getQualifyAccountTradingV3InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           quarantineMaker: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -3928,6 +4408,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getRecoverResolutionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          registerAccountMakerV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRegisterAccountMakerV3InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -3980,6 +4468,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          sampleAccountOracleV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSampleAccountOracleV3InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           sampleGroupOracleV2: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -4000,6 +4496,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getSeedMarketInsuranceV3InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          setAccountDelegateV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetAccountDelegateV3InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -4056,6 +4560,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getTransferTradingCashV2InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          updateAccountMakerV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdateAccountMakerV3InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -4182,13 +4694,18 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          group: (seeds, pdaConfig) =>
-            findGroupPda(seeds, {
+          marketLedgerV3: (seeds, pdaConfig) =>
+            findMarketLedgerV3Pda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          marketLedgerV3: (seeds, pdaConfig) =>
-            findMarketLedgerV3Pda(seeds, {
+          otherMarketLedgerV3: (seeds, pdaConfig) =>
+            findOtherMarketLedgerV3Pda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          group: (seeds, pdaConfig) =>
+            findGroupPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
@@ -4214,6 +4731,21 @@ export function clearingProgram(
             }),
           record: (seeds, pdaConfig) =>
             findRecordPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          btcLedgerV3: (seeds, pdaConfig) =>
+            findBtcLedgerV3Pda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          ethLedgerV3: (seeds, pdaConfig) =>
+            findEthLedgerV3Pda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          capitalBinding: (seeds, pdaConfig) =>
+            findCapitalBindingPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

@@ -8,6 +8,7 @@
 
 export * from "./capitalBinding.js";
 export * from "./capitalBindingV2.js";
+export * from "./capitalBindingV3.js";
 export * from "./clearingGroupV2.js";
 export * from "./custodyV3.js";
 export * from "./exitGuard.js";
@@ -17,6 +18,7 @@ export * from "./groupRegistryV2.js";
 export * from "./groupResolutionV2.js";
 export * from "./makerRegistration.js";
 export * from "./makerRegistrationV2.js";
+export * from "./makerRegistrationV3.js";
 export * from "./marginAccountV2.js";
 export * from "./marginAccountV3.js";
 export * from "./marketLedgerV3.js";

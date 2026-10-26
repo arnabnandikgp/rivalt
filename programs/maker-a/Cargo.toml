@@ -12,6 +12,7 @@ name = "maker_a"
 default = []
 devnet-test-profile = ["clearing/devnet-test-profile"]
 successor-test-profile = ["clearing/successor-test-profile"]
+account-trading-qualification = ["clearing/account-trading-qualification"]
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

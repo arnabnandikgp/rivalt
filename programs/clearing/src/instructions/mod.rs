@@ -234,3 +234,44 @@ pub use account_custody::{
     InitializeVenueRegistryV3, InitializeVenueV3, PauseVenueV3, RegisterMarginV3,
     SeedMarketInsuranceV3, TransferAccountCustodyV3,
 };
+
+pub mod account_trading;
+
+pub(crate) use account_trading::makers::{
+    __client_accounts_preview_account_maker, __client_accounts_register_account_maker,
+    __client_accounts_update_account_maker,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use account_trading::makers::{
+    __cpi_client_accounts_preview_account_maker, __cpi_client_accounts_register_account_maker,
+    __cpi_client_accounts_update_account_maker,
+};
+pub use account_trading::makers::{PreviewAccountMaker, RegisterAccountMaker, UpdateAccountMaker};
+
+pub(crate) use account_trading::oracle::{
+    __client_accounts_initialize_account_oracle, __client_accounts_sample_account_oracle,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use account_trading::oracle::{
+    __cpi_client_accounts_initialize_account_oracle, __cpi_client_accounts_sample_account_oracle,
+};
+pub use account_trading::oracle::{InitializeAccountOracle, SampleAccountOracle};
+
+pub(crate) use account_trading::authority::{
+    __client_accounts_manage_account_order_v3, __client_accounts_set_account_delegate_v3,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use account_trading::authority::{
+    __cpi_client_accounts_manage_account_order_v3, __cpi_client_accounts_set_account_delegate_v3,
+};
+pub use account_trading::authority::{ManageAccountOrderV3, SetAccountDelegateV3};
+
+pub(crate) use account_trading::routes::__client_accounts_execute_account_route_v3;
+#[cfg(feature = "cpi")]
+pub(crate) use account_trading::routes::__cpi_client_accounts_execute_account_route_v3;
+pub use account_trading::routes::ExecuteAccountRouteV3;
+
+pub(crate) use account_trading::activation::__client_accounts_qualify_account_trading_v3;
+#[cfg(feature = "cpi")]
+pub(crate) use account_trading::activation::__cpi_client_accounts_qualify_account_trading_v3;
+pub use account_trading::activation::QualifyAccountTradingV3;

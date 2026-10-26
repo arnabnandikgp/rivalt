@@ -6,7 +6,13 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./accountAuthorityChangedV3.js";
 export * from "./accountCustodyChangedV3.js";
+export * from "./accountMakerChangedV3.js";
+export * from "./accountOracleChangedV3.js";
+export * from "./accountOrderChangedV3.js";
+export * from "./accountQualificationV3.js";
+export * from "./accountRouteExecutedV3.js";
 export * from "./custodyChanged.js";
 export * from "./groupCustodyChangedV2.js";
 export * from "./groupLiquidationV2.js";

@@ -571,3 +571,6 @@ P23 realization: [the custody contract](P23-ACCOUNT-CUSTODY.md) and
 [A28/G18 evidence](evidence/P23.md) pin its additive 11-instruction ABI, distinct
 reserve authority, actual SPL flows and default-profile rejection. Its verified
 Review commits satisfy P24 implementation dependency; they do not enable trading.
+
+P24 implementation contract: [risk, funding and trading](P24-ACCOUNT-TRADING.md).
+Its isolated candidate build is not P26 safety activation.

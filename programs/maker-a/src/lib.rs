@@ -30,6 +30,21 @@ pub mod maker_a {
     ) -> Result<QuoteResponse> {
         read_group_quote(context, request)
     }
+    pub fn initialize_account_config(
+        context: Context<InitializeAccountConfig>,
+        duration: u64,
+    ) -> Result<()> {
+        initialize_account(context, duration)
+    }
+    pub fn publish_account_epoch(context: Context<PublishAccount>, duration: u64) -> Result<()> {
+        publish_account(context, duration)
+    }
+    pub fn quote_account(
+        context: Context<ReadAccountQuote>,
+        request: maker_interface::AccountQuoteRequest,
+    ) -> Result<QuoteResponse> {
+        read_account_quote(context, request)
+    }
     pub fn publish_epoch(context: Context<Publish>, duration: u64) -> Result<()> {
         publish(context, duration)
     }
