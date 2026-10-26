@@ -25,6 +25,14 @@ residual debt. The reference imports no production code. P23–P28 must separate
 qualify actual custody, fee debit/rollback, default stages, ABI and RPC/WS/PostgreSQL
 reconstruction; passing these arithmetic checks does not satisfy those gates.
 
+D59's separate target is `python3 tests/financial/test_clearing_network.py`.
+It checks the complete-cohort rational benchmark and the whole-atom output candidate
+against literal and independent closed-form mixed-sign/cyclic cases, including
+fractional-insurance clipping and per-market conserving rounding. Arbitrary-size
+rational internals do not establish bounded executable encoding or signed financial
+acceptance. The hosted financial command includes the new target; local iteration
+does not rerun unrelated suites.
+
 P17–P21 retain these pinned tools. [P17](P17-MARGIN-CONTRACT.md) defines fresh
 successor golden cases, versioned layout/authority tests, whole-account funding,
 reservation/transfer/protection checks and complete-group liquidation/default

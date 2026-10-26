@@ -7,16 +7,17 @@ Baseline R1 · initialized 20 October 2026
 
 This is the sole implementation roadmap and live status record. The old research roadmap remains historical provenance outside the working directory. Update these tables and append a run entry after every substantive implementation run.
 
-**Current design work (R057 / D58):** The user now resumes exit work within the
+**Current design work (R058 / D59):** The user now resumes exit work within the
 account-centric redesign. [P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) separates
 account risk, market eligibility, funded exits and settlement/default boundaries.
 P22A's roadmap is ready for review; R055 develops P22B's independent financial model
 and contract in stacked PR #33. The user selects market-attributed losses; B04 is
 resolved and P22B resumes the complete contract. The user approves seed-plus-fee
 insurance funding and selects 25% of collected taker fees for that market's reserve.
-Exact allocation/carry transitions and 15 focused independent checks are added;
-the general netting/default/layout contract remains due. No new runtime path or
-payout guarantee is claimed.
+R058 adds a complete-cohort rational clearing reference and a whole-atom output
+candidate for mixed-sign claims/cycles, with 29 focused checks passing. Bounded
+numeric representation, normal netting/payment, staged authority and layouts
+remain G17 work. No new runtime path or payout guarantee is claimed.
 The earlier M7 closure/limitations stand; P15B/P16B stay Open and endurance Deferred.
 
 **Stack review checkpoint (R028):** All 21 inline review findings (15 original plus six follow-ups) are resolved with fixes or verified non-issues. The final 13-PR sweep found zero unresolved threads, no requested changes and no failing checks before the authorized atomic merge. Local `main` is fast-forwarded to the merge; its tree exactly matches tested remediation head `3b1c0be`. All 526 raw evidence files remain ignored at their original paths with matching hashes.
@@ -45,7 +46,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R057: P22A Review; P22B In progress with D57 market attribution and approved D58 25% insurance share. Fifteen focused reserve-model checks pass, including 2,048 fee-partition histories; prior 24 model checks retain `7f62c79`. G17 and all runtime acceptance remain due; no funded guarantee or external-gate closure |
+| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R058: P22A Review, P22B In progress. D59 rational/whole-atom output references pass 29 focused checks, including a 378-case cyclic family in each layer and complete 64-row cases. D57 market attribution/D58 25% insurance stay selected; prior reserve/exit evidence retains its pins. Executable numeric/layout G17 and all runtime acceptance remain due |
 
 ## Phase overview
 
@@ -78,7 +79,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P21A | Group SDK/indexer/API and durable services | Closed | [PR #30](https://github.com/arnabnandikgp/rivalt/pull/30), final head `61bbfba`, merged `d07fccc` | [A26A/G16 interfaces](evidence/P21A.md): exact incremental SDK/service/financial/recovery acceptance through `882f832` plus auditor `ac828f6`; R052 finalized-tail/funding-expiry RPC/WS/PostgreSQL checks pass on `e4a284c`; scoped CI and integration verified |
 | M7 | P21B | UI/operations and fresh successor qualification | Closed | [PR #31](https://github.com/arnabnandikgp/rivalt/pull/31), final head `1a3cc2c`, merged `d07fccc` | [A26B/G16/M7](evidence/P21B.md): browser `a0ed6de`, workload `6e9fd2f`, independent audit `813ee20`; 25 wallet originals, 150 offers/101 fills, fault recovery, flat drain, three quiescent token exits and fresh PostgreSQL replay. R052 receipt race passes on `c0e5274`; scoped CI/integration pass. Busy-exit follow-up now M8 under D56 |
 | M8 | P22A | Architecture roadmap and financial decision boundaries | Review | [PR #32](https://github.com/arnabnandikgp/rivalt/pull/32), checked `8321677`, above `9d3c295` | A27A: 244 local links, fences, phase rows/dependencies, D56 consistency and evidence policy pass; no code or financial acceptance |
-| M8 | P22B | Exact financial contract and independent reference cases | In progress | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; prior model `7f62c79`, reserve checked `6cd6e6c` | D57 market attribution plus D58 approved 25% collected-fee insurance share; 15 focused reserve checks/2,048 histories pass. [Contract](P22B-FINANCIAL-CONTRACT.md) pins exact split/carry and phase obligations; general netting/default/layout G17 still due, not A27B acceptance |
+| M8 | P22B | Exact financial contract and independent reference cases | In progress | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; prior exit model `7f62c79`, reserve `6cd6e6c`; R058 starts `9f0b5b7` | [D59 clearing references](P22B-CLEARING-REFERENCE.md): 29 focused checks pass, with complete cycles, finite insurance clipping and per-market conserving atom output. Arbitrary-size rational internals are not executable qualification; numeric bounds/normal settlement/authority/layout G17 remains due |
 | M8 | P23 | Registry, accounts and custody | Open | — | P22B / A28 / G18; new trading disabled |
 | M8 | P24 | Risk, funding, routes and orders | Open | — | P23 / A29 / G19 core; ordinary new-profile financial activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Open | — | P24 / A30 / G19 cash; busy-exit and conservation checks |
@@ -91,13 +92,13 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Current financial work: ready-to-review P22B [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) remains above #32. R057/D58 records approved seed-plus-fee insurance and a fixed 25% share of actual collected taker fees, with per-market carry. Fifteen targeted reserve checks pass; prior 24 reference checks retain their recorded revision. General settlement/netting/default, terminal reserve recovery and layouts remain G17 work. No new program/SBF/RPC qualification is claimed.
+- Current financial work: ready-to-review P22B [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) remains above #32. R058/D59 develops complete rational clearing and a whole-atom output candidate; 29 focused checks pass. The candidate preserves per-market cash, retained funded collateral and explicit zero-sum rounding, but uses arbitrary-size rational internals. Bounded numeric representation, normal payment/netting, stage/recovery authority and layouts remain G17 work. No new program/SBF/RPC qualification is claimed.
 - Current roadmap: R054 publishes P22A as ready-to-review [PR #32](https://github.com/arnabnandikgp/rivalt/pull/32). Documentation checks on `8321677` pass; no executable changes or new runtime/CI evidence. P22B owns the exact financial contract before implementation; M8 remains In progress and P22A Review pending integration.
 - Integrated baseline: R053 successor PRs #23/#24/#26/#27/#28/#29/#30/#31 merged atomically at `d07fccc108384381c0c5df743d14c2a0bc4f5089`; local `main` fast-forwards to it, with tree exactly equal to reviewed stack tip `1a3cc2c`. This integrates A22–A26/G13–G16 and the bounded M7 engineering exit, including all R052 fixes. Earlier R033 `74fc296`, R030 `67059fc` and the original MVP remain integrated.
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Verification: final full-stack review has zero unresolved threads, no requested changes and all PRs mergeable with selected CI passing. Final tip `1a3cc2c` passes all five jobs in hosted run `40221453594`. Phase reports retain original executed pins and limitations; R052 actual service recovery uses `e4a284c` and receipt concurrency uses `c0e5274`. This run adds repository/review/integration verification, not new financial/runtime evidence.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: P22B — complete the general market-attributed netting/default reference for mixed-sign debtors, cycles and fractional ownership, incorporating D58's exact reserve ledger; then pin terminal recovery and versioned layouts before P23.
+- Exact next action: P22B — derive a checked, bounded numeric representation for D59's clearing/rounding candidate and its persisted work state; then complete normal settlement/recovery authority and exact layouts before P23.
 - Deferred gates: D56 resumes busy-group/atomic-exit redesign within P22–P28; the old runtime limitation remains. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new deployment or external participation is claimed.
 
 ## Blocker register
@@ -1932,3 +1933,57 @@ and parent-diff whitespace pass. `gh stack submit --auto --open` publishes that
 exact head to PR #33; independent GitHub metadata confirms OPEN/ready, base P22A,
 not merged. The PR description now records the approved split and remaining G17.
 This final worklog-only closeout adds no runtime or hosted-CI claim.
+
+### R058 — 26 October 2026 — complete-cohort clearing and whole-atom references
+
+- Starting branch/head: `phase/p22b-financial-contract` at `9f0b5b7`, above P22A/#32
+  `64615a4`, tracked tree clean. Read current repository instructions and phase/
+  domain specifications; inspect actual V2 netting, margin/group state and staged
+  resolution. Preserve the user's two research uploads untracked. Continue the
+  planned phase in existing P22B PR #33; no routine approval is requested.
+- Add an independent exact two-market clearing benchmark for all frozen rows,
+  mixed-sign debtors, capped source-to-destination recoveries and cycles. Enumerate
+  piecewise-affine branches and select the greatest fixed point; closed cashless
+  cycles discharge without reserve use, while external creditors remain included.
+  Assert per-market writeoff/impairment identity and total cash conservation.
+- A literal integer-input case requires fractional insurance in the raw ideal.
+  Add a separate whole-atom output candidate: whole own-cash collection, at most
+  two fractional insurance-capacity clips, then deterministic conserving flow
+  rounding. Every market's terminal adjustments sum to zero; cash retained after
+  collection stays protected. Sub-atom debts cannot each round up a funded debit.
+  The final error bound is against the adjusted benchmark, not the unrestricted
+  ideal. D59 and the [reference contract](P22B-CLEARING-REFERENCE.md) state that limit.
+- Actual targeted command: `python3 tests/financial/test_clearing_network.py`
+  passes 29 checks in 0.193 seconds on the final working tree. Cases include a
+  378-case independently solved cycle family in the rational and atom layers,
+  source failure, own debt versus unpaid profit, clipping requiring three
+  evaluations, market/identity ordering, fractional owners and 64-member bounds.
+  `bash -n ops/financial.sh` and `git diff --check` pass. Add only this target to
+  existing hosted financial CI; no hosted outcome is claimed yet.
+- Resolved failures: the first 16-check run exposed an incorrect permutation
+  expectation; hand calculation confirms that the one recovered BTC atom must
+  first service the same account's two-atom ETH debt, so cash is `(0,0,1)`.
+  The first atom-layer run exposed shortest-path preference defeating the intended
+  larger-remainder linked award; change the reference to deterministic remainder-
+  priority depth-first augmentation with repair arcs, preserving the literal
+  expectation. Additional whole-collection cases prevent taking an extra funded
+  atom for a sub-atom obligation. Do not count these failed runs as passes.
+- A bounded seeded exploratory search exercises 2,000 small integer histories;
+  a separate fractional search (limit 2,000, stopped on discovery) finds the
+  three-evaluation clipping case. Preserve it as a hand-verified literal regression,
+  not as an extra independent acceptance count. The inspected 64-row case uses
+  289 branch pairs, one insurance evaluation and 16 flow augmentations, with zero
+  payout; those are reference operations, not SBF/CU/packet measurements.
+- Remaining engineering: arbitrary-size rational internals still need a checked
+  bounded representation, explicit persisted stage/layouts and runtime authority.
+  Normal netting/payment eligibility, terminal reserve recovery and full G17/A27B
+  remain incomplete. Both live tables retain P22B/M8 In progress, P22A Review and
+  P23–P28 Open. No new financial path is enabled; B04 remains resolved, P15B/P16B
+  Open and endurance Deferred. No external access/product blocker is established.
+- Not rerun: unchanged exit/reserve reference targets, broad Rust/financial suite,
+  SBF/IDL, signed SVM, Surfpool/RPC/WS/PostgreSQL, browser/load/devnet/endurance.
+  This is new specification-model work; no actual financial-program acceptance
+  is inferred. Scoped documentation/committed checks and publication follow.
+- Exact next action: derive bounded numeric representation and persisted work
+  state for D59's clearing/rounding candidate, then finish normal settlement/
+  recovery authority and exact versioned layouts before P23.

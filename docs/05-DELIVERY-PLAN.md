@@ -525,6 +525,12 @@ P22B section 7 assigns exact rounding/authority and implementation acceptance to
 P23–P28. No reserve has been funded by that selection. Partial model checks do not
 satisfy A27B or permit P23 to bypass its predecessor gate.
 
+D59 supplies a complete-cohort rational benchmark for cross-market claim links
+and cycles, plus conserving whole-atom output with bounded reference progress.
+Numeric representation, executable collection/insurance/rounding, normal settlement
+and staged recovery remain G17 work. Model progress does not authorize a partial
+runtime solver or early P23 implementation.
+
 **P23 / A28 / G18** owns fresh versioned accounts, market eligibility and real
 custody with ABI/authority/token reconciliation. **P24 / A29 / G19 core** owns
 whole-account funding/risk, maker routes, orders and complete relevant dependencies.

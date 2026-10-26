@@ -18,8 +18,12 @@ It also enumerates 23,328 bounded withdrawal inputs with thirds of atoms.
 
 These are specification/model checks. They do not authenticate PDAs, sources,
 orders or signatures, prove Solana atomicity, validate checked-integer overflow
-bounds, or qualify an executable financial path. The market-default comparison
-explicitly rejects mixed-sign accounts: it is not a general cross-default solver.
+bounds, or qualify an executable financial path. The original market-default
+comparison explicitly rejects mixed-sign accounts. The separate
+[complete-cohort rational benchmark](P22B-CLEARING-REFERENCE.md) now handles those
+accounts and cycles. Its whole-atom output candidate conserves each market with
+explicit rounding, but uses arbitrary-size rational internals. Bounded executable
+representation and enforcement remain required; it does not close G17.
 P24–P26 must recreate the selected cases against the real implementation and
 signed compiled programs; P27/P28 require real RPC/WS/PostgreSQL/browser effects.
 
@@ -427,3 +431,20 @@ research. Its [specification](https://github.com/aeyakovenko/percolator/blob/4db
 has insurance credit reservations and realizable positive-P&L credit, which Rivalt
 does not adopt. Source pins make the comparison reproducible; no upstream proof
 count is claimed as independently executed or as Rivalt acceptance.
+
+## 8. Complete-cohort clearing reference and remaining implementation boundary
+
+D59 records the [rational clearing benchmark](P22B-CLEARING-REFERENCE.md), including
+mixed-sign debtors, capped cross-market recoveries, cashless cycles, external
+creditors and market-specific insurance. It chooses the greatest exact clearing
+solution so a closed reciprocal cycle cancels without spending reserve capital.
+Per-market impairments/writeoffs and final cash identities retain every member.
+
+The raw benchmark can produce fractional insurance even from integer inputs. A
+second reference candidate floors whole debtor collection, clips fractional
+insurance capacity in at most three evaluations and rounds a conserving flow
+network. It produces whole cash/reserve outputs with explicit per-market zero-sum
+adjustments, preserving cash retained after collection. G17 still owes bounded
+numeric representation, normal payment/netting, stage/recovery authority and exact
+layouts before implementation. Existing restricted comparisons and reserve checks
+retain their prior scope; no new financial path or inherited acceptance is claimed.

@@ -738,3 +738,36 @@ G17 still owes the general netting/default/fraction contract, exact layouts and
 terminal recovery rules. The independent reserve reference is specification
 evidence only. No new profile is enabled, seed amount chosen or real capital
 transfer/deployment authorized. P15B/P16B stay external; endurance stays Deferred.
+
+## D59 — complete-cohort clearing and whole-atom output references (P22B)
+
+Continue the selected D57/D58 direction with an independent two-market clearing
+benchmark that retains mixed-sign accounts and all cyclic obligations. Own cash
+services proportional market debts; recovered positive claims service the same
+account's remaining debt before payout. Market insurance only covers its actual
+residual and cannot be spent twice or drawn merely to fund a circular setoff.
+Complete market creditors share the exact recovery fraction, with corresponding
+debtor writeoffs. These are terminal reference semantics, not positive unpaid
+margin credit or an implemented normal netting instruction.
+
+[P22B's clearing reference](P22B-CLEARING-REFERENCE.md) uses the greatest exact
+fixed point, enumerated from two piecewise-affine response curves. A closed cashless
+cycle cancels without insurance; external creditors remain in the equations.
+Literal/closed-form cases and conservation assertions supply model evidence only.
+
+The raw reference can produce fractional C/I even from integer inputs. A separate
+whole-atom output candidate collects only whole own cash, floors fractional reserve
+capacity with at most two market clips, and uses deterministic constrained flow
+rounding. Per-market rounding sums remain zero; no unrelated market supplies a
+rounding atom, and cash retained after whole debt collection stays protected.
+Each account's final rounding error is below one atom relative to the final
+whole-collection/clipped-capacity reference, not the unrestricted ideal. Every
+fractional adjustment is attributed; no keeper selects rounding beneficiaries.
+
+This prospective refinement of D19's single-pool allocation uses remainder-priority
+paths and stable IDs subject to all market/account conservation constraints. It is
+not a change to current V1/V2 rounding. The new reference still uses arbitrary-size
+rationals: do not call it an executable financial contract or close A27B/G17 until
+bounded numeric representation, source/stage/recovery authority, normal payment/
+netting and layout obligations are satisfied. Disabled new-profile activation and
+all fee/risk/external gates remain unchanged.
