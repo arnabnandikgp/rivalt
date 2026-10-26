@@ -1873,3 +1873,10 @@ B04/P22B remains Blocked and the next action stays the explicit G17 decision.
 - Exact next action: derive and independently test market-attributed settlement/
   insurance and cross-market netting/default identities for mixed-sign debtors,
   cycles and fractional ownership, then finish G17 transitions/layouts in PR #33.
+
+R056 publication checkpoint: committed `1dbd89d5cd537617c22b8b81fdde6792507f545d`
+passes the same scoped documentation and parent-diff checks. `gh stack submit
+--auto --open` publishes it to existing PR #33; GitHub independently reports that
+exact head, OPEN/ready, base `phase/p22a-clearing-roadmap`, not merged. The PR body
+now records B04 resolved and the remaining G17 work. This closeout changes only
+the worklog; no new financial test, CI pass or phase completion is inferred.
