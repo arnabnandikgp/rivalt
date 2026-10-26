@@ -5,9 +5,189 @@ from fractions import Fraction
 from itertools import product
 
 from account_contract_reference import (
-    Account, CommonLedger, InvalidTransition, accrue_claim, apportion_atoms, collect,
-    common_default, flat_net, funded_withdraw, market_default_example, pay, risk_equity,
+    Account, CommonLedger, InvalidTransition, MarketReserve, ReserveLedger,
+    MAX_CASH_ATOMS, accrue_claim, allocate_fee_reserve, apportion_atoms, collect,
+    collect_trading_fee, common_default, cover_default_debt, flat_net,
+    funded_withdraw, inject_insurance, market_default_example, pay, risk_equity,
+    withdraw_protocol_fees,
 )
+
+
+class InsuranceReserveContract(unittest.TestCase):
+    def test_selected_quarter_split_does_not_add_to_the_taker_fee(self):
+        # 1,000,000 quote tokens of notional at 2 bps = 200 tokens in fees.
+        # Values below are quote atoms (six decimals), not floating-point money.
+        ledger = ReserveLedger((1_000_000_000,), (MarketReserve(), MarketReserve()), 1_000_000_000)
+        result = collect_trading_fee(ledger, 0, 0, 200_000_000)
+        self.assertEqual(result.cash, (800_000_000,))
+        self.assertEqual(result.markets, (MarketReserve(insurance=50_000_000,
+                                                       protocol_fees=150_000_000), MarketReserve()))
+        self.assertEqual(result.vault, 1_000_000_000)
+
+    def test_odd_fee_keeps_its_carry_without_inventing_fractional_cash(self):
+        ledger = ReserveLedger((100,), (MarketReserve(), MarketReserve()), 100)
+        result = collect_trading_fee(ledger, 0, 0, 13)
+        self.assertEqual(result.cash, (87,))
+        self.assertEqual(result.markets[0], MarketReserve(insurance=3, protocol_fees=10,
+                                                         fee_remainder=1))
+
+    def test_one_atom_fills_eventually_fund_insurance(self):
+        ledger = ReserveLedger((8,), (MarketReserve(), MarketReserve()), 8)
+        observed = []
+        for _ in range(8):
+            before = ledger.markets[0]
+            ledger = collect_trading_fee(ledger, 0, 0, 1)
+            after = ledger.markets[0]
+            observed.append((after.insurance - before.insurance,
+                             after.protocol_fees - before.protocol_fees, after.fee_remainder))
+        self.assertEqual(observed, [(0, 1, 1), (0, 1, 2), (0, 1, 3), (1, 0, 0)] * 2)
+        self.assertEqual(ledger.markets[0], MarketReserve(insurance=2, protocol_fees=6))
+        self.assertEqual(ledger.cash, (0,))
+
+    def test_split_fee_collection_is_invariant_for_every_carry(self):
+        # 2,048 independent histories, including zero-fee persisted subfills.
+        # Compare all histories to aggregate exact one-quarter entitlement, not
+        # another call to the incremental implementation under test.
+        checked = 0
+        for carry, first, second, third in product(range(4), range(8), range(8), range(8)):
+            ledger = ReserveLedger((21,), (MarketReserve(fee_remainder=carry), MarketReserve()), 21)
+            for amount in (first, second, third):
+                ledger = collect_trading_fee(ledger, 0, 0, amount)
+            total = first + second + third
+            entitlement = Fraction(carry + total, 4)
+            whole = entitlement.numerator // entitlement.denominator
+            self.assertEqual(ledger.markets[0].insurance, whole)
+            self.assertEqual(ledger.markets[0].protocol_fees, total - whole)
+            self.assertEqual(Fraction(ledger.markets[0].fee_remainder, 4), entitlement - whole)
+            self.assertEqual(ledger.cash, (21 - total,))
+            self.assertEqual(ledger.vault, 21)
+            checked += 1
+        self.assertEqual(checked, 2048)
+
+    def test_market_carries_cannot_complete_each_other(self):
+        ledger = ReserveLedger((8,), (MarketReserve(), MarketReserve()), 8)
+        ledger = collect_trading_fee(ledger, 0, 0, 3)
+        ledger = collect_trading_fee(ledger, 0, 1, 1)
+        self.assertEqual(tuple(market.insurance for market in ledger.markets), (0, 0))
+        self.assertEqual(tuple(market.fee_remainder for market in ledger.markets), (3, 1))
+        ledger = collect_trading_fee(ledger, 0, 0, 1)
+        self.assertEqual(tuple(market.insurance for market in ledger.markets), (1, 0))
+        ledger = collect_trading_fee(ledger, 0, 1, 3)
+        self.assertEqual(ledger.markets, (MarketReserve(insurance=1, protocol_fees=3),) * 2)
+
+    def test_payer_changes_do_not_reset_market_carry(self):
+        ledger = ReserveLedger((3, 1), (MarketReserve(), MarketReserve()), 4)
+        ledger = collect_trading_fee(ledger, 0, 0, 3)
+        ledger = collect_trading_fee(ledger, 1, 0, 1)
+        self.assertEqual(ledger.cash, (0, 0))
+        self.assertEqual(ledger.markets[0], MarketReserve(insurance=1, protocol_fees=3))
+
+    def test_seed_capital_is_not_fee_revenue(self):
+        ledger = ReserveLedger((10,), (MarketReserve(fee_remainder=3), MarketReserve()), 10)
+        result = inject_insurance(ledger, 1, 50)
+        self.assertEqual(result.cash, (10,))
+        self.assertEqual(result.vault, 60)
+        self.assertEqual(result.markets, (MarketReserve(fee_remainder=3), MarketReserve(insurance=50)))
+        self.assertEqual(ledger.vault, 10)
+
+    def test_extra_fee_allocation_does_not_double_count_automatic_replenishment(self):
+        ledger = ReserveLedger((100,), (MarketReserve(), MarketReserve()), 100)
+        ledger = collect_trading_fee(ledger, 0, 0, 13)
+        allocated = allocate_fee_reserve(ledger, 0, 4)
+        self.assertEqual(allocated.markets[0], MarketReserve(insurance=7, protocol_fees=6,
+                                                            fee_remainder=1))
+        result = collect_trading_fee(allocated, 0, 0, 3)
+        self.assertEqual(result.markets[0], MarketReserve(insurance=8, protocol_fees=8))
+        self.assertEqual(result.vault, 100)
+        with self.assertRaises(InvalidTransition):
+            allocate_fee_reserve(allocated, 0, 7)
+
+    def test_exhausted_insurance_does_not_spend_fees_or_other_market_reserve(self):
+        ledger = ReserveLedger((5,), (MarketReserve(insurance=10, protocol_fees=20,
+                                                   fee_remainder=2), MarketReserve(insurance=100)), 135)
+        result, remaining = cover_default_debt(ledger, 0, Fraction(25, 2))
+        self.assertEqual(remaining, Fraction(5, 2))
+        self.assertEqual(result.markets[0], MarketReserve(settlement=10, protocol_fees=20,
+                                                         fee_remainder=2))
+        self.assertEqual(result.markets[1], ledger.markets[1])
+        self.assertEqual(result.cash, (5,))
+        self.assertEqual(result.vault, 135)
+
+    def test_withdrawn_protocol_fees_are_not_needed_to_fund_the_next_carry_atom(self):
+        ledger = ReserveLedger((4,), (MarketReserve(), MarketReserve()), 4)
+        ledger = collect_trading_fee(ledger, 0, 0, 3)
+        withdrawn = withdraw_protocol_fees(ledger, 0, 3)
+        self.assertEqual(withdrawn.markets[0], MarketReserve(fee_remainder=3))
+        self.assertEqual(withdrawn.cash, (1,))
+        self.assertEqual(withdrawn.vault, 1)
+        result = collect_trading_fee(withdrawn, 0, 0, 1)
+        self.assertEqual(result.markets[0], MarketReserve(insurance=1))
+        self.assertEqual(result.cash, (0,))
+        self.assertEqual(result.vault, 1)
+        with self.assertRaises(InvalidTransition):
+            withdraw_protocol_fees(result, 0, 1)
+
+    def test_fractional_debt_is_not_rounded_up_to_spend_extra_insurance(self):
+        ledger = ReserveLedger((), (MarketReserve(insurance=10), MarketReserve()), 10)
+        result, remaining = cover_default_debt(ledger, 0, Fraction(3, 2))
+        self.assertEqual(result.markets[0], MarketReserve(settlement=1, insurance=9))
+        self.assertEqual(remaining, Fraction(1, 2))
+        unchanged, still_owed = cover_default_debt(result, 0, remaining)
+        self.assertEqual(unchanged, result)
+        self.assertEqual(still_owed, Fraction(1, 2))
+
+    def test_insurance_consumption_and_topups_never_reset_fee_carry(self):
+        ledger = ReserveLedger((4,), (MarketReserve(), MarketReserve()), 4)
+        ledger = collect_trading_fee(ledger, 0, 0, 3)
+        ledger = inject_insurance(ledger, 0, 5)
+        ledger, remaining = cover_default_debt(ledger, 0, 5)
+        self.assertEqual(remaining, 0)
+        # Arithmetic after a future qualified recovery; this is not permission
+        # to charge trading fees while default is frozen.
+        ledger = collect_trading_fee(ledger, 0, 0, 1)
+        self.assertEqual(ledger.markets[0], MarketReserve(settlement=5, insurance=1, protocol_fees=3))
+        self.assertEqual(ledger.vault, 9)
+
+    def test_fee_funded_insurance_enters_only_its_market_default_waterfall(self):
+        ledger = ReserveLedger((100, 0, 0, 80), (MarketReserve(), MarketReserve()), 180)
+        ledger = collect_trading_fee(ledger, 3, 0, 80)
+        ledger = inject_insurance(ledger, 1, 10)
+        claims = ((-80, -80), (80, 0), (0, 80), (0, 0))
+        accounts = tuple(Account(cash, claim) for cash, claim in zip(ledger.cash, claims))
+        final_cash, payments, used = market_default_example(
+            accounts, insurance=tuple(market.insurance for market in ledger.markets))
+        self.assertEqual(final_cash, (0, 70, 60, 0))
+        self.assertEqual(payments, ((0, 70, 0, 0), (0, 0, 60, 0)))
+        self.assertEqual(used, (20, 10))
+        self.assertEqual(sum(final_cash) + sum(market.protocol_fees for market in ledger.markets), 190)
+        self.assertEqual(ledger.vault, 190)
+
+    def test_cash_and_custody_boundaries_reject_without_mutating_input(self):
+        ledger = ReserveLedger((3,), (MarketReserve(), MarketReserve()), 3)
+        with self.assertRaises(InvalidTransition):
+            collect_trading_fee(ledger, 0, 0, 4)
+        self.assertEqual(ledger.cash, (3,))
+        with self.assertRaises(InvalidTransition):
+            ReserveLedger((3,), (MarketReserve(), MarketReserve()), 4)
+        maximum = ReserveLedger((MAX_CASH_ATOMS,), (MarketReserve(), MarketReserve()), MAX_CASH_ATOMS)
+        with self.assertRaises(InvalidTransition):
+            inject_insurance(maximum, 0, 1)
+        result = collect_trading_fee(maximum, 0, 0, MAX_CASH_ATOMS)
+        self.assertEqual(result.cash, (0,))
+        self.assertEqual(result.markets[0], MarketReserve(insurance=250_000_000_000_000,
+                                                         protocol_fees=750_000_000_000_000))
+
+    def test_invalid_values_and_market_aliases_are_not_accepted(self):
+        ledger = ReserveLedger((10,), (MarketReserve(), MarketReserve()), 10)
+        for amount in (-1, 0.25, True, Fraction(1, 2), MAX_CASH_ATOMS + 1):
+            with self.subTest(amount=amount), self.assertRaises(InvalidTransition):
+                collect_trading_fee(ledger, 0, 0, amount)
+        for index in (-1, 2, True):
+            with self.subTest(index=index), self.assertRaises(InvalidTransition):
+                inject_insurance(ledger, index, 1)
+        for carry in (-1, 4, True, 0.5):
+            with self.subTest(carry=carry), self.assertRaises(InvalidTransition):
+                MarketReserve(fee_remainder=carry)
 
 
 class FundedExitContract(unittest.TestCase):

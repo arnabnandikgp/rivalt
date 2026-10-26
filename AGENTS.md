@@ -37,6 +37,11 @@ financial activation remains disabled until P26 safety acceptance. Do not infer
 permission for changed loss bearers or positive unpaid-profit credit from a UI or
 account-layout change. P15B/P16B and deferred 24-hour endurance are unchanged.
 
+D57 selects market-attributed loss ownership for that fresh profile. D58 approves
+seed-plus-fee insurance funding and a 25% share of collected taker fees for the
+originating market's reserve, retaining 75% in protocol fees. Read P22B section 7
+for exact carry/authority rules; preserve total 2 bps/zero-provider fees and V1/V2.
+
 ## Work phase by phase
 
 Use P01–P28 as the delivery units, retaining existing IDs and the documented successor suffixes. Each normally produces one cohesive PR or equivalent reviewable local branch/commit set, with its own runnable acceptance evidence. A phase may span several runs. Do not split it into dozens of task PRs or combine several phases into an unreviewable change. If implementation evidence requires splitting a phase, preserve its original ID, add a justified suffix and update plan/worklog.

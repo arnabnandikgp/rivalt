@@ -183,9 +183,10 @@ unfunded setoff. Existing V2 remains unchanged.
 The user's explicit option-2 selection resolves B04 and supersedes D56's pending
 choice, solely for the fresh profile. Existing V2 retains D47's common waterfall.
 Do not close G17 or start P23 until the selected complete contract is recorded.
-This does not change fees, zero positive unpaid credit or maker capital isolation.
-The subsequent insurance-policy question requests an assessment, not a selected
-automatic fee percentage, seed-capital amount or funded deployment.
+This does not change the taker/provider fee rates, zero positive unpaid credit or
+maker capital isolation. D58 subsequently records approval of seed-plus-fee reserve
+funding and a 25% insurance share of collected fees for the fresh profile. No
+seed-capital amount or funded deployment is selected.
 
 ## 5. Preserved contract constraints and remaining work
 
@@ -259,7 +260,7 @@ complete history discovery, immutable original-signature recovery, failed-event
 exclusion or atomic PostgreSQL projection/checkpoint updates. P27 owns the actual
 implementation and recovery evidence, not this dependency matrix.
 
-## 7. Insurance: implemented baseline and proposed reserve policy
+## 7. Insurance: implemented baseline and approved new-profile policy
 
 Inspected at `14586f9`; this is a code/source assessment, not a live reserve-balance
 attestation or a new financial test. Insurance is dedicated funded collateral,
@@ -291,7 +292,7 @@ balances inside one SPL collateral vault: `V = sum(C) + P + I + T`.
 The test harnesses exercise these transitions; this inspection does not rerun or
 requalify them. There is no funded production reserve asserted by the code's presence.
 
-### Direction under D57
+### Direction under D57/D58
 
 Attribute settlement backing and insurance budgets to their markets: `P_m`, `I_m`.
 A common physical vault can still custody them if all allocations reconcile and
@@ -306,15 +307,95 @@ market. With BTC insurance 20 and ETH insurance 10, residual debt is BTC 10 and 
 for mixed-sign accounts, cycles or fractional/default priorities. G17 must complete
 that solver before dependent implementation.
 
-The funding recommendation is **initial seed capital plus replenishment from
-collected fees**. Seed capital supplies a reserve before volume exists; fee revenue
-can rebuild it. At unchanged 2 bps, 1,000,000 quote units of executed notional earn
-200 quote units gross. An illustrative 25% allocation would contribute only 50 to
-insurance and leave 150 in T. Neither 25% nor any seed amount is selected here.
-Use the existing explicit allocation policy while completing engineering; a future
-automatic split needs a recorded policy, exact cumulative rounding/conservation,
-market attribution and acceptance tests. No new fee, paid service or real funding
-is authorized by this assessment.
+The user approves **initial seed capital plus replenishment from collected fees**
+and then selects **25% of collected taker fees for insurance** under D58. Seed
+capital supplies a reserve before volume exists; fee revenue can rebuild it. At
+unchanged 2 bps, 1,000,000 quote units of executed notional earn 200 quote units
+gross: 50 to that market's insurance and 150 to protocol fees, before network and
+operating costs. The remaining 75% is not net profit. No seed amount is selected,
+and no funded deployment is authorized. Existing V1/V2 fee behavior stays unchanged.
+
+### Exact 25% fee allocation contract
+
+The new profile fixes `insurance_fee_share_bps = 2500` out of 10,000. This is an
+immutable profile policy, not a trader tier, caller argument or hot administrator
+override. First assess the existing cumulative 2 bps fee on the authorized route
+or order subfill, exactly once across both maker legs. Let `f` be the actual
+whole-atom funded fee debit. Split that collected fee, never the notional or an
+unpaid fee receivable, using a persistent **per-market** carry `r_m` in `[0,3]`:
+
+```text
+insurance_credit = floor((r_m + f) / 4)
+next_r_m         = (r_m + f) mod 4
+protocol_credit  = f - insurance_credit
+
+C_payer -= f
+I_m     += insurance_credit
+T_m     += protocol_credit
+V and every P_m are unchanged
+```
+
+Starting with zero carry, cumulative automatic insurance allocation is exactly
+`floor(total_collected_fee_atoms_m / 4)` for each market, independently of how the
+same collected total is partitioned across fills, maker legs, orders or payers.
+Existing cumulative taker-fee rounding is retained: opening separate orders can
+still change the assessed fee total; this policy does not silently waive it.
+Zero-fee partial fills allocate zero and preserve the carry. Failed routes/subfills
+roll back cash, reserve credits and carry together; failed network fees are separate.
+
+The carry tracks the modulo-four fee count, **not fractional cash**, a participant
+claim or spendable insurance. It adds no term to `V = sum(C) + sum(P_m+I_m+T_m)`.
+Before the next whole insurance atom accrues, the indivisible cash remainder is in
+T. Later fee collection funds the next credit without clawing back withdrawn T.
+Seed deposits, explicit extra T-to-I allocations, treasury withdrawals, insurance
+consumption and recovery do not advance/reset the carry. Closing/reopening an
+order or account cannot reset market policy. A fresh market identity initializes
+its carry to zero; retiring/replacing an identity cannot erase outstanding claims
+or transfer/relabel reserves from the old one.
+
+Use checked whole-atom balances within the existing candidate cash bound of
+`10^15` atoms; `r_m+f <= 10^15+3`. The carry can fit in `u8`; the later exact
+account layout must include it explicitly. A lifetime fee accumulator is not
+required for splitting and cannot be reset to affect allocation. Events must
+include the market/policy identity, gross fee, both credits and before/after carry
+so the indexer independently reconstructs the allocation. P27 displays gross
+fees, insurance contributions and retained protocol revenue separately.
+
+### Reserve authority, transitions and acceptance
+
+| Action | Required authority/state | Cash effect and preservation |
+|---|---|---|
+| Seed/top up a market reserve | Authorized donor token transfer and canonical market/mint/vault; explicit attribution under the reserve authority; non-frozen custody state | `V += z; I_m += z`. An actual unclassified vault donation is not insurance until the authorized classification. No trading fee, investor share or claim is minted |
+| Allocate the automatic 25% | Clearing's accepted ordinary taker-fee transition; caller cannot opt out or choose a different market | The split above is atomic with the full fee debit and route/order effects; all touched accounts still satisfy final health including the complete fee |
+| Allocate additional collected fees | Fee authority; amount bounded by that market's remaining T, canonical identity and non-frozen custody | `T_m -= z; I_m += z`; no change to V, fee carry or gross fee revenue. Already allocated insurance is not counted a second time |
+| Consume insurance | Complete selected resolution's frozen valuation/collection and persisted stage; permissionless exact continuation, no caller-selected debtor/creditor subset | Move `min(I_m, floor(residual_debt_m))` whole atoms from I_m to P_m once, with matching debt extinguishment. Retain sub-atom liability for exact fractional resolution. T and foreign reserves are excluded |
+| Withdraw retained protocol fees | Fee authority, canonical destination and applicable custody/safety gate; amount bounded by T_m | `T_m -= z; V -= z`; no reserve or carry reset, no borrowing from user cash or I |
+| Recover/retire an insurance reserve | No active-profile insurance withdrawal/reassignment instruction; terminal recovery requires the final G17 complete-liability discharge/authority contract | No live administrator sweep, cross-market transfer or early reserve-release bypass. Recovery must preserve the fee carry for any continuing market identity |
+
+Direct external token donations may arrive while frozen; they remain unallocated
+surplus and cannot modify the snapshotted default waterfall. No additional trader
+funding-payment or liquidation-receiver fee is taxed by this split. Ordinary profit
+settlement does not consume insurance. The finite reserve may exhaust; uncovered
+liability follows the selected complete market-attributed default rule.
+
+The independent `ReserveLedger` reference models these cash effects and bounded
+inputs, including seed/fee distinction and fractional residual debt. It does not
+authenticate authority, derive claims, enforce frozen stages/replay, transfer SPL
+tokens or prove liquidation/default completion. Its restricted composed default
+case has integral claims and no mixed-sign accounts; the general solver remains
+required G17 work.
+
+- **P23 / G18:** exact reserve/carry layouts and policy binding; actual seed-token
+  transfers and rejection of foreign/duplicate classification/unauthorized writes.
+- **P24 / G19 core:** real fee assessment/split for immediate routes, two-maker
+  execution and persistent partial fills; zero provider fees, adverse health and
+  full rollback on a failed second leg; generated/legacy parity and packet/CU cost.
+- **P25 / G19 cash:** explicit allocations/treasury gates, actual custody
+  reconciliation, no ordinary gain-payment use of I or double counting of carry.
+- **P26 / G20:** complete-cohort market attribution, exhaustion, fractional
+  residuals, once-only stage/restart behavior and restricted terminal recovery.
+- **P27/P28 / G21:** versioned events, independent PostgreSQL reconstruction,
+  funding/cost reporting, reserve visibility and fresh integrated qualification.
 
 Keep the abstraction small: attributed funded reserves, top-up/allocation events,
 default consumption, bounded withdrawal/recovery authority and observable balances.

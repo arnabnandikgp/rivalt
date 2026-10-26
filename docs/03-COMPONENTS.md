@@ -7,6 +7,13 @@ describe responsibilities, not new implemented programs or final PDA layouts.
 P22B owns the exact versioned interface contract; P23–P28 implement and qualify it
 without reinterpreting existing V1/V2 state, events or deployment bindings.
 
+D58 adds a fixed 25% insurance allocation to the new profile's collected taker
+fees. P23 must bind per-market reserve balances and modulo-four fee carry to the
+versioned market identity. P24 atomically applies the split once per actual fee
+debit, and P27 reconstructs gross fee, reserve contribution, retained revenue and
+carry from versioned events. The existing V1/V2 ABI remains unchanged; the exact
+new ABI and terminal reserve recovery contract are still P22B deliverables.
+
 The following describes V1. [P17](P17-MARGIN-CONTRACT.md) audits these actual
 interfaces and defines the additive schema-2 group/portfolio/margin layout.
 `programs/clearing/src/state/v2/` contains its layout contract. [P18A custody](P18A-GROUP-CUSTODY.md)

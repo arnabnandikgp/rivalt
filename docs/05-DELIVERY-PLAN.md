@@ -519,9 +519,11 @@ loss bearer, cross-market credit guarantee or positive unpaid-profit margin poli
 [P22B's developing contract](P22B-FINANCIAL-CONTRACT.md) supplies the funded-exit
 proof and literal default/netting counterexamples. D57 records the user's selection
 of market-attributed losses; the full settlement/netting/insurance, authority and
-layout contract remains G17 work. The insurance-funding assessment does not select
-an automatic fee split or fund a reserve. Partial model checks do not satisfy A27B
-or permit P23 to bypass its predecessor gate.
+layout contract remains G17 work. D58 approves seed-plus-fee reserve funding and a
+25% share of collected taker fees for that market's insurance, retaining 75% in T.
+P22B section 7 assigns exact rounding/authority and implementation acceptance to
+P23–P28. No reserve has been funded by that selection. Partial model checks do not
+satisfy A27B or permit P23 to bypass its predecessor gate.
 
 **P23 / A28 / G18** owns fresh versioned accounts, market eligibility and real
 custody with ABI/authority/token reconciliation. **P24 / A29 / G19 core** owns

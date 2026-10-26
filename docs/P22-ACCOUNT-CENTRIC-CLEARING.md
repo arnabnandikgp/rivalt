@@ -13,6 +13,12 @@ Existing V1/V2 behavior and its recorded qualifications remain unchanged.
 funded-exit arithmetic, independent model checks and the user's D57 selection of
 market-attributed losses. G17 is not complete; the reference is not on-chain evidence.
 
+D58 adds approved market-attributed reserve funding: actual seed capital plus 25%
+of collected taker fees, with the remaining 75% retained protocol revenue. The
+existing 2 bps/zero-provider fee and cumulative fee assessment remain unchanged.
+P22B section 7 specifies reserve/carry authority and phase acceptance; the split
+does not enable a financial path or fund a reserve by itself.
+
 ## 1. Current architecture and constraints
 
 ```mermaid

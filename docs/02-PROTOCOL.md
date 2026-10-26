@@ -14,7 +14,9 @@ funded-withdrawal proof from profit-payment/default policy and provides independ
 counterexamples. D57 records the user's market-attributed loss-policy selection
 for the fresh profile. Exact settlement/netting/insurance transitions remain due;
 neither the selection nor reference-model success changes V2's common account-net
-waterfall or completes G17. No automatic fee-to-insurance percentage is selected.
+waterfall or completes G17. D58 selects the new profile's 25% share of collected
+taker fees for market-attributed insurance. P22B section 7 pins cumulative rounding,
+funded cash transitions and phase obligations; current V1/V2 fee behavior is unchanged.
 
 For the authorized fresh schema-2 test group, [P17's successor contract](P17-MARGIN-CONTRACT.md)
 is normative for the deliberately superseded account, group, multi-market health,

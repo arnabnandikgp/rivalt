@@ -713,3 +713,28 @@ credit, fee parameters or insurance-funded ordinary payouts. Current routing,
 2 bps/zero-provider fees, maker isolation and zero positive unpaid margin credit
 remain. P15B/P16B stay Open, endurance Deferred and new-profile financial activation
 disabled until the designated P26 acceptance. Keep the new PR stack open.
+
+## D58 — approved reserve funding and 25% fee allocation (P22B)
+
+On 26 October 2026 the user approves the market-attributed insurance model and
+seed-capital-plus-fee replenishment, then explicitly selects 25% of collected fees
+for insurance. This supersedes D57's unselected-percentage checkpoint for the
+fresh P22–P28 profile. Existing V1/V2 accounting/deployments remain unchanged.
+
+Keep the total taker fee at 2 bps and provider fee at zero. Allocate 25% of the
+actual collected taker fee to that market's I and retain 75% in its T, with exact
+whole-atom cumulative rounding. This is allocation of an existing fee, not an
+additional charge or positive unpaid-profit credit. The rate is fixed at 2500/10000
+in the fresh profile; changing it requires a later recorded policy/version.
+
+[P22B section 7](P22B-FINANCIAL-CONTRACT.md) specifies the modulo-four per-market
+carry, separate original fee assessment, cash invariants, authority boundaries,
+reserve exhaustion and owning phase checks. No per-fill floor that starves
+insurance on small fees, no reset on account/order churn or reserve consumption,
+and no carry shared between markets. Actual seed capital and optional extra
+authorized T-to-I allocation remain separate from automatic fee contributions.
+
+G17 still owes the general netting/default/fraction contract, exact layouts and
+terminal recovery rules. The independent reserve reference is specification
+evidence only. No new profile is enabled, seed amount chosen or real capital
+transfer/deployment authorized. P15B/P16B stay external; endurance stays Deferred.

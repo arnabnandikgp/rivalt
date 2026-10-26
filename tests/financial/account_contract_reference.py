@@ -1,9 +1,10 @@
 """P22B independent contract arithmetic, not a program or runtime simulator.
 
 Uses exact Python fractions and imports no Rivalt implementation. Common-ledger
-transitions and deliberately restricted market-loss examples expose the policy
-choice before a new on-chain contract is selected. No account/source authentication,
-Solana atomicity, integer-overflow bound or general market-default solver is proved.
+transitions and deliberately restricted market-loss examples explain the selected
+policy. The reserve model specifies D58's fee split independently of runtime code.
+No account/source authentication, Solana atomicity, general checked-integer proof
+or general market-default solver is supplied.
 """
 
 from dataclasses import dataclass, replace
@@ -17,6 +18,120 @@ class InvalidTransition(ValueError):
 def require(condition, reason):
     if not condition:
         raise InvalidTransition(reason)
+
+
+# P22B retains the current bounded profile's atom limit. This independent model
+# does not import financial-core or prove its checked-integer implementation.
+MAX_CASH_ATOMS = 1_000_000_000_000_000
+
+
+def bounded_atoms(value):
+    return type(value) is int and 0 <= value <= MAX_CASH_ATOMS
+
+
+@dataclass(frozen=True)
+class MarketReserve:
+    settlement: int = 0
+    insurance: int = 0
+    protocol_fees: int = 0
+    fee_remainder: int = 0
+
+    def __post_init__(self):
+        require(all(bounded_atoms(value) for value in
+                    (self.settlement, self.insurance, self.protocol_fees)),
+                "reserve balances must be bounded whole atoms")
+        require(type(self.fee_remainder) is int and 0 <= self.fee_remainder < 4,
+                "fee allocation remainder must be in [0, 3]")
+
+
+@dataclass(frozen=True)
+class ReserveLedger:
+    """Cash-bucket identities only, not the full claim/netting/default contract."""
+    cash: tuple[int, ...]
+    markets: tuple[MarketReserve, MarketReserve]
+    vault: int
+
+    def __post_init__(self):
+        require(type(self.cash) is tuple and all(bounded_atoms(value) for value in self.cash),
+                "account cash must be bounded whole atoms")
+        require(type(self.markets) is tuple and len(self.markets) == 2 and
+                all(type(market) is MarketReserve for market in self.markets),
+                "two canonical market reserves required")
+        require(bounded_atoms(self.vault), "vault exceeds the bounded profile")
+        require(self.vault == sum(self.cash) + sum(
+            market.settlement + market.insurance + market.protocol_fees
+            for market in self.markets), "reserve custody does not reconcile")
+
+    def market(self, market_index):
+        require(type(market_index) is int and 0 <= market_index < 2, "invalid market")
+        return self.markets[market_index]
+
+    def replace_market(self, market_index, reserve, **changes):
+        self.market(market_index)
+        markets = list(self.markets)
+        markets[market_index] = reserve
+        return replace(self, markets=tuple(markets), **changes)
+
+
+def collect_trading_fee(ledger, account_index, market_index, fee_atoms):
+    """Allocate an ALREADY assessed cumulative 2-bps fee; never recalculate it."""
+    reserve = ledger.market(market_index)
+    require(type(account_index) is int and 0 <= account_index < len(ledger.cash),
+            "invalid fee payer")
+    require(bounded_atoms(fee_atoms) and fee_atoms <= ledger.cash[account_index],
+            "fee must be funded by the payer's cash")
+    insurance_credit, remainder = divmod(reserve.fee_remainder + fee_atoms, 4)
+    cash = list(ledger.cash)
+    cash[account_index] -= fee_atoms
+    return ledger.replace_market(market_index, replace(
+        reserve, insurance=reserve.insurance + insurance_credit,
+        protocol_fees=reserve.protocol_fees + fee_atoms - insurance_credit,
+        fee_remainder=remainder), cash=tuple(cash))
+
+
+def inject_insurance(ledger, market_index, amount):
+    """Model a verified external transfer; authentication/token CPI are not modeled."""
+    reserve = ledger.market(market_index)
+    require(bounded_atoms(amount) and amount > 0, "invalid insurance injection")
+    return ledger.replace_market(market_index, replace(
+        reserve, insurance=reserve.insurance + amount), vault=ledger.vault + amount)
+
+
+def allocate_fee_reserve(ledger, market_index, amount):
+    """Extra explicit T-to-I allocation; never resets or advances the fee carry."""
+    reserve = ledger.market(market_index)
+    require(bounded_atoms(amount) and 0 < amount <= reserve.protocol_fees,
+            "allocation exceeds collected protocol fees")
+    return ledger.replace_market(market_index, replace(
+        reserve, protocol_fees=reserve.protocol_fees - amount,
+        insurance=reserve.insurance + amount))
+
+
+def withdraw_protocol_fees(ledger, market_index, amount):
+    """Arithmetic only; production must enforce fee authority and the safety gate."""
+    reserve = ledger.market(market_index)
+    require(bounded_atoms(amount) and 0 < amount <= reserve.protocol_fees,
+            "withdrawal exceeds retained protocol fees")
+    return ledger.replace_market(market_index, replace(
+        reserve, protocol_fees=reserve.protocol_fees - amount), vault=ledger.vault - amount)
+
+
+def cover_default_debt(ledger, market_index, residual_debt):
+    """One market's cash effect AFTER a complete qualified collection pass.
+
+    Caller must establish frozen cohort/stage, current exact residual and replay
+    protection. This reference alone does not prove those runtime preconditions.
+    Sub-atom residual remains a liability for the selected fractional resolution.
+    """
+    reserve = ledger.market(market_index)
+    require(type(residual_debt) in (int, Fraction) and residual_debt >= 0,
+            "default debt must be exact and nonnegative")
+    residual_debt = Fraction(residual_debt)
+    insurance_used = min(reserve.insurance, residual_debt.numerator // residual_debt.denominator)
+    result = ledger.replace_market(market_index, replace(
+        reserve, insurance=reserve.insurance - insurance_used,
+        settlement=reserve.settlement + insurance_used))
+    return result, residual_debt - insurance_used
 
 
 @dataclass(frozen=True)

@@ -17,6 +17,14 @@ accounts rather than pretending to solve cross-market cycles. `ops/financial.sh`
 includes this suite for hosted financial CI; local P22B iteration runs only the
 affected Python suite. Actual executed revisions/results belong in WORKLOG.
 
+For D58's reserve allocation changes, run only
+`python3 tests/financial/test_account_contract.py InsuranceReserveContract` locally.
+Its independent cases cover the selected 25% split, per-market carry, fragmented
+fee collection, seed/manual allocation distinction, exhaustion and fractional
+residual debt. The reference imports no production code. P23–P28 must separately
+qualify actual custody, fee debit/rollback, default stages, ABI and RPC/WS/PostgreSQL
+reconstruction; passing these arithmetic checks does not satisfy those gates.
+
 P17–P21 retain these pinned tools. [P17](P17-MARGIN-CONTRACT.md) defines fresh
 successor golden cases, versioned layout/authority tests, whole-account funding,
 reservation/transfer/protection checks and complete-group liquidation/default
