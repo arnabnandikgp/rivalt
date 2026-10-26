@@ -346,7 +346,10 @@ P18 splits custody, trading primitives and exceptional/exit enforcement so each
 PR remains reviewable; P21 splits protocol projection/SDK from UI/qualification.
 These are eight cohesive units, not permission to omit a parent's acceptance.
 Verified predecessors may remain in Review on exact stacked commits. Publish
-ready PRs through gh stack; D44's previous merge authorization was for #20/#21.
+ready PRs through gh stack. D55 authorizes the successor stack's R053 integration;
+D44's earlier authorization was for #20/#21. The user defers atomic/busy-group exit
+redesign beyond the measured bounded qualification; all existing safeguards and
+external gates remain unchanged.
 
 ### P17 — Account and clearing-group contract
 

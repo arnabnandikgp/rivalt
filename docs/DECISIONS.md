@@ -608,3 +608,18 @@ update. React renders cannot roll it back to an older presentation state. Pollin
 merges against the latest written list; storage must still succeed before broadcast.
 This preserves immutable originals through concurrent rendering without changing
 wallet authority or treating client fixtures as financial acceptance.
+
+
+## D55 — successor integration and deferred exit follow-up (R053)
+
+On 26 October 2026 the user explicitly authorizes reviewing and merging the whole
+open successor stack, superseding the earlier instruction to keep it open. This
+covers ready PRs #23/#24/#26/#27/#28/#29/#30/#31 after addressing actionable reviews
+and checking their existing acceptance/CI; D44 concerned the earlier #20/#21 stack.
+The user explicitly postpones the atomic check/withdrawal and busy-group exit
+redesign discussed after R052. D54's measured limitation stays visible: bounded
+local integration is not evidence of continuously available exits or funded safety.
+No source/risk/authority safeguard is relaxed, no new financial path is enabled,
+and P15B/P16B remain separate external gates. D42's 24-hour deferral is unchanged.
+WORKLOG records actual merge hashes and status; this is authorization/scope, not
+new runtime or independent-review evidence.

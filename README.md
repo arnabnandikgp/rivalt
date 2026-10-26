@@ -9,7 +9,8 @@ The isolated/cross successor starts at [P17's account/group contract](docs/P17-M
 and P17–P21 in the delivery plan. It targets a fresh local two-market test group;
 the existing V1 implementation is preserved. [P20](docs/evidence/P20.md) qualifies
 cross trading only in its explicit local profile after whole-account safety
-acceptance; service/UI qualification remains P21. WORKLOG records actual progress.
+acceptance. P21 service/UI qualification and the bounded successor stack are now
+integrated under R053; WORKLOG records exact evidence and limitations.
 
 Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product scope](docs/01-PRODUCT.md) and [the delivery plan](docs/05-DELIVERY-PLAN.md). Before implementing a phase, read its domain documents and decision gates. For program code, start with the [clearing source map](programs/clearing/README.md).
 
@@ -86,12 +87,14 @@ P21A adds the versioned group SDK, PostgreSQL/read API and durable maker/funding
 order/settlement/risk services on P20's explicit qualified local artifacts.
 [Fresh interface evidence](docs/evidence/P21A.md) includes complete 64-member
 default, process recovery, independent accounting, exact program identity and
-API-independent exits. P21B still owns the successor UI and bounded concurrent
-workload; WORKLOG records Review/integration status.
+API-independent exits. P21B qualifies the successor UI and bounded concurrent
+workload; both phases are integrated, with exact evidence in WORKLOG.
 
 [P21B](docs/P21B-QUALIFICATION.md) adds the portfolio-zero isolated/cross wallet UI
 and a fresh bounded two-market workload. [Its report](docs/evidence/P21B.md) records
 real wallet/RPC/WS/PostgreSQL checks, exact financial reconciliation and measured
 limits: continuous sampling invalidated exit certificates; explicit quiescent exits
 succeeded. This is an operator-controlled test profile, not funded readiness or
-always-live exit availability. WORKLOG owns open-stack Review/integration status.
+always-live exit availability. The eight-PR successor stack is integrated at
+`d07fccc`; WORKLOG closes P17–P21B/M7 within that bounded scope. The user defers
+exit-availability redesign; P15B/P16B and 24-hour endurance remain open/deferred.
