@@ -74,7 +74,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P21A | Group SDK/indexer/API and durable services | Closed | [PR #30](https://github.com/arnabnandikgp/rivalt/pull/30), final head `61bbfba`, merged `d07fccc` | [A26A/G16 interfaces](evidence/P21A.md): exact incremental SDK/service/financial/recovery acceptance through `882f832` plus auditor `ac828f6`; R052 finalized-tail/funding-expiry RPC/WS/PostgreSQL checks pass on `e4a284c`; scoped CI and integration verified |
 | M7 | P21B | UI/operations and fresh successor qualification | Closed | [PR #31](https://github.com/arnabnandikgp/rivalt/pull/31), final head `1a3cc2c`, merged `d07fccc` | [A26B/G16/M7](evidence/P21B.md): browser `a0ed6de`, workload `6e9fd2f`, independent audit `813ee20`; 25 wallet originals, 150 offers/101 fills, fault recovery, flat drain, three quiescent token exits and fresh PostgreSQL replay. R052 receipt race passes on `c0e5274`; scoped CI/integration pass. Busy-exit follow-up now M8 under D56 |
 | M8 | P22A | Architecture roadmap and financial decision boundaries | Review | [PR #32](https://github.com/arnabnandikgp/rivalt/pull/32), checked `8321677`, above `9d3c295` | A27A: 244 local links, fences, phase rows/dependencies, D56 consistency and evidence policy pass; no code or financial acceptance |
-| M8 | P22B | Exact financial contract and independent reference cases | Blocked | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; initial model checked `2f5edc5` | R055: 24 current independent model checks, including 23,328 withdrawal inputs; [developing contract](P22B-FINANCIAL-CONTRACT.md). B04: explicit loss-policy choice requested; complete G17 still due, not A27B acceptance |
+| M8 | P22B | Exact financial contract and independent reference cases | Blocked | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; model checked `7f62c79` | R055: 24 independent model checks, including 23,328 withdrawal inputs; [developing contract](P22B-FINANCIAL-CONTRACT.md). B04: explicit loss-policy choice requested; complete G17 still due, not A27B acceptance |
 | M8 | P23 | Registry, accounts and custody | Open | — | P22B / A28 / G18; new trading disabled |
 | M8 | P24 | Risk, funding, routes and orders | Open | — | P23 / A29 / G19 core; ordinary new-profile financial activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Open | — | P24 / A30 / G19 cash; busy-exit and conservation checks |
@@ -1826,3 +1826,10 @@ Both tables now record P22B Blocked on B04, while M8 remains In progress. P23–
 stay Open. The PR is ready for review of the work so far, not complete A27B/G17.
 Exact next action: apply the user's loss-policy choice and complete its full
 settlement/netting/default/layout contract in this same PR before starting P23.
+
+R055 checked follow-up: `7f62c79626920b195a4af496fdc7210a8db3218a` passes
+all 24 targeted reference tests (0.234 seconds) and the exact parent-diff whitespace
+check. Only the original two user research paths remain untracked. This subsequent
+closeout changes documentation only; no additional runtime result is implied.
+The asynchronous loss-policy question remains unanswered at this checkpoint, so
+B04/P22B remains Blocked and the next action stays the explicit G17 decision.
