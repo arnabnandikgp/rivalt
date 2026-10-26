@@ -11,9 +11,10 @@ for their existing profiles; no new financial path is enabled.
 
 [P22B's developing contract](P22B-FINANCIAL-CONTRACT.md) separates the account-local
 funded-withdrawal proof from profit-payment/default policy and provides independent
-counterexamples. Its proposed market-attributed loss policy is awaiting a concrete
-product decision under D56; neither reference-model success nor this link changes
-V2's common account-net waterfall or completes G17.
+counterexamples. D57 records the user's market-attributed loss-policy selection
+for the fresh profile. Exact settlement/netting/insurance transitions remain due;
+neither the selection nor reference-model success changes V2's common account-net
+waterfall or completes G17. No automatic fee-to-insurance percentage is selected.
 
 For the authorized fresh schema-2 test group, [P17's successor contract](P17-MARGIN-CONTRACT.md)
 is normative for the deliberately superseded account, group, multi-market health,

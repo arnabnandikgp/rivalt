@@ -10,8 +10,8 @@ P22B must resolve the exact financial contract before dependent implementation.
 Existing V1/V2 behavior and its recorded qualifications remain unchanged.
 
 [P22B's developing financial contract](P22B-FINANCIAL-CONTRACT.md) now records the
-funded-exit arithmetic, independent model checks and a concrete common-versus-market
-loss-allocation decision. G17 is not complete; the reference is not on-chain evidence.
+funded-exit arithmetic, independent model checks and the user's D57 selection of
+market-attributed losses. G17 is not complete; the reference is not on-chain evidence.
 
 ## 1. Current architecture and constraints
 
@@ -106,8 +106,8 @@ remain on-chain authority, not browser-only labels.
    remainder. Closing a position does not manufacture cash. Partial position closes
    must preserve remaining basis, fractions, funding and order/protection authority.
 4. **Default:** define which claims bear a loss independently of the user's margin
-   mode. Market-attributed settlement/default is the preferred option to evaluate,
-   not an already selected guarantee of market-local losses.
+   mode. D57 selects market-attributed settlement/default for the fresh profile;
+   cross-debtor/netting connections still prevent a blanket isolation guarantee.
 5. **Transaction validity:** use the account nonce/authority, relevant terms, maker
    consumption and authenticated source/funding dependencies. A historical event
    counter must not automatically become a universal quote-validity lock. Do not
@@ -123,7 +123,7 @@ gates belong to P22B; no unresolved choice may be carried into its dependent pha
 | Question | Required contract / evidence |
 |---|---|
 | Can an ordinary funded withdrawal use only account-local financial checks? | Define pre/post cash, fully accrued adverse claims, reservations, custody conservation, safety epochs and concurrent transaction ordering. Candidate condition: `C_after*S + sum(min(U_risk,0)) >= (IM + R)*S`, after applicable costs. Prove why no unpaid liability is funded or shifted by the withdrawal; distinguish freeze discovery from future gap risk |
-| Who owns settlement cash, insurance and a debtor shortfall? | Compare an explicit common loss domain with market-attributed pools/default. Select exact debtor allocation, insurance ownership, creditor cohort and freeze/recovery reach; explain residual cross-market contagion and operational dependencies |
+| Who owns settlement cash, insurance and a debtor shortfall? | D57 selects market attribution over the common loss domain. Complete exact debtor allocation, insurance ownership, creditor cohort and freeze/recovery reach; explain residual cross-market contagion and operational dependencies |
 | How does cross-market closed-claim netting conserve each ledger? | Keep it explicit, flat-only and within one account and permitted settlement domain. Specify matching cash or inter-market liability entries, cyclic claims, fractional ownership and default treatment. A receivable is not funded cash and cannot be spent twice |
 | When may profit be paid? | Distinguish loss collection, gain eligibility, actual pool liquidity and funded cash withdrawal. Pin payment order, partial payment, early-payment/default timing and any solvency prerequisite; no silent guarantee, clawback or claim-purchase facility |
 | Which dependencies can be omitted? | Instruction-by-instruction read/write and invalidation matrix derived from canonical exposure/order membership. Funding prefixes must never reverse or disappear after a held sample expires; future relevant obligations cannot be hidden by sparse account lists |

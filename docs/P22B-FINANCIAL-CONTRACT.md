@@ -4,9 +4,9 @@
 
 This is the developing contract for [P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md).
 Sections 1–3 establish independent arithmetic and proposed implementation obligations.
-Section 4 is a concrete product decision: its alternatives pay different creditors.
-It must be resolved before the complete financial/layout contract and P23 can close
-their dependencies. No V1/V2 behavior, new profile or deployment changes here.
+Section 4 records the user's selection of market-attributed losses under D57.
+The complete financial/layout contract remains due before P23 can close its
+dependency. No V1/V2 behavior, new profile or deployment changes here.
 
 ## 1. Independent reference and its limits
 
@@ -168,29 +168,28 @@ defaults and fractional ownership. Do not use a restricted example as that solve
 
 ## 4. Product decision: loss allocation for the fresh profile
 
-**Recommendation: market-attributed settlement/loss ownership, with explicit
-cross-market netting and default obligations.** This addresses the user's concern
+**Selected by the user on 26 October 2026 (D57): market-attributed settlement/loss
+ownership, with explicit cross-market netting and default obligations.** This addresses the user's concern
 that a healthy market's isolated claims should not be impaired solely because an
-unrelated market shares a technical group. The recommendation includes the harder
+unrelated market shares a technical group. The selected direction includes the harder
 accounting work; it does not promise strict contagion isolation or instantaneous
 unfunded setoff. Existing V2 remains unchanged.
 
 | Choice | Exact intended consequence | Cost / remaining limit |
 |---|---|---|
-| **Market-attributed losses (recommended)** | In example B, pay BTC 100 and ETH 0; attribute settlement/insurance backing and creditor losses by market. Preserve cross-account obligations and complete default accounting rather than applying one blanket membership haircut | Must specify/verify shared-debtor allocation, netting obligations, cycles, fractional clearing and recovery before implementing/enabling. Cross debtors/netting links can propagate losses; resolving them may still require a complete venue scan/freeze |
-| **Retain the current common loss domain** | In example B, pay BTC 50 and ETH 50 using the existing complete account-net waterfall and common P/I. Still remove fixed user market bundles and unnecessary funded-exit certificates | Simpler continuity of existing economics, but the isolated-profit contagion concern is unchanged. Account/UX improvements cannot be described as default isolation |
+| **Market-attributed losses (selected)** | In example B, pay BTC 100 and ETH 0; attribute settlement/insurance backing and creditor losses by market. Preserve cross-account obligations and complete default accounting rather than applying one blanket membership haircut | Must specify/verify shared-debtor allocation, netting obligations, cycles, fractional clearing and recovery before implementing/enabling. Cross debtors/netting links can propagate losses; resolving them may still require a complete venue scan/freeze |
+| **Retain the current common loss domain (not selected for the new profile)** | In example B, pay BTC 50 and ETH 50 using the existing complete account-net waterfall and common P/I. Still remove fixed user market bundles and unnecessary funded-exit certificates | Simpler continuity of existing economics, but the isolated-profit contagion concern is unchanged. Account/UX improvements cannot be described as default isolation |
 
-This is the concrete choice required by [D56](DECISIONS.md) and repository policy:
-changes to loss bearers require an explicit product decision. Approval to stack
-implementation phases is recorded; it does not silently select the different
-creditor allocation above. Do not close G17 or start P23 until the choice and its
-complete contract are recorded. The model/reference work remains useful under
-either choice; neither option changes fees, zero positive unpaid credit or maker
-capital isolation.
+The user's explicit option-2 selection resolves B04 and supersedes D56's pending
+choice, solely for the fresh profile. Existing V2 retains D47's common waterfall.
+Do not close G17 or start P23 until the selected complete contract is recorded.
+This does not change fees, zero positive unpaid credit or maker capital isolation.
+The subsequent insurance-policy question requests an assessment, not a selected
+automatic fee percentage, seed-capital amount or funded deployment.
 
-## 5. Contract work independent of that choice
+## 5. Preserved contract constraints and remaining work
 
-The following design constraints can be completed while the decision is pending:
+The following design constraints remain in force under the selected direction:
 
 - Fresh schema/profile 3 namespace, one six-decimal mint, two initially qualified
   markets and current bounded account/order capacity; no live V1/V2 conversion.
@@ -208,7 +207,7 @@ The following design constraints can be completed while the decision is pending:
   open positions or fee/insurance ownership. New ordinary financial activation
   remains disabled through P25 and requires P26's fresh safety acceptance.
 
-Remaining P22B outputs after selection: the complete state/transition and dependency
+Remaining P22B outputs: the complete state/transition and dependency
 matrix, exact new layout sizes/seeds/discriminators, settlement/insurance/netting
 and default/fraction contract, numeric/budget bounds, source/payment/freeze policy,
 version-specific supersession record and full independent reference cases. Existing
@@ -233,7 +232,7 @@ permission check, and a worker's cached account view is not the canonical root.
 | Cancel | Owner or allowed current delegate; stored permissionless cleanup only for its defined terminal cases | Root/order version and authority; no maker quote or fresh price prerequisite for releasing authority; respect frozen resolution ownership of the book |
 | Execute persisted order | Keeper acting under stored live authority | Same financial dependencies as a route plus remaining quantity/fee, version, trigger, delegate epoch and TP/SL generation/allowance |
 | Grant/revoke delegate | Root owner only | Root-scoped key/expiry/epoch; revoke stale immediate/order authority; no collateral or netting permission delegated |
-| Collect/pay/net claims | Existing role/owner restrictions plus selected settlement contract | Claim/funding ownership and complete selected pool/netting dependencies; the recipient's health check alone never authorizes payout. Final loss/payment policy pending section 4 |
+| Collect/pay/net claims | Existing role/owner restrictions plus selected settlement contract | Claim/funding ownership and complete selected pool/netting dependencies; the recipient's health check alone never authorizes payout. Section 4 selects market attribution; exact netting/payment transitions remain due |
 | Liquidate | Consenting funded receiver under protocol eligibility | Whole-account pre/post target deficit after fees, complete receiver health/reserves, current credible bounds and exact exposure reduction |
 | Freeze/resolve/recover | Defined permissionless bankruptcy proof or source-emergency authority; exact pages; authorized recovery | Complete selected liability membership, prices/funding/epoch and no omitted claims/fractions. No new financial activation before P26 |
 
@@ -259,3 +258,91 @@ canonical sequence/identity. Removing a global validity counter cannot remove
 complete history discovery, immutable original-signature recovery, failed-event
 exclusion or atomic PostgreSQL projection/checkpoint updates. P27 owns the actual
 implementation and recovery evidence, not this dependency matrix.
+
+## 7. Insurance: implemented baseline and proposed reserve policy
+
+Inspected at `14586f9`; this is a code/source assessment, not a live reserve-balance
+attestation or a new financial test. Insurance is dedicated funded collateral,
+not an outside insurer's promise. Current V2 owns one group-level `insurance`
+balance alongside `total_cash`, `settlement`, `fees` and `allocated_vault` in
+[group state](../programs/clearing/src/state/v2/group.rs). These are separate ledger
+balances inside one SPL collateral vault: `V = sum(C) + P + I + T`.
+
+### What already works in the existing implementation
+
+- Actual external collateral can seed insurance. V1 has a direct
+  [insurance transfer](../programs/clearing/src/instructions/custody.rs). V2's
+  [custody handlers](../programs/clearing/src/instructions/group_custody.rs) allow
+  an actual vault surplus to be explicitly classified into I by group authority.
+  Classification increases allocated custody by the same amount; it cannot invent
+  tokens or turn a user's allocated cash into a donation.
+- Collected 2 bps taker fees initially enter T; provider fees remain zero.
+  `allocate_group_fees_v2` explicitly moves existing atoms from T to I under group
+  authority while active/reconciled. No new tokens move, and no automatic percentage
+  is configured. Trader funding payments and liquidation-receiver fees are not
+  automatically insurance revenue. Frozen resolution forbids these allocations.
+- [Complete default](../programs/clearing/src/instructions/group_safety/resolution/ledger.rs)
+  values and collects the cohort first, allocates available whole-atom insurance
+  against the residual debt, and transfers that backing from I to P once. Remaining
+  uncovered liability impairs the complete eligible unpaid-positive cohort using
+  the existing fractional rules. Unallocated T is excluded; healthy sibling cash
+  is not an extra insurance balance. Ordinary profit settlement does not spend I.
+
+The test harnesses exercise these transitions; this inspection does not rerun or
+requalify them. There is no funded production reserve asserted by the code's presence.
+
+### Direction under D57
+
+Attribute settlement backing and insurance budgets to their markets: `P_m`, `I_m`.
+A common physical vault can still custody them if all allocations reconcile and
+no atom belongs to two budgets. Cross collateral stays account-owned, counted once;
+the selected deterministic debtor allocation precedes market insurance and residual
+claim impairment. Insurance does not change margin mode or provide positive unpaid
+margin credit. Complete liability accounting remains necessary for netting links.
+
+For the restricted example C, proportional collection leaves debt 30 in each
+market. With BTC insurance 20 and ETH insurance 10, residual debt is BTC 10 and ETH
+20. These are illustrative integer identities, not acceptance of a general solver
+for mixed-sign accounts, cycles or fractional/default priorities. G17 must complete
+that solver before dependent implementation.
+
+The funding recommendation is **initial seed capital plus replenishment from
+collected fees**. Seed capital supplies a reserve before volume exists; fee revenue
+can rebuild it. At unchanged 2 bps, 1,000,000 quote units of executed notional earn
+200 quote units gross. An illustrative 25% allocation would contribute only 50 to
+insurance and leave 150 in T. Neither 25% nor any seed amount is selected here.
+Use the existing explicit allocation policy while completing engineering; a future
+automatic split needs a recorded policy, exact cumulative rounding/conservation,
+market attribution and acceptance tests. No new fee, paid service or real funding
+is authorized by this assessment.
+
+Keep the abstraction small: attributed funded reserves, top-up/allocation events,
+default consumption, bounded withdrawal/recovery authority and observable balances.
+G17 must prevent pledged capital from being withdrawn or reallocated during a
+claim/default and define recovery/exhaustion behavior. Do not implicitly sweep a
+healthy market's reserve into a failed one. A shared cross-market backstop would
+introduce additional risk sharing and needs its own explicit policy. Public LP
+insurance shares, yield promises, governance tokens and routine insurance-funded
+profit advances are outside this direction. Funded readiness still requires actual
+reserve sizing, risk calibration and P16B; the accounting cannot guarantee adequacy.
+
+### Targeted Percolator comparison
+
+The user-supplied [Quicknode book](https://go.quicknode.com/hubfs/Building%20Financial%20Software%20on%20Solana.pdf),
+chapter 20, is a pooled-liquidity teaching implementation. Pages 259/262 describe a
+fee split into insurance and separate vault-accounting buckets; pages 271–273 use
+insurance, then LP liquidity, for uncovered losses and permit insurance-backed
+profit payouts. Page 276 explicitly identifies a simplified Percolator-inspired
+model. It is not evidence of the current Percolator deployment or Rivalt behavior.
+Retain the reserve/accounting lesson; do not import its pooled LP loss bearer,
+profit-payment policy or example fee split into Rivalt's competing margined makers.
+
+Separately inspected author repositories at pinned revisions:
+[wrapper README `5cb331d`](https://github.com/aeyakovenko/percolator-prog/blob/5cb331dde354517c6371a8acf92cecb194f3bb73/README.md)
+describes per-asset insurance/backing and configurable fee routing;
+[engine `4db11a8`](https://github.com/aeyakovenko/percolator/blob/4db11a8cb0053815e23a35d3a7d3edc265d8d866/README.md)
+describes source-domain-bounded support and labels itself unaudited educational
+research. Its [specification](https://github.com/aeyakovenko/percolator/blob/4db11a8cb0053815e23a35d3a7d3edc265d8d866/spec.md)
+has insurance credit reservations and realizable positive-P&L credit, which Rivalt
+does not adopt. Source pins make the comparison reproducible; no upstream proof
+count is claimed as independently executed or as Rivalt acceptance.

@@ -12,9 +12,10 @@ The engineering objective is a reproducible local venue, followed by focused dev
 D56 adds [P22–P28](P22-ACCOUNT-CENTRIC-CLEARING.md), a fresh bounded local redesign
 that separates account risk, market eligibility, funded exits and settlement/default
 rules. The intended UX removes technical group selection; BTC/ETH, one test mint,
-fees and zero positive unpaid-profit credit remain. P22B must resolve loss ownership
-and netting before implementation; this roadmap does not change existing V1/V2 behavior
-or promise guaranteed isolated profit payouts. External gates remain separate.
+fees and zero positive unpaid-profit credit remain. D57 records the user's choice
+of market-attributed losses for that fresh profile. P22B must finish its exact
+settlement/netting/insurance contract before implementation; existing V1/V2 behavior
+and the absence of guaranteed isolated profit payouts remain. External gates stay separate.
 
 The table below remains the V1 engineering MVP. D45–D48 authorize a fresh bounded
 schema-2 successor: BTC and ETH, one test mint, owner portfolios with isolated or
@@ -66,6 +67,13 @@ A user limit order still takes maker liquidity and pays taker fees. A registered
 No protocol quote, cancellation or maker admission tariff. Makers pay their own pricing-update transactions and operations by default. User-initiated transactions are user-funded by default. Keeper maintenance and any sponsored execution use explicitly funded operator budgets; there is no hidden deduction from user collateral. Budget/payee details are a P06 gate.
 
 For the test MVP, collected trading fees go entirely into the protocol fee balance T. Insurance I is separately seeded and recorded as injected capital. No automatic fee-to-insurance percentage or rebate is selected; future reserve allocation requires an explicit decision and transition. T is not automatically available in the loss waterfall. Treasury withdrawal requires program authorization and the applicable market gate.
+
+Existing V2 additionally implements authority-controlled allocation of collected T
+into I and classification of actual vault surplus as insurance. D57's new-profile
+direction attributes insurance to markets; [P22B's assessment](P22B-FINANCIAL-CONTRACT.md)
+recommends seed capital plus fee replenishment without selecting an automatic
+percentage or authorizing funded deployment. Insurance is finite funded collateral,
+not a guarantee or positive unpaid-profit margin credit.
 
 ## Maker onboarding
 

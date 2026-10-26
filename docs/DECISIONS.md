@@ -679,3 +679,37 @@ G17 therefore retains a material product decision before changed loss ownership
 or its dependent layouts/implementation. The common alternative would leave the
 isolated unpaid-profit contagion concern unchanged; do not quietly select it as
 an implementation convenience. No new production code or activation is implied.
+
+## D57 — selected market-attributed losses and insurance assessment (P22B)
+
+On 26 October 2026 the user explicitly selects option 2, market-attributed losses,
+after the concrete common-versus-market comparison, then asks how insurance exists,
+is funded and connects to that model. This resolves B04 and supersedes D56's pending
+product choice. It authorizes the harder accounting work, not an implicit return
+to the common haircut because implementation would be simpler.
+
+For the fresh profile, attribute settlement/insurance backing and creditor losses
+by market. P22B example B must yield BTC 100 / ETH 0 instead of the existing common
+50 / 50. Shared cross debtors and explicit netting obligations can still transmit
+losses; no unconditional isolated-profit guarantee is selected. Finish G17's exact
+allocation, cycles, fractions, payment priority, safety/freeze scope and layouts
+before P23. D47's common account-net settlement/default is deliberately superseded
+only for this future profile's selected direction; existing V1/V2 bytes, balances,
+deployments and normative contracts remain unchanged.
+
+The code assessment in [P22B section 7](P22B-FINANCIAL-CONTRACT.md) verifies existing
+insurance seeding/surplus classification and explicit fee allocation. All collected
+2 bps taker fees still initially enter T; no automatic split or reserve size is
+selected. Seed capital plus fee replenishment is a recommendation, not approval
+to fund a reserve. Continue engineering with explicit authorized allocation; no
+missing automatic percentage blocks that work. Market attribution must prevent
+double-counting or silently spending another market's dedicated insurance. G17
+still owns exact reserve authority and transitions.
+
+The supplied Quicknode teaching model and pinned Percolator sources are targeted
+references, not imported economic authority, deployed-code verification or Rivalt
+test evidence. Do not adopt their pooled LP loss bearer, realizable positive-P&L
+credit, fee parameters or insurance-funded ordinary payouts. Current routing,
+2 bps/zero-provider fees, maker isolation and zero positive unpaid margin credit
+remain. P15B/P16B stay Open, endurance Deferred and new-profile financial activation
+disabled until the designated P26 acceptance. Keep the new PR stack open.
