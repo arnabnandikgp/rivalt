@@ -123,7 +123,7 @@ fn source(
         .ok()
     }))
 }
-fn sources(
+pub(crate) fn sources(
     btc: &mut GroupMarketV2,
     eth: &mut GroupMarketV2,
     infos: [&AccountInfo; 6],
@@ -231,7 +231,7 @@ fn event(
     })
 }
 
-fn freeze_coverage(market: &mut GroupMarketV2, now: i64) -> Result<()> {
+pub(crate) fn freeze_coverage(market: &mut GroupMarketV2, now: i64) -> Result<()> {
     let observation = &mut market.oracle;
     if observation.sampled_at == 0 {
         return Ok(());

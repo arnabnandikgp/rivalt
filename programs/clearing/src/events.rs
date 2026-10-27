@@ -1060,3 +1060,91 @@ pub struct AccountLiquidatedV3 {
     pub receiver_state: MarginAccountSnapshotV3,
     pub markets: [MarketSnapshotV3; 2],
 }
+/// The complete frozen input header; wide derived work is emitted separately.
+#[event]
+pub struct AccountResolutionFrozenV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    pub stage: u8,
+    pub trigger: Pubkey,
+    pub emergency: bool,
+    pub count: u16,
+    pub registry_hash: [u8; 32],
+    pub safety_epoch: u64,
+    pub terms_epoch: u64,
+    pub config_epochs: [u64; 2],
+    pub source_observations: [u64; 2],
+    pub source_deadlines: [i64; 2],
+    pub prices: [u64; 2],
+    pub funding: [i128; 2],
+    pub frozen_at: i64,
+    pub cash: u64,
+    pub pools: [u64; 2],
+    pub insurance: [u64; 2],
+    pub fees: [u64; 2],
+    pub allocated: u64,
+    pub gross: [u64; 2],
+    pub actual_vault: u64,
+}
+
+#[event]
+pub struct AccountResolutionValuedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    pub id: u16,
+    pub member: Pubkey,
+    pub cash: u64,
+    pub lots: [i64; 2],
+    pub generations: [u64; 2],
+    pub claims_scaled: [i128; 2],
+    pub collected: u64,
+}
+
+#[event]
+pub struct AccountResolutionProgressV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    pub processed_stage: u8,
+    pub start: u16,
+    pub length: u8,
+    pub next_stage: u8,
+    pub next_cursor: u16,
+    pub evaluation: u8,
+    pub clipped_mask: u8,
+}
+
+#[event]
+pub struct AccountResolutionProposalV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    pub evaluation: u8,
+    pub proposal_hash: [u8; 32],
+    pub offset: u16,
+    pub bytes: Vec<u8>,
+    pub rejected: bool,
+    pub next_stage: u8,
+}
+
+#[event]
+pub struct AccountResolutionRatesV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    pub evaluation: u8,
+    pub proposal_hash: [u8; 32],
+    /// 1 rejected/reset; 2 exact prescribed clipping; 3 complete verified rates.
+    pub outcome: u8,
+    pub next_evaluation: u8,
+    pub clipped_mask: u8,
+    pub budgets: [u64; 2],
+    pub insurance_spent: [u64; 2],
+}

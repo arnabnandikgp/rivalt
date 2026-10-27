@@ -293,6 +293,17 @@ pub(crate) use account_trading::activation::__cpi_client_accounts_qualify_accoun
 pub use account_trading::activation::QualifyAccountTradingV3;
 
 pub mod account_safety;
+pub use account_safety::resolution::{InitializeAccountResolutionV3, InitializeAccountResolutionPageV3, ProposeAccountResolutionV3,
+    FreezeAccountsV3, ValueAccountResolutionV3, AdvanceAccountResolutionV3};
+pub(crate) use account_safety::resolution::{__client_accounts_initialize_account_resolution_v3,
+    __client_accounts_propose_account_resolution_v3,
+    __client_accounts_initialize_account_resolution_page_v3, __client_accounts_freeze_accounts_v3,
+    __client_accounts_value_account_resolution_v3, __client_accounts_advance_account_resolution_v3};
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::resolution::{__cpi_client_accounts_initialize_account_resolution_v3,
+    __cpi_client_accounts_propose_account_resolution_v3,
+    __cpi_client_accounts_initialize_account_resolution_page_v3, __cpi_client_accounts_freeze_accounts_v3,
+    __cpi_client_accounts_value_account_resolution_v3, __cpi_client_accounts_advance_account_resolution_v3};
 pub(crate) use account_safety::risk::__client_accounts_liquidate_account_v3;
 #[cfg(feature = "cpi")]
 pub(crate) use account_safety::risk::__cpi_client_accounts_liquidate_account_v3;

@@ -5,6 +5,7 @@ use crate::{error::ClearingError, state::v3::*};
 use anchor_lang::prelude::*;
 
 pub mod risk;
+pub mod resolution;
 
 fn candidate_profile(identity: &account_cash::AccountFinancialIdentityV3) -> Result<()> {
     require!(

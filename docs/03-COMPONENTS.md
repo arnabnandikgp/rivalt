@@ -1,6 +1,12 @@
 # Components and interfaces
 Rivalt · baseline R1 · 20 October 2026
 
+D64 implements [P26 frozen safety preparation](P26-ACCOUNT-SAFETY.md): complete
+canonical valuation and independently verified rate proposals in the separate
+candidate artifact. Terminal application/recovery and full runtime acceptance
+remain phase-owned; this does not enable ordinary schema-3 trading.
+
+
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
 phase-owned, and the candidate build does not satisfy P26 safety.

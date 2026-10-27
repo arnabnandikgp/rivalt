@@ -31,6 +31,28 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn initialize_account_resolution_v3(ctx: Context<InitializeAccountResolutionV3>) -> Result<()> {
+        account_safety::resolution::initialize(ctx)
+    }
+    pub fn initialize_account_resolution_page_v3(ctx: Context<InitializeAccountResolutionPageV3>, page_index: u16) -> Result<()> {
+        account_safety::resolution::initialize_page(ctx, page_index)
+    }
+    pub fn freeze_accounts_v3(ctx: Context<FreezeAccountsV3>, safety_epoch: u64,
+        resolution_epoch: u64, emergency: bool) -> Result<()> {
+        account_safety::resolution::freeze(ctx, safety_epoch, resolution_epoch, emergency)
+    }
+    pub fn value_account_resolution_v3(ctx: Context<ValueAccountResolutionV3>, epoch: u64) -> Result<()> {
+        account_safety::resolution::value_sources(ctx, epoch)
+    }
+    pub fn advance_account_resolution_v3(ctx: Context<AdvanceAccountResolutionV3>, epoch: u64,
+        stage: u8, start: u16, length: u8) -> Result<()> {
+        account_safety::resolution::advance(ctx, epoch, stage, start, length)
+    }
+    pub fn propose_account_resolution_v3(ctx: Context<ProposeAccountResolutionV3>, epoch: u64,
+        evaluation: u8, proposal_hash: [u8; 32], offset: u16, bytes: Vec<u8>) -> Result<()> {
+        account_safety::resolution::upload(ctx, epoch, evaluation, proposal_hash, offset, bytes)
+    }
+
     pub fn liquidate_account_v3(ctx: Context<LiquidateAccountV3>, target_guard: account_trading::authority::AccountGuardV3,
         receiver_guard: account_trading::authority::AccountGuardV3, market_index: u8, lots: u64, price: u64) -> Result<()> {
         account_safety::risk::liquidate(ctx, target_guard, receiver_guard, market_index, lots, price)

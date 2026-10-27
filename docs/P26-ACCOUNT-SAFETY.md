@@ -37,3 +37,39 @@ no truncation, reduced claimant set, guessed rate or relaxed financial equation 
 an optimization. Whole-cohort runtime cost is measured independently from the cost
 of one continuation. A bounded proof schedule is not a promise of one-transaction
 resolution. P27 services and P28 concurrency/UI remain distinct downstream gates.
+
+## Frozen preparation and proposal contract
+
+The candidate precreates one header/work pair and all 32 canonical two-row pages.
+Creation is permissionless rent payment in Custody/Active; it grants no price,
+reserve or payout authority. Freeze requires the completed storage set, the current
+safety/resolution epochs and an authenticated registry member. It accepts common
+net bankruptcy or strictly underfunded gross flat debt; an exposed risk deficit
+alone rejects. The authority-only missing-source emergency retains its full
+30-second grace. A missing price anywhere with exposure enters AwaitValuation;
+a wholly unexposed market uses the fixed irrelevant price sentinel 1.
+
+One/two-row Value pages cannot cross a two-row storage boundary, omit a root,
+change its canonical identity or supply writable participant accounts. The complete
+scan checks cash, both zero signed exposures, gross quantities and both pool/claim
+identities before Denominator. Frozen participant accounts and live cash ledgers
+remain unchanged. L is then derived from all frozen rows with exact whole own-cash
+collections. Epochs, stages and cursors prevent reuse of earlier pages.
+
+Rate proposals are exactly 1,560 bytes: two 96-limb little-endian numerators,
+followed by the three-limb factor. Chunks are nonempty, eight-byte aligned and at
+most 512 bytes; offsets are contiguous and bound to epoch/evaluation/SHA-256.
+Anyone may restart an incomplete upload at offset zero. Verification cannot be
+replaced mid-pass. Wrong complete encoding/equations reset proposal work without
+changing frozen inputs, spending reserves or consuming an insurance evaluation.
+Every frozen row contributes exact flows and right slopes. Only complete fixed
+and greatest-rate verification permits the prescribed floor clipping or FlowPlan.
+Clipping preserves original reserves and requires a complete new verified scan.
+
+Verify work registers 0/1 hold incoming flow numerators; register 2 contains the
+two checked u128 slopes in limbs 0–3; register 3 contains L*factor; registers 4–7
+are scratch. This names the existing layout's usage; no account bytes or old
+profile semantics change. Events retain frozen valuation inputs, proposal chunks,
+verification decisions and exact insurance budgets; preparation does not emit a
+fabricated payout. Deterministic rounding/application/recovery remain subsequent
+implementation and acceptance, not implicit effects of reaching FlowPlan.
