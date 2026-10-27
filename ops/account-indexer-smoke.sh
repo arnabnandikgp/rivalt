@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # P27 focused schema-3 finalized journal, RPC/WS/PostgreSQL and read API qualification.
 set -euo pipefail
+# Keep only this finite owned run awake on macOS. This is not a persistent power
+# setting and cannot override an explicit closed-lid/clamshell suspension.
+if [[ "$(uname -s)" == Darwin && "${RIVALT_ACCOUNT_AWAKE_CHILD:-0}" != 1 ]]; then
+  export RIVALT_ACCOUNT_AWAKE_CHILD=1
+  exec caffeinate -is "$BASH" "$0" "$@"
+fi
 cd "$(dirname "$0")/.."
 source ops/env.sh
 case "${1:-indexer}" in

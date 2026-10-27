@@ -37,7 +37,7 @@ function Balances({controller}: {controller: AccountController}) {
       <Metric label="Indicative cash headroom" value={fixed(view?.indicativeCashHeadroom ?? undefined)} test="account-headroom" hint="Atomic funding, health and source checks still apply" />
     </dl>
     <p className="caption">Positive unpaid profit is not collateral or withdrawable cash. Withdrawal checks and the token transfer execute together; no venue-wide exit scan is needed.</p>
-    {view&&<p className="caption">Valuation: {view.valuationStatus}. Balances use finalized RPC; a transaction preview uses current confirmed state.</p>}
+    {view&&<p className="caption">Balances and claims use finalized chain state. Transaction previews use current confirmed prices and account checks.</p>}
     <div className="form-grid">
       <Field label="Wallet collateral account"><select value={collateral} onChange={event=>setCollateral(event.target.value)}>
         <option value="">Choose token account</option>{venue.tokens.map(token=><option key={token.address} value={token.address}>{short(token.address)} · {fixed(token.amount)} test USD</option>)}

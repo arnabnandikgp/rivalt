@@ -3283,3 +3283,25 @@ Partial raw financial captures now checkpoint alongside load outcomes, and the
 independent final checkpoint must match the last captured financial transition.
 No unrelated suites, SBF build or full-day run. Exact next action: run the same
 fresh `--qualification` gate on this clean correction, retaining both attempts.
+
+R072 second attempt, clean `a8ab4c0`,
+`.local/account-qualification-rpc/20261027T170227Z-71892/`: browser again passes
+17 originals, now including exact funded/position displays, latest fill history
+and retained selection/direct RPC balances after API-loss reload. A retained
+partial independent audit verifies 22 actual fills, one busy exit and five
+corruptions. The population later has 28 completed fills, seven driver refusals
+and two completed busy exits before the harness's next original deadline expires.
+No complete workload/default/replay qualification is claimed.
+
+Read-only diagnosis of the retained PostgreSQL journal proves that original
+`4847Tzgx…Pdtz` finalized at slot 4879, fee 5,000, error null; the queue records
+three attempts and final status. Its timestamps jump from 17:06:47 to 17:21:48
+UTC. `pmset -g log` independently records Clamshell Sleep at 22:36:48 IST for
+900 seconds, followed by maintenance wake. This is a suspended host, not evidence
+of an economic/retry failure. The original journal payload is retained locally
+as `recovered-original.json`; the owned diagnostic database container is stopped
+and removed. Original bytes are never replaced. Add process-scoped macOS
+`caffeinate -is` to the finite qualification wrapper (no global power setting;
+explicit lid closure still suspends the host). Remove a raw internal enum from
+the UI caption; this is copy only. Next: run the same qualification with the host
+awake, preserving the interrupted attempt as a limitation.

@@ -49,3 +49,8 @@ No inherited P16/P21 results qualify A33. No new SBF/full-suite rerun is require
 without program changes. P15B/P16B remain external; 24-hour endurance remains
 Deferred. Measured local limits and provisional risk assumptions must accompany
 A33/G21/M8 acceptance. WORKLOG records actual results, not this prospective plan.
+
+The local supervisor holds a process-scoped macOS idle-sleep assertion only for
+its finite run. Explicit lid closure still suspends the host and invalidates the
+continuous offered window; preserve that attempt rather than removing elapsed
+time or claiming a complete run. Keep the test host awake for qualification.
