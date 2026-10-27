@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | P22A–P26 remain Review in open stacked #32/#33/#35/#36/#37/#38; qualified local activation only, default/devnet disabled. P27 R066–R068 verify fresh finalized PostgreSQL/replay, 64-root chunking, direct atomic exits and four-fill BTC/ETH routing. R069/R070 add exact proposal and durable execution helpers; R071 wires all five workers and their scoped qualification. R071 live workers/default/replay pass, but logs exposed a completion-event carry decoder bug; fix and targeted requalification remain due. P28 Open; external P15B/P16B and deferred endurance unchanged |
+| M8 | P22–P28 | Account-centric clearing redesign | In progress | P22A–P26 Review; P27 A32/G21 interfaces pass through clean `13b558f`, ready publication next; P28 UI/concurrent qualification remains Open |
 
 ## Phase overview
 
@@ -79,7 +79,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P24 | Risk, funding, routes and orders | Review | [PR #36](https://github.com/arnabnandikgp/rivalt/pull/36), head `f8f5dac`, above #35; tested `4a0763d` | [A29/G19 core](evidence/P24.md): 329 SVM / 313 finalized RPC outcomes; 23 ABI variants, 28 accounts / 134 event parity, 175 WS notifications; exact 49-transition / 16-fill audit. Max route 473,764 CU, overall 1,191 bytes / 24 accounts. Ordinary activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
 | M8 | P26 | Liquidation, complete default and local activation | Review | [PR #38](https://github.com/arnabnandikgp/rivalt/pull/38), above #37 `75e34c5`; tested `915d8e8` | [A31/G20 safety](evidence/P26.md): complete default/recovery/retirement, 837 qualified RPC outcomes / 672 WS, exact 64-root audit, cyclic and both-market/full-book cases, 31 ABI variants, default gating and maximum-width resource headroom. Qualified local activation only; no merge or P27/P28 completion |
-| M8 | P27 | SDK, indexer/API and durable services | In progress | `phase/p27-account-services` above #38 `fe5757a` | [Checkpoint evidence](evidence/P27.md): fresh indexer `ba19119`, direct exits `9e26969`, 64-root replay `98e2e49`, routing `8267a27`; R069/R070 helpers and R071 maker/funding/order/settlement/risk workers implemented. R071 actual worker/default/replay checkpoint passes; completion-event carry reconstruction fix and strengthened worker checks pending; no P27 PR yet |
+| M8 | P27 | SDK, indexer/API and durable services | Review | `phase/p27-account-services` above #38 `fe5757a`; ready publication pending | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Open | — | P27 / A33 / G21 / M8 exit; normal background exits, complete outcomes/replay |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
@@ -93,7 +93,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Prior integrated verification (R053): final full-stack review has zero unresolved threads, no requested changes and all PRs mergeable with selected CI passing. Final tip `1a3cc2c` passes all five jobs in hosted run `40221453594`. Phase reports retain original executed pins and limitations; R052 actual service recovery uses `e4a284c` and receipt concurrency uses `c0e5274`. This run adds repository/review/integration verification, not new financial/runtime evidence.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: run the R071 worker qualification on a recorded clean revision using `bash ops/account-indexer-smoke.sh --workers`, address observed failures, then publish P27 and continue P28 above it. Keep the stack open.
+- Exact next action: publish P27 ready with `gh stack submit --auto --open`, then create P28 above its exact commits and implement the account-centric UI and pinned bounded concurrent qualification. Keep the stack open.
 - Deferred gates: D56 resumes busy-group/atomic-exit redesign within P22–P28; the old runtime limitation remains. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new deployment or external participation is claimed.
 
 ## Blocker register
@@ -3192,3 +3192,30 @@ the fixture to initialize valid 720-slot epochs (the default setup remains
 This tests real owner renewal without changing the maker program or safeguards.
 The owned runtime was cleaned; this failed-run database remains retained because
 the earlier deletion authorization covered the enumerated 49 older copies only.
+
+
+R071 final acceptance, clean `13b558f4a3329b2c6a004422f2d12cbd6c40ad7f`:
+`bash ops/account-indexer-smoke.sh --workers` passes at
+`.local/account-workers-rpc/20261027T162214Z-61062/`. Actual maker expiry/renewal/
+sync, immutable lost-ack/executor recovery, TP, settlement, liquidation, exact
+proposal upload, three risk process restarts, indexer reopen, complete default,
+sustained recovery, explicit resume and 100-atom exit pass. Of 153 durable
+originals, 152 finalize and one deliberately unbroadcast original expires with
+unchanged authority; its 20,000-lamport reservation is retained. There are 462
+separate signed setup/source outcomes, and 44 indexer WS notifications after
+restart. Fresh PostgreSQL replay matches sequence 215, 29 accounts/seven roots,
+slot 6804, actual/allocated vault 2,002,707,133 atoms with zero surplus. Independent
+Fraction/raw-byte audit verifies seven exact payouts, one circulation augmentation,
+post-fee liquidation/funding/recovery/exit and five corruption rejections.
+
+The saved-wire resource audit verifies at least 20% declared CU headroom for every
+finalized worker original: maximum 823,234 CU, 1,176 bytes, 23 message accounts
+(maxima occur on different paths). All scoped spent budgets reconcile; only the
+intentional expiry retains a commitment. Completion-event carries remain consistent
+through intermediate reconciliation; no unexpected projection failure is hidden
+by later events. [The report](evidence/P27.md) records per-role denominators and
+prior failures. Scoped projection/worker/proposer/frozen-reader checks and
+`pnpm typecheck` pass; `git diff --check` passes. No program/IDL change, new SBF
+build, unrelated full suite, hosted CI, devnet, soak or P28 acceptance is claimed.
+Both tables retain M8 In progress and move P27 to Review; ready publication is
+next, followed immediately by P28 UI/bounded qualification. Stack stays open.

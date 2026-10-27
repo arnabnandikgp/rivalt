@@ -51,8 +51,9 @@ is an ordinary own-cash withdrawal prerequisite.
 
 ## Acceptance and limits
 
-The phase stays In progress until all four steps pass on recorded code. Intermediate
-decoder/projection tests and retained-history checks only validate their own layer.
+All four steps now have pinned acceptance in [the P27 report](evidence/P27.md).
+P27 remains Review until integration. Intermediate decoder/projection tests and
+retained-history checks only validate their own layer.
 Use focused regression tests and fresh integration traces; broad inherited suites
 remain in scoped CI. Local synthetic sources/internal makers are labelled as such.
 No new devnet or funded deployment, paid service, outreach or external hedge is

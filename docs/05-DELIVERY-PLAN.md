@@ -636,3 +636,11 @@ R070 adds schema-3 immutable execution/ingress/expiry-authority and scoped opera
 budgets with focused consumer tests. Worker loops and fresh process/RPC/WS/
 PostgreSQL fault qualification remain next; the helper checkpoint does not close
 A32 or publish P27 prematurely.
+
+
+R071 completes A32/G21 interfaces on clean `13b558f`: actual maker renewal/sync,
+durable wallet/order/settlement/liquidation/default workers, interrupted proposal/
+Verify/Apply recovery, finalized expiry, independent accounting and fresh PostgreSQL
+replay. [P27 evidence](evidence/P27.md) retains earlier checkpoint pins and failed
+attempts. P28 may proceed above the verified Review commits; A33's fresh browser,
+concurrent funded exits and complete bounded population remain required.
