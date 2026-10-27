@@ -624,3 +624,9 @@ qualification on `8267a27`; durable maker/funding/order/settlement/risk services
 and their process/fault qualification remain next.
 This is incremental A32 work, not phase closure; P27 stays In progress and P28
 remains dependent. The exact tested pins and pending command are in WORKLOG.
+
+
+R069 implements and unit-checks the exact untrusted proposer and canonical frozen
+RPC reader. Its live upload/default/restart qualification is deliberately part of
+P27's remaining durable worker flow, not inferred from retained P26/P27 captures.
+The next implementation dependency is schema-3 execution authority and workers.

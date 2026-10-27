@@ -105,3 +105,20 @@ historical oracle observation nor a global discovery sequence. Clearing checks
 current relevant sources and whole-account health at execution. Confirmed quotes
 are labelled provisional; finalized journal/cash facts retain their own boundary.
 No instruction supplied by an HTTP quote is trusted as execution authority.
+
+
+## Untrusted resolution proposal
+
+The service proposer uses exact bigint rational arithmetic and enumerates the
+bounded two-market capped-flow branches to select the greatest fixed point. It
+outputs only the 1,560-byte numerator/factor encoding and hash for the current
+on-chain evaluation. Clearing remains authoritative for complete-row verification,
+insurance clipping, flow planning, remainder order, circulation and payout.
+
+Inputs come from the current canonical frozen header/registry/pages in one final
+RPC batch. The reader verifies the frozen epoch/safety/terms, complete stable
+membership and row order, cash/claim/collection aggregates and the on-chain common
+denominator. A competing progress transition cannot silently change the proposal's
+stage identity. The runtime has no dependency on Python reference code or retained
+evidence dumps. Focused pure/consumer tests are separate from the still-required
+fresh durable worker upload/default/restart acceptance.

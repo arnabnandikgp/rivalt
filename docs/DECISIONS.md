@@ -984,3 +984,10 @@ maker dependencies in the same final financial batch. Indicative cash headroom
 includes all mixed held-funding corners, and is explicitly not withdrawal
 permission. This changes interfaces only; D60–D64 on-chain economics and authority
 remain unchanged.
+
+
+D65 implementation clarification (R069): the schema-3 service rate proposer is
+untrusted and reads complete current frozen chain pages. It emits only candidate
+rate bytes for the current evaluation; on-chain verification/clipping/rounding
+remain the financial authority under D64. Test reference processes and retained
+acceptance captures are not runtime dependencies. No economic decision changes.
