@@ -4,6 +4,7 @@ use financial_core::{MAX_CASH, MAX_LOTS, MAX_PRICE};
 
 pub const VERSION: u16 = 1;
 pub const GROUP_VERSION: u16 = 2;
+pub const ACCOUNT_VERSION: u16 = 3;
 pub const MIN_EPOCH_SLOTS: u64 = 64;
 pub const MAX_EPOCH_SLOTS: u64 = 3_600;
 pub const RESPONSE_BYTES: usize = 92;
@@ -74,20 +75,45 @@ pub fn group_quote(
     state: &MakerState,
     request: &GroupQuoteRequest,
 ) -> QuoteResult<QuoteResponse> {
-    if group == Pubkey::default()
-        || request.group != group
-        || state.version != GROUP_VERSION
-        || request.quote.version != GROUP_VERSION
+    scoped_quote(group, request.group, state, &request.quote, GROUP_VERSION)
+}
+
+/// Schema-3 venue binding is a separate envelope; the reference curve is shared.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AccountQuoteRequest {
+    pub venue: Pubkey,
+    pub quote: QuoteRequest,
+}
+
+pub fn account_quote(
+    venue: Pubkey,
+    state: &MakerState,
+    request: &AccountQuoteRequest,
+) -> QuoteResult<QuoteResponse> {
+    scoped_quote(venue, request.venue, state, &request.quote, ACCOUNT_VERSION)
+}
+
+fn scoped_quote(
+    domain_key: Pubkey,
+    request_key: Pubkey,
+    state: &MakerState,
+    request: &QuoteRequest,
+    version: u16,
+) -> QuoteResult<QuoteResponse> {
+    if domain_key == Pubkey::default()
+        || request_key != domain_key
+        || state.version != version
+        || request.version != version
     {
         return Err(QuoteError::Binding);
     }
     // Strategy arithmetic is identical. Only the authenticated envelope changes.
     let mut strategy_state = state.clone();
-    let mut strategy_request = request.quote.clone();
+    let mut strategy_request = request.clone();
     strategy_state.version = VERSION;
     strategy_request.version = VERSION;
     let mut response = quote(&strategy_state, &strategy_request)?;
-    response.version = GROUP_VERSION;
+    response.version = version;
     Ok(response)
 }
 

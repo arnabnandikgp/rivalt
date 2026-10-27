@@ -11,3 +11,11 @@ Keep implementation, executable tests, independent audit code, deployment config
 To repeat a retained-run audit on this prepared machine, use the exact local paths and audit command in its phase report. Missing local evidence is an unavailable input, not a passing check; do not fabricate it or silently skip an acceptance assertion. New genuine runtime checks still write their own unique run directories under the existing supervisors. No full financial matrix, load or soak is needed solely for this storage cleanup.
 
 `python3 ops/check-evidence-policy.py` rejects tracked raw evidence and bounds curated fixtures to 96 KiB each / 200 KiB total. Hosted PR scope checks enforce the same rule. The local cleanup verifies every retained file's SHA-256 before and after changing Git tracking.
+
+
+27 October 2026 storage exception: the user explicitly authorized deletion of
+49 inactive local PostgreSQL test-data directories (about 3.4 GiB), preserving
+the then-current run database and all transaction/financial captures, logs, keys
+and configuration. R071 and the ignored cleanup manifest record the exact set.
+Historical reports retain their actual results; an old database directory is no
+longer a retained artifact. This does not authorize deleting other raw evidence.

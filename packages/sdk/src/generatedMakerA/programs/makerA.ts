@@ -35,40 +35,56 @@ import {
   type SelfPlanAndSendFunctions,
 } from "@solana/kit/program-client-core";
 import {
+  getMakerAccountConfigCodec,
   getMakerConfigCodec,
   getMakerGroupConfigCodec,
+  type MakerAccountConfig,
+  type MakerAccountConfigArgs,
   type MakerConfig,
   type MakerConfigArgs,
   type MakerGroupConfig,
   type MakerGroupConfigArgs,
 } from "../accounts/index.js";
 import {
+  getInitializeAccountConfigInstructionAsync,
   getInitializeConfigInstructionAsync,
   getInitializeGroupConfigInstructionAsync,
+  getPublishAccountEpochInstruction,
   getPublishEpochInstruction,
   getPublishGroupEpochInstruction,
+  getQuoteAccountInstruction,
   getQuoteGroupInstruction,
   getQuoteInstruction,
+  parseInitializeAccountConfigInstruction,
   parseInitializeConfigInstruction,
   parseInitializeGroupConfigInstruction,
+  parsePublishAccountEpochInstruction,
   parsePublishEpochInstruction,
   parsePublishGroupEpochInstruction,
+  parseQuoteAccountInstruction,
   parseQuoteGroupInstruction,
   parseQuoteInstruction,
+  type InitializeAccountConfigAsyncInput,
   type InitializeConfigAsyncInput,
   type InitializeGroupConfigAsyncInput,
+  type ParsedInitializeAccountConfigInstruction,
   type ParsedInitializeConfigInstruction,
   type ParsedInitializeGroupConfigInstruction,
+  type ParsedPublishAccountEpochInstruction,
   type ParsedPublishEpochInstruction,
   type ParsedPublishGroupEpochInstruction,
+  type ParsedQuoteAccountInstruction,
   type ParsedQuoteGroupInstruction,
   type ParsedQuoteInstruction,
+  type PublishAccountEpochInput,
   type PublishEpochInput,
   type PublishGroupEpochInput,
+  type QuoteAccountInput,
   type QuoteGroupInput,
   type QuoteInput,
 } from "../instructions/index.js";
 import {
+  findAccountConfigPda,
   findConfigPda,
   findInitializeGroupConfigConfigPda,
 } from "../pdas/index.js";
@@ -77,6 +93,7 @@ export const MAKER_A_PROGRAM_ADDRESS =
   "7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU" as Address<"7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU">;
 
 export enum MakerAAccount {
+  MakerAccountConfig,
   MakerConfig,
   MakerGroupConfig,
 }
@@ -85,6 +102,17 @@ export function identifyMakerAAccount(
   account: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): MakerAAccount {
   const data = "data" in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([132, 83, 224, 98, 186, 215, 52, 206]),
+      ),
+      0,
+    )
+  ) {
+    return MakerAAccount.MakerAccountConfig;
+  }
   if (
     containsBytes(
       data,
@@ -114,11 +142,14 @@ export function identifyMakerAAccount(
 }
 
 export enum MakerAInstruction {
+  InitializeAccountConfig,
   InitializeConfig,
   InitializeGroupConfig,
+  PublishAccountEpoch,
   PublishEpoch,
   PublishGroupEpoch,
   Quote,
+  QuoteAccount,
   QuoteGroup,
 }
 
@@ -126,6 +157,17 @@ export function identifyMakerAInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): MakerAInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([7, 193, 245, 28, 113, 9, 81, 7]),
+      ),
+      0,
+    )
+  ) {
+    return MakerAInstruction.InitializeAccountConfig;
+  }
   if (
     containsBytes(
       data,
@@ -147,6 +189,17 @@ export function identifyMakerAInstruction(
     )
   ) {
     return MakerAInstruction.InitializeGroupConfig;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([249, 155, 61, 145, 130, 254, 16, 47]),
+      ),
+      0,
+    )
+  ) {
+    return MakerAInstruction.PublishAccountEpoch;
   }
   if (
     containsBytes(
@@ -185,6 +238,17 @@ export function identifyMakerAInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([237, 171, 49, 25, 178, 26, 194, 200]),
+      ),
+      0,
+    )
+  ) {
+    return MakerAInstruction.QuoteAccount;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([201, 69, 231, 90, 159, 170, 190, 87]),
       ),
       0,
@@ -202,11 +266,17 @@ export type ParsedMakerAInstruction<
   TProgram extends string = "7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU",
 > =
   | ({
+      instructionType: MakerAInstruction.InitializeAccountConfig;
+    } & ParsedInitializeAccountConfigInstruction<TProgram>)
+  | ({
       instructionType: MakerAInstruction.InitializeConfig;
     } & ParsedInitializeConfigInstruction<TProgram>)
   | ({
       instructionType: MakerAInstruction.InitializeGroupConfig;
     } & ParsedInitializeGroupConfigInstruction<TProgram>)
+  | ({
+      instructionType: MakerAInstruction.PublishAccountEpoch;
+    } & ParsedPublishAccountEpochInstruction<TProgram>)
   | ({
       instructionType: MakerAInstruction.PublishEpoch;
     } & ParsedPublishEpochInstruction<TProgram>)
@@ -217,6 +287,9 @@ export type ParsedMakerAInstruction<
       instructionType: MakerAInstruction.Quote;
     } & ParsedQuoteInstruction<TProgram>)
   | ({
+      instructionType: MakerAInstruction.QuoteAccount;
+    } & ParsedQuoteAccountInstruction<TProgram>)
+  | ({
       instructionType: MakerAInstruction.QuoteGroup;
     } & ParsedQuoteGroupInstruction<TProgram>);
 
@@ -225,6 +298,13 @@ export function parseMakerAInstruction<TProgram extends string>(
 ): ParsedMakerAInstruction<TProgram> {
   const instructionType = identifyMakerAInstruction(instruction);
   switch (instructionType) {
+    case MakerAInstruction.InitializeAccountConfig: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: MakerAInstruction.InitializeAccountConfig,
+        ...parseInitializeAccountConfigInstruction(instruction),
+      };
+    }
     case MakerAInstruction.InitializeConfig: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -237,6 +317,13 @@ export function parseMakerAInstruction<TProgram extends string>(
       return {
         instructionType: MakerAInstruction.InitializeGroupConfig,
         ...parseInitializeGroupConfigInstruction(instruction),
+      };
+    }
+    case MakerAInstruction.PublishAccountEpoch: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: MakerAInstruction.PublishAccountEpoch,
+        ...parsePublishAccountEpochInstruction(instruction),
       };
     }
     case MakerAInstruction.PublishEpoch: {
@@ -258,6 +345,13 @@ export function parseMakerAInstruction<TProgram extends string>(
       return {
         instructionType: MakerAInstruction.Quote,
         ...parseQuoteInstruction(instruction),
+      };
+    }
+    case MakerAInstruction.QuoteAccount: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: MakerAInstruction.QuoteAccount,
+        ...parseQuoteAccountInstruction(instruction),
       };
     }
     case MakerAInstruction.QuoteGroup: {
@@ -285,6 +379,8 @@ export type MakerAPlugin = {
 };
 
 export type MakerAPluginAccounts = {
+  makerAccountConfig: ReturnType<typeof getMakerAccountConfigCodec> &
+    SelfFetchFunctions<MakerAccountConfigArgs, MakerAccountConfig>;
   makerConfig: ReturnType<typeof getMakerConfigCodec> &
     SelfFetchFunctions<MakerConfigArgs, MakerConfig>;
   makerGroupConfig: ReturnType<typeof getMakerGroupConfigCodec> &
@@ -292,6 +388,11 @@ export type MakerAPluginAccounts = {
 };
 
 export type MakerAPluginInstructions = {
+  initializeAccountConfig: (
+    input: InitializeAccountConfigAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeAccountConfigInstructionAsync> &
+    SelfPlanAndSendFunctions;
   initializeConfig: (
     input: InitializeConfigAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -301,6 +402,11 @@ export type MakerAPluginInstructions = {
     input: InitializeGroupConfigAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeGroupConfigInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  publishAccountEpoch: (
+    input: PublishAccountEpochInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPublishAccountEpochInstruction> &
     SelfPlanAndSendFunctions;
   publishEpoch: (
     input: PublishEpochInput,
@@ -315,6 +421,10 @@ export type MakerAPluginInstructions = {
     input: QuoteInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getQuoteInstruction> & SelfPlanAndSendFunctions;
+  quoteAccount: (
+    input: QuoteAccountInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getQuoteAccountInstruction> & SelfPlanAndSendFunctions;
   quoteGroup: (
     input: QuoteGroupInput,
     config?: { programAddress?: Address | HasAddress },
@@ -322,6 +432,7 @@ export type MakerAPluginInstructions = {
 };
 
 export type MakerAPluginPdas = {
+  accountConfig: typeof findAccountConfigPda;
   config: typeof findConfigPda;
   initializeGroupConfigConfig: typeof findInitializeGroupConfigConfigPda;
 };
@@ -341,6 +452,10 @@ export function makerAProgram(
     return extendClient(client, {
       makerA: <MakerAPlugin>{
         accounts: {
+          makerAccountConfig: addSelfFetchFunctions(
+            client,
+            getMakerAccountConfigCodec(),
+          ),
           makerConfig: addSelfFetchFunctions(client, getMakerConfigCodec()),
           makerGroupConfig: addSelfFetchFunctions(
             client,
@@ -348,6 +463,14 @@ export function makerAProgram(
           ),
         },
         instructions: {
+          initializeAccountConfig: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeAccountConfigInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           initializeConfig: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -360,6 +483,14 @@ export function makerAProgram(
             addSelfPlanAndSendFunctions(
               client,
               getInitializeGroupConfigInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          publishAccountEpoch: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPublishAccountEpochInstruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -388,6 +519,14 @@ export function makerAProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          quoteAccount: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getQuoteAccountInstruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           quoteGroup: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -398,6 +537,11 @@ export function makerAProgram(
             ),
         },
         pdas: {
+          accountConfig: (seeds, pdaConfig) =>
+            findAccountConfigPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           config: (seeds, pdaConfig) =>
             findConfigPda(seeds, {
               programAddress:

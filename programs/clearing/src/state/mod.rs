@@ -20,3 +20,6 @@ mod settlement;
 pub use settlement::*;
 /// Successor layout contract; no V2 financial entrypoint is enabled by these types.
 pub mod v2;
+
+/// Fresh account-centric contract layouts; financial activation remains disabled.
+pub mod v3;

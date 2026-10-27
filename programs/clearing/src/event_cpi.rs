@@ -28,12 +28,12 @@ impl std::io::Write for PayloadSize {
         Ok(())
     }
 }
-fn payload<T: Event>(event: &T) -> Result<Vec<u8>> {
-    let mut size = PayloadSize(anchor_lang::event::EVENT_IX_TAG_LE.len() + T::DISCRIMINATOR.len());
+fn payload<T: AnchorSerialize>(event: &T, discriminator: &[u8]) -> Result<Vec<u8>> {
+    let mut size = PayloadSize(anchor_lang::event::EVENT_IX_TAG_LE.len() + discriminator.len());
     event.serialize(&mut size)?;
     let mut bytes = Vec::with_capacity(size.0);
     bytes.extend_from_slice(anchor_lang::event::EVENT_IX_TAG_LE);
-    bytes.extend_from_slice(T::DISCRIMINATOR);
+    bytes.extend_from_slice(discriminator);
     event.serialize(&mut bytes)?;
     Ok(bytes)
 }
@@ -41,6 +41,12 @@ fn payload<T: Event>(event: &T) -> Result<Vec<u8>> {
 /// Same program, event tag, discriminator, read-only authority signer and PDA
 /// seeds as Anchor 1.2.1's emit_cpi!. The payload moves into the CPI instruction.
 pub(crate) fn emit<T: Event>(event: &T, authority: AccountInfo) -> Result<()> {
+    emit_borrowed::<T, T>(event, authority)
+}
+
+/// Borrowed views avoid duplicating large fixed account snapshots on the SBF
+/// bump heap. The caller must prove exact serialization parity with the IDL event.
+pub(crate) fn emit_borrowed<T: Event, S: AnchorSerialize>(event: &S, authority: AccountInfo) -> Result<()> {
     require_keys_eq!(
         *authority.key,
         crate::EVENT_AUTHORITY_AND_BUMP.0,
@@ -49,7 +55,7 @@ pub(crate) fn emit<T: Event>(event: &T, authority: AccountInfo) -> Result<()> {
     let instruction = Instruction {
         program_id: crate::ID,
         accounts: vec![AccountMeta::new_readonly(*authority.key, true)],
-        data: payload(event)?,
+        data: payload(event, T::DISCRIMINATOR)?,
     };
     invoke_signed(
         &instruction,
@@ -103,6 +109,6 @@ mod tests {
             actual_vault: 16,
         };
         let expected = [anchor_lang::event::EVENT_IX_TAG_LE, event.data().as_slice()].concat();
-        assert_eq!(payload(&event).unwrap(), expected);
+        assert_eq!(payload(&event, crate::events::GroupResolutionProgressV2::DISCRIMINATOR).unwrap(), expected);
     }
 }

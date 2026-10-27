@@ -1,7 +1,51 @@
 # Protocol contract
 Rivalt · baseline R1 · 20 October 2026
 
+D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
+canonical valuation, verified exact clearing, application, recovery and retirement.
+The pinned candidate matrix and explicit storage-ready local activation pass
+[A31/G20](evidence/P26.md). Default/devnet remain disabled. WORKLOG owns
+acceptance and publication status; P27/P28 remain separate service/UI gates.
+
+
+D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
+funded exits and separate complete market payment certificates. Acceptance remains
+phase-owned, and the candidate build does not satisfy P26 safety.
+
+D62 records [P24's candidate trading interface](P24-ACCOUNT-TRADING.md): scoped
+account/safety/maker authority, current relevant risk and exact per-market fee
+allocation. It remains a separate qualification artifact pending P26 safety.
+
+
+D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
+and supersedes the earlier P22B-incomplete wording below. The exact normal
+settlement, bounded terminal arithmetic and layouts apply only to the new profile.
+[A27B evidence](evidence/P22B.md) and WORKLOG own acceptance; no new runtime
+activation or inherited qualification follows from contract completion.
+
+
 This is the normative economic and execution contract for the engineering MVP. It selects behavior, not final machine layouts or production calibration. G02/G03 in [DECISIONS](DECISIONS.md) must be resolved in P02; G08–G10 close before their owning features are marked complete.
+
+D56 authorizes [P22's account-centric redesign](P22-ACCOUNT-CENTRIC-CLEARING.md).
+P22A is a roadmap, not a replacement economic specification. P22B owns the exact
+cash/claim, netting, loss-allocation and atomic-exit contract and its explicit
+versioned supersessions. Until then, the V1/V2 contracts below remain authoritative
+for their existing profiles; no new financial path is enabled.
+
+[P22B's developing contract](P22B-FINANCIAL-CONTRACT.md) separates the account-local
+funded-withdrawal proof from profit-payment/default policy and provides independent
+counterexamples. D57 records the user's market-attributed loss-policy selection
+for the fresh profile. Exact settlement/netting/insurance transitions remain due;
+neither the selection nor reference-model success changes V2's common account-net
+waterfall or completes G17. D58 selects the new profile's 25% share of collected
+taker fees for market-attributed insurance. P22B section 7 pins cumulative rounding,
+funded cash transitions and phase obligations; current V1/V2 fee behavior is unchanged.
+
+D59's [complete-cohort rational benchmark](P22B-CLEARING-REFERENCE.md) extends the
+reference cases to mixed-sign accounts/cycles and adds a whole-atom output candidate
+with explicit per-market rounding. It does not replace the executable contract:
+arbitrary-size rational internals, normal payment/netting and staged authority must
+be resolved before G17 and the dependent implementation can qualify.
 
 For the authorized fresh schema-2 test group, [P17's successor contract](P17-MARGIN-CONTRACT.md)
 is normative for the deliberately superseded account, group, multi-market health,
@@ -269,3 +313,16 @@ The worker must implement these as independently calculated assertions and add b
 
 
 D35 implementation clarification: a route quote is an explicitly confirmed provisional preview. It creates no cash, reservation release or execution guarantee. Finalized event projection and transaction receipts remain separate; clearing rechecks the signed observation, nonce, epochs, bounds and expiry on actual execution.
+
+P23 adds [schema-3 custody](P23-ACCOUNT-CUSTODY.md) under D61: real owner cash
+allocation and market-attributed insurance seed/classification, with trading and
+all unfinished financial paths disabled. Its own signed/ABI/RPC acceptance is
+recorded in WORKLOG and [P23 evidence](evidence/P23.md), not inherited from V2.
+
+
+P26 adds authority-only `activate_accounts_v3` in the explicit
+`account-safety-qualification` local profile. Complete precreated safety pages and
+fresh initial qualification are mandatory; the earlier candidate transition cannot
+bypass this gate. Default/devnet and earlier profiles remain disabled for this
+entrypoint. Recovered identities use the separate recovery/reactivation path.
+See P26 and WORKLOG for the exact accepted source pins and remaining phase gates.

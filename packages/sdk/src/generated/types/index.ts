@@ -6,6 +6,10 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./accountCashSnapshotV3.js";
+export * from "./accountGuardV3.js";
+export * from "./accountRouteLegV3.js";
+export * from "./backingSnapshotV3.js";
 export * from "./executedLeg.js";
 export * from "./groupMarketSnapshotV2.js";
 export * from "./groupMemberCashV2.js";
@@ -14,7 +18,11 @@ export * from "./groupResolutionHeaderV2.js";
 export * from "./groupResolutionRowV2.js";
 export * from "./groupResolutionUpdateV2.js";
 export * from "./makerRegistrationSnapshotV2.js";
+export * from "./makerRegistrationSnapshotV3.js";
 export * from "./marginAccountSnapshotV2.js";
+export * from "./marginAccountSnapshotV3.js";
+export * from "./marketLedgerSnapshotV3.js";
+export * from "./marketSnapshotV3.js";
 export * from "./oracleState.js";
 export * from "./orderBook.js";
 export * from "./orderBookV2.js";
@@ -29,9 +37,11 @@ export * from "./quoteResponse.js";
 export * from "./resolutionHeader.js";
 export * from "./resolutionParticipant.js";
 export * from "./resolutionRow.js";
+export * from "./resolutionRowV3.js";
 export * from "./resolutionUpdate.js";
 export * from "./riskParticipant.js";
 export * from "./routeIntent.js";
 export * from "./routeLeg.js";
 export * from "./storedOrder.js";
 export * from "./storedOrderV2.js";
+export * from "./wideV3.js";

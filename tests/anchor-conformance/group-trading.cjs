@@ -14,6 +14,7 @@ const plain = value => JSON.parse(JSON.stringify(value,function(key,item){
   const original=this[key];
   if(anchor.BN.isBN(original))return original.toString(10);
   if(original instanceof PublicKey)return original.toBase58();
+  if(original instanceof Uint8Array)return Array.from(original);
   return item;
 }));
 const unpack = value => {
@@ -21,6 +22,7 @@ const unpack = value => {
   if (value && typeof value === 'object') {
     if ('$bn' in value) return new anchor.BN(value.$bn);
     if ('$pubkey' in value) return new PublicKey(value.$pubkey);
+    if ('$bytes' in value) return Buffer.from(value.$bytes, 'base64');
     return Object.fromEntries(Object.entries(value).map(([key,item]) => [key,unpack(item)]));
   }
   return value;

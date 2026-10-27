@@ -28,18 +28,31 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
   // Public PDA helper names bind seed schemas, never the alphabetically first
   // instruction that happens to use them. Preserve the already published names
   // when new group instructions precede V1 instructions in Anchor's sorted IDL.
-  if (program === 'clearing') {
-    const preferred = new Map(Object.entries({
+  {
+    const preferred = new Map(Object.entries(program === 'clearing' ? {
       registry: 'registry', 'registry-v2': 'initializeGroupV2Registry',
       vault: 'vault', 'vault-v2': 'classifyGroupSurplusV2Vault',
       resolution: 'resolution', 'resolution-v2': 'groupResolution',
       'exit-guard': 'guard', 'exit-v2': 'groupExitGuard',
-    }).map(([label, name]) => [seedIdentity(label), name]));
+      'venue-v3': 'venueV3', 'custody-v3': 'custodyV3', 'safety-v3': 'safetyV3',
+      'registry-v3': 'venueRegistryV3', 'portfolio-v3': 'portfolioV3',
+      'margin-v3': 'marginAccountV3', 'vault-v3': 'venueVaultV3',
+      'market-v3': 'marketV3', 'ledger-v3': 'marketLedgerV3',
+    } : {maker: 'config', 'maker-v2': 'initializeGroupConfigConfig', 'maker-v3': 'accountConfig'})
+      .map(([label, name]) => [seedIdentity(label), name]));
     const aliases = new Map();
     for (const pda of codama.getRoot().program.pdas ?? []) {
       const seed = pda.seeds?.[0];
       if (!isNode(seed, 'constantPdaSeedNode') || !isNode(seed.value, 'bytesValueNode') || seed.value.encoding !== 'base58') continue;
-      const name = preferred.get(seed.value.data);
+      let name = preferred.get(seed.value.data);
+      // The same ledger PDA can be expressed with selected/other/BTC/ETH inputs.
+      // Keep its published `market` helper and distinct seed parameter names;
+      // aliasing all four AST nodes to one name creates invalid generated calls.
+      if (name === 'marketLedgerV3') {
+        const marketSeed = pda.seeds?.[1];
+        assert(isNode(marketSeed, 'variablePdaSeedNode'));
+        if (marketSeed.name !== 'market') name = `${marketSeed.name}LedgerV3`;
+      }
       if (name) aliases.set(pda.name, camelCase(name));
     }
     codama.update(bottomUpTransformerVisitor([{

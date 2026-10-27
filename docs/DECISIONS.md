@@ -62,6 +62,11 @@ No generic “TBD” may escape into an executable phase. Missing a gate blocks 
 | G14 | Two-market source/lot/config identity, isolated capital, event/ABI and group custody/exit/default profile | P18A–C | Signed custody, isolated market lifecycles, independent accounting and measured complete-group recovery |
 | G15 | Whole-account funding/health/reserves, transfer/netting/delegation and cross activation | P19/P20 | Independent vectors, adversarial full-dependency checks and liquidation/default acceptance before enablement |
 | G16 | Group service/indexer/SDK/UI interfaces, operational budgets and bounded successor qualification | P21A–B | Actual RPC/WS/PostgreSQL/browser lifecycle, fresh replay, budget/contention and complete failure populations |
+| G17 | Exact account-centric financial contract, loss ownership, cross-market netting, source/funding dependencies and fresh-profile versioning | P22B | Concrete transitions/invariants/authority/layout bounds; independent model vectors and counterexamples; explicit economic decisions before dependent implementation |
+| G18 | New registry/account/custody ABI, immutable eligibility/mode, token ownership and deployment identity | P23 | Generated/legacy parity, signed SBF/RPC custody and negative authority/alias checks; no trading activation |
+| G19 | Whole-account risk/orders/funding, relevant validity dependencies, settlement ledger and atomic cash exits | P24/P25 | Independent real-implementation checks, signed rollback/conservation/fractions and live-sampler exit cases; ordinary new-profile activation still disabled |
+| G20 | Complete selected liability cohort, loss/insurance allocation, liquidation/default/recovery and activation | P26 | Independent maximum-cohort/shared-debtor/cycle cases, post-fee progress, real signed runtime reconciliation and activation gates |
+| G21 | Account-centric services/events/UI, operator budgets and bounded concurrent qualification | P27/P28 | Actual RPC/WS/PostgreSQL/browser/replay, normal background exits, complete populations and measured resource/contention limits |
 
 G02 is an implementation precision choice, not permission to change the cash/claims rules. Program addresses, keys and endpoints are deployment outputs; this documentation must not invent them.
 
@@ -623,3 +628,437 @@ No source/risk/authority safeguard is relaxed, no new financial path is enabled,
 and P15B/P16B remain separate external gates. D42's 24-hour deferral is unchanged.
 WORKLOG records actual merge hashes and status; this is authorization/scope, not
 new runtime or independent-review evidence.
+
+## D56 — account-centric clearing direction and gated contract (P22–P28)
+
+On 26 October 2026 the user approves separating account risk, market eligibility,
+funded cash exits and settlement/default responsibilities, and requests diagrams,
+PR-sized phases and a durable design document. Add M8/P22–P28 under
+[P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md). P22A records that direction and
+P22B resolves exact economics, state transitions, layouts/authority, dependency
+proofs, independent expected cases and deployment/versioning before implementation.
+This small split prevents a planning document from being called a finished contract.
+
+This supersedes D55's deferral of busy-group exit work for the newly scoped local
+redesign, and the prior prohibition on reopening these specific architecture
+boundaries. It does not erase D54/R053's measured limitations or supersede existing
+V1/V2 economics. The target replaces fixed account/group market bundles with
+explicit market eligibility and separates ordinary funded exits from broad group
+certificate invalidation where a complete account/custody/safety proof permits it.
+
+Market-attributed loss/default handling is an option to evaluate, not a claim that
+isolated profits become guaranteed. G17 must resolve cash/pool/insurance ownership,
+shared-debtor allocation, cross-market closed-claim netting/cycles, payment timing
+and freeze scope. Material changes to loss bearers, credit guarantees or margin
+economics require a concrete recorded product decision before implementing them.
+No invisible cross-market receivable may become cash; no keeper selects a convenient
+haircut subset. Preserve current fees/routing/TP-SL, one test mint/two markets,
+isolated maker capital, zero positive unpaid credit and source/risk safeguards.
+
+Use a fresh versioned local profile and preserve V1/V2 bytes/deployments. No live
+conversion or automatic migration of positions, claims or reserves. New financial
+activation stays disabled until P26 liquidation/default acceptance; P27/P28 own
+fresh services and bounded concurrent exit qualification. P15B/P16B remain external
+and D42 endurance stays Deferred. No funded deployment, outreach, paid service or
+external hedging authorization follows. Phoenix documentation/reconstruction is
+comparative reference, not implementation evidence or a substitute financial spec.
+
+Ready-to-review PRs remain stacked with verified predecessors; retain the new stack
+open pending review/merge direction. WORKLOG records actual publication/integration,
+not this authorization. Existing acceptance IDs/hashes are not reused as new tests.
+
+### D56 execution checkpoint — P22B financial decision
+
+The user explicitly approves proceeding through the roadmap with each phase
+stacked above its predecessor. P22B starts above PR #32's `64615a4`; no routine
+phase-start confirmation is needed. The [developing contract](P22B-FINANCIAL-CONTRACT.md)
+provides a separate funded-exit proof and independently checked loss/netting cases.
+It recommends market-attributed losses, but has not selected that new loss policy:
+the concrete example pays BTC/ETH winners 100/0 instead of V2's common 50/50.
+G17 therefore retains a material product decision before changed loss ownership
+or its dependent layouts/implementation. The common alternative would leave the
+isolated unpaid-profit contagion concern unchanged; do not quietly select it as
+an implementation convenience. No new production code or activation is implied.
+
+## D57 — selected market-attributed losses and insurance assessment (P22B)
+
+On 26 October 2026 the user explicitly selects option 2, market-attributed losses,
+after the concrete common-versus-market comparison, then asks how insurance exists,
+is funded and connects to that model. This resolves B04 and supersedes D56's pending
+product choice. It authorizes the harder accounting work, not an implicit return
+to the common haircut because implementation would be simpler.
+
+For the fresh profile, attribute settlement/insurance backing and creditor losses
+by market. P22B example B must yield BTC 100 / ETH 0 instead of the existing common
+50 / 50. Shared cross debtors and explicit netting obligations can still transmit
+losses; no unconditional isolated-profit guarantee is selected. Finish G17's exact
+allocation, cycles, fractions, payment priority, safety/freeze scope and layouts
+before P23. D47's common account-net settlement/default is deliberately superseded
+only for this future profile's selected direction; existing V1/V2 bytes, balances,
+deployments and normative contracts remain unchanged.
+
+The code assessment in [P22B section 7](P22B-FINANCIAL-CONTRACT.md) verifies existing
+insurance seeding/surplus classification and explicit fee allocation. All collected
+2 bps taker fees still initially enter T; no automatic split or reserve size is
+selected. Seed capital plus fee replenishment is a recommendation, not approval
+to fund a reserve. Continue engineering with explicit authorized allocation; no
+missing automatic percentage blocks that work. Market attribution must prevent
+double-counting or silently spending another market's dedicated insurance. G17
+still owns exact reserve authority and transitions.
+
+The supplied Quicknode teaching model and pinned Percolator sources are targeted
+references, not imported economic authority, deployed-code verification or Rivalt
+test evidence. Do not adopt their pooled LP loss bearer, realizable positive-P&L
+credit, fee parameters or insurance-funded ordinary payouts. Current routing,
+2 bps/zero-provider fees, maker isolation and zero positive unpaid margin credit
+remain. P15B/P16B stay Open, endurance Deferred and new-profile financial activation
+disabled until the designated P26 acceptance. Keep the new PR stack open.
+
+## D58 — approved reserve funding and 25% fee allocation (P22B)
+
+On 26 October 2026 the user approves the market-attributed insurance model and
+seed-capital-plus-fee replenishment, then explicitly selects 25% of collected fees
+for insurance. This supersedes D57's unselected-percentage checkpoint for the
+fresh P22–P28 profile. Existing V1/V2 accounting/deployments remain unchanged.
+
+Keep the total taker fee at 2 bps and provider fee at zero. Allocate 25% of the
+actual collected taker fee to that market's I and retain 75% in its T, with exact
+whole-atom cumulative rounding. This is allocation of an existing fee, not an
+additional charge or positive unpaid-profit credit. The rate is fixed at 2500/10000
+in the fresh profile; changing it requires a later recorded policy/version.
+
+[P22B section 7](P22B-FINANCIAL-CONTRACT.md) specifies the modulo-four per-market
+carry, separate original fee assessment, cash invariants, authority boundaries,
+reserve exhaustion and owning phase checks. No per-fill floor that starves
+insurance on small fees, no reset on account/order churn or reserve consumption,
+and no carry shared between markets. Actual seed capital and optional extra
+authorized T-to-I allocation remain separate from automatic fee contributions.
+
+G17 still owes the general netting/default/fraction contract, exact layouts and
+terminal recovery rules. The independent reserve reference is specification
+evidence only. No new profile is enabled, seed amount chosen or real capital
+transfer/deployment authorized. P15B/P16B stay external; endurance stays Deferred.
+
+## D59 — complete-cohort clearing and whole-atom output references (P22B)
+
+Continue the selected D57/D58 direction with an independent two-market clearing
+benchmark that retains mixed-sign accounts and all cyclic obligations. Own cash
+services proportional market debts; recovered positive claims service the same
+account's remaining debt before payout. Market insurance only covers its actual
+residual and cannot be spent twice or drawn merely to fund a circular setoff.
+Complete market creditors share the exact recovery fraction, with corresponding
+debtor writeoffs. These are terminal reference semantics, not positive unpaid
+margin credit or an implemented normal netting instruction.
+
+[P22B's clearing reference](P22B-CLEARING-REFERENCE.md) uses the greatest exact
+fixed point, enumerated from two piecewise-affine response curves. A closed cashless
+cycle cancels without insurance; external creditors remain in the equations.
+Literal/closed-form cases and conservation assertions supply model evidence only.
+
+The raw reference can produce fractional C/I even from integer inputs. A separate
+whole-atom output candidate collects only whole own cash, floors fractional reserve
+capacity with at most two market clips, and uses deterministic constrained flow
+rounding. Per-market rounding sums remain zero; no unrelated market supplies a
+rounding atom, and cash retained after whole debt collection stays protected.
+Each account's final rounding error is below one atom relative to the final
+whole-collection/clipped-capacity reference, not the unrestricted ideal. Every
+fractional adjustment is attributed; no keeper selects rounding beneficiaries.
+
+This prospective refinement of D19's single-pool allocation uses remainder-priority
+paths and stable IDs subject to all market/account conservation constraints. It is
+not a change to current V1/V2 rounding. The new reference still uses arbitrary-size
+rationals: do not call it an executable financial contract or close A27B/G17 until
+bounded numeric representation, source/stage/recovery authority, normal payment/
+netting and layout obligations are satisfied. Disabled new-profile activation and
+all fee/risk/external gates remain unchanged.
+
+## D60 — complete schema-3 financial contract and bounded verification (P22B)
+
+27 October 2026. Complete G17's contract in
+[P22B-EXECUTABLE-CONTRACT](P22B-EXECUTABLE-CONTRACT.md). D57 market attribution and
+D58's 25% fee insurance remain unchanged. Independent models and inert layouts are
+specification evidence; phase acceptance and runtime activation are separate.
+
+For schema 3 only, supersede D47's group-bound identity/common pools/account-net
+waterfall/unfunded closed-claim cancellation and D51/D53's universal group validity/
+funded-exit certificate. Venue eligibility, account risk, market P/I/T and safety
+are separate. Ordinary funded exit checks that account atomically; normal profit
+payment still requires a complete scoped backing certificate. Flat cross netting
+moves actually funded source P to destination P in whole atoms; unpaid claims and
+fractions remain when backing is absent. Underfunded shared debtors cannot pay a
+keeper-selected market first. Complete exceptional clearing still owns cashless
+cycles. No implicit inter-market loan, positive unpaid margin credit or profit
+guarantee is added. Preserve V1/V2 and their historical evidence.
+
+D59's exact terminal economics have a bounded representation: at most 64 proportional
+collection factors yield a shared denominator below 2^5632; the specified schedule's
+intermediates stay below 2^6016 in 96 checked u64 limbs. A keeper proposes two rates;
+complete on-chain equations plus a right-slope test establish the greatest fixed
+point, rejecting smaller circular solutions. Verify prescribed insurance clipping,
+then deterministic conserving atom rounding. Exact writeoffs can remain factored;
+no fractional entitlement is silently truncated. This replaces arbitrary-precision
+internals as the executable contract, not as a claim of measured SBF cost.
+
+Freeze remains complete-venue operationally while losses are market-attributed.
+In addition to net bankruptcy/source emergency, a fully flat account with unfunded
+gross closed obligations may trigger complete clearing; mere exposed negative risk
+equity is not bankruptcy. Recovery requires full discharge/reconciliation, authority
+and qualified sources; normal trading resumes only through the qualified profile.
+Insurance has no live withdrawal. Irreversible liability-free retirement permits
+reserve-authority transfer to its immutable designated owner, without harming C/T.
+
+Exact version-3 layouts, PDA seeds, bounds, roles, dependency/invalidation matrix,
+stages, finite continuation, old-withdraw/new-deposit migration and phase-owned
+acceptance are pinned in the contract. P23 custody, P24/P25 harness execution and
+P26 safety activation retain distinct gates. P27/P28 require fresh actual services/
+UI qualification. Keep the stack open; P15B/P16B and deferred endurance are unchanged.
+
+## D61 — schema-3 custody realization and unchanged wire storage (P23)
+
+Implement D60's initial custody under an explicit `account-test-profile`, mutually
+exclusive with devnet. Venue initialization pins separate fee/reserve authorities
+and reserve destination; registry initialization is a separate bounded instruction.
+BTC/ETH admission fixes both markets cross-eligible but supplies no trading authority.
+Register immutable roots, use actual SPL deposits/withdrawals and same-owner cash
+allocations, seed one market's insurance with donor plus reserve authority, and
+classify actual surplus once into an explicit attributed reserve. No active reserve
+withdrawal or other unfinished financial instruction is exposed.
+
+The 11 new instructions and `AccountCustodyChangedV3` event are additive; existing
+V1/V2 IDL definitions remain identical. D60 wire layouts remain unchanged after
+moving each 96-limb array into fixed-size heap ownership: the first actual SBF
+build rejected generated resolution stack frames, and a Box preserves the exact
+768-byte wire record while avoiding those oversized frames. This is representation
+hardening, not P26 arithmetic/resource qualification. P23's actual G18 results,
+profile rejection and packet/CU headroom must pass before Review.
+
+
+## D62 — schema-3 trading candidates and scoped authority (P24)
+
+Implement D60's risk/funding/order/routing contract in the explicit local
+`account-trading-qualification` artifact. This does not change
+`v3::TRADING_IMPLEMENTED = false`, enable the default/devnet/custody builds, or
+satisfy P26 safety. The qualification transition requires the existing authenticated
+source recovery and resets pre-activation funding. No admin bypass is introduced.
+
+Schema-3 immediate and stored executions bind account nonce/state, safety and venue
+terms plus market terms/config, maker authority/quote epochs and each selected
+side's consumed quantity. Routine observation/event-sequence changes are not
+signed prerequisites; the landed complete relevant risk dependencies are checked
+again. Separate venue-bound maker envelopes reuse the unchanged reference curves.
+Whole-account funding, conservative reservations and shared existing-position
+TP/SL continue through the same pure financial/order engine. V1/V2 account handlers
+and wire contracts remain separate. Cancel/revoke can release authority while
+paused; frozen ownership remains immutable.
+
+Apply D58's per-market 25% I / 75% T allocation once after the existing cumulative
+2 bps taker fee. Emit gross fee, I/T credits and carry before/after. Borrowed event
+views avoid copying fixed account snapshots on SBF's non-reclaiming bump heap;
+exact IDL serialization parity is checked. Nested context validation and separated
+event construction address observed stack limits. Maker release compilation uses
+size optimization (`opt-level = "z"`) with checked arithmetic/fat LTO retained,
+because every route still authenticates complete ProgramData bytes. Do not replace
+that hash with a cached slot or weaken risk rules to meet a compute target.
+
+The provisional 600,000 route CU / 20% headroom / 1,232-byte packet limits remain
+in force, including full books on the trader and both maker roots. Current scoped
+checks and limitations belong to WORKLOG; no acceptance follows just from these
+implementation choices. P25 cash/claims/exits, P26 safety, P27 services and P28
+qualification remain separate gates, as do P15B/P16B and deferred endurance.
+
+
+## D63 — schema-3 funded exits and scoped payment certificates (P25)
+
+Implement D60 in the separate `account-cash-qualification` artifact. Account-local
+cash withdrawal/transfer reuses current full IM/reservation admission and adds all
+held-funding corner solvency checks before the atomic actual token/cash movement.
+No global solvency certificate or historical event/sample ID is a funded-exit
+argument. Complete canonical source/funding/root/safety checks remain mandatory.
+
+Normal gain payment and explicit flat-only netting continue to require actual
+market P and a complete selected-market backing certificate. Its bounded canonical
+scan checks each selected debtor's own gross obligations across both markets, with
+no positive-claim or insurance credit. Liability invalidation follows economic
+exposure/claim dependencies; irrelevant market-only accounts do not create a common
+profit-payment veto. The [P25 contract](P25-ACCOUNT-CASH.md) specifies retained
+certificate fields and the acceptance scope. No new loss bearer, queue, funded
+profit guarantee or old-profile behavior is introduced. Ordinary activation still
+requires P26, with P15B/P16B and deferred endurance unchanged.
+
+D63 implementation clarification: flat netting excludes live refreshed orders,
+including TP/SL. Cancelled/invalidated protection records are historical and do
+not carry standalone executable authority; a nonzero historical allowance cannot
+permanently prevent settlement. Active identity admission invalidates membership
+certificates, and actual deposits/reserve donations remain source-independent.
+No active insurance withdrawal is introduced.
+
+## D64 — bounded implementation of D60 safety (P26)
+
+Implement the existing 96-limb complete-clearing contract with caller-owned scratch
+buffers and bounded continuation work. The [P26 sequence](P26-ACCOUNT-SAFETY.md)
+preserves the exact greatest-rate, insurance-clipping, market-conserving rounding
+and whole-account liquidation requirements. A passing primitive or host model is
+not activation authority; keep new ordinary trading disabled until full A31/G20
+program/RPC acceptance. This selects an allocation discipline, not a new financial
+policy or relaxation of the frozen cohort. P15B/P16B remain external gates.
+
+D64 implementation continuation: the existing fixed work layout now names its
+flow-plan/rounding registers and verifies untrusted complete remainder permutations
+before deterministic DFS. Exact arithmetic skips provably zero work after a measured
+FlowPlan CU overrun; no financial equation, insurance use, safety limit, heap or CU
+ceiling changes. The [P26 contract](P26-ACCOUNT-SAFETY.md) records these details.
+Participant application/recovery and maximum-width/RPC acceptance remain required.
+
+D64 application continuation: partial Apply uses the original frozen aggregate
+ledger plus explicit remaining/applied rows. Participant bytes cannot become
+spendable until complete application and a separate full reconciliation. Debit
+planned market insurance once, retain fee/carry ownership, clear old authority,
+and preserve the forbidden zero slot of isolated roots. Resolved/Retired own-cash
+withdrawal has no new source/funding dependency. This realizes D60's existing
+terminal accounting; recovery/retirement and full acceptance remain outstanding.
+
+
+D64 recovery/retirement continuation: implement sustained source observations,
+authority-only Resolved→Custody and separately qualified candidate activation,
+retaining earned F, fee carry and historical root generations. Historical nonces/
+generations cannot block otherwise liability-free custody cash access. Add an
+80-byte schema-3 retirement certificate for the already-required complete flat
+scan; bind its safety/membership/global mutation stamps, with exact restart rules.
+That global administrative proof never gates ordinary owner withdrawals. Retirement
+is irreversible; only afterward may the distinct reserve authority withdraw I to
+the immutable destination owner's canonical classic SPL ATA. C/T remain backed.
+Existing layouts, V1/V2, economic loss ownership and ordinary activation gating
+are unchanged. Full P26 maximum-cohort/resource/RPC acceptance remains required.
+
+
+D64 measured resource amendment: two 5,592-bit row-flow calculations consume
+1,011,805 CU in an isolated arithmetic SBF fixture, before clearing context costs.
+Supersede the initial universal one/two-row instruction envelope: Verify/FlowPlan
+now process one row, and complete rate/insurance equations run in a separate exact
+continuation at Verify/count. Two-row storage and other stages remain unchanged.
+Keep 1.2M CU, 32 KiB heap, 20% headroom, exact financial equations and complete
+membership. The fixture is pure resource evidence, not a fabricated financial
+state or whole-venue acceptance. Full-context phase acceptance still gates activation.
+
+D64 qualified activation continuation: the pinned candidate safety matrix covers
+complete 64-root default, both-market funding/liquidation, reciprocal claim cycles,
+source emergency, recovery/retirement, default-artifact rejection and the unchanged
+wide resource envelope. Add authority-only `activate_accounts_v3` under the retained
+`account-safety-qualification` feature. Require all 32 canonical pages precreated,
+idle zero-epoch resolution storage, no prior resolution, fresh Normal sources/makers
+and the existing initial zero-exposure/funding/pool/fee conditions. The earlier
+candidate activation entrypoint rejects in this profile; recovered venues use
+separate recovery/reactivation. This supersedes candidate-only activation wording
+for the explicitly selected local artifact, subject to its final pinned activation
+verification in WORKLOG. Default/devnet remain disabled; no fee, claim, loss-bearer,
+source-risk or old-profile economics change. P27/P28 and external P15B/P16B remain
+separate gates.
+
+
+## D65 — schema-3 service reconstruction boundary (P27)
+
+Reuse the immutable PostgreSQL journal/transport with a separate schema-3 binding,
+qualified local artifact set and financial projection. Authenticate all critical
+CPI schemas and reconcile canonical accounts at one custody discovery sequence.
+Partial Apply retains the frozen aggregate buckets plus original/applied root
+partitions until the completion event adopts new C/P/I. Preserve per-market claims
+and fee carry. Solver scratch is continuation state; it is not spendable cash or
+an off-chain-authorized payout. Ordinary SDK intents do not acquire a global event
+sequence prerequisite or an exit certificate. This implements D56/D60/D64 without
+changing economics, authority or V1/V2. A32 and P28 still require their own evidence.
+
+
+D65 direct-SDK continuation: ordinary account actions read one/two selected roots
+and their immutable portfolios, then a single coherent financial RPC batch. Use
+root-local guards rather than the custody discovery sequence; no venue-wide scan
+is introduced for own-cash exit/allocation. Explicit closed-claim netting retains
+its market backing certificate. Existing on-chain funding/risk/held-window checks
+and wallet original-signature recovery remain authoritative. This changes no
+financial rule or previously qualified artifact.
+
+
+D65 implementation clarification (R068): shared SDK financial arithmetic does not
+merge schema-2 group authority with schema-3 account authority. Ordinary V3 cash
+reads remain selected-root only; trade reads add the selected market's authenticated
+maker dependencies in the same final financial batch. Indicative cash headroom
+includes all mixed held-funding corners, and is explicitly not withdrawal
+permission. This changes interfaces only; D60–D64 on-chain economics and authority
+remain unchanged.
+
+
+D65 implementation clarification (R069): the schema-3 service rate proposer is
+untrusted and reads complete current frozen chain pages. It emits only candidate
+rate bytes for the current evaluation; on-chain verification/clipping/rounding
+remain the financial authority under D64. Test reference processes and retained
+acceptance captures are not runtime dependencies. No economic decision changes.
+
+
+D65 implementation clarification (R070): schema-3 durable retry proofs use only
+canonical monotone action-relevant account stamps after finalized blockhash expiry.
+An unchanged stamp cannot release fees for an unseen failed transaction. Wallet
+ingress keeps the currently measured one-action SDK envelope and explicit zero
+priority price; operator budgets remain separate test lamports. This extends
+interfaces without changing chain authority, routing economics or risk rules.
+
+
+D65 worker clarification (R071): V3 funding samples are not a quote barrier; current
+source/whole-account checks govern the signed account intent. Settlement workers
+never auto-net closed claims. Default continuation follows authenticated current
+chain cursors and untrusted exact proposals, with no new loss/risk authority.
+Consenting liquidation receivers and explicit operator lamport budgets remain
+required; automatic emergency freeze or authority recovery is excluded.
+
+D65 reconstruction correction (R071): completion-event fee carries are decoded
+from their journal hex-byte representation, preserving the existing on-chain
+modulo-four values. Unexpected intermediate reconciliation failures invalidate
+service qualification even if a later full event snapshot restores final parity.
+No financial policy or program artifact changes.
+
+
+## D66 — account UI and bounded concurrent acceptance (P28)
+
+Expose owner portfolios and immutable isolated/cross accounts without a technical
+settlement-group selector. Discover bounded owner children independently of
+selected-root financial snapshots. Show funded cash, unpaid claims, funding and
+market insurance separately; indicative headroom is not withdrawal permission.
+Reuse original wallet receipts and direct RPC cancellation/exits. The P28 contract
+pins a fresh five-minute population and six busy exits before execution, alongside
+browser and complete recovery/replay checks. No economics, source safeguards,
+program artifact, V1/V2 authority, external gates or endurance decision changes.
+
+D66 qualification clarification: classify live maker expiry/unsynchronized renewal
+separately from offline/admission and capacity/health refusals. The first load
+attempt exposed driver finality backpressure and a real renewal at closeout.
+Before rerun, count missed driver slots explicitly within the original five-minute
+window and retain separate bounded closeout attempts. This changes observation
+and harness timing, never trading, oracle, loss ownership or authority rules.
+
+D66 history recovery clarification: fresh concurrent qualification observes a
+repeated pagination signature and a transient missing critical sequence during
+multi-request finalized reads. Discard the entire uncommitted candidate and allow
+at most two full rescans from the durable checkpoint. Each rescan retains its
+original transaction/page limits and must authenticate/decode/reconcile all state
+before committing. Persistent pagination/gaps still fail closed; duplicated
+critical sequences, chain identity, unknown schemas, older state and economic
+mismatches do not gain this retry exception. Count restarts separately from
+sequence-ahead tail extensions. This shared transport correction applies to V1/V2
+consumers too, without changing their accounting, authority or readiness rules.
+
+
+## D67 — authorized M8 stack review and integration
+
+The user authorizes addressing all open P22–P28 review findings and merging the
+complete stack; this supersedes the earlier keep-open instruction. Preserve the
+phase-specific qualification pins and integrate the coherent final tree atomically
+with `gh stack`, after scoped remediation checks and actual hosted checks. A finding
+already corrected in a descendant is resolved against that descendant, without
+claiming the earlier phase head contained its later implementation.
+
+R073 binds liquidation nonexecution proof to the signed consenting receiver’s
+monotone state version under the existing D65 finalized-expiry rules. Unknown
+history never refunds a transaction fee; permissionless resolution work gets no
+invented proof. Owner UI discovery retains operator slots for cash visibility with
+role-labelled trader restrictions, and V3 latest/cursor exclusivity matches the
+existing read contract. These are service/UI corrections, not new financial rules,
+authority, program binaries or deployment qualification. P15B/P16B remain external;
+continuous 24-hour endurance remains Deferred.

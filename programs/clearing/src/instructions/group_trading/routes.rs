@@ -354,6 +354,30 @@ pub(crate) fn candidate_with_environment(
     environment: &book::Environment,
     clock: &Clock,
 ) -> Result<Candidate> {
+    candidate_for_version(
+        group,
+        trader,
+        makers,
+        quotes,
+        intent,
+        order_index,
+        environment,
+        clock,
+        maker_interface::GROUP_VERSION,
+    )
+}
+
+pub(crate) fn candidate_for_version(
+    group: &ClearingGroupV2,
+    trader: &MarginAccountV2,
+    makers: &[MarginAccountV2],
+    quotes: &[QuoteResponse],
+    intent: &RouteIntent,
+    order_index: Option<usize>,
+    environment: &book::Environment,
+    clock: &Clock,
+    quote_version: u16,
+) -> Result<Candidate> {
     environment.validate(trader)?;
     let market = environment.market(environment.selected)?;
     let trader_model = model(trader)?;
@@ -415,7 +439,7 @@ pub(crate) fn candidate_with_environment(
         book::validate(maker)?;
         models.push(model(maker)?);
         require!(
-            quote.version == maker_interface::GROUP_VERSION
+            quote.version == quote_version
                 && quote.side == intent.side
                 && quote.lots == leg.lots
                 && quote.lots > 0

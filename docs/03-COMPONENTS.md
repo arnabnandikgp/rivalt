@@ -1,6 +1,42 @@
 # Components and interfaces
 Rivalt · baseline R1 · 20 October 2026
 
+D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
+canonical valuation, verified exact clearing, application, recovery and retirement.
+The pinned candidate matrix and explicit storage-ready local activation pass
+[A31/G20](evidence/P26.md). Default/devnet remain disabled. WORKLOG owns
+acceptance and publication status; P27/P28 remain separate service/UI gates.
+
+
+D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
+funded exits and separate complete market payment certificates. Acceptance remains
+phase-owned, and the candidate build does not satisfy P26 safety.
+
+D62 records [P24's candidate trading interface](P24-ACCOUNT-TRADING.md): scoped
+account/safety/maker authority, current relevant risk and exact per-market fee
+allocation. It remains a separate qualification artifact pending P26 safety.
+
+
+D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
+and supersedes the earlier P22B-incomplete wording below. The exact normal
+settlement, bounded terminal arithmetic and layouts apply only to the new profile.
+[A27B evidence](evidence/P22B.md) and WORKLOG own acceptance; no new runtime
+activation or inherited qualification follows from contract completion.
+
+
+[P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) proposes separating account risk,
+market eligibility and settlement/default coordination under D56. Its diagrams
+describe responsibilities, not new implemented programs or final PDA layouts.
+P22B owns the exact versioned interface contract; P23–P28 implement and qualify it
+without reinterpreting existing V1/V2 state, events or deployment bindings.
+
+D58 adds a fixed 25% insurance allocation to the new profile's collected taker
+fees. P23 must bind per-market reserve balances and modulo-four fee carry to the
+versioned market identity. P24 atomically applies the split once per actual fee
+debit, and P27 reconstructs gross fee, reserve contribution, retained revenue and
+carry from versioned events. The existing V1/V2 ABI remains unchanged; the exact
+new ABI and terminal reserve recovery contract are still P22B deliverables.
+
 The following describes V1. [P17](P17-MARGIN-CONTRACT.md) audits these actual
 interfaces and defines the additive schema-2 group/portfolio/margin layout.
 `programs/clearing/src/state/v2/` contains its layout contract. [P18A custody](P18A-GROUP-CUSTODY.md)
@@ -320,3 +356,55 @@ under `apps/trader/src/group/`. Empty portfolios and owned classic token account
 are authenticated directly; finalized displays and confirmed unsigned preparation
 remain distinct. [P21B](P21B-QUALIFICATION.md) records direct exit versus service
 route ingress and the measured certification coordination limit.
+
+P23 adds [schema-3 custody](P23-ACCOUNT-CUSTODY.md) under D61: real owner cash
+allocation and market-attributed insurance seed/classification, with trading and
+all unfinished financial paths disabled. Its own signed/ABI/RPC acceptance is
+recorded in WORKLOG and [P23 evidence](evidence/P23.md), not inherited from V2.
+
+
+P26 adds authority-only `activate_accounts_v3` in the explicit
+`account-safety-qualification` local profile. Complete precreated safety pages and
+fresh initial qualification are mandatory; the earlier candidate transition cannot
+bypass this gate. Default/devnet and earlier profiles remain disabled for this
+entrypoint. Recovered identities use the separate recovery/reactivation path.
+See P26 and WORKLOG for the exact accepted source pins and remaining phase gates.
+
+
+P27's [account service contract](P27-ACCOUNT-SERVICES.md) adds a separate schema-3
+finalized projection over the existing append-only journal. Custody discovery
+sequence binds reconstruction, never ordinary intent validity. Partial default
+application retains frozen aggregates and an explicit mixed-root view. Version-3
+read endpoints fail closed until actual finalized reconciliation passes; current
+risk/withdrawal admission remains an SDK/on-chain operation. WORKLOG owns readiness.
+
+The P27 direct SDK now separates schema authentication from shared margin
+arithmetic. Current balance previews include both funding slots, reservations and
+all held-funding corners; they report indicative headroom, not withdrawal authority.
+Trade snapshots add only the selected market's maker capitals/configurations/code
+to one final RPC batch. Schema-3 route messages bind account/safety/terms and maker
+consumed prefixes without a global discovery or historical observation prerequisite.
+V2 keeps its existing group certificate policy. Fresh route acceptance is
+recorded separately from the verified flat cash lifecycle in WORKLOG. Durable
+service and P28 concurrency/browser qualification retain separate tested pins in
+[P27](evidence/P27.md) and [P28](evidence/P28.md).
+
+
+P28 adds an explicit version-3 trader shell under `apps/trader/src/account/`.
+It discovers only the selected owner portfolio's bounded children, then prepares
+financial actions from current selected-root SDK snapshots. Shared widgets only
+render order/position/receipt data; V1/V2 retain their authority paths. The read API
+supports latest finalized fills without treating indexed balances as admission.
+`latest=true` and `after` are mutually exclusive on both V3 history endpoints.
+Owner discovery retains maker-capital and liquidation-receiver slots for balance
+and cash management, labels their role and suppresses trader-ticket admission;
+registration is offered only for an actually absent selected child.
+See [P28 qualification](P28-ACCOUNT-QUALIFICATION.md), [measured acceptance](evidence/P28.md)
+and [operations](P28-OPERATIONS.md) for the qualified scope and remaining limits.
+
+Finalized history ingestion may discard and rescan an incomplete multi-request
+read twice when a pagination signature repeats or a decoded critical sequence is
+missing. It always starts from the durable checkpoint with a fresh candidate;
+no partial economic state is published. Persistent gaps and all financial/identity
+mismatches remain fail-closed. Metrics distinguish full history restarts from
+new-finalized-sequence tail catch-up. D66 and WORKLOG record the measured fault.

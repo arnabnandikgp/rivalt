@@ -31,6 +31,218 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn initialize_account_resolution_v3(ctx: Context<InitializeAccountResolutionV3>) -> Result<()> {
+        account_safety::resolution::initialize(ctx)
+    }
+    pub fn initialize_account_resolution_page_v3(ctx: Context<InitializeAccountResolutionPageV3>, page_index: u16) -> Result<()> {
+        account_safety::resolution::initialize_page(ctx, page_index)
+    }
+    pub fn freeze_accounts_v3(ctx: Context<FreezeAccountsV3>, safety_epoch: u64,
+        resolution_epoch: u64, emergency: bool) -> Result<()> {
+        account_safety::resolution::freeze(ctx, safety_epoch, resolution_epoch, emergency)
+    }
+    pub fn value_account_resolution_v3(ctx: Context<ValueAccountResolutionV3>, epoch: u64) -> Result<()> {
+        account_safety::resolution::value_sources(ctx, epoch)
+    }
+    pub fn advance_account_resolution_v3(ctx: Context<AdvanceAccountResolutionV3>, epoch: u64,
+        stage: u8, start: u16, length: u8) -> Result<()> {
+        account_safety::resolution::advance(ctx, epoch, stage, start, length)
+    }
+    pub fn propose_account_resolution_v3(ctx: Context<ProposeAccountResolutionV3>, epoch: u64,
+        evaluation: u8, proposal_hash: [u8; 32], offset: u16, bytes: Vec<u8>) -> Result<()> {
+        account_safety::resolution::upload(ctx, epoch, evaluation, proposal_hash, offset, bytes)
+    }
+    pub fn order_account_resolution_v3(ctx: Context<ProposeAccountResolutionV3>, epoch: u64,
+        orders: [Vec<u16>; 2]) -> Result<()> {
+        account_safety::resolution::order(ctx, epoch, orders)
+    }
+    pub fn check_account_resolution_order_v3(ctx: Context<AdvanceAccountResolutionV3>, epoch: u64,
+        start: u16) -> Result<()> {
+        account_safety::resolution::check_order(ctx, epoch, start)
+    }
+    pub fn round_account_resolution_v3(ctx: Context<ProposeAccountResolutionV3>, epoch: u64,
+        start: u16) -> Result<()> {
+        account_safety::resolution::round(ctx, epoch, start)
+    }
+    pub fn recover_accounts_v3(ctx: Context<RecoverAccountsV3>, epoch: u64, resume: bool) -> Result<()> {
+        account_safety::resolution::recover(ctx, epoch, resume)
+    }
+    pub fn finalize_account_resolution_rates_v3(ctx: Context<ProposeAccountResolutionV3>, epoch: u64) -> Result<()> {
+        account_safety::resolution::finalize(ctx, epoch)
+    }
+    pub fn reactivate_accounts_v3(ctx: Context<RecoverAccountsV3>, epoch: u64) -> Result<()> {
+        account_safety::resolution::reactivate(ctx, epoch)
+    }
+    pub fn initialize_account_retirement_v3(ctx: Context<InitializeAccountRetirementV3>) -> Result<()> {
+        account_safety::resolution::retirement::initialize(ctx)
+    }
+    pub fn check_account_retirement_v3(ctx: Context<CheckAccountRetirementV3>, start: u16) -> Result<()> {
+        account_safety::resolution::retirement::check(ctx, start)
+    }
+    pub fn retire_accounts_v3(ctx: Context<RetireAccountsV3>, safety_epoch: u64) -> Result<()> {
+        account_safety::resolution::retirement::retire(ctx, safety_epoch)
+    }
+    pub fn withdraw_retired_reserve_v3(ctx: Context<WithdrawRetiredReserveV3>, market_index: u8, amount: u64) -> Result<()> {
+        account_safety::resolution::retirement::withdraw(ctx, market_index, amount)
+    }
+
+    pub fn liquidate_account_v3(ctx: Context<LiquidateAccountV3>, target_guard: account_trading::authority::AccountGuardV3,
+        receiver_guard: account_trading::authority::AccountGuardV3, market_index: u8, lots: u64, price: u64) -> Result<()> {
+        account_safety::risk::liquidate(ctx, target_guard, receiver_guard, market_index, lots, price)
+    }
+    pub fn withdraw_funded_account_v3(ctx: Context<WithdrawFundedAccountV3>, guard: account_trading::authority::AccountGuardV3, amount: u64) -> Result<()> {
+        account_cash::cash::withdraw(ctx, guard, amount)
+    }
+    pub fn transfer_funded_account_v3(ctx: Context<TransferFundedAccountV3>, guard: account_trading::authority::AccountGuardV3, amount: u64) -> Result<()> {
+        account_cash::cash::transfer(ctx, guard, amount)
+    }
+    pub fn initialize_market_backing_v3(ctx: Context<InitializeMarketBackingV3>, market_index: u8) -> Result<()> {
+        account_cash::certificate::initialize(ctx, market_index)
+    }
+    pub fn check_market_backing_v3(ctx: Context<CheckMarketBackingV3>, start: u16) -> Result<()> {
+        account_cash::certificate::check(ctx, start)
+    }
+    pub fn collect_account_loss_v3(ctx: Context<ChangeAccountClaimV3>, market_index: u8, amount: u64) -> Result<()> {
+        account_cash::claims::change(ctx, market_index, amount, false)
+    }
+    pub fn pay_account_gain_v3(ctx: Context<ChangeAccountClaimV3>, market_index: u8, amount: u64) -> Result<()> {
+        account_cash::claims::change(ctx, market_index, amount, true)
+    }
+    pub fn net_account_claims_v3(ctx: Context<NetAccountClaimsV3>, guard: account_trading::authority::AccountGuardV3,
+        source_market: u8, amount: u64) -> Result<()> {
+        account_cash::claims::net(ctx, guard, source_market, amount)
+    }
+    pub fn allocate_market_fees_v3(ctx: Context<ManageMarketFeesV3>, market_index: u8, amount: u64) -> Result<()> {
+        account_cash::fees::manage(ctx, market_index, amount, false)
+    }
+    pub fn withdraw_market_fees_v3(ctx: Context<ManageMarketFeesV3>, market_index: u8, amount: u64) -> Result<()> {
+        account_cash::fees::manage(ctx, market_index, amount, true)
+    }
+
+    pub fn register_account_maker_v3(
+        ctx: Context<RegisterAccountMaker>,
+        maker_id: u8,
+        inventory_limit: u64,
+    ) -> Result<()> {
+        account_trading::makers::register(ctx, maker_id, inventory_limit)
+    }
+    pub fn update_account_maker_v3(ctx: Context<UpdateAccountMaker>, operation: u8) -> Result<()> {
+        account_trading::makers::update(ctx, operation)
+    }
+    pub fn preview_account_maker_v3(
+        ctx: Context<PreviewAccountMaker>,
+        args: PreviewArgs,
+    ) -> Result<QuoteResponse> {
+        account_trading::makers::preview(ctx, args)
+    }
+    pub fn initialize_account_oracle_v3(
+        ctx: Context<InitializeAccountOracle>,
+        primary: Pubkey,
+        guard: Pubkey,
+    ) -> Result<()> {
+        account_trading::oracle::initialize(ctx, primary, guard)
+    }
+    pub fn sample_account_oracle_v3(ctx: Context<SampleAccountOracle>) -> Result<()> {
+        account_trading::oracle::sample(ctx)
+    }
+    pub fn qualify_account_trading_v3(ctx: Context<QualifyAccountTradingV3>) -> Result<()> {
+        account_trading::activation::qualify(ctx)
+    }
+    pub fn activate_accounts_v3(ctx: Context<ActivateAccountsV3>) -> Result<()> {
+        account_trading::activation::activate(ctx)
+    }
+    pub fn manage_account_order_v3(
+        ctx: Context<ManageAccountOrderV3>,
+        guard: account_trading::authority::AccountGuardV3,
+        market_index: u8,
+        operation: group_trading::routes::GroupOrderAction,
+    ) -> Result<()> {
+        account_trading::authority::manage(ctx, guard, market_index, operation)
+    }
+    pub fn set_account_delegate_v3(
+        ctx: Context<SetAccountDelegateV3>,
+        guard: account_trading::authority::AccountGuardV3,
+        delegate: Pubkey,
+        expiry_slot: u64,
+    ) -> Result<()> {
+        account_trading::authority::delegate(ctx, guard, delegate, expiry_slot)
+    }
+    pub fn execute_account_route_v3(
+        ctx: Context<ExecuteAccountRouteV3>,
+        intent: account_trading::routes::AccountRouteIntentV3,
+    ) -> Result<()> {
+        account_trading::routes::execute(ctx, intent)
+    }
+    pub fn execute_account_order_v3(
+        ctx: Context<ExecuteAccountRouteV3>,
+        args: account_trading::routes::AccountOrderExecutionV3,
+    ) -> Result<()> {
+        account_trading::routes::execute_order(ctx, args)
+    }
+
+    pub fn initialize_venue_v3(
+        ctx: Context<InitializeVenueV3>,
+        domain: [u8; 32],
+        fee_authority: Pubkey,
+        reserve_authority: Pubkey,
+        reserve_destination_owner: Pubkey,
+    ) -> Result<()> {
+        account_custody::initialize(
+            ctx,
+            domain,
+            fee_authority,
+            reserve_authority,
+            reserve_destination_owner,
+        )
+    }
+    pub fn initialize_venue_registry_v3(ctx: Context<InitializeVenueRegistryV3>) -> Result<()> {
+        account_custody::initialize_registry(ctx)
+    }
+    pub fn initialize_market_v3(ctx: Context<InitializeMarketV3>, index: u8) -> Result<()> {
+        account_custody::initialize_market(ctx, index)
+    }
+    pub fn create_portfolio_v3(ctx: Context<CreatePortfolioV3>, index: u16) -> Result<()> {
+        account_custody::create_portfolio(ctx, index)
+    }
+    pub fn register_margin_v3(
+        ctx: Context<RegisterMarginV3>,
+        subaccount_index: u16,
+        mode: u8,
+        isolated_market_index: u8,
+        role: u8,
+    ) -> Result<()> {
+        account_custody::register(ctx, subaccount_index, mode, isolated_market_index, role)
+    }
+    pub fn deposit_account_v3(ctx: Context<AccountCashV3>, amount: u64) -> Result<()> {
+        account_custody::cash(ctx, amount, false)
+    }
+    pub fn withdraw_account_custody_v3(ctx: Context<AccountCashV3>, amount: u64) -> Result<()> {
+        account_custody::cash(ctx, amount, true)
+    }
+    pub fn transfer_account_custody_v3(
+        ctx: Context<TransferAccountCustodyV3>,
+        amount: u64,
+    ) -> Result<()> {
+        account_custody::transfer(ctx, amount)
+    }
+    pub fn pause_venue_v3(ctx: Context<PauseVenueV3>, paused: bool) -> Result<()> {
+        account_custody::pause(ctx, paused)
+    }
+    pub fn classify_market_surplus_v3(
+        ctx: Context<ClassifyMarketSurplusV3>,
+        market_index: u8,
+        amount: u64,
+    ) -> Result<()> {
+        account_custody::classify_surplus(ctx, market_index, amount)
+    }
+    pub fn seed_market_insurance_v3(
+        ctx: Context<SeedMarketInsuranceV3>,
+        market_index: u8,
+        amount: u64,
+    ) -> Result<()> {
+        account_custody::seed_insurance(ctx, market_index, amount)
+    }
+
     pub fn execute_margin_route_v2(
         ctx: Context<ExecuteMarginRoute>,
         sequence: u64,

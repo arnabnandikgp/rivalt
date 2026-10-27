@@ -1,5 +1,21 @@
 //! Instruction contexts, handlers and their domain-specific validation helpers.
 
+pub mod account_cash;
+pub use account_cash::fees::ManageMarketFeesV3;
+pub(crate) use account_cash::fees::__client_accounts_manage_market_fees_v3;
+#[cfg(feature = "cpi")]
+pub(crate) use account_cash::fees::__cpi_client_accounts_manage_market_fees_v3;
+pub use account_cash::{WithdrawFundedAccountV3, TransferFundedAccountV3, ChangeAccountClaimV3, NetAccountClaimsV3};
+pub(crate) use account_cash::{__client_accounts_withdraw_funded_account_v3, __client_accounts_transfer_funded_account_v3,
+    __client_accounts_change_account_claim_v3, __client_accounts_net_account_claims_v3};
+#[cfg(feature = "cpi")]
+pub(crate) use account_cash::{__cpi_client_accounts_withdraw_funded_account_v3, __cpi_client_accounts_transfer_funded_account_v3,
+    __cpi_client_accounts_change_account_claim_v3, __cpi_client_accounts_net_account_claims_v3};
+pub use account_cash::certificate::{InitializeMarketBackingV3, CheckMarketBackingV3};
+pub(crate) use account_cash::certificate::{__client_accounts_initialize_market_backing_v3, __client_accounts_check_market_backing_v3};
+#[cfg(feature = "cpi")]
+pub(crate) use account_cash::certificate::{__cpi_client_accounts_initialize_market_backing_v3, __cpi_client_accounts_check_market_backing_v3};
+
 pub mod orders;
 pub use orders::{CancelOrder, CleanupOrders, ManageOrder};
 
@@ -211,3 +227,94 @@ pub use group_safety::settlement::{
     ActivateIsolatedGroup, ChangeGroupClaim, CheckGroupExit, GroupTradingCash,
     InitializeGroupSafety, TransferTradingCash,
 };
+
+pub mod account_custody;
+pub(crate) use account_custody::{
+    __client_accounts_account_cash_v3, __client_accounts_classify_market_surplus_v3,
+    __client_accounts_create_portfolio_v3, __client_accounts_initialize_market_v3,
+    __client_accounts_initialize_venue_registry_v3, __client_accounts_initialize_venue_v3,
+    __client_accounts_pause_venue_v3, __client_accounts_register_margin_v3,
+    __client_accounts_seed_market_insurance_v3, __client_accounts_transfer_account_custody_v3,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use account_custody::{
+    __cpi_client_accounts_account_cash_v3, __cpi_client_accounts_classify_market_surplus_v3,
+    __cpi_client_accounts_create_portfolio_v3, __cpi_client_accounts_initialize_market_v3,
+    __cpi_client_accounts_initialize_venue_registry_v3, __cpi_client_accounts_initialize_venue_v3,
+    __cpi_client_accounts_pause_venue_v3, __cpi_client_accounts_register_margin_v3,
+    __cpi_client_accounts_seed_market_insurance_v3,
+    __cpi_client_accounts_transfer_account_custody_v3,
+};
+pub use account_custody::{
+    AccountCashV3, ClassifyMarketSurplusV3, CreatePortfolioV3, InitializeMarketV3,
+    InitializeVenueRegistryV3, InitializeVenueV3, PauseVenueV3, RegisterMarginV3,
+    SeedMarketInsuranceV3, TransferAccountCustodyV3,
+};
+
+pub mod account_trading;
+
+pub(crate) use account_trading::makers::{
+    __client_accounts_preview_account_maker, __client_accounts_register_account_maker,
+    __client_accounts_update_account_maker,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use account_trading::makers::{
+    __cpi_client_accounts_preview_account_maker, __cpi_client_accounts_register_account_maker,
+    __cpi_client_accounts_update_account_maker,
+};
+pub use account_trading::makers::{PreviewAccountMaker, RegisterAccountMaker, UpdateAccountMaker};
+
+pub(crate) use account_trading::oracle::{
+    __client_accounts_initialize_account_oracle, __client_accounts_sample_account_oracle,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use account_trading::oracle::{
+    __cpi_client_accounts_initialize_account_oracle, __cpi_client_accounts_sample_account_oracle,
+};
+pub use account_trading::oracle::{InitializeAccountOracle, SampleAccountOracle};
+
+pub(crate) use account_trading::authority::{
+    __client_accounts_manage_account_order_v3, __client_accounts_set_account_delegate_v3,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use account_trading::authority::{
+    __cpi_client_accounts_manage_account_order_v3, __cpi_client_accounts_set_account_delegate_v3,
+};
+pub use account_trading::authority::{ManageAccountOrderV3, SetAccountDelegateV3};
+
+pub(crate) use account_trading::routes::__client_accounts_execute_account_route_v3;
+#[cfg(feature = "cpi")]
+pub(crate) use account_trading::routes::__cpi_client_accounts_execute_account_route_v3;
+pub use account_trading::routes::ExecuteAccountRouteV3;
+
+pub(crate) use account_trading::activation::{__client_accounts_qualify_account_trading_v3, __client_accounts_activate_accounts_v3};
+#[cfg(feature = "cpi")]
+pub(crate) use account_trading::activation::{__cpi_client_accounts_qualify_account_trading_v3, __cpi_client_accounts_activate_accounts_v3};
+pub use account_trading::activation::{QualifyAccountTradingV3, ActivateAccountsV3};
+
+pub mod account_safety;
+pub use account_safety::resolution::retirement::{InitializeAccountRetirementV3, CheckAccountRetirementV3, RetireAccountsV3, WithdrawRetiredReserveV3};
+pub(crate) use account_safety::resolution::retirement::{__client_accounts_initialize_account_retirement_v3,
+    __client_accounts_check_account_retirement_v3, __client_accounts_retire_accounts_v3, __client_accounts_withdraw_retired_reserve_v3};
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::resolution::retirement::{__cpi_client_accounts_initialize_account_retirement_v3,
+    __cpi_client_accounts_check_account_retirement_v3, __cpi_client_accounts_retire_accounts_v3, __cpi_client_accounts_withdraw_retired_reserve_v3};
+pub use account_safety::resolution::RecoverAccountsV3;
+pub(crate) use account_safety::resolution::__client_accounts_recover_accounts_v3;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::resolution::__cpi_client_accounts_recover_accounts_v3;
+pub use account_safety::resolution::{InitializeAccountResolutionV3, InitializeAccountResolutionPageV3, ProposeAccountResolutionV3,
+    FreezeAccountsV3, ValueAccountResolutionV3, AdvanceAccountResolutionV3};
+pub(crate) use account_safety::resolution::{__client_accounts_initialize_account_resolution_v3,
+    __client_accounts_propose_account_resolution_v3,
+    __client_accounts_initialize_account_resolution_page_v3, __client_accounts_freeze_accounts_v3,
+    __client_accounts_value_account_resolution_v3, __client_accounts_advance_account_resolution_v3};
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::resolution::{__cpi_client_accounts_initialize_account_resolution_v3,
+    __cpi_client_accounts_propose_account_resolution_v3,
+    __cpi_client_accounts_initialize_account_resolution_page_v3, __cpi_client_accounts_freeze_accounts_v3,
+    __cpi_client_accounts_value_account_resolution_v3, __cpi_client_accounts_advance_account_resolution_v3};
+pub(crate) use account_safety::risk::__client_accounts_liquidate_account_v3;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::risk::__cpi_client_accounts_liquidate_account_v3;
+pub use account_safety::risk::LiquidateAccountV3;

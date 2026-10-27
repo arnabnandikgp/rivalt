@@ -6,5 +6,6 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./makerAccountConfig.js";
 export * from "./makerConfig.js";
 export * from "./makerGroupConfig.js";

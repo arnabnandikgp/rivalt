@@ -22,7 +22,27 @@ src/
     resolution.rs        Frozen cohort header and participant rows
     probe.rs             Nonfinancial SDK/RPC conformance record
     v2/                  Fresh group/portfolio/two-position margin layouts (P17)
+    v3/                  Venue/custody/safety, account roots and market ledgers (P22B)
   instructions/          Anchor account contexts, handlers and validation
+    account_custody/     Fresh schema-3 identity and actual SPL custody (P23)
+    account_trading/    Whole-account trading and maker admission (P24/P26)
+      engine.rs         Typed adapters to shared checked risk/order candidates
+      authority.rs      Root guards, delegates, orders and protective authority
+      routes.rs         Atomic fills, funding, attributed fees and borrowed events
+      oracle.rs         Canonical sources and causal common funding
+      activation.rs     Storage-ready qualified local activation; default/devnet gated
+    account_cash/       Own-cash exits and scoped market settlement (P25)
+      engine.rs         Whole-account funding/admission and held-corner candidates
+      cash.rs           Owner transfer and atomic actual SPL withdrawal
+      certificate.rs    Canonical market backing pages and relevant invalidation
+      claims.rs         Gross-debt collection, funded payout and flat netting
+      fees.rs           Separate fee authority; T withdrawal/allocation, no active I exit
+    account_safety/     Whole-account liquidation and market-attributed default (P26)
+      risk.rs           Consenting receiver; strict post-fee MM-deficit progress
+      resolution/       Frozen pages, verified rates, deterministic atom circulation
+        application.rs  Exactly-once Apply, complete Reconcile and terminal cash
+        recovery.rs     Sustained source recovery and separate reactivation
+        retirement.rs   Complete flat proof and terminal reserve custody
     custody.rs           Register, deposit, custody-only withdrawal and controls
     group_custody.rs     Versioned successor custody; no trading activation (P18A)
     group_margin/       Shared root model, canonical dependencies and authority
@@ -63,6 +83,12 @@ For an exit, read `instructions/settlement.rs::check` and `withdraw`. A complete
 cohort solvency certificate and the withdrawing participant's post-action margin
 are separate requirements. Resolution uses its own frozen accounting ledger.
 
+For schema 3, start with `account_trading::routes` and `account_trading::engine`.
+They use the same pure financial engine with a distinct account/authority ABI.
+The only P24 activation is in an isolated qualification build. The new cash/claim
+exit path belongs to P25 and liquidation/default to P26; V1/V2 exit certificates
+are not automatically the schema-3 funded-cash exit design.
+
 Account fields, instruction arguments, discriminants, PDA seeds, error codes and
 event layouts are wire contracts. Moving their Rust definitions must not rename
 or reorder those fields. Keep generated SDK files generated, and verify fresh
@@ -76,3 +102,8 @@ generic type parameters are not financial variable names.
 The explicit exports in `instructions/mod.rs` expose Anchor's generated client
 and CPI account modules without glob-exporting similarly named handler helpers.
 Program state and events are re-exported at the crate root for Anchor/IDL clients.
+
+Schema-3 account-centric custody lives in `src/instructions/account_custody/`
+(contexts and handlers), with independent layouts under `src/state/v3/`.
+[P23](../../docs/P23-ACCOUNT-CUSTODY.md) records its additive ABI/authority gates;
+financial trading remains disabled until its own safety acceptance.

@@ -1,6 +1,54 @@
 # Stack, validation and measurement
 Rivalt · baseline R1 · 20 October 2026
 
+D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
+funded exits and separate complete market payment certificates. Acceptance remains
+phase-owned, and the candidate build does not satisfy P26 safety.
+
+D62 records [P24's candidate trading interface](P24-ACCOUNT-TRADING.md): scoped
+account/safety/maker authority, current relevant risk and exact per-market fee
+allocation. It remains a separate qualification artifact pending P26 safety.
+
+
+D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
+and supersedes the earlier P22B-incomplete wording below. The exact normal
+settlement, bounded terminal arithmetic and layouts apply only to the new profile.
+[A27B evidence](evidence/P22B.md) and WORKLOG own acceptance; no new runtime
+activation or inherited qualification follows from contract completion.
+
+
+D56's [P22–P28 roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) retains the existing locked
+stack. A27A is documentation validation; A27B is independent contract/model work,
+not implementation acceptance. A28–A33 require fresh affected program, RPC/WS,
+PostgreSQL and browser evidence, with exits under continuous normal sampling,
+explicit outcome denominators and transaction/contention measurements. Neither
+Phoenix research nor prior P16A/P21B results qualify the changed implementation.
+No new 24-hour requirement or funded/external gate waiver is introduced.
+
+P22B's targeted command is `python3 tests/financial/test_account_contract.py`.
+It checks independent exact arithmetic/counterexamples, including a bounded
+withdrawal enumeration; it does not call the Rust/SDK implementation or establish
+program acceptance. The restricted market-default example rejects mixed-sign
+accounts rather than pretending to solve cross-market cycles. `ops/financial.sh`
+includes this suite for hosted financial CI; local P22B iteration runs only the
+affected Python suite. Actual executed revisions/results belong in WORKLOG.
+
+For D58's reserve allocation changes, run only
+`python3 tests/financial/test_account_contract.py InsuranceReserveContract` locally.
+Its independent cases cover the selected 25% split, per-market carry, fragmented
+fee collection, seed/manual allocation distinction, exhaustion and fractional
+residual debt. The reference imports no production code. P23–P28 must separately
+qualify actual custody, fee debit/rollback, default stages, ABI and RPC/WS/PostgreSQL
+reconstruction; passing these arithmetic checks does not satisfy those gates.
+
+D59's separate target is `python3 tests/financial/test_clearing_network.py`.
+It checks the complete-cohort rational benchmark and the whole-atom output candidate
+against literal and independent closed-form mixed-sign/cyclic cases, including
+fractional-insurance clipping and per-market conserving rounding. Arbitrary-size
+rational internals do not establish bounded executable encoding or signed financial
+acceptance. The hosted financial command includes the new target; local iteration
+does not rerun unrelated suites.
+
 P17–P21 retain these pinned tools. [P17](P17-MARGIN-CONTRACT.md) defines fresh
 successor golden cases, versioned layout/authority tests, whole-account funding,
 reservation/transfer/protection checks and complete-group liquidation/default
@@ -286,3 +334,25 @@ without regenerating financial runs. The PostgreSQL history regression executes
 [The report](evidence/P21B.md) preserves command failures, corrected standalone audit
 attribution, all denominators and the 0/3 busy versus 3/3 quiescent exit distinction.
 No source/sequence guards are relaxed and no continuous 24-hour test is implied.
+
+P23 adds [schema-3 custody](P23-ACCOUNT-CUSTODY.md) under D61: real owner cash
+allocation and market-attributed insurance seed/classification, with trading and
+all unfinished financial paths disabled. Its own signed/ABI/RPC acceptance is
+recorded in WORKLOG and [P23 evidence](evidence/P23.md), not inherited from V2.
+
+## P28 concurrent account qualification
+
+The [P28 report](evidence/P28.md) pins the actual browser and workload/recovery
+revisions. `bash ops/account-indexer-smoke.sh --qualification` runs the combined
+fresh local browser/workload/default/replay gate; `--workload` uses signed SDK
+provisioning when only the workload/recovery portion changes. Preserve the
+[predeclared schedule](P28-ACCOUNT-QUALIFICATION.md), every refused/unsubmitted
+intent, raw original bytes, independent economic audit and fresh PostgreSQL replay.
+The 150 scheduled / 123 actual quote / 115 submitted denominators are distinct.
+Six own-cash withdrawals succeed after unrelated fills and sampler advances.
+
+A bounded-history fix found by this gate has 12 focused transport regressions and
+actual integration recovery. It retries no financial/identity error and exposes
+no partial candidate. No new V1/V2 runtime, SBF build or devnet qualification is
+inferred; broad consumer regression remains assigned to scoped hosted CI. Neither
+internal makers nor a five-minute workload close P15B/P16B or deferred endurance.

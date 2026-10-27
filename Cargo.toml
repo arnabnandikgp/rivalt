@@ -1,5 +1,5 @@
 [workspace]
-members = ["programs/clearing", "crates/financial-core", "crates/maker-interface", "programs/maker-a", "programs/maker-b", "tests/fixtures/hostile-maker", "tests/fixtures/oracle"]
+members = ["programs/clearing", "crates/financial-core", "crates/maker-interface", "programs/maker-a", "programs/maker-b", "tests/fixtures/hostile-maker", "tests/fixtures/oracle", "tests/fixtures/clearing-math"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -15,3 +15,11 @@ codegen-units = 1
 opt-level = 3
 incremental = false
 codegen-units = 1
+
+# Every route authenticates the complete maker ProgramData bytes. Optimize the
+# small pricing programs for size; retain checked arithmetic and fat LTO.
+[profile.release.package.maker_a]
+opt-level = "z"
+
+[profile.release.package.maker_b]
+opt-level = "z"

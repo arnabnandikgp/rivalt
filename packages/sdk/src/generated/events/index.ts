@@ -6,6 +6,29 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./accountAuthorityChangedV3.js";
+export * from "./accountBackingChangedV3.js";
+export * from "./accountCustodyChangedV3.js";
+export * from "./accountFinancialChangedV3.js";
+export * from "./accountLiquidatedV3.js";
+export * from "./accountMakerChangedV3.js";
+export * from "./accountOracleChangedV3.js";
+export * from "./accountOrderChangedV3.js";
+export * from "./accountQualificationV3.js";
+export * from "./accountResolutionAppliedV3.js";
+export * from "./accountResolutionCompletedV3.js";
+export * from "./accountResolutionFrozenV3.js";
+export * from "./accountResolutionOrderV3.js";
+export * from "./accountResolutionPlannedV3.js";
+export * from "./accountResolutionProgressV3.js";
+export * from "./accountResolutionProposalV3.js";
+export * from "./accountResolutionRatesV3.js";
+export * from "./accountResolutionRoundedV3.js";
+export * from "./accountResolutionValuedV3.js";
+export * from "./accountRetirementProgressV3.js";
+export * from "./accountRouteExecutedV3.js";
+export * from "./accountSafetyRecoveryV3.js";
+export * from "./accountsRetiredV3.js";
 export * from "./custodyChanged.js";
 export * from "./groupCustodyChangedV2.js";
 export * from "./groupLiquidationV2.js";
@@ -25,6 +48,7 @@ export * from "./oracleObserved.js";
 export * from "./orderChanged.js";
 export * from "./probeRecorded.js";
 export * from "./resolutionProgress.js";
+export * from "./retiredReserveWithdrawnV3.js";
 export * from "./routeExecuted.js";
 export * from "./settlementChanged.js";
 export * from "./testRiskPublished.js";

@@ -1,7 +1,14 @@
 # Delivery plan
 Rivalt · baseline R1 · 20 October 2026
 
-The original six milestone families retain P01–P16, with P15/P16 split into engineering A and external-validation B deliverables. D45 adds M7 and P17–P21 for the authorized isolated/cross successor without renumbering prior work. Each phase is a cohesive, independently reviewable PR-sized outcome; it depends on the preceding baseline rather than being a standalone application. A phase may take several work sessions. The live status is only in [WORKLOG](WORKLOG.md).
+D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
+and supersedes the earlier P22B-incomplete wording below. The exact normal
+settlement, bounded terminal arithmetic and layouts apply only to the new profile.
+[A27B evidence](evidence/P22B.md) and WORKLOG own acceptance; no new runtime
+activation or inherited qualification follows from contract completion.
+
+
+The original six milestone families retain P01–P16, with P15/P16 split into engineering A and external-validation B deliverables. D45 adds M7 and P17–P21 for the authorized isolated/cross successor; D56 adds M8 and P22–P28 for account-centric clearing, without renumbering prior work. Each phase is a cohesive, independently reviewable PR-sized outcome; it depends on the preceding baseline rather than being a standalone application. A phase may take several work sessions. The live status is only in [WORKLOG](WORKLOG.md).
 
 ## Milestones
 
@@ -15,6 +22,7 @@ The original six milestone families retain P01–P16, with P15/P16 split into en
 | M5b | P13–P14 | Focused real-cluster parity | Actual dependency verification, wallet/core lifecycle and provider recovery |
 | M6 | P15A/P16A + P15B/P16B | Standalone maker tooling/reliability, followed by independent commercial/pilot readiness | A: reproducible operator qualification and bounded, change-focused reliability/operations evidence. B: independent observations/review, calibrated funded risk and a separate pilot decision. All four must close for M6 closure |
 | M7 | P17–P21 | Bounded isolated/cross successor, one mint and two markets | Versioned contract, isolated foundation, whole-account engine, safe liquidation/complete-group default and fresh service/UI/RPC/WS/PostgreSQL qualification; no funded-readiness claim |
+| M8 | P22–P28 | Account-centric clearing, one mint and two markets | Separate account/eligibility/settlement/default contract; qualified safety, atomic admissible funded exits during normal background activity, fresh service/UI/RPC/WS/PostgreSQL reconciliation; no funded-readiness claim |
 
 M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. M6 engineering extensions P15A/P16A can proceed with explicitly internal makers and test assets. P15B/P16B require independent people/data/review and separate funded authorization. Completing A never closes B or establishes funded readiness.
 
@@ -48,8 +56,16 @@ M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. 
 | P20 | M7 | Cross-account liquidation and complete-group default; qualified activation | P19 | A25 / G15 completion |
 | P21A | M7 | Group SDK/indexer/API and durable service integration | P20 | A26A / G16 interfaces |
 | P21B | M7 | Wallet UI, operations and fresh successor qualification | P21A | A26B / G16 completion / M7 exit |
+| P22A | M8 | Architecture roadmap, current-code map and decision boundaries | Integrated P21B baseline | A27A |
+| P22B | M8 | Exact financial/state/authority contract and independent reference cases | P22A | A27B / G17 |
+| P23 | M8 | Versioned market registry, accounts and custody | P22B | A28 / G18 |
+| P24 | M8 | Whole-account risk/funding, routes/orders and relevant dependency checks | P23 | A29 / G19 core |
+| P25 | M8 | Cash/claim settlement, transfers and atomic funded exits | P24 | A30 / G19 cash |
+| P26 | M8 | Liquidation, complete liability-cohort default and qualified local activation | P25 | A31 / G20 |
+| P27 | M8 | Account-centric SDK/indexer/API and durable services | P26 | A32 / G21 interfaces |
+| P28 | M8 | UI, operations and fresh bounded qualification | P27 | A33 / G21 completion / M8 exit |
 
-The engineering path is P01–P14 → P15A → P16A → P17 → P18A → P18B → P18C → P19 → P20 → P21A → P21B. External P15B/P16B do not block authorized test engineering; their own prerequisites remain mandatory. Do not reopen architecture research or ask to start every phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
+The engineering path is P01–P14 → P15A → P16A → P17 → P18A → P18B → P18C → P19 → P20 → P21A → P21B → P22A → P22B → P23 → P24 → P25 → P26 → P27 → P28. External P15B/P16B do not block authorized test engineering; their own prerequisites remain mandatory. Do not reopen settled architecture outside the explicit D56 redesign or ask to start every phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
 
 Workflow amendment, 20 October 2026: submit ready-to-review PRs using `gh stack submit --auto --open`. Once a phase's deliverable and acceptance checks pass, continue its dependent phase on top of those exact commits without waiting for merge. `gh stack` manages the chain and PR bases. An unmerged phase remains Review; this removes a development scheduling barrier, not the integration requirement for Closed. D41 originally required keeping the new PRs stacked and open; D44 records the user's subsequent explicit authorization to address reviews and merge PRs #20/#21. WORKLOG records verified integration.
 
@@ -492,3 +508,154 @@ report availability/latency limits without importing P12/P16A thresholds as proo
 Compare isolated/cross capital use at identical risk settings and funded balances.
 No continuous 24-hour gate, devnet/funded rollout or external independence claim.
 
+## M8 — account-centric clearing (P22–P28)
+
+D56 resumes the deferred exit question as part of a broader explicitly authorized
+redesign. [P22's roadmap](P22-ACCOUNT-CENTRIC-CLEARING.md) contains the current code
+map, diagrams, preserved scope, financial decision gates and phase acceptance
+details. Existing V1/V2 semantics stay intact. Keep one test mint, BTC/ETH, isolated
+maker capital, zero positive unpaid margin credit, current routing/fees/protection
+and complete deterministic loss accounting. P15B/P16B and D42 are unchanged.
+
+P22 is split deliberately: **P22A / A27A** delivers the approved architecture
+roadmap and checks links, dependencies and consistency; **P22B / A27B / G17**
+resolves the financial contract and executable independent reference cases before
+dependent implementation. Planning approval does not select an unspecified new
+loss bearer, cross-market credit guarantee or positive unpaid-profit margin policy.
+
+[P22B's developing contract](P22B-FINANCIAL-CONTRACT.md) supplies the funded-exit
+proof and literal default/netting counterexamples. D57 records the user's selection
+of market-attributed losses; the full settlement/netting/insurance, authority and
+layout contract remains G17 work. D58 approves seed-plus-fee reserve funding and a
+25% share of collected taker fees for that market's insurance, retaining 75% in T.
+P22B section 7 assigns exact rounding/authority and implementation acceptance to
+P23–P28. No reserve has been funded by that selection. Partial model checks do not
+satisfy A27B or permit P23 to bypass its predecessor gate.
+
+D59 supplies a complete-cohort rational benchmark for cross-market claim links
+and cycles, plus conserving whole-atom output with bounded reference progress.
+Numeric representation, executable collection/insurance/rounding, normal settlement
+and staged recovery remain G17 work. Model progress does not authorize a partial
+runtime solver or early P23 implementation.
+
+**P23 / A28 / G18** owns fresh versioned accounts, market eligibility and real
+custody with ABI/authority/token reconciliation. **P24 / A29 / G19 core** owns
+whole-account funding/risk, maker routes, orders and complete relevant dependencies.
+**P25 / A30 / G19 cash** owns the selected claim ledger, flat-only netting, transfers
+and same-transaction funded withdrawal checks. These phases keep ordinary financial
+activation disabled; qualification harnesses do not create an administrator bypass.
+
+**P26 / A31 / G20** owns whole-account post-fee liquidation and complete selected
+liability-cohort default, fractional ownership, restart/recovery and resource bounds.
+Only its signed program/RPC safety acceptance permits explicit new local activation;
+default/devnet builds remain disabled. **P27 / A32 / G21 interfaces** then qualifies
+the SDK, finalized events/PostgreSQL/API and durable workers on the new deployment.
+
+**P28 / A33 / G21 completion / M8 exit** delivers the account-centric UI and fresh
+bounded concurrent qualification. Pin duration, loads, account mixes and exit
+attempt schedule before execution; show every offer/refusal/submission/finalization,
+source and dependency cause, latency, packet/accounts/CU and contention. Require
+admissible funded exits while ordinary sampling/unrelated trading continue, plus
+source/maker/RPC/worker/indexer faults, complete default recovery, independent final
+reconciliation and fresh PostgreSQL replay. No pause-to-exit result, inherited
+P16A/P21B count or weakened oracle safeguard closes this gate. No 24-hour run or
+new devnet/funded deployment is required or authorized by M8.
+
+Publish ready PRs with `gh stack submit --auto --open`, retain exact parent commits
+and continue after verified acceptance without waiting for merges. Keep the new
+stack open for review; D55 authorized only the earlier stack's merge. If measured
+implementation size requires a suffix, preserve its parent gate and document why.
+
+
+P23 realization: [the custody contract](P23-ACCOUNT-CUSTODY.md) and
+[A28/G18 evidence](evidence/P23.md) pin its additive 11-instruction ABI, distinct
+reserve authority, actual SPL flows and default-profile rejection. Its verified
+Review commits satisfy P24 implementation dependency; they do not enable trading.
+
+P24 implementation contract: [risk, funding and trading](P24-ACCOUNT-TRADING.md).
+Its isolated candidate build is not P26 safety activation.
+
+P24 realization: [A29/G19 core evidence](evidence/P24.md) qualifies the distinct
+candidate ABI, whole-account risk/funding, atomic maker routes, orders/protection
+and market-attributed collected fees. Its verified Review source satisfies P25's
+implementation dependency, while ordinary activation still awaits P26.
+
+P25 implementation contract: [cash, market claims and atomic exits](P25-ACCOUNT-CASH.md).
+Its candidate feature remains separate from P26 safety activation.
+
+P25 realization: [A30/G19 cash evidence](evidence/P25.md) qualifies atomic own-cash
+exits/transfers and scoped market collection/payment/netting on its distinct
+candidate artifacts. Complete 64-member scans and actual RPC interleaving do not
+replace P26 safety or P28 sustained concurrent qualification.
+
+P26 implementation sequence: [bounded whole-account safety](P26-ACCOUNT-SAFETY.md).
+Independent primitive arithmetic is an intermediate check; A31/G20 requires the
+complete signed financial/state-machine and resource acceptance before activation.
+
+P26 recovery/retirement uses D64's additive terminal-only certificate and retains
+separate authority to recover to Custody and to reactivate after fresh qualification.
+The preliminary seven-member signed path is not the maximum-cohort/resource or
+full RPC safety gate. P27/P28 and external P15B/P16B remain separate deliverables.
+
+P26's measured D64 continuation adjustment bounds Verify/FlowPlan to one row and
+moves complete rate/insurance checks into their own transaction. Preserve all
+financial rules and record separate resource-only versus full-context evidence.
+
+After the pinned P26 candidate safety matrix passes, the explicit local release
+uses `activate_accounts_v3` with complete precreated safety pages and fresh initial
+qualification. The older candidate transition cannot bypass storage readiness.
+Qualified activation has its own final affected check; P26 enters Review only after
+that evidence and ready publication. P27/P28 and the external gates remain separate.
+
+P26 realization: [A31/G20 evidence](evidence/P26.md) qualifies the complete bounded
+local safety profile and storage-ready activation on pinned `915d8e8`. Its verified
+Review commits satisfy P27's implementation dependency; they do not establish
+service/PostgreSQL/UI, sustained concurrency, funded readiness or an external review.
+
+
+P27 implementation sequence: [account services and finalized reconstruction](P27-ACCOUNT-SERVICES.md).
+Complete its fresh staged default/replay and direct SDK/durable worker acceptance
+before entering Review. Projection checks on retained histories do not close A32.
+
+R068 adds fresh 64-root/119-account PostgreSQL chunk/restart/replay acceptance to
+P27's earlier finalized projection and API-independent flat SDK checkpoints.
+Current risk/route interfaces now pass four-fill signed RPC and fresh PostgreSQL
+qualification on `8267a27`; durable maker/funding/order/settlement/risk services
+and their process/fault qualification remain next.
+This is incremental A32 work, not phase closure; P27 stays In progress and P28
+remains dependent. The exact tested pins and pending command are in WORKLOG.
+
+
+R069 implements and unit-checks the exact untrusted proposer and canonical frozen
+RPC reader. Its live upload/default/restart qualification is deliberately part of
+P27's remaining durable worker flow, not inferred from retained P26/P27 captures.
+The next implementation dependency is schema-3 execution authority and workers.
+
+
+R070 adds schema-3 immutable execution/ingress/expiry-authority and scoped operator
+budgets with focused consumer tests. Worker loops and fresh process/RPC/WS/
+PostgreSQL fault qualification remain next; the helper checkpoint does not close
+A32 or publish P27 prematurely.
+
+
+R071 completes A32/G21 interfaces on clean `13b558f`: actual maker renewal/sync,
+durable wallet/order/settlement/liquidation/default workers, interrupted proposal/
+Verify/Apply recovery, finalized expiry, independent accounting and fresh PostgreSQL
+replay. [P27 evidence](evidence/P27.md) retains earlier checkpoint pins and failed
+attempts. P28 may proceed above the verified Review commits; A33's fresh browser,
+concurrent funded exits and complete bounded population remain required.
+
+
+P28's [pinned qualification contract](P28-ACCOUNT-QUALIFICATION.md) selects a
+300-second/150-offer fresh population, six original signed funded exits during
+unrelated trading/sampling, explicit source/maker/indexer faults and real browser
+wallet flows. This prospective schedule is not an acceptance result.
+
+R072 records A33/G21 completion and the bounded M8 engineering exit in
+[P28 evidence](evidence/P28.md): 17 browser originals on `f595fd7`, then fresh
+`5491752` with 115 submitted trades, six busy exits, independent financial audits,
+complete nine-root default/recovery and identical fresh PostgreSQL replay. The
+actual workload also qualifies bounded finalized-history rescans without admitting
+partial state. [Operations](P28-OPERATIONS.md) retains measured limits, explicit
+configuration and unpaid-profit certificate coordination. All phase PRs remain
+open in Review until integration; P15B/P16B and deferred endurance are unchanged.
