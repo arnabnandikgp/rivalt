@@ -3,8 +3,8 @@ import {accountTradingSetup,type AccountTradingHarness} from './account-trading-
 
 /** Fresh signed provisioning only. No financial root or successful event is
  * injected, and no prior acceptance output is a runtime configuration source. */
-export async function accountServiceSetup(h:AccountTradingHarness,namespace:string) {
-  const setup=await accountTradingSetup(h,{qualifyPrimitives:false,domainLabel:`rivalt/p27/${namespace}`});
+export async function accountServiceSetup(h:AccountTradingHarness,namespace:string,makerDuration?:bigint) {
+  const setup=await accountTradingSetup(h,{qualifyPrimitives:false,domainLabel:`rivalt/p27/${namespace}`,makerDuration});
   const [resolution]=await sdk.findVenueComponentV3Pda(setup.venue,'resolution');
   const [work]=await sdk.findVenueComponentV3Pda(setup.venue,'resolution-work');
   const common={...setup.common,btc:setup.markets[0],eth:setup.markets[1],resolution,work,payer:setup.payer};

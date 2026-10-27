@@ -31,7 +31,7 @@ const stop=async(child:ChildProcess)=>{
   child.kill('SIGTERM');await until(async()=>child.exitCode!==null||child.signalCode!==null,Boolean,'owned account worker stop',15);
 };
 try {
-  const setup=await accountServiceSetup(transport.h,'durable-workers');await transport.finalize();
+  const setup=await accountServiceSetup(transport.h,'durable-workers',720n);await transport.finalize();
   const anchor=transport.checks.find(check=>check.label==='setup fresh clearing venue')!.signature as string;
   const config:AccountConfig={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl:process.env.RIVALT_DATABASE_URL!,
     runId:'p27-workers',venue:setup.venue,anchor,profile:'account-safety-qualification'};
@@ -42,11 +42,11 @@ try {
   runtime=new AccountRuntime(config.databaseUrl,config.runId,config.rpcUrl);await runtime.open();
   const faults=await accountQueueFault({...config,directory},setup,transport,client);await indexer.cycle();
   writeFileSync(`${directory}/queue-fault.json`,json(faults));
-  // Force actual expiration before daemon start, so heartbeat-only operation
-  // cannot stand in for signed owner publication and separate clearing sync.
-  for(const pair of setup.makers)for(const maker of pair)await transport.send('short owner epoch for daemon renewal',[
-    maker.api.getPublishAccountEpochInstruction({owner:maker.owner,config:maker.config,duration:64n})],[maker.owner]);
-  await transport.h.advance(4n);
+  // Initial valid 720-slot epochs last through activation. Wait for their actual
+  // expiry; the program correctly prohibits shortening an already-live epoch.
+  const expiries=await Promise.all(setup.makers.flat().map(async maker=>sdk.makerA.getMakerAccountConfigDecoder().decode((await transport.h.read(maker.config))!).state.expirySlot));
+  const lastExpiry=expiries.reduce((left,right)=>left>right?left:right);
+  await until(()=>transport.h.slot(),slot=>slot>=lastExpiry,'actual initial maker epoch expiry',60);
   const start=(role:'maker'|'funding'|'orders'|'settlement'|'risk'|'executor',key?:Keypair,marketIndex?:number,makerId?:number,receiver?:Address)=>{
     const identity=`${role}-${marketIndex??'venue'}-${makerId??'none'}-${children.length}`;
     const environment:NodeJS.ProcessEnv={...process.env,RIVALT_RPC_URL:config.rpcUrl,RIVALT_DATABASE_URL:config.databaseUrl,RIVALT_RUN_ID:config.runId};

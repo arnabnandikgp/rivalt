@@ -3182,3 +3182,13 @@ a malformed-carry rejection. `pnpm typecheck` passes after correcting the harnes
 exception-module import. The retained second-run raw financial audit also passes
 with a fifth corruption targeting fee carry; this is a consumer recheck, not a
 new live run. Next action remains the strengthened fresh worker gate.
+
+R071 third attempt, clean `05cc6ec`,
+`.local/account-workers-rpc/20261027T161517Z-59228/`, stopped during the new
+renewal setup: maker simulation correctly returned Lifetime/6002 because an
+active epoch cannot be replaced early. No new worker/default acceptance. Correct
+the fixture to initialize valid 720-slot epochs (the default setup remains
+3,600), let activation complete, then wait for actual expiry before daemon start.
+This tests real owner renewal without changing the maker program or safeguards.
+The owned runtime was cleaned; this failed-run database remains retained because
+the earlier deletion authorization covered the enumerated 49 older copies only.

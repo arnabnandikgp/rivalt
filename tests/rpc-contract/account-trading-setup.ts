@@ -20,7 +20,7 @@ const encoder = getAddressEncoder();
 const u16 = (value: number) => { const bytes = Buffer.alloc(2); bytes.writeUInt16LE(value); return bytes; };
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0,8);
 
-export async function accountTradingSetup(h: AccountTradingHarness, options: {qualifyPrimitives?: boolean; domainLabel?: string} = {}) {
+export async function accountTradingSetup(h: AccountTradingHarness, options: {qualifyPrimitives?: boolean; domainLabel?: string; makerDuration?:bigint} = {}) {
   const qualify = options.qualifyPrimitives !== false;
   const payer = await payerKey(), deployment = await addresses();
   const owner = await fixtureKey('p24-trader'), mint = await fixtureKey('p24-mint');
@@ -99,7 +99,7 @@ export async function accountTradingSetup(h: AccountTradingHarness, options: {qu
       await setupReject('reject foreign maker-config owner',[await api.getInitializeAccountConfigInstructionAsync({...accounts,owner,duration:3600n})],[owner],6000);
       await setupReject('reject maker-config market mismatch',[await api.getInitializeAccountConfigInstructionAsync({...accounts,market:markets[1-marketIndex],duration:3600n})],[signer],6001);
       assert.equal(await h.read(config),null);
-      await h.send('initialize owner-bound V3 maker config',[await api.getInitializeAccountConfigInstructionAsync({...accounts,duration:3600n})],[signer]);
+      await h.send('initialize owner-bound V3 maker config',[await api.getInitializeAccountConfigInstructionAsync({...accounts,duration:options.makerDuration??3600n})],[signer]);
       await setupReject('reject maker admission by foreign venue authority',[await sdk.getRegisterAccountMakerV3InstructionAsync({...accounts,authority:owner,makerId,inventoryLimit:100_000n})],[signer,owner],2001);
       if(qualify && makerId===1){
         const existing=pair[0];
