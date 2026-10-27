@@ -246,7 +246,9 @@ enters AwaitValuation, never a caller-chosen stale mark. No new funding while fr
 | Reconcile | Complete scan, zero exposure/claims/P, exact final C+I+T/allocated vault, all rows applied and each market adjustment zero |
 | Resolved | Owner funded cash exits and fee withdrawal permitted; no ordinary trading until explicit recovery |
 
-Pages have two stable rows; allow page operations of one or two rows without
+Pages have two stable rows. D64 resource measurement limits Verify and FlowPlan
+to one row per instruction and separates complete rate/insurance verification from
+the last row; Value/Denominator/Apply/Reconcile allow one or two rows without
 skipping/reordering. Every continuation binds epoch/stage/cursor and required
 canonical account keys. Partial proposal bytes cannot drive financial application.
 Work arithmetic may continue after a bounded limb/edge budget without changing its

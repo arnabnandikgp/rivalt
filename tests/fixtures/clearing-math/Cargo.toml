@@ -1,0 +1,19 @@
+[package]
+name = "clearing-math-probe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "clearing_math_probe"
+[features]
+default = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+[dependencies]
+anchor-lang = { workspace = true }
+financial-core = { path = "../../../crates/financial-core" }

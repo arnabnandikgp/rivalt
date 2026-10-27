@@ -11,6 +11,7 @@ pub(super) fn page_range(
         header.stage == stage
             && header.cursor == start
             && (1..=2).contains(&length)
+            && (!matches!(stage, VERIFY | FLOW_PLAN) || length == 1)
             && start
                 .checked_add(u16::from(length))
                 .is_some_and(|end| end <= header.count)
@@ -248,32 +249,13 @@ pub fn advance(
             );
             accounts.resolution.stage = RATE_PROPOSAL;
             accounts.resolution.cursor = 0;
-        } else if stage == VERIFY {
-            let proposal_hash = accounts.resolution.proposal_hash;
-            let evaluation = accounts.resolution.evaluation;
-            let outcome = rates::finish(&mut accounts.resolution, &mut accounts.work);
-            increment(&mut accounts.identity.custody.sequence)?;
-            crate::event_cpi::emit(
-                &crate::events::AccountResolutionRatesV3 {
-                    venue: accounts.identity.venue.key(),
-                    sequence: accounts.identity.custody.sequence,
-                    slot: clock.slot,
-                    epoch,
-                    evaluation,
-                    proposal_hash,
-                    outcome,
-                    next_evaluation: accounts.resolution.evaluation,
-                    clipped_mask: accounts.resolution.clipped_mask,
-                    budgets: accounts.resolution.budgets,
-                    insurance_spent: accounts.resolution.insurance_spent,
-                },
-                accounts.event_authority.to_account_info(),
-            )?;
-        } else {
+        } else if stage == FLOW_PLAN {
             accounts.resolution.stage = EDGE_ORDER;
             accounts.resolution.cursor = 0;
             accounts.work.limb_cursor = 0;
         }
+        // VERIFY remains at cursor=count. Whole-market greatest/fixed equations
+        // and insurance floors have their own bounded continuation transaction.
     }
     accounts.work.opcode = accounts.resolution.stage;
     accounts.work.row = accounts.resolution.cursor;

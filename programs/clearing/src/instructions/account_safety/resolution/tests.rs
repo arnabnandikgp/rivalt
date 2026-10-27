@@ -242,30 +242,33 @@ fn omitted_or_corrupted_cohort_sums_never_advance() {
 
 #[test]
 fn page_range_authenticates_every_legal_count_and_cursor() {
-    for count in 1..=64 {
-        for start in 0..count {
-            let header = ResolutionV3 {
-                stage: VALUE,
-                cursor: start,
-                count,
-                ..Default::default()
-            };
-            let page = ResolutionPageV3 {
-                schema_version: 3,
-                page_index: start / 2,
-                ..Default::default()
-            };
-            for length in 0..=3 {
-                let expected = (1..=2).contains(&length)
-                    && start + u16::from(length) <= count
-                    && start % 2 + u16::from(length) <= 2;
-                assert_eq!(
-                    pages::test_page_range(&header, &page, VALUE, start, length).is_ok(),
-                    expected
-                );
+    for stage in [VALUE, DENOMINATOR, VERIFY, FLOW_PLAN, APPLY, RECONCILE] {
+        for count in 1..=64 {
+            for start in 0..count {
+                let header = ResolutionV3 {
+                    stage,
+                    cursor: start,
+                    count,
+                    ..Default::default()
+                };
+                let page = ResolutionPageV3 {
+                    schema_version: 3,
+                    page_index: start / 2,
+                    ..Default::default()
+                };
+                for length in 0..=3 {
+                    let expected = (1..=2).contains(&length)
+                        && (!matches!(stage, VERIFY | FLOW_PLAN) || length == 1)
+                        && start + u16::from(length) <= count
+                        && start % 2 + u16::from(length) <= 2;
+                    assert_eq!(
+                        pages::test_page_range(&header, &page, stage, start, length).is_ok(),
+                        expected
+                    );
+                }
+                assert!(pages::test_page_range(&header, &page, 255, start, 1).is_err());
+                assert!(pages::test_page_range(&header, &page, stage, start + 1, 1).is_err());
             }
-            assert!(pages::test_page_range(&header, &page, DENOMINATOR, start, 1).is_err());
-            assert!(pages::test_page_range(&header, &page, VALUE, start + 1, 1).is_err());
         }
     }
 }

@@ -69,6 +69,8 @@ def balanced(report, raw):
 
 
 def audit(report):
+    for step in report.get('liquidationSteps',[]):
+        audit_liquidation(report,step)
     frozen = report['frozenAccounts']
     completed = report['completedAccounts']
     original = header(frozen,report['resolution'])
@@ -124,9 +126,10 @@ def audit(report):
         assert integer(after,91) == original['fees'][index] and after[99] == before[99]
     assert all(value == 0 for name in ['remaining_lots','remaining_gross','remaining_claims'] for value in finished[name])
     for name,mode in [('completedAccounts',3),('resolvedAccounts',3),('reactivatedAccounts',1),('rawAccounts',4)]:
-        if name == 'reactivatedAccounts' and report.get('scenario') == 'resolved-retirement':
+        if name == 'reactivatedAccounts' and report.get('scenario') in ['resolved-retirement','two-market-resolved']:
             assert name not in report
             continue
+        if name == 'rawAccounts' and report.get('scenario') == 'two-market-resolved':mode=3
         raw = report[name]
         balanced(report,raw)
         assert account(raw,report['safety'],'SafetyV3',77)[42:44] == bytes([mode,0])
@@ -135,14 +138,58 @@ def audit(report):
     # The signed scenario withdraws 100 terminal owner atoms, performs a matched
     # 10-atom recovery deposit/exit, then matched 1-atom active deposit/retired exit.
     final = report['rawAccounts']
+    withdrawn_reserve=0 if report.get('scenario') == 'two-market-resolved' else 10
     for index,key in enumerate(report['roots']):
         assert integer(base64.b64decode(final[key]),113) == expected.cash[index]-(100 if index == 0 else 0)
     for index,key in enumerate(report['ledgers']):
         ledger = base64.b64decode(final[key])
-        assert integer(ledger,83) == original['insurance'][index]-expected.insurance_spent[index]-(10 if index == 1 else 0)
+        assert integer(ledger,83) == original['insurance'][index]-expected.insurance_spent[index]-(withdrawn_reserve if index == 1 else 0)
         assert integer(ledger,91) == original['fees'][index]
-    assert integer(base64.b64decode(final[report['reserveDestination']]),64) == 10
+    assert integer(base64.b64decode(final[report['reserveDestination']]),64) == withdrawn_reserve
     return len(accounts),expected.augmentations
+
+
+def audit_liquidation(report,step):
+    before,after=step['before'],step['after']
+    assert balanced(report,before) == balanced(report,after), 'liquidation cash is transferred, not minted'
+    previous={key:root(base64.b64decode(before[key])) for key in report['roots']}
+    actual={key:root(base64.b64decode(after[key])) for key in report['roots']}
+    target,receiver=step['target'],step['receiver']
+    markets=[base64.b64decode(after[key]) for key in report['markets']]
+    funding=[integer(data,76,16,True) for data in markets]
+    lower=[integer(data,124) for data in markets];upper=[integer(data,132) for data in markets]
+    lots,price=int(step['lots']),int(step['price'])
+    assert 0 < lots <= 4608 and previous[target]['positions'][0][0] > lots
+    fee=min((lots*price+1999)//2000,10_000,previous[target]['cash'])
+    expected=copy.deepcopy(previous)
+    for key,direction in [(target,-1),(receiver,1)]:
+        expected[key]['cash']+=direction*fee
+        positions=[]
+        raw=base64.b64decode(before[key])
+        for index,(quantity,virtual,checkpoint) in enumerate(previous[key]['positions']):
+            if raw[110] != 0 and raw[111] != index:
+                positions.append((quantity,virtual,checkpoint));continue
+            virtual-=quantity*(funding[index]-checkpoint)
+            if index == 0:
+                quantity+=direction*lots;virtual-=direction*lots*price*SCALE
+            positions.append((quantity,virtual,funding[index]))
+        expected[key]['positions']=positions
+    for key in report['roots']:
+        assert actual[key]['cash'] == expected[key]['cash']
+        assert actual[key]['positions'] == expected[key]['positions'], 'exact liquidation funding and paired fill'
+    def health(value,bps):
+        equity=value['cash']*SCALE;requirement=0
+        for index,(quantity,virtual,checkpoint) in enumerate(value['positions']):
+            claim=quantity*(lower[index] if quantity>=0 else upper[index])*SCALE+virtual-quantity*(funding[index]-checkpoint)
+            equity+=min(0,claim)
+            requirement+=(abs(quantity)*upper[index]*bps+9999)//10_000
+        return equity-requirement*SCALE
+    assert health(previous[target],500)<0
+    assert min(health(actual[target],500),0)>health(previous[target],500), 'strict whole-account post-fee progress'
+    receiver_reserved=integer(base64.b64decode(after[receiver]),281)
+    assert health(actual[receiver],1000)>=receiver_reserved*SCALE, 'receiver covers conservative IM and live reservations'
+    for key in report['ledgers']+[report['vault']]+report['userTokens']:
+        assert before[key]==after[key], 'liquidation must not charge protocol fees or move SPL cash'
 
 
 def mutations(report):

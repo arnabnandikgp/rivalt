@@ -596,3 +596,7 @@ P26 recovery/retirement uses D64's additive terminal-only certificate and retain
 separate authority to recover to Custody and to reactivate after fresh qualification.
 The preliminary seven-member signed path is not the maximum-cohort/resource or
 full RPC safety gate. P27/P28 and external P15B/P16B remain separate deliverables.
+
+P26's measured D64 continuation adjustment bounds Verify/FlowPlan to one row and
+moves complete rate/insurance checks into their own transaction. Preserve all
+financial rules and record separate resource-only versus full-context evidence.

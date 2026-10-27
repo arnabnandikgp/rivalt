@@ -18,7 +18,7 @@ mod rounding;
 pub use contexts::*;
 pub use freeze::{freeze, value_sources};
 pub use pages::advance;
-pub use rates::upload;
+pub use rates::{finalize, upload};
 pub use recovery::{reactivate, recover};
 pub use rounding::{check_order, order, round};
 

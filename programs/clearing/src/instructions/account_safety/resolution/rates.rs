@@ -250,6 +250,48 @@ pub(super) fn finish(header: &mut ResolutionV3, work: &mut ResolutionWorkV3) -> 
     }
 }
 
+/// Final equations/insurance floors are separate from even the last row. A
+/// maximum-width debtor must not consume the same transaction's final budget.
+pub fn finalize(ctx: Context<ProposeAccountResolutionV3>, epoch: u64) -> Result<()> {
+    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
+    let accounts = &mut *ctx.accounts;
+    frozen(
+        &accounts.identity,
+        &accounts.registry,
+        &accounts.resolution,
+        epoch,
+    )?;
+    require!(
+        accounts.resolution.stage == VERIFY
+            && accounts.resolution.cursor == accounts.resolution.count
+            && accounts.work.schema_version == SCHEMA_VERSION
+            && accounts.work.epoch == epoch
+            && accounts.work.opcode == VERIFY
+            && accounts.work.row == accounts.resolution.count,
+        ClearingError::Resolution
+    );
+    let proposal_hash = accounts.resolution.proposal_hash;
+    let evaluation = accounts.resolution.evaluation;
+    let outcome = finish(&mut accounts.resolution, &mut accounts.work);
+    increment(&mut accounts.identity.custody.sequence)?;
+    crate::event_cpi::emit(
+        &crate::events::AccountResolutionRatesV3 {
+            venue: accounts.identity.venue.key(),
+            sequence: accounts.identity.custody.sequence,
+            slot: Clock::get()?.slot,
+            epoch,
+            evaluation,
+            proposal_hash,
+            outcome,
+            next_evaluation: accounts.resolution.evaluation,
+            clipped_mask: accounts.resolution.clipped_mask,
+            budgets: accounts.resolution.budgets,
+            insurance_spent: accounts.resolution.insurance_spent,
+        },
+        accounts.event_authority.to_account_info(),
+    )
+}
+
 pub fn upload(
     ctx: Context<ProposeAccountResolutionV3>,
     epoch: u64,

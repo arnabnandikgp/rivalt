@@ -11,7 +11,7 @@ export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
 export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/account-safety-rpc/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
 test -f .local/account-safety/clearing.so
-for component in maker_a maker_b oracle_fixture; do test -f ".local/account-cash/$component.so"; done
+for component in maker_a maker_b oracle_fixture; do test -f ".local/account-safety/$component.so"; done
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT"
 mkdir -p "$RIVALT_RUN_DIR"
 surfpool start --offline --no-deploy --no-tui --no-studio --disable-instruction-profiling \
@@ -31,8 +31,7 @@ done
 for component in clearing maker_a maker_b oracle_fixture; do
   key="${component//_/-}"
   solana-keygen new --silent --no-bip39-passphrase --outfile "$RIVALT_RUN_DIR/buffer-$key.json" >/dev/null
-  artifact=.local/account-cash
-  if [[ "$component" == clearing ]]; then artifact=.local/account-safety; fi
+  artifact=.local/account-safety
   solana program deploy "$artifact/$component.so" --buffer "$RIVALT_RUN_DIR/buffer-$key.json" \
     --program-id ".local/keys/$key.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/deployment-$key.json"

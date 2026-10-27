@@ -36,7 +36,8 @@ async function send(label:string,instructions:Instruction[],signers:Parameters<H
     sdk.PROPOSE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.ORDER_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,
     sdk.CHECK_ACCOUNT_RESOLUTION_ORDER_V3_DISCRIMINATOR,sdk.ROUND_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,
     sdk.RECOVER_ACCOUNTS_V3_DISCRIMINATOR,sdk.REACTIVATE_ACCOUNTS_V3_DISCRIMINATOR,
-    sdk.CHECK_ACCOUNT_RETIREMENT_V3_DISCRIMINATOR,sdk.RETIRE_ACCOUNTS_V3_DISCRIMINATOR].some(has);
+    sdk.CHECK_ACCOUNT_RETIREMENT_V3_DISCRIMINATOR,sdk.RETIRE_ACCOUNTS_V3_DISCRIMINATOR,
+    sdk.FINALIZE_ACCOUNT_RESOLUTION_RATES_V3_DISCRIMINATOR].some(has);
   const declaredComputeUnits=sampling||resolution?1_200_000:routing?sdk.GROUP_ROUTE_COMPUTE_UNITS:400_000;
   const {transaction}=await sdk.signInstructions(connection,payer,[(sampling||resolution)?sdk.fundingComputeBudget():routing?sdk.groupRouteComputeBudget():sdk.routeComputeBudget(),...instructions],signers);
   const wire=transaction.serialize();assert(wire.length<=1232,`${label}: packet`);
@@ -81,7 +82,9 @@ const h:AccountTradingHarness={
   async quote(label,instruction){const history=await send(label,[instruction]);assert.equal(history.meta.returnData?.programId,program);return Buffer.from(history.meta.returnData.data[0],'base64');},
 };
 try {
-  const result=await accountSafetyCases(h,{maximumCohort:process.env.RIVALT_SAFETY_MAXIMUM_COHORT==='1'});
+  const result=await accountSafetyCases(h,{maximumCohort:process.env.RIVALT_SAFETY_MAXIMUM_COHORT==='1',
+    retireResolved:process.env.RIVALT_SAFETY_RETIRE_RESOLVED==='1',liquidation:process.env.RIVALT_SAFETY_LIQUIDATION==='1',twoMarket:process.env.RIVALT_SAFETY_TWO_MARKET==='1',
+    emergency:process.env.RIVALT_SAFETY_EMERGENCY==='1',fullBooks:process.env.RIVALT_SAFETY_FULL_BOOKS==='1'});
   // Keep the source sampling loop causal without waiting 32 slots per feed.
   // Acceptance still independently fetches every original signature finalized,
   // including rejected transactions, and compares it with the confirmed result.
@@ -125,7 +128,7 @@ try {
     trackedDirty:startedDirty||finishedRevision!==revision||execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     runtime:await rpc.call('getVersion'),genesis:await rpc.call('getGenesisHash'),checks,parity,
     wsNotifications:ws.notifications.length,expectedNotifications:expectedNotifications.length,missedNotifications:missed,
-    hashes:Object.fromEntries(['clearing','maker_a','maker_b','oracle_fixture'].map(name=>[name,createHash('sha256').update(readFileSync(`.local/${name==='clearing'?'account-safety':'account-cash'}/${name}.so`)).digest('hex')])),
+    hashes:Object.fromEntries(['clearing','maker_a','maker_b','oracle_fixture'].map(name=>[name,createHash('sha256').update(readFileSync(`.local/account-safety/${name}.so`)).digest('hex')])),
     scope:"preliminary default/recovery/retirement RPC coverage; maximum-width arithmetic/full acceptance pending",
     ...result,committedEvents:events}));
   console.log(`P26 RPC: ${checks.length} finalized scenarios; ${events.length} events; ${ws.notifications.length} WS notifications; legacy parity passed.`);

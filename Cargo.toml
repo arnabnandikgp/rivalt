@@ -1,5 +1,5 @@
 [workspace]
-members = ["programs/clearing", "crates/financial-core", "crates/maker-interface", "programs/maker-a", "programs/maker-b", "tests/fixtures/hostile-maker", "tests/fixtures/oracle"]
+members = ["programs/clearing", "crates/financial-core", "crates/maker-interface", "programs/maker-a", "programs/maker-b", "tests/fixtures/hostile-maker", "tests/fixtures/oracle", "tests/fixtures/clearing-math"]
 resolver = "2"
 
 [workspace.dependencies]

@@ -172,6 +172,7 @@ import {
   getExecuteMarginRouteV2InstructionAsync,
   getExecuteOrderInstructionAsync,
   getExecuteRouteInstructionAsync,
+  getFinalizeAccountResolutionRatesV3InstructionAsync,
   getFreezeAccountsV3InstructionAsync,
   getFreezeGroupV2InstructionAsync,
   getFreezeMarketInstructionAsync,
@@ -287,6 +288,7 @@ import {
   parseExecuteMarginRouteV2Instruction,
   parseExecuteOrderInstruction,
   parseExecuteRouteInstruction,
+  parseFinalizeAccountResolutionRatesV3Instruction,
   parseFreezeAccountsV3Instruction,
   parseFreezeGroupV2Instruction,
   parseFreezeMarketInstruction,
@@ -402,6 +404,7 @@ import {
   type ExecuteMarginRouteV2AsyncInput,
   type ExecuteOrderAsyncInput,
   type ExecuteRouteAsyncInput,
+  type FinalizeAccountResolutionRatesV3AsyncInput,
   type FreezeAccountsV3AsyncInput,
   type FreezeGroupV2AsyncInput,
   type FreezeMarketAsyncInput,
@@ -468,6 +471,7 @@ import {
   type ParsedExecuteMarginRouteV2Instruction,
   type ParsedExecuteOrderInstruction,
   type ParsedExecuteRouteInstruction,
+  type ParsedFinalizeAccountResolutionRatesV3Instruction,
   type ParsedFreezeAccountsV3Instruction,
   type ParsedFreezeGroupV2Instruction,
   type ParsedFreezeMarketInstruction,
@@ -1648,6 +1652,7 @@ export enum ClearingInstruction {
   ExecuteMarginRouteV2,
   ExecuteOrder,
   ExecuteRoute,
+  FinalizeAccountResolutionRatesV3,
   FreezeAccountsV3,
   FreezeGroupV2,
   FreezeMarket,
@@ -2118,6 +2123,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ExecuteRoute;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([159, 255, 180, 192, 47, 160, 38, 65]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.FinalizeAccountResolutionRatesV3;
   }
   if (
     containsBytes(
@@ -3114,6 +3130,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ExecuteRoute;
     } & ParsedExecuteRouteInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.FinalizeAccountResolutionRatesV3;
+    } & ParsedFinalizeAccountResolutionRatesV3Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.FreezeAccountsV3;
     } & ParsedFreezeAccountsV3Instruction<TProgram>)
   | ({
@@ -3602,6 +3621,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ExecuteRoute,
         ...parseExecuteRouteInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.FinalizeAccountResolutionRatesV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.FinalizeAccountResolutionRatesV3,
+        ...parseFinalizeAccountResolutionRatesV3Instruction(instruction),
       };
     }
     case ClearingInstruction.FreezeAccountsV3: {
@@ -4424,6 +4450,11 @@ export type ClearingPluginInstructions = {
     input: ExecuteRouteAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getExecuteRouteInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  finalizeAccountResolutionRatesV3: (
+    input: FinalizeAccountResolutionRatesV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getFinalizeAccountResolutionRatesV3InstructionAsync> &
     SelfPlanAndSendFunctions;
   freezeAccountsV3: (
     input: FreezeAccountsV3AsyncInput,
@@ -5254,6 +5285,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getExecuteRouteInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          finalizeAccountResolutionRatesV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getFinalizeAccountResolutionRatesV3InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

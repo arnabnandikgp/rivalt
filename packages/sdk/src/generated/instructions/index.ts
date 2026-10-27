@@ -41,6 +41,7 @@ export * from "./executeMarginOrderV2.js";
 export * from "./executeMarginRouteV2.js";
 export * from "./executeOrder.js";
 export * from "./executeRoute.js";
+export * from "./finalizeAccountResolutionRatesV3.js";
 export * from "./freezeAccountsV3.js";
 export * from "./freezeGroupV2.js";
 export * from "./freezeMarket.js";

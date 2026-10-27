@@ -182,3 +182,49 @@ backed. No active/resolved pre-retirement insurance sweep is introduced. New
 progress, recovery, retirement and reserve events retain exact state/amounts for
 P27 reconstruction. The additive certificate is a D64 implementation detail of
 D60's existing authority contract, not a new loss policy.
+
+
+## Measured arithmetic continuation budget
+
+The isolated `tests/fixtures/clearing-math` SBF fixture invokes the actual checked
+financial-core functions with 88-, 2,796- and 5,592-bit denominators and maximum
+row cash/claim magnitudes. It owns only arithmetic scratch, no venue, root or token
+account. It does not fabricate deposits/fills/settlements or qualify an entire
+financial instruction. Raw fixed-width results match independent integer formulas;
+insurance probe inputs deliberately overbound a single cohort's aggregate vault.
+
+Two maximum-width row-flow calculations consume 1,011,805 CU before complete clearing
+context overhead, violating the unchanged 20% headroom requirement under 1.2M CU.
+Accordingly Verify and FlowPlan now accept exactly **one row** per call. Complete
+rate fixed/greatest equations and both insurance floors require a separate
+`finalize_account_resolution_rates_v3` after Verify cursor equals complete count.
+The header remains at Verify/count until that step; early/replayed finalization
+rejects. Stage/cursor/epoch/work identity still authenticate every continuation.
+Page storage remains two rows, and Value/Denominator/Apply/Reconcile retain legal
+one/two-row calls. No economic formula, claimant set, funding/source rule, heap or
+compute ceiling changes. This explicitly supersedes the initial universal
+one/two-row continuation envelope within unpublished P26.
+
+Measured resource-only single-row maxima are 524,723 CU for exact flows and
+391,738 for whole-atom planning; complete two-market insurance checks peak at
+423,042. These fixture figures exclude full clearing context overhead; do not
+present them as a measured maximum-width venue resolution. The full-context runtime
+matrix and final pinned acceptance remain separate requirements.
+
+The separate `account-safety-context-budget.ts` resource probe forks an actual
+signed 64-root/two-market frozen runtime. It widens only derived denominator scratch,
+preserving all rational flows, then measures the actual clearing contexts. L reaches
+5,632 bits and the factor 186 bits. Separate extremal scratch rows cover maximum
+cash/claims and double-debt/mixed-sign branches. Those derived rows deliberately do
+not represent authenticated root valuations: they are resource inputs, never
+successful financial histories. No Apply or token movement runs in the fork;
+root/market/ledger/vault bytes stay unchanged, and the genuine parent continues
+its separately audited signed settlement. Whole-case financial evidence still
+comes from actual registration, deposits, trades and source updates.
+
+The initial full-context extremal measurements peak at 774,364 CU (Verify) and
+638,366 (FlowPlan), below 960,000 with the unchanged 1.2M ceiling and default heap.
+Publication requires the final pinned matrix, including default-artifact rejection,
+complete proposal/order/circulation resource paths and actual RPC faults. The
+resource-only fixture and full-context scratch measurements are labelled separately
+from canonical financial acceptance; neither claims a live maximum-value cohort.

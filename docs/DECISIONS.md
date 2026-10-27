@@ -929,3 +929,13 @@ is irreversible; only afterward may the distinct reserve authority withdraw I to
 the immutable destination owner's canonical classic SPL ATA. C/T remain backed.
 Existing layouts, V1/V2, economic loss ownership and ordinary activation gating
 are unchanged. Full P26 maximum-cohort/resource/RPC acceptance remains required.
+
+
+D64 measured resource amendment: two 5,592-bit row-flow calculations consume
+1,011,805 CU in an isolated arithmetic SBF fixture, before clearing context costs.
+Supersede the initial universal one/two-row instruction envelope: Verify/FlowPlan
+now process one row, and complete rate/insurance equations run in a separate exact
+continuation at Verify/count. Two-row storage and other stages remain unchanged.
+Keep 1.2M CU, 32 KiB heap, 20% headroom, exact financial equations and complete
+membership. The fixture is pure resource evidence, not a fabricated financial
+state or whole-venue acceptance. Full-context phase acceptance still gates activation.

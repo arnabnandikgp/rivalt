@@ -67,6 +67,9 @@ pub mod clearing {
     pub fn recover_accounts_v3(ctx: Context<RecoverAccountsV3>, epoch: u64, resume: bool) -> Result<()> {
         account_safety::resolution::recover(ctx, epoch, resume)
     }
+    pub fn finalize_account_resolution_rates_v3(ctx: Context<ProposeAccountResolutionV3>, epoch: u64) -> Result<()> {
+        account_safety::resolution::finalize(ctx, epoch)
+    }
     pub fn reactivate_accounts_v3(ctx: Context<RecoverAccountsV3>, epoch: u64) -> Result<()> {
         account_safety::resolution::reactivate(ctx, epoch)
     }
