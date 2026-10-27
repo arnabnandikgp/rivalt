@@ -112,7 +112,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
       const state = selected ? await client.snapshot([selected[0]]) : undefined;
       if (epoch !== current.current.epoch) return;
       setSnapshot(state);
-      setAccounts(discovery?.accounts.filter(([, root]) => root.role === 0) ?? []);
+      setAccounts(discovery?.accounts ?? []);
       setTokens(owned);
       setOwnerPortfolio(discovery?.portfolio);
       setRpcError('');

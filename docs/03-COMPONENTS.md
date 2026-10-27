@@ -395,6 +395,10 @@ It discovers only the selected owner portfolio's bounded children, then prepares
 financial actions from current selected-root SDK snapshots. Shared widgets only
 render order/position/receipt data; V1/V2 retain their authority paths. The read API
 supports latest finalized fills without treating indexed balances as admission.
+`latest=true` and `after` are mutually exclusive on both V3 history endpoints.
+Owner discovery retains maker-capital and liquidation-receiver slots for balance
+and cash management, labels their role and suppresses trader-ticket admission;
+registration is offered only for an actually absent selected child.
 See [P28 qualification](P28-ACCOUNT-QUALIFICATION.md), [measured acceptance](evidence/P28.md)
 and [operations](P28-OPERATIONS.md) for the qualified scope and remaining limits.
 

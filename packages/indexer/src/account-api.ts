@@ -33,7 +33,8 @@ export function accountApi(indexer:AccountIndexer) {
         row:row.state.resolution!.rows[account.id]??null}:null};
   });
   for(const endpoint of ['events','trades'] as const)app.get<{Querystring:{after?:string;limit?:number;latest?:boolean}}>(`/v3/${endpoint}`,
-    {schema:{querystring:{type:'object',additionalProperties:false,properties:{latest:{type:'boolean'},after:{type:'string',pattern:'^(0|[1-9][0-9]{0,19})$'},limit:{type:'integer',minimum:1,maximum:100}}}}},async request=>{
+    {schema:{querystring:{type:'object',additionalProperties:false,properties:{latest:{type:'boolean'},after:{type:'string',pattern:'^(0|[1-9][0-9]{0,19})$'},limit:{type:'integer',minimum:1,maximum:100}}}}},async(request,reply)=>{
+      if(request.query.latest&&request.query.after!==undefined)return reply.code(400).send({error:'InvalidRequest'});
       const client=await indexer.store.pool.connect();
       try {
         await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');

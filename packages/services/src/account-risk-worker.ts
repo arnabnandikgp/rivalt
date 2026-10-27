@@ -3,6 +3,7 @@ import {AccountRole,address,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
+import type {AccountAuthority} from './account-authority.js';
 import {accountRemainderOrders,accountRiskSources,readAccountResolution} from './account-worker-state.js';
 import {readAccountRateProposal} from './account-frozen-proposal.js';
 
@@ -47,11 +48,11 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   if(await runtime.pendingBudget(budget))return {status:'blocked',reason:'original-risk-intent-pending'};
   const {state}=await runtime.discovery(),snapshot=await runtime.snapshot();
   const continuation=await readAccountResolution(runtime.rpc,snapshot.venue),{header}=continuation;
-  const submit=async(id:string,instruction:Instruction,resolution=false)=>{
+  const submit=async(id:string,instruction:Instruction,resolution=false,authority:AccountAuthority|null=null)=>{
     try {
       // Frozen continuation has no invented expiry proof. Unknown originals hold
       // the budget; history/reconciliation must resolve them before any new wire.
-      await runtime.enqueue(`risk:${id}`,[resolution?sdk.resolutionComputeBudget():sdk.groupRouteComputeBudget(),instruction],key,budget,null,true);
+      await runtime.enqueue(`risk:${id}`,[resolution?sdk.resolutionComputeBudget():sdk.groupRouteComputeBudget(),instruction],key,budget,authority,true);
       return true;
     } catch(error) {if(error instanceof Error&&error.message==='Risk action presently unavailable')return false;throw error;}
   };
@@ -102,7 +103,11 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
       for(let lots=absolute<64n?absolute:64n;lots>0n;lots/=2n) {
         const instruction=sdk.getLiquidateAccountV3Instruction({...current,receiverOwner:key,target,receiver,
           targetGuard:sdk.accountGuard(current,target),receiverGuard:sdk.accountGuard(current,receiver),marketIndex,lots,price:current.marketStates[marketIndex].referencePrice});
-        if(await submit(`liquidate:${root.id}:${marketIndex}:${lots}:${root.stateVersion}:${capital.stateVersion}`,instruction))
+        // Execution checks and advances this consenting receiver's version. At
+        // finalized expiry an unchanged canonical version proves no economic
+        // effect, while the queue still retains any unseen transaction fee.
+        if(await submit(`liquidate:${root.id}:${marketIndex}:${lots}:${root.stateVersion}:${capital.stateVersion}`,instruction,false,
+          {kind:'accountStateVersion',venue:current.venue,account:receiver,value:capital.stateVersion.toString()}))
           return {status:'queued',reason:'funded-whole-account-liquidation'};
       }
     }

@@ -3,7 +3,8 @@ import { fixed, short } from '../amount.js';
 import { terminal } from '../receipts.js';
 import { Field, Metric, GroupReview, GroupReceipts } from '../group/Primitives.js';
 import { GroupPositions, GroupTicket, GroupOrders, GroupAuthority, GroupFills } from '../group/GroupPanels.js';
-import { GROUP_MARKETS, accountLabel } from '../group/model.js';
+import { GROUP_MARKETS } from '../group/model.js';
+import { accountLabel } from './model.js';
 import { useAccountController, type AccountController } from './useAccountController.js';
 import type { AccountTraderConfig } from './types.js';
 

@@ -460,40 +460,161 @@ fn emit_route(
 #[cfg(test)]
 mod event_tests {
     use super::*;
+    // Wire markers deliberately need not be valid financial state. Every scalar
+    // has a nonzero marker, including nested books/oracles, so reordered fields
+    // cannot hide behind Default's identical zeros.
+    struct Markers(u64);
+    impl Markers {
+        fn next(&mut self) -> u64 {
+            self.0 += 1;
+            self.0
+        }
+        fn byte(&mut self) -> u8 {
+            u8::try_from(self.next()).unwrap()
+        }
+        fn root(&mut self) -> MarginAccountV3 {
+            MarginAccountV3 {
+                schema_version: self.next() as u16,
+                venue: Pubkey::new_unique(),
+                portfolio: Pubkey::new_unique(),
+                owner: Pubkey::new_unique(),
+                subaccount_index: self.next() as u16,
+                id: self.next() as u16,
+                mode: self.byte(),
+                isolated_market_index: self.byte(),
+                role: self.byte(),
+                cash: self.next(),
+                positions: std::array::from_fn(|_| v2::PositionV2 {
+                    lots: -(self.next() as i64),
+                    virtual_scaled: self.next() as i128,
+                    funding_checkpoint_scaled: -(self.next() as i128),
+                    generation: self.next(),
+                }),
+                nonce: self.next(),
+                state_version: self.next(),
+                delegate: Pubkey::new_unique(),
+                delegate_expiry_slot: self.next(),
+                delegate_epoch: self.next(),
+                reserved: self.next(),
+                book: v2::OrderBookV2 {
+                    last_order_id: self.next(),
+                    last_group_id: self.next(),
+                    reserve_observations: std::array::from_fn(|_| self.next()),
+                    orders: std::array::from_fn(|_| v2::StoredOrderV2 {
+                        market_index: self.byte(),
+                        delegate_epoch: self.next(),
+                        order: crate::state::StoredOrder {
+                            id: self.next(),
+                            version: self.next(),
+                            state: self.byte(),
+                            side: self.byte(),
+                            original_lots: self.next(),
+                            lots: self.next(),
+                            filled: self.next(),
+                            notional: self.next(),
+                            fee_charged: self.next(),
+                            fee_budget: self.next(),
+                            limit: self.next(),
+                            start_slot: self.next(),
+                            expiry_slot: self.next(),
+                            trigger: self.byte(),
+                            threshold: self.next(),
+                            reduce_only: true,
+                            generation: self.next(),
+                            group_id: self.next(),
+                            terms_epoch: self.next(),
+                            reserve: self.next(),
+                        },
+                    }),
+                    protections: std::array::from_fn(|_| v2::ProtectionV2 {
+                        market_index: self.byte(),
+                        protection: crate::state::ProtectiveGroup {
+                            id: self.next(),
+                            version: self.next(),
+                            original: self.next(),
+                            remaining: self.next(),
+                            generation: self.next(),
+                            side: self.byte(),
+                        },
+                    }),
+                },
+                bump: self.byte(),
+            }
+        }
+        fn market(&mut self) -> MarketV3 {
+            MarketV3 {
+                schema_version: self.next() as u16,
+                venue: Pubkey::new_unique(),
+                index: self.byte(),
+                symbol: std::array::from_fn(|_| self.byte()),
+                lots_per_unit: self.next(),
+                cross_eligible: true,
+                terms_epoch: self.next(),
+                config_epoch: self.next(),
+                funding_index_scaled: -(self.next() as i128),
+                funding_time: self.next() as i64,
+                gross_lots: self.next(),
+                observation_sequence: self.next(),
+                reference_price: self.next(),
+                lower: self.next(),
+                upper: self.next(),
+                valid_from: self.next(),
+                valid_until: self.next(),
+                oracle: crate::state::OracleState {
+                    sources: std::array::from_fn(|_| Pubkey::new_unique()),
+                    source_sequences: std::array::from_fn(|_| self.next()),
+                    sampled_at: self.next() as i64,
+                    source_deadline: self.next() as i64,
+                    status: self.byte(),
+                    outcome: self.byte(),
+                    valid_since: self.next() as i64,
+                    last_qualified: self.next() as i64,
+                    held_until: self.next() as i64,
+                    held_slot: self.next(),
+                    held_epoch: self.next(),
+                    funding_base: -(self.next() as i128),
+                    premium_scaled: self.next() as i128,
+                    quantity: self.next(),
+                    bid: self.next(),
+                    ask: self.next(),
+                    covered_seconds: self.next(),
+                    skipped_seconds: self.next(),
+                },
+                bump: self.byte(),
+            }
+        }
+        fn maker(&mut self) -> MakerRegistrationV3 {
+            MakerRegistrationV3 {
+                schema_version: self.next() as u16,
+                venue: Pubkey::new_unique(),
+                market: Pubkey::new_unique(),
+                market_index: self.byte(),
+                maker_id: self.byte(),
+                capital: Pubkey::new_unique(),
+                owner: Pubkey::new_unique(),
+                pricing_program: Pubkey::new_unique(),
+                program_data: Pubkey::new_unique(),
+                config: Pubkey::new_unique(),
+                approved_hash: [self.byte(); 32],
+                authority_epoch: self.next(),
+                quote_epoch: self.next(),
+                start_slot: self.next(),
+                expiry_slot: self.next(),
+                inventory_limit: self.next(),
+                buy_consumed: self.next(),
+                sell_consumed: self.next(),
+                quarantined: true,
+                bump: self.byte(),
+            }
+        }
+    }
     #[test]
     fn borrowed_route_event_matches_owned_idl_wire_exactly() {
-        let root = MarginAccountV3 {
-            schema_version: 3,
-            venue: Pubkey::new_unique(),
-            cash: 27,
-            nonce: 8,
-            state_version: 9,
-            positions: [
-                v2::PositionV2 {
-                    lots: -2,
-                    virtual_scaled: 123,
-                    funding_checkpoint_scaled: -17,
-                    generation: 4,
-                },
-                v2::PositionV2::default(),
-            ],
-            ..Default::default()
-        };
-        let market = MarketV3 {
-            schema_version: 3,
-            venue: root.venue,
-            cross_eligible: true,
-            reference_price: 60_000,
-            funding_index_scaled: -123,
-            ..Default::default()
-        };
-        let maker = MakerRegistrationV3 {
-            schema_version: 3,
-            venue: root.venue,
-            buy_consumed: 5,
-            quote_epoch: 7,
-            ..Default::default()
-        };
+        let mut markers = Markers(0);
+        let root = markers.root();
+        let market = markers.market();
+        let other_market = markers.market();
+        let maker = markers.maker();
         let ledger = crate::events::MarketLedgerSnapshotV3 {
             ledger: Pubkey::new_unique(),
             market: Pubkey::new_unique(),
@@ -510,7 +631,7 @@ mod event_tests {
             slot: 56,
             market: ledger.market,
             market_state: crate::events::MarketSnapshotV3::from(&market),
-            other_market_state: crate::events::MarketSnapshotV3::from(&market),
+            other_market_state: crate::events::MarketSnapshotV3::from(&other_market),
             nonce: 8,
             side: 1,
             lots: 2,
@@ -534,7 +655,7 @@ mod event_tests {
             slot: owned.slot,
             market: owned.market,
             market_state: &market,
-            other_market_state: &market,
+            other_market_state: &other_market,
             nonce: owned.nonce,
             side: owned.side,
             lots: owned.lots,
@@ -557,5 +678,13 @@ mod event_tests {
         let mut actual = Vec::new();
         view.serialize(&mut actual).unwrap();
         assert_eq!(actual, expected);
+        let swapped = RouteEventView {
+            market_state: &other_market,
+            other_market_state: &market,
+            ..view
+        };
+        let mut wrong_order = Vec::new();
+        swapped.serialize(&mut wrong_order).unwrap();
+        assert_ne!(wrong_order, expected);
     }
 }

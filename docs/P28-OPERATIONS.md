@@ -38,7 +38,19 @@ Run each process in its own terminal with the same private environment file
 (mode 0600). Configure `RIVALT_RPC_URL`, `RIVALT_WS_URL`, `RIVALT_DATABASE_URL`,
 `RIVALT_RUN_ID`, `RIVALT_VENUE`, `RIVALT_INIT_SIGNATURE` and
 `RIVALT_ACCOUNT_PROFILE=account-safety-qualification` from that deployment.
-Never put database credentials or signers in the public UI JSON.
+Never put database credentials or signers in the public UI JSON. In **each**
+process terminal, load the trusted private deployment file and export its variables
+before running that terminal's process command (replace the example path):
+
+```sh
+source ops/env.sh
+set -a
+source /absolute/path/to/private-account-deployment.env
+set +a
+```
+
+The private file must use shell assignment syntax and mode 0600. `ops/env.sh`
+selects tools only; it does not load deployment credentials. Then start the indexer:
 
 ```sh
 source ops/env.sh
@@ -68,7 +80,10 @@ Maker workers additionally require `RIVALT_MARKET_INDEX` and `RIVALT_MAKER_ID`
 Four maker bindings and two funding processes cover BTC/ETH. The optional
 `RIVALT_RECEIVER_MARGIN` for a risk worker must be a funded account owned by its
 explicitly consenting signer. Without it, no liquidation receiver is inferred.
-Protocol authority resume/reactivation is a separate explicit action.
+Protocol authority resume/reactivation is a separate explicit action. The owner UI
+shows registered maker-capital and liquidation-receiver slots with their funded
+cash and role labels. These slots do not enable the trader ticket; cash actions
+still require current SDK preparation and on-chain admission.
 
 Configure a public `RIVALT_TRADER_CONFIG` JSON with version 3, local chain/profile,
 credential-free RPC/WS URLs, venue/mint/domain and exact genesis/initialization

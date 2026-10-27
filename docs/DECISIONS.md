@@ -1043,3 +1043,22 @@ critical sequences, chain identity, unknown schemas, older state and economic
 mismatches do not gain this retry exception. Count restarts separately from
 sequence-ahead tail extensions. This shared transport correction applies to V1/V2
 consumers too, without changing their accounting, authority or readiness rules.
+
+
+## D67 — authorized M8 stack review and integration
+
+The user authorizes addressing all open P22–P28 review findings and merging the
+complete stack; this supersedes the earlier keep-open instruction. Preserve the
+phase-specific qualification pins and integrate the coherent final tree atomically
+with `gh stack`, after scoped remediation checks and actual hosted checks. A finding
+already corrected in a descendant is resolved against that descendant, without
+claiming the earlier phase head contained its later implementation.
+
+R073 binds liquidation nonexecution proof to the signed consenting receiver’s
+monotone state version under the existing D65 finalized-expiry rules. Unknown
+history never refunds a transaction fee; permissionless resolution work gets no
+invented proof. Owner UI discovery retains operator slots for cash visibility with
+role-labelled trader restrictions, and V3 latest/cursor exclusivity matches the
+existing read contract. These are service/UI corrections, not new financial rules,
+authority, program binaries or deployment qualification. P15B/P16B remain external;
+continuous 24-hour endurance remains Deferred.

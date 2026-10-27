@@ -4,9 +4,9 @@ import * as sdk from '@rivalt/sdk';
 import { fixed, integer, units } from '../amount.js';
 import type { AccountTraderConfig } from './types.js';
 import { useAccountVenue } from './useAccountVenue.js';
+import { accountLabel } from './model.js';
 import {
   GROUP_MARKETS,
-  accountLabel,
   groupOrderPrice,
   groupOrderTerms,
   groupQuantity,
@@ -65,7 +65,7 @@ export function useAccountController(config: AccountTraderConfig) {
   const financialDisabled =
     disabled || !root || Boolean(snapshot?.safetyState.paused) || snapshot?.safetyState.mode === 2;
   const marketAllowed = Boolean(
-    root && snapshot?.safetyState.mode === 1 &&
+    root && root.role === 0 && snapshot?.safetyState.mode === 1 &&
     (root.mode === 0 || root.isolatedMarketIndex === marketIndex),
   );
   const activeOrders =

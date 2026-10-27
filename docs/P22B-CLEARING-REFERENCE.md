@@ -135,11 +135,12 @@ representability, source/authentication, fairness after rounding, numeric bounds
 program acceptance. The existing restricted integral comparison remains available
 as its original regression and is not silently renamed as this general benchmark.
 
-Section 5 addresses monetary finalization at the model level. Before G17 closes,
-prove the bounded executable numeric representation and staged implementation
-envelope. Then finish normal payment/netting, terminal recovery, exact layouts and
-phase-qualified enforcement. No extra product choice or risk relaxation is required
-to continue that engineering work.
+Section 5 records the D59 model-level limits. D60 defines the bounded executable
+numeric representation, staged contract, normal payment/netting, terminal recovery
+and exact layouts in [the executable contract](P22B-EXECUTABLE-CONTRACT.md).
+Contract completion is distinct from implementation and phase-qualified acceptance;
+[WORKLOG](WORKLOG.md) owns their live status. No extra product choice or risk
+relaxation follows from this reference model.
 
 ## 5. Whole-atom output candidate
 
@@ -212,5 +213,7 @@ and creditor impairment remain exact in the reference.
 
 This prospective two-market rounding candidate refines the single-pool D19
 allocation approach only in the new-profile design. Existing V1/V2 behavior stays
-unchanged. Numeric/encoding bounds, precise paginated persistence, normal netting/
-payment eligibility, terminal recovery and layouts still prevent G17 closure.
+unchanged. At D59, numeric/encoding bounds, paginated persistence, normal netting/
+payment eligibility, terminal recovery and layouts were open in this reference.
+D60 completes their contract scope; implementation and runtime qualification have
+separate phase gates recorded in WORKLOG.

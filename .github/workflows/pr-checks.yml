@@ -92,6 +92,7 @@ jobs:
         run: |
           cargo test --locked -p clearing --lib instructions::account_safety --features account-safety-qualification
           cargo test --locked -p clearing --lib instructions::account_trading::activation --features account-safety-qualification
+          cargo test --locked -p clearing --lib instructions::account_trading::routes::event_tests --features account-safety-qualification
           cargo test --locked -p clearing --lib state::v3::tests --features account-safety-qualification
           cargo test --locked -p clearing --lib state::v3::tests
   shell:

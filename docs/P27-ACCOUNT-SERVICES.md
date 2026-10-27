@@ -138,7 +138,11 @@ Nonexecution proof is limited to monotone root state versions, market observatio
 sequences or maker-sync quote epochs, with canonical PDA/schema checks after
 finalized blockhash expiry. Unchanged authority says nothing about a hidden failed
 transaction fee; its budget reservation remains until actual finalized history.
-Actions without a signed pre-state stamp retain no inferred proof. All retries of
+Liquidation jobs retain the consenting receiver’s signed pre-state version:
+on-chain execution checks it and advances it, so an unchanged canonical receiver
+after finalized expiry proves no liquidation effect. An advanced/missing receiver
+remains unresolved. Permissionless freeze/default/recovery jobs have no invented
+version proof. Actions without a signed pre-state stamp retain no inferred proof. All retries of
 pending or unknown outcomes use the same committed bytes and signature. Worker
 lamport budgets and heartbeat records are market/maker-specific; financial worker
 wiring and actual process/fault qualification are pinned in the P27 report.
