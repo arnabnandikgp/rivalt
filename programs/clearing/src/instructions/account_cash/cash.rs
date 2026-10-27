@@ -14,7 +14,8 @@ pub fn withdraw(
         &accounts.identity.safety,
         &accounts.margin,
     )?;
-    let terminal = matches!(accounts.identity.safety.mode, RESOLVED | RETIRED);
+    let terminal = matches!(accounts.identity.safety.mode, RESOLVED | RETIRED)
+        || super::super::account_custody::recovered_custody(&accounts.identity.safety);
     let clock = if terminal {
         terminal_exit(&accounts.identity, &mut accounts.margin, amount)?;
         Clock::get()?
@@ -84,25 +85,13 @@ fn terminal_exit(
             && identity.venue.insurance_fee_share_bps == 2500
             && identity.custody.schema_version == SCHEMA_VERSION
             && identity.safety.schema_version == SCHEMA_VERSION
-            && matches!(identity.safety.mode, RESOLVED | RETIRED)
+            && (matches!(identity.safety.mode, RESOLVED | RETIRED)
+                || super::super::account_custody::recovered_custody(&identity.safety))
             && !identity.safety.paused,
         ClearingError::Profile
     );
-    trading::model(root)?;
-    require!(
-        amount > 0
-            && root.reserved == 0
-            && root
-                .positions
-                .iter()
-                .all(|position| position.lots == 0 && position.virtual_scaled == 0)
-            && root
-                .book
-                .orders
-                .iter()
-                .all(|entry| !entry.order.active() && entry.order.reserve == 0),
-        ClearingError::Resolution
-    );
+    require!(amount > 0, ClearingError::Amount);
+    super::super::account_custody::liability_free(root)?;
     super::super::account_custody::reconciled(
         &identity.custody,
         [&identity.btc_ledger, &identity.eth_ledger],

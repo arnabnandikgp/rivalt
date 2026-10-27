@@ -33,6 +33,7 @@ export * from "./resolutionPageV3.js";
 export * from "./resolutionState.js";
 export * from "./resolutionV3.js";
 export * from "./resolutionWorkV3.js";
+export * from "./retirementCertificateV3.js";
 export * from "./safetyV3.js";
 export * from "./settlementCertificateV3.js";
 export * from "./testRouteState.js";

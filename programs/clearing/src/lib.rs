@@ -64,6 +64,24 @@ pub mod clearing {
         start: u16) -> Result<()> {
         account_safety::resolution::round(ctx, epoch, start)
     }
+    pub fn recover_accounts_v3(ctx: Context<RecoverAccountsV3>, epoch: u64, resume: bool) -> Result<()> {
+        account_safety::resolution::recover(ctx, epoch, resume)
+    }
+    pub fn reactivate_accounts_v3(ctx: Context<RecoverAccountsV3>, epoch: u64) -> Result<()> {
+        account_safety::resolution::reactivate(ctx, epoch)
+    }
+    pub fn initialize_account_retirement_v3(ctx: Context<InitializeAccountRetirementV3>) -> Result<()> {
+        account_safety::resolution::retirement::initialize(ctx)
+    }
+    pub fn check_account_retirement_v3(ctx: Context<CheckAccountRetirementV3>, start: u16) -> Result<()> {
+        account_safety::resolution::retirement::check(ctx, start)
+    }
+    pub fn retire_accounts_v3(ctx: Context<RetireAccountsV3>, safety_epoch: u64) -> Result<()> {
+        account_safety::resolution::retirement::retire(ctx, safety_epoch)
+    }
+    pub fn withdraw_retired_reserve_v3(ctx: Context<WithdrawRetiredReserveV3>, market_index: u8, amount: u64) -> Result<()> {
+        account_safety::resolution::retirement::withdraw(ctx, market_index, amount)
+    }
 
     pub fn liquidate_account_v3(ctx: Context<LiquidateAccountV3>, target_guard: account_trading::authority::AccountGuardV3,
         receiver_guard: account_trading::authority::AccountGuardV3, market_index: u8, lots: u64, price: u64) -> Result<()> {

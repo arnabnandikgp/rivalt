@@ -28,7 +28,9 @@ const json=(value:unknown)=>JSON.stringify(value,(_,item)=>typeof item==='bigint
 const safetyTags=[sdk.INITIALIZE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.INITIALIZE_ACCOUNT_RESOLUTION_PAGE_V3_DISCRIMINATOR,
   sdk.FREEZE_ACCOUNTS_V3_DISCRIMINATOR,sdk.VALUE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,
   sdk.ADVANCE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.PROPOSE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,
-  sdk.ORDER_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.CHECK_ACCOUNT_RESOLUTION_ORDER_V3_DISCRIMINATOR,sdk.ROUND_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR];
+  sdk.ORDER_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.CHECK_ACCOUNT_RESOLUTION_ORDER_V3_DISCRIMINATOR,sdk.ROUND_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,
+  sdk.RECOVER_ACCOUNTS_V3_DISCRIMINATOR,sdk.REACTIVATE_ACCOUNTS_V3_DISCRIMINATOR,
+  sdk.CHECK_ACCOUNT_RETIREMENT_V3_DISCRIMINATOR,sdk.RETIRE_ACCOUNTS_V3_DISCRIMINATOR];
 async function send(label:string,instructions:Instruction[],signers:Parameters<Harness['send']>[2]=[],expectedError?:number) {
   svm.expireBlockhash();
   const sampling=instructions.some(instruction=>instruction.programAddress===deployment.program
@@ -67,10 +69,11 @@ const h:AccountTradingHarness={
   async advance(seconds,slots=seconds*20n){const clock=svm.getClock();clock.unixTimestamp+=seconds;clock.slot+=slots;svm.setClock(clock);},
   async quote(label,instruction){return (await send(label,[instruction])).returnData().data();},
 };
-const result=await accountSafetyCases(h);
+const result=await accountSafetyCases(h,{maximumCohort:process.env.RIVALT_SAFETY_MAXIMUM_COHORT==='1',
+  retireResolved:process.env.RIVALT_SAFETY_RETIRE_RESOLVED==='1'});
 writeFileSync(`${output}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
   trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
   runtime:'LiteSVM 1.6.1',signatureVerification:true,blockhashVerification:true,checks,
   binaries:Object.fromEntries(programs.map(([,name])=>[name,createHash('sha256').update(readFileSync(`${name==='clearing'?artifact:'.local/account-cash'}/${name}.so`)).digest('hex')])),
-  scope:"preliminary seven-member terminal runtime; recovery/retirement/maximum-cohort/RPC acceptance unfinished",...result}));
+  scope:"preliminary default/recovery/retirement runtime; maximum-width arithmetic/full acceptance unfinished",...result}));
 console.log(`P26 trading: ${checks.length} signed outcomes. Evidence: ${output}`);

@@ -916,3 +916,16 @@ planned market insurance once, retain fee/carry ownership, clear old authority,
 and preserve the forbidden zero slot of isolated roots. Resolved/Retired own-cash
 withdrawal has no new source/funding dependency. This realizes D60's existing
 terminal accounting; recovery/retirement and full acceptance remain outstanding.
+
+
+D64 recovery/retirement continuation: implement sustained source observations,
+authority-only Resolved→Custody and separately qualified candidate activation,
+retaining earned F, fee carry and historical root generations. Historical nonces/
+generations cannot block otherwise liability-free custody cash access. Add an
+80-byte schema-3 retirement certificate for the already-required complete flat
+scan; bind its safety/membership/global mutation stamps, with exact restart rules.
+That global administrative proof never gates ordinary owner withdrawals. Retirement
+is irreversible; only afterward may the distinct reserve authority withdraw I to
+the immutable destination owner's canonical classic SPL ATA. C/T remain backed.
+Existing layouts, V1/V2, economic loss ownership and ordinary activation gating
+are unchanged. Full P26 maximum-cohort/resource/RPC acceptance remains required.

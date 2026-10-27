@@ -298,6 +298,7 @@ strings with explicit units and schema.
 | ResolutionV3 | `resolution-v3`, venue | 3,644 |
 | ResolutionPageV3 | `resolution-page-v3`, venue, u16 page index | 3,400; two fixed rows |
 | ResolutionWorkV3 | `resolution-work-v3`, venue | 7,918 |
+| RetirementCertificateV3 (D64 additive implementation) | `retirement-v3`, venue | 80 |
 | Classic SPL vault | `vault-v3`, venue | Token account; venue PDA is token authority |
 
 Resolution pages/work retain epoch fields and are reused only after terminal

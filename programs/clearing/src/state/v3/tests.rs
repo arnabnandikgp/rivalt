@@ -17,6 +17,11 @@ fn exact_contract_sizes_and_roundtrips() {
     wire(VenueV3::default(), 321);
     wire(CustodyV3::default(), 83);
     wire(SafetyV3::default(), 77);
+    wire(RetirementCertificateV3::default(), 80);
+    assert_ne!(
+        RetirementCertificateV3::DISCRIMINATOR,
+        SettlementCertificateV3::DISCRIMINATOR
+    );
     wire(
         VenueRegistryV3 {
             members: vec![Pubkey::default(); 64],

@@ -12,11 +12,14 @@ mod contexts;
 mod freeze;
 mod pages;
 mod rates;
+mod recovery;
+pub mod retirement;
 mod rounding;
 pub use contexts::*;
 pub use freeze::{freeze, value_sources};
 pub use pages::advance;
 pub use rates::upload;
+pub use recovery::{reactivate, recover};
 pub use rounding::{check_order, order, round};
 
 pub const IDLE: u8 = 0;

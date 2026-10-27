@@ -10,6 +10,7 @@ export * from "./binding.js";
 export * from "./btcLedgerV3.js";
 export * from "./capital.js";
 export * from "./capitalBinding.js";
+export * from "./certificate.js";
 export * from "./classifyGroupSurplusV2Vault.js";
 export * from "./custodyV3.js";
 export * from "./ethLedgerV3.js";

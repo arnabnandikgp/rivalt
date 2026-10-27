@@ -140,5 +140,45 @@ Resolved/Retired owner withdrawals use the existing signed root guard and actual
 SPL transfer, require flat/no-claim/no-live-order cash and no pause, and consume no
 new funding or artificial source freshness. The candidate feature remains required;
 ordinary activation is still false. The active P25 withdrawal path retains its full
-current risk/held-funding checks. Recovery and irreversible retirement still require
-their own implementation/acceptance before P26 is ready for review.
+current risk/held-funding checks. Full maximum-cohort/resource/RPC acceptance
+still gates P26 readiness.
+
+
+## Recovery and terminal reserve custody
+
+Permissionless authenticated observations must establish six seconds of sustained
+normal sources, with the unchanged two-second sample interval and six-second hold.
+Bad sources reset recovery credit; a gap longer than the hold starts a new window.
+Only venue authority can resume a completely reconciled Resolved venue, and this
+returns to Custody. Safety/venue/market terms advance, earned funding and fee carry
+remain, and old observations are cleared. Fresh independent maker/source sampling
+and a separate authority action are required for candidate reactivation. No old
+order, delegate or quote authority is revived. Default/devnet builds stay gated.
+
+Recovered custody roots retain historical generations and nonces. Liability-free
+cash deposit/transfer/withdrawal therefore tests zero q/v, reserves and live orders
+rather than requiring virgin account bytes. Funded owner exits in recovered
+Custody, Resolved and Retired consume no new funding or fresh source observation.
+The fresh P23 custody profile and active P25 risk checks remain distinct.
+
+Retirement is irreversible and requires either complete current-epoch resolution
+reconciliation or a canonical complete flat/no-orders/no-claims scan. The latter
+uses additive `RetirementCertificateV3`, schema 3, 80 bytes including discriminator,
+at `retirement-v3, venue`. Ordered fields after schema/venue are safety epoch,
+membership version, custody sequence, scanned cash (four u64s), count/next (two
+u16s), complete/bump (two bytes). One/two read-only canonical roots are checked per
+call; an empty venue has an explicit zero-row completion. Any intervening ordinary
+mutation invalidates the administrative proof. A valid completed or in-progress
+scan cannot be gratuitously replaced; a stale scan restarts from zero. Complete
+cash must match custody and both market gross exposures/pools must be zero.
+This global proof is exclusively for irreversible retirement; normal owner exits
+never depend on it. Operators can pause activity for this administrative action.
+
+Only venue authority may retire. Retired identities cannot resume, activate,
+register or accept deposits. Then only the distinct stored reserve authority may
+withdraw selected-market I to the immutable reserve-destination owner's canonical
+classic SPL ATA. Actual I/V decrease equally; C/T and fee carry remain separately
+backed. No active/resolved pre-retirement insurance sweep is introduced. New
+progress, recovery, retirement and reserve events retain exact state/amounts for
+P27 reconstruction. The additive certificate is a D64 implementation detail of
+D60's existing authority contract, not a new loss policy.

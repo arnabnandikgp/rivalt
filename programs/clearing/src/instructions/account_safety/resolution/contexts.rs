@@ -147,3 +147,17 @@ pub struct ProposeAccountResolutionV3<'info> {
         constraint = work.venue == identity.venue.key() @ ClearingError::Profile)]
     pub work: Box<Account<'info, ResolutionWorkV3>>,
 }
+
+#[event_cpi]
+#[derive(Accounts)]
+pub struct RecoverAccountsV3<'info> {
+    pub identity: ResolutionIdentityV3<'info>,
+    pub caller: Signer<'info>,
+    #[account(seeds = [b"registry-v3", identity.venue.key().as_ref()], bump = registry.bump,
+        constraint = registry.venue == identity.venue.key() @ ClearingError::Profile)]
+    pub registry: Box<Account<'info, VenueRegistryV3>>,
+    #[account(mut, seeds = [b"resolution-v3", identity.venue.key().as_ref()], bump = resolution.bump,
+        constraint = resolution.venue == identity.venue.key() @ ClearingError::Profile)]
+    pub resolution: Box<Account<'info, ResolutionV3>>,
+    pub sources: ResolutionSourcesV3<'info>,
+}

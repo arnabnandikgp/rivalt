@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {AccountRole,getAddressEncoder,type Address,type Instruction} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
-import {getTokenDecoder} from '@solana-program/token';
+import {getTokenDecoder,findAssociatedTokenPda,getCreateAssociatedTokenInstruction,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import {accountPda} from './account-custody-cases.js';
 import {accountTradingSetup,type AccountTradingHarness} from './account-trading-setup.js';
 
 // Incremental P26 runtime gate. All financial state comes from signed deposits,
 // trades and authenticated price updates. Full terminal acceptance extends this.
-export async function accountSafetyCases(h:AccountTradingHarness) {
+export async function accountSafetyCases(h:AccountTradingHarness,options:{maximumCohort?:boolean;retireResolved?:boolean}={}) {
   const setup=await accountTradingSetup(h,{qualifyPrimitives:false,domainLabel:'rivalt/p26/account-safety'});
   const {payer,owner,markets,ledgers,cross,makers,feeds,roots}=setup;
   const common={...setup.common,btc:markets[0],eth:markets[1]};
@@ -18,22 +18,17 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
     const bytes=Buffer.alloc(2);bytes.writeUInt16LE(index);return accountPda('resolution-page-v3',encoded,bytes);
   }));
   const accounts={...common,resolution,work};
+  const certificate=await accountPda('retirement-v3',encoded);
+  const [reserveDestination]=await findAssociatedTokenPda({owner:payer.address,mint:setup.mint.address,tokenProgram:TOKEN_PROGRAM_ADDRESS});
   const header=async()=>sdk.getResolutionV3Decoder().decode((await h.read(resolution))!);
   const root=async(key:Address)=>sdk.getMarginAccountV3Decoder().decode((await h.read(key))!);
   const safety=async()=>sdk.getSafetyV3Decoder().decode((await h.read(common.safety))!);
   const guard=async(key:Address)=>{const value=await root(key);return {safetyEpoch:(await safety()).epoch,
     venueTermsEpoch:sdk.getVenueV3Decoder().decode((await h.read(common.venue))!).termsEpoch,nonce:value.nonce,stateVersion:value.stateVersion};};
   const raw=async()=>Object.fromEntries(await Promise.all([common.venue,common.custody,common.safety,common.vault,
-    common.registry,setup.mint.address,...setup.operators.map(operator=>operator.token.address),...roots,...markets,...ledgers,resolution,work,...pages].map(async key=>[key,(await h.read(key))?.toString('base64')??null])));
+    common.registry,setup.mint.address,reserveDestination,certificate,...setup.operators.map(operator=>operator.token.address),...roots,...markets,...ledgers,resolution,work,...pages].map(async key=>[key,(await h.read(key))?.toString('base64')??null])));
   async function reject(label:string,instruction:Instruction,error=6130,signers:typeof owner[]=[]) {
     const before=await raw();await h.send(label,[instruction],signers,error);assert.deepEqual(await raw(),before,`${label}: rollback`);
-  }
-  await h.send('precreate bounded header and continuation work',[sdk.getInitializeAccountResolutionV3Instruction({...accounts,payer})]);
-  assert.equal((await h.read(resolution))!.length,3644);assert.equal((await h.read(work))!.length,7918);
-  await reject('cannot skip a precreated page',sdk.getInitializeAccountResolutionPageV3Instruction({...accounts,payer,page:pages[1],pageIndex:1}));
-  for(let pageIndex=0;pageIndex<32;pageIndex++) {
-    await h.send('precreate canonical two-row page',[sdk.getInitializeAccountResolutionPageV3Instruction({...accounts,payer,page:pages[pageIndex],pageIndex})]);
-    assert.equal((await h.read(pages[pageIndex]))!.length,3400);
   }
   const sources={primaryBtc:feeds[0].feed,primaryCollateral:feeds[1].feed,guardBtc:feeds[2].feed,
     guardCollateral:feeds[3].feed,primaryEth:feeds[4].feed,guardEth:feeds[5].feed};
@@ -42,7 +37,38 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
     guard:await guard(roots[0]),amount});
   const freeze=async()=>sdk.getFreezeAccountsV3Instruction({...accounts,...sources,caller:payer,target:cross,
     safetyEpoch:(await safety()).epoch,resolutionEpoch:(await header()).epoch,emergency:false});
+  await h.send('create immutable reserve destination ATA',[getCreateAssociatedTokenInstruction({payer,ata:reserveDestination,
+    owner:payer.address,mint:setup.mint.address})]);
+  await h.send('donate actual tokens to unrelated ETH insurance',[sdk.getSeedMarketInsuranceV3Instruction({...common,
+    reserveAuthority:payer,donor:owner,donorToken:setup.operators[0].token.address,quoteMint:setup.mint.address,
+    marketIndex:1,amount:10n})],[owner]);
+  const reserveWithdraw=()=>sdk.getWithdrawRetiredReserveV3Instruction({...common,reserveAuthority:payer,
+    destination:reserveDestination,quoteMint:setup.mint.address,marketIndex:1,amount:10n});
+  await reject('custody insurance is not redeemable',reserveWithdraw(),6108);
   await h.send('activate explicit P26 candidate profile',[sdk.getQualifyAccountTradingV3Instruction({...common,authority:payer})]);
+  if(options.maximumCohort) {
+    const u16=(value:number)=>{const bytes=Buffer.alloc(2);bytes.writeUInt16LE(value);return bytes;};
+    for(const operator of setup.operators)for(let portfolioIndex=0;portfolioIndex<4 && roots.length<64;portfolioIndex++) {
+      const portfolio=await accountPda('portfolio-v3',encoded,getAddressEncoder().encode(operator.owner.address),u16(portfolioIndex));
+      if(portfolioIndex>0)await h.send('maximum cohort distinct portfolio',[sdk.getCreatePortfolioV3Instruction({
+        ...common,owner:operator.owner,portfolio,index:portfolioIndex})],[operator.owner]);
+      for(let child=0;child<=8 && roots.length<64;child++) {
+        const margin=await accountPda('margin-v3',getAddressEncoder().encode(portfolio),u16(child));
+        if(roots.includes(margin))continue;
+        await h.send('maximum cohort canonical member',[sdk.getRegisterMarginV3Instruction({...common,owner:operator.owner,
+          portfolio,margin,subaccountIndex:child,mode:child===0?0:1,isolatedMarketIndex:child===0?255:child%2,role:0})],[operator.owner]);
+        roots.push(margin);
+      }
+    }
+    assert.equal(roots.length,64);
+  }
+  await h.send('precreate bounded header and continuation work',[sdk.getInitializeAccountResolutionV3Instruction({...accounts,payer})]);
+  assert.equal((await h.read(resolution))!.length,3644);assert.equal((await h.read(work))!.length,7918);
+  await reject('cannot skip a precreated page',sdk.getInitializeAccountResolutionPageV3Instruction({...accounts,payer,page:pages[1],pageIndex:1}));
+  for(let pageIndex=0;pageIndex<32;pageIndex++) {
+    await h.send('precreate canonical two-row page',[sdk.getInitializeAccountResolutionPageV3Instruction({...accounts,payer,page:pages[pageIndex],pageIndex})]);
+    assert.equal((await h.read(pages[pageIndex]))!.length,3400);
+  }
   await reject('healthy funded account cannot trigger default',await freeze());
   await h.send('fund actual future debtor',[sdk.getDepositAccountV3Instruction({...common,owner,margin:cross,
     quoteMint:setup.mint.address,userToken:setup.operators[0].token.address,amount:400_000n})],[owner]);
@@ -226,6 +252,7 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
   for(let start=0;start<roots.length;start+=2)await h.send('complete actual terminal reconciliation',[
     advance(10,start,Math.min(2,roots.length-start),roots.slice(start,start+2))]);
   assert.equal((await header()).stage,11);assert.equal((await safety()).mode,3);
+  const completedAccounts=await raw();
   await reject('old signed exit cannot revive after default',staleWithdrawal,6122,[owner]);
   await h.advance(30n);
   const userTokenBefore=getTokenDecoder().decode((await h.read(setup.operators[0].token.address))!).amount;
@@ -235,6 +262,112 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
   assert.equal(terminal.totalCash,expectedCash-100n);assert.equal(terminal.allocatedVault,initial.allocatedBefore-100n);
   assert.equal(getTokenDecoder().decode((await h.read(common.vault))!).amount,initial.allocatedBefore-100n);
   assert.equal(getTokenDecoder().decode((await h.read(setup.operators[0].token.address))!).amount,userTokenBefore+100n);
-  return {venue:common.venue,resolution,work,pages,roots,markets,ledgers,frozenInputs:rowInputs,
-    initial,verified,rounded,terminal,rawAccounts:await raw()};
+  const resolvedAccounts=await raw();
+  const report=async(reactivatedAccounts?:Awaited<ReturnType<typeof raw>>)=>({
+    scenario:options.retireResolved?'resolved-retirement':'recovery-retirement',
+    venue:common.venue,custody:common.custody,safety:common.safety,registry:common.registry,vault:common.vault,
+    mint:setup.mint.address,userTokens:setup.operators.map(operator=>operator.token.address),reserveDestination,certificate,
+    resolution,work,pages,roots,markets,ledgers,makerAccounts:makers.flat().map(maker=>({registration:maker.registration,
+      capitalBinding:maker.capitalBinding,config:maker.config,makerId:maker.makerId})),frozenInputs:rowInputs,
+    initial,verified,rounded,terminal,frozenAccounts:snapshots,completedAccounts,resolvedAccounts,reactivatedAccounts,rawAccounts:await raw()});
+  await reject('resolved reserve cannot be swept before choosing retirement',reserveWithdraw(),6108);
+  const recover=(resume:boolean,caller=payer)=>sdk.getRecoverAccountsV3Instruction({...accounts,...sources,caller,epoch:initial.epoch,resume});
+  const reactivate=(caller=payer)=>sdk.getReactivateAccountsV3Instruction({...accounts,...sources,caller,epoch:initial.epoch});
+  if(options.retireResolved) {
+    await h.send('precreate unused retirement storage for parity',[sdk.getInitializeAccountRetirementV3Instruction({...common,payer,certificate})]);
+    const retireResolved=async(authority=payer,includeUnusedProof=false)=>sdk.getRetireAccountsV3Instruction({
+      ...common,certificate:includeUnusedProof?certificate:undefined,resolution,authority,safetyEpoch:(await safety()).epoch});
+    await reject('resolved retirement rejects extraneous flat proof',await retireResolved(payer,true));
+    await reject('resolved retirement requires venue authority',await retireResolved(owner),6102,[owner]);
+    await h.send('explicit resolved retirement consumes complete discharge proof',[await retireResolved()]);
+    assert.equal((await header()).stage,13);assert.equal((await safety()).mode,4);
+    await reject('resolved retirement cannot resume or sweep then reopen',recover(true));
+    await reject('resolved retirement cannot reactivate',reactivate());
+    const cashBefore=sdk.getCustodyV3Decoder().decode((await h.read(common.custody))!).totalCash;
+    await h.send('withdraw terminal reserve after resolved retirement',[reserveWithdraw()]);
+    assert.equal(sdk.getCustodyV3Decoder().decode((await h.read(common.custody))!).totalCash,cashBefore);
+    assert.equal(getTokenDecoder().decode((await h.read(reserveDestination))!).amount,10n);
+    return report();
+  }
+  await reject('resolution alone does not authorize immediate resumption',recover(true));
+  await reject('only venue authority can resume',recover(true,owner),6102,[owner]);
+  await h.send('stale sources record no recovery credit',[recover(false)]);
+  assert.equal((await safety()).recoverySince,0n);
+  for(let round=0;round<2;round++) {
+    await h.advance(2n);
+    for(let index=0;index<6;index++)await setup.publish(index);
+    await h.send('begin permissionless sustained source recovery',[recover(false,owner)],[owner]);
+  }
+  await h.advance(2n);
+  await setup.publish(0,{published:(await h.now())-21n});
+  await h.send('invalid source resets recovery credit',[recover(false)]);
+  assert.equal((await safety()).recoverySince,0n);
+  for(let round=0;round<4;round++) {
+    await h.advance(2n);
+    for(let index=0;index<6;index++)await setup.publish(index);
+    await h.send('complete sustained source recovery',[recover(false)]);
+  }
+  await h.send('explicit authority recovery returns only to custody',[recover(true)]);
+  assert.equal((await safety()).mode,0);assert.equal((await header()).stage,12);
+  for(let index=0;index<2;index++) {
+    assert.equal((await setup.marketState(index)).fundingIndexScaled,initial.funding[index]);
+    assert.equal((await setup.marketState(index)).oracle.status,0);
+    assert.equal(sdk.getMarketLedgerV3Decoder().decode((await h.read(ledgers[index]))!).fees,initial.feesBefore[index]);
+  }
+  await h.send('recovered custody accepts deposits with historical generations',[sdk.getDepositAccountV3Instruction({
+    ...common,owner,margin:roots[0],quoteMint:setup.mint.address,userToken:setup.operators[0].token.address,amount:10n})],[owner]);
+  await h.send('recovered custody permits source-independent funded withdrawal',[await withdrawal(10n)],[owner]);
+  await reject('reactivation requires separate fresh maker and source qualification',reactivate(),6124);
+  await reject('reactivation remains venue-authorized',reactivate(owner),6102,[owner]);
+  for(let round=0;round<4;round++) {
+    await h.advance(2n);
+    for(let index=0;index<6;index++)await setup.publish(index);
+    for(const index of [0,1])await h.send('separate recovered custody maker qualification',[
+      sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(index))]);
+  }
+  await h.send('explicit separate local candidate reactivation',[reactivate()]);
+  assert.equal((await safety()).mode,1);
+  assert.deepEqual(sdk.getMakerRegistrationV3Decoder().decode((await h.read(maker.registration))!).buyConsumed,registration.buyConsumed+25n);
+  await reject('reactivation cannot replay',reactivate());
+  const reactivatedAccounts=await raw();
+  await h.send('initialize small retirement certificate',[sdk.getInitializeAccountRetirementV3Instruction({...common,payer,certificate})]);
+  assert.equal((await h.read(certificate))!.length,80);
+  const scan=(start:number,members:Address[])=>{
+    const instruction=sdk.getCheckAccountRetirementV3Instruction({...common,certificate,start});
+    return {...instruction,accounts:[...instruction.accounts!,...members.map(address=>({address,role:AccountRole.READONLY}))]};
+  };
+  const retire=async(authority=payer)=>sdk.getRetireAccountsV3Instruction({...common,certificate,resolution:undefined,authority,safetyEpoch:(await safety()).epoch});
+  await reject('retirement rejects incomplete cohort proof',await retire());
+  await reject('retirement scan cannot omit first root',scan(1,[roots[1]]));
+  await h.send('scan initial liability-free root',[scan(0,[roots[0]])]);
+  await h.send('ordinary actual deposit invalidates administrative scan',[sdk.getDepositAccountV3Instruction({
+    ...common,owner,margin:roots[0],quoteMint:setup.mint.address,userToken:setup.operators[0].token.address,amount:1n})],[owner]);
+  await reject('retirement rejects stale scan continuation',scan(1,[roots[1]]));
+  for(let start=0;start<roots.length;start+=2)await h.send('complete fresh flat no-claim no-order scan',[scan(start,roots.slice(start,start+2))]);
+  await reject('complete retirement proof cannot be replaced',scan(0,[roots[0]]));
+  await reject('retirement remains venue-authorized',await retire(owner),6102,[owner]);
+  await reject('live reserve still cannot be redeemed after scan',reserveWithdraw(),6108);
+  await h.send('irreversibly retire fully reconciled venue',[await retire()]);
+  assert.equal((await safety()).mode,4);
+  await reject('retired identity cannot recover',recover(true));
+  await reject('retired identity cannot reactivate',reactivate());
+  await reject('retired identity cannot retire twice',await retire());
+  await reject('retired identity rejects new deposits',sdk.getDepositAccountV3Instruction({...common,owner,margin:roots[0],
+    quoteMint:setup.mint.address,userToken:setup.operators[0].token.address,amount:1n}),6108,[owner]);
+  await reject('foreign reserve authority rejects',sdk.getWithdrawRetiredReserveV3Instruction({...common,reserveAuthority:owner,
+    destination:reserveDestination,quoteMint:setup.mint.address,marketIndex:1,amount:10n}),6102,[owner]);
+  await h.advance(30n);
+  await h.send('retired owner cash stays withdrawable with stale sources',[await withdrawal(1n)],[owner]);
+  const beforeReserve=sdk.getCustodyV3Decoder().decode((await h.read(common.custody))!);
+  const ledgerBefore=sdk.getMarketLedgerV3Decoder().decode((await h.read(ledgers[1]))!);
+  assert.equal(ledgerBefore.insurance,10n);
+  await h.send('retired reserve exits only to immutable canonical ATA',[reserveWithdraw()]);
+  const afterReserve=sdk.getCustodyV3Decoder().decode((await h.read(common.custody))!);
+  assert.equal(afterReserve.totalCash,beforeReserve.totalCash);
+  assert.equal(afterReserve.allocatedVault,beforeReserve.allocatedVault-10n);
+  assert.equal(getTokenDecoder().decode((await h.read(reserveDestination))!).amount,10n);
+  const ledgerAfter=sdk.getMarketLedgerV3Decoder().decode((await h.read(ledgers[1]))!);
+  assert.equal(ledgerAfter.insurance,0n);assert.equal(ledgerAfter.fees,ledgerBefore.fees);
+  assert.equal(ledgerAfter.insuranceFeeRemainder,ledgerBefore.insuranceFeeRemainder);
+  return report(reactivatedAccounts);
 }

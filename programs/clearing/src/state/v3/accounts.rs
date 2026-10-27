@@ -49,6 +49,23 @@ pub struct SafetyV3 {
     pub bump: u8,
 }
 
+/// Terminal administrative proof only. Ordinary owner exits never depend on
+/// this complete-cohort scan or its global discovery-sequence stamp.
+#[account]
+#[derive(InitSpace, Default)]
+pub struct RetirementCertificateV3 {
+    pub schema_version: u16,
+    pub venue: Pubkey,
+    pub safety_epoch: u64,
+    pub membership_version: u64,
+    pub custody_sequence: u64,
+    pub cash: u64,
+    pub count: u16,
+    pub next: u16,
+    pub complete: bool,
+    pub bump: u8,
+}
+
 #[account]
 #[derive(InitSpace, Default)]
 pub struct VenueRegistryV3 {

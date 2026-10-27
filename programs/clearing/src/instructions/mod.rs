@@ -293,6 +293,16 @@ pub(crate) use account_trading::activation::__cpi_client_accounts_qualify_accoun
 pub use account_trading::activation::QualifyAccountTradingV3;
 
 pub mod account_safety;
+pub use account_safety::resolution::retirement::{InitializeAccountRetirementV3, CheckAccountRetirementV3, RetireAccountsV3, WithdrawRetiredReserveV3};
+pub(crate) use account_safety::resolution::retirement::{__client_accounts_initialize_account_retirement_v3,
+    __client_accounts_check_account_retirement_v3, __client_accounts_retire_accounts_v3, __client_accounts_withdraw_retired_reserve_v3};
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::resolution::retirement::{__cpi_client_accounts_initialize_account_retirement_v3,
+    __cpi_client_accounts_check_account_retirement_v3, __cpi_client_accounts_retire_accounts_v3, __cpi_client_accounts_withdraw_retired_reserve_v3};
+pub use account_safety::resolution::RecoverAccountsV3;
+pub(crate) use account_safety::resolution::__client_accounts_recover_accounts_v3;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::resolution::__cpi_client_accounts_recover_accounts_v3;
 pub use account_safety::resolution::{InitializeAccountResolutionV3, InitializeAccountResolutionPageV3, ProposeAccountResolutionV3,
     FreezeAccountsV3, ValueAccountResolutionV3, AdvanceAccountResolutionV3};
 pub(crate) use account_safety::resolution::{__client_accounts_initialize_account_resolution_v3,

@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R061: P22A/P22B/P23/P24 Review. A29/G19 core passes on clean `4a0763d`: 329 signed SVM / 313 finalized RPC outcomes, full observed WS and exact financial/legacy parity. R062: P25 A30/G19 cash passes on clean `12a23e6`: 631 SVM / 629 finalized RPC outcomes, 446 WS, 57-transition exact audits. P25 ready PR #37 is open above #36; R063: P26 arithmetic/rate primitives pass 2,060 integer and 337 Fraction cases; 19 V3 liquidation/frozen/terminal tests and the SBF frame check pass. Preliminary signed runtime reaches complete application, reconciliation and a stale-source funded exit: 197 outcomes (185 pass / 12 expected rejects); 549 independent atom/continuation comparisons pass. Recovery/retirement and full runtime acceptance remain due; activation stays gated |
+| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R061: P22A/P22B/P23/P24 Review. A29/G19 core passes on clean `4a0763d`: 329 signed SVM / 313 finalized RPC outcomes, full observed WS and exact financial/legacy parity. R062: P25 A30/G19 cash passes on clean `12a23e6`: 631 SVM / 629 finalized RPC outcomes, 446 WS, 57-transition exact audits. P25 ready PR #37 is open above #36; R063: P26 arithmetic/rate primitives pass 2,060 integer and 337 Fraction cases; 23 V3 safety tests and the SBF frame check pass. R064 adds sustained recovery, separate reactivation and irreversible retirement/reserve custody: preliminary 680 signed SVM and 680 actual finalized RPC outcomes (650 pass / 30 rejects), all 563 expected WS, 119-account/694-event legacy parity and 64 independent Fraction payouts. Maximum-width and remaining safety acceptance remain due; activation stays gated |
 
 ## Phase overview
 
@@ -78,7 +78,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P23 | Registry, accounts and custody | Review | [PR #35](https://github.com/arnabnandikgp/rivalt/pull/35), head `de5db9d`, above #33; checked `4500168` | [A28/G18](evidence/P23.md): 139 signed SVM / 57 actual RPC outcomes, 11-instruction and eight-account legacy parity, exact raw-byte/token audit, 64-member SVM bound; max 89,854 CU / 753 bytes / 16 accounts. Trading disabled |
 | M8 | P24 | Risk, funding, routes and orders | Review | [PR #36](https://github.com/arnabnandikgp/rivalt/pull/36), head `f8f5dac`, above #35; tested `4a0763d` | [A29/G19 core](evidence/P24.md): 329 SVM / 313 finalized RPC outcomes; 23 ABI variants, 28 accounts / 134 event parity, 175 WS notifications; exact 49-transition / 16-fill audit. Max route 473,764 CU, overall 1,191 bytes / 24 accounts. Ordinary activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
-| M8 | P26 | Liquidation, complete default and local activation | In progress | `phase/p26-account-safety` above #37 `75e34c5` | R063: rounding checkpoint `a75e69d`; 19 focused tests, 549 independent atom/continuation cases; preliminary 197 signed SVM outcomes through terminal reconciliation/cash exit. Implement recovery/retirement, then maximum-cohort/RPC acceptance; ordinary activation disabled |
+| M8 | P26 | Liquidation, complete default and local activation | In progress | `phase/p26-account-safety` above #37 `75e34c5` | R064 on `ac6b3a6` plus recorded working diff: 23 focused tests; 680 preliminary 64-member SVM / finalized RPC outcomes through recovery/retirement, 563 WS and exact raw audit; separate resolved-retirement SVM 208 outcomes. Complete maximum-width/remaining safety acceptance next; ordinary activation disabled |
 | M8 | P27 | SDK, indexer/API and durable services | Open | — | P26 / A32 / G21 interfaces; fresh real integration |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Open | — | P27 / A33 / G21 / M8 exit; normal background exits, complete outcomes/replay |
 
@@ -93,7 +93,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Verification: final full-stack review has zero unresolved threads, no requested changes and all PRs mergeable with selected CI passing. Final tip `1a3cc2c` passes all five jobs in hosted run `40221453594`. Phase reports retain original executed pins and limitations; R052 actual service recovery uses `e4a284c` and receipt concurrency uses `c0e5274`. This run adds repository/review/integration verification, not new financial/runtime evidence.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: finish P25 account-local cash handlers, market backing certificates and funded claims/netting; verify held corners and actual atomic exits under ordinary sampling before publishing its ready child PR.
+- Exact next action: finish P26 maximum-cohort/arithmetic-width and actual RPC/WS safety acceptance, then publish its ready stacked PR above #37 and continue P27/P28. Keep the stack open.
 - Deferred gates: D56 resumes busy-group/atomic-exit redesign within P22–P28; the old runtime limitation remains. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new deployment or external participation is claimed.
 
 ## Blocker register
@@ -2437,3 +2437,84 @@ no merge/publication of incomplete P26 occurs. No unrelated inherited suites,
 endurance, devnet/funded deployment, CI or external review are run or claimed.
 Exact next action: implement explicit sustained-source recovery and irreversible
 retirement/reserve custody, then finish maximum-cohort/real RPC safety acceptance.
+
+
+### R064 — 27 October 2026 — P26 recovery and terminal retirement
+
+Continue on `phase/p26-account-safety` at `ac6b3a6` with its existing recovery
+working changes, preserving unrelated user uploads. Implement sustained authenticated
+source recovery, authority-only Resolved→Custody, separate fresh maker/source
+qualification and explicit candidate reactivation. Preserve earned funding, fee
+carry and historical root generations. Fix recovered custody access to test actual
+liabilities rather than virgin nonces/generations; flat cash deposit/transfer/exit
+remains source-independent. Add D64's 80-byte retirement certificate, canonical
+complete flat scan and irreversible authority retirement. Only afterward may reserve
+authority withdraw selected-market I to the immutable destination owner's canonical
+classic SPL ATA; C/T remain separately backed. Record additive layout/authority
+clarifications in the protocol, components, executable contract, roadmap and D64.
+
+Scoped `cargo test -p clearing --lib instructions::account_safety --features
+account-safety-qualification --locked --offline` passes 23 checks; the affected
+exact-layout test passes separately. The first retirement compile catches missing
+Anchor composite-context generated imports; import those explicit modules/bumps.
+Candidate `anchor build -p clearing --no-idl --tools-version v1.52 --arch v0 --
+-- --locked --features account-safety-qualification` passes the unchanged 4 KiB
+frame guard. IDL generation, `pnpm generate`, `pnpm typecheck` and generated parity
+pass. All 99 inherited instructions, 29 accounts, 31 events, 99 types and 32 errors
+from exact P25 `75e34c5` remain identical. No ordinary activation is enabled.
+
+`node --import tsx tests/rpc-contract/account-safety-svm.ts` passes 308 signed
+outcomes (278 success / 30 expected rejects), including invalid-source recovery
+reset, foreign/premature resume, fresh reactivation qualification, stale retirement
+scan restart, retirement irreversibility and actual owner/reserve token exits.
+Paths `.local/account-safety-runs/20261027T094207331Z-71212/` and the extended raw
+snapshot run `.local/account-safety-runs/20261027T094702029Z-72589/` remain ignored.
+The first runtime attempt expected the wrong OraclePolicy code (6123 versus actual
+6124); correct the harness expectation without altering risk behavior. Recovery/
+retirement are candidate seven-member coverage, not phase acceptance.
+
+`python3 tests/financial/account-safety-reference.py` independently decodes frozen
+and complete raw accounts, derives all seven Fraction-model payouts and exact
+market movements, and audits cash/insurance/fee/funding/authority/token invariants
+through recovery and retirement. Ten corruptions reject, including a conserving
+wrong atom recipient. The mutation check caught the auditor ignoring an unsigned
+flow for a zero claim; explicitly verify its magnitude too. This is an auditor
+correction, not a changed payout. Raw logs stay `.local/p26-recovery-*`.
+
+Exact next action: complete the actual Surfpool RPC/WS/legacy parity run and
+64-member signed case, then maximum-width/remaining safety acceptance and the clean
+P26 pin before publication. P27/P28 remain dependent; P15B/P16B stay external and
+24-hour endurance stays Deferred. No unrelated broad suite, PostgreSQL/UI, devnet/
+funded deployment, hosted CI, outreach or external review is run or claimed.
+
+
+R064 runtime continuation: the canonical 64-member signed path passes 680 outcomes
+(650 successful / 30 expected rejects) at
+`.local/account-safety-runs/20261027T095019343Z-73526/`. Complete-cohort overhead
+remains within declared envelopes: two-row Value 267,521 CU, Verify 320,043,
+FlowPlan 530,263, order check 273,368 and Reconcile 262,535; maximum packet 1,176.
+This cohort includes funded makers/the real bankrupt position and additional empty
+registered roots; it does not establish maximum arithmetic width. The independent
+raw auditor reproduces all 64 exact Fraction payouts and rejects ten corruptions.
+A separate signed complete-resolution→Retired path passes 208 outcomes (190/18)
+at `.local/account-safety-runs/20261027T095314623Z-74634/`; its independent audit
+also passes. This checks retirement without reactivation or an unused flat proof.
+
+`RIVALT_SAFETY_MAXIMUM_COHORT=1 bash ops/account-safety-smoke.sh` passes on actual
+Surfpool HTTP/WS at `.local/account-safety-rpc/20261027T095143Z-73879/`: 680 original
+signatures independently finalized, all 563 expected WS outcomes, 119 accounts /
+15 program-qualified types and 694 committed events with isolated legacy parity.
+All 64 independent raw payouts/recovery/retirement/token checks pass and ten
+mutations reject. Largest observed CU is 823,226 (sampling) under its 1.2M budget.
+The earlier seven-member RPC run finalized 308 originals but failed its final
+comparison because legacy Buffer JSON differs from generated byte arrays. Normalize
+legacy Uint8Array values without changing codecs; saved input then independently
+passes 62-account/151-event parity. Its missing WS closeout is not claimed. Preserve
+that failed run at `.local/account-safety-rpc/20261027T094709Z-72694/`.
+
+All runs above use `ac6b3a6` plus recorded working changes, not a clean final P26
+qualification pin. Candidate ordinary activation remains disabled. Exact next
+action: signed liquidation/malicious-stage and maximum-width arithmetic/resource
+acceptance, followed by the clean P26 build/pin and ready PR above #37. No new
+PostgreSQL/UI, broad inherited regression, endurance, devnet or external gate is
+claimed; P27 and P28 continue afterward with the stack left open.

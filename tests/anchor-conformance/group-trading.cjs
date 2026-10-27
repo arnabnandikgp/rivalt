@@ -14,6 +14,7 @@ const plain = value => JSON.parse(JSON.stringify(value,function(key,item){
   const original=this[key];
   if(anchor.BN.isBN(original))return original.toString(10);
   if(original instanceof PublicKey)return original.toBase58();
+  if(original instanceof Uint8Array)return Array.from(original);
   return item;
 }));
 const unpack = value => {

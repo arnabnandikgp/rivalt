@@ -99,6 +99,32 @@ fn empty_financial_state(margin: &MarginAccountV3) -> Result<()> {
     Ok(())
 }
 
+/// Completed resolution retains historical generations/nonces. Those are not
+/// liabilities; custody cash access still requires every live obligation absent.
+pub(crate) fn recovered_custody(safety: &SafetyV3) -> bool {
+    cfg!(feature = "account-safety-qualification")
+        && safety.mode == CUSTODY
+        && safety.resolution_epoch > 0
+}
+
+pub(crate) fn liability_free(margin: &MarginAccountV3) -> Result<()> {
+    super::account_trading::model(margin)?;
+    require!(
+        margin.reserved == 0
+            && margin
+                .positions
+                .iter()
+                .all(|position| position.lots == 0 && position.virtual_scaled == 0)
+            && margin
+                .book
+                .orders
+                .iter()
+                .all(|entry| !entry.order.active() && entry.order.reserve == 0),
+        ClearingError::Resolution
+    );
+    Ok(())
+}
+
 fn member(account: &Account<MarginAccountV3>) -> AccountCashSnapshotV3 {
     AccountCashSnapshotV3 {
         margin: account.key(),
@@ -465,8 +491,16 @@ pub fn cash(ctx: Context<AccountCashV3>, amount: u64, withdraw: bool) -> Result<
         let positions = ctx.accounts.margin.positions;
         super::account_trading::invalidate(&mut ctx.accounts.custody, positions, positions)?;
     } else {
-        active(&ctx.accounts.venue, &ctx.accounts.custody, &ctx.accounts.safety)?;
-        empty_financial_state(&ctx.accounts.margin)?;
+        active(
+            &ctx.accounts.venue,
+            &ctx.accounts.custody,
+            &ctx.accounts.safety,
+        )?;
+        if recovered_custody(&ctx.accounts.safety) {
+            liability_free(&ctx.accounts.margin)?;
+        } else {
+            empty_financial_state(&ctx.accounts.margin)?;
+        }
     }
     require!(amount > 0, ClearingError::Amount);
     reconciled(
@@ -546,8 +580,13 @@ pub fn transfer(ctx: Context<TransferAccountCustodyV3>, amount: u64) -> Result<(
         &ctx.accounts.custody,
         &ctx.accounts.safety,
     )?;
-    empty_financial_state(&ctx.accounts.donor)?;
-    empty_financial_state(&ctx.accounts.recipient)?;
+    if recovered_custody(&ctx.accounts.safety) {
+        liability_free(&ctx.accounts.donor)?;
+        liability_free(&ctx.accounts.recipient)?;
+    } else {
+        empty_financial_state(&ctx.accounts.donor)?;
+        empty_financial_state(&ctx.accounts.recipient)?;
+    }
     require!(amount > 0, ClearingError::Amount);
     reconciled(
         &ctx.accounts.custody,

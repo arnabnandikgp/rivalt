@@ -2,7 +2,7 @@ use super::*;
 use crate::instructions::group_safety::resolution as shared;
 use financial_core::oracle::Bounds;
 
-fn sources(
+pub(super) fn sources(
     identity: &mut ResolutionIdentityV3,
     feeds: &ResolutionSourcesV3,
     now: i64,

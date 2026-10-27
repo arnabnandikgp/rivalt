@@ -1224,3 +1224,68 @@ pub struct AccountResolutionCompletedV3 {
     pub ledger_versions: [u64; 2],
     pub insurance_fee_remainders: [u8; 2],
 }
+
+#[event]
+pub struct AccountSafetyRecoveryV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    /// 0 observe, 1 resolved->custody, 2 explicit candidate reactivation.
+    pub kind: u8,
+    pub mode: u8,
+    pub paused: bool,
+    pub safety_epoch: u64,
+    pub terms_epoch: u64,
+    pub config_epoch: u64,
+    pub stage: u8,
+    pub recovery_since: i64,
+    pub recovery_last: i64,
+    pub total_cash: u64,
+    pub allocated_vault: u64,
+    pub actual_vault: u64,
+    pub markets: [MarketSnapshotV3; 2],
+}
+#[event]
+pub struct AccountRetirementProgressV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub safety_epoch: u64,
+    pub membership_version: u64,
+    pub count: u16,
+    pub next: u16,
+    pub cash: u64,
+    pub complete: bool,
+}
+
+#[event]
+pub struct AccountsRetiredV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub safety_epoch: u64,
+    pub terms_epoch: u64,
+    pub count: u16,
+    pub total_cash: u64,
+    pub allocated_vault: u64,
+    pub actual_vault: u64,
+}
+
+#[event]
+pub struct RetiredReserveWithdrawnV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub authority: Pubkey,
+    pub destination: Pubkey,
+    pub market_index: u8,
+    pub amount: u64,
+    pub insurance: u64,
+    pub fees: u64,
+    pub fee_remainder: u8,
+    pub ledger_version: u64,
+    pub total_cash: u64,
+    pub allocated_vault: u64,
+    pub actual_vault: u64,
+}

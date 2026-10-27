@@ -591,3 +591,8 @@ replace P26 safety or P28 sustained concurrent qualification.
 P26 implementation sequence: [bounded whole-account safety](P26-ACCOUNT-SAFETY.md).
 Independent primitive arithmetic is an intermediate check; A31/G20 requires the
 complete signed financial/state-machine and resource acceptance before activation.
+
+P26 recovery/retirement uses D64's additive terminal-only certificate and retains
+separate authority to recover to Custody and to reactivate after fresh qualification.
+The preliminary seven-member signed path is not the maximum-cohort/resource or
+full RPC safety gate. P27/P28 and external P15B/P16B remain separate deliverables.
