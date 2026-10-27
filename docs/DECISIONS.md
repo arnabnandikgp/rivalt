@@ -999,3 +999,11 @@ An unchanged stamp cannot release fees for an unseen failed transaction. Wallet
 ingress keeps the currently measured one-action SDK envelope and explicit zero
 priority price; operator budgets remain separate test lamports. This extends
 interfaces without changing chain authority, routing economics or risk rules.
+
+
+D65 worker clarification (R071): V3 funding samples are not a quote barrier; current
+source/whole-account checks govern the signed account intent. Settlement workers
+never auto-net closed claims. Default continuation follows authenticated current
+chain cursors and untrusted exact proposals, with no new loss/risk authority.
+Consenting liquidation receivers and explicit operator lamport budgets remain
+required; automatic emergency freeze or authority recovery is excluded.

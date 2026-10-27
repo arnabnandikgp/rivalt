@@ -141,3 +141,34 @@ Actions without a signed pre-state stamp retain no inferred proof. All retries o
 pending or unknown outcomes use the same committed bytes and signature. Worker
 lamport budgets and heartbeat records are market/maker-specific; financial worker
 wiring and actual process/fault qualification remain separate unfinished work.
+
+
+## Worker operation
+
+Run `account-executor-main.ts` for signed queue execution and
+`account-worker-main.ts` with `RIVALT_ACCOUNT_ROLE=maker|funding|orders|settlement|risk`,
+explicit `RIVALT_RUN_ID`, local RPC/database and a mode-0600 `RIVALT_SIGNER_PATH`.
+Maker and funding roles require `RIVALT_MARKET_INDEX=0|1`; maker additionally
+requires `RIVALT_MAKER_ID=0|1`. Risk receiver consent requires the receiver owner
+signer plus explicit `RIVALT_RECEIVER_MARGIN`. No receiver is inferred. The
+version-3 service API is separate from finalized indexing, defaults to loopback
+port 18093 and exposes `/v3/quote`, `/v3/submit`, original submissions and operator
+budgets/heartbeats. Public quotes remain provisional.
+
+Discovery uses finalized membership/orders, followed by current authenticated
+selected-root snapshots. Sampling records loss of source/maker coverage too;
+heartbeats do not suppress restrictive source transitions. Sampling is not an
+ordinary V3 quote barrier. Maker publication and clearing sync stay separate
+transactions. Settlement requires funded whole-account gross debt coverage for
+collection, or a current complete selected-market backing certificate for gains.
+It never automatically nets an owner's opposite closed claims.
+
+Risk workers probe at most two discovered exposed roots per iteration using actual
+current sources, then consider a configured consenting receiver and strict
+post-fee progress. Frozen work resumes the on-chain page/upload/order/round cursor.
+Ordinary quote/cash authority never depends on this complete-cohort traversal.
+Unchanged-stage expiry is not invented as a resolution nonexecution proof.
+Recovery observations are bounded to eight original attempts per epoch; explicit
+authority resume/reactivation/emergency freeze/retirement are outside automation.
+The live `--workers` qualification owns new process/fault evidence; implementation
+and unit checks alone do not close A32.
