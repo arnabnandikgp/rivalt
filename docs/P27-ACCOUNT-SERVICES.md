@@ -57,3 +57,23 @@ Use focused regression tests and fresh integration traces; broad inherited suite
 remain in scoped CI. Local synthetic sources/internal makers are labelled as such.
 No new devnet or funded deployment, paid service, outreach or external hedge is
 authorized by this phase.
+
+
+## Direct SDK checkpoint
+
+`AccountUserClient` authenticates version-3 local configuration, the initialization
+anchor/genesis and qualified artifact set. `readAccountSnapshot` accepts one or two
+selected roots. It discovers their immutable portfolios, then reads all financial
+state in one 12/13-account batch for the common same-portfolio cases. It does not
+read unrelated roots or require a registry-wide exit certificate. A minimum context
+slot prevents backwards RPC reads. The atomic instruction still checks current
+whole-account funding, risk, reservations, source restrictions and held-window
+solvency on chain. A cash balance alone is not an admission promise.
+
+Owner exits use virgin-custody or guarded funded instructions as appropriate;
+recovered/terminal exits retain their source-independent contract. Delegated
+cancellation remains account-scoped. Explicit netting binds the source market's
+canonical backing certificate and registry; the SDK cannot bypass that proof.
+Pending signed transactions retain their exact bytes/signatures through shared
+wallet recovery. The initial direct checkpoint does not yet qualify routes,
+current risk previews or worker coordination; WORKLOG records completion evidence.

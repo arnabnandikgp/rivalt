@@ -966,3 +966,12 @@ and fee carry. Solver scratch is continuation state; it is not spendable cash or
 an off-chain-authorized payout. Ordinary SDK intents do not acquire a global event
 sequence prerequisite or an exit certificate. This implements D56/D60/D64 without
 changing economics, authority or V1/V2. A32 and P28 still require their own evidence.
+
+
+D65 direct-SDK continuation: ordinary account actions read one/two selected roots
+and their immutable portfolios, then a single coherent financial RPC batch. Use
+root-local guards rather than the custody discovery sequence; no venue-wide scan
+is introduced for own-cash exit/allocation. Explicit closed-claim netting retains
+its market backing certificate. Existing on-chain funding/risk/held-window checks
+and wallet original-signature recovery remain authoritative. This changes no
+financial rule or previously qualified artifact.

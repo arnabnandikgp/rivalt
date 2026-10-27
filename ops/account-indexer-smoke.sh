@@ -3,12 +3,18 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
+case "${1:-indexer}" in
+  indexer) RIVALT_ACCOUNT_CHECK=indexer; RIVALT_ACCOUNT_DRIVER=tests/rpc-contract/account-indexer-rpc.ts ;;
+  --direct-sdk) RIVALT_ACCOUNT_CHECK=direct; RIVALT_ACCOUNT_DRIVER=tests/rpc-contract/account-direct-rpc.ts ;;
+  *) echo 'Expected indexer or --direct-sdk' >&2; exit 2 ;;
+esac
 test "$(surfpool --version)" = 'surfpool 1.6.1'
+container system status >/dev/null
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18931}"
 export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18932}"
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
 export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
-export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/account-indexer-rpc/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/account-$RIVALT_ACCOUNT_CHECK-rpc/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
 test -f .local/account-safety/clearing.so
 for component in maker_a maker_b oracle_fixture; do test -f ".local/account-safety/$component.so"; done
@@ -38,5 +44,5 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/deployment-$key.json"
 done
 source ops/postgres.sh
-node --import tsx tests/rpc-contract/account-indexer-rpc.ts
+node --import tsx "$RIVALT_ACCOUNT_DRIVER"
 printf 'P27 indexer evidence: %s\n' "$RIVALT_RUN_DIR"
