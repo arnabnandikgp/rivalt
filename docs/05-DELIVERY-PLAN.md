@@ -582,3 +582,8 @@ implementation dependency, while ordinary activation still awaits P26.
 
 P25 implementation contract: [cash, market claims and atomic exits](P25-ACCOUNT-CASH.md).
 Its candidate feature remains separate from P26 safety activation.
+
+P25 realization: [A30/G19 cash evidence](evidence/P25.md) qualifies atomic own-cash
+exits/transfers and scoped market collection/payment/netting on its distinct
+candidate artifacts. Complete 64-member scans and actual RPC interleaving do not
+replace P26 safety or P28 sustained concurrent qualification.

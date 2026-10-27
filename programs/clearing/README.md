@@ -31,6 +31,12 @@ src/
       routes.rs         Atomic fills, funding, attributed fees and borrowed events
       oracle.rs         Canonical sources and causal common funding
       activation.rs     Isolated qualification artifact; ordinary trading stays gated
+    account_cash/       Candidate-only own-cash exits and scoped market settlement (P25)
+      engine.rs         Whole-account funding/admission and held-corner candidates
+      cash.rs           Owner transfer and atomic actual SPL withdrawal
+      certificate.rs    Canonical market backing pages and relevant invalidation
+      claims.rs         Gross-debt collection, funded payout and flat netting
+      fees.rs           Separate fee authority; T withdrawal/allocation, no active I exit
     custody.rs           Register, deposit, custody-only withdrawal and controls
     group_custody.rs     Versioned successor custody; no trading activation (P18A)
     group_margin/       Shared root model, canonical dependencies and authority
