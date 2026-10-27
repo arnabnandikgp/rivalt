@@ -287,10 +287,10 @@ pub(crate) use account_trading::routes::__client_accounts_execute_account_route_
 pub(crate) use account_trading::routes::__cpi_client_accounts_execute_account_route_v3;
 pub use account_trading::routes::ExecuteAccountRouteV3;
 
-pub(crate) use account_trading::activation::__client_accounts_qualify_account_trading_v3;
+pub(crate) use account_trading::activation::{__client_accounts_qualify_account_trading_v3, __client_accounts_activate_accounts_v3};
 #[cfg(feature = "cpi")]
-pub(crate) use account_trading::activation::__cpi_client_accounts_qualify_account_trading_v3;
-pub use account_trading::activation::QualifyAccountTradingV3;
+pub(crate) use account_trading::activation::{__cpi_client_accounts_qualify_account_trading_v3, __cpi_client_accounts_activate_accounts_v3};
+pub use account_trading::activation::{QualifyAccountTradingV3, ActivateAccountsV3};
 
 pub mod account_safety;
 pub use account_safety::resolution::retirement::{InitializeAccountRetirementV3, CheckAccountRetirementV3, RetireAccountsV3, WithdrawRetiredReserveV3};

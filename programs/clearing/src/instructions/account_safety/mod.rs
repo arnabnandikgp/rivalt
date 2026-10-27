@@ -1,5 +1,5 @@
-//! Schema-3 safety candidates. Ordinary activation remains gated while P26
-//! completes the entire frozen-cohort contract and signed acceptance.
+//! Complete schema-3 safety in the explicit qualified local profile.
+//! Default/devnet builds cannot activate these financial paths.
 use super::{account_cash, account_custody, account_trading};
 use crate::{error::ClearingError, state::v3::*};
 use anchor_lang::prelude::*;

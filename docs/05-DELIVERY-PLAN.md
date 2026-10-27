@@ -600,3 +600,9 @@ full RPC safety gate. P27/P28 and external P15B/P16B remain separate deliverable
 P26's measured D64 continuation adjustment bounds Verify/FlowPlan to one row and
 moves complete rate/insurance checks into their own transaction. Preserve all
 financial rules and record separate resource-only versus full-context evidence.
+
+After the pinned P26 candidate safety matrix passes, the explicit local release
+uses `activate_accounts_v3` with complete precreated safety pages and fresh initial
+qualification. The older candidate transition cannot bypass storage readiness.
+Qualified activation has its own final affected check; P26 enters Review only after
+that evidence and ready publication. P27/P28 and the external gates remain separate.

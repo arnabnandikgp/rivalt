@@ -59,8 +59,8 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
   const reserveWithdraw=()=>sdk.getWithdrawRetiredReserveV3Instruction({...common,reserveAuthority:payer,
     destination:reserveDestination,quoteMint:setup.mint.address,marketIndex:1,amount:10n});
   await reject('custody insurance is not redeemable',reserveWithdraw(),6108);
-  await options.defaultProbe?.('default build rejects schema-3 activation',sdk.getQualifyAccountTradingV3Instruction({...common,authority:payer}));
-  await h.send('activate explicit P26 candidate profile',[sdk.getQualifyAccountTradingV3Instruction({...common,authority:payer})]);
+  await reject('earlier candidate transition cannot bypass qualified safety storage',
+    sdk.getQualifyAccountTradingV3Instruction({...common,authority:payer}),6108);
   if(options.maximumCohort) {
     const u16=(value:number)=>{const bytes=Buffer.alloc(2);bytes.writeUInt16LE(value);return bytes;};
     for(const operator of setup.operators)for(let portfolioIndex=0;portfolioIndex<4 && roots.length<64;portfolioIndex++) {
@@ -79,11 +79,25 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
   }
   await h.send('precreate bounded header and continuation work',[sdk.getInitializeAccountResolutionV3Instruction({...accounts,payer})]);
   assert.equal((await h.read(resolution))!.length,3644);assert.equal((await h.read(work))!.length,7918);
+  const activate=(authority=payer)=>sdk.getActivateAccountsV3Instruction({...common,authority,resolution});
+  await reject('qualified activation requires complete safety storage',activate());
   await reject('cannot skip a precreated page',sdk.getInitializeAccountResolutionPageV3Instruction({...accounts,payer,page:pages[1],pageIndex:1}));
   for(let pageIndex=0;pageIndex<32;pageIndex++) {
     await h.send('precreate canonical two-row page',[sdk.getInitializeAccountResolutionPageV3Instruction({...accounts,payer,page:pages[pageIndex],pageIndex})]);
     assert.equal((await h.read(pages[pageIndex]))!.length,3400);
+    if(pageIndex===30)await reject('qualified activation cannot omit the final page',activate());
   }
+  for(let round=0;round<4;round++) {
+    await h.advance(2n);
+    for(let index=0;index<6;index++)await setup.publish(index);
+    for(const index of [0,1])await h.send('fresh storage-ready activation source and maker qualification',[
+      sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(index))]);
+  }
+  await reject('qualified activation remains venue-authorized',activate(owner),2001,[owner]);
+  await options.defaultProbe?.('default build rejects qualified schema-3 activation',activate());
+  await h.send('activate storage-ready qualified P26 local profile',[activate()]);
+  assert.equal((await safety()).mode,1);
+  await reject('initial qualified activation cannot replay',activate(),6108);
   await reject('healthy funded account cannot trigger default',await freeze());
   await h.send('fund actual future debtor',[sdk.getDepositAccountV3Instruction({...common,owner,margin:cross,
     quoteMint:setup.mint.address,userToken:setup.operators[0].token.address,amount:options.twoMarket?600_000n:400_000n})],[owner]);
@@ -92,8 +106,7 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
     for(let index=0;index<6;index++)await setup.publish(index);
     for(const index of [0,1])await h.send('post-activation source recovery',[sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(index))]);
   }
-  const maker=makers[0][0],second=makers[0][1],market=await setup.marketState(0);
-  const secondRegistration=sdk.getMakerRegistrationV3Decoder().decode((await h.read(second.registration))!);
+  const maker=makers[0][0];
   const registration=sdk.getMakerRegistrationV3Decoder().decode((await h.read(maker.registration))!);
   async function route(marketIndex:number,trader:Address,side:number,label:string) {
     const [first,second]=makers[marketIndex],state=await setup.marketState(marketIndex),slot=await h.slot();
@@ -432,6 +445,7 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
   await options.defaultProbe?.('default build rejects recovery',recover(true));
   await h.send('explicit authority recovery returns only to custody',[recover(true)]);
   assert.equal((await safety()).mode,0);assert.equal((await header()).stage,12);
+  await reject('initial activation cannot bypass the recovered-venue path',activate());
   for(let index=0;index<2;index++) {
     assert.equal((await setup.marketState(index)).fundingIndexScaled,initial.funding[index]);
     assert.equal((await setup.marketState(index)).oracle.status,0);

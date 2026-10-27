@@ -19,6 +19,7 @@ test('account safety preserves isolated Anchor bytes and every stage/optional pr
   const cases:{program:string;name:string;args:unknown[];instruction:Instruction}[]=[];
   const add=(name:string,args:unknown[],instruction:Instruction)=>cases.push({program:'clearing',name,args,instruction});
   add('initialize_account_resolution_v3',[],sdk.getInitializeAccountResolutionV3Instruction(common));
+  add('activate_accounts_v3',[],sdk.getActivateAccountsV3Instruction(common));
   add('initialize_account_resolution_page_v3',[31],sdk.getInitializeAccountResolutionPageV3Instruction({...common,pageIndex:31}));
   for(const emergency of [false,true])add('freeze_accounts_v3',[large,large+1n,emergency],
     sdk.getFreezeAccountsV3Instruction({...common,safetyEpoch:large,resolutionEpoch:large+1n,emergency}));
@@ -81,6 +82,6 @@ test('account safety preserves isolated Anchor bytes and every stage/optional pr
       assert.equal(result.data,Buffer.from(cases[index].instruction.data!).toString('hex'),cases[index].name);
       assert.deepEqual(result.accounts,cases[index].instruction.accounts!.map(account=>({address:account.address,signer:account.role>=2,writable:account.role%2===1})),cases[index].name);
     }
-    assert.equal(cases.length,30);
+    assert.equal(cases.length,31);
   }finally{rmSync(directory,{recursive:true});}
 });

@@ -1,12 +1,11 @@
 # Components and interfaces
 Rivalt · baseline R1 · 20 October 2026
 
-D64 implements [P26 frozen safety preparation](P26-ACCOUNT-SAFETY.md): complete
-canonical valuation and independently verified rate proposals in the separate
-candidate artifact. Terminal application and owner cash exits now have preliminary signed coverage;
-sustained recovery, separate reactivation and irreversible reserve retirement now
-have candidate handlers. Maximum-cohort/full runtime acceptance remains phase-owned;
-this does not enable ordinary schema-3 trading.
+D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
+canonical valuation, verified exact clearing, application, recovery and retirement.
+The pinned candidate matrix passes; explicit storage-ready local activation now
+has its own final affected check. Default/devnet remain disabled. WORKLOG owns
+acceptance and publication status; P27/P28 remain separate service/UI gates.
 
 
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
@@ -362,3 +361,11 @@ P23 adds [schema-3 custody](P23-ACCOUNT-CUSTODY.md) under D61: real owner cash
 allocation and market-attributed insurance seed/classification, with trading and
 all unfinished financial paths disabled. Its own signed/ABI/RPC acceptance is
 recorded in WORKLOG and [P23 evidence](evidence/P23.md), not inherited from V2.
+
+
+P26 adds authority-only `activate_accounts_v3` in the explicit
+`account-safety-qualification` local profile. Complete precreated safety pages and
+fresh initial qualification are mandatory; the earlier candidate transition cannot
+bypass this gate. Default/devnet and earlier profiles remain disabled for this
+entrypoint. Recovered identities use the separate recovery/reactivation path.
+See P26 and WORKLOG for the exact accepted source pins and remaining phase gates.

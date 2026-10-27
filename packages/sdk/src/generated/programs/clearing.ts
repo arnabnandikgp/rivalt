@@ -137,6 +137,7 @@ import {
   type VenueV3Args,
 } from "../accounts/index.js";
 import {
+  getActivateAccountsV3InstructionAsync,
   getActivateCrossGroupV2InstructionAsync,
   getActivateIsolatedGroupV2InstructionAsync,
   getAdvanceAccountResolutionV3InstructionAsync,
@@ -253,6 +254,7 @@ import {
   getWithdrawMarketFeesV3InstructionAsync,
   getWithdrawRetiredReserveV3InstructionAsync,
   getWithdrawTradingInstructionAsync,
+  parseActivateAccountsV3Instruction,
   parseActivateCrossGroupV2Instruction,
   parseActivateIsolatedGroupV2Instruction,
   parseAdvanceAccountResolutionV3Instruction,
@@ -369,6 +371,7 @@ import {
   parseWithdrawMarketFeesV3Instruction,
   parseWithdrawRetiredReserveV3Instruction,
   parseWithdrawTradingInstruction,
+  type ActivateAccountsV3AsyncInput,
   type ActivateCrossGroupV2AsyncInput,
   type ActivateIsolatedGroupV2AsyncInput,
   type AdvanceAccountResolutionV3AsyncInput,
@@ -436,6 +439,7 @@ import {
   type NetAccountClaimsV3AsyncInput,
   type NetMarginClaimsV2Input,
   type OrderAccountResolutionV3AsyncInput,
+  type ParsedActivateAccountsV3Instruction,
   type ParsedActivateCrossGroupV2Instruction,
   type ParsedActivateIsolatedGroupV2Instruction,
   type ParsedAdvanceAccountResolutionV3Instruction,
@@ -1617,6 +1621,7 @@ export function identifyClearingEvent(
 }
 
 export enum ClearingInstruction {
+  ActivateAccountsV3,
   ActivateCrossGroupV2,
   ActivateIsolatedGroupV2,
   AdvanceAccountResolutionV3,
@@ -1739,6 +1744,17 @@ export function identifyClearingInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([30, 109, 231, 197, 224, 144, 237, 202]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ActivateAccountsV3;
+  }
   if (
     containsBytes(
       data,
@@ -3025,6 +3041,9 @@ export type ParsedClearingInstruction<
   TProgram extends string = "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
 > =
   | ({
+      instructionType: ClearingInstruction.ActivateAccountsV3;
+    } & ParsedActivateAccountsV3Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ActivateCrossGroupV2;
     } & ParsedActivateCrossGroupV2Instruction<TProgram>)
   | ({
@@ -3378,6 +3397,13 @@ export function parseClearingInstruction<TProgram extends string>(
 ): ParsedClearingInstruction<TProgram> {
   const instructionType = identifyClearingInstruction(instruction);
   switch (instructionType) {
+    case ClearingInstruction.ActivateAccountsV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ActivateAccountsV3,
+        ...parseActivateAccountsV3Instruction(instruction),
+      };
+    }
     case ClearingInstruction.ActivateCrossGroupV2: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4277,6 +4303,11 @@ export type ClearingPluginAccounts = {
 };
 
 export type ClearingPluginInstructions = {
+  activateAccountsV3: (
+    input: ActivateAccountsV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getActivateAccountsV3InstructionAsync> &
+    SelfPlanAndSendFunctions;
   activateCrossGroupV2: (
     input: ActivateCrossGroupV2AsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -4858,14 +4889,14 @@ export type ClearingPluginInstructions = {
 };
 
 export type ClearingPluginPdas = {
-  groupExitGuard: typeof findGroupExitGuardPda;
-  groupResolution: typeof findGroupResolutionPda;
-  classifyGroupSurplusV2Vault: typeof findClassifyGroupSurplusV2VaultPda;
   custodyV3: typeof findCustodyV3Pda;
   safetyV3: typeof findSafetyV3Pda;
   btcLedgerV3: typeof findBtcLedgerV3Pda;
   ethLedgerV3: typeof findEthLedgerV3Pda;
   venueVaultV3: typeof findVenueVaultV3Pda;
+  groupExitGuard: typeof findGroupExitGuardPda;
+  groupResolution: typeof findGroupResolutionPda;
+  classifyGroupSurplusV2Vault: typeof findClassifyGroupSurplusV2VaultPda;
   initializeGroupV2Registry: typeof findInitializeGroupV2RegistryPda;
   market: typeof findMarketPda;
   routeState: typeof findRouteStatePda;
@@ -5009,6 +5040,14 @@ export function clearingProgram(
           venueV3: addSelfFetchFunctions(client, getVenueV3Codec()),
         },
         instructions: {
+          activateAccountsV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getActivateAccountsV3InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           activateCrossGroupV2: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -5954,21 +5993,6 @@ export function clearingProgram(
             ),
         },
         pdas: {
-          groupExitGuard: (seeds, pdaConfig) =>
-            findGroupExitGuardPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          groupResolution: (seeds, pdaConfig) =>
-            findGroupResolutionPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          classifyGroupSurplusV2Vault: (seeds, pdaConfig) =>
-            findClassifyGroupSurplusV2VaultPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
           custodyV3: (seeds, pdaConfig) =>
             findCustodyV3Pda(seeds, {
               programAddress:
@@ -5991,6 +6015,21 @@ export function clearingProgram(
             }),
           venueVaultV3: (seeds, pdaConfig) =>
             findVenueVaultV3Pda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          groupExitGuard: (seeds, pdaConfig) =>
+            findGroupExitGuardPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          groupResolution: (seeds, pdaConfig) =>
+            findGroupResolutionPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          classifyGroupSurplusV2Vault: (seeds, pdaConfig) =>
+            findClassifyGroupSurplusV2VaultPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

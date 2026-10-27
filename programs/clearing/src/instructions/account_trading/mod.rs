@@ -1,5 +1,5 @@
-//! Schema-3 account risk and trading. Only the isolated qualification artifact
-//! can enter these handlers until P26 verifies liquidation and complete default.
+//! Schema-3 account risk and trading in explicit local qualification profiles.
+//! P26's complete safety profile uses storage-ready authority activation.
 pub(crate) use super::account_custody::{arithmetic as checked, increment};
 use super::group_trading::{book, oracle as shared_oracle};
 use crate::{

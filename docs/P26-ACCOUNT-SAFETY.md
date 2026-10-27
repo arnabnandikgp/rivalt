@@ -1,8 +1,9 @@
 # P26 — whole-account liquidation and market-attributed default
 
 This implements D60's [schema-3 contract](P22B-EXECUTABLE-CONTRACT.md), after the
-verified P25 predecessor. WORKLOG owns status. Ordinary activation remains disabled
-until the complete P26 acceptance; arithmetic tests alone do not enable a venue.
+verified P25 predecessor. WORKLOG owns status. The candidate safety matrix is
+verified; the explicit storage-ready local activation gate requires its own final
+pinned check. Default/devnet activation remains disabled.
 V1/V2, fees, loss bearers, source limits and the 25% insurance allocation are unchanged.
 
 Implementation proceeds within one cohesive phase/PR:
@@ -228,3 +229,23 @@ Publication requires the final pinned matrix, including default-artifact rejecti
 complete proposal/order/circulation resource paths and actual RPC faults. The
 resource-only fixture and full-context scratch measurements are labelled separately
 from canonical financial acceptance; neither claims a live maximum-value cohort.
+
+
+## Qualified local activation
+
+Retain the reproducible `account-safety-qualification` feature name for the explicit
+local profile. Its release marker reflects that feature only; default, devnet,
+custody-only and earlier trading/cash candidates cannot call `activate_accounts_v3`.
+The new authority-only instruction requires canonical schema-3 resolution storage,
+an idle zero-epoch header with all 32 two-row pages precreated, no prior resolution,
+Custody mode, reconciled vault/ledgers, zero exposure/funding/pools/fees/carry and
+fresh Normal maker/source qualification in both markets. Header/work creation is
+atomic; pages cannot be closed/replaced. Activation consumes the same audited
+initial transition and clears old held observations before new trading sampling.
+
+The older `qualify_account_trading_v3` rejects in this full safety profile, so it
+cannot bypass storage readiness. It retains its historical P24/P25 candidate use.
+Recovered venues use only the separate authenticated recovery/reactivation path;
+initial activation cannot reset their history. The existing qualification event
+layout is preserved. This is fresh local engineering authorization only; P27/P28,
+P15B/P16B and deferred endurance remain separate gates.

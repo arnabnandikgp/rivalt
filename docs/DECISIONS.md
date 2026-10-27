@@ -939,3 +939,17 @@ continuation at Verify/count. Two-row storage and other stages remain unchanged.
 Keep 1.2M CU, 32 KiB heap, 20% headroom, exact financial equations and complete
 membership. The fixture is pure resource evidence, not a fabricated financial
 state or whole-venue acceptance. Full-context phase acceptance still gates activation.
+
+D64 qualified activation continuation: the pinned candidate safety matrix covers
+complete 64-root default, both-market funding/liquidation, reciprocal claim cycles,
+source emergency, recovery/retirement, default-artifact rejection and the unchanged
+wide resource envelope. Add authority-only `activate_accounts_v3` under the retained
+`account-safety-qualification` feature. Require all 32 canonical pages precreated,
+idle zero-epoch resolution storage, no prior resolution, fresh Normal sources/makers
+and the existing initial zero-exposure/funding/pool/fee conditions. The earlier
+candidate activation entrypoint rejects in this profile; recovered venues use
+separate recovery/reactivation. This supersedes candidate-only activation wording
+for the explicitly selected local artifact, subject to its final pinned activation
+verification in WORKLOG. Default/devnet remain disabled; no fee, claim, loss-bearer,
+source-risk or old-profile economics change. P27/P28 and external P15B/P16B remain
+separate gates.

@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | P22A–P25 remain Review in open #32/#33/#35/#36/#37. P26 R064 revised schedule passes 791 finalized RPC outcomes, 650 expected WS and independent 64-root liquidation/default/recovery audits. R065 full-context resource probes reach 5,632-bit L / 186-bit factor within the unchanged CU/heap limits; maximum observed 774,364 CU. These isolated scratch probes do not fabricate financial histories. Clean `34cf747` build and 799/229-outcome RPC checks pass. Cyclic/shared-exposure and qualified-activation closeout remain; P27/P28 are Open |
+| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | P22A–P25 remain Review in open #32/#33/#35/#36/#37. P26 R064 revised schedule passes 791 finalized RPC outcomes, 650 expected WS and independent 64-root liquidation/default/recovery audits. R065 full-context resource probes reach 5,632-bit L / 186-bit factor within the unchanged CU/heap limits; maximum observed 774,364 CU. These isolated scratch probes do not fabricate financial histories. Clean `34cf747` build and 799/229-outcome RPC checks pass. Clean `05db32b` also passes cyclic and shared-exposure RPC. Only qualified-local activation closeout/publication remains for P26; P27/P28 are Open |
 
 ## Phase overview
 
@@ -78,7 +78,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P23 | Registry, accounts and custody | Review | [PR #35](https://github.com/arnabnandikgp/rivalt/pull/35), head `de5db9d`, above #33; checked `4500168` | [A28/G18](evidence/P23.md): 139 signed SVM / 57 actual RPC outcomes, 11-instruction and eight-account legacy parity, exact raw-byte/token audit, 64-member SVM bound; max 89,854 CU / 753 bytes / 16 accounts. Trading disabled |
 | M8 | P24 | Risk, funding, routes and orders | Review | [PR #36](https://github.com/arnabnandikgp/rivalt/pull/36), head `f8f5dac`, above #35; tested `4a0763d` | [A29/G19 core](evidence/P24.md): 329 SVM / 313 finalized RPC outcomes; 23 ABI variants, 28 accounts / 134 event parity, 175 WS notifications; exact 49-transition / 16-fill audit. Max route 473,764 CU, overall 1,191 bytes / 24 accounts. Ordinary activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
-| M8 | P26 | Liquidation, complete default and local activation | In progress | `phase/p26-account-safety` above #37 `75e34c5`; HEAD `2113a44` plus recorded candidate changes | R064: revised 791 RPC outcomes / 650 expected WS; source-emergency two-market and full-book liquidation SVM pass. R065: maximum-width full-context resource measurements pass (774,364 CU peak), separate 619-outcome genuine 64-root two-market flow and independent audit pass. Clean `34cf747` passes 799 full-book/64-root and 229 source-emergency RPC outcomes plus default gating. Finish cyclic/shared-exposure checks and explicit qualified-local activation before ready publication |
+| M8 | P26 | Liquidation, complete default and local activation | In progress | `phase/p26-account-safety` above #37 `75e34c5`; HEAD `2113a44` plus recorded candidate changes | R064: revised 791 RPC outcomes / 650 expected WS; source-emergency two-market and full-book liquidation SVM pass. R065: maximum-width full-context resource measurements pass (774,364 CU peak), separate 619-outcome genuine 64-root two-market flow and independent audit pass. Clean `34cf747` passes 799 full-book/64-root and 229 source-emergency RPC outcomes plus default gating. Clean `05db32b` adds 238 cyclic / 263 both-market liquidation RPC outcomes. Finish the storage-ready qualified-local activation gate and ready publication |
 | M8 | P27 | SDK, indexer/API and durable services | Open | — | P26 / A32 / G21 interfaces; fresh real integration |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Open | — | P27 / A33 / G21 / M8 exit; normal background exits, complete outcomes/replay |
 
@@ -93,7 +93,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Verification: final full-stack review has zero unresolved threads, no requested changes and all PRs mergeable with selected CI passing. Final tip `1a3cc2c` passes all five jobs in hosted run `40221453594`. Phase reports retain original executed pins and limitations; R052 actual service recovery uses `e4a284c` and receipt concurrency uses `c0e5274`. This run adds repository/review/integration verification, not new financial/runtime evidence.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: commit and rebuild the P26 candidate on a clean source pin, verify default gating plus source-emergency/full-book RPC acceptance, then publish above #37 and continue P27/P28. Keep the stack open.
+- Exact next action: pin/rebuild the P26 qualified-local activation gate, verify affected signed activation/recovery, publish above #37 and continue P27/P28. Keep the stack open.
 - Deferred gates: D56 resumes busy-group/atomic-exit redesign within P22–P28; the old runtime limitation remains. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new deployment or external participation is claimed.
 
 ## Blocker register
@@ -2682,3 +2682,40 @@ sorted actual program/system/token account equality and exact clock/blockhash
 checks, then continue actual signed handlers from their stored cursors. No program
 rule changes. The focused 30-variant legacy matrix and TypeScript pass; the two
 new RPC scenarios remain the next check on the committed harness.
+
+R065 final candidate additions: commit `05db32b` changes only tests/docs; `git diff
+--exit-code 34cf747 05db32b -- programs crates packages/sdk` confirms identical
+program/core/SDK sources and the verified binary hashes remain unchanged. The clean
+cyclic SVM run `.local/account-safety-runs/20261027T120312297Z-96229/` passes all 238
+outcomes and four persisted-state reloads. Actual cyclic RPC passes 238 finalized
+originals (216/22), all 176 expected WS and 63-account/146-event parity at
+`.local/account-safety-rpc/20261027T120314Z-96269/`; the independent eight-root audit
+confirms full reciprocal recovery with zero reserve use. Actual both-market/full-
+book liquidation/default passes 263 (241/22), all 183 expected WS, 62-account/
+150-event parity and exact seven-root/fractional-funding audits at
+`.local/account-safety-rpc/20261027T120317Z-96285/`. Both RPC reports are clean
+`05db32b`; both owned runtimes stop. The separate P27 worker/process recovery gate
+is not claimed by the program continuation snapshots.
+
+With that candidate safety matrix verified, add the explicit qualified-local
+`activate_accounts_v3` transition. It checks the existing authority/Normal-source/
+zero-initial-liability contract plus all precreated safety pages and no prior
+resolution. The older P24/P25 candidate entrypoint is disabled only in this full
+safety profile, preventing a storage bypass; recovered venues retain their separate
+reactivation path. The local release marker reflects the explicit safety feature;
+default/devnet remain disabled. Record D64's scoped supersession in protocol,
+components and roadmap. A new focused storage-readiness host test, 31-variant
+legacy ABI parity, IDL generation and TypeScript pass. The final qualified SBF/RPC
+run is still required before P26 Review/publication. All inherited P25 ABI
+definitions remain identical; the new instruction is additive.
+
+Exact next action: pin/rebuild this qualified-local gate, execute affected signed
+activation/default-profile and complete recovery checks, then publish P26 ready
+above #37 and proceed to P27. No ordinary production/devnet activation, external
+gate closure or deployment is authorized or claimed.
+
+The final affected profile checks pass three schema-3 identity/layout tests in
+each of default and explicit safety builds; the release marker is false/true
+respectively. `pnpm generate:check` passes. Inherited P25 definitions remain exactly
+99 instructions, 29 accounts, 31 events, 99 types and 32 errors; P26 adds 18
+instructions, four accounts, 15 events and 21 types without changing those entries.

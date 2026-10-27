@@ -1,4 +1,5 @@
-//! Qualification-only transition. The ordinary schema-3 profile stays gated until P26.
+//! Qualified local activation requires precreated complete safety storage.
+//! Earlier candidate transitions remain confined to their historical profiles.
 use super::*;
 use anchor_spl::token::TokenAccount;
 
@@ -30,10 +31,49 @@ pub struct QualifyAccountTradingV3<'info> {
 }
 
 pub fn qualify(ctx: Context<QualifyAccountTradingV3>) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    require!(
+        ctx.remaining_accounts.is_empty() && !cfg!(feature = "account-safety-qualification"),
+        ClearingError::Profile
+    );
+    transition(ctx.accounts)
+}
+
+#[derive(Accounts)]
+pub struct ActivateAccountsV3<'info> {
+    pub qualification: QualifyAccountTradingV3<'info>,
+    #[account(seeds = [b"resolution-v3", qualification.venue.key().as_ref()], bump = resolution.bump,
+        constraint = resolution.venue == qualification.venue.key() @ ClearingError::Profile)]
+    pub resolution: Box<Account<'info, ResolutionV3>>,
+}
+
+fn storage_ready(header: &ResolutionV3, safety: &SafetyV3) -> Result<()> {
+    require!(
+        header.schema_version == SCHEMA_VERSION
+            && header.epoch == 0
+            && header.stage == 0
+            && usize::from(header.cursor) == MAX_MEMBERS / RESOLUTION_PAGE_ROWS
+            && header.count == 0
+            && safety.resolution_epoch == 0,
+        ClearingError::Resolution
+    );
+    Ok(())
+}
+
+pub fn activate(ctx: Context<ActivateAccountsV3>) -> Result<()> {
+    require!(
+        ctx.remaining_accounts.is_empty() && TRADING_IMPLEMENTED,
+        ClearingError::Profile
+    );
+    storage_ready(&ctx.accounts.resolution, &ctx.accounts.qualification.safety)?;
+    transition(&mut ctx.accounts.qualification)
+}
+
+fn transition(accounts: &mut QualifyAccountTradingV3) -> Result<()> {
     profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
-    require!(accounts.safety.mode == CUSTODY, ClearingError::Profile);
+    require!(
+        accounts.safety.mode == CUSTODY && accounts.safety.resolution_epoch == 0,
+        ClearingError::Profile
+    );
     super::super::account_custody::reconciled(
         &accounts.custody,
         [&accounts.btc_ledger, &accounts.eth_ledger],
@@ -71,4 +111,32 @@ pub fn qualify(ctx: Context<QualifyAccountTradingV3>) -> Result<()> {
         ],
     };
     crate::event_cpi::emit(&emitted, accounts.event_authority.to_account_info())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fresh_activation_requires_all_precreated_pages_and_no_previous_resolution() {
+        let mut header = ResolutionV3 {
+            schema_version: SCHEMA_VERSION,
+            ..Default::default()
+        };
+        let mut safety = SafetyV3::default();
+        for cursor in 0..32 {
+            header.cursor = cursor;
+            assert!(storage_ready(&header, &safety).is_err());
+        }
+        header.cursor = 32;
+        storage_ready(&header, &safety).unwrap();
+        header.epoch = 1;
+        assert!(storage_ready(&header, &safety).is_err());
+        header.epoch = 0;
+        header.stage = 12;
+        assert!(storage_ready(&header, &safety).is_err());
+        header.stage = 0;
+        safety.resolution_epoch = 1;
+        assert!(storage_ready(&header, &safety).is_err());
+    }
 }

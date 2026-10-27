@@ -148,6 +148,9 @@ pub mod clearing {
     pub fn qualify_account_trading_v3(ctx: Context<QualifyAccountTradingV3>) -> Result<()> {
         account_trading::activation::qualify(ctx)
     }
+    pub fn activate_accounts_v3(ctx: Context<ActivateAccountsV3>) -> Result<()> {
+        account_trading::activation::activate(ctx)
+    }
     pub fn manage_account_order_v3(
         ctx: Context<ManageAccountOrderV3>,
         guard: account_trading::authority::AccountGuardV3,

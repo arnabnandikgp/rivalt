@@ -10,6 +10,219 @@
   ],
   "instructions": [
     {
+      "name": "activate_accounts_v3",
+      "discriminator": [
+        30,
+        109,
+        231,
+        197,
+        224,
+        144,
+        237,
+        202
+      ],
+      "accounts": [
+        {
+          "name": "qualification",
+          "accounts": [
+            {
+              "name": "authority",
+              "signer": true,
+              "relations": [
+                "venue"
+              ]
+            },
+            {
+              "name": "venue",
+              "relations": [
+                "custody",
+                "safety",
+                "btc",
+                "eth",
+                "btc_ledger",
+                "eth_ledger"
+              ]
+            },
+            {
+              "name": "custody",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      99,
+                      117,
+                      115,
+                      116,
+                      111,
+                      100,
+                      121,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "safety",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      115,
+                      97,
+                      102,
+                      101,
+                      116,
+                      121,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "btc",
+              "writable": true
+            },
+            {
+              "name": "eth",
+              "writable": true
+            },
+            {
+              "name": "btc_ledger",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      108,
+                      101,
+                      100,
+                      103,
+                      101,
+                      114,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "btc"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "eth_ledger",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      108,
+                      101,
+                      100,
+                      103,
+                      101,
+                      114,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "eth"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              },
+              "relations": [
+                "venue"
+              ]
+            },
+            {
+              "name": "event_authority"
+            },
+            {
+              "name": "program"
+            }
+          ]
+        },
+        {
+          "name": "resolution",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "qualification.venue",
+                "account": "QualifyAccountTradingV3"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "activate_cross_group_v2",
       "discriminator": [
         49,

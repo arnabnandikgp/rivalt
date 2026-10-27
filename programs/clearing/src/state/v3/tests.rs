@@ -79,7 +79,10 @@ fn no_old_account_discriminator_or_seed_is_reinterpreted() {
         }
     }
     assert_eq!(keys.len(), 72);
-    assert!(!TRADING_IMPLEMENTED);
+    assert_eq!(
+        TRADING_IMPLEMENTED,
+        cfg!(feature = "account-safety-qualification")
+    );
     assert!(!valid_identity(
         0,
         0,

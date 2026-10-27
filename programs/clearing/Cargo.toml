@@ -18,6 +18,8 @@ account-test-profile = ["local-test-profile"]
 # Candidate-only artifact: no default, custody, or devnet activation before P26.
 account-trading-qualification = ["account-test-profile"]
 account-cash-qualification = ["account-trading-qualification"]
+# Explicit A31-qualified local profile; retain its historical build name.
+# Default, custody-only, earlier candidate and devnet builds exclude activation.
 account-safety-qualification = ["account-cash-qualification"]
 # Explicit local cross profile qualified by P20. Keep its original feature name
 # for evidence reproduction; ordinary successor/default/devnet exclude it.

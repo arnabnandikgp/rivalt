@@ -1,4 +1,4 @@
-//! Schema-3 contract layouts. P22B supplies no entrypoints or activation.
+//! Schema-3 layouts and the explicitly qualified local release marker.
 //! Venue identity, account risk, market backing and exceptional safety are distinct.
 use crate::state::{
     v2::{OrderBookV2, PositionV2},
@@ -17,7 +17,7 @@ pub const MARKET_COUNT: usize = 2;
 pub const MAX_MEMBERS: usize = 64;
 pub const RESOLUTION_PAGE_ROWS: usize = 2;
 pub const WIDE_LIMBS: usize = 96;
-pub const TRADING_IMPLEMENTED: bool = false;
+pub const TRADING_IMPLEMENTED: bool = cfg!(feature = "account-safety-qualification");
 
 pub const CUSTODY: u8 = 0;
 pub const ACTIVE: u8 = 1;

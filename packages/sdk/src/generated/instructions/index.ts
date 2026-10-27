@@ -6,6 +6,7 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./activateAccountsV3.js";
 export * from "./activateCrossGroupV2.js";
 export * from "./activateIsolatedGroupV2.js";
 export * from "./advanceAccountResolutionV3.js";
