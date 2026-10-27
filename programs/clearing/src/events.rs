@@ -1040,3 +1040,23 @@ impl From<&crate::state::v3::SettlementCertificateV3> for BackingSnapshotV3 {
             cash: state.cash, lots: state.lots, claim_sum: state.claim_sum, complete: state.complete, bump: state.bump}
     }
 }
+
+#[event]
+pub struct AccountLiquidatedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub safety_epoch: u64,
+    pub liability_versions: [u64; 2],
+    pub market_index: u8,
+    pub lots: u64,
+    pub price: u64,
+    pub fee: u64,
+    pub deficit_before: i128,
+    pub deficit_after: i128,
+    pub target: Pubkey,
+    pub receiver: Pubkey,
+    pub target_state: MarginAccountSnapshotV3,
+    pub receiver_state: MarginAccountSnapshotV3,
+    pub markets: [MarketSnapshotV3; 2],
+}

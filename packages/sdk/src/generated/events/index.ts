@@ -10,6 +10,7 @@ export * from "./accountAuthorityChangedV3.js";
 export * from "./accountBackingChangedV3.js";
 export * from "./accountCustodyChangedV3.js";
 export * from "./accountFinancialChangedV3.js";
+export * from "./accountLiquidatedV3.js";
 export * from "./accountMakerChangedV3.js";
 export * from "./accountOracleChangedV3.js";
 export * from "./accountOrderChangedV3.js";

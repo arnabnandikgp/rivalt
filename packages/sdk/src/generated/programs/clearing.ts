@@ -175,6 +175,7 @@ import {
   getInitializeTestRoutesInstructionAsync,
   getInitializeVenueRegistryV3InstructionAsync,
   getInitializeVenueV3InstructionAsync,
+  getLiquidateAccountV3InstructionAsync,
   getLiquidateGroupV2InstructionAsync,
   getLiquidateInstructionAsync,
   getManageAccountOrderV3InstructionAsync,
@@ -274,6 +275,7 @@ import {
   parseInitializeTestRoutesInstruction,
   parseInitializeVenueRegistryV3Instruction,
   parseInitializeVenueV3Instruction,
+  parseLiquidateAccountV3Instruction,
   parseLiquidateGroupV2Instruction,
   parseLiquidateInstruction,
   parseManageAccountOrderV3Instruction,
@@ -373,6 +375,7 @@ import {
   type InitializeTestRoutesAsyncInput,
   type InitializeVenueRegistryV3AsyncInput,
   type InitializeVenueV3AsyncInput,
+  type LiquidateAccountV3AsyncInput,
   type LiquidateAsyncInput,
   type LiquidateGroupV2AsyncInput,
   type ManageAccountOrderV3AsyncInput,
@@ -430,6 +433,7 @@ import {
   type ParsedInitializeTestRoutesInstruction,
   type ParsedInitializeVenueRegistryV3Instruction,
   type ParsedInitializeVenueV3Instruction,
+  type ParsedLiquidateAccountV3Instruction,
   type ParsedLiquidateGroupV2Instruction,
   type ParsedLiquidateInstruction,
   type ParsedManageAccountOrderV3Instruction,
@@ -925,6 +929,7 @@ export enum ClearingEvent {
   AccountBackingChangedV3,
   AccountCustodyChangedV3,
   AccountFinancialChangedV3,
+  AccountLiquidatedV3,
   AccountMakerChangedV3,
   AccountOracleChangedV3,
   AccountOrderChangedV3,
@@ -1001,6 +1006,17 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.AccountFinancialChangedV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([35, 131, 226, 210, 153, 126, 68, 34]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountLiquidatedV3;
   }
   if (
     containsBytes(
@@ -1356,6 +1372,7 @@ export enum ClearingInstruction {
   InitializeVenueRegistryV3,
   InitializeVenueV3,
   Liquidate,
+  LiquidateAccountV3,
   LiquidateGroupV2,
   ManageAccountOrderV3,
   ManageGroupOrderV2,
@@ -1970,6 +1987,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.Liquidate;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([131, 207, 144, 94, 233, 148, 193, 145]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.LiquidateAccountV3;
   }
   if (
     containsBytes(
@@ -2662,6 +2690,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.Liquidate;
     } & ParsedLiquidateInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.LiquidateAccountV3;
+    } & ParsedLiquidateAccountV3Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.LiquidateGroupV2;
     } & ParsedLiquidateGroupV2Instruction<TProgram>)
   | ({
@@ -3166,6 +3197,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.Liquidate,
         ...parseLiquidateInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.LiquidateAccountV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.LiquidateAccountV3,
+        ...parseLiquidateAccountV3Instruction(instruction),
       };
     }
     case ClearingInstruction.LiquidateGroupV2: {
@@ -3836,6 +3874,11 @@ export type ClearingPluginInstructions = {
     input: LiquidateAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getLiquidateInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  liquidateAccountV3: (
+    input: LiquidateAccountV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getLiquidateAccountV3InstructionAsync> &
     SelfPlanAndSendFunctions;
   liquidateGroupV2: (
     input: LiquidateGroupV2AsyncInput,
@@ -4623,6 +4666,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getLiquidateInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          liquidateAccountV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getLiquidateAccountV3InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

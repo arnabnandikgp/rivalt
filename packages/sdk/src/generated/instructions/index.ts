@@ -57,6 +57,7 @@ export * from "./initializeTestRoutes.js";
 export * from "./initializeVenueRegistryV3.js";
 export * from "./initializeVenueV3.js";
 export * from "./liquidate.js";
+export * from "./liquidateAccountV3.js";
 export * from "./liquidateGroupV2.js";
 export * from "./manageAccountOrderV3.js";
 export * from "./manageGroupOrderV2.js";

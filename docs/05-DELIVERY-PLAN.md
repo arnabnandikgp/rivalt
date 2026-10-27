@@ -587,3 +587,7 @@ P25 realization: [A30/G19 cash evidence](evidence/P25.md) qualifies atomic own-c
 exits/transfers and scoped market collection/payment/netting on its distinct
 candidate artifacts. Complete 64-member scans and actual RPC interleaving do not
 replace P26 safety or P28 sustained concurrent qualification.
+
+P26 implementation sequence: [bounded whole-account safety](P26-ACCOUNT-SAFETY.md).
+Independent primitive arithmetic is an intermediate check; A31/G20 requires the
+complete signed financial/state-machine and resource acceptance before activation.

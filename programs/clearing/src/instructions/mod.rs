@@ -291,3 +291,9 @@ pub(crate) use account_trading::activation::__client_accounts_qualify_account_tr
 #[cfg(feature = "cpi")]
 pub(crate) use account_trading::activation::__cpi_client_accounts_qualify_account_trading_v3;
 pub use account_trading::activation::QualifyAccountTradingV3;
+
+pub mod account_safety;
+pub(crate) use account_safety::risk::__client_accounts_liquidate_account_v3;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::risk::__cpi_client_accounts_liquidate_account_v3;
+pub use account_safety::risk::LiquidateAccountV3;

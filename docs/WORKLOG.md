@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R061: P22A/P22B/P23/P24 Review. A29/G19 core passes on clean `4a0763d`: 329 signed SVM / 313 finalized RPC outcomes, full observed WS and exact financial/legacy parity. R062: P25 A30/G19 cash passes on clean `12a23e6`: 631 SVM / 629 finalized RPC outcomes, 446 WS, 57-transition exact audits. P25 Review pending publication/integration; P26 safety remains the activation gate |
+| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R061: P22A/P22B/P23/P24 Review. A29/G19 core passes on clean `4a0763d`: 329 signed SVM / 313 finalized RPC outcomes, full observed WS and exact financial/legacy parity. R062: P25 A30/G19 cash passes on clean `12a23e6`: 631 SVM / 629 finalized RPC outcomes, 446 WS, 57-transition exact audits. P25 ready PR #37 is open above #36; R063: P26 arithmetic/rate primitives pass 2,060 integer and 337 Fraction cases; four V3 liquidation/event tests and the initial SBF frame check pass. Complete default/runtime acceptance remains due; activation stays gated |
 
 ## Phase overview
 
@@ -77,8 +77,8 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P22B | Exact financial contract and independent reference cases | Review | [PR #33](https://github.com/arnabnandikgp/rivalt/pull/33) above #32 `64615a4`; checked `0d78bf0`; R059 publication below | [A27B/G17](evidence/P22B.md): complete D60 normal/default/authority/migration/layout contract; bounded integer/independent Fraction parity, payment/netting/replay negatives, 14 inert layouts. 88 Python plus three Rust checks pass; no runtime qualification |
 | M8 | P23 | Registry, accounts and custody | Review | [PR #35](https://github.com/arnabnandikgp/rivalt/pull/35), head `de5db9d`, above #33; checked `4500168` | [A28/G18](evidence/P23.md): 139 signed SVM / 57 actual RPC outcomes, 11-instruction and eight-account legacy parity, exact raw-byte/token audit, 64-member SVM bound; max 89,854 CU / 753 bytes / 16 accounts. Trading disabled |
 | M8 | P24 | Risk, funding, routes and orders | Review | [PR #36](https://github.com/arnabnandikgp/rivalt/pull/36), head `f8f5dac`, above #35; tested `4a0763d` | [A29/G19 core](evidence/P24.md): 329 SVM / 313 finalized RPC outcomes; 23 ABI variants, 28 accounts / 134 event parity, 175 WS notifications; exact 49-transition / 16-fill audit. Max route 473,764 CU, overall 1,191 bytes / 24 accounts. Ordinary activation disabled |
-| M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | `phase/p25-account-cash` above #36 `f8f5dac`, tested `12a23e6`; publication pending | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
-| M8 | P26 | Liquidation, complete default and local activation | Open | — | P25 / A31 / G20; safety acceptance before enablement |
+| M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
+| M8 | P26 | Liquidation, complete default and local activation | In progress | `phase/p26-account-safety` above #37 `75e34c5` | [Implementation contract](P26-ACCOUNT-SAFETY.md); bounded arithmetic/rate and liquidation candidates checked; complete frozen default, signed safety/runtime qualification and activation checks remain due |
 | M8 | P27 | SDK, indexer/API and durable services | Open | — | P26 / A32 / G21 interfaces; fresh real integration |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Open | — | P27 / A33 / G21 / M8 exit; normal background exits, complete outcomes/replay |
 
@@ -87,7 +87,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Current financial work: R062 completes P25 A30/G19 cash on clean `12a23e6`; [evidence](evidence/P25.md) pins signed SVM/RPC/WS, independent financial and legacy checks. P22A–P25 remain Review. Publish the ready P25 child above #36, then continue P26 safety; ordinary activation stays disabled.
+- Current financial work: R062 completes P25 A30/G19 cash on clean `12a23e6`; [evidence](evidence/P25.md) pins signed SVM/RPC/WS, independent financial and legacy checks. P22A–P25 remain Review. Ready P25 PR #37 is open above #36; R063 implements P26 on exact `75e34c5`. Ordinary activation stays disabled.
 - Current roadmap: R054 publishes P22A as ready-to-review [PR #32](https://github.com/arnabnandikgp/rivalt/pull/32). Documentation checks on `8321677` pass; no executable changes or new runtime/CI evidence. P22B owns the exact financial contract before implementation; M8 remains In progress and P22A Review pending integration.
 - Integrated baseline: R053 successor PRs #23/#24/#26/#27/#28/#29/#30/#31 merged atomically at `d07fccc108384381c0c5df743d14c2a0bc4f5089`; local `main` fast-forwards to it, with tree exactly equal to reviewed stack tip `1a3cc2c`. This integrates A22–A26/G13–G16 and the bounded M7 engineering exit, including all R052 fixes. Earlier R033 `74fc296`, R030 `67059fc` and the original MVP remain integrated.
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
@@ -2280,3 +2280,53 @@ CU (27.42% headroom). Maximum packet/accounts is 985/22. RPC network fees are
 Closed. No unrelated broad suite, new PG/UI/concurrency, devnet, endurance, hosted
 CI or external-review result is claimed. Exact next action: commit this closeout,
 submit the ready PR above #36, verify its metadata, then start P26 on that exact head.
+
+### R063 — 27 October 2026 — P26 bounded safety implementation
+
+Publish P25 with `gh stack submit --auto --open`: ready PR #37, OPEN/non-draft,
+base `phase/p24-account-trading`, exact head
+`75e34c55ef9447aa8b5a94b78c1912c00f920bc3`. Set its description from the verified
+final behavior and scoped acceptance. `gh stack add phase/p26-account-safety`
+creates the child on that exact predecessor; no merge is requested or performed.
+
+Read D60's complete executable/financial/clearing contracts, current V3 resolution
+layouts, shared liquidation and the independent Fraction/integer references.
+Record the P26 implementation sequence. Begin allocation-free 96-limb arithmetic
+in financial-core, with fixed small multipliers, bounded debt division and 58-step
+whole-flow quotient/remainder. Add an isolated test transport and independently
+generated Python integer vectors. This is implementation in progress; no complete
+safety handler/runtime/activation evidence is claimed. Exact next action: verify
+the new arithmetic, then implement whole-account liquidation and the authenticated
+frozen denominator/rate/flow/application schedule. P15B/P16B and endurance deferral
+remain unchanged; unrelated inherited suites are not rerun.
+
+R063 initial checks: the actual fixed-width Rust transport passes 2,060 independent
+Python integer operation cases, including 6,144-bit carries/borrows, overflow,
+maximum debt divisors and the 58-bit quotient boundary. The actual row/rate
+primitives pass 337 independent Fraction comparisons/rejections: complete own-cash
+collections, mixed-sign links, greatest rather than lower cyclic rates, each
+insurance clipping evaluation and a >5,000-bit denominator at 64 rows. Commands:
+`cargo build -p financial-core --bin clearing-wide-driver --bin clearing-row-driver
+--locked --offline` with dev debug/incremental disabled, then
+`python3 tests/financial/test_clearing_wide.py` and
+`python3 tests/financial/test_clearing_rows.py`. Logs remain `.local/p26-*-vectors.log`.
+
+The V3 consenting-receiver liquidation handler now wraps the shared checked
+post-fee candidate with schema-3 root/safety guards, exact custody/market identity,
+liability invalidation and a dedicated event. Its candidate feature is separate;
+ordinary activation remains false. Locked offline host compilation passes after
+fixing Anchor's unqualified composite-context requirement and the shared adapter's
+active-mode spelling. Focused V3 liquidation vectors are running. The full frozen
+state machine, SBF/RPC safety acceptance and explicit activation are not implemented
+or claimed yet. Continue those within P26's single cohesive PR.
+
+R063 candidate checkpoint: all three V3 liquidation financial cases and the borrowed
+event's exact owned-IDL wire comparison pass. The first SBF attempt correctly
+fails its 4,096-byte frame guard on construction of the owned liquidation event
+(estimated 5,120-byte frame). Replace it with borrowed account views and prove
+byte parity; the corrected clearing SBF build passes the guard. No larger stack,
+heap, CU ceiling or omitted event field is used. Initial IDL/SDK generation and
+TypeScript pass. This is a local intermediate source checkpoint, not a P26 PR or
+A31/G20 completion; frozen clearing and real signed runtime work remain the exact
+next action. The new wide/row primitives have host evidence only until those
+actual SBF resolution paths invoke and qualify them.

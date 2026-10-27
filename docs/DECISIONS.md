@@ -891,3 +891,13 @@ not carry standalone executable authority; a nonzero historical allowance cannot
 permanently prevent settlement. Active identity admission invalidates membership
 certificates, and actual deposits/reserve donations remain source-independent.
 No active insurance withdrawal is introduced.
+
+## D64 — bounded implementation of D60 safety (P26)
+
+Implement the existing 96-limb complete-clearing contract with caller-owned scratch
+buffers and bounded continuation work. The [P26 sequence](P26-ACCOUNT-SAFETY.md)
+preserves the exact greatest-rate, insurance-clipping, market-conserving rounding
+and whole-account liquidation requirements. A passing primitive or host model is
+not activation authority; keep new ordinary trading disabled until full A31/G20
+program/RPC acceptance. This selects an allocation discipline, not a new financial
+policy or relaxation of the frozen cohort. P15B/P16B remain external gates.

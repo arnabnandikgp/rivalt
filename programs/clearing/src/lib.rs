@@ -31,6 +31,10 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn liquidate_account_v3(ctx: Context<LiquidateAccountV3>, target_guard: account_trading::authority::AccountGuardV3,
+        receiver_guard: account_trading::authority::AccountGuardV3, market_index: u8, lots: u64, price: u64) -> Result<()> {
+        account_safety::risk::liquidate(ctx, target_guard, receiver_guard, market_index, lots, price)
+    }
     pub fn withdraw_funded_account_v3(ctx: Context<WithdrawFundedAccountV3>, guard: account_trading::authority::AccountGuardV3, amount: u64) -> Result<()> {
         account_cash::cash::withdraw(ctx, guard, amount)
     }
