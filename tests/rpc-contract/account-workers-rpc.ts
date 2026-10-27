@@ -63,7 +63,12 @@ try {
   };
   const startIndex=()=>{
     indexing=true;indexLoop=(async()=>{while(indexing){try{await indexer!.cycle();}catch(error){
-      observations.push({kind:'indexer-cycle-retry',expected:error instanceof ReconciliationAhead,message:String(error)});
+      const observation={kind:'indexer-cycle-retry',expected:error instanceof ReconciliationAhead,message:String(error),at:Date.now()};
+      observations.push(observation);
+      // Preserve the first unexpected error even if a subsequent cycle recovers
+      // and the final acceptance assertion stops before summary generation.
+      writeFileSync(`${directory}/indexer-observations.json`,json(observations));
+      if(!observation.expected)console.error(json(observation));
     }await delay(250);}})();
   };
   startIndex();
@@ -233,6 +238,7 @@ try {
   for(const child of children.filter(child=>child!==executor))await stop(child);
   await until(async()=>(await runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[config.runId])).rows[0].count,count=>count==='0','all worker original outcomes');
   await stop(executor);indexing=false;await indexLoop;await transport.finalize();await indexer.cycle();
+  writeFileSync(`${directory}/indexer-observations.json`,json(observations));
   assert(!observations.some(value=>(value as any).kind==='indexer-cycle-retry'&&!(value as any).expected),
     'No financial/identity projection failure may be hidden by later snapshots');
   // Actual unbroadcast original expires on the real validator. Its unchanged
