@@ -630,3 +630,9 @@ R069 implements and unit-checks the exact untrusted proposer and canonical froze
 RPC reader. Its live upload/default/restart qualification is deliberately part of
 P27's remaining durable worker flow, not inferred from retained P26/P27 captures.
 The next implementation dependency is schema-3 execution authority and workers.
+
+
+R070 adds schema-3 immutable execution/ingress/expiry-authority and scoped operator
+budgets with focused consumer tests. Worker loops and fresh process/RPC/WS/
+PostgreSQL fault qualification remain next; the helper checkpoint does not close
+A32 or publish P27 prematurely.

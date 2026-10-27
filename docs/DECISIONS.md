@@ -991,3 +991,11 @@ untrusted and reads complete current frozen chain pages. It emits only candidate
 rate bytes for the current evaluation; on-chain verification/clipping/rounding
 remain the financial authority under D64. Test reference processes and retained
 acceptance captures are not runtime dependencies. No economic decision changes.
+
+
+D65 implementation clarification (R070): schema-3 durable retry proofs use only
+canonical monotone action-relevant account stamps after finalized blockhash expiry.
+An unchanged stamp cannot release fees for an unseen failed transaction. Wallet
+ingress keeps the currently measured one-action SDK envelope and explicit zero
+priority price; operator budgets remain separate test lamports. This extends
+interfaces without changing chain authority, routing economics or risk rules.

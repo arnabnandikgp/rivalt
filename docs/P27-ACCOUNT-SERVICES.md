@@ -122,3 +122,22 @@ denominator. A competing progress transition cannot silently change the proposal
 stage identity. The runtime has no dependency on Python reference code or retained
 evidence dumps. Focused pure/consumer tests are separate from the still-required
 fresh durable worker upload/default/restart acceptance.
+
+
+## Durable execution boundary
+
+`AccountExecution` reuses the immutable signed-wire queue and schema-3 journal with
+qualified genesis/anchor/artifact binding. Public ingress accepts one measured
+wallet action with explicit zero priority price, one wallet signer and exact
+schema-decoded venue/actor/owner accounts. It does not accept arbitrary operator
+instructions or supply sponsorship. Generated parsers avoid V2 account-index
+assumptions in V3's differently ordered instruction contexts.
+
+Nonexecution proof is limited to monotone root state versions, market observation
+sequences or maker-sync quote epochs, with canonical PDA/schema checks after
+finalized blockhash expiry. Unchanged authority says nothing about a hidden failed
+transaction fee; its budget reservation remains until actual finalized history.
+Actions without a signed pre-state stamp retain no inferred proof. All retries of
+pending or unknown outcomes use the same committed bytes and signature. Worker
+lamport budgets and heartbeat records are market/maker-specific; financial worker
+wiring and actual process/fault qualification remain separate unfinished work.

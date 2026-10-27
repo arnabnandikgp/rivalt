@@ -6,9 +6,10 @@ import { Store } from '../../indexer/src/store.js';
 import { Rpc, integer } from '../../indexer/src/rpc.js';
 import { json } from '../../indexer/src/events.js';
 import {groupAuthorityValue, type GroupAuthority} from './group-authority.js';
+import {accountAuthorityValue, type AccountAuthority} from './account-authority.js';
 
 export const RESERVATION=20_000n;
-export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string} | GroupAuthority;
+export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string} | GroupAuthority | AccountAuthority;
 export function signedWire(wire:string) {
   if(typeof wire!=='string' || wire.length>1644)throw new Error('Invalid transaction size');
   const bytes=Buffer.from(wire,'base64');if(bytes.length>1232 || bytes.toString('base64')!==wire)throw new Error('Noncanonical transaction');
@@ -102,7 +103,8 @@ export class Queue {
             const a=await this.rpc.call('getAccountInfo',[r.authority.account,{encoding:'base64',commitment:'finalized',minContextSlot:integer(valid.context.slot)}]);
             if(a.value?.owner===this.program){
               const bytes=Buffer.from(a.value.data[0],'base64');
-              const value=['marginNonce','groupSequence','groupQuoteEpoch','groupObservationSequence'].includes(r.authority.kind)?groupAuthorityValue(r.authority,bytes):r.authority.kind==='nonce'?sdk.getParticipantDecoder().decode(bytes).nonce:
+              const value=['accountStateVersion','accountMakerEpoch','accountObservation'].includes(r.authority.kind)?await accountAuthorityValue(r.authority,bytes):
+                ['marginNonce','groupSequence','groupQuoteEpoch','groupObservationSequence'].includes(r.authority.kind)?groupAuthorityValue(r.authority,bytes):r.authority.kind==='nonce'?sdk.getParticipantDecoder().decode(bytes).nonce:
                 r.authority.kind==='quoteEpoch'?sdk.getMakerRegistrationDecoder().decode(bytes).quoteEpoch:
                 sdk.getMarketStateDecoder().decode(bytes).sequence;
               // Unchanged authority rules out the economic effect, not a failed
