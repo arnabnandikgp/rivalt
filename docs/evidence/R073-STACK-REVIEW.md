@@ -2,8 +2,11 @@
 
 The user authorizes remediation and atomic integration of ready PRs
 #32/#33/#35/#36/#37/#38/#39/#40. Review began at stack tip
-`3b974c2748e77c307bf3b58f9d1e9cb933259505`. Merge and updated hosted checks are
-pending at this checkpoint; WORKLOG records the eventual integration result.
+`3b974c2748e77c307bf3b58f9d1e9cb933259505`. Remediation commit
+`e6ba2cfdbdb41dbfe037453ed75444f3baf94aa3` passes all five refreshed hosted jobs.
+All eight PRs merge atomically at `0916b9dc7896f9cdfc68081ad56daa93dabf3d94`,
+whose tree exactly equals that reviewed tip. All 11 inline threads are resolved;
+CodeRabbit skipped an incremental review, so no new review approval is claimed.
 This report adds review/scoped regression evidence, not a fresh financial run.
 
 | PR / finding | Disposition in the coherent stack tree |
@@ -42,3 +45,17 @@ pins. Full local suites, fresh runtime qualification and endurance were intentio
 not repeated for these consumer/documentation/test-only changes; hosted regression
 results are recorded only after actual completion. P15B/P16B remain Open and
 continuous 24-hour endurance remains Deferred.
+
+
+## Integration verification
+
+`gh stack submit --auto --open` publishes the fix on existing PR #40. Authenticated
+`gh api graphql` resolves/verifies all 11 threads after the connector reports
+missing write access. The final eight-head sweep has zero unresolved findings,
+no requested changes and CLEAN merge states. Selected inherited checks are green
+or scope-skipped; [run 40576656720](https://github.com/arnabnandikgp/rivalt/actions/runs/40576656720)
+passes scope/client/report/financial/shell on exact remediation head `e6ba2cf`.
+`gh stack merge --yes --merge` succeeds, and independent PR metadata confirms all
+eight MERGED at the common commit above. The fetched merge and reviewed tip share
+tree `08b7c1f65ae0ea6d6d20ecc5c426975700ce2efd`. Local `main` is fast-forwarded.
+Only documentation closeout follows; no further runtime acceptance is claimed.

@@ -5,11 +5,13 @@ Rivalt is a new Solana perpetual venue with common clearing, isolated collateral
 
 ## Start here
 
-The next authorized work is [P22–P28's account-centric clearing redesign](docs/P22-ACCOUNT-CENTRIC-CLEARING.md)
-under D56: separate account risk, market eligibility, funded exits and settlement/
-default responsibilities. P22A records the roadmap; P22B resolves the exact financial
-contract before implementation. The new profile is local/test-only, preserves V1/V2
-and stays financially gated until its own safety acceptance. WORKLOG owns live status.
+[P22–P28's account-centric clearing redesign](docs/P22-ACCOUNT-CENTRIC-CLEARING.md)
+is integrated under R073/D67: separate account risk, market eligibility, funded
+exits and settlement/default responsibilities. P22B defines the financial contract;
+P23–P28 implement and qualify it in an explicit local test profile. Start with the
+[P28 operations guide](docs/P28-OPERATIONS.md) for local evaluation and
+[the P28 report](docs/evidence/P28.md) for measured limits. V1/V2 are preserved;
+default/devnet builds remain gated. WORKLOG owns live status and external gates.
 
 The isolated/cross successor starts at [P17's account/group contract](docs/P17-MARGIN-CONTRACT.md)
 and P17–P21 in the delivery plan. It targets a fresh local two-market test group;

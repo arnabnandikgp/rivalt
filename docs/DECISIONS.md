@@ -1062,3 +1062,10 @@ role-labelled trader restrictions, and V3 latest/cursor exclusivity matches the
 existing read contract. These are service/UI corrections, not new financial rules,
 authority, program binaries or deployment qualification. P15B/P16B remain external;
 continuous 24-hour endurance remains Deferred.
+
+
+D67 integration result (R073): all eight phase PRs merge atomically at `0916b9d`,
+with a tree identical to reviewed/remediated `e6ba2cf`. Scoped local and hosted
+checks pass, all inline findings are resolved, and the independent PR metadata
+confirms integration. This closes P22–P28/M8 only within their qualified local scope;
+it does not close external gates or authorize a funded deployment/endurance run.

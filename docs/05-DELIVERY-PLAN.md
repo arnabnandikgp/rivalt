@@ -659,3 +659,12 @@ actual workload also qualifies bounded finalized-history rescans without admitti
 partial state. [Operations](P28-OPERATIONS.md) retains measured limits, explicit
 configuration and unpaid-profit certificate coordination. All phase PRs remain
 open in Review until integration; P15B/P16B and deferred endurance are unchanged.
+
+
+R073/D67 integrates all eight P22–P28 PRs atomically at `0916b9d`, with a tree
+identical to reviewed/remediated `e6ba2cf`. All findings are addressed and scoped
+local/hosted checks pass. P22A/P22B/P23/P24/P25/P26/P27/P28 and M8 are now Closed
+in WORKLOG. Earlier incremental checkpoints above retain their historical scope;
+[P27](evidence/P27.md) and [P28](evidence/P28.md) retain exact real runtime pins.
+[The review report](evidence/R073-STACK-REVIEW.md) records the integration corrections.
+No independent maker/review/funded-pilot gate or deferred endurance is closed.
