@@ -31,6 +31,35 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn withdraw_funded_account_v3(ctx: Context<WithdrawFundedAccountV3>, guard: account_trading::authority::AccountGuardV3, amount: u64) -> Result<()> {
+        account_cash::cash::withdraw(ctx, guard, amount)
+    }
+    pub fn transfer_funded_account_v3(ctx: Context<TransferFundedAccountV3>, guard: account_trading::authority::AccountGuardV3, amount: u64) -> Result<()> {
+        account_cash::cash::transfer(ctx, guard, amount)
+    }
+    pub fn initialize_market_backing_v3(ctx: Context<InitializeMarketBackingV3>, market_index: u8) -> Result<()> {
+        account_cash::certificate::initialize(ctx, market_index)
+    }
+    pub fn check_market_backing_v3(ctx: Context<CheckMarketBackingV3>, start: u16) -> Result<()> {
+        account_cash::certificate::check(ctx, start)
+    }
+    pub fn collect_account_loss_v3(ctx: Context<ChangeAccountClaimV3>, market_index: u8, amount: u64) -> Result<()> {
+        account_cash::claims::change(ctx, market_index, amount, false)
+    }
+    pub fn pay_account_gain_v3(ctx: Context<ChangeAccountClaimV3>, market_index: u8, amount: u64) -> Result<()> {
+        account_cash::claims::change(ctx, market_index, amount, true)
+    }
+    pub fn net_account_claims_v3(ctx: Context<NetAccountClaimsV3>, guard: account_trading::authority::AccountGuardV3,
+        source_market: u8, amount: u64) -> Result<()> {
+        account_cash::claims::net(ctx, guard, source_market, amount)
+    }
+    pub fn allocate_market_fees_v3(ctx: Context<ManageMarketFeesV3>, market_index: u8, amount: u64) -> Result<()> {
+        account_cash::fees::manage(ctx, market_index, amount, false)
+    }
+    pub fn withdraw_market_fees_v3(ctx: Context<ManageMarketFeesV3>, market_index: u8, amount: u64) -> Result<()> {
+        account_cash::fees::manage(ctx, market_index, amount, true)
+    }
+
     pub fn register_account_maker_v3(
         ctx: Context<RegisterAccountMaker>,
         maker_id: u8,

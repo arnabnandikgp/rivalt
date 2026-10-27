@@ -865,3 +865,29 @@ in force, including full books on the trader and both maker roots. Current scope
 checks and limitations belong to WORKLOG; no acceptance follows just from these
 implementation choices. P25 cash/claims/exits, P26 safety, P27 services and P28
 qualification remain separate gates, as do P15B/P16B and deferred endurance.
+
+
+## D63 — schema-3 funded exits and scoped payment certificates (P25)
+
+Implement D60 in the separate `account-cash-qualification` artifact. Account-local
+cash withdrawal/transfer reuses current full IM/reservation admission and adds all
+held-funding corner solvency checks before the atomic actual token/cash movement.
+No global solvency certificate or historical event/sample ID is a funded-exit
+argument. Complete canonical source/funding/root/safety checks remain mandatory.
+
+Normal gain payment and explicit flat-only netting continue to require actual
+market P and a complete selected-market backing certificate. Its bounded canonical
+scan checks each selected debtor's own gross obligations across both markets, with
+no positive-claim or insurance credit. Liability invalidation follows economic
+exposure/claim dependencies; irrelevant market-only accounts do not create a common
+profit-payment veto. The [P25 contract](P25-ACCOUNT-CASH.md) specifies retained
+certificate fields and the acceptance scope. No new loss bearer, queue, funded
+profit guarantee or old-profile behavior is introduced. Ordinary activation still
+requires P26, with P15B/P16B and deferred endurance unchanged.
+
+D63 implementation clarification: flat netting excludes live refreshed orders,
+including TP/SL. Cancelled/invalidated protection records are historical and do
+not carry standalone executable authority; a nonzero historical allowance cannot
+permanently prevent settlement. Active identity admission invalidates membership
+certificates, and actual deposits/reserve donations remain source-independent.
+No active insurance withdrawal is introduced.

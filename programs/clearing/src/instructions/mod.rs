@@ -1,5 +1,21 @@
 //! Instruction contexts, handlers and their domain-specific validation helpers.
 
+pub mod account_cash;
+pub use account_cash::fees::ManageMarketFeesV3;
+pub(crate) use account_cash::fees::__client_accounts_manage_market_fees_v3;
+#[cfg(feature = "cpi")]
+pub(crate) use account_cash::fees::__cpi_client_accounts_manage_market_fees_v3;
+pub use account_cash::{WithdrawFundedAccountV3, TransferFundedAccountV3, ChangeAccountClaimV3, NetAccountClaimsV3};
+pub(crate) use account_cash::{__client_accounts_withdraw_funded_account_v3, __client_accounts_transfer_funded_account_v3,
+    __client_accounts_change_account_claim_v3, __client_accounts_net_account_claims_v3};
+#[cfg(feature = "cpi")]
+pub(crate) use account_cash::{__cpi_client_accounts_withdraw_funded_account_v3, __cpi_client_accounts_transfer_funded_account_v3,
+    __cpi_client_accounts_change_account_claim_v3, __cpi_client_accounts_net_account_claims_v3};
+pub use account_cash::certificate::{InitializeMarketBackingV3, CheckMarketBackingV3};
+pub(crate) use account_cash::certificate::{__client_accounts_initialize_market_backing_v3, __client_accounts_check_market_backing_v3};
+#[cfg(feature = "cpi")]
+pub(crate) use account_cash::certificate::{__cpi_client_accounts_initialize_market_backing_v3, __cpi_client_accounts_check_market_backing_v3};
+
 pub mod orders;
 pub use orders::{CancelOrder, CleanupOrders, ManageOrder};
 

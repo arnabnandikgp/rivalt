@@ -31,6 +31,7 @@ export * from "./portfolioV3.js";
 export * from "./probeRecord.js";
 export * from "./resolutionState.js";
 export * from "./safetyV3.js";
+export * from "./settlementCertificateV3.js";
 export * from "./testRouteState.js";
 export * from "./venueRegistryV3.js";
 export * from "./venueV3.js";

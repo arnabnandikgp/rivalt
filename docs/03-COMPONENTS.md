@@ -1,6 +1,10 @@
 # Components and interfaces
 Rivalt · baseline R1 · 20 October 2026
 
+D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
+funded exits and separate complete market payment certificates. Acceptance remains
+phase-owned, and the candidate build does not satisfy P26 safety.
+
 D62 records [P24's candidate trading interface](P24-ACCOUNT-TRADING.md): scoped
 account/safety/maker authority, current relevant risk and exact per-market fee
 allocation. It remains a separate qualification artifact pending P26 safety.

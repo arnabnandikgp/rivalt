@@ -977,3 +977,66 @@ pub struct AccountQualificationV3 {
     pub safety_epoch: u64,
     pub markets: [MarketSnapshotV3; 2],
 }
+
+#[event]
+pub struct AccountFinancialChangedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub actor: Pubkey,
+    /// 0 withdrawal, 1 transfer, 2 collection, 3 payment, 4 flat netting,
+    /// 5 retained fees allocated to insurance, 6 retained fee token withdrawal.
+    pub kind: u8,
+    pub market_index: u8,
+    pub amount: u64,
+    pub safety_epoch: u64,
+    pub total_cash: u64,
+    pub allocated_vault: u64,
+    pub actual_vault: u64,
+    pub liability_versions: [u64; 2],
+    pub roots: Vec<Pubkey>,
+    pub root_states: Vec<MarginAccountSnapshotV3>,
+    pub markets: [MarketSnapshotV3; 2],
+    pub ledgers: [MarketLedgerSnapshotV3; 2],
+}
+
+#[event]
+pub struct AccountBackingChangedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub certificate: Pubkey,
+    pub state: BackingSnapshotV3,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct BackingSnapshotV3 {
+    pub schema_version: u16,
+    pub venue: Pubkey,
+    pub market_index: u8,
+    pub safety_epoch: u64,
+    pub membership_version: u64,
+    pub liability_versions: [u64; 2],
+    pub observations: [u64; 2],
+    pub funding_bounds: [[i128; 2]; 2],
+    pub source_deadlines: [i64; 2],
+    pub required_market_mask: u8,
+    pub count: u16,
+    pub next: u16,
+    pub cash: u64,
+    pub lots: [i128; 2],
+    pub claim_sum: i128,
+    pub complete: bool,
+    pub bump: u8,
+}
+
+impl From<&crate::state::v3::SettlementCertificateV3> for BackingSnapshotV3 {
+    fn from(state: &crate::state::v3::SettlementCertificateV3) -> Self {
+        Self {schema_version: state.schema_version, venue: state.venue, market_index: state.market_index,
+            safety_epoch: state.safety_epoch, membership_version: state.membership_version,
+            liability_versions: state.liability_versions, observations: state.observations,
+            funding_bounds: state.funding_bounds, source_deadlines: state.source_deadlines,
+            required_market_mask: state.required_market_mask, count: state.count, next: state.next,
+            cash: state.cash, lots: state.lots, claim_sum: state.claim_sum, complete: state.complete, bump: state.bump}
+    }
+}

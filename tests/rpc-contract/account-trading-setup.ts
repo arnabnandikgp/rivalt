@@ -20,12 +20,13 @@ const encoder = getAddressEncoder();
 const u16 = (value: number) => { const bytes = Buffer.alloc(2); bytes.writeUInt16LE(value); return bytes; };
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0,8);
 
-export async function accountTradingSetup(h: AccountTradingHarness) {
+export async function accountTradingSetup(h: AccountTradingHarness, options: {qualifyPrimitives?: boolean; domainLabel?: string} = {}) {
+  const qualify = options.qualifyPrimitives !== false;
   const payer = await payerKey(), deployment = await addresses();
   const owner = await fixtureKey('p24-trader'), mint = await fixtureKey('p24-mint');
   const makerOwners = await Promise.all([0,1].map(index => fixtureKey(`p24-maker-${index}`)));
   const primary = await fixtureKey('p24-primary'), guard = await fixtureKey('p24-guard');
-  const domain = createHash('sha256').update('rivalt/p24/two-isolated-markets').digest();
+  const domain = createHash('sha256').update(options.domainLabel ?? 'rivalt/p24/two-isolated-markets').digest();
   const venue = await accountPda('venue-v3',domain), registry = await accountPda('registry-v3',encoder.encode(venue));
   const vault = await accountPda('vault-v3',encoder.encode(venue));
   const custody = await accountPda('custody-v3',encoder.encode(venue)), safety = await accountPda('safety-v3',encoder.encode(venue));
@@ -40,6 +41,9 @@ export async function accountTradingSetup(h: AccountTradingHarness) {
     const before = await snapshot(); await h.send(label,instructions,signers,error);
     assert.deepEqual(await snapshot(),before,`${label}: financial bytes changed`);
   };
+  // Later phases reuse real signed provisioning without rerunning P24's
+  // negative/ABI qualification. Returned reject() always submits and verifies.
+  const setupReject: typeof reject = async (...args) => { if (qualify) await reject(...args); };
   for (const signer of [owner,...makerOwners,primary,guard]) await h.send('setup owner rent funds',[
     getTransferSolInstruction({source:payer,destination:signer.address,amount:1_000_000_000n})]);
   await h.send('setup six decimal collateral',[getCreateAccountInstruction({payer,newAccount:mint,lamports:await h.rent(82),space:82n,programAddress:TOKEN_PROGRAM_ADDRESS}),
@@ -84,26 +88,26 @@ export async function accountTradingSetup(h: AccountTradingHarness) {
       const registration = await accountPda('maker-v3',encoder.encode(market),Uint8Array.of(makerId));
       const binding = await accountPda('capital-v3',encoder.encode(capital));
       const accounts = {...common,owner:signer,authority:payer,market,capital,config,registration,capitalBinding:binding,pricingProgram,programData};
-      if(marketIndex===0 && makerId===0){
+      if(qualify && marketIndex===0 && makerId===0){
         for(const invalidCapital of [operators[0].capital[0],cross]){
           const [invalidConfig]=await getProgramDerivedAddress({programAddress:pricingProgram,seeds:[Buffer.from('maker-v3'),encoder.encode(invalidCapital)]});
-          await reject('reject trader-role or cross root as maker capital',[await api.getInitializeAccountConfigInstructionAsync({
+          await setupReject('reject trader-role or cross root as maker capital',[await api.getInitializeAccountConfigInstructionAsync({
             ...accounts,owner,capital:invalidCapital,config:invalidConfig,duration:3600n})],[owner],6001);
           assert.equal(await h.read(invalidConfig),null);
         }
       }
-      await reject('reject foreign maker-config owner',[await api.getInitializeAccountConfigInstructionAsync({...accounts,owner,duration:3600n})],[owner],6000);
-      await reject('reject maker-config market mismatch',[await api.getInitializeAccountConfigInstructionAsync({...accounts,market:markets[1-marketIndex],duration:3600n})],[signer],6001);
+      await setupReject('reject foreign maker-config owner',[await api.getInitializeAccountConfigInstructionAsync({...accounts,owner,duration:3600n})],[owner],6000);
+      await setupReject('reject maker-config market mismatch',[await api.getInitializeAccountConfigInstructionAsync({...accounts,market:markets[1-marketIndex],duration:3600n})],[signer],6001);
       assert.equal(await h.read(config),null);
       await h.send('initialize owner-bound V3 maker config',[await api.getInitializeAccountConfigInstructionAsync({...accounts,duration:3600n})],[signer]);
-      await reject('reject maker admission by foreign venue authority',[await sdk.getRegisterAccountMakerV3InstructionAsync({...accounts,authority:owner,makerId,inventoryLimit:100_000n})],[signer,owner],2001);
-      if(makerId===1){
+      await setupReject('reject maker admission by foreign venue authority',[await sdk.getRegisterAccountMakerV3InstructionAsync({...accounts,authority:owner,makerId,inventoryLimit:100_000n})],[signer,owner],2001);
+      if(qualify && makerId===1){
         const existing=pair[0];
         const [aliasConfig]=await getProgramDerivedAddress({programAddress:pricingProgram,seeds:[Buffer.from('maker-v3'),encoder.encode(existing.capital)]});
         await h.send('configure second module for same owner capital before admission rejection',[
           await api.getInitializeAccountConfigInstructionAsync({...accounts,owner:existing.owner,capital:existing.capital,config:aliasConfig,duration:3600n})],[existing.owner]);
         const bound=await h.read(existing.capitalBinding);
-        await reject('reject reuse of one funded root across maker registrations',[
+        await setupReject('reject reuse of one funded root across maker registrations',[
           await sdk.getRegisterAccountMakerV3InstructionAsync({...accounts,owner:existing.owner,capital:existing.capital,
             config:aliasConfig,capitalBinding:existing.capitalBinding,makerId,inventoryLimit:100_000n})],[existing.owner],0);
         assert.deepEqual(await h.read(existing.capitalBinding),bound);assert.equal(await h.read(registration),null);
@@ -119,7 +123,7 @@ export async function accountTradingSetup(h: AccountTradingHarness) {
     makers.push(pair);
   }
   assert.equal(new Set(makers.flat().map(maker=>maker.capital)).size,4);
-  for (const marketIndex of [0,1]) {
+  if (qualify) for (const marketIndex of [0,1]) {
     const market = await marketState(marketIndex);
     for (const maker of makers[marketIndex]) {
       const args = {side:0,lots:100n,referencePrice:marketIndex===0?60_000n:30_000n,
@@ -129,14 +133,14 @@ export async function accountTradingSetup(h: AccountTradingHarness) {
       const response = sdk.getQuoteResponseDecoder().decode(await h.quote('authenticated read-only venue quote',quote));
       assert.equal(response.version,3); assert.equal(response.grossQuote,(marketIndex===0?6_000_000n:3_000_000n)+(maker.makerId===0?5_950n:3_000n));
       assert.deepEqual(await snapshot(),before);
-      await reject('reject writable quote config',[{...quote,accounts:quote.accounts.map(account=>account.address===maker.config?{...account,role:AccountRole.WRITABLE}:account)}],[],6110);
-      await reject('reject foreign config',[await sdk.getPreviewAccountMakerV3Instruction({...maker,config:makers[1-marketIndex][maker.makerId].config,args})],[],2001);
-      await reject('reject epoch reset before config publication',[await sdk.getUpdateAccountMakerV3Instruction({...maker,actor:maker.owner,coSigner:undefined,operation:1})],[maker.owner],6112);
-      await reject('reject unilateral code approval',[await sdk.getUpdateAccountMakerV3Instruction({...maker,actor:maker.owner,coSigner:undefined,operation:0})],[maker.owner],6102);
+      await setupReject('reject writable quote config',[{...quote,accounts:quote.accounts.map(account=>account.address===maker.config?{...account,role:AccountRole.WRITABLE}:account)}],[],6110);
+      await setupReject('reject foreign config',[await sdk.getPreviewAccountMakerV3Instruction({...maker,config:makers[1-marketIndex][maker.makerId].config,args})],[],2001);
+      await setupReject('reject epoch reset before config publication',[await sdk.getUpdateAccountMakerV3Instruction({...maker,actor:maker.owner,coSigner:undefined,operation:1})],[maker.owner],6112);
+      await setupReject('reject unilateral code approval',[await sdk.getUpdateAccountMakerV3Instruction({...maker,actor:maker.owner,coSigner:undefined,operation:0})],[maker.owner],6102);
       const request = {venue,quote:{version:3,domain,market:maker.market,capital:maker.capital,quoteEpoch:1n,authorityEpoch:1n,
         termsEpoch:1n,marketConfigEpoch:market.configEpoch,side:0,lots:1n,inventory:0n,cash:500_000_000n,
         inventoryLimit:100_000n,consumed:0n,referencePrice:args.referencePrice,slot:await h.slot()}};
-      await reject('reject cross-venue maker request',[await maker.api.getQuoteAccountInstruction({config:maker.config,...request,venue:mint.address})],[],6003);
+      await setupReject('reject cross-venue maker request',[await maker.api.getQuoteAccountInstruction({config:maker.config,...request,venue:mint.address})],[],6003);
     }
   }
   const feeds: {feed:Address;signer:Keypair;index:number}[] = [];
@@ -177,6 +181,7 @@ export async function accountTradingSetup(h: AccountTradingHarness) {
       assert.equal(market.oracle.coveredSeconds,0n); assert.equal(market.oracle.quantity,index===0?100n:200n);
     }
   }
+  if (qualify) {
   await h.advance(2n);
   await reject('reject substitution of BTC source for ETH',[await sdk.getSampleAccountOracleV3Instruction({...sampleAccounts(1),primaryAsset:feeds[0].feed})],[],6123);
   await publish(4,{price:60_000_000_000n});
@@ -218,6 +223,7 @@ export async function accountTradingSetup(h: AccountTradingHarness) {
   for(let round=0;round<4;round++) {
     if(round>0)await h.advance(2n);
     for(const index of [0,1])await h.send('fresh epoch recovery sample',[await sdk.getSampleAccountOracleV3Instruction(sampleAccounts(index))]);
+  }
   }
   const finalMarkets=await Promise.all([0,1].map(marketState));
   assert(finalMarkets.every(market=>market.oracle.status===2 && market.fundingIndexScaled===0n));

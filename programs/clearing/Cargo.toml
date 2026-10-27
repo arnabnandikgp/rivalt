@@ -17,6 +17,7 @@ successor-test-profile = ["local-test-profile"]
 account-test-profile = ["local-test-profile"]
 # Candidate-only artifact: no default, custody, or devnet activation before P26.
 account-trading-qualification = ["account-test-profile"]
+account-cash-qualification = ["account-trading-qualification"]
 # Explicit local cross profile qualified by P20. Keep its original feature name
 # for evidence reproduction; ordinary successor/default/devnet exclude it.
 cross-safety-qualification = ["successor-test-profile"]

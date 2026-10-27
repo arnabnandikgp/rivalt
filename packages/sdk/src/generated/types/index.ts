@@ -9,6 +9,7 @@
 export * from "./accountCashSnapshotV3.js";
 export * from "./accountGuardV3.js";
 export * from "./accountRouteLegV3.js";
+export * from "./backingSnapshotV3.js";
 export * from "./executedLeg.js";
 export * from "./groupMarketSnapshotV2.js";
 export * from "./groupMemberCashV2.js";

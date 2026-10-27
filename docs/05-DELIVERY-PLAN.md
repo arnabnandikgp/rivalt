@@ -579,3 +579,6 @@ P24 realization: [A29/G19 core evidence](evidence/P24.md) qualifies the distinct
 candidate ABI, whole-account risk/funding, atomic maker routes, orders/protection
 and market-attributed collected fees. Its verified Review source satisfies P25's
 implementation dependency, while ordinary activation still awaits P26.
+
+P25 implementation contract: [cash, market claims and atomic exits](P25-ACCOUNT-CASH.md).
+Its candidate feature remains separate from P26 safety activation.

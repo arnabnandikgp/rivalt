@@ -286,7 +286,7 @@ pub(crate) fn live(
     Ok(())
 }
 
-pub(super) fn funding_bounds(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Result<[i128; 2]> {
+pub(crate) fn funding_bounds(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Result<[i128; 2]> {
     let current = oracle::effective(mode, market, clock)?;
     let mut end = current;
     let observation = &market.oracle;

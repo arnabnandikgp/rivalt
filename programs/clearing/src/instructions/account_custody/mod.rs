@@ -39,6 +39,16 @@ pub(crate) fn active(venue: &VenueV3, custody: &CustodyV3, safety: &SafetyV3) ->
     Ok(())
 }
 
+/// Identity admission and reserve donation may continue after candidate activation;
+/// they do not authorize trading or consume a price-dependent financial path.
+fn available_identity(venue: &VenueV3, custody: &CustodyV3, safety: &SafetyV3) -> Result<()> {
+    if safety.mode == ACTIVE {
+        super::account_cash::profile(venue, custody, safety)
+    } else {
+        active(venue, custody, safety)
+    }
+}
+
 pub(crate) fn reconciled(
     custody: &CustodyV3,
     ledgers: [&MarketLedgerV3; 2],
@@ -332,7 +342,7 @@ pub fn initialize_market(ctx: Context<InitializeMarketV3>, index: u8) -> Result<
 
 pub fn create_portfolio(ctx: Context<CreatePortfolioV3>, index: u16) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    active(
+    available_identity(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,
@@ -374,7 +384,7 @@ pub fn register(
     role: u8,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    active(
+    available_identity(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,
@@ -445,12 +455,19 @@ pub fn register(
 
 pub fn cash(ctx: Context<AccountCashV3>, amount: u64, withdraw: bool) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    active(
-        &ctx.accounts.venue,
-        &ctx.accounts.custody,
-        &ctx.accounts.safety,
-    )?;
-    empty_financial_state(&ctx.accounts.margin)?;
+    if !withdraw && ctx.accounts.safety.mode == ACTIVE {
+        super::account_cash::profile(
+            &ctx.accounts.venue,
+            &ctx.accounts.custody,
+            &ctx.accounts.safety,
+        )?;
+        super::account_trading::model(&ctx.accounts.margin)?;
+        let positions = ctx.accounts.margin.positions;
+        super::account_trading::invalidate(&mut ctx.accounts.custody, positions, positions)?;
+    } else {
+        active(&ctx.accounts.venue, &ctx.accounts.custody, &ctx.accounts.safety)?;
+        empty_financial_state(&ctx.accounts.margin)?;
+    }
     require!(amount > 0, ClearingError::Amount);
     reconciled(
         &ctx.accounts.custody,
@@ -614,7 +631,7 @@ pub fn classify_surplus(
     amount: u64,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    active(
+    available_identity(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,
@@ -674,7 +691,7 @@ pub fn seed_insurance(
     amount: u64,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    active(
+    available_identity(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,
