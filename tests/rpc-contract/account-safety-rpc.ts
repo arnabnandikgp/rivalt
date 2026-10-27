@@ -83,7 +83,7 @@ const h:AccountTradingHarness={
 };
 try {
   const result=await accountSafetyCases(h,{maximumCohort:process.env.RIVALT_SAFETY_MAXIMUM_COHORT==='1',
-    retireResolved:process.env.RIVALT_SAFETY_RETIRE_RESOLVED==='1',liquidation:process.env.RIVALT_SAFETY_LIQUIDATION==='1',twoMarket:process.env.RIVALT_SAFETY_TWO_MARKET==='1',
+    cycle:process.env.RIVALT_SAFETY_CYCLE==='1',retireResolved:process.env.RIVALT_SAFETY_RETIRE_RESOLVED==='1',liquidation:process.env.RIVALT_SAFETY_LIQUIDATION==='1',twoMarket:process.env.RIVALT_SAFETY_TWO_MARKET==='1',
     emergency:process.env.RIVALT_SAFETY_EMERGENCY==='1',fullBooks:process.env.RIVALT_SAFETY_FULL_BOOKS==='1'});
   // Keep the source sampling loop causal without waiting 32 slots per feed.
   // Acceptance still independently fetches every original signature finalized,

@@ -22,6 +22,7 @@ const unpack = value => {
   if (value && typeof value === 'object') {
     if ('$bn' in value) return new anchor.BN(value.$bn);
     if ('$pubkey' in value) return new PublicKey(value.$pubkey);
+    if ('$bytes' in value) return Buffer.from(value.$bytes, 'base64');
     return Object.fromEntries(Object.entries(value).map(([key,item]) => [key,unpack(item)]));
   }
   return value;

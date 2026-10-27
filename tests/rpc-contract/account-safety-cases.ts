@@ -16,10 +16,12 @@ export type SafetyResourceProbe = {
   order:(orders:[number[],number[]])=>Instruction;
   checkOrder:(start:number,id:number)=>Instruction;round:(start:number)=>Instruction;
 };
-export async function accountSafetyCases(h:AccountTradingHarness,options:{maximumCohort?:boolean;retireResolved?:boolean;liquidation?:boolean;twoMarket?:boolean;emergency?:boolean;fullBooks?:boolean;
+export async function accountSafetyCases(h:AccountTradingHarness,options:{maximumCohort?:boolean;retireResolved?:boolean;liquidation?:boolean;twoMarket?:boolean;emergency?:boolean;fullBooks?:boolean;cycle?:boolean;
   resourceProbe?:(input:SafetyResourceProbe)=>Promise<void>;
+  checkpoint?:(label:string)=>Promise<void>;
   defaultProbe?:(label:string,instruction:Instruction,signers?:Parameters<AccountTradingHarness['send']>[2])=>Promise<void>}={}) {
-  assert(!(options.liquidation && options.twoMarket),'separate liquidation and two-market default scenarios');
+  if(options.cycle){options.twoMarket=true;options.emergency=true;}
+  assert(!(options.cycle && options.liquidation),'cyclic default and liquidation use distinct economic scenarios');
   const setup=await accountTradingSetup(h,{qualifyPrimitives:false,domainLabel:'rivalt/p26/account-safety'});
   const {payer,owner,markets,ledgers,cross,makers,feeds,roots}=setup;
   const common={...setup.common,btc:markets[0],eth:markets[1]};
@@ -93,30 +95,33 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
   const maker=makers[0][0],second=makers[0][1],market=await setup.marketState(0);
   const secondRegistration=sdk.getMakerRegistrationV3Decoder().decode((await h.read(second.registration))!);
   const registration=sdk.getMakerRegistrationV3Decoder().decode((await h.read(maker.registration))!);
-  const slot=await h.slot();
-  await h.send('open actual pre-default BTC exposure',[sdk.getExecuteAccountRouteV3Instruction({...common,
-    actor:owner,market:markets[0],otherMarket:markets[1],ledger:ledgers[0],otherLedger:ledgers[1],trader:cross,
-    firstCapital:maker.capital,firstRegistration:maker.registration,firstProgram:maker.pricingProgram,
-    firstProgramData:maker.programData,firstConfig:maker.config,secondCapital:second.capital,secondRegistration:second.registration,
-    secondProgram:second.pricingProgram,secondProgramData:second.programData,secondConfig:second.config,
-    guard:await guard(cross),domain:setup.domain,termsEpoch:market.termsEpoch,configEpoch:market.configEpoch,
-    startSlot:slot,expirySlot:slot+100n,side:0,lots:50n,allInLimit:3_300_000n,maxFee:1000n,
-    reduceOnly:false,generation:null,legs:[{lots:25n,quoteEpoch:registration.quoteEpoch,
-      authorityEpoch:registration.authorityEpoch,expectedConsumed:registration.buyConsumed},
-      {lots:25n,quoteEpoch:secondRegistration.quoteEpoch,authorityEpoch:secondRegistration.authorityEpoch,expectedConsumed:secondRegistration.buyConsumed}]})],[owner]);
-  if(options.twoMarket) {
-    const [first,second]=makers[1];
-    const state=await setup.marketState(1),slot=await h.slot();
+  async function route(marketIndex:number,trader:Address,side:number,label:string) {
+    const [first,second]=makers[marketIndex],state=await setup.marketState(marketIndex),slot=await h.slot();
     const registrations=await Promise.all([first,second].map(async maker=>sdk.getMakerRegistrationV3Decoder().decode((await h.read(maker.registration))!)));
-    await h.send('open actual second-market cross exposure',[sdk.getExecuteAccountRouteV3Instruction({...common,
-      actor:owner,market:markets[1],otherMarket:markets[0],ledger:ledgers[1],otherLedger:ledgers[0],trader:cross,
+    await h.send(label,[sdk.getExecuteAccountRouteV3Instruction({...common,
+      actor:owner,market:markets[marketIndex],otherMarket:markets[1-marketIndex],ledger:ledgers[marketIndex],otherLedger:ledgers[1-marketIndex],trader,
       firstCapital:first.capital,firstRegistration:first.registration,firstProgram:first.pricingProgram,
       firstProgramData:first.programData,firstConfig:first.config,secondCapital:second.capital,secondRegistration:second.registration,
       secondProgram:second.pricingProgram,secondProgramData:second.programData,secondConfig:second.config,
-      guard:await guard(cross),domain:setup.domain,termsEpoch:state.termsEpoch,configEpoch:state.configEpoch,
-      startSlot:slot,expirySlot:slot+100n,side:0,lots:50n,allInLimit:1_700_000n,maxFee:1000n,
+      guard:await guard(trader),domain:setup.domain,termsEpoch:state.termsEpoch,configEpoch:state.configEpoch,
+      startSlot:slot,expirySlot:slot+100n,side,lots:50n,allInLimit:marketIndex===0?(side===0?3_300_000n:2_700_000n):(side===0?1_700_000n:1_300_000n),maxFee:1000n,
       reduceOnly:false,generation:null,legs:registrations.map(value=>({lots:25n,quoteEpoch:value.quoteEpoch,
-        authorityEpoch:value.authorityEpoch,expectedConsumed:value.buyConsumed})) as [{lots:bigint;quoteEpoch:bigint;authorityEpoch:bigint;expectedConsumed:bigint},{lots:bigint;quoteEpoch:bigint;authorityEpoch:bigint;expectedConsumed:bigint}]})],[owner]);
+        authorityEpoch:value.authorityEpoch,expectedConsumed:side===0?value.buyConsumed:value.sellConsumed})) as [{lots:bigint;quoteEpoch:bigint;authorityEpoch:bigint;expectedConsumed:bigint},{lots:bigint;quoteEpoch:bigint;authorityEpoch:bigint;expectedConsumed:bigint}]})],[owner]);
+  }
+  await route(0,cross,0,'open actual pre-default BTC exposure');
+  if(options.twoMarket)await route(1,cross,options.cycle?1:0,'open actual second-market cross exposure');
+  if(options.cycle) {
+    assert(!options.maximumCohort,'cycle fixture adds its own eighth identity; maximum cohort is separately qualified');
+    const index=Buffer.from([1,0]),zero=Buffer.alloc(2);
+    const portfolio=await accountPda('portfolio-v3',encoded,getAddressEncoder().encode(owner.address),index);
+    const counterpart=await accountPda('margin-v3',getAddressEncoder().encode(portfolio),zero);
+    await h.send('create independent cross portfolio for actual clearing cycle',[sdk.getCreatePortfolioV3Instruction({...common,owner,portfolio,index:1})],[owner]);
+    await h.send('register distinct cross cycle root',[sdk.getRegisterMarginV3Instruction({...common,owner,portfolio,margin:counterpart,
+      subaccountIndex:0,mode:0,isolatedMarketIndex:255,role:0})],[owner]);roots.push(counterpart);
+    await h.send('fund actual cycle counterparty',[sdk.getDepositAccountV3Instruction({...common,owner,margin:counterpart,
+      quoteMint:setup.mint.address,userToken:setup.operators[0].token.address,amount:600_000n})],[owner]);
+    await route(0,counterpart,1,'cycle counterparty opens opposite BTC exposure');
+    await route(1,counterpart,0,'cycle counterparty opens opposite ETH exposure');
   }
   if(options.liquidation) {
     if(options.fullBooks)for(const margin of [cross,roots[0]])for(let index=0;index<4;index++) {
@@ -128,22 +133,23 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
     }
     for(let round=0;round<4;round++) {
       await h.advance(2n);
-      for(let index=0;index<6;index++)await setup.publish(index,{price:index===0||index===2?54_000_000_000n:
+      for(let index=0;index<6;index++)await setup.publish(index,{price:index===0||index===2?(options.twoMarket?52_000_000_000n:54_000_000_000n):
         index===1||index===3?1_000_000n:3_000_000_000n});
       for(const index of [0,1])await h.send('credible pre-bankruptcy liquidation valuation',[
         sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(index))]);
     }
-    const liquidate=async(price=54_000n,lots=10n,receiver=roots[0],receiverOwner=owner)=>sdk.getLiquidateAccountV3Instruction({
+    const liquidationPrice=options.twoMarket?52_000n:54_000n;
+    const liquidate=async(price=liquidationPrice,lots=10n,receiver=roots[0],receiverOwner=owner)=>sdk.getLiquidateAccountV3Instruction({
       ...common,target:cross,receiver,receiverOwner,targetGuard:await guard(cross),receiverGuard:await guard(receiver),marketIndex:0,lots,price});
     await reject('liquidation cannot worsen deficit after fees',await liquidate(48_600n),6100,[owner]);
-    await reject('liquidation cannot flip target',await liquidate(54_000n,51n),6100,[owner]);
-    await reject('receiver consent cannot be substituted',await liquidate(54_000n,10n,roots[0],maker.owner),6102,[maker.owner]);
-    await reject('maker capital cannot receive liquidation',await liquidate(54_000n,10n,maker.capital,maker.owner),6129,[maker.owner]);
+    await reject('liquidation cannot flip target',await liquidate(liquidationPrice,51n),6100,[owner]);
+    await reject('receiver consent cannot be substituted',await liquidate(liquidationPrice,10n,roots[0],maker.owner),6102,[maker.owner]);
+    await reject('maker capital cannot receive liquidation',await liquidate(liquidationPrice,10n,maker.capital,maker.owner),6129,[maker.owner]);
     const instruction=await liquidate();const before=await raw();
     await options.defaultProbe?.('default build rejects liquidation',instruction,[owner]);
     await h.send('consenting receiver liquidation strictly improves post-fee deficit',[instruction],[owner]);
     const after=await raw();
-    liquidationSteps.push({target:cross,receiver:roots[0],lots:10n,price:54_000n,before,after});
+    liquidationSteps.push({target:cross,receiver:roots[0],lots:10n,price:liquidationPrice,before,after});
     assert.equal((await root(cross)).positions[0].lots,40n);assert.equal((await root(roots[0])).positions[0].lots,10n);
     if(options.fullBooks) {
       assert.equal((await root(cross)).reserved,0n);
@@ -153,8 +159,8 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
     await reject('liquidation old target and receiver guards cannot replay',instruction,6122,[owner]);
   }
   await h.advance(2n);
-  for(let index=0;index<6;index++)await setup.publish(index,{price:index===0||index===2?40_000_000_000n:
-    index===1||index===3?1_000_000n:options.twoMarket?2_000_000_000n:3_000_000_000n});
+  for(let index=0;index<6;index++)await setup.publish(index,{price:index===0||index===2?(options.cycle?90_000_000_000n:40_000_000_000n):
+    index===1||index===3?1_000_000n:options.cycle?6_000_000_000n:options.twoMarket?2_000_000_000n:3_000_000_000n});
   // Freeze authenticates current oracle accounts directly; it does not wait for
   // a discretionary maker/funding sample to acknowledge actual insolvency.
   await h.send('active funded exit retains its existing financial checks',[await withdrawal(1n)],[owner]);
@@ -169,8 +175,8 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
     const value=()=>sdk.getValueAccountResolutionV3Instruction({...accounts,...sources,epoch:frozen.epoch});
     await reject('missing required closeout sources cannot start valuation',value());
     await h.advance(2n);
-    for(let index=0;index<6;index++)await setup.publish(index,{price:index===0||index===2?40_000_000_000n:
-      index===1||index===3?1_000_000n:options.twoMarket?2_000_000_000n:3_000_000_000n});
+    for(let index=0;index<6;index++)await setup.publish(index,{price:index===0||index===2?(options.cycle?90_000_000_000n:40_000_000_000n):
+      index===1||index===3?1_000_000n:options.cycle?6_000_000_000n:options.twoMarket?2_000_000_000n:3_000_000_000n});
     await h.send('credible fresh closeout prices leave frozen funding unchanged',[value()]);
     assert.deepEqual((await header()).funding,frozen.funding);
     await reject('closeout source valuation cannot replay',value());
@@ -179,7 +185,7 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
     await h.send('freeze actual bankrupt account and complete registry',[await freeze()]);
   }
   const initial=await header();assert.equal(initial.stage,2);assert.equal(initial.count,roots.length);
-  assert.equal((await safety()).mode,2);assert.equal(initial.prices[0],40_000n);
+  assert.equal((await safety()).mode,2);assert.equal(initial.prices[0],options.cycle?90_000n:40_000n);
   await reject('freeze cannot replay a committed epoch',await freeze());
   await reject('frozen venue rejects cash mutation',sdk.getDepositAccountV3Instruction({...common,owner,margin:cross,
     quoteMint:setup.mint.address,userToken:setup.operators[0].token.address,amount:1n}),6108,[owner]);
@@ -201,6 +207,7 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
   for(let start=0;start<roots.length;) {
     const length=start===0||start%2===1?1:Math.min(2,roots.length-start);
     await h.send('canonical frozen valuation',[advance(2,start,length,roots.slice(start,start+length))]);
+    if(start===0)await options.checkpoint?.('partial valuation');
     start+=length;
   }
   assert.equal((await header()).stage,3);
@@ -248,7 +255,10 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
       round:start=>sdk.getRoundAccountResolutionV3Instruction({...accounts,epoch:initial.epoch,start})});
     await reject('cannot finalize rates before the complete cohort',finalizeRates());
     await reject('expensive verification is bounded to one row',advance(5,0,2));
-    for(let start=0;start<roots.length;start++)await h.send('verify every exact frozen flow and slope',[advance(5,start,1)]);
+    for(let start=0;start<roots.length;start++) {
+      await h.send('verify every exact frozen flow and slope',[advance(5,start,1)]);
+      if(start===0)await options.checkpoint?.('partial rate verification');
+    }
     assert.equal((await header()).stage,5);assert.equal((await header()).cursor,roots.length);
     await options.defaultProbe?.('default build rejects rate finalization',finalizeRates());
     await h.send('separate complete rate equations and insurance floors',[finalizeRates()]);
@@ -310,10 +320,11 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
     const start=(await header()).cursor;
     await h.send('bounded deterministic conserving DFS',[sdk.getRoundAccountResolutionV3Instruction({
       ...accounts,epoch:initial.epoch,start})]);
+    if(steps===0)await options.checkpoint?.('persisted circulation');
   }
   const rounded=await header();assert.equal(rounded.stage,9);
   const graph=sdk.getResolutionWorkV3Decoder().decode((await h.read(work))!);
-  assert(graph.augmentations>0,'signed two-maker creditors must exercise actual fractional allocation');
+  if(!options.cycle)assert(graph.augmentations>0,'signed two-maker creditors must exercise actual fractional allocation');
   for(let market=0;market<2;market++) {
     let movements=0n;
     for(let id=0;id<roots.length;id++) {
@@ -333,6 +344,7 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
   const plannedCash=frozenRows.map((row,id)=>row.cashAfter+BigInt(graph.residualCapacity[2*(2*roots.length+id)+1]));
   await reject('reconciliation cannot precede application',advance(10,0,1,[roots[0]]));
   await h.send('apply first exact row',[advance(9,0,1,[roots[0]])]);
+  await options.checkpoint?.('partial exactly-once application');
   await reject('applied page cannot replay',advance(9,0,1,[roots[0]]));
   await reject('mixed applied/frozen cash is not withdrawable',await withdrawal(100n),6108,[owner]);
   for(let start=1;start<roots.length;) {
@@ -370,7 +382,7 @@ export async function accountSafetyCases(h:AccountTradingHarness,options:{maximu
   const resolvedAccounts=await raw();
   const report=async(reactivatedAccounts?:Awaited<ReturnType<typeof raw>>)=>({
     scenario:options.twoMarket?'two-market-resolved':options.retireResolved?'resolved-retirement':'recovery-retirement',
-    emergency:Boolean(options.emergency),fullBooks:Boolean(options.fullBooks),liquidationSteps,
+    cycle:Boolean(options.cycle),emergency:Boolean(options.emergency),fullBooks:Boolean(options.fullBooks),liquidationSteps,
     venue:common.venue,custody:common.custody,safety:common.safety,registry:common.registry,vault:common.vault,
     mint:setup.mint.address,userTokens:setup.operators.map(operator=>operator.token.address),reserveDestination,certificate,
     resolution,work,pages,roots,markets,ledgers,makerAccounts:makers.flat().map(maker=>({registration:maker.registration,
