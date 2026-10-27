@@ -71,3 +71,19 @@ it('makes closed-claim netting explicit and binds the source market certificate'
   snapshot.roots[fixture.margins[0]].positions[0].lots=1n;
   await expect(client.netClosedClaims(snapshot,fixture.owner,fixture.margins[0],0,7n)).rejects.toThrow(/flat cross/);
 });
+
+
+it('discovers only canonical children of the selected owner portfolio and rejects substituted roots',async()=>{
+  const fixture=await environment(),client=new sdk.AccountUserClient(fixture.config),calls:string[][]=[];
+  client.rpc.call=async(method,params=[])=>{
+    const keys=method==='getAccountInfo'?[params[0] as string]:params[0] as string[];
+    calls.push(keys);return {context:{slot:100},value:method==='getAccountInfo'?fixture.accounts.get(keys[0])??null:keys.map(key=>fixture.accounts.get(key)??null)};
+  };
+  const owned=await client.ownerAccounts(fixture.owner,0);
+  expect(owned.accounts.map(([key])=>key)).toEqual(fixture.margins);
+  expect(calls).toEqual([[fixture.portfolio],fixture.margins]);
+  const other=await client.ownerAccounts(fixture.owner,3);expect(other.accounts).toEqual([]);expect(other.portfolio.account).toBeNull();
+  const root=sdk.getMarginAccountV3Decoder().decode(Buffer.from(fixture.accounts.get(fixture.margins[0]).data[0],'base64'));
+  fixture.put(fixture.margins[0],sdk.getMarginAccountV3Encoder().encode({...root,owner:fixture.config.mint}));
+  await expect(client.ownerAccounts(fixture.owner,0)).rejects.toThrow('Owner account identity mismatch');
+});

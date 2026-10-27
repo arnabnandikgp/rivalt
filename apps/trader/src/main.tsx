@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConnectionProvider, WalletProvider, WalletModalProvider } from '@solana/wallet-adapter';
-import { userConfig, groupUserConfig, type UserConfig } from '@rivalt/sdk';
+import { userConfig, groupUserConfig, accountUserConfig, type UserConfig } from '@rivalt/sdk';
 import '@solana/wallet-adapter/styles.css';
 import './styles.css';
 import { App } from './App.js';
 import { GroupApp } from './group/GroupApp.js';
+import { AccountApp } from './account/AccountApp.js';
+import type { AccountTraderConfig } from './account/types.js';
 import type { GroupTraderConfig } from './group/types.js';
 export type TraderConfig = UserConfig & { apiBase: string; readBase: string };
 function Root() {
-  const [config, setConfig] = useState<TraderConfig | GroupTraderConfig>(),
+  const [config, setConfig] = useState<TraderConfig | GroupTraderConfig | AccountTraderConfig>(),
     [error, setError] = useState(''),
     [attempt, setAttempt] = useState(0);
   useEffect(() => {
@@ -19,7 +21,7 @@ function Root() {
       .then(async (r) => {
         if (!r.ok) throw new Error('The local venue configuration is unavailable.');
         const raw = await r.json(),
-          validated = raw.version === 2 ? groupUserConfig(raw) : userConfig(raw);
+          validated = raw.version === 3 ? accountUserConfig(raw) : raw.version === 2 ? groupUserConfig(raw) : userConfig(raw);
         if (raw.apiBase !== '/api' || raw.readBase !== '/read')
           throw new Error('Unsupported service configuration.');
         if (active)
@@ -61,7 +63,7 @@ function Root() {
     >
       <WalletProvider chain={config.chain} autoConnect>
         <WalletModalProvider>
-          {config.version === 2 ? <GroupApp config={config} /> : <App config={config} />}
+          {config.version === 3 ? <AccountApp config={config} /> : config.version === 2 ? <GroupApp config={config} /> : <App config={config} />}
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

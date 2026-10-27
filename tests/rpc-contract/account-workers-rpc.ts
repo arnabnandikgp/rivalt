@@ -14,6 +14,7 @@ import {accountServiceSetup} from './account-service-setup.js';
 import {accountQueueFault} from './account-queue-fault.js';
 import {ReconciliationAhead} from '../../packages/indexer/src/reconciliation-progress.js';
 
+const qualification=process.env.RIVALT_ACCOUNT_QUALIFICATION==='1';
 const directory=process.env.RIVALT_RUN_DIR!,revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const dirty=()=>Boolean(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim());
 const startedDirty=dirty(),transport=await accountRuntimeHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory);
@@ -31,10 +32,10 @@ const stop=async(child:ChildProcess)=>{
   child.kill('SIGTERM');await until(async()=>child.exitCode!==null||child.signalCode!==null,Boolean,'owned account worker stop',15);
 };
 try {
-  const setup=await accountServiceSetup(transport.h,'durable-workers',720n);await transport.finalize();
+  const setup=await accountServiceSetup(transport.h,qualification?'p28-qualification':'durable-workers',720n);await transport.finalize();
   const anchor=transport.checks.find(check=>check.label==='setup fresh clearing venue')!.signature as string;
   const config:AccountConfig={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl:process.env.RIVALT_DATABASE_URL!,
-    runId:'p27-workers',venue:setup.venue,anchor,profile:'account-safety-qualification'};
+    runId:qualification?'p28-qualification':'p27-workers',venue:setup.venue,anchor,profile:'account-safety-qualification'};
   indexer=new AccountIndexer(config);await indexer.open();await indexer.cycle();const {binding}=await indexer.store.snapshot();
   const client=new sdk.AccountUserClient({version:3,chain:'solana:localnet',profile:'account-safety-qualification',rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
     genesis:binding.genesis,anchor,anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain});
@@ -94,6 +95,18 @@ try {
     assert.equal(actual.transaction[0],intent.wire);assert.equal(actual.meta.err,null);
     wallets.push({label,signature:intent.signature,wire:intent.wire,bytes:Buffer.from(intent.wire,'base64').length,computeUnits:actual.meta.computeUnitsConsumed});
     writeFileSync(`${directory}/wallets.json`,json(wallets));return actual;
+  }
+  if(qualification) {
+    const {accountBrowser}=await import('../browser/account-lifecycle.js');
+    const {accountWorkload}=await import('../load/account-workload.js');
+    const environment={directory,config,setup,transport,client,runtime,endpoint,indexer:()=>indexer!,normal,
+      pauseSources:(paused:boolean)=>{feedPaused=paused;},
+      pauseIndexer:async(paused:boolean)=>{
+        if(paused){indexing=false;await indexLoop;await indexer!.close();}
+        else {indexer=new AccountIndexer(config);await indexer.open();await indexer.cycle();startIndex();}
+      },maker:replacement,restartMaker:()=>start('maker',setup.operators[1].owner,0,0)};
+    const accounts=await accountBrowser(environment);
+    await accountWorkload(environment,accounts);
   }
   const root=async(margin=setup.cross)=>(await client.snapshot([margin],'confirmed')).roots[margin];
   const deposit=async(amount:bigint)=>wallet('durable owner deposit',[await client.deposit(await client.snapshot([setup.cross]),setup.owner.address,setup.cross,setup.operators[0].token.address,amount)]);
@@ -230,12 +243,12 @@ try {
   const budgets=(await runtime.store.pool.query('SELECT name,cap::text,committed::text,spent::text FROM service_budgets WHERE run_id=$1 ORDER BY name',[config.runId])).rows;
   for(const budget of budgets){assert.equal(budget.committed,budget.name==='account-risk'?'20000':'0');assert.equal(BigInt(budget.spent),fees.get(budget.name)??0n);}
   for(const budget of budgets.filter(budget=>budget.name.startsWith('account-maker-')))assert(BigInt(budget.spent)>=10_000n,'Publication and clearing sync actually cost separate network fees');
-  await indexer.store.pool.query('CREATE DATABASE rivalt_p27_workers_replay');const replayUrl=new URL(config.databaseUrl);replayUrl.pathname='/rivalt_p27_workers_replay';
-  replay=new AccountIndexer({...config,databaseUrl:replayUrl.toString(),runId:'p27-workers-replay'});await replay.open();await replay.cycle();
+  await indexer.store.pool.query('CREATE DATABASE rivalt_account_workers_replay');const replayUrl=new URL(config.databaseUrl);replayUrl.pathname='/rivalt_account_workers_replay';
+  replay=new AccountIndexer({...config,databaseUrl:replayUrl.toString(),runId:qualification?'p28-replay':'p27-workers-replay'});await replay.open();await replay.cycle();
   assert.deepEqual((await replay.store.snapshot()).state,final.state);await replay.reconcile();
   const audit=execFileSync('python3',['tests/financial/account-workers-reference.py',`${directory}/financial-capture.json`],{encoding:'utf8'});
   writeFileSync(`${directory}/independent-audit.txt`,audit);
-  writeFileSync(`${directory}/summary.json`,json({revision,trackedDirty:startedDirty||dirty(),scope:'P27 durable account workers and recovery',binding,
+  writeFileSync(`${directory}/summary.json`,json({revision,trackedDirty:startedDirty||dirty(),scope:qualification?'P28 UI and bounded concurrency with fresh worker recovery':'P27 durable account workers and recovery',binding,
     wallets,intents,budgets,faults,restarts,observations,reconciliation,freshReplay:true,ws:indexer.metrics.notifications,checks:transport.checks,audit,
     expiredOriginal:{...expiredOriginal,feeReservationRetained:'20000',economicEffect:'not-applied'}}));
   console.log(json({stage:'account-workers-pass',transactions:intents.length,restarts,reconciliation,audit}));

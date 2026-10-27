@@ -28,7 +28,7 @@ export function Metric({
     </div>
   );
 }
-export function GroupReceipts({ venue }: { venue: ReturnType<typeof useGroupVenue> }) {
+export function GroupReceipts({ venue }: { venue: Pick<ReturnType<typeof useGroupVenue>, 'records' | 'busy' | 'resend'> }) {
   return (
     <section className="panel">
       <h2>Saved transactions</h2>
@@ -79,7 +79,7 @@ export function GroupReceipts({ venue }: { venue: ReturnType<typeof useGroupVenu
     </section>
   );
 }
-export function GroupReview({ venue }: { venue: ReturnType<typeof useGroupVenue> }) {
+export function GroupReview({ venue }: { venue: Pick<ReturnType<typeof useGroupVenue>, 'review' | 'busy' | 'canSign' | 'sign' | 'invalidate'> }) {
   const review = venue.review;
   if (!review) return null;
   return (

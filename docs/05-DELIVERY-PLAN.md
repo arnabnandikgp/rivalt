@@ -644,3 +644,9 @@ Verify/Apply recovery, finalized expiry, independent accounting and fresh Postgr
 replay. [P27 evidence](evidence/P27.md) retains earlier checkpoint pins and failed
 attempts. P28 may proceed above the verified Review commits; A33's fresh browser,
 concurrent funded exits and complete bounded population remain required.
+
+
+P28's [pinned qualification contract](P28-ACCOUNT-QUALIFICATION.md) selects a
+300-second/150-offer fresh population, six original signed funded exits during
+unrelated trading/sampling, explicit source/maker/indexer faults and real browser
+wallet flows. This prospective schedule is not an acceptance result.

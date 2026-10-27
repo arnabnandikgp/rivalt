@@ -104,6 +104,27 @@ export class AccountUserClient extends WalletClient {
     const [portfolio]=await deriveAccountPortfolio(this.config.venue,owner,index);
     return protocol.getCreatePortfolioV3InstructionAsync({...await this.common(),owner:createNoopSigner(owner),portfolio,index});
   }
+  /** Bounded owner discovery, not a financial snapshot or a venue-wide scan. */
+  async ownerAccounts(owner:Address,index=0) {
+    const portfolio=await this.ownerPortfolio(owner,index);
+    if(!portfolio.account)return {portfolio,accounts:[] as [Address,protocol.MarginAccountV3][]};
+    const children=portfolio.account.children;
+    requireValue((children&~511)===0,'Invalid portfolio child bitmap.');
+    const indexes=Array.from({length:9},(_,child)=>child).filter(child=>(children&(1<<child))!==0);
+    const keys=await Promise.all(indexes.map(child=>findMarginV3Pda(portfolio.address,child)));
+    if(!keys.length)return {portfolio,accounts:[] as [Address,protocol.MarginAccountV3][]};
+    const response=await this.rpc.call('getMultipleAccounts',[keys.map(([key])=>key),{encoding:'base64',commitment:'finalized'}]);
+    requireValue(response.value?.length===keys.length,'Incomplete owner discovery.');
+    const accounts=keys.map(([key,bump],offset):[Address,protocol.MarginAccountV3]=>{
+      const raw=response.value[offset];requireValue(raw?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&raw.data?.[1]==='base64','Foreign owner account.');
+      const bytes=fromBase64(raw.data[0]);requireValue(bytes.length===protocol.getMarginAccountV3Size()&&hex(bytes.slice(0,8))===hex(protocol.MARGIN_ACCOUNT_V3_DISCRIMINATOR),'Wrong owner account schema.');
+      const root=protocol.getMarginAccountV3Decoder().decode(bytes);
+      requireValue(root.schemaVersion===3&&root.venue===this.config.venue&&root.portfolio===portfolio.address&&root.owner===owner&&root.subaccountIndex===indexes[offset]&&root.bump===bump,'Owner account identity mismatch.');
+      requireValue([0,1,2].includes(root.role)&&(root.subaccountIndex===0?root.mode===0&&root.isolatedMarketIndex===255&&root.role!==1:root.mode===1&&[0,1].includes(root.isolatedMarketIndex)),'Owner account mode mismatch.');
+      return [key,root];
+    });
+    return {portfolio,accounts};
+  }
   async register(owner:Address,portfolioIndex:number,subaccountIndex:number,isolatedMarketIndex?:0|1,role:0|1|2=0) {
     requireValue([0,1,2].includes(role)&&(subaccountIndex===0?isolatedMarketIndex===undefined&&role!==1:isolatedMarketIndex===0||isolatedMarketIndex===1),'Invalid immutable margin mode/role.');
     const [portfolio]=await deriveAccountPortfolio(this.config.venue,owner,portfolioIndex),[margin]=await findMarginV3Pda(portfolio,subaccountIndex);

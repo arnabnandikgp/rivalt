@@ -2,6 +2,7 @@ import { address } from '@solana/kit';
 import { fixed, rational, short } from '../amount.js';
 import { Field, Metric } from './Primitives.js';
 import { GROUP_MARKETS, accountLabel } from './model.js';
+import type { AccountController } from '../account/useAccountController.js';
 import type { GroupController } from './useGroupController.js';
 const zero = address('11111111111111111111111111111111');
 const orderStates = ['Empty', 'Open', 'Partial', 'Filled', 'Cancelled', 'Expired', 'Invalidated'];
@@ -183,7 +184,7 @@ export function GroupBalances({ controller }: { controller: GroupController }) {
   );
 }
 
-export function GroupPositions({ controller }: { controller: GroupController }) {
+export function GroupPositions({ controller }: { controller: GroupController | AccountController }) {
   const { portfolio, margin, view, cash } = controller;
   return (
     <section className="panel">
@@ -222,7 +223,7 @@ export function GroupPositions({ controller }: { controller: GroupController }) 
   );
 }
 
-export function GroupTicket({ controller }: { controller: GroupController }) {
+export function GroupTicket({ controller }: { controller: GroupController | AccountController }) {
   const {
     marketIndex,
     root,
@@ -374,7 +375,7 @@ export function GroupTicket({ controller }: { controller: GroupController }) {
   );
 }
 
-export function GroupOrders({ controller }: { controller: GroupController }) {
+export function GroupOrders({ controller }: { controller: GroupController | AccountController }) {
   const { marketIndex, snapshot, root, view, disabled, activeOrders, order, cancel } = controller;
   return (
     <section className="panel">
@@ -416,7 +417,7 @@ export function GroupOrders({ controller }: { controller: GroupController }) {
                     <td>
                       {[1, 2].includes(entry.order.state) && (
                         <button
-                          disabled={disabled || snapshot?.state.mode === 3}
+                          disabled={disabled || (snapshot && ('safetyState' in snapshot ? snapshot.safetyState.mode === 2 : snapshot.state.mode === 3))}
                           onClick={() =>
                             void cancel(
                               entry.order.groupId || entry.order.id,
@@ -443,7 +444,7 @@ export function GroupOrders({ controller }: { controller: GroupController }) {
   );
 }
 
-export function GroupAuthority({ controller }: { controller: GroupController }) {
+export function GroupAuthority({ controller }: { controller: GroupController | AccountController }) {
   const {
     root,
     expiry,
@@ -495,7 +496,7 @@ export function GroupAuthority({ controller }: { controller: GroupController }) 
   );
 }
 
-export function GroupFills({ controller }: { controller: GroupController }) {
+export function GroupFills({ controller }: { controller: GroupController | AccountController }) {
   const { venue, side, quantity, fee, trade } = controller;
   return (
     <section className="panel">

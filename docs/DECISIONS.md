@@ -1013,3 +1013,15 @@ from their journal hex-byte representation, preserving the existing on-chain
 modulo-four values. Unexpected intermediate reconciliation failures invalidate
 service qualification even if a later full event snapshot restores final parity.
 No financial policy or program artifact changes.
+
+
+## D66 — account UI and bounded concurrent acceptance (P28)
+
+Expose owner portfolios and immutable isolated/cross accounts without a technical
+settlement-group selector. Discover bounded owner children independently of
+selected-root financial snapshots. Show funded cash, unpaid claims, funding and
+market insurance separately; indicative headroom is not withdrawal permission.
+Reuse original wallet receipts and direct RPC cancellation/exits. The P28 contract
+pins a fresh five-minute population and six busy exits before execution, alongside
+browser and complete recovery/replay checks. No economics, source safeguards,
+program artifact, V1/V2 authority, external gates or endurance decision changes.

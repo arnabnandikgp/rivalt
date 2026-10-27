@@ -32,16 +32,17 @@ export function accountApi(indexer:AccountIndexer) {
       admission:'RequiresCurrentAccountChecksAndSimulation',resolution:row.state.safety?.mode===2?{stage:row.state.resolution!.stage,
         row:row.state.resolution!.rows[account.id]??null}:null};
   });
-  for(const endpoint of ['events','trades'] as const)app.get<{Querystring:{after?:string;limit?:number}}>(`/v3/${endpoint}`,
-    {schema:{querystring:{type:'object',additionalProperties:false,properties:{after:{type:'string',pattern:'^(0|[1-9][0-9]{0,19})$'},limit:{type:'integer',minimum:1,maximum:100}}}}},async request=>{
+  for(const endpoint of ['events','trades'] as const)app.get<{Querystring:{after?:string;limit?:number;latest?:boolean}}>(`/v3/${endpoint}`,
+    {schema:{querystring:{type:'object',additionalProperties:false,properties:{latest:{type:'boolean'},after:{type:'string',pattern:'^(0|[1-9][0-9]{0,19})$'},limit:{type:'integer',minimum:1,maximum:100}}}}},async request=>{
       const client=await indexer.store.pool.connect();
       try {
         await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
         const row=(await client.query('SELECT * FROM runs WHERE run_id=$1',[indexer.config.runId])).rows[0];
         const result=await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload FROM events
           WHERE run_id=$1 AND sequence>$2 ${endpoint==='trades'?"AND kind='AccountRouteExecutedV3'":''}
-          ORDER BY events.sequence LIMIT $3`,[indexer.config.runId,request.query.after??'0',request.query.limit??50]);
-        await client.query('COMMIT');return {...envelope(row),items:result.rows,next:result.rows.at(-1)?.sequence??null};
+          ORDER BY events.sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`,[indexer.config.runId,request.query.after??'0',request.query.limit??50]);
+        await client.query('COMMIT');const items=request.query.latest?result.rows.reverse():result.rows;
+        return {...envelope(row),items,next:items.at(-1)?.sequence??null};
       }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
     });
   app.setErrorHandler((error,_,reply)=>{

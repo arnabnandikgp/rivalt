@@ -387,3 +387,11 @@ consumed prefixes without a global discovery or historical observation prerequis
 V2 keeps its existing group certificate policy. Fresh route acceptance is
 recorded separately from the verified flat cash lifecycle in WORKLOG. Durable
 service and P28 concurrency/browser qualification remain separate gates.
+
+
+P28 adds an explicit version-3 trader shell under `apps/trader/src/account/`.
+It discovers only the selected owner portfolio's bounded children, then prepares
+financial actions from current selected-root SDK snapshots. Shared widgets only
+render order/position/receipt data; V1/V2 retain their authority paths. The read API
+supports latest finalized fills without treating indexed balances as admission.
+See [P28 qualification](P28-ACCOUNT-QUALIFICATION.md) for the pending runtime gate.
