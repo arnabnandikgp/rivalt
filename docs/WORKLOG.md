@@ -3130,3 +3130,15 @@ Both tables retain P27/M8 In progress, predecessor phases Review and P28 Open.
 Next: execute `bash ops/account-indexer-smoke.sh --workers` on this committed
 source, fix actual failures, record outcomes and submit P27 ready for review, then
 continue P28 in the open stack.
+
+R071 first live attempt, clean `b324e9c`, command above, retained at
+`.local/account-workers-rpc/20261027T155703Z-53560/`: fresh deployment/PG, actual
+executor lost-ack/SIGKILL recovery (one two-atom deposit), four maker heartbeats/
+restart, independent samplers, API wallet route, process TP fill, ordinary claim
+collection/certified gains and a consenting liquidation ran. The next scenario
+correctly refused a new route: the harness replenished cash without accounting
+for the target's remaining closed loss after liquidation. No complete default,
+final replay/audit or A32 pass is claimed. Fix the harness to flatten residual
+exposure and fund its measured risk-equity shortfall, retaining the unpaid claim
+and all admission rules; save the intermediate liquidation/quote input explicitly.
+Owned runtime cleanup completed. Next: rerun the same focused worker gate.

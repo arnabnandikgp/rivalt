@@ -91,7 +91,9 @@ try {
   async function route(lots:bigint,side:0|1=0) {
     await normal();const snapshot=await client.tradeSnapshot(setup.cross,0);
     const response=await fetch(`${endpoint}/v3/quote`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({actor:setup.owner.address,margin:setup.cross,marketIndex:0,side,lots:lots.toString()})});
-    const offered=await response.json();assert.equal(response.status,200,json(offered));assert(offered.available,json(offered));
+    const offered=await response.json();
+    writeFileSync(`${directory}/latest-route-input.json`,json({snapshot,lots,side,offered}));
+    assert.equal(response.status,200,json(offered));assert(offered.available,json(offered));
     // Build the actual wallet instruction locally from authenticated state, not
     // from HTTP-supplied writable accounts or economics.
     const quote=await client.route({snapshot,trader:setup.cross,marketIndex:0,side,lots,maxFee:10_000n,allInLimit:side===0?10_000_000n:0n},setup.owner.address);
@@ -130,10 +132,17 @@ try {
   await stop(liquidation);
   await until(async()=>(await runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget='account-risk' AND status IN ('pending','unresolved')",[config.runId])).rows[0].count,count=>count==='0','liquidation original history');
   const liquidationAfter=await raw();
+  writeFileSync(`${directory}/liquidation-capture.json`,json({target:setup.cross,receiver:setup.roots[0],before:liquidationBefore,after:liquidationAfter}));
   // The risk budget is payer-bound. The same explicitly consenting local owner
   // continues permissionless default work; no inferred receiver or authority.
   feedBtc=60_000_000_000n;await normal();
-  if((await root()).cash<400_000n)await deposit(400_000n-(await root()).cash);
+  const residual=(await root()).positions[0].lots;if(residual>0n)await route(residual,1);
+  // Liquidation transfers exposure and a fee; it does not magically settle the
+  // target's closed loss. Fund the next scenario's *risk equity*, not just cash.
+  const riskView=client.balance(await client.snapshot([setup.cross],'confirmed'),setup.cross);
+  assert(riskView.riskEquityScaled!==null);
+  const shortfall=400_000n*1_000_000_000n-BigInt(riskView.riskEquityScaled);
+  if(shortfall>0n)await deposit((shortfall+999_999_999n)/1_000_000_000n);
   await route(50n);feedBtc=40_000_000_000n;
   await until(async()=>{const bytes=await transport.h.read(setup.feeds[0].feed);return bytes;},bytes=>Boolean(bytes),'fresh fixture source');
   await delay(1500);
