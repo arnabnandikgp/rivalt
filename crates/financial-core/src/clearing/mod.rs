@@ -2,3 +2,5 @@
 //! by this module; the program must authenticate the complete frozen cohort.
 pub mod row;
 pub mod wide;
+pub mod circulation;
+pub mod atoms;

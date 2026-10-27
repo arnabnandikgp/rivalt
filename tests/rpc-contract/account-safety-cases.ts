@@ -47,18 +47,20 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
     for(let index=0;index<6;index++)await setup.publish(index);
     for(const index of [0,1])await h.send('post-activation source recovery',[sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(index))]);
   }
-  const maker=makers[0][0],market=await setup.marketState(0);
+  const maker=makers[0][0],second=makers[0][1],market=await setup.marketState(0);
+  const secondRegistration=sdk.getMakerRegistrationV3Decoder().decode((await h.read(second.registration))!);
   const registration=sdk.getMakerRegistrationV3Decoder().decode((await h.read(maker.registration))!);
   const slot=await h.slot();
   await h.send('open actual pre-default BTC exposure',[sdk.getExecuteAccountRouteV3Instruction({...common,
     actor:owner,market:markets[0],otherMarket:markets[1],ledger:ledgers[0],otherLedger:ledgers[1],trader:cross,
     firstCapital:maker.capital,firstRegistration:maker.registration,firstProgram:maker.pricingProgram,
-    firstProgramData:maker.programData,firstConfig:maker.config,secondCapital:undefined,secondRegistration:undefined,
-    secondProgram:undefined,secondProgramData:undefined,secondConfig:undefined,
+    firstProgramData:maker.programData,firstConfig:maker.config,secondCapital:second.capital,secondRegistration:second.registration,
+    secondProgram:second.pricingProgram,secondProgramData:second.programData,secondConfig:second.config,
     guard:await guard(cross),domain:setup.domain,termsEpoch:market.termsEpoch,configEpoch:market.configEpoch,
     startSlot:slot,expirySlot:slot+100n,side:0,lots:50n,allInLimit:3_300_000n,maxFee:1000n,
-    reduceOnly:false,generation:null,legs:[{lots:50n,quoteEpoch:registration.quoteEpoch,
-      authorityEpoch:registration.authorityEpoch,expectedConsumed:registration.buyConsumed}]})],[owner]);
+    reduceOnly:false,generation:null,legs:[{lots:25n,quoteEpoch:registration.quoteEpoch,
+      authorityEpoch:registration.authorityEpoch,expectedConsumed:registration.buyConsumed},
+      {lots:25n,quoteEpoch:secondRegistration.quoteEpoch,authorityEpoch:secondRegistration.authorityEpoch,expectedConsumed:secondRegistration.buyConsumed}]})],[owner]);
   await h.advance(2n);
   for(let index=0;index<6;index++)await setup.publish(index,{price:index===0||index===2?40_000_000_000n:
     index===1||index===3?1_000_000n:3_000_000_000n});
@@ -126,5 +128,70 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
     assert.equal((await h.read(key))!.toString('base64'),snapshots[key],`${key}: pre-plan financial mutation`);
   }
   assert.equal(sdk.getCustodyV3Decoder().decode((await h.read(common.custody))!).totalCash,initial.cashBefore);
-  return {venue:common.venue,resolution,work,pages,roots,markets,ledgers,frozenInputs:rowInputs,initial,verified,rawAccounts:await raw()};
+  for(let start=0;start<roots.length;start+=2)await h.send('complete atom floors before application',[
+    advance(6,start,Math.min(2,roots.length-start))]);
+  assert.equal((await header()).stage,7);
+  const frozenRows:sdk.ResolutionRowV3[]=[];
+  for(let index=0;index<Math.ceil(roots.length/2);index++) {
+    const page=sdk.getResolutionPageV3Decoder().decode((await h.read(pages[index]))!);
+    frozenRows.push(...page.rows.slice(0,page.rowCount));
+  }
+  const wide=(limbs:readonly bigint[])=>limbs.reduceRight((total,limb)=>(total<<64n)+limb,0n);
+  const denominator=wide(verified.flowDenominator.limbs);
+  const orders=[0,1].map(market=>roots.map((_,id)=>id).sort((left,right)=>{
+    const remainder=(id:number)=>frozenRows[id].claimsScaled[market]>0n?
+      wide(frozenRows[id].exactFlowNumerators[market].limbs)-frozenRows[id].roundedFlows[market]*denominator:0n;
+    const first=remainder(left),second=remainder(right);
+    return first===second?left-right:first>second?-1:1;
+  })) as [number[],number[]];
+  await reject('duplicate remainder permutation rejects',sdk.getOrderAccountResolutionV3Instruction({
+    ...accounts,epoch:initial.epoch,orders:[Array(roots.length).fill(0),orders[1]]}));
+  const badOrder=[...orders[0]].sort((left,right)=>right-left);
+  await h.send('commit wrong untrusted remainder order',[sdk.getOrderAccountResolutionV3Instruction({
+    ...accounts,epoch:initial.epoch,orders:[badOrder,orders[1]]})]);
+  await h.send('begin immutable order verification',[sdk.getCheckAccountResolutionOrderV3Instruction({
+    ...accounts,page:pages[Math.floor(badOrder[0]/2)],epoch:initial.epoch,start:0})]);
+  await reject('cannot replace ordering after verification begins',sdk.getOrderAccountResolutionV3Instruction({
+    ...accounts,epoch:initial.epoch,orders}));
+  for(let start=1;(await header()).cursor!==0;start++) {
+    assert(start<roots.length);
+    await h.send('wrong committed order resets deterministically',[sdk.getCheckAccountResolutionOrderV3Instruction({
+      ...accounts,page:pages[Math.floor(badOrder[start]/2)],epoch:initial.epoch,start})]);
+  }
+  assert.equal((await header()).stage,7);
+  assert.equal(sdk.getResolutionWorkV3Decoder().decode((await h.read(work))!).limbCursor,0);
+  await h.send('propose complete remainder permutations',[sdk.getOrderAccountResolutionV3Instruction({
+    ...accounts,epoch:initial.epoch,orders})]);
+  for(let start=0;start<roots.length*2;start++) {
+    const id=orders[Math.floor(start/roots.length)][start%roots.length];
+    await h.send('verify exact remainder order and stable ties',[sdk.getCheckAccountResolutionOrderV3Instruction({
+      ...accounts,page:pages[Math.floor(id/2)],epoch:initial.epoch,start})]);
+  }
+  assert.equal((await header()).stage,8);
+  for(let steps=0;(await header()).stage===8;steps++) {
+    assert(steps<2000);
+    const start=(await header()).cursor;
+    await h.send('bounded deterministic conserving DFS',[sdk.getRoundAccountResolutionV3Instruction({
+      ...accounts,epoch:initial.epoch,start})]);
+  }
+  const rounded=await header();assert.equal(rounded.stage,9);
+  const graph=sdk.getResolutionWorkV3Decoder().decode((await h.read(work))!);
+  assert(graph.augmentations>0,'signed two-maker creditors must exercise actual fractional allocation');
+  for(let market=0;market<2;market++) {
+    let movements=0n;
+    for(let id=0;id<roots.length;id++) {
+      const sign=frozenRows[id].claimsScaled[market]<0n?-1n:frozenRows[id].claimsScaled[market]>0n?1n:0n;
+      movements+=sign*(frozenRows[id].roundedFlows[market]+BigInt(graph.residualCapacity[2*(market*roots.length+id)+1]));
+    }
+    assert.equal(movements,initial.poolsBefore[market]+verified.insuranceSpent[market]);
+  }
+  for(let id=0;id<roots.length;id++) {
+    const row=frozenRows[id],actual=row.cashAfter+BigInt(graph.residualCapacity[2*(2*roots.length+id)+1]);
+    const exact=row.cashBefore*denominator+row.claimsScaled.reduce((sum,claim,market)=>sum+
+      (claim<0n?-1n:claim>0n?1n:0n)*wide(row.exactFlowNumerators[market].limbs),0n);
+    assert(actual*denominator-exact<denominator && exact-actual*denominator<denominator);
+    assert(actual>=row.cashBefore-row.collected);
+    assert.equal((await h.read(roots[id]))!.toString('base64'),snapshots[roots[id]]);
+  }
+  return {venue:common.venue,resolution,work,pages,roots,markets,ledgers,frozenInputs:rowInputs,initial,verified,rounded,rawAccounts:await raw()};
 }

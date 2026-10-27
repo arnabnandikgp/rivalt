@@ -1148,3 +1148,38 @@ pub struct AccountResolutionRatesV3 {
     pub budgets: [u64; 2],
     pub insurance_spent: [u64; 2],
 }
+
+#[event]
+pub struct AccountResolutionPlannedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    pub id: u16,
+    pub member: Pubkey,
+    pub flow_floors: [u64; 2],
+    pub cash_floor: u64,
+}
+
+#[event]
+pub struct AccountResolutionOrderV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    pub orders: [Vec<u16>; 2],
+}
+
+#[event]
+pub struct AccountResolutionRoundedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    pub start: u16,
+    pub complete: bool,
+    pub required: u64,
+    pub sent: u64,
+    pub augmentations: u16,
+    pub depth: u16,
+}

@@ -52,6 +52,18 @@ pub mod clearing {
         evaluation: u8, proposal_hash: [u8; 32], offset: u16, bytes: Vec<u8>) -> Result<()> {
         account_safety::resolution::upload(ctx, epoch, evaluation, proposal_hash, offset, bytes)
     }
+    pub fn order_account_resolution_v3(ctx: Context<ProposeAccountResolutionV3>, epoch: u64,
+        orders: [Vec<u16>; 2]) -> Result<()> {
+        account_safety::resolution::order(ctx, epoch, orders)
+    }
+    pub fn check_account_resolution_order_v3(ctx: Context<AdvanceAccountResolutionV3>, epoch: u64,
+        start: u16) -> Result<()> {
+        account_safety::resolution::check_order(ctx, epoch, start)
+    }
+    pub fn round_account_resolution_v3(ctx: Context<ProposeAccountResolutionV3>, epoch: u64,
+        start: u16) -> Result<()> {
+        account_safety::resolution::round(ctx, epoch, start)
+    }
 
     pub fn liquidate_account_v3(ctx: Context<LiquidateAccountV3>, target_guard: account_trading::authority::AccountGuardV3,
         receiver_guard: account_trading::authority::AccountGuardV3, market_index: u8, lots: u64, price: u64) -> Result<()> {

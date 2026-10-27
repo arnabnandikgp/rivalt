@@ -145,6 +145,7 @@ import {
   getCancelOrderInstructionAsync,
   getCancelProtectionInstructionAsync,
   getChangeGroupClaimV2InstructionAsync,
+  getCheckAccountResolutionOrderV3InstructionAsync,
   getCheckExitCohortInstructionAsync,
   getCheckGroupExitV2InstructionAsync,
   getCheckMarketBackingV3InstructionAsync,
@@ -196,6 +197,7 @@ import {
   getManageMarginOrderV2Instruction,
   getNetAccountClaimsV3InstructionAsync,
   getNetMarginClaimsV2Instruction,
+  getOrderAccountResolutionV3InstructionAsync,
   getPauseGroupCustodyV2InstructionAsync,
   getPauseVenueV3InstructionAsync,
   getPayAccountGainV3InstructionAsync,
@@ -218,6 +220,7 @@ import {
   getRegisterMarginV3InstructionAsync,
   getRegisterParticipantInstructionAsync,
   getReplaceOrderInstructionAsync,
+  getRoundAccountResolutionV3InstructionAsync,
   getSampleAccountOracleV3InstructionAsync,
   getSampleGroupOracleV2Instruction,
   getSampleOracleInstructionAsync,
@@ -251,6 +254,7 @@ import {
   parseCancelOrderInstruction,
   parseCancelProtectionInstruction,
   parseChangeGroupClaimV2Instruction,
+  parseCheckAccountResolutionOrderV3Instruction,
   parseCheckExitCohortInstruction,
   parseCheckGroupExitV2Instruction,
   parseCheckMarketBackingV3Instruction,
@@ -302,6 +306,7 @@ import {
   parseManageMarginOrderV2Instruction,
   parseNetAccountClaimsV3Instruction,
   parseNetMarginClaimsV2Instruction,
+  parseOrderAccountResolutionV3Instruction,
   parsePauseGroupCustodyV2Instruction,
   parsePauseVenueV3Instruction,
   parsePayAccountGainV3Instruction,
@@ -324,6 +329,7 @@ import {
   parseRegisterMarginV3Instruction,
   parseRegisterParticipantInstruction,
   parseReplaceOrderInstruction,
+  parseRoundAccountResolutionV3Instruction,
   parseSampleAccountOracleV3Instruction,
   parseSampleGroupOracleV2Instruction,
   parseSampleOracleInstruction,
@@ -357,6 +363,7 @@ import {
   type CancelOrderAsyncInput,
   type CancelProtectionAsyncInput,
   type ChangeGroupClaimV2AsyncInput,
+  type CheckAccountResolutionOrderV3AsyncInput,
   type CheckExitCohortAsyncInput,
   type CheckGroupExitV2AsyncInput,
   type CheckMarketBackingV3AsyncInput,
@@ -408,6 +415,7 @@ import {
   type ManageMarginOrderV2Input,
   type NetAccountClaimsV3AsyncInput,
   type NetMarginClaimsV2Input,
+  type OrderAccountResolutionV3AsyncInput,
   type ParsedActivateCrossGroupV2Instruction,
   type ParsedActivateIsolatedGroupV2Instruction,
   type ParsedAdvanceAccountResolutionV3Instruction,
@@ -419,6 +427,7 @@ import {
   type ParsedCancelOrderInstruction,
   type ParsedCancelProtectionInstruction,
   type ParsedChangeGroupClaimV2Instruction,
+  type ParsedCheckAccountResolutionOrderV3Instruction,
   type ParsedCheckExitCohortInstruction,
   type ParsedCheckGroupExitV2Instruction,
   type ParsedCheckMarketBackingV3Instruction,
@@ -470,6 +479,7 @@ import {
   type ParsedManageMarginOrderV2Instruction,
   type ParsedNetAccountClaimsV3Instruction,
   type ParsedNetMarginClaimsV2Instruction,
+  type ParsedOrderAccountResolutionV3Instruction,
   type ParsedPauseGroupCustodyV2Instruction,
   type ParsedPauseVenueV3Instruction,
   type ParsedPayAccountGainV3Instruction,
@@ -492,6 +502,7 @@ import {
   type ParsedRegisterMarginV3Instruction,
   type ParsedRegisterParticipantInstruction,
   type ParsedReplaceOrderInstruction,
+  type ParsedRoundAccountResolutionV3Instruction,
   type ParsedSampleAccountOracleV3Instruction,
   type ParsedSampleGroupOracleV2Instruction,
   type ParsedSampleOracleInstruction,
@@ -536,6 +547,7 @@ import {
   type RegisterMarginV3AsyncInput,
   type RegisterParticipantAsyncInput,
   type ReplaceOrderAsyncInput,
+  type RoundAccountResolutionV3AsyncInput,
   type SampleAccountOracleV3AsyncInput,
   type SampleGroupOracleV2Input,
   type SampleOracleAsyncInput,
@@ -1007,9 +1019,12 @@ export enum ClearingEvent {
   AccountOrderChangedV3,
   AccountQualificationV3,
   AccountResolutionFrozenV3,
+  AccountResolutionOrderV3,
+  AccountResolutionPlannedV3,
   AccountResolutionProgressV3,
   AccountResolutionProposalV3,
   AccountResolutionRatesV3,
+  AccountResolutionRoundedV3,
   AccountResolutionValuedV3,
   AccountRouteExecutedV3,
   CustodyChanged,
@@ -1154,6 +1169,28 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([255, 128, 154, 229, 22, 34, 225, 38]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountResolutionOrderV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([104, 193, 251, 138, 199, 42, 223, 137]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountResolutionPlannedV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([95, 79, 7, 241, 6, 199, 46, 157]),
       ),
       0,
@@ -1182,6 +1219,17 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.AccountResolutionRatesV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([1, 231, 71, 83, 144, 31, 238, 83]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountResolutionRoundedV3;
   }
   if (
     containsBytes(
@@ -1464,6 +1512,7 @@ export enum ClearingInstruction {
   CancelOrder,
   CancelProtection,
   ChangeGroupClaimV2,
+  CheckAccountResolutionOrderV3,
   CheckExitCohort,
   CheckGroupExitV2,
   CheckMarketBackingV3,
@@ -1515,6 +1564,7 @@ export enum ClearingInstruction {
   ManageMarginOrderV2,
   NetAccountClaimsV3,
   NetMarginClaimsV2,
+  OrderAccountResolutionV3,
   PauseGroupCustodyV2,
   PauseVenueV3,
   PayAccountGainV3,
@@ -1537,6 +1587,7 @@ export enum ClearingInstruction {
   RegisterMarginV3,
   RegisterParticipant,
   ReplaceOrder,
+  RoundAccountResolutionV3,
   SampleAccountOracleV3,
   SampleGroupOracleV2,
   SampleOracle,
@@ -1685,6 +1736,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ChangeGroupClaimV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([24, 254, 55, 247, 185, 141, 200, 14]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CheckAccountResolutionOrderV3;
   }
   if (
     containsBytes(
@@ -2251,6 +2313,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([97, 21, 211, 203, 242, 247, 254, 77]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.OrderAccountResolutionV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([229, 193, 43, 194, 24, 28, 38, 22]),
       ),
       0,
@@ -2488,6 +2561,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ReplaceOrder;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([190, 79, 178, 22, 255, 147, 201, 4]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RoundAccountResolutionV3;
   }
   if (
     containsBytes(
@@ -2774,6 +2858,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ChangeGroupClaimV2;
     } & ParsedChangeGroupClaimV2Instruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.CheckAccountResolutionOrderV3;
+    } & ParsedCheckAccountResolutionOrderV3Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.CheckExitCohort;
     } & ParsedCheckExitCohortInstruction<TProgram>)
   | ({
@@ -2927,6 +3014,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.NetMarginClaimsV2;
     } & ParsedNetMarginClaimsV2Instruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.OrderAccountResolutionV3;
+    } & ParsedOrderAccountResolutionV3Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.PauseGroupCustodyV2;
     } & ParsedPauseGroupCustodyV2Instruction<TProgram>)
   | ({
@@ -2992,6 +3082,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.ReplaceOrder;
     } & ParsedReplaceOrderInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RoundAccountResolutionV3;
+    } & ParsedRoundAccountResolutionV3Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.SampleAccountOracleV3;
     } & ParsedSampleAccountOracleV3Instruction<TProgram>)
@@ -3139,6 +3232,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ChangeGroupClaimV2,
         ...parseChangeGroupClaimV2Instruction(instruction),
+      };
+    }
+    case ClearingInstruction.CheckAccountResolutionOrderV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CheckAccountResolutionOrderV3,
+        ...parseCheckAccountResolutionOrderV3Instruction(instruction),
       };
     }
     case ClearingInstruction.CheckExitCohort: {
@@ -3498,6 +3598,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseNetMarginClaimsV2Instruction(instruction),
       };
     }
+    case ClearingInstruction.OrderAccountResolutionV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.OrderAccountResolutionV3,
+        ...parseOrderAccountResolutionV3Instruction(instruction),
+      };
+    }
     case ClearingInstruction.PauseGroupCustodyV2: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -3650,6 +3757,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ReplaceOrder,
         ...parseReplaceOrderInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.RoundAccountResolutionV3: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RoundAccountResolutionV3,
+        ...parseRoundAccountResolutionV3Instruction(instruction),
       };
     }
     case ClearingInstruction.SampleAccountOracleV3: {
@@ -3946,6 +4060,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getChangeGroupClaimV2InstructionAsync> &
     SelfPlanAndSendFunctions;
+  checkAccountResolutionOrderV3: (
+    input: CheckAccountResolutionOrderV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCheckAccountResolutionOrderV3InstructionAsync> &
+    SelfPlanAndSendFunctions;
   checkExitCohort: (
     input: CheckExitCohortAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -4200,6 +4319,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getNetMarginClaimsV2Instruction> &
     SelfPlanAndSendFunctions;
+  orderAccountResolutionV3: (
+    input: OrderAccountResolutionV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getOrderAccountResolutionV3InstructionAsync> &
+    SelfPlanAndSendFunctions;
   pauseGroupCustodyV2: (
     input: PauseGroupCustodyV2AsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -4308,6 +4432,11 @@ export type ClearingPluginInstructions = {
     input: ReplaceOrderAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getReplaceOrderInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  roundAccountResolutionV3: (
+    input: RoundAccountResolutionV3AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRoundAccountResolutionV3InstructionAsync> &
     SelfPlanAndSendFunctions;
   sampleAccountOracleV3: (
     input: SampleAccountOracleV3AsyncInput,
@@ -4652,6 +4781,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getChangeGroupClaimV2InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          checkAccountResolutionOrderV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCheckAccountResolutionOrderV3InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -5076,6 +5213,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          orderAccountResolutionV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getOrderAccountResolutionV3InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           pauseGroupCustodyV2: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -5248,6 +5393,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getReplaceOrderInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          roundAccountResolutionV3: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRoundAccountResolutionV3InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

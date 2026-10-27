@@ -901,3 +901,10 @@ and whole-account liquidation requirements. A passing primitive or host model is
 not activation authority; keep new ordinary trading disabled until full A31/G20
 program/RPC acceptance. This selects an allocation discipline, not a new financial
 policy or relaxation of the frozen cohort. P15B/P16B remain external gates.
+
+D64 implementation continuation: the existing fixed work layout now names its
+flow-plan/rounding registers and verifies untrusted complete remainder permutations
+before deterministic DFS. Exact arithmetic skips provably zero work after a measured
+FlowPlan CU overrun; no financial equation, insurance use, safety limit, heap or CU
+ceiling changes. The [P26 contract](P26-ACCOUNT-SAFETY.md) records these details.
+Participant application/recovery and maximum-width/RPC acceptance remain required.

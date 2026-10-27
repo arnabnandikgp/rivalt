@@ -73,3 +73,37 @@ profile semantics change. Events retain frozen valuation inputs, proposal chunks
 verification decisions and exact insurance budgets; preparation does not emit a
 fabricated payout. Deterministic rounding/application/recovery remain subsequent
 implementation and acceptance, not implicit effects of reaching FlowPlan.
+
+## Deterministic atom planning and circulation
+
+After complete rate verification, FlowPlan derives whole claim-flow/cash floors,
+exact common-denominator remainders, per-root outgoing order and node residuals.
+No root balance is applied by planning. Fixed original edge IDs are market-zero
+rows, market-one rows, then cash rows; zero-claim placeholders have no adjacency.
+Auxiliary IDs follow those edges in stable node order. The work account keeps four
+positive/negative claim masks in register 0 limbs 0–3, required/sent flow in limbs
+4/5, root outgoing permutations in register 1, signed i64 residual balances in
+register 2 and the previous checked remainder in register 3. Registers 4–7 are
+scratch. Roots/markets/cash sink/source/sink retain the contract's <=69 nodes.
+
+A proposed pair of complete market permutations grants no path authority. Every
+entry is authenticated against the canonical frozen page and exact remainder,
+with stable root-ID ties. A proposal can be replaced before checking begins;
+a wrong committed order resets deterministically so an absent proposer cannot
+strand resolution. After checking begins, an unrelated caller cannot replace a
+partially verified order. Only complete verification enables Round.
+
+Round examines at most 128 deterministic adjacency slots per call, persisting
+DFS parents, cursors, path and residual capacities. It prioritizes auxiliary
+forward arcs, descending-remainder original forward arcs, then repair arcs by
+stable destination/edge. Every augmentation is bounded and total augmentations
+remain <=192. A complete result audits each node's required increment, including
+both market nodes; reaching an aggregate sent count alone is insufficient.
+Whole row cash and flows are not committed to participant accounts until Apply.
+
+The initial signed two-row FlowPlan exceeded 1.2M CU. Exact arithmetic now skips
+zero multiplier columns/unused high limbs and leading zero quotient bits, retaining
+checked overflow and the maximum 58 subtraction steps. All independent wide,
+row/rate and atom/continuation comparisons were rerun. This is an arithmetic
+implementation improvement, not a higher budget, heap or altered rounding policy.
+Maximum-width signed continuation budgets remain a separate acceptance obligation.

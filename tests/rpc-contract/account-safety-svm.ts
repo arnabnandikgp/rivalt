@@ -27,7 +27,8 @@ const checks: {label:string;status:string;bytes:number;accounts:number;computeUn
 const json=(value:unknown)=>JSON.stringify(value,(_,item)=>typeof item==='bigint'?item.toString():item,2)+'\n';
 const safetyTags=[sdk.INITIALIZE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.INITIALIZE_ACCOUNT_RESOLUTION_PAGE_V3_DISCRIMINATOR,
   sdk.FREEZE_ACCOUNTS_V3_DISCRIMINATOR,sdk.VALUE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,
-  sdk.ADVANCE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.PROPOSE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR];
+  sdk.ADVANCE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.PROPOSE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,
+  sdk.ORDER_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.CHECK_ACCOUNT_RESOLUTION_ORDER_V3_DISCRIMINATOR,sdk.ROUND_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR];
 async function send(label:string,instructions:Instruction[],signers:Parameters<Harness['send']>[2]=[],expectedError?:number) {
   svm.expireBlockhash();
   const sampling=instructions.some(instruction=>instruction.programAddress===deployment.program

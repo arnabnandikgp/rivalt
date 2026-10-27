@@ -70,12 +70,16 @@ pub fn multiply(output: &mut Wide, value: &Wide, factor: &[u64]) -> Result<()> {
         return Err(Error::Bounds);
     }
     output.fill(0);
+    let used = bits(value).div_ceil(64);
     for (shift, multiplier) in factor.iter().copied().enumerate() {
+        if multiplier == 0 {
+            continue;
+        }
         let mut carry = 0u128;
-        for (index, word) in value.iter().copied().enumerate() {
+        for (index, word) in value[..used].iter().copied().enumerate() {
             let destination = index + shift;
             if destination >= LIMBS {
-                if word != 0 && multiplier != 0 || carry != 0 {
+                if word != 0 || carry != 0 {
                     return Err(Error::Overflow);
                 }
                 continue;
@@ -87,7 +91,12 @@ pub fn multiply(output: &mut Wide, value: &Wide, factor: &[u64]) -> Result<()> {
             carry = product >> 64;
         }
         if carry != 0 {
-            return Err(Error::Overflow);
+            let destination = used + shift;
+            if destination >= LIMBS {
+                return Err(Error::Overflow);
+            }
+            // Earlier factor columns end strictly before this destination.
+            output[destination] = carry as u64;
         }
     }
     Ok(())
@@ -126,13 +135,15 @@ pub fn divide_small(quotient: &mut Wide, value: &Wide, divisor: u128) -> Result<
 
 #[inline(never)]
 fn shift_into(output: &mut Wide, value: &Wide, shift: usize) -> Result<()> {
-    if bits(value) + shift > BITS {
+    let value_bits = bits(value);
+    if value_bits + shift > BITS {
         return Err(Error::Overflow);
     }
     output.fill(0);
     let words = shift / 64;
     let remaining = shift % 64;
-    for index in words..LIMBS {
+    let end = (value_bits + shift).div_ceil(64);
+    for index in words..end {
         output[index] = value[index - words] << remaining;
         if remaining != 0 && index > words {
             output[index] |= value[index - words - 1] >> (64 - remaining);
@@ -142,23 +153,28 @@ fn shift_into(output: &mut Wide, value: &Wide, shift: usize) -> Result<()> {
 }
 
 /// Whole cash/flow quotient, strictly below 2^58. Never general wide division.
-/// The fixed 58-step schedule preserves the exact remainder for atom allocation.
+/// At most 58 steps preserve the exact remainder. Leading zero quotient bits
+/// need no subtraction, and zero/sub-divisor inputs return their exact remainder.
 #[inline(never)]
 pub fn divide_atoms(remainder: &mut Wide, value: &Wide, divisor: &Wide) -> Result<u64> {
     let denominator_bits = bits(divisor);
     if denominator_bits == 0 {
         return Err(Error::Bounds);
     }
+    remainder.copy_from_slice(value);
+    if compare(value, divisor) == Ordering::Less {
+        return Ok(0);
+    }
+    let value_bits = bits(value);
     let mut shifted = [0; LIMBS];
-    if denominator_bits + 58 <= BITS {
+    if denominator_bits + 58 <= BITS && value_bits >= denominator_bits + 58 {
         shift_into(&mut shifted, divisor, 58)?;
         if compare(value, &shifted) != Ordering::Less {
             return Err(Error::Bounds);
         }
     }
-    remainder.copy_from_slice(value);
     let mut quotient = 0u64;
-    for shift in (0..58).rev() {
+    for shift in (0..=57.min(value_bits - denominator_bits)).rev() {
         if denominator_bits + shift > BITS {
             continue;
         }

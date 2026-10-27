@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R061: P22A/P22B/P23/P24 Review. A29/G19 core passes on clean `4a0763d`: 329 signed SVM / 313 finalized RPC outcomes, full observed WS and exact financial/legacy parity. R062: P25 A30/G19 cash passes on clean `12a23e6`: 631 SVM / 629 finalized RPC outcomes, 446 WS, 57-transition exact audits. P25 ready PR #37 is open above #36; R063: P26 arithmetic/rate primitives pass 2,060 integer and 337 Fraction cases; 15 V3 liquidation/frozen/proposal tests and the SBF frame check pass. Preliminary signed runtime reaches FlowPlan: 157 outcomes (151 pass / six expected rejects). Complete rounding/application/recovery and full runtime acceptance remain due; activation stays gated |
+| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | R061: P22A/P22B/P23/P24 Review. A29/G19 core passes on clean `4a0763d`: 329 signed SVM / 313 finalized RPC outcomes, full observed WS and exact financial/legacy parity. R062: P25 A30/G19 cash passes on clean `12a23e6`: 631 SVM / 629 finalized RPC outcomes, 446 WS, 57-transition exact audits. P25 ready PR #37 is open above #36; R063: P26 arithmetic/rate primitives pass 2,060 integer and 337 Fraction cases; 15 V3 liquidation/frozen/proposal tests and the SBF frame check pass. Preliminary signed runtime reaches the complete rounded plan: 182 outcomes (174 pass / eight expected rejects); 549 independent atom/continuation comparisons pass. Application/recovery and full runtime acceptance remain due; activation stays gated |
 
 ## Phase overview
 
@@ -78,7 +78,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P23 | Registry, accounts and custody | Review | [PR #35](https://github.com/arnabnandikgp/rivalt/pull/35), head `de5db9d`, above #33; checked `4500168` | [A28/G18](evidence/P23.md): 139 signed SVM / 57 actual RPC outcomes, 11-instruction and eight-account legacy parity, exact raw-byte/token audit, 64-member SVM bound; max 89,854 CU / 753 bytes / 16 accounts. Trading disabled |
 | M8 | P24 | Risk, funding, routes and orders | Review | [PR #36](https://github.com/arnabnandikgp/rivalt/pull/36), head `f8f5dac`, above #35; tested `4a0763d` | [A29/G19 core](evidence/P24.md): 329 SVM / 313 finalized RPC outcomes; 23 ABI variants, 28 accounts / 134 event parity, 175 WS notifications; exact 49-transition / 16-fill audit. Max route 473,764 CU, overall 1,191 bytes / 24 accounts. Ordinary activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
-| M8 | P26 | Liquidation, complete default and local activation | In progress | `phase/p26-account-safety` above #37 `75e34c5` | R063: checkpoint `5920428`; 15 focused tests; preliminary 157 signed SVM outcomes through verified rates. Implement deterministic rounding/application/recovery, then maximum-cohort/RPC acceptance; ordinary activation disabled |
+| M8 | P26 | Liquidation, complete default and local activation | In progress | `phase/p26-account-safety` above #37 `75e34c5` | R063: frozen/rate checkpoint `21f2569`; 15 focused tests, 549 independent atom/continuation cases; preliminary 182 signed SVM outcomes through complete rounding. Implement application/recovery, then maximum-cohort/RPC acceptance; ordinary activation disabled |
 | M8 | P27 | SDK, indexer/API and durable services | Open | — | P26 / A32 / G21 interfaces; fresh real integration |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Open | — | P27 / A33 / G21 / M8 exit; normal background exits, complete outcomes/replay |
 
@@ -2369,3 +2369,40 @@ exactly-once Apply/Reconcile plus authorized recovery/retirement, then run the
 maximum-cohort and real RPC/WS safety gates before publishing P26. P27/P28 remain
 dependent work. No unrelated inherited regression, new PostgreSQL/UI/endurance,
 devnet/funded deployment, hosted CI or external review was run or claimed.
+
+R063 deterministic atom continuation on `21f2569` plus the recorded working diff:
+implement exact whole-flow/cash floors, verified complete remainder permutations,
+fixed-array deterministic DFS with repair arcs, persisted bounded continuation and
+complete node conservation audit. Order verification cannot be replaced mid-pass;
+a wrong committed permutation resets deterministically. No participant payout or
+recovery is implemented by these preparation instructions.
+
+`cargo build -p financial-core --bin clearing-atoms-driver --locked --offline` and
+`python3 tests/financial/test_clearing_atoms.py` pass 549 independent comparisons
+(183 inputs, each with one/seven/128-slot continuations), including 64-member
+inputs, conserving market adjustments, exact atom ownership and augmentation
+counts. The first test transport used the wrong reference attribute name; correct
+it to the existing `signed_movements` field, with no expected arithmetic change.
+The first signed two-row FlowPlan exceeds 1,200,000 CU. Optimize checked arithmetic
+by skipping zero columns/unused high limbs and leading zero quotient bits. Fresh
+2,060 independent wide, 337 row/rate and 549 atom comparisons all pass after that
+change; the 15 focused program tests and TypeScript pass. Fix an ordinary borrow
+checker conflict in the new order checker before compiling SBF; the final build
+passes the unchanged stack-frame guard. IDL/SDK generation remains additive.
+
+The extended signed two-maker bankruptcy reaches a complete rounded plan with
+actual fractional creditor allocation: 182 outcomes (174 success / eight expected
+rejects), at `.local/account-safety-runs/20261027T090129594Z-60224/`. It verifies
+both market conservation equations, each account's <1-atom error, retained own
+cash, wrong/duplicate permutations, immutable in-progress checks and deterministic
+reset. Live roots/vault/ledgers remain unchanged until Apply. Earlier preliminary
+178-outcome path `.local/account-safety-runs/20261027T085631002Z-58633/` is retained.
+Two-row FlowPlan maximum is 508,227 CU, exact rate verification 299,285 and bounded
+Round 200,047 in this seven-member run. These are preliminary measured cases,
+not worst-case cohort/arithmetic acceptance. Raw logs/evidence remain ignored.
+
+Exact next action: implement exactly-once Apply/Reconcile and authorized terminal
+cash access/recovery/retirement, then maximum-cohort and real RPC/WS safety acceptance
+before P26 publication. Ordinary activation remains disabled. No unrelated broad
+suite, new PostgreSQL/UI/endurance, devnet/funded deployment, CI or external review
+is run or claimed; P27/P28 and external P15B/P16B remain separate obligations.
