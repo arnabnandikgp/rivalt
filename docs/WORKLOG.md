@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | P22A–P25 remain Review in open #32/#33/#35/#36/#37. R065: P26 A31/G20 passes on clean `915d8e8`: 837 qualified SVM/finalized RPC outcomes, all 672 expected WS, independent 64-root payouts; 656 two-market SVM outcomes, cyclic/shared-exposure RPC and 534 bounded resource probes. Explicit local activation is qualified; default/devnet stay gated. P26 Review in ready [PR #38](https://github.com/arnabnandikgp/rivalt/pull/38) above #37; P27 In progress: R066 adds schema-3 finalized projection/reconciliation and prepares fresh PostgreSQL recovery; P28 remains Open |
+| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | P22A–P25 remain Review in open #32/#33/#35/#36/#37. R065: P26 A31/G20 passes on clean `915d8e8`: 837 qualified SVM/finalized RPC outcomes, all 672 expected WS, independent 64-root payouts; 656 two-market SVM outcomes, cyclic/shared-exposure RPC and 534 bounded resource probes. Explicit local activation is qualified; default/devnet stay gated. P26 Review in ready [PR #38](https://github.com/arnabnandikgp/rivalt/pull/38) above #37; P27 In progress: R066 verifies fresh schema-3 PostgreSQL reconstruction/restarts/API on clean `ba19119`; direct SDK/workers remain due. P28 remains Open |
 
 ## Phase overview
 
@@ -79,7 +79,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P24 | Risk, funding, routes and orders | Review | [PR #36](https://github.com/arnabnandikgp/rivalt/pull/36), head `f8f5dac`, above #35; tested `4a0763d` | [A29/G19 core](evidence/P24.md): 329 SVM / 313 finalized RPC outcomes; 23 ABI variants, 28 accounts / 134 event parity, 175 WS notifications; exact 49-transition / 16-fill audit. Max route 473,764 CU, overall 1,191 bytes / 24 accounts. Ordinary activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
 | M8 | P26 | Liquidation, complete default and local activation | Review | [PR #38](https://github.com/arnabnandikgp/rivalt/pull/38), above #37 `75e34c5`; tested `915d8e8` | [A31/G20 safety](evidence/P26.md): complete default/recovery/retirement, 837 qualified RPC outcomes / 672 WS, exact 64-root audit, cyclic and both-market/full-book cases, 31 ABI variants, default gating and maximum-width resource headroom. Qualified local activation only; no merge or P27/P28 completion |
-| M8 | P27 | SDK, indexer/API and durable services | In progress | `phase/p27-account-services` above #38 `fe5757a` | R066: authenticated V3 event/financial reconstruction and API; six scoped regressions and retained-history checks pass; fresh RPC/WS/PostgreSQL acceptance pending |
+| M8 | P27 | SDK, indexer/API and durable services | In progress | `phase/p27-account-services` above #38 `fe5757a` | R066: clean `ba19119` passes 409 signed outcomes, 187 finalized events, four staged restarts, independent audit and fresh PostgreSQL replay/API; direct SDK/workers remain due |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Open | — | P27 / A33 / G21 / M8 exit; normal background exits, complete outcomes/replay |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
@@ -93,7 +93,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Prior integrated verification (R053): final full-stack review has zero unresolved threads, no requested changes and all PRs mergeable with selected CI passing. Final tip `1a3cc2c` passes all five jobs in hosted run `40221453594`. Phase reports retain original executed pins and limitations; R052 actual service recovery uses `e4a284c` and receipt concurrency uses `c0e5274`. This run adds repository/review/integration verification, not new financial/runtime evidence.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: pin R066 and run `bash ops/account-indexer-smoke.sh` for fresh staged default/indexer/API/PostgreSQL recovery, then continue the P27 direct SDK and workers. Keep the stack open.
+- Exact next action: implement the schema-3 direct wallet SDK with bounded selected-account reads and atomic funded exits, then qualify its actual signed API-independent lifecycle before continuing durable workers. Keep the stack open.
 - Deferred gates: D56 resumes busy-group/atomic-exit redesign within P22–P28; the old runtime limitation remains. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new deployment or external participation is claimed.
 
 ## Blocker register
@@ -2811,3 +2811,36 @@ still due. Broad inherited suites, SBF rebuild, browser/load/devnet/external/24-
 checks are not run: unchanged binaries or separate gates. Exact next action: pin
 this checkpoint and run `bash ops/account-indexer-smoke.sh`, address actual failures,
 then continue P27's direct SDK and durable workers on this branch.
+
+
+R066 fresh integration result: clean `ba19119898ceb6d0241317f54555dd8a27f61c13`
+passes `bash ops/account-indexer-smoke.sh` at
+`.local/account-indexer-rpc/20261027T125035Z-13048/`. All 409 signed originals are
+independently fetched finalized (363 success, 46 intentional rejection); the actual
+WS capture has 244 notifications. The seven-root, full-order-book financial scenario
+includes liquidation, complete default, recovery/reactivation and retirement.
+Independent raw-byte/Fraction reconciliation passes seven payouts and rejects ten
+mutations. Actual PostgreSQL reconstruction and indexer pool/lease/WS restart pass
+at partial Value, Verify, completed circulation and partial exactly-once Apply.
+These are indexer restarts, not future worker-process restart evidence.
+
+The final venue-address journal retains 248 transactions, 187 committed events,
+187 outbox entries and zero unresolved jobs. A reverted two-instruction withdrawal
+retains failed CPI/history but no financial events. An actual one-atom funded exit
+during WS disconnection is recovered exactly once from its original signature.
+Fresh `rivalt_p27_replay` PostgreSQL reconstruction exactly matches all projected
+state and 29 finalized accounts; allocated/actual vault both equal 2,002,399,898
+atoms. HTTP venue/account/portfolio/trade reads and unhealthy 503, immutable-event
+rejection and schema-2 journal incompatibility checks pass. The owned Surfpool and
+PostgreSQL container are stopped/deleted; raw database/evidence files stay ignored.
+
+First attempt `.local/account-indexer-rpc/20261027T124816Z-12495/` completed all four
+local deployments but stopped before financial checks because the existing Apple
+Containers service was not running. `container system start` restored that existing
+service; no runtime replacement or installation. No assertions from that attempt
+are counted. No SBF rebuild was needed: artifact verification binds unchanged
+qualified P26 bytes. Both tables keep M8/P27 In progress. Six earlier PRs remain
+open; P27 is not published yet. This checkpoint does not cover direct SDK, durable
+financial workers, maximum-cohort PostgreSQL chunking or P28 UI/concurrency. Exact
+next action: implement and qualify the schema-3 direct wallet SDK, then complete
+the P27 workers and remaining interface acceptance on the same phase branch.
