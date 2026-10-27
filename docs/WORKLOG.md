@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing redesign | In progress | P22A–P26 Review; P27 [ready PR #39](https://github.com/arnabnandikgp/rivalt/pull/39) qualifies A32/G21 through clean `13b558f`; P28 UI/workload pass; final recovery run catches an unclassified intermediate indexer error, so A33 remains In progress |
+| M8 | P22–P28 | Account-centric clearing redesign | In progress | P22A–P26 Review; P27 [ready PR #39](https://github.com/arnabnandikgp/rivalt/pull/39) qualifies A32/G21 through clean `13b558f`; P28 UI/workload pass; P28 diagnostic identifies transient finalized pagination/sequence gaps; bounded rescan fix awaits fresh A33 verification |
 
 ## Phase overview
 
@@ -80,7 +80,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
 | M8 | P26 | Liquidation, complete default and local activation | Review | [PR #38](https://github.com/arnabnandikgp/rivalt/pull/38), above #37 `75e34c5`; tested `915d8e8` | [A31/G20 safety](evidence/P26.md): complete default/recovery/retirement, 837 qualified RPC outcomes / 672 WS, exact 64-root audit, cyclic and both-market/full-book cases, 31 ABI variants, default gating and maximum-width resource headroom. Qualified local activation only; no merge or P27/P28 completion |
 | M8 | P27 | SDK, indexer/API and durable services | Review | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit |
-| M8 | P28 | UI, operations and bounded concurrent qualification | In progress | `phase/p28-account-ui` above #39 `9498d2e` | R072 browser: 17 originals pass on `f595fd7`; `2d40c24` passes 112 submitted trades/six busy exits and independent nine-root default/recovery accounting, but strict intermediate-indexer gate stops final replay; diagnose before A33 acceptance |
+| M8 | P28 | UI, operations and bounded concurrent qualification | In progress | `phase/p28-account-ui` above #39 `9498d2e` | R072 browser: 17 originals pass on `f595fd7`; `2d40c24` passes 112 submitted trades/six busy exits and independent nine-root default/recovery accounting, but strict intermediate-indexer gate stops final replay; bounded finalized-history rescan correction awaits fresh A33 acceptance |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -3358,3 +3358,33 @@ not a new exception or relaxed readiness rule. Both tables retain P28/M8 In
 progress. Next: pin the diagnostic change and repeat only the affected fresh
 `--workload` gate to capture and resolve the exact error; do not rerun browser,
 SBF, inherited full suites or devnet. Raw evidence/database remain local.
+
+R072 diagnostic run, clean `81f391d`,
+`.local/account-workload-rpc/20261027T180940Z-84626/`: captures the exact transient
+errors at 18:16:09/18:17:37 UTC: repeated history pagination signature, then a
+critical sequence gap. Later cycles recover, but the strict final gate again
+fails; no fresh replay or complete A33 is claimed. Workload independently verifies
+119 actual fills (116 scheduled plus three drains) and six busy exits, with five
+corruptions rejected. The same default/recovery/exit flow executes. A bounded
+read-only 29-page/557-signature diagnostic finds no duplicate after the transient;
+32 fetched same-slot originals retain descending critical order. These later
+reads do not establish the earlier provider's precise cause. A failed root-level
+Node diagnostic import is corrected using the existing indexer workspace, without
+adding dependencies.
+
+Implement bounded finalized-history read recovery: on those two specific input
+conflicts, discard the candidate and rescan from the durable checkpoint at most
+twice. No missing rows are skipped, no financial/identity errors are waived and
+no incomplete projection becomes healthy. Add persistent/transient overlap/gap
+cases and a duplicate-critical-sequence negative; retain original economic-error,
+older-state, tail and batch-bound coverage. Record per-instance indexer metrics
+across intentional restarts. D66/components document the shared transport change.
+Both tables retain P28/M8 In progress. Next: finish scoped history/type checks,
+commit, then run the affected fresh workload/default/replay gate on the correction.
+Browser, programs/SBF/ABI, devnet and unrelated local suites remain unrerun.
+
+R072 history correction checks pass: 12 focused `finalized-indexer.test.ts` cases,
+`pnpm typecheck`, diff whitespace and evidence policy. The V1/V2 projections already
+require the same contiguous critical sequence; the transport precheck preserves
+that contract. Exact next action: pin this correction, then execute only
+`bash ops/account-indexer-smoke.sh --workload` on its clean revision.

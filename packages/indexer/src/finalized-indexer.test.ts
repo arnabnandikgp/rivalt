@@ -1,5 +1,5 @@
 import {expect,it,vi} from 'vitest';
-import {FinalizedIndexer,MAX_RECONCILIATION_CATCHUPS} from './finalized-indexer.js';
+import {FinalizedIndexer,MAX_RECONCILIATION_CATCHUPS,MAX_HISTORY_READ_RESTARTS} from './finalized-indexer.js';
 import {compareReconciliationSequence,ReconciliationAhead} from './reconciliation-progress.js';
 import {hash,type JournalEvent} from './events.js';
 import type {JournalBinding,JournalStore} from './store.js';
@@ -55,7 +55,7 @@ for(const error of [new Error('Economic mismatch'),(()=>{try{compareReconciliati
   it(`does not retry or commit ${error.message}`,async()=>{
     const test=fixture();test.indexer.reconcile=async()=>{throw error;};
     await expect(test.indexer.cycle()).rejects.toThrow(error.message);
-    expect(test.indexer.metrics.catchups).toBe(0);expect(test.store.commit).not.toHaveBeenCalled();expect(test.indexer.healthy).toBe(false);
+    expect(test.indexer.metrics.catchups).toBe(0);expect(test.indexer.metrics.historyRestarts).toBe(0);expect(test.store.commit).not.toHaveBeenCalled();expect(test.indexer.healthy).toBe(false);
   });
 it('bounds continuous advances without exposing an unreconciled checkpoint',async()=>{
   const test=fixture();let observed=2n;
@@ -72,4 +72,54 @@ it('does not interpret a missing finalized tail as success',async()=>{
 it('keeps the history bound cumulative across catch-up extensions',async()=>{
   const test=fixture('tx1',2);test.indexer.reconcile=async()=>{test.setHead(4);throw new ReconciliationAhead(2n,4n);};
   await expect(test.indexer.cycle()).rejects.toThrow(/batch bound/);expect(test.store.commit).not.toHaveBeenCalled();
+});
+
+for(const persistent of [false,true])it(`${persistent?'bounds persistent':'discards transient'} overlapping finalized history pages`,async()=>{
+  const test=fixture();const original=test.rpc.getMockImplementation()!;let reads=0;
+  test.rpc.mockImplementation(async(method,params:any=[])=>{
+    if(method==='getSignaturesForAddress'&&(persistent||reads++===0))return [
+      {signature:'tx2',slot:2,err:null},{signature:'tx2',slot:2,err:null},
+    ];
+    return original(method,params);
+  });
+  if(persistent) {
+    await expect(test.indexer.cycle()).rejects.toThrow(/History pagination repeated/);
+    expect(test.indexer.metrics.historyRestarts).toBe(MAX_HISTORY_READ_RESTARTS);
+    expect(test.store.commit).not.toHaveBeenCalled();expect(test.indexer.healthy).toBe(false);
+  } else {
+    await test.indexer.cycle();expect(test.indexer.metrics.historyRestarts).toBe(1);
+    expect(test.store.commit).toHaveBeenCalledTimes(1);expect(test.indexer.healthy).toBe(true);
+    expect(test.store.commit.mock.calls[0][0].map(row=>row.signature)).toEqual(['tx2']);
+  }
+});
+for(const persistent of [false,true])it(`${persistent?'rejects persistent':'rescans transient'} missing critical history without retaining a partial candidate`,async()=>{
+  const test=fixture();test.setHead(4);const original=test.rpc.getMockImplementation()!;let heads=0;
+  test.rpc.mockImplementation(async(method,params:any=[])=>{
+    if(method==='getSignaturesForAddress'&&!params[1].before&&(persistent||heads++===0))return [
+      {signature:'tx4',slot:4,err:null},{signature:'tx2',slot:2,err:null},
+    ];
+    return original(method,params);
+  });
+  const candidates:State[]=[];test.indexer.reconcile=async snapshot=>{candidates.push(structuredClone(snapshot!.state));};
+  if(persistent) {
+    await expect(test.indexer.cycle()).rejects.toThrow(/History critical sequence gap: expected 3, observed 4/);
+    expect(test.indexer.metrics.historyRestarts).toBe(MAX_HISTORY_READ_RESTARTS);
+    expect(test.store.commit).not.toHaveBeenCalled();expect(test.indexer.healthy).toBe(false);
+    expect(candidates).toEqual([]);
+  } else {
+    await test.indexer.cycle();expect(test.indexer.metrics.historyRestarts).toBe(1);
+    expect(candidates).toEqual([{sequence:'4',cash:28}]);expect(test.store.commit).toHaveBeenCalledTimes(1);
+    expect(test.store.commit.mock.calls[0][0].map(row=>row.signature)).toEqual(['tx4','tx3','tx2']);
+  }
+  expect(test.state).toEqual({sequence:'1',cash:7});
+});
+
+it('never retries conflicting duplicate critical sequences as an incomplete read',async()=>{
+  const test=fixture();test.setHead(3);
+  vi.spyOn(test.indexer as any,'decodeTransaction').mockImplementation((signature:any)=>[
+    {signature,data:{sequence:'2'}} as JournalEvent,
+  ]);
+  await expect(test.indexer.cycle()).rejects.toThrow(/Event gap or duplicate/);
+  expect(test.indexer.metrics.historyRestarts).toBe(0);
+  expect(test.store.commit).not.toHaveBeenCalled();expect(test.indexer.healthy).toBe(false);
 });

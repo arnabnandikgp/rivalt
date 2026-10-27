@@ -395,3 +395,10 @@ financial actions from current selected-root SDK snapshots. Shared widgets only
 render order/position/receipt data; V1/V2 retain their authority paths. The read API
 supports latest finalized fills without treating indexed balances as admission.
 See [P28 qualification](P28-ACCOUNT-QUALIFICATION.md) for the pending runtime gate.
+
+Finalized history ingestion may discard and rescan an incomplete multi-request
+read twice when a pagination signature repeats or a decoded critical sequence is
+missing. It always starts from the durable checkpoint with a fresh candidate;
+no partial economic state is published. Persistent gaps and all financial/identity
+mismatches remain fail-closed. Metrics distinguish full history restarts from
+new-finalized-sequence tail catch-up. D66 and WORKLOG record the measured fault.

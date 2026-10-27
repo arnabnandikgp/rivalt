@@ -1032,3 +1032,14 @@ attempt exposed driver finality backpressure and a real renewal at closeout.
 Before rerun, count missed driver slots explicitly within the original five-minute
 window and retain separate bounded closeout attempts. This changes observation
 and harness timing, never trading, oracle, loss ownership or authority rules.
+
+D66 history recovery clarification: fresh concurrent qualification observes a
+repeated pagination signature and a transient missing critical sequence during
+multi-request finalized reads. Discard the entire uncommitted candidate and allow
+at most two full rescans from the durable checkpoint. Each rescan retains its
+original transaction/page limits and must authenticate/decode/reconcile all state
+before committing. Persistent pagination/gaps still fail closed; duplicated
+critical sequences, chain identity, unknown schemas, older state and economic
+mismatches do not gain this retry exception. Count restarts separately from
+sequence-ahead tail extensions. This shared transport correction applies to V1/V2
+consumers too, without changing their accounting, authority or readiness rules.

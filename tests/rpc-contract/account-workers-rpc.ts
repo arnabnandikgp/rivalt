@@ -61,6 +61,10 @@ try {
     const output=createWriteStream(`${directory}/${identity}.log`);child.stdout!.pipe(output,{end:false});child.stderr!.pipe(output,{end:false});
     child.once('exit',()=>output.end());children.push(child);return child;
   };
+  const recordIndexerMetrics=(stage:string)=>{
+    observations.push({kind:'indexer-metrics',stage,...indexer!.metrics});
+    writeFileSync(`${directory}/indexer-observations.json`,json(observations));
+  };
   const startIndex=()=>{
     indexing=true;indexLoop=(async()=>{while(indexing){try{await indexer!.cycle();}catch(error){
       const observation={kind:'indexer-cycle-retry',expected:error instanceof ReconciliationAhead,message:String(error),at:Date.now()};
@@ -142,7 +146,7 @@ try {
     const environment={directory,config,setup,transport,client,runtime,endpoint,indexer:()=>indexer!,normal,
       pauseSources:(paused:boolean)=>{feedPaused=paused;},
       pauseIndexer:async(paused:boolean)=>{
-        if(paused){indexing=false;await indexLoop;await indexer!.close();}
+        if(paused){indexing=false;await indexLoop;recordIndexerMetrics('workload-pause');await indexer!.close();}
         else {indexer=new AccountIndexer(config);await indexer.open();await indexer.cycle();startIndex();}
       },maker:replacement,restartMaker:()=>start('maker',setup.operators[1].owner,0,0)};
     let accounts:Awaited<ReturnType<typeof accountBrowser>>;
@@ -212,7 +216,7 @@ try {
       const previous=risk;risk.kill('SIGKILL');await until(async()=>previous.signalCode==='SIGKILL',Boolean,'actual risk process kill');
       restartedStages.add(current.stage);risk=start('risk',setup.owner);restarts.push({role:'risk',stage:current.stage,cursor:current.cursor,uploaded:current.proposalUploaded,before:previous.pid,after:risk.pid});
       if(current.stage===5) {
-        indexing=false;await indexLoop;await indexer.close();indexer=new AccountIndexer(config);await indexer.open();await indexer.cycle();startIndex();
+        indexing=false;await indexLoop;recordIndexerMetrics('default-verification-restart');await indexer.close();indexer=new AccountIndexer(config);await indexer.open();await indexer.cycle();startIndex();
         observations.push({kind:'indexer-reopened-during-verification'});
       }
     }
@@ -238,6 +242,7 @@ try {
   for(const child of children.filter(child=>child!==executor))await stop(child);
   await until(async()=>(await runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[config.runId])).rows[0].count,count=>count==='0','all worker original outcomes');
   await stop(executor);indexing=false;await indexLoop;await transport.finalize();await indexer.cycle();
+  recordIndexerMetrics('final');
   writeFileSync(`${directory}/indexer-observations.json`,json(observations));
   assert(!observations.some(value=>(value as any).kind==='indexer-cycle-retry'&&!(value as any).expected),
     'No financial/identity projection failure may be hidden by later snapshots');
