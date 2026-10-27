@@ -65,6 +65,7 @@ export async function accountBrowser(environment:AccountQualificationEnvironment
     await select('Portfolio','1');await action('Create portfolio');await action('Register account');
     const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,setup.owner.address,1),[cross]=await sdk.findMarginV3Pda(portfolio,0),[isolated]=await sdk.findMarginV3Pda(portfolio,1);
     setup.roots.push(cross);await action('Deposit');assert.equal((await client.snapshot([cross])).roots[cross].cash,1_000_000n);
+    await wait(()=>page.getByTestId('account-cash').textContent(),value=>value==='1','exact finalized funded cash display');
     record('portfolio one discovery, immutable cross registration and actual deposit');
     const prior=walletWires.length;await button('Deposit').click();await review().waitFor();await page.evaluate(()=>(window as any).rivaltWallet.reject());await button('Sign transaction').click();
     await page.getByText('Signature declined or wallet unavailable. Nothing was sent.',{exact:true}).waitFor();assert.equal(walletWires.length,prior);
@@ -80,6 +81,8 @@ export async function accountBrowser(environment:AccountQualificationEnvironment
     await select('Margin account','0');await select('Market','0');await environment.normal();
     await action('Review atomic trade');assert.equal((await client.snapshot([cross])).roots[cross].positions[0].lots,5n);
     await select('Market','1');await action('Review atomic trade');assert.equal((await client.snapshot([cross])).roots[cross].positions[1].lots,5n);
+    await wait(()=>page.getByTestId('group-position-1').textContent(),value=>value==='0.00005','exact ETH position display');
+    await wait(()=>page.locator('section').filter({has:page.getByRole('heading',{name:'Recent finalized fills',exact:true})}).locator('tbody tr').count(),count=>count>=2,'latest authenticated fill history');
     record('one cross account trades BTC and ETH using authenticated direct SDK routes');
     await page.getByText('Protect existing position',{exact:true}).click();await action('Review TP/SL');
     let current=(await client.snapshot([cross])).roots[cross];assert.equal(current.book.orders.filter(entry=>[1,2].includes(entry.order.state)).length,2);
@@ -95,7 +98,9 @@ export async function accountBrowser(environment:AccountQualificationEnvironment
     await page.route('**/api/**',route=>route.abort());await page.route('**/read/**',route=>route.abort());
     await action('Cancel order');await page.getByLabel('Collateral amount',{exact:true}).fill('0.000005');await action('Withdraw');
     await page.reload();await wait(async()=>await receipts(),items=>items.length===walletWires.length&&items.every(item=>item.status==='finalized'),'saved original recovery after reload');
-    record('API-independent cancellation/atomic withdrawal and persisted original receipts');
+    assert.equal(await page.getByLabel('Portfolio',{exact:true}).inputValue(),'1');
+    await wait(()=>page.getByTestId('account-cash').textContent(),value=>Boolean(value&&value!=='—'),'RPC account display restored with API blocked');
+    record('API-independent cancellation/atomic withdrawal, retained selection and persisted original receipts');
     assert.equal(errors.length,0,errors.join('\n'));
     await page.screenshot({path:`${directory}/account-ui.png`,fullPage:true});
     writeFileSync(`${directory}/browser-summary.json`,json({checks,outcomes,errors,wireCount:walletWires.length,accounts:{cross,isolated}}));

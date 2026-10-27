@@ -43,21 +43,21 @@ export async function accountWorkload(environment:AccountQualificationEnvironmen
     return {signature:intent.signature,wire:intent.wire,status:result.status,error:actual.meta.err,fee:actual.meta.fee,computeUnits:actual.meta.computeUnitsConsumed,
       bytes:Buffer.from(intent.wire,'base64').length,accounts:VersionedTransaction.deserialize(Buffer.from(intent.wire,'base64')).message.staticAccountKeys.length,submittedAt,finalizedAt:Date.now(),latencyMs:Date.now()-submittedAt};
   }
-  async function offer(marketIndex:0|1,side:0|1,lots:bigint,label:string) {
+  async function offer(marketIndex:0|1,side:0|1,lots:bigint,label:string,margin:Address=accounts.cross) {
     const offeredAt=Date.now();
-    const response=await fetch(`${endpoint}/v3/quote`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({actor:setup.owner.address,margin:accounts.cross,marketIndex,side,lots:String(lots)})});
+    const response=await fetch(`${endpoint}/v3/quote`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({actor:setup.owner.address,margin,marketIndex,side,lots:String(lots)})});
     const offered=await response.json();
     if(!offered.available)return {offeredAt,status:'unavailable',reason:offered.code??offered.error??`HTTP-${response.status}`,diagnostic:offered.diagnostic};
     const before=await raw();
     let intent:sdk.SignedIntent;
     try {
-      const snapshot=await client.tradeSnapshot(accounts.cross,marketIndex),quote=await client.route({snapshot,trader:accounts.cross,marketIndex,side,lots,maxFee:10_000n,allInLimit:side===0?10_000_000n:0n},setup.owner.address);
+      const snapshot=await client.tradeSnapshot(margin,marketIndex),quote=await client.route({snapshot,trader:margin,marketIndex,side,lots,maxFee:10_000n,allInLimit:side===0?10_000_000n:0n},setup.owner.address);
       if(!quote)return {offeredAt,status:'unavailable',reason:'current-SDK-capacity-or-health'};
       const prepared=await client.prepare(label,setup.owner.address,quote.instructions);await prepared.transaction.sign([setup.owner]);
       intent=await client.signed(prepared,prepared.transaction);
     } catch(error) {return {offeredAt,status:'preparation-refused',reason:String(error)};}
     const result=await submitOriginal(intent),after=await raw();
-    financialSteps.push({label,kind:'route',trader:accounts.cross,marketIndex,side,lots:String(lots),before,after,signature:result.signature,status:result.status});
+    financialSteps.push({label,kind:'route',trader:margin,marketIndex,side,lots:String(lots),before,after,signature:result.signature,status:result.status});
     return {offeredAt,...result,diagnostic:offered.diagnostic};
   }
   await environment.normal();
@@ -69,7 +69,11 @@ export async function accountWorkload(environment:AccountQualificationEnvironmen
   const start=Date.now(),exitSchedule=[30,60,90,180,210,270],seenFaults=new Set<string>();
   let maker=environment.maker;
   const mark=(name:string)=>{seenFaults.add(name);faults.push({name,elapsedMs:Date.now()-start});};
-  const persist=()=>writeFileSync(`${directory}/load-progress.json`,json({durationSeconds:300,scheduledOffers:150,exitSchedule,population,exits,faults,drain}));
+  const persist=()=>{
+    writeFileSync(`${directory}/load-progress.json`,json({durationSeconds:300,scheduledOffers:150,exitSchedule,population,exits,faults,drain}));
+    if(financialSteps.length)report.rawAccounts=financialSteps.at(-1).after;
+    writeFileSync(`${directory}/load-financial.json`,json(report));
+  };
   try {
     for(let index=0;index<150;index++) {
       const scheduledAt=start+index*2000;await delay(Math.max(0,scheduledAt-Date.now()));
@@ -80,6 +84,11 @@ export async function accountWorkload(environment:AccountQualificationEnvironmen
       if(elapsed>=160&&!seenFaults.has('maker-restart')){maker=environment.restartMaker();mark('maker-restart');}
       if(elapsed>=225&&!seenFaults.has('indexer-pause')){await environment.pauseIndexer(true);mark('indexer-pause');}
       if(elapsed>=235&&!seenFaults.has('indexer-reopen')){await environment.pauseIndexer(false);mark('indexer-reopen');}
+      if(Date.now()>=scheduledAt+2000) {
+        population.push({index,scheduledMs:index*2000,startedMs:Date.now()-start,schedulingDelayMs:Date.now()-scheduledAt,
+          status:'driver-unavailable',reason:'previous-original-finality-or-exit-check-in-flight',attempted:false});
+        persist();continue;
+      }
       const due=exitSchedule.find(seconds=>elapsed>=seconds&&!exits.some(exit=>exit.scheduledSeconds===seconds));
       let pending: {intent:sdk.SignedIntent;before:any;observations:bigint[];sequence:bigint}|undefined;
       if(due!==undefined) {
@@ -89,7 +98,7 @@ export async function accountWorkload(environment:AccountQualificationEnvironmen
       }
       const marketIndex=(index%2) as 0|1,side=(Math.floor(index/2)%2) as 0|1;
       const result=await offer(marketIndex,side,1n,`scheduled fill ${index}`);
-      population.push({index,scheduledMs:index*2000,startedMs:Date.now()-start,schedulingDelayMs:Math.max(0,(result.offeredAt??Date.now())-scheduledAt),marketIndex,side,...result});
+      population.push({index,scheduledMs:index*2000,startedMs:Date.now()-start,schedulingDelayMs:Math.max(0,(result.offeredAt??Date.now())-scheduledAt),marketIndex,side,attempted:true,...result});
       if(pending) {
         assert.equal(result.status,'finalized','Exit window must include an unrelated actual trade, not quiescence');
         assert('signature' in result);
@@ -106,18 +115,27 @@ export async function accountWorkload(environment:AccountQualificationEnvironmen
     await delay(Math.max(0,start+300_000-Date.now()));
     assert.equal(population.length,150);assert.equal(exits.length,6);assert.equal(seenFaults.size,6);
     await environment.normal();
-    for(const marketIndex of [0,1] as const) {
-      const state=await client.snapshot([accounts.cross],'confirmed'),quantity=state.roots[accounts.cross].positions[marketIndex].lots;
-      if(quantity!==0n){const result=await offer(marketIndex,quantity>0n?1:0,quantity>0n?quantity:-quantity,`drain fill ${marketIndex}`);drain.push(result);assert.equal(result.status,'finalized');}
+    const populationCompletedMs=Date.now()-start;
+    assert(populationCompletedMs<=305_000,'Bounded 300-second offer window plus one finality tail');
+    // Closeout attempts are separate from the pinned offered population. A real
+    // maker renewal may temporarily refuse them; retain bounded retries.
+    for(const margin of [accounts.cross,accounts.isolated])for(const marketIndex of [0,1] as const) {
+      const state=await client.snapshot([margin],'confirmed'),quantity=state.roots[margin].positions[marketIndex].lots;
+      if(quantity===0n)continue;
+      const deadline=Date.now()+30_000;
+      while(true) {
+        const result=await offer(marketIndex,quantity>0n?1:0,quantity>0n?quantity:-quantity,`drain fill ${marketIndex}`,margin);
+        drain.push({margin,marketIndex,...result});persist();
+        if(result.status==='finalized')break;
+        assert(!('signature' in result),'A landed failed close requires explicit outcome inspection');
+        assert(Date.now()<deadline,'Bounded maker/source closeout recovery');await delay(1000);
+      }
     }
-    const state=await client.tradeSnapshot(accounts.isolated,1),close=await client.route({snapshot:state,trader:accounts.isolated,marketIndex:1,side:1,lots:1n,maxFee:100n,allInLimit:0n,reduceOnly:true},setup.owner.address);
-    assert(close);const before=await raw();assert.equal((await submit('close exit-account ETH position',close.instructions)).status,'finalized');
-    financialSteps.push({label:'exit-account drain fill',kind:'route',trader:accounts.isolated,marketIndex:1,side:1,lots:'1',before,after:await raw(),status:'finalized'});
     report.rawAccounts=await raw();writeFileSync(`${directory}/load-financial.json`,json(report));
     const audit=execFileSync('python3',['tests/financial/account-workload-reference.py',`${directory}/load-financial.json`],{encoding:'utf8'});
     writeFileSync(`${directory}/load-audit.txt`,audit);
     const counts:Record<string,number>={},reasons:Record<string,number>={};
     for(const row of population){counts[row.status]=(counts[row.status]??0)+1;if(row.reason)reasons[row.reason]=(reasons[row.reason]??0)+1;}
-    writeFileSync(`${directory}/load-summary.json`,json({durationMs:Date.now()-start,scheduledOffers:150,population,counts,reasons,exits,faults,drain,audit}));
+    writeFileSync(`${directory}/load-summary.json`,json({durationMs:Date.now()-start,populationCompletedMs,scheduledOffers:150,population,counts,reasons,exits,faults,drain,audit}));
   } finally {environment.pauseSources(false);if(seenFaults.has('indexer-pause')&&!seenFaults.has('indexer-reopen'))await environment.pauseIndexer(false);persist();}
 }

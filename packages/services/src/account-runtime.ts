@@ -36,10 +36,17 @@ export class AccountRuntime extends AccountExecution {
   async quote(actor:Address,trader:Address,marketIndex:0|1,side:0|1,lots:bigint,stored?:sdk.GroupStoredFill) {
     const snapshot=await this.snapshot([trader],marketIndex),heartbeats=await this.heartbeats();
     const diagnostic={snapshotCommitment:snapshot.commitment,snapshotSlot:snapshot.slot.toString(),
-      marketIndex,sourceModes:snapshot.marketStates.map(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot))};
+      marketIndex,sourceModes:snapshot.marketStates.map(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)),
+      makers:snapshot.makers.map(maker=>({makerId:maker.makerId,approved:maker.approved,synchronized:maker.synchronized,
+        quarantined:maker.registrationState.quarantined,quoteEpoch:maker.state.quoteEpoch.toString(),
+        expired:snapshot.slot>=maker.state.expirySlot,startsLater:snapshot.slot<maker.state.startSlot}))};
     snapshot.makers=snapshot.makers.filter(maker=>heartbeats.some(heartbeat=>heartbeat.market_index===marketIndex&&
       heartbeat.maker_id===maker.makerId&&heartbeat.registration===maker.registration&&heartbeat.owner===maker.registrationState.owner&&heartbeat.online));
     if(!snapshot.makers.length)throw new AccountQuoteUnavailable('market-makers-offline',diagnostic);
+    const admitted=snapshot.makers.filter(maker=>maker.approved&&!maker.registrationState.quarantined);
+    if(!admitted.length)throw new AccountQuoteUnavailable('market-maker-admission-unavailable',diagnostic);
+    if(admitted.every(maker=>!maker.synchronized||snapshot.slot>=maker.state.expirySlot||snapshot.slot<maker.state.startSlot))
+      throw new AccountQuoteUnavailable('market-makers-renewing',diagnostic);
     // Funding updates are deliberately not a quote barrier. The V3 instruction
     // checks current relevant sources, funding and health under its user limits.
     let quote;

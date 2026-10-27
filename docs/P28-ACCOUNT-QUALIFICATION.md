@@ -15,7 +15,14 @@ when venue HTTP services are unavailable. No technical group selector is exposed
 
 Before execution, pin the source commit and exact qualified program hashes.
 The new workload is **300 seconds, 150 scheduled offers at two-second intervals**,
-alternating BTC/ETH and buy/sell on a funded cross account. A separate funded
+alternating BTC/ETH and buy/sell on a funded cross account. An offer whose entire
+two-second slot passes while the driver waits for the previous original or exit
+checks is recorded as `driver-unavailable`, not submitted in a later burst. Report
+all 150 scheduled intents separately from actual HTTP quote attempts; this driver
+backpressure is not a claim about venue capacity. Allow at most five seconds for
+the final outstanding original after the 300-second offer window; post-window
+position drain has separate bounded 30-second retry populations for real maker
+renewal/source recovery. A separate funded
 isolated account provides six scheduled one-atom withdrawals at 30, 60, 90, 180,
 210 and 270 seconds. Sign each withdrawal, allow an unrelated sampler and trade
 to advance, then submit the unchanged original; no quiescent exit workaround.

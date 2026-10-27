@@ -81,7 +81,10 @@ def audit(report):
         assert ledgers[market]['carry'] == (old_ledgers[market]['carry']+fee)%4
         assert ledgers[market]['pool'] == old_ledgers[market]['pool']
         assert ledgers[1-market] == old_ledgers[1-market], 'market reserve attribution'
-    decode(report['rawAccounts'])
+    final,_,final_ledgers,final_cash = decode(report['rawAccounts'])
+    if report['financialSteps']:
+        last,_,last_ledgers,last_cash = decode(report['financialSteps'][-1]['after'])
+        assert (final,final_ledgers,final_cash) == (last,last_ledgers,last_cash), 'final financial checkpoint continuity'
     return fills,exits
 
 if __name__ == '__main__':

@@ -15,9 +15,24 @@ import {
 const zero = address('11111111111111111111111111111111');
 const abs = (value: bigint) => (value < 0n ? -value : value);
 export function useAccountController(config: AccountTraderConfig) {
-  const [portfolioIndex, setPortfolioIndex] = useState(0);
-  const [subaccount, setSubaccount] = useState(0),
-    [marketIndex, setMarketIndex] = useState<0 | 1>(0);
+  const selectionKey = `rivalt:selection:v3:${config.genesis}:${config.anchor}:${config.venue}`;
+  const [initial] = useState(() => {
+    try {
+      const value = JSON.parse(localStorage.getItem(selectionKey) ?? '{}');
+      return {
+        portfolio: Number.isInteger(value.portfolio) && value.portfolio >= 0 && value.portfolio <= 3 ? value.portfolio : 0,
+        subaccount: Number.isInteger(value.subaccount) && value.subaccount >= 0 && value.subaccount <= 8 ? value.subaccount : 0,
+        market: value.market === 1 ? 1 as const : 0 as const,
+      };
+    } catch { return {portfolio: 0, subaccount: 0, market: 0 as const}; }
+  });
+  const [portfolioIndex, setPortfolioIndex] = useState<number>(initial.portfolio);
+  const [subaccount, setSubaccount] = useState<number>(initial.subaccount),
+    [marketIndex, setMarketIndex] = useState<0 | 1>(initial.market);
+  useEffect(() => {
+    // A display preference only; ownership and authority are always read afresh.
+    try { localStorage.setItem(selectionKey, JSON.stringify({portfolio: portfolioIndex, subaccount, market: marketIndex})); } catch { /* Signing still requires durable receipt storage. */ }
+  }, [selectionKey, portfolioIndex, subaccount, marketIndex]);
   const venue = useAccountVenue(config, `${portfolioIndex}:${subaccount}:${marketIndex}`, portfolioIndex, subaccount),
     snapshot = venue.snapshot;
   const { accounts } = venue;

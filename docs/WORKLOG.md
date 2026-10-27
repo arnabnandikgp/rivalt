@@ -80,7 +80,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
 | M8 | P26 | Liquidation, complete default and local activation | Review | [PR #38](https://github.com/arnabnandikgp/rivalt/pull/38), above #37 `75e34c5`; tested `915d8e8` | [A31/G20 safety](evidence/P26.md): complete default/recovery/retirement, 837 qualified RPC outcomes / 672 WS, exact 64-root audit, cyclic and both-market/full-book cases, 31 ABI variants, default gating and maximum-width resource headroom. Qualified local activation only; no merge or P27/P28 completion |
 | M8 | P27 | SDK, indexer/API and durable services | Review | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit |
-| M8 | P28 | UI, operations and bounded concurrent qualification | In progress | `phase/p28-account-ui` above #39 `9498d2e` | P27 / A33 / G21 / M8 exit; normal background exits, complete outcomes/replay |
+| M8 | P28 | UI, operations and bounded concurrent qualification | In progress | `phase/p28-account-ui` above #39 `9498d2e` | R072 browser: 17 wallet originals and six busy exits pass on `dfdbc95`; full A33/G21/M8 gate awaits corrected bounded scheduling, renewal-aware closeout, final audit/default/replay |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -3251,3 +3251,35 @@ pass; build reports its existing-size chunk advisory. A formatting command found
 no installed Prettier and made no changes. No new dependencies or program build.
 Next: commit this checkpoint and execute `bash ops/account-indexer-smoke.sh
 --qualification`, address actual failures, then publish P28 ready above #39.
+
+R072 first live attempt, clean `dfdbc95`,
+`.local/account-qualification-rpc/20261027T164936Z-68507/`: real browser passes
+17 independently fetched wallet originals and seven named lifecycle/authority/
+API-loss checks. All six signed busy exits finalize after unrelated trades and
+sampler advances. Of 150 scheduled offers, 114 finalize and 36 are unavailable:
+19 required-source, five expiring-quote and 12 combined capacity/health refusals.
+Source/maker/indexer fault windows execute. The run stops during post-window
+closeout on a refused quote, so no final audit/default/replay or A33 pass. Owned
+runtimes are cleaned and raw evidence/this database are retained.
+
+Inspection shows all four makers renewing around closeout; the generic quote
+classification obscured unsynchronized/expired epochs. Add explicit renewable
+maker-state diagnostics and bounded recorded closeout retries. Waiting for
+original finality also delayed scheduled offers (last completes at 304,777 ms);
+the amended pinned harness records entirely missed slots as driver backpressure
+instead of replaying them late. Driver refusals and HTTP quote availability must
+have distinct denominators. Improve the UI's retained account selection, existing
+balance-grid styling, and assert finalized labels/history after reload. These
+changes do not loosen any program/source/risk guard. Next: scoped checks, pin the
+correction, and rerun only P28's affected fresh qualification.
+
+Observed P27 CI: scope/client/financial/shell pass on hosted run 40542871085;
+report is skipped. CodeRabbit check reports pass, which is not independent audit
+approval. PR #39 and the prior stack remain open.
+
+R072 correction checks: maker expiry/unsynchronized/admission/offline reason
+regression passes; `pnpm typecheck`, trader build and diff whitespace checks pass.
+Partial raw financial captures now checkpoint alongside load outcomes, and the
+independent final checkpoint must match the last captured financial transition.
+No unrelated suites, SBF build or full-day run. Exact next action: run the same
+fresh `--qualification` gate on this clean correction, retaining both attempts.

@@ -1025,3 +1025,10 @@ Reuse original wallet receipts and direct RPC cancellation/exits. The P28 contra
 pins a fresh five-minute population and six busy exits before execution, alongside
 browser and complete recovery/replay checks. No economics, source safeguards,
 program artifact, V1/V2 authority, external gates or endurance decision changes.
+
+D66 qualification clarification: classify live maker expiry/unsynchronized renewal
+separately from offline/admission and capacity/health refusals. The first load
+attempt exposed driver finality backpressure and a real renewal at closeout.
+Before rerun, count missed driver slots explicitly within the original five-minute
+window and retain separate bounded closeout attempts. This changes observation
+and harness timing, never trading, oracle, loss ownership or authority rules.

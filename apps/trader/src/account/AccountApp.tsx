@@ -30,7 +30,7 @@ function Balances({controller}: {controller: AccountController}) {
   const {venue,view,root,snapshot,financialDisabled,collateral,setCollateral,amount,setAmount,recipient,setRecipient,accounts,margin,cash,allocate,net}=controller;
   return <section className="panel">
     <h2>Account collateral</h2>
-    <dl className="balance-grid">
+    <dl className="account-metrics">
       <Metric label="Funded cash" value={fixed(root?.cash)} test="account-cash" hint="Test USD owned by this account" />
       <Metric label="Risk equity" value={fixed(view?.riskEquityScaled ?? undefined, 15)} test="account-equity" hint="Funded cash plus negative market claims" />
       <Metric label="Reserved for orders" value={fixed(root?.reserved)} test="account-reserved" />
