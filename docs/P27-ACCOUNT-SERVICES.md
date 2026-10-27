@@ -172,3 +172,9 @@ Recovery observations are bounded to eight original attempts per epoch; explicit
 authority resume/reactivation/emergency freeze/retirement are outside automation.
 The live `--workers` qualification owns new process/fault evidence; implementation
 and unit checks alone do not close A32.
+
+
+Completion events encode the two market fee carries as fixed bytes. The journal
+represents those bytes as hex; projection explicitly decodes each byte to its
+numeric market carry and validates the modulo-four bound. A later full snapshot
+must never be relied upon to repair intermediate financial reconstruction.

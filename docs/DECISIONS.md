@@ -1007,3 +1007,9 @@ never auto-net closed claims. Default continuation follows authenticated current
 chain cursors and untrusted exact proposals, with no new loss/risk authority.
 Consenting liquidation receivers and explicit operator lamport budgets remain
 required; automatic emergency freeze or authority recovery is excluded.
+
+D65 reconstruction correction (R071): completion-event fee carries are decoded
+from their journal hex-byte representation, preserving the existing on-chain
+modulo-four values. Unexpected intermediate reconciliation failures invalidate
+service qualification even if a later full event snapshot restores final parity.
+No financial policy or program artifact changes.

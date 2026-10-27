@@ -210,12 +210,17 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     }
     case 'AccountResolutionCompletedV3': {
       const current=resolution();accountCheck([10,11].includes(change.stage),'resolution completion stage');
+      // Fixed [u8;2] is canonical hex in the journal, unlike numeric vectors.
+      // Indexing its characters silently turns e.g. 0300 into string carries.
+      accountCheck(typeof change.insuranceFeeRemainders==='string'&&/^[0-9a-f]{4}$/.test(change.insuranceFeeRemainders),'resolution fee carry encoding');
+      const feeCarries=Buffer.from(change.insuranceFeeRemainders,'hex');
+      accountCheck(feeCarries.every(value=>value<4),'resolution fee carry bound');
       current.stage=change.stage;current.safetyEpoch=change.safetyEpoch;
       custody().totalCash=change.cash;custody().allocatedVault=change.allocated;custody().liabilityVersions=change.liabilityVersions;
       Object.assign(safety(),{mode:change.mode,epoch:change.safetyEpoch,paused:change.mode===2});
       for(const value of Object.values(state.ledgers)) {
         const index=value.marketIndex;Object.assign(value,{settlement:change.pools[index],insurance:change.insurance[index],fees:change.fees[index],
-          version:change.ledgerVersions[index],insuranceFeeRemainder:change.insuranceFeeRemainders[index]});
+          version:change.ledgerVersions[index],insuranceFeeRemainder:feeCarries[index]});
       }break;
     }
     case 'AccountSafetyRecoveryV3':

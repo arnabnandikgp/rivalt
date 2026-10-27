@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | P22A–P26 remain Review in open stacked #32/#33/#35/#36/#37/#38; qualified local activation only, default/devnet disabled. P27 R066–R068 verify fresh finalized PostgreSQL/replay, 64-root chunking, direct atomic exits and four-fill BTC/ETH routing. R069/R070 add exact proposal and durable execution helpers; R071 wires all five workers and their scoped qualification. Fresh worker/fault acceptance remains due. P28 Open; external P15B/P16B and deferred endurance unchanged |
+| M8 | P22–P28 | Account-centric clearing in a fresh bounded local profile | In progress | P22A–P26 remain Review in open stacked #32/#33/#35/#36/#37/#38; qualified local activation only, default/devnet disabled. P27 R066–R068 verify fresh finalized PostgreSQL/replay, 64-root chunking, direct atomic exits and four-fill BTC/ETH routing. R069/R070 add exact proposal and durable execution helpers; R071 wires all five workers and their scoped qualification. R071 live workers/default/replay pass, but logs exposed a completion-event carry decoder bug; fix and targeted requalification remain due. P28 Open; external P15B/P16B and deferred endurance unchanged |
 
 ## Phase overview
 
@@ -79,7 +79,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P24 | Risk, funding, routes and orders | Review | [PR #36](https://github.com/arnabnandikgp/rivalt/pull/36), head `f8f5dac`, above #35; tested `4a0763d` | [A29/G19 core](evidence/P24.md): 329 SVM / 313 finalized RPC outcomes; 23 ABI variants, 28 accounts / 134 event parity, 175 WS notifications; exact 49-transition / 16-fill audit. Max route 473,764 CU, overall 1,191 bytes / 24 accounts. Ordinary activation disabled |
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
 | M8 | P26 | Liquidation, complete default and local activation | Review | [PR #38](https://github.com/arnabnandikgp/rivalt/pull/38), above #37 `75e34c5`; tested `915d8e8` | [A31/G20 safety](evidence/P26.md): complete default/recovery/retirement, 837 qualified RPC outcomes / 672 WS, exact 64-root audit, cyclic and both-market/full-book cases, 31 ABI variants, default gating and maximum-width resource headroom. Qualified local activation only; no merge or P27/P28 completion |
-| M8 | P27 | SDK, indexer/API and durable services | In progress | `phase/p27-account-services` above #38 `fe5757a` | [Checkpoint evidence](evidence/P27.md): fresh indexer `ba19119`, direct exits `9e26969`, 64-root replay `98e2e49`, routing `8267a27`; R069/R070 helpers and R071 maker/funding/order/settlement/risk workers implemented. Focused checks pass; fresh process/default/replay acceptance due; no P27 PR yet |
+| M8 | P27 | SDK, indexer/API and durable services | In progress | `phase/p27-account-services` above #38 `fe5757a` | [Checkpoint evidence](evidence/P27.md): fresh indexer `ba19119`, direct exits `9e26969`, 64-root replay `98e2e49`, routing `8267a27`; R069/R070 helpers and R071 maker/funding/order/settlement/risk workers implemented. R071 actual worker/default/replay checkpoint passes; completion-event carry reconstruction fix and strengthened worker checks pending; no P27 PR yet |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Open | — | P27 / A33 / G21 / M8 exit; normal background exits, complete outcomes/replay |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
@@ -3142,3 +3142,43 @@ final replay/audit or A32 pass is claimed. Fix the harness to flatten residual
 exposure and fund its measured risk-equity shortfall, retaining the unpaid claim
 and all admission rules; save the intermediate liquidation/quote input explicitly.
 Owned runtime cleanup completed. Next: rerun the same focused worker gate.
+
+R071 second live attempt, clean `bb9a4cde5410f381e1040d6b55eff468bc4cf722`,
+`.local/account-workers-rpc/20261027T160218Z-55707/`: all 139 durable originals
+finalized and 432 setup/source originals independently finalized. Actual maker
+restart, TP, settlement, consenting liquidation, exact on-chain proposal upload,
+SIGKILL/restart at partial upload (512 bytes), verification (row 1) and Apply
+(row 2), indexer reopen, complete default, sustained recovery and explicit resume
+plus a 100-atom terminal cash exit ran. Independent raw-byte Fraction audit passes
+seven exact payouts, one circulation augmentation and four corruption negatives.
+Fresh PostgreSQL replay matches; final 29-account/seven-member reconciliation
+at sequence 206 has vault/allocation 2,002,707,133 and zero surplus. Maximum
+worker CU 823,235 / packet 1,176 bytes. All spent budgets reconcile; 43 WS
+notifications after the indexer restart are recorded, not the whole-run WS total.
+
+Despite the harness's completion, inspection exposed 72 repeated intermediate
+projection failures: `AccountResolutionCompletedV3` carries `[u8;2]` as canonical
+hex, but reconstruction indexed its characters. A later withdrawal's complete
+ledger snapshot masked that error in final parity. P27 therefore remains In
+progress. Decode the actual two bytes and assert per-market carries below four;
+add encoder-through-journal regression and reject unexpected indexing errors in
+the harness. Also strengthen acceptance to force real maker epoch publication/
+sync (earlier heartbeat-only run spent zero maker lamports) and actual finalized
+expiry with unchanged authority and retained fee reservation. Next: rerun only
+this affected worker gate on the corrected clean source; no SBF/full-suite rerun.
+
+User-authorized storage cleanup: removed exactly 49 inactive `postgres-data`
+directories after verifying no running container mounted them; retained the
+latest qualification database and every other evidence/log/key/configuration
+file. `.local` fell from 5.0 GiB to 1.7 GiB; measured free disk became 5.4 GiB.
+The ignored removal manifest is `.local/storage-cleanup/20261027.json`. Earlier
+run database copies no longer exist; their signed captures and reports remain.
+This is storage maintenance, not new financial acceptance or a blanket evidence
+retention change.
+
+Carry correction checks: all seven account-projection tests pass, including
+encoded fixed-byte carries `[3,1]`, `[0,0]`, `[2,3]` at both completion stages and
+a malformed-carry rejection. `pnpm typecheck` passes after correcting the harness
+exception-module import. The retained second-run raw financial audit also passes
+with a fifth corruption targeting fee carry; this is a consumer recheck, not a
+new live run. Next action remains the strengthened fresh worker gate.

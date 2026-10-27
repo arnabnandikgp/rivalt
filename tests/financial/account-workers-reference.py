@@ -25,7 +25,7 @@ def audit(report):
         tokens=sum(wire.integer(base64.b64decode(raw[key]),64) for key in report['userTokens']+[report['vault']])
         assert tokens==wire.integer(base64.b64decode(raw[report['mint']]),36),'actual minted token conservation'
         return roots,markets,ledgers,cash
-    previous,_,_,cash=balanced(frozen);assert cash==initial['cash']
+    previous,_,initial_ledgers,cash=balanced(frozen);assert cash==initial['cash']
     accounts=[]
     for key in report['roots']:
         root=previous[key]
@@ -43,6 +43,7 @@ def audit(report):
         assert Fraction(finished['rates'][market],finished['common']*finished['factor'])==expected.benchmark.rates[market]
         assert ledgers[market]['pool']==0 and ledgers[market]['insurance']==initial['insurance'][market]-expected.insurance_spent[market]
         assert ledgers[market]['fees']==initial['fees'][market]
+        assert ledgers[market]['carry']==initial_ledgers[market]['carry'],'default preserves market fee carry'
     for index,key in enumerate(report['roots']):
         root=actual[key];assert all(lots==virtual==0 for lots,virtual,_ in root['positions'])
         data=base64.b64decode(completed[key]);assert data[233:273]==bytes(40) and wire.integer(data,281)==0 and data[297:969]==bytes(672)
@@ -90,7 +91,7 @@ def audit(report):
 if __name__=='__main__':
     report=json.loads(Path(sys.argv[1]).read_text());count,augmentations=audit(report)
     rejected=0
-    for key,offset in [(report['roots'][0],113),(report['ledgers'][0],91),(report['ledgers'][1],83),(report['vault'],64)]:
+    for key,offset in [(report['roots'][0],113),(report['ledgers'][0],91),(report['ledgers'][0],99),(report['ledgers'][1],83),(report['vault'],64)]:
         corrupt=copy.deepcopy(report);data=bytearray(base64.b64decode(corrupt['completedAccounts'][key]));data[offset]^=1
         corrupt['completedAccounts'][key]=base64.b64encode(data).decode()
         try:audit(corrupt)

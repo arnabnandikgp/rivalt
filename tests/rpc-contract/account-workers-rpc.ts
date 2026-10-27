@@ -12,6 +12,7 @@ import {json} from '../../packages/indexer/src/events.js';
 import {accountRuntimeHarness} from './account-runtime-harness.js';
 import {accountServiceSetup} from './account-service-setup.js';
 import {accountQueueFault} from './account-queue-fault.js';
+import {ReconciliationAhead} from '../../packages/indexer/src/reconciliation-progress.js';
 
 const directory=process.env.RIVALT_RUN_DIR!,revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const dirty=()=>Boolean(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim());
@@ -41,6 +42,11 @@ try {
   runtime=new AccountRuntime(config.databaseUrl,config.runId,config.rpcUrl);await runtime.open();
   const faults=await accountQueueFault({...config,directory},setup,transport,client);await indexer.cycle();
   writeFileSync(`${directory}/queue-fault.json`,json(faults));
+  // Force actual expiration before daemon start, so heartbeat-only operation
+  // cannot stand in for signed owner publication and separate clearing sync.
+  for(const pair of setup.makers)for(const maker of pair)await transport.send('short owner epoch for daemon renewal',[
+    maker.api.getPublishAccountEpochInstruction({owner:maker.owner,config:maker.config,duration:64n})],[maker.owner]);
+  await transport.h.advance(4n);
   const start=(role:'maker'|'funding'|'orders'|'settlement'|'risk'|'executor',key?:Keypair,marketIndex?:number,makerId?:number,receiver?:Address)=>{
     const identity=`${role}-${marketIndex??'venue'}-${makerId??'none'}-${children.length}`;
     const environment:NodeJS.ProcessEnv={...process.env,RIVALT_RPC_URL:config.rpcUrl,RIVALT_DATABASE_URL:config.databaseUrl,RIVALT_RUN_ID:config.runId};
@@ -55,7 +61,9 @@ try {
     child.once('exit',()=>output.end());children.push(child);return child;
   };
   const startIndex=()=>{
-    indexing=true;indexLoop=(async()=>{while(indexing){try{await indexer!.cycle();}catch(error){observations.push({kind:'indexer-cycle-retry',message:String(error)});}await delay(250);}})();
+    indexing=true;indexLoop=(async()=>{while(indexing){try{await indexer!.cycle();}catch(error){
+      observations.push({kind:'indexer-cycle-retry',expected:error instanceof ReconciliationAhead,message:String(error)});
+    }await delay(250);}})();
   };
   startIndex();
   feeding=true;feedLoop=(async()=>{while(feeding){if(!feedPaused)for(let feed=0;feed<6;feed++)await setup.publish(feed,{price:feed===0||feed===2?feedBtc:feed===1||feed===3?1_000_000n:3_000_000_000n});await delay(1000);}})();
@@ -63,6 +71,8 @@ try {
   for(const market of [0,1])for(const maker of [0,1])makers.push(start('maker',setup.operators[maker+1].owner,market,maker));
   const funding=[0,1].map(market=>start('funding',setup.payer,market));
   await until(()=>runtime!.heartbeats(),rows=>rows.length===4&&rows.every(row=>row.online),'four live market makers');
+  await until(async()=>(await runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget LIKE 'account-maker-%' AND status='finalized'",[config.runId])).rows[0].count,
+    count=>Number(count)>=8,'four actual maker publications and separate owner syncs',40);
   async function normal(price=60_000n) {
     return until(()=>client.snapshot([setup.cross],'confirmed'),snapshot=>snapshot.marketStates[0].referencePrice===price&&
       snapshot.marketStates.every(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)==='Normal'),'real Normal source recovery',40);
@@ -191,10 +201,25 @@ try {
   for(const child of children.filter(child=>child!==executor))await stop(child);
   await until(async()=>(await runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[config.runId])).rows[0].count,count=>count==='0','all worker original outcomes');
   await stop(executor);indexing=false;await indexLoop;await transport.finalize();await indexer.cycle();
+  assert(!observations.some(value=>(value as any).kind==='indexer-cycle-retry'&&!(value as any).expected),
+    'No financial/identity projection failure may be hidden by later snapshots');
+  // Actual unbroadcast original expires on the real validator. Its unchanged
+  // finalized root proves no economic effect, never a fee refund from no history.
+  const expirySnapshot=await runtime.snapshot([setup.roots[0]]),expiryRoot=expirySnapshot.roots[setup.roots[0]];
+  const expiryInstruction=sdk.getWithdrawFundedAccountV3Instruction({...expirySnapshot,owner:setup.owner,margin:setup.roots[0],
+    quoteMint:setup.mint.address,userToken:setup.operators[0].token.address,guard:sdk.accountGuard(expirySnapshot,setup.roots[0]),amount:1n});
+  const budget=await runtime.budget('risk',setup.owner),expiryId='risk:deliberately-unbroadcast-expiry';
+  await runtime.enqueue(expiryId,[sdk.routeComputeBudget(),expiryInstruction],setup.owner,budget,
+    {kind:'accountStateVersion',venue:setup.venue,account:setup.roots[0],value:expiryRoot.stateVersion.toString()});
+  const expiredOriginal=(await runtime.store.pool.query('SELECT signature,blockhash,wire FROM service_intents WHERE run_id=$1 AND request_id=$2',[config.runId,expiryId])).rows[0];
+  await until(()=>transport.rpc.call('isBlockhashValid',[expiredOriginal.blockhash,{commitment:'finalized'}]),value=>value.value===false,'actual finalized blockhash expiry',60);
+  await runtime.queue.step(expiryId);assert.equal((await runtime.queue.get(expiryId)).status,'expired-unexecuted');
+  assert.equal((await root(setup.roots[0])).cash,expiryRoot.cash);assert.equal((await root(setup.roots[0])).stateVersion,expiryRoot.stateVersion);
   const final=await indexer.store.snapshot(),reconciliation=await indexer.reconcile();
   const intents=(await runtime.store.pool.query('SELECT request_id,signature,wire,status,budget,result FROM service_intents WHERE run_id=$1 ORDER BY created_at',[config.runId])).rows;
   const fees=new Map<string,bigint>();
   for(const intent of intents) {
+    if(intent.request_id===expiryId){assert.equal(intent.status,'expired-unexecuted');continue;}
     assert(['finalized','failed'].includes(intent.status),json(intent));
     const actual=await transport.rpc.call('getTransaction',[intent.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:0}]);
     assert.equal(actual.transaction[0],intent.wire);assert.equal(String(actual.meta.fee),intent.result.fee);
@@ -203,14 +228,16 @@ try {
     writeFileSync(`${directory}/worker-finalized-${intents.indexOf(intent)}.json`,json(actual));
   }
   const budgets=(await runtime.store.pool.query('SELECT name,cap::text,committed::text,spent::text FROM service_budgets WHERE run_id=$1 ORDER BY name',[config.runId])).rows;
-  for(const budget of budgets){assert.equal(budget.committed,'0');assert.equal(BigInt(budget.spent),fees.get(budget.name)??0n);}
+  for(const budget of budgets){assert.equal(budget.committed,budget.name==='account-risk'?'20000':'0');assert.equal(BigInt(budget.spent),fees.get(budget.name)??0n);}
+  for(const budget of budgets.filter(budget=>budget.name.startsWith('account-maker-')))assert(BigInt(budget.spent)>=10_000n,'Publication and clearing sync actually cost separate network fees');
   await indexer.store.pool.query('CREATE DATABASE rivalt_p27_workers_replay');const replayUrl=new URL(config.databaseUrl);replayUrl.pathname='/rivalt_p27_workers_replay';
   replay=new AccountIndexer({...config,databaseUrl:replayUrl.toString(),runId:'p27-workers-replay'});await replay.open();await replay.cycle();
   assert.deepEqual((await replay.store.snapshot()).state,final.state);await replay.reconcile();
   const audit=execFileSync('python3',['tests/financial/account-workers-reference.py',`${directory}/financial-capture.json`],{encoding:'utf8'});
   writeFileSync(`${directory}/independent-audit.txt`,audit);
   writeFileSync(`${directory}/summary.json`,json({revision,trackedDirty:startedDirty||dirty(),scope:'P27 durable account workers and recovery',binding,
-    wallets,intents,budgets,faults,restarts,observations,reconciliation,freshReplay:true,ws:indexer.metrics.notifications,checks:transport.checks,audit}));
+    wallets,intents,budgets,faults,restarts,observations,reconciliation,freshReplay:true,ws:indexer.metrics.notifications,checks:transport.checks,audit,
+    expiredOriginal:{...expiredOriginal,feeReservationRetained:'20000',economicEffect:'not-applied'}}));
   console.log(json({stage:'account-workers-pass',transactions:intents.length,restarts,reconciliation,audit}));
 } finally {
   feeding=false;indexing=false;await feedLoop?.catch(()=>{});await indexLoop?.catch(()=>{});

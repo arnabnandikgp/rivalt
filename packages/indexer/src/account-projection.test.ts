@@ -70,6 +70,21 @@ describe('per-market fractional accounting',()=>{
     current.ledgers['btc-ledger'].insuranceFeeRemainder=0;current.ledgers['btc-ledger'].insurance='11';
     expect(()=>reconcileAccountLedger(current)).toThrow(/cash conservation/);
   });
+  it('preserves each nonzero fee carry from the actual completion-event byte encoding',()=>{
+    for(const stage of [10,11])for(const carries of [[3,1],[0,0],[2,3]]) {
+      const current=state();
+      current.resolution={epoch:'1',stage:10} as AccountState['resolution'];
+      const payload=sdk.getAccountResolutionCompletedV3EventEncoder().encode({venue,sequence:1n,slot:10n,epoch:1n,
+        stage,mode:3,safetyEpoch:2n,cash:200n,pools:[0n,0n],insurance:[10n,0n],fees:[0n,0n],insuranceSpent:[0n,0n],
+        allocated:210n,actualVault:210n,liabilityVersions:[1n,1n],ledgerVersions:[2n,2n],insuranceFeeRemainders:Uint8Array.from(carries)});
+      const [change]=decodeAccounts('signed',transaction(payload),zero,venue);
+      expect(change.data.insuranceFeeRemainders).toBe(Buffer.from(carries).toString('hex'));
+      projectAccounts(current,change,venue,domain);
+      expect(Object.values(current.ledgers).map(ledger=>ledger.insuranceFeeRemainder)).toEqual(carries);
+      expect(()=>projectAccounts({...state(),resolution:{epoch:'1',stage:10} as AccountState['resolution']},
+        {...change,data:{...change.data,insuranceFeeRemainders:'0400'}},venue,domain)).toThrow(/carry bound/);
+    }
+  });
   it('keeps isolated foreign slots zero and validates cached reservations',()=>{
     const current=state();Object.assign(current.roots.debtor,{mode:1,subaccountIndex:1,isolatedMarketIndex:0});
     current.roots.debtor.positions[1].generation='1';expect(()=>reconcileAccountLedger(current)).toThrow(/foreign isolated/);
