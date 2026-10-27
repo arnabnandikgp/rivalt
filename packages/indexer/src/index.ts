@@ -72,3 +72,4 @@ export class Indexer extends FinalizedIndexer<State, Binding, Event> {
     return {slot:response.context.slot.toString(),sequence:state.sequence,actualVault:actualVault.toString(),allocatedVault:chain.allocatedVault.toString(),unallocatedSurplus:(actualVault-chain.allocatedVault).toString(),participants:participants.length};
   }
 }
+export {AccountIndexer,type AccountConfig} from './account-indexer.js';

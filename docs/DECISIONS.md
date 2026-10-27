@@ -953,3 +953,16 @@ for the explicitly selected local artifact, subject to its final pinned activati
 verification in WORKLOG. Default/devnet remain disabled; no fee, claim, loss-bearer,
 source-risk or old-profile economics change. P27/P28 and external P15B/P16B remain
 separate gates.
+
+
+## D65 — schema-3 service reconstruction boundary (P27)
+
+Reuse the immutable PostgreSQL journal/transport with a separate schema-3 binding,
+qualified local artifact set and financial projection. Authenticate all critical
+CPI schemas and reconcile canonical accounts at one custody discovery sequence.
+Partial Apply retains the frozen aggregate buckets plus original/applied root
+partitions until the completion event adopts new C/P/I. Preserve per-market claims
+and fee carry. Solver scratch is continuation state; it is not spendable cash or
+an off-chain-authorized payout. Ordinary SDK intents do not acquire a global event
+sequence prerequisite or an exit certificate. This implements D56/D60/D64 without
+changing economics, authority or V1/V2. A32 and P28 still require their own evidence.

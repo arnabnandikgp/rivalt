@@ -611,3 +611,8 @@ P26 realization: [A31/G20 evidence](evidence/P26.md) qualifies the complete boun
 local safety profile and storage-ready activation on pinned `915d8e8`. Its verified
 Review commits satisfy P27's implementation dependency; they do not establish
 service/PostgreSQL/UI, sustained concurrency, funded readiness or an external review.
+
+
+P27 implementation sequence: [account services and finalized reconstruction](P27-ACCOUNT-SERVICES.md).
+Complete its fresh staged default/replay and direct SDK/durable worker acceptance
+before entering Review. Projection checks on retained histories do not close A32.

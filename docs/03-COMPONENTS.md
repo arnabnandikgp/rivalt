@@ -369,3 +369,11 @@ fresh initial qualification are mandatory; the earlier candidate transition cann
 bypass this gate. Default/devnet and earlier profiles remain disabled for this
 entrypoint. Recovered identities use the separate recovery/reactivation path.
 See P26 and WORKLOG for the exact accepted source pins and remaining phase gates.
+
+
+P27's [account service contract](P27-ACCOUNT-SERVICES.md) adds a separate schema-3
+finalized projection over the existing append-only journal. Custody discovery
+sequence binds reconstruction, never ordinary intent validity. Partial default
+application retains frozen aggregates and an explicit mixed-root view. Version-3
+read endpoints fail closed until actual finalized reconciliation passes; current
+risk/withdrawal admission remains an SDK/on-chain operation. WORKLOG owns readiness.
