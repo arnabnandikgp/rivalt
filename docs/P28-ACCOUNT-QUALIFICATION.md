@@ -54,3 +54,12 @@ The local supervisor holds a process-scoped macOS idle-sleep assertion only for
 its finite run. Explicit lid closure still suspends the host and invalidates the
 continuous offered window; preserve that attempt rather than removing elapsed
 time or claiming a complete run. Keep the test host awake for qualification.
+
+The ordinary loss/certified-gain worker check runs on the initial seven-root
+cohort before the workload. After it, the workload adds two real owner accounts.
+Closing a trader does not guarantee maker inventories flatten: preserve residual
+internal-maker exposure and all unpaid claims through the following nine-root
+liquidation/default/recovery audit. A closed-slot settlement assertion must not
+force maker inventory to zero or manufacture an external hedge. Browser evidence
+can use its separate pinned run; `--workload` provisions the same account boundaries
+through actual signed SDK actions and runs only the affected workload/recovery gate.

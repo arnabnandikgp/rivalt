@@ -13,9 +13,10 @@ case "${1:-indexer}" in
   indexer) RIVALT_ACCOUNT_CHECK=indexer; RIVALT_ACCOUNT_DRIVER=tests/rpc-contract/account-indexer-rpc.ts ;;
   --direct-sdk) RIVALT_ACCOUNT_CHECK=direct; RIVALT_ACCOUNT_DRIVER=tests/rpc-contract/account-direct-rpc.ts ;;
   --route-sdk) RIVALT_ACCOUNT_CHECK=route; RIVALT_ACCOUNT_DRIVER=tests/rpc-contract/account-route-rpc.ts ;;
+  --workload) export RIVALT_ACCOUNT_QUALIFICATION=1 RIVALT_ACCOUNT_WORKLOAD_ONLY=1; RIVALT_ACCOUNT_CHECK=workload; RIVALT_ACCOUNT_DRIVER=tests/rpc-contract/account-workers-rpc.ts ;;
   --qualification) export RIVALT_ACCOUNT_QUALIFICATION=1; RIVALT_ACCOUNT_CHECK=qualification; RIVALT_ACCOUNT_DRIVER=tests/rpc-contract/account-workers-rpc.ts ;;
   --workers) RIVALT_ACCOUNT_CHECK=workers; RIVALT_ACCOUNT_DRIVER=tests/rpc-contract/account-workers-rpc.ts ;;
-  *) echo 'Expected indexer, --direct-sdk, --route-sdk --workers or --qualification' >&2; exit 2 ;;
+  *) echo 'Expected indexer, --direct-sdk, --route-sdk --workers, --qualification or --workload' >&2; exit 2 ;;
 esac
 test "$(surfpool --version)" = 'surfpool 1.6.1'
 container system status >/dev/null

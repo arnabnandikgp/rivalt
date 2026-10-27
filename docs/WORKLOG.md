@@ -80,7 +80,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
 | M8 | P26 | Liquidation, complete default and local activation | Review | [PR #38](https://github.com/arnabnandikgp/rivalt/pull/38), above #37 `75e34c5`; tested `915d8e8` | [A31/G20 safety](evidence/P26.md): complete default/recovery/retirement, 837 qualified RPC outcomes / 672 WS, exact 64-root audit, cyclic and both-market/full-book cases, 31 ABI variants, default gating and maximum-width resource headroom. Qualified local activation only; no merge or P27/P28 completion |
 | M8 | P27 | SDK, indexer/API and durable services | Review | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit |
-| M8 | P28 | UI, operations and bounded concurrent qualification | In progress | `phase/p28-account-ui` above #39 `9498d2e` | R072 browser: 17 wallet originals and six busy exits pass on `dfdbc95`; full A33/G21/M8 gate awaits corrected bounded scheduling, renewal-aware closeout, final audit/default/replay |
+| M8 | P28 | UI, operations and bounded concurrent qualification | In progress | `phase/p28-account-ui` above #39 `9498d2e` | R072 browser: 17 wallet originals and six busy exits pass on `dfdbc95`; bounded workload `f595fd7` passes 110 submitted fills and six busy exits with independent accounting; final A33/G21/M8 recovery/replay awaits the maker-inventory-aware fixture correction |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -3305,3 +3305,35 @@ and removed. Original bytes are never replaced. Add process-scoped macOS
 explicit lid closure still suspends the host). Remove a raw internal enum from
 the UI caption; this is copy only. Next: run the same qualification with the host
 awake, preserving the interrupted attempt as a limitation.
+
+R072 third attempt, clean `f595fd74beb3112219b20ef5dab547d679c1d587`,
+`.local/account-qualification-rpc/20261027T173831Z-75752/`: browser passes 17 wallet
+originals and all seven checks. The 300-second schedule completes its last original
+at 301,164 ms and drain/audit at 306,897 ms. Of 150 scheduled intents, 30 are driver
+backpressure, 120 actually request quotes, 110 submit/finalize and ten are refused
+(eight required-source, two maker-renewal). All 108 observed both-Normal quote
+attempts finalize; two additional reductions finalize under allowed conditions.
+All six one-atom ETH-exposed withdrawals finalize with original bytes after an
+unrelated trade and a sampler advance. The independent audit passes 112 actual
+fills (110 scheduled plus two separate drains), six exits and five corruptions.
+Max workload route: 259,283 CU / 901 bytes / 18 accounts; exits 79,033 CU / 702 bytes.
+Submission-to-finality p50/p95 is 2,255/2,481 ms; these include the sequential
+driver/executor polling and do not establish venue throughput.
+
+The later settlement assertion times out because it incorrectly requires every
+maker to be flat: actual ETH maker quantities are -1/+1 after competing-maker
+round trips. This is legitimate isolated inventory; all trader slots are flat,
+closed claims have settled to sub-atom residuals, and actual BTC maker gains paid.
+No complete A33/default/replay pass is claimed. Preserve exposure rather than
+force it away. Qualify ordinary certified gains on the initial seven-root state
+before the nine-root workload, then carry residual inventory/claims through
+complete default. The affected `--workload` entrypoint uses real signed SDK
+provisioning without rerunning the already-passing browser suite. Strengthen the
+normal settlement gate to require actual finalized loss and gain jobs and only
+require closed slots to have sub-atom claims. No production financial code changes.
+
+Both tables keep P28/M8 In progress; P27 and predecessors stay Review. Tests not
+repeated: browser, unchanged SDK/form cases, programs/SBF/ABI, full suite/devnet/
+endurance. Next: typecheck and commit the fixture correction, then run `bash
+ops/account-indexer-smoke.sh --workload` on a clean revision, completing its fresh
+recovery and PostgreSQL replay before ready publication.

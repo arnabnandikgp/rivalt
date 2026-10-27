@@ -96,18 +96,6 @@ try {
     wallets.push({label,signature:intent.signature,wire:intent.wire,bytes:Buffer.from(intent.wire,'base64').length,computeUnits:actual.meta.computeUnitsConsumed});
     writeFileSync(`${directory}/wallets.json`,json(wallets));return actual;
   }
-  if(qualification) {
-    const {accountBrowser}=await import('../browser/account-lifecycle.js');
-    const {accountWorkload}=await import('../load/account-workload.js');
-    const environment={directory,config,setup,transport,client,runtime,endpoint,indexer:()=>indexer!,normal,
-      pauseSources:(paused:boolean)=>{feedPaused=paused;},
-      pauseIndexer:async(paused:boolean)=>{
-        if(paused){indexing=false;await indexLoop;await indexer!.close();}
-        else {indexer=new AccountIndexer(config);await indexer.open();await indexer.cycle();startIndex();}
-      },maker:replacement,restartMaker:()=>start('maker',setup.operators[1].owner,0,0)};
-    const accounts=await accountBrowser(environment);
-    await accountWorkload(environment,accounts);
-  }
   const root=async(margin=setup.cross)=>(await client.snapshot([margin],'confirmed')).roots[margin];
   const deposit=async(amount:bigint)=>wallet('durable owner deposit',[await client.deposit(await client.snapshot([setup.cross]),setup.owner.address,setup.cross,setup.operators[0].token.address,amount)]);
   await deposit(2_000_000n);
@@ -132,10 +120,41 @@ try {
   assert.equal((await root()).reserved,0n);
   const settlement=start('settlement',setup.payer);
   await until(async()=>Promise.all(setup.roots.map(async margin=>root(margin))),values=>values.every(value=>value.positions.every(position=>
-    position.lots===0n&&position.virtualScaled>-1_000_000_000n&&position.virtualScaled<1_000_000_000n)),'actual loss collection and certified maker gains',60);
+    // A trader closing through a different maker need not flatten either maker.
+    // Only closed slots are required to settle to sub-atom claims here; live
+    // maker inventory/funding remains real and enters the later complete default.
+    value.role===1&&position.lots!==0n||position.lots===0n&&position.virtualScaled>-1_000_000_000n&&position.virtualScaled<1_000_000_000n)),
+    'actual closed-claim collection and certified gains with live maker inventory preserved',60);
+  const settled=(await runtime!.store.pool.query("SELECT request_id FROM service_intents WHERE run_id=$1 AND budget='account-settlement' AND status='finalized'",[config.runId])).rows;
+  assert(settled.some(row=>row.request_id.startsWith('keeper:loss:'))&&settled.some(row=>row.request_id.startsWith('keeper:gain:')),
+    'Actual finalized loss collection and certified gain payment required');
   await stop(settlement);
   await until(async()=>(await runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget IN ('account-settlement','account-orders') AND status IN ('pending','unresolved')",[config.runId])).rows[0].count,
     count=>count==='0','settlement and order original history');
+  if(qualification) {
+    const {accountBrowser}=await import('../browser/account-lifecycle.js');
+    const {accountWorkload}=await import('../load/account-workload.js');
+    const environment={directory,config,setup,transport,client,runtime,endpoint,indexer:()=>indexer!,normal,
+      pauseSources:(paused:boolean)=>{feedPaused=paused;},
+      pauseIndexer:async(paused:boolean)=>{
+        if(paused){indexing=false;await indexLoop;await indexer!.close();}
+        else {indexer=new AccountIndexer(config);await indexer.open();await indexer.cycle();startIndex();}
+      },maker:replacement,restartMaker:()=>start('maker',setup.operators[1].owner,0,0)};
+    let accounts:Awaited<ReturnType<typeof accountBrowser>>;
+    if(process.env.RIVALT_ACCOUNT_WORKLOAD_ONLY==='1') {
+      // UI is separately qualified. Provision the same owner/account boundaries
+      // through actual signed SDK actions for the affected workload/recovery gate.
+      const owner=setup.owner.address,[portfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner,1);
+      const [cross]=await sdk.findMarginV3Pda(portfolio,0),[isolated]=await sdk.findMarginV3Pda(portfolio,1);
+      await wallet('fresh workload portfolio',[await client.createPortfolio(owner,1)]);
+      await wallet('fresh workload cross',[await client.register(owner,1,0)]);setup.roots.push(cross);
+      await wallet('fresh workload isolated ETH',[await client.register(owner,1,1,1)]);setup.roots.push(isolated);
+      for(const margin of [cross,isolated])await wallet('fresh workload account funding',[
+        await client.deposit(await client.snapshot([margin],'confirmed'),owner,margin,setup.operators[0].token.address,1_000_000n)]);
+      accounts={cross,isolated};
+    } else accounts=await accountBrowser(environment);
+    await accountWorkload(environment,accounts);
+  }
   snapshot=await client.snapshot([setup.cross],'confirmed');
   const exitAmount=snapshot.roots[setup.cross].cash-400_000n;
   await wallet('atomic owner cash allocation before risk scenario',(await client.exit(snapshot,setup.owner.address,setup.cross,setup.operators[0].token.address,exitAmount)).instructions);
