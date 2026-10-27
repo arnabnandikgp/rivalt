@@ -3092,3 +3092,11 @@ P28 stays Open. No P27 PR is opened prematurely. Exact next action: wire the rea
 schema-3 maker/funding/order/settlement/risk worker loops to these execution and
 proposal primitives, then qualify actual durable submission/restart/default and
 replay on fresh Surfpool/RPC/WS/PostgreSQL before submitting P27.
+
+R070 implementation checkpoint:
+`ea81a6756725b9b8a57bf4ab70d0b655881482d5` (same source as the passing focused
+checks above). A fresh `gh pr list --state open --json ...` confirms #32, #33, #35,
+#36, #37 and #38 are all open, non-draft and retain their sequential bases. P27
+has no PR yet. The tracked worktree is clean; unrelated `phoenix/` and the supplied
+design note remain untouched/untracked. No access/product blocker; the exact next
+action remains worker wiring and fresh integrated fault/default acceptance.
