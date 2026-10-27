@@ -1,44 +1,8 @@
 import {it,expect} from 'vitest';
-import {address,getAddressEncoder,getProgramDerivedAddress,type Address,type ReadonlyUint8Array,type Instruction} from '@solana/kit';
+import type {ReadonlyUint8Array,Instruction} from '@solana/kit';
 import * as sdk from './index.js';
+import {accountFixture as environment} from './account-test-fixture.js';
 
-/** Bounded codec/consumer vectors. Actual signed financial acceptance is separate. */
-async function environment() {
-  const domain='34'.repeat(32),[venue,bump]=await sdk.deriveAccountVenue(Buffer.from(domain,'hex'));
-  const [[custody,custodyBump],[safety,safetyBump],[vault,vaultBump],...marketPdas]=await Promise.all([
-    sdk.findVenueComponentV3Pda(venue,'custody'),sdk.findVenueComponentV3Pda(venue,'safety'),sdk.findVenueComponentV3Pda(venue,'vault'),
-    sdk.findMarketV3Pda(venue,0),sdk.findMarketV3Pda(venue,1)]);
-  const ledgerPdas=await Promise.all(marketPdas.map(([market])=>sdk.findLedgerV3Pda(market)));
-  const [owner]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('p27-unit-owner')]});
-  const [portfolio,portfolioBump]=await sdk.deriveAccountPortfolio(venue,owner,0);
-  const margins=await Promise.all([0,1].map(index=>sdk.findMarginV3Pda(portfolio,index)));
-  const mint=address('11111111111111111111111111111111'),accounts=new Map<string,any>();
-  const put=(key:string,data:ReadonlyUint8Array|Uint8Array,owner:string=sdk.CLEARING_PROGRAM_ADDRESS)=>accounts.set(key,{owner,data:[Buffer.from(data).toString('base64'),'base64']});
-  const empty=<Value>(decoder:{fixedSize:number;decode(bytes:Uint8Array):Value})=>decoder.decode(new Uint8Array(decoder.fixedSize));
-  put(venue,sdk.getVenueV3Encoder().encode({...empty(sdk.getVenueV3Decoder()),schemaVersion:3,profileVersion:3,domain:Buffer.from(domain,'hex'),
-    quoteMint:mint,vault,markets:marketPdas.map(([key])=>key),marketCount:2,insuranceFeeShareBps:2500,termsEpoch:1n,configEpoch:1n,bump,vaultBump}));
-  put(custody,sdk.getCustodyV3Encoder().encode({schemaVersion:3,venue,totalCash:100_000n,allocatedVault:100_010n,sequence:7n,liabilityVersions:[1n,1n],bump:custodyBump}));
-  put(safety,sdk.getSafetyV3Encoder().encode({schemaVersion:3,venue,mode:1,paused:false,epoch:2n,resolutionEpoch:0n,recoverySince:0n,recoveryLast:0n,bump:safetyBump}));
-  for(const [index,[key,marketBump]] of marketPdas.entries()) {
-    put(key,sdk.getMarketV3Encoder().encode({...empty(sdk.getMarketV3Decoder()),schemaVersion:3,venue,index,lotsPerUnit:index===0?1_000_000n:100_000n,
-      crossEligible:true,termsEpoch:1n,configEpoch:1n,bump:marketBump}));
-    put(ledgerPdas[index][0],sdk.getMarketLedgerV3Encoder().encode({schemaVersion:3,venue,market:key,marketIndex:index,settlement:0n,insurance:index===0?10n:0n,
-      fees:0n,insuranceFeeRemainder:index===0?3:0,version:1n,bump:ledgerPdas[index][1]}));
-  }
-  put(portfolio,sdk.getPortfolioV3Encoder().encode({schemaVersion:3,venue,owner,index:0,children:3,bump:portfolioBump}));
-  for(const [index,[key,marginBump]] of margins.entries())put(key,sdk.getMarginAccountV3Encoder().encode({...empty(sdk.getMarginAccountV3Decoder()),schemaVersion:3,venue,
-    owner,portfolio,id:index,subaccountIndex:index,mode:index,isolatedMarketIndex:index===0?255:1,cash:50_000n,nonce:4n,stateVersion:9n,delegateEpoch:1n,bump:marginBump}));
-  const mintBytes=Buffer.alloc(82);mintBytes[44]=6;mintBytes[45]=1;put(mint,mintBytes,'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-  const token=Buffer.alloc(165);token.set(getAddressEncoder().encode(mint));token.set(getAddressEncoder().encode(venue),32);token.writeBigUInt64LE(100_010n,64);token[108]=1;
-  put(vault,token,'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-  const clock=Buffer.alloc(40);clock.writeBigUInt64LE(100n);clock.writeBigInt64LE(500n,32);put(sdk.ACCOUNT_CLOCK,clock,'Sysvar1111111111111111111111111111111111111');
-  const batches:Address[][]=[],rpc={call:async(method:string,params:unknown[]=[])=>{
-    expect(method).toBe('getMultipleAccounts');const keys=params[0] as Address[];batches.push(keys);return {context:{slot:100},value:keys.map(key=>accounts.get(key)??null)};
-  }};
-  const config:sdk.AccountUserConfig={version:3,chain:'solana:localnet',profile:'account-safety-qualification',rpcUrl:'http://127.0.0.1:1',wsUrl:'ws://127.0.0.1:2',
-    genesis:mint,anchor:'1'.repeat(88),anchorHash:'00'.repeat(32),venue,mint,domain};
-  return {config,accounts,put,rpc,batches,margins:margins.map(([key])=>key),owner,portfolio,custody};
-}
 it('reads only selected roots and uses one coherent final batch without a registry scan',async()=>{
   const fixture=await environment(),snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,[fixture.margins[0]]);
   expect(fixture.batches).toHaveLength(2);expect(fixture.batches[1]).toHaveLength(12);

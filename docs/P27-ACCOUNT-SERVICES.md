@@ -77,3 +77,31 @@ canonical backing certificate and registry; the SDK cannot bypass that proof.
 Pending signed transactions retain their exact bytes/signatures through shared
 wallet recovery. The initial direct checkpoint does not yet qualify routes,
 current risk previews or worker coordination; WORKLOG records completion evidence.
+
+
+## Account risk and routing checkpoint
+
+V2/V3 SDK wrappers share schema-neutral balance and allocation arithmetic, with
+separate deployment/authority policies. The V3 balance preview uses funded cash
+plus negative claims across both markets, current funding, additive requirements
+and refreshed order reservations. Positive unpaid claims provide zero credit.
+Indicative own-cash headroom is also capped by all four mixed held-funding corners;
+current admission and held-window nonnegative equity are separate checks. Missing
+required sources, pause, freeze or an unsettled terminal account produce no
+indicative exit capacity. The field `withdrawableCash` remains null: only the
+actual atomic instruction and its current simulation determine admission.
+
+`readAccountTradeSnapshot` first discovers immutable maker capital/config/code
+keys, then reads all trader, portfolio, market, ledger and selected maker financial
+state in one RPC batch (24 accounts for the common three-portfolio fixture; bound
+32). It verifies schema, owner, canonical PDAs, isolated maker capital, executable
+ProgramData binding/hash, configuration identity and current epoch synchronization.
+The ordinary cash snapshot remains one/two roots without maker dependencies.
+
+`buildAccountRoute` reuses exact A/B allocation and stored-order prefix economics.
+Its signed message binds root nonce/state version, safety/venue terms, selected
+market terms/config and maker epochs/consumed prefixes. It carries neither a
+historical oracle observation nor a global discovery sequence. Clearing checks
+current relevant sources and whole-account health at execution. Confirmed quotes
+are labelled provisional; finalized journal/cash facts retain their own boundary.
+No instruction supplied by an HTTP quote is trusted as execution authority.

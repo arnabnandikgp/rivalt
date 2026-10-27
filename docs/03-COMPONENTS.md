@@ -377,3 +377,12 @@ sequence binds reconstruction, never ordinary intent validity. Partial default
 application retains frozen aggregates and an explicit mixed-root view. Version-3
 read endpoints fail closed until actual finalized reconciliation passes; current
 risk/withdrawal admission remains an SDK/on-chain operation. WORKLOG owns readiness.
+
+The P27 direct SDK now separates schema authentication from shared margin
+arithmetic. Current balance previews include both funding slots, reservations and
+all held-funding corners; they report indicative headroom, not withdrawal authority.
+Trade snapshots add only the selected market's maker capitals/configurations/code
+to one final RPC batch. Schema-3 route messages bind account/safety/terms and maker
+consumed prefixes without a global discovery or historical observation prerequisite.
+V2 keeps its existing group certificate policy. Fresh route acceptance remains
+recorded separately from the already verified flat cash lifecycle in WORKLOG.

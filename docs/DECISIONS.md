@@ -975,3 +975,12 @@ is introduced for own-cash exit/allocation. Explicit closed-claim netting retain
 its market backing certificate. Existing on-chain funding/risk/held-window checks
 and wallet original-signature recovery remain authoritative. This changes no
 financial rule or previously qualified artifact.
+
+
+D65 implementation clarification (R068): shared SDK financial arithmetic does not
+merge schema-2 group authority with schema-3 account authority. Ordinary V3 cash
+reads remain selected-root only; trade reads add the selected market's authenticated
+maker dependencies in the same final financial batch. Indicative cash headroom
+includes all mixed held-funding corners, and is explicitly not withdrawal
+permission. This changes interfaces only; D60–D64 on-chain economics and authority
+remain unchanged.

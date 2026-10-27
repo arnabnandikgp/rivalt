@@ -6,7 +6,9 @@ import {AccountArtifactVerifier} from './account-artifacts.js';
 import {deriveAccountPortfolio,findMarginV3Pda,findBackingV3Pda,findVenueComponentV3Pda} from './account-addresses.js';
 import {WalletClient,hex,requireValue,fromBase64} from './wallet-client.js';
 import {walletComputeBudget} from './route-budget.js';
-import {readAccountSnapshot,accountGuard,type AccountSnapshot} from './account-snapshot.js';
+import {readAccountSnapshot,readAccountTradeSnapshot,accountGuard,type AccountSnapshot} from './account-snapshot.js';
+import {accountBalanceView} from './account-balance.js';
+import {buildAccountRoute,type AccountAllocationInput} from './account-route.js';
 
 export type AccountUserConfig={version:3;chain:'solana:localnet';profile:'account-safety-qualification';rpcUrl:string;wsUrl:string;
   genesis:string;anchor:string;anchorHash:string;venue:Address;mint:Address;domain:string};
@@ -57,6 +59,16 @@ export class AccountUserClient extends WalletClient {
   }
   async snapshot(margins:Address[],commitment:'confirmed'|'finalized'='finalized') {
     await this.environment();return readAccountSnapshot(this.rpc,this.config,margins,commitment);
+  }
+  async tradeSnapshot(trader:Address,marketIndex:0|1) {
+    await this.environment();return readAccountTradeSnapshot(this.rpc,this.config,trader,marketIndex,'confirmed');
+  }
+  balance(snapshot:AccountSnapshot,margin:Address) {
+    this.bound(snapshot);requireValue(snapshot.roots[margin],'Margin absent from snapshot.');
+    return accountBalanceView(snapshot.roots[margin],snapshot.safetyState,snapshot.marketStates,snapshot.now,snapshot.slot);
+  }
+  async route(input:AccountAllocationInput,actor:Address) {
+    this.bound(input.snapshot);return buildAccountRoute(input,actor);
   }
   async common() {
     const [eventAuthority]=await getProgramDerivedAddress({programAddress:protocol.CLEARING_PROGRAM_ADDRESS,seeds:[new TextEncoder().encode('__event_authority')]});

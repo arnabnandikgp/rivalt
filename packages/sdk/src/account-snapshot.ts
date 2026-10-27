@@ -1,7 +1,8 @@
 import {address,type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
 import {getMintDecoder,getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import * as protocol from './generated/index.js';
-import {deriveAccountVenue,deriveAccountPortfolio,findVenueComponentV3Pda,findMarketV3Pda,findLedgerV3Pda,findMarginV3Pda} from './account-addresses.js';
+import {deriveAccountVenue,deriveAccountPortfolio,findVenueComponentV3Pda,findMarketV3Pda,findLedgerV3Pda,findMarginV3Pda,findAccountMakerV3Pda} from './account-addresses.js';
+import {authenticateAccountMakers,type AccountMakerIdentity} from './account-makers.js';
 import {fromBase64,hex,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
 export type AccountIdentity={venue:Address;mint:Address;domain:string};
@@ -13,8 +14,19 @@ export const ACCOUNT_CLOCK=address('SysvarC1ock11111111111111111111111111111111'
  * discovery-sequence retry. A caller still simulates the actual atomic instruction. */
 export async function readAccountSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,margins:Address[],
   commitment:'confirmed'|'finalized'='finalized') {
-  requireValue(['confirmed','finalized'].includes(commitment),'Unsupported account commitment.');
   requireValue(margins.length>=1&&margins.length<=2&&new Set(margins).size===margins.length,'Select one or two distinct margin accounts.');
+  return readSnapshot(rpc,identity,margins,commitment);
+}
+/** Trading adds only the selected market's two maker registrations/capitals and
+ * immutable pricing dependencies, all in the same final financial batch. */
+export async function readAccountTradeSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,trader:Address,marketIndex:0|1,
+  commitment:'confirmed'|'finalized'='confirmed') {
+  requireValue(marketIndex===0||marketIndex===1,'Unsupported maker market.');
+  return readSnapshot(rpc,identity,[trader],commitment,marketIndex);
+}
+async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,selectedMargins:Address[],
+  commitment:'confirmed'|'finalized',makerMarketIndex?:0|1) {
+  requireValue(['confirmed','finalized'].includes(commitment),'Unsupported account commitment.');
   requireValue(/^[0-9a-f]{64}$/.test(identity.domain),'Invalid venue domain.');
   const venue=identity.venue,component=(name:Parameters<typeof findVenueComponentV3Pda>[1])=>findVenueComponentV3Pda(venue,name);
   const [[canonicalVenue,venueBump],[custody,custodyBump],[safety,safetyBump],[vault,vaultBump],...marketPdas]=await Promise.all([
@@ -31,13 +43,31 @@ export async function readAccountSnapshot(rpc:Pick<UserRpc,'call'>,identity:Acco
     if(decoder.fixedSize!==undefined)requireValue(bytes.length===decoder.fixedSize,'Wrong account size.');
     return decoder.decode(bytes);
   };
-  const discovery=await rpc.call('getMultipleAccounts',[margins,{encoding:'base64',commitment}]);
+  const identities:AccountMakerIdentity[]=[],makerKeys:Address[]=[];
+  let makerDiscoverySlot=0n;
+  if(makerMarketIndex!==undefined) {
+    const registrationPdas=await Promise.all([0,1].map(makerId=>findAccountMakerV3Pda(markets[makerMarketIndex],makerId)));
+    const result=await rpc.call('getMultipleAccounts',[registrationPdas.map(([key])=>key),{encoding:'base64',commitment}]);
+    requireValue(result.value?.length===2,'Incomplete maker discovery.');makerDiscoverySlot=rpcInteger(result.context.slot);
+    for(const [makerId,[registration,bump]] of registrationPdas.entries()) {
+      if(result.value[makerId]===null)continue;
+      const discovered=decode(result.value[makerId],protocol.MAKER_REGISTRATION_V3_DISCRIMINATOR,protocol.getMakerRegistrationV3Decoder());
+      requireValue(discovered.schemaVersion===3&&discovered.venue===venue&&discovered.market===markets[makerMarketIndex]&&
+        discovered.makerId===makerId&&discovered.bump===bump,'Foreign maker discovery.');
+      identities.push({registration,bump,marketIndex:makerMarketIndex,makerId,discovered});
+      makerKeys.push(registration,discovered.config,discovered.pricingProgram,discovered.programData);
+    }
+  }
+  const margins=[...new Set([...selectedMargins,...identities.map(identity=>identity.discovered.capital)])];
+  const discovery=await rpc.call('getMultipleAccounts',[margins,{encoding:'base64',commitment,minContextSlot:Number(makerDiscoverySlot)}]);
   requireValue(discovery.value?.length===margins.length,'Incomplete account discovery.');
   const discovered=discovery.value.map((account:any)=>decode(account,protocol.MARGIN_ACCOUNT_V3_DISCRIMINATOR,protocol.getMarginAccountV3Decoder())) as protocol.MarginAccountV3[];
   const portfolioKeys=[...new Set(discovered.map(root=>root.portfolio))];
-  const keys=[venue,custody,safety,vault,identity.mint,ACCOUNT_CLOCK,...markets,...ledgers,...margins,...portfolioKeys];
+  const keys=[venue,custody,safety,vault,identity.mint,ACCOUNT_CLOCK,...markets,...ledgers,...margins,...portfolioKeys,...new Set(makerKeys)];
   requireValue(new Set(keys).size===keys.length,'Aliased account dependencies.');
+  requireValue(keys.length<=32,'Account snapshot exceeds bounded dependency set.');
   const discoverySlot=rpcInteger(discovery.context.slot);
+  requireValue(discoverySlot>=makerDiscoverySlot,'Account RPC predates maker discovery.');
   const response=await rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment,minContextSlot:Number(discoverySlot)}]);
   const contextSlot=rpcInteger(response.context.slot);requireValue(contextSlot>=discoverySlot,'Account RPC predates discovery.');
   requireValue(response.value?.length===keys.length,'Incomplete account snapshot.');
@@ -86,7 +116,8 @@ export async function readAccountSnapshot(rpc:Pick<UserRpc,'call'>,identity:Acco
   requireValue(tokenBytes.length===165&&tokenBytes[108]===1&&token.owner===venue&&token.mint===identity.mint&&token.amount>=custodyState.allocatedVault,'Venue vault mismatch/deficit.');
   const clock=raw(accounts.get(ACCOUNT_CLOCK),'Sysvar1111111111111111111111111111111111111');requireValue(clock.length===40,'Invalid Clock.');
   const clockView=new DataView(clock.buffer,clock.byteOffset,clock.byteLength);
-  return {commitment,venue,custody,safety,vault,markets,btc:markets[0],eth:markets[1],ledgers,btcLedger:ledgers[0],ethLedger:ledgers[1],
+  const makers=await authenticateAccountMakers({venue,markets,venueState,roots},identities,accounts);
+  return {commitment,venue,custody,safety,vault,markets,btc:markets[0],eth:markets[1],ledgers,btcLedger:ledgers[0],ethLedger:ledgers[1],makers,
     venueState,custodyState,safetyState,marketStates,ledgerStates,roots,portfolios,actualVault:token.amount,
     slot:clockView.getBigUint64(0,true),now:clockView.getBigInt64(32,true),contextSlot};
 }

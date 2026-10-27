@@ -31,3 +31,6 @@ export * from './account-addresses.js';
 export * from './account-artifacts.js';
 export * from './account-snapshot.js';
 export * from './account-client.js';
+export * from './account-balance.js';
+export * from './account-makers.js';
+export * from './account-route.js';

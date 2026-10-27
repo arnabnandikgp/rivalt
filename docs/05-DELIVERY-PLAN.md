@@ -616,3 +616,10 @@ service/PostgreSQL/UI, sustained concurrency, funded readiness or an external re
 P27 implementation sequence: [account services and finalized reconstruction](P27-ACCOUNT-SERVICES.md).
 Complete its fresh staged default/replay and direct SDK/durable worker acceptance
 before entering Review. Projection checks on retained histories do not close A32.
+
+R068 adds fresh 64-root/119-account PostgreSQL chunk/restart/replay acceptance to
+P27's earlier finalized projection and API-independent flat SDK checkpoints.
+Current risk/route interfaces are implemented; their new four-fill signed RPC
+qualification runs before durable maker/funding/order/settlement/risk services.
+This is incremental A32 work, not phase closure; P27 stays In progress and P28
+remains dependent. The exact tested pins and pending command are in WORKLOG.
