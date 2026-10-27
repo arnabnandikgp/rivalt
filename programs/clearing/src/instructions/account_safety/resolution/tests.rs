@@ -461,3 +461,197 @@ fn bad_complete_encoding_and_bad_fixed_equation_reset_without_spending() {
     assert_eq!(header.insurance_spent, [3, 0]);
     assert_eq!(header.insurance_before, [3, 0]); // Still a plan, never live ledger mutation.
 }
+
+#[test]
+fn application_preserves_other_cash_and_accounts_for_insurance_once() {
+    // Creditor has 20 unpaid atoms; bankrupt debtor owns only 10 cash, and its
+    // market contributes exactly 3 insurance. Unrelated cash5 is never seized.
+    let mut header = ResolutionV3 {
+        stage: APPLY,
+        count: 3,
+        prices: [1; 2],
+        cash_before: 15,
+        scanned_cash: 15,
+        insurance_before: [3, 9],
+        insurance_spent: [3, 0],
+        ..Default::default()
+    };
+    let work = ResolutionWorkV3::default();
+    let mut roots = [
+        root(0, 10, [-20 * SCALE, 0]),
+        root(1, 0, [20 * SCALE, 0]),
+        root(2, 5, [0, 0]),
+    ];
+    let mut rows = [
+        ResolutionRowV3 {
+            cash_before: 10,
+            claims_scaled: [-20 * SCALE, 0],
+            generations: [4; 2],
+            collected: 10,
+            rounded_flows: [10, 0],
+            cash_after: 0,
+            ..Default::default()
+        },
+        ResolutionRowV3 {
+            claims_scaled: [20 * SCALE, 0],
+            generations: [4; 2],
+            rounded_flows: [13, 0],
+            cash_after: 13,
+            ..Default::default()
+        },
+        ResolutionRowV3 {
+            cash_before: 5,
+            generations: [4; 2],
+            cash_after: 5,
+            ..Default::default()
+        },
+    ];
+    roots[0].delegate = Pubkey::new_unique();
+    roots[0].delegate_expiry_slot = 123;
+    roots[0].book.last_order_id = 81;
+    for index in 0..3 {
+        application::apply_row(
+            &mut header,
+            &work,
+            &mut rows[index],
+            &mut roots[index],
+            index,
+        )
+        .unwrap();
+        header.cursor += 1;
+        assert!(application::apply_row(
+            &mut header,
+            &work,
+            &mut rows[index],
+            &mut roots[index],
+            index
+        )
+        .is_err());
+    }
+    application::check_complete_plan(&header).unwrap();
+    assert_eq!(roots.map(|root| root.cash), [0, 13, 5]);
+    assert_eq!(header.cash_applied, 18);
+    assert_eq!(header.claim_sums, [3 * SCALE, 0]);
+    assert_eq!(header.insurance_before, [3, 9]); // Scalar planning never spends a live ledger.
+    let mut debtor = root(0, 10, [-20 * SCALE, 0]);
+    debtor.delegate = Pubkey::new_unique();
+    debtor.delegate_expiry_slot = 123;
+    debtor.book.last_order_id = 81;
+    let mut one = ResolutionV3 {
+        stage: APPLY,
+        count: 1,
+        prices: [1; 2],
+        scanned_cash: 10,
+        ..Default::default()
+    };
+    let mut row = ResolutionRowV3 {
+        cash_before: 10,
+        claims_scaled: [-20 * SCALE, 0],
+        generations: [4; 2],
+        collected: 10,
+        rounded_flows: [10, 0],
+        ..Default::default()
+    };
+    application::apply_row(&mut one, &work, &mut row, &mut debtor, 0).unwrap();
+    assert_eq!(
+        (debtor.nonce, debtor.state_version, debtor.delegate_epoch),
+        (1, 1, 2)
+    );
+    assert_eq!(debtor.delegate, Pubkey::default());
+    assert_eq!(debtor.delegate_expiry_slot, 0);
+    assert_eq!(debtor.book.last_order_id, 81);
+    assert_eq!(debtor.positions.map(|position| position.generation), [5, 5]);
+}
+
+#[test]
+fn closed_cycle_applies_without_a_cash_mint_or_cross_market_haircut() {
+    let mut header = ResolutionV3 {
+        stage: APPLY,
+        count: 2,
+        prices: [1; 2],
+        ..Default::default()
+    };
+    let work = ResolutionWorkV3::default();
+    for (id, claims) in [[10 * SCALE, -10 * SCALE], [-10 * SCALE, 10 * SCALE]]
+        .into_iter()
+        .enumerate()
+    {
+        let mut account = root(id as u16, 0, claims);
+        let mut row = ResolutionRowV3 {
+            claims_scaled: claims,
+            generations: [4; 2],
+            rounded_flows: [10, 10],
+            ..Default::default()
+        };
+        application::apply_row(&mut header, &work, &mut row, &mut account, id).unwrap();
+        assert_eq!(account.cash, 0);
+        assert!(account
+            .positions
+            .iter()
+            .all(|position| position.virtual_scaled == 0));
+        header.cursor += 1;
+    }
+    application::check_complete_plan(&header).unwrap();
+    assert_eq!(header.cash_applied, 0);
+    assert_eq!(header.claim_sums, [0; 2]);
+}
+
+#[test]
+fn terminal_reconciliation_rejects_residual_claims_or_revived_authority() {
+    let mut header = ResolutionV3 {
+        stage: RECONCILE,
+        funding: [17, -23],
+        ..Default::default()
+    };
+    let row = ResolutionRowV3 {
+        applied: true,
+        cash_after: 7,
+        generations: [4; 2],
+        ..Default::default()
+    };
+    let mut account = root(0, 7, [0; 2]);
+    for (index, position) in account.positions.iter_mut().enumerate() {
+        position.generation = 5;
+        position.funding_checkpoint_scaled = header.funding[index];
+    }
+    application::reconcile_row(&mut header, &row, &account).unwrap();
+    assert_eq!(header.scanned_cash, 7);
+    account.positions[1].virtual_scaled = 1;
+    assert!(application::reconcile_row(&mut header, &row, &account).is_err());
+    account.positions[1].virtual_scaled = 0;
+    account.delegate = Pubkey::new_unique();
+    assert!(application::reconcile_row(&mut header, &row, &account).is_err());
+}
+
+#[test]
+fn isolated_application_keeps_the_forbidden_market_slot_empty() {
+    let mut header = ResolutionV3 {
+        stage: APPLY,
+        count: 1,
+        prices: [1; 2],
+        funding: [17, -23],
+        cash_before: 9,
+        scanned_cash: 9,
+        ..Default::default()
+    };
+    let work = ResolutionWorkV3::default();
+    let mut account = root(0, 9, [0; 2]);
+    account.mode = MODE_ISOLATED;
+    account.subaccount_index = 1;
+    account.isolated_market_index = 0;
+    account.positions[1] = PositionV2::default();
+    let mut row = ResolutionRowV3 {
+        cash_before: 9,
+        cash_after: 9,
+        generations: [4, 0],
+        ..Default::default()
+    };
+    application::apply_row(&mut header, &work, &mut row, &mut account, 0).unwrap();
+    assert_eq!(account.positions[0].funding_checkpoint_scaled, 17);
+    assert_eq!(account.positions[0].generation, 5);
+    assert_eq!(account.positions[1].lots, 0);
+    assert_eq!(account.positions[1].funding_checkpoint_scaled, 0);
+    assert_eq!(account.positions[1].generation, 0);
+    header.scanned_cash = 0;
+    application::reconcile_row(&mut header, &row, &account).unwrap();
+}

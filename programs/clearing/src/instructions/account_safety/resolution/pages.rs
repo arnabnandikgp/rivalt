@@ -1,6 +1,6 @@
 use super::*;
 
-fn page_range(
+pub(super) fn page_range(
     header: &ResolutionV3,
     page: &ResolutionPageV3,
     stage: u8,
@@ -23,14 +23,15 @@ fn page_range(
 }
 
 #[inline(never)]
-fn member(
+pub(super) fn member(
     info: &AccountInfo,
     registry: &VenueRegistryV3,
     id: usize,
+    writable: bool,
 ) -> Result<Box<MarginAccountV3>> {
     require!(
         info.owner == &crate::ID
-            && !info.is_writable
+            && info.is_writable == writable
             && !info.is_signer
             && registry.members.get(id) == Some(info.key)
             && info.data_len() == 8 + MarginAccountV3::INIT_SPACE,
@@ -131,6 +132,9 @@ pub fn advance(
     start: u16,
     length: u8,
 ) -> Result<()> {
+    if matches!(stage, APPLY | RECONCILE) {
+        return application::advance(ctx, epoch, stage, start, length);
+    }
     let accounts = &mut *ctx.accounts;
     frozen(
         &accounts.identity,
@@ -169,7 +173,7 @@ pub fn advance(
                 ClearingError::Resolution
             );
             let info = &ctx.remaining_accounts[offset];
-            let root = member(info, &accounts.registry, id)?;
+            let root = member(info, &accounts.registry, id, false)?;
             value_row(
                 &mut accounts.resolution,
                 &mut page.rows[within],

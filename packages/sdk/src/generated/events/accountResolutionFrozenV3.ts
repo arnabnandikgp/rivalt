@@ -42,6 +42,12 @@ import {
   type HasAddress,
   type ReadonlyUint8Array,
 } from "@solana/kit";
+import {
+  getMarketSnapshotV3Decoder,
+  getMarketSnapshotV3Encoder,
+  type MarketSnapshotV3,
+  type MarketSnapshotV3Args,
+} from "../types/index.js";
 
 export const ACCOUNT_RESOLUTION_FROZEN_V3_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([9, 69, 237, 92, 238, 192, 233, 138]);
@@ -77,6 +83,7 @@ export type AccountResolutionFrozenV3Event = {
   allocated: bigint;
   gross: Array<bigint>;
   actualVault: bigint;
+  markets: Array<MarketSnapshotV3>;
 };
 
 export type AccountResolutionFrozenV3EventArgs = {
@@ -104,6 +111,7 @@ export type AccountResolutionFrozenV3EventArgs = {
   allocated: number | bigint;
   gross: Array<number | bigint>;
   actualVault: number | bigint;
+  markets: Array<MarketSnapshotV3Args>;
 };
 
 /** Gets the encoder for {@link AccountResolutionFrozenV3EventArgs} event data. */
@@ -134,6 +142,7 @@ export function getAccountResolutionFrozenV3EventEncoder(): FixedSizeEncoder<Acc
       ["allocated", getU64Encoder()],
       ["gross", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["actualVault", getU64Encoder()],
+      ["markets", getArrayEncoder(getMarketSnapshotV3Encoder(), { size: 2 })],
     ]),
     [getConstantEncoder(ACCOUNT_RESOLUTION_FROZEN_V3_EVENT_DISCRIMINATOR)],
   );
@@ -167,6 +176,7 @@ export function getAccountResolutionFrozenV3EventDecoder(): FixedSizeDecoder<Acc
       ["allocated", getU64Decoder()],
       ["gross", getArrayDecoder(getU64Decoder(), { size: 2 })],
       ["actualVault", getU64Decoder()],
+      ["markets", getArrayDecoder(getMarketSnapshotV3Decoder(), { size: 2 })],
     ]),
     [getConstantDecoder(ACCOUNT_RESOLUTION_FROZEN_V3_EVENT_DISCRIMINATOR)],
   );

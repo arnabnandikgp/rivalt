@@ -72,5 +72,5 @@ writeFileSync(`${output}/summary.json`,json({revision:execFileSync('git',['rev-p
   trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
   runtime:'LiteSVM 1.6.1',signatureVerification:true,blockhashVerification:true,checks,
   binaries:Object.fromEntries(programs.map(([,name])=>[name,createHash('sha256').update(readFileSync(`${name==='clearing'?artifact:'.local/account-cash'}/${name}.so`)).digest('hex')])),
-  scope:"preliminary frozen valuation/rate runtime; rounding/apply/recovery unfinished",...result}));
+  scope:"preliminary seven-member terminal runtime; recovery/retirement/maximum-cohort/RPC acceptance unfinished",...result}));
 console.log(`P26 trading: ${checks.length} signed outcomes. Evidence: ${output}`);

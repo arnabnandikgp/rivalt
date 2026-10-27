@@ -18227,6 +18227,32 @@
       ]
     },
     {
+      "name": "AccountResolutionAppliedV3",
+      "discriminator": [
+        235,
+        156,
+        190,
+        81,
+        243,
+        206,
+        170,
+        101
+      ]
+    },
+    {
+      "name": "AccountResolutionCompletedV3",
+      "discriminator": [
+        227,
+        126,
+        217,
+        202,
+        34,
+        46,
+        211,
+        23
+      ]
+    },
+    {
       "name": "AccountResolutionFrozenV3",
       "discriminator": [
         9,
@@ -19541,6 +19567,209 @@
       }
     },
     {
+      "name": "AccountResolutionAppliedV3",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "id",
+            "type": "u16"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "flows",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "cash_before",
+            "type": "u64"
+          },
+          {
+            "name": "cash_after",
+            "type": "u64"
+          },
+          {
+            "name": "remaining_cash",
+            "type": "u64"
+          },
+          {
+            "name": "applied_cash",
+            "type": "u64"
+          },
+          {
+            "name": "remaining_lots",
+            "type": {
+              "array": [
+                "i128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "remaining_gross",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "remaining_claims",
+            "type": {
+              "array": [
+                "i128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MarginAccountSnapshotV3"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "AccountResolutionCompletedV3",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          },
+          {
+            "name": "mode",
+            "type": "u8"
+          },
+          {
+            "name": "safety_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "pools",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "insurance",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "fees",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "insurance_spent",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "allocated",
+            "type": "u64"
+          },
+          {
+            "name": "actual_vault",
+            "type": "u64"
+          },
+          {
+            "name": "liability_versions",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "ledger_versions",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "insurance_fee_remainders",
+            "type": {
+              "array": [
+                "u8",
+                2
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "AccountResolutionFrozenV3",
       "docs": [
         "The complete frozen input header; wide derived work is emitted separately."
@@ -19693,6 +19922,19 @@
           {
             "name": "actual_vault",
             "type": "u64"
+          },
+          {
+            "name": "markets",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "MarketSnapshotV3"
+                  }
+                },
+                2
+              ]
+            }
           }
         ]
       }

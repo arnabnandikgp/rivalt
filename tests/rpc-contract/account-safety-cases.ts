@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {AccountRole,getAddressEncoder,type Address,type Instruction} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
+import {getTokenDecoder} from '@solana-program/token';
 import {accountPda} from './account-custody-cases.js';
 import {accountTradingSetup,type AccountTradingHarness} from './account-trading-setup.js';
 
@@ -21,9 +22,9 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
   const root=async(key:Address)=>sdk.getMarginAccountV3Decoder().decode((await h.read(key))!);
   const safety=async()=>sdk.getSafetyV3Decoder().decode((await h.read(common.safety))!);
   const guard=async(key:Address)=>{const value=await root(key);return {safetyEpoch:(await safety()).epoch,
-    venueTermsEpoch:1n,nonce:value.nonce,stateVersion:value.stateVersion};};
+    venueTermsEpoch:sdk.getVenueV3Decoder().decode((await h.read(common.venue))!).termsEpoch,nonce:value.nonce,stateVersion:value.stateVersion};};
   const raw=async()=>Object.fromEntries(await Promise.all([common.venue,common.custody,common.safety,common.vault,
-    common.registry,...roots,...markets,...ledgers,resolution,work,...pages].map(async key=>[key,(await h.read(key))?.toString('base64')??null])));
+    common.registry,setup.mint.address,...setup.operators.map(operator=>operator.token.address),...roots,...markets,...ledgers,resolution,work,...pages].map(async key=>[key,(await h.read(key))?.toString('base64')??null])));
   async function reject(label:string,instruction:Instruction,error=6130,signers:typeof owner[]=[]) {
     const before=await raw();await h.send(label,[instruction],signers,error);assert.deepEqual(await raw(),before,`${label}: rollback`);
   }
@@ -36,6 +37,9 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
   }
   const sources={primaryBtc:feeds[0].feed,primaryCollateral:feeds[1].feed,guardBtc:feeds[2].feed,
     guardCollateral:feeds[3].feed,primaryEth:feeds[4].feed,guardEth:feeds[5].feed};
+  const withdrawal=async(amount:bigint)=>sdk.getWithdrawFundedAccountV3Instruction({...common,owner,
+    margin:roots[0],quoteMint:setup.mint.address,userToken:setup.operators[0].token.address,
+    guard:await guard(roots[0]),amount});
   const freeze=async()=>sdk.getFreezeAccountsV3Instruction({...accounts,...sources,caller:payer,target:cross,
     safetyEpoch:(await safety()).epoch,resolutionEpoch:(await header()).epoch,emergency:false});
   await h.send('activate explicit P26 candidate profile',[sdk.getQualifyAccountTradingV3Instruction({...common,authority:payer})]);
@@ -66,6 +70,8 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
     index===1||index===3?1_000_000n:3_000_000_000n});
   // Freeze authenticates current oracle accounts directly; it does not wait for
   // a discretionary maker/funding sample to acknowledge actual insolvency.
+  await h.send('active funded exit retains its existing financial checks',[await withdrawal(1n)],[owner]);
+  const staleWithdrawal=await withdrawal(100n);
   await h.send('freeze actual bankrupt account and complete registry',[await freeze()]);
   const initial=await header();assert.equal(initial.stage,2);assert.equal(initial.count,roots.length);
   assert.equal((await safety()).mode,2);assert.equal(initial.prices[0],40_000n);
@@ -83,7 +89,7 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
   const advance=(stage:number,start:number,length:number,members:Address[]=[])=>{
     const instruction=sdk.getAdvanceAccountResolutionV3Instruction({...accounts,page:pages[Math.floor(start/2)],
       epoch:initial.epoch,stage,start,length});
-    return {...instruction,accounts:[...instruction.accounts!,...members.map(address=>({address,role:AccountRole.READONLY}))]};
+    return {...instruction,accounts:[...instruction.accounts!,...members.map(address=>({address,role:stage===9?AccountRole.WRITABLE:AccountRole.READONLY}))]};
   };
   await reject('no omitted first valuation row',advance(2,1,1,[roots[1]]));
   await reject('reordered valuation roots reject',advance(2,0,2,[roots[1],roots[0]]));
@@ -193,5 +199,42 @@ export async function accountSafetyCases(h:AccountTradingHarness) {
     assert(actual>=row.cashBefore-row.collected);
     assert.equal((await h.read(roots[id]))!.toString('base64'),snapshots[roots[id]]);
   }
-  return {venue:common.venue,resolution,work,pages,roots,markets,ledgers,frozenInputs:rowInputs,initial,verified,rounded,rawAccounts:await raw()};
+  const plannedCash=frozenRows.map((row,id)=>row.cashAfter+BigInt(graph.residualCapacity[2*(2*roots.length+id)+1]));
+  await reject('reconciliation cannot precede application',advance(10,0,1,[roots[0]]));
+  await h.send('apply first exact row',[advance(9,0,1,[roots[0]])]);
+  await reject('applied page cannot replay',advance(9,0,1,[roots[0]]));
+  await reject('mixed applied/frozen cash is not withdrawable',await withdrawal(100n),6108,[owner]);
+  for(let start=1;start<roots.length;) {
+    const length=start%2===1?1:Math.min(2,roots.length-start);
+    await h.send('apply canonical final funded cash',[advance(9,start,length,roots.slice(start,start+length))]);
+    start+=length;
+  }
+  assert.equal((await header()).stage,10);assert.equal((await safety()).mode,2);
+  const expectedCash=initial.cashBefore+initial.poolsBefore.reduce((a,b)=>a+b,0n)+verified.insuranceSpent.reduce((a,b)=>a+b,0n);
+  assert.equal(sdk.getCustodyV3Decoder().decode((await h.read(common.custody))!).totalCash,expectedCash);
+  for(let id=0;id<roots.length;id++) {
+    const value=await root(roots[id]);assert.equal(value.cash,plannedCash[id]);
+    assert(value.positions.every(position=>position.lots===0n && position.virtualScaled===0n));
+    assert(value.book.orders.every(entry=>entry.order.state===0));
+    assert.equal(value.reserved,0n);assert.equal(value.delegateExpirySlot,0n);
+  }
+  for(let market=0;market<2;market++) {
+    const ledger=sdk.getMarketLedgerV3Decoder().decode((await h.read(ledgers[market]))!);
+    assert.equal(ledger.settlement,0n);assert.equal(ledger.insurance,initial.insuranceBefore[market]-verified.insuranceSpent[market]);
+    assert.equal(ledger.fees,initial.feesBefore[market]);
+  }
+  for(let start=0;start<roots.length;start+=2)await h.send('complete actual terminal reconciliation',[
+    advance(10,start,Math.min(2,roots.length-start),roots.slice(start,start+2))]);
+  assert.equal((await header()).stage,11);assert.equal((await safety()).mode,3);
+  await reject('old signed exit cannot revive after default',staleWithdrawal,6122,[owner]);
+  await h.advance(30n);
+  const userTokenBefore=getTokenDecoder().decode((await h.read(setup.operators[0].token.address))!).amount;
+  await h.send('resolved funded cash exits with stale sources',[await withdrawal(100n)],[owner]);
+  assert.equal((await root(roots[0])).cash,plannedCash[0]-100n);
+  const terminal=sdk.getCustodyV3Decoder().decode((await h.read(common.custody))!);
+  assert.equal(terminal.totalCash,expectedCash-100n);assert.equal(terminal.allocatedVault,initial.allocatedBefore-100n);
+  assert.equal(getTokenDecoder().decode((await h.read(common.vault))!).amount,initial.allocatedBefore-100n);
+  assert.equal(getTokenDecoder().decode((await h.read(setup.operators[0].token.address))!).amount,userTokenBefore+100n);
+  return {venue:common.venue,resolution,work,pages,roots,markets,ledgers,frozenInputs:rowInputs,
+    initial,verified,rounded,terminal,rawAccounts:await raw()};
 }

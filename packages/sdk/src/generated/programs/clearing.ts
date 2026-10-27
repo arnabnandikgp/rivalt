@@ -1018,6 +1018,8 @@ export enum ClearingEvent {
   AccountOracleChangedV3,
   AccountOrderChangedV3,
   AccountQualificationV3,
+  AccountResolutionAppliedV3,
+  AccountResolutionCompletedV3,
   AccountResolutionFrozenV3,
   AccountResolutionOrderV3,
   AccountResolutionPlannedV3,
@@ -1153,6 +1155,28 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.AccountQualificationV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([235, 156, 190, 81, 243, 206, 170, 101]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountResolutionAppliedV3;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([227, 126, 217, 202, 34, 46, 211, 23]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountResolutionCompletedV3;
   }
   if (
     containsBytes(

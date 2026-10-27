@@ -1087,6 +1087,7 @@ pub struct AccountResolutionFrozenV3 {
     pub allocated: u64,
     pub gross: [u64; 2],
     pub actual_vault: u64,
+    pub markets: [MarketSnapshotV3; 2],
 }
 
 #[event]
@@ -1182,4 +1183,44 @@ pub struct AccountResolutionRoundedV3 {
     pub sent: u64,
     pub augmentations: u16,
     pub depth: u16,
+}
+
+#[event]
+pub struct AccountResolutionAppliedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    pub id: u16,
+    pub member: Pubkey,
+    pub flows: [u64; 2],
+    pub cash_before: u64,
+    pub cash_after: u64,
+    pub remaining_cash: u64,
+    pub applied_cash: u64,
+    pub remaining_lots: [i128; 2],
+    pub remaining_gross: [u64; 2],
+    pub remaining_claims: [i128; 2],
+    pub state: MarginAccountSnapshotV3,
+}
+
+#[event]
+pub struct AccountResolutionCompletedV3 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub epoch: u64,
+    pub stage: u8,
+    pub mode: u8,
+    pub safety_epoch: u64,
+    pub cash: u64,
+    pub pools: [u64; 2],
+    pub insurance: [u64; 2],
+    pub fees: [u64; 2],
+    pub insurance_spent: [u64; 2],
+    pub allocated: u64,
+    pub actual_vault: u64,
+    pub liability_versions: [u64; 2],
+    pub ledger_versions: [u64; 2],
+    pub insurance_fee_remainders: [u8; 2],
 }

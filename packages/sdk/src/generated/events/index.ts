@@ -15,6 +15,8 @@ export * from "./accountMakerChangedV3.js";
 export * from "./accountOracleChangedV3.js";
 export * from "./accountOrderChangedV3.js";
 export * from "./accountQualificationV3.js";
+export * from "./accountResolutionAppliedV3.js";
+export * from "./accountResolutionCompletedV3.js";
 export * from "./accountResolutionFrozenV3.js";
 export * from "./accountResolutionOrderV3.js";
 export * from "./accountResolutionPlannedV3.js";

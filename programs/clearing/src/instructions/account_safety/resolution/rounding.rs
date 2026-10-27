@@ -291,6 +291,9 @@ pub fn round(ctx: Context<ProposeAccountResolutionV3>, epoch: u64, start: u16) -
     if complete {
         header.stage = APPLY;
         header.cursor = 0;
+        header.scanned_cash = header.cash_before;
+        header.cash_applied = 0;
+        header.claim_sums = [0; 2];
         work.opcode = APPLY;
     }
     increment(&mut accounts.identity.custody.sequence)?;

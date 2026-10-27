@@ -9,14 +9,21 @@ pub fn withdraw(
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
-    let snapshot = begin(&accounts.identity)?;
     guard.check(
         &accounts.identity.venue,
         &accounts.identity.safety,
         &accounts.margin,
     )?;
-    let candidate = withdraw_candidate(&accounts.margin, &snapshot, amount)?;
-    commit(&mut accounts.identity, &mut accounts.margin, &candidate)?;
+    let terminal = matches!(accounts.identity.safety.mode, RESOLVED | RETIRED);
+    let clock = if terminal {
+        terminal_exit(&accounts.identity, &mut accounts.margin, amount)?;
+        Clock::get()?
+    } else {
+        let snapshot = begin(&accounts.identity)?;
+        let candidate = withdraw_candidate(&accounts.margin, &snapshot, amount)?;
+        commit(&mut accounts.identity, &mut accounts.margin, &candidate)?;
+        snapshot.clock
+    };
     accounts.identity.custody.total_cash =
         checked(math::cash_sub(accounts.identity.custody.total_cash, amount))?;
     accounts.identity.custody.allocated_vault = checked(math::cash_sub(
@@ -40,7 +47,18 @@ pub fn withdraw(
         6,
     )?;
     accounts.identity.vault.reload()?;
-    finish(&mut accounts.identity, &snapshot.clock)?;
+    if terminal {
+        // A resolved/retired exit consumes no new funding interval and has no
+        // artificial source dependency. Resolution has zeroed every claim.
+        increment(&mut accounts.identity.custody.sequence)?;
+        super::super::account_custody::reconciled(
+            &accounts.identity.custody,
+            [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
+            accounts.identity.vault.amount,
+        )?;
+    } else {
+        finish(&mut accounts.identity, &clock)?;
+    }
     emit(
         &accounts.identity,
         accounts.event_authority.to_account_info(),
@@ -49,8 +67,50 @@ pub fn withdraw(
         255,
         amount,
         &[&accounts.margin],
-        snapshot.clock.slot,
+        clock.slot,
     )
+}
+
+fn terminal_exit(
+    identity: &AccountFinancialIdentityV3,
+    root: &mut MarginAccountV3,
+    amount: u64,
+) -> Result<()> {
+    require!(
+        cfg!(feature = "account-safety-qualification")
+            && identity.venue.schema_version == SCHEMA_VERSION
+            && identity.venue.profile_version == PROFILE_VERSION
+            && identity.venue.market_count == 2
+            && identity.venue.insurance_fee_share_bps == 2500
+            && identity.custody.schema_version == SCHEMA_VERSION
+            && identity.safety.schema_version == SCHEMA_VERSION
+            && matches!(identity.safety.mode, RESOLVED | RETIRED)
+            && !identity.safety.paused,
+        ClearingError::Profile
+    );
+    trading::model(root)?;
+    require!(
+        amount > 0
+            && root.reserved == 0
+            && root
+                .positions
+                .iter()
+                .all(|position| position.lots == 0 && position.virtual_scaled == 0)
+            && root
+                .book
+                .orders
+                .iter()
+                .all(|entry| !entry.order.active() && entry.order.reserve == 0),
+        ClearingError::Resolution
+    );
+    super::super::account_custody::reconciled(
+        &identity.custody,
+        [&identity.btc_ledger, &identity.eth_ledger],
+        identity.vault.amount,
+    )?;
+    root.cash = checked(math::cash_sub(root.cash, amount))?;
+    increment(&mut root.nonce)?;
+    increment(&mut root.state_version)
 }
 
 pub fn transfer(

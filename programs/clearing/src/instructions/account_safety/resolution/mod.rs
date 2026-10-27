@@ -7,6 +7,7 @@ use financial_core::{
     clearing::{row::Row, wide},
 };
 
+mod application;
 mod contexts;
 mod freeze;
 mod pages;
@@ -104,7 +105,7 @@ fn frozen(
         ClearingError::Resolution
     );
     // No collection or insurance becomes spendable before the complete plan.
-    if header.stage < APPLY {
+    if header.stage <= APPLY {
         let ledgers = [&identity.btc_ledger, &identity.eth_ledger];
         require!(
             identity.custody.total_cash == header.cash_before
@@ -112,6 +113,24 @@ fn frozen(
                 && ledgers.map(|ledger| ledger.settlement) == header.pools_before
                 && ledgers.map(|ledger| ledger.insurance) == header.insurance_before
                 && ledgers.map(|ledger| ledger.fees) == header.fees_before,
+            ClearingError::Reconciliation
+        );
+    } else {
+        let ledgers = [&identity.btc_ledger, &identity.eth_ledger];
+        require!(
+            identity.custody.total_cash == header.cash_applied
+                && identity.custody.allocated_vault == header.allocated_before
+                && ledgers.map(|ledger| ledger.settlement) == [0; 2]
+                && ledgers.map(|ledger| ledger.fees) == header.fees_before
+                && ledgers.map(|ledger| ledger.insurance)
+                    == [
+                        header.insurance_before[0]
+                            .checked_sub(header.insurance_spent[0])
+                            .ok_or(ClearingError::Arithmetic)?,
+                        header.insurance_before[1]
+                            .checked_sub(header.insurance_spent[1])
+                            .ok_or(ClearingError::Arithmetic)?
+                    ],
             ClearingError::Reconciliation
         );
     }

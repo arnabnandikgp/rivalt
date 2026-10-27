@@ -107,3 +107,38 @@ checked overflow and the maximum 58 subtraction steps. All independent wide,
 row/rate and atom/continuation comparisons were rerun. This is an arithmetic
 implementation improvement, not a higher budget, heap or altered rounding policy.
 Maximum-width signed continuation budgets remain a separate acceptance obligation.
+
+## Exactly-once application and terminal cash
+
+Only a complete audited circulation enables Apply. Canonical writable roots must
+still match their frozen cash, q, generations and fully accrued claims. Each row
+applies once, checks its own cash equation and retained own cash, stores the final
+whole flows/cash, zeroes allowed positions/claims and advances their generations.
+An isolated account's forbidden market slot remains entirely empty. Orders and
+protection are removed while the last order ID remains monotonic; delegate expiry/
+identity are cleared and root nonce/version/delegate epoch advance.
+
+During partial Apply, participant bytes contain a mixture of old/new rows. The
+custody aggregate and P/I/T remain the original frozen ledger; `scanned_cash` is
+remaining original C and `cash_applied` is final C of applied rows. These are the
+stage-accounting representations, never two spendable balances. Remaining q/gross/
+claims track the unapplied cohort. In this stage `claim_sums` accumulates signed
+whole market flows at scale S. No ordinary deposit/trade/exit can consume a partial
+plan. The complete application proves both market whole-flow totals equal P plus
+that market's planned insurance use, and final C equals original C+P+spent I.
+Only then does custody adopt final C, set both P to zero and debit each I exactly
+once; fee amounts/carries and allocated vault remain unchanged.
+
+Reconcile scans every applied root again, checking final cash, zero claims/q,
+funding checkpoints, generations and absence of revived order/delegate authority.
+Only its completed cash check enters Resolved and advances safety authority. Events
+retain every applied root, final whole flows, staged aggregates, exact reserve/fee
+state and versions. Freeze events also retain both resulting market snapshots,
+including source sequence and coverage changes, for future indexer reconstruction.
+
+Resolved/Retired owner withdrawals use the existing signed root guard and actual
+SPL transfer, require flat/no-claim/no-live-order cash and no pause, and consume no
+new funding or artificial source freshness. The candidate feature remains required;
+ordinary activation is still false. The active P25 withdrawal path retains its full
+current risk/held-funding checks. Recovery and irreversible retirement still require
+their own implementation/acceptance before P26 is ready for review.

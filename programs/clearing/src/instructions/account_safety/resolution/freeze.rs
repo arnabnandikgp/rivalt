@@ -306,6 +306,10 @@ fn emit(
             allocated: header.allocated_before,
             gross: header.remaining_gross,
             actual_vault: identity.vault.amount,
+            markets: [
+                crate::events::MarketSnapshotV3::from(&**identity.btc),
+                crate::events::MarketSnapshotV3::from(&**identity.eth),
+            ],
         },
         authority,
     )

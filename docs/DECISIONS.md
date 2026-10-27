@@ -908,3 +908,11 @@ before deterministic DFS. Exact arithmetic skips provably zero work after a meas
 FlowPlan CU overrun; no financial equation, insurance use, safety limit, heap or CU
 ceiling changes. The [P26 contract](P26-ACCOUNT-SAFETY.md) records these details.
 Participant application/recovery and maximum-width/RPC acceptance remain required.
+
+D64 application continuation: partial Apply uses the original frozen aggregate
+ledger plus explicit remaining/applied rows. Participant bytes cannot become
+spendable until complete application and a separate full reconciliation. Debit
+planned market insurance once, retain fee/carry ownership, clear old authority,
+and preserve the forbidden zero slot of isolated roots. Resolved/Retired own-cash
+withdrawal has no new source/funding dependency. This realizes D60's existing
+terminal accounting; recovery/retirement and full acceptance remain outstanding.
