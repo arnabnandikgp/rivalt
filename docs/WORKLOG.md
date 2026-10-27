@@ -41,7 +41,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M5b | P13–P14 | Focused real-cluster parity | Closed | Original [A18/G11](evidence/P13.md) and [A19](evidence/P14.md) pass; PRs #15/#16/#17 merged at `2bc298e`. Clean `3b1c0be` read-only devnet/PostgreSQL/HTTP check passes. R029 source refactor passes scoped validation and is integrated via PR #18 at `4d4a908`; [R030 rollout](evidence/R030-DEVNET-CLOSEOUT.md) and corrected ownership/independent audit/75-transaction PostgreSQL reconciliation pass; closeout PR #19 merged at `67059fc` |
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
-| M8 | P22–P28 | Account-centric clearing redesign | In progress | P22A–P26 Review; P27 [ready PR #39](https://github.com/arnabnandikgp/rivalt/pull/39) qualifies A32/G21 through clean `13b558f`; P28 UI/workload pass; P28 diagnostic identifies transient finalized pagination/sequence gaps; bounded rescan fix awaits fresh A33 verification |
+| M8 | P22–P28 | Account-centric clearing redesign | Review | All phases have recorded acceptance; [P28 A33/G21/M8 exit](evidence/P28.md) passes on browser `f595fd7` / workload-recovery `5491752`. Open phase stack awaits integration; P28 publication pending |
 
 ## Phase overview
 
@@ -80,21 +80,21 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P25 | Cash, claim settlement, transfers and atomic exits | Review | [PR #37](https://github.com/arnabnandikgp/rivalt/pull/37), head `75e34c5`, above #36; tested `12a23e6` | [A30/G19 cash](evidence/P25.md): nine Rust tests, 14 ABI variants, 631 SVM / 629 finalized RPC, 446 WS, 86-account/415-event parity and 57-transition independent audits. P26 safety next |
 | M8 | P26 | Liquidation, complete default and local activation | Review | [PR #38](https://github.com/arnabnandikgp/rivalt/pull/38), above #37 `75e34c5`; tested `915d8e8` | [A31/G20 safety](evidence/P26.md): complete default/recovery/retirement, 837 qualified RPC outcomes / 672 WS, exact 64-root audit, cyclic and both-market/full-book cases, 31 ABI variants, default gating and maximum-width resource headroom. Qualified local activation only; no merge or P27/P28 completion |
 | M8 | P27 | SDK, indexer/API and durable services | Review | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit |
-| M8 | P28 | UI, operations and bounded concurrent qualification | In progress | `phase/p28-account-ui` above #39 `9498d2e` | R072 browser: 17 originals pass on `f595fd7`; `2d40c24` passes 112 submitted trades/six busy exits and independent nine-root default/recovery accounting, but strict intermediate-indexer gate stops final replay; bounded finalized-history rescan correction awaits fresh A33 acceptance |
+| M8 | P28 | UI, operations and bounded concurrent qualification | Review | `phase/p28-account-ui` above #39 `9498d2e`; publication pending | [A33/G21/M8](evidence/P28.md): 17 browser originals, 115 submitted trades, six busy exits, four bounded history rescans, complete nine-root default/recovery and identical fresh PostgreSQL replay; tested `f595fd7` / `5491752` |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
 
 ## Latest checkpoint
 
-- Current financial work: R065 completes P26 A31/G20 on clean `915d8e8`; [evidence](evidence/P26.md) records exact qualified SVM/RPC/WS, independent financial and resource checks. P22A–P26 remain Review; ready PR #38 is open above #37. Default/devnet stay gated; P27/P28 remain separate.
-- Current roadmap: P22A–P26 are ready open stacked PRs #32/#33/#35/#36/#37/#38. P27 owns fresh schema-3 SDK, events/PostgreSQL/API and durable services; P28 owns UI/concurrent qualification. M8 remains In progress.
+- Current financial work: qualified P26 artifacts remain unchanged. [P27](evidence/P27.md) and [P28](evidence/P28.md) now record actual services/UI, busy funded exits, default/recovery and fresh PostgreSQL replay. Funded own-cash exits need no venue-wide certificate; unpaid profit payment/netting still needs current selected-market backing. Default/devnet remain gated.
+- Current roadmap: P22A–P28 have verified acceptance in Review. P27 is ready open PR #39; P28 A33/G21/M8 exit passes on `5491752`, with browser evidence on `f595fd7`. Publish its cohesive phase above #39 and keep the stack open.
 - Integrated baseline: R053 successor PRs #23/#24/#26/#27/#28/#29/#30/#31 merged atomically at `d07fccc108384381c0c5df743d14c2a0bc4f5089`; local `main` fast-forwards to it, with tree exactly equal to reviewed stack tip `1a3cc2c`. This integrates A22–A26/G13–G16 and the bounded M7 engineering exit, including all R052 fixes. Earlier R033 `74fc296`, R030 `67059fc` and the original MVP remain integrated.
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Prior integrated verification (R053): final full-stack review has zero unresolved threads, no requested changes and all PRs mergeable with selected CI passing. Final tip `1a3cc2c` passes all five jobs in hosted run `40221453594`. Phase reports retain original executed pins and limitations; R052 actual service recovery uses `e4a284c` and receipt concurrency uses `c0e5274`. This run adds repository/review/integration verification, not new financial/runtime evidence.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: implement the P28 account UI and execute the pinned browser/concurrent qualification in docs/P28-ACCOUNT-QUALIFICATION.md on a recorded clean revision. Keep the stack open.
-- Deferred gates: D56 resumes busy-group/atomic-exit redesign within P22–P28; the old runtime limitation remains. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new deployment or external participation is claimed.
+- Exact next action: commit the P28 acceptance/operations closeout and submit `phase/p28-account-ui` ready above #39 using `gh stack submit --auto --open`; record its actual PR and leave all phases open.
+- Deferred gates: R072 qualifies six busy funded exits in the schema-3 local profile; the older V2 profile keeps its historical limitation. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new devnet/funded deployment or external participation is claimed.
 
 ## Blocker register
 
@@ -569,7 +569,7 @@ Update Latest checkpoint and the two overview tables as well as appending the en
 - User explicitly approves sponsored Pyth Core contract reads for the test-asset MVP and postpones paid Pro. Record D36 and align P13, component and validation contracts. Both status tables return P13/M5b to In progress; B03 is superseded, not an assertion that paid API access was obtained. P14 remains Open.
 - Targeted official documentation and upstream source at `145e9b4a88ef0bf2795357fdce8c0c2fe57b77d2` establish original/compatible receiver and push identities, shard-zero seeds and PriceUpdateV2 layout. Actual public devnet RPC finds all four BTC/USDC accounts, full verification and the expected owners. Preliminary reads show some prices minutes old; no availability claim. Exact original-account posted slots locate real successful UpdatePriceFeed/PostUpdate CPI transactions, unlike newer read-only references. Final provenance/availability report remains pending.
 - Add a bounded read-only three-minute confirmed/finalized RPC and confirmed account-WS probe with chain Clock, retained raw evidence, strict identity/full-verification decoding and conservative integer -6 normalization. No wallet, funds, deployment or financial path is enabled. Four focused decoder/normalization/freshness tests and `pnpm typecheck` pass. Broad financial/SVM/matrix/load/browser checks are not run because no financial runtime code changed.
-- Exact next action: rebuild/restart the complete UI with explicit wallet compute fields, then verify an actual Phantom registration and publish the ready P14 phase.
+- Exact next action: commit the P28 acceptance/operations closeout and submit `phase/p28-account-ui` ready above #39 using `gh stack submit --auto --open`; record its actual PR and leave all phases open.
 
 - Clean `ffc20f3f9c75489b5124e8d011b9bdc81932da1a` completes the actual 180,522-ms observation: 74 RPC batches, four WS subscriptions/seven notifications. Original pair eligibility is 1/37 per commitment; compatible pair 3/37. This is sampled source eligibility, not trading availability or recovery completion. Independent Python raw-message/CPI decoding passes for compatible BTC/USDC and their actual successful VAA verification transaction. [Checkpoint evidence](evidence/P13-SPONSORED.md) retains exact signatures, snapshots and hashes.
 - Implement the separate, mutually exclusive devnet profile with private random IDs, pinned compatible primary accounts, full verification, checked conservative exponent conversion, publish anti-regression, shared sampling/resolution bindings and existing G08–G10 action rules. Zero-only route allocation creates no executable synthetic observation; ad hoc price setters remain disabled. Existing SDK ABI matches generated devnet IDLs after explicit address mapping. Default/local identities remain separate.
@@ -894,7 +894,7 @@ R037 publication: `gh stack submit --auto --open` publishes ready [PR #27](https
 - Continue with `gh stack add phase/p19-cross-core` above exact ready P18C #27 head `0742c20ba5359bc9f1f6e44ae3203ad7a6b16c1c`; keep all four predecessor PRs open. Preserve the original untracked proposal and all ignored evidence. Both status tables now show P19/M7 In progress; P20/P21 Open, P15B/P16B Open, endurance Deferred.
 - Add candidate-only exact flat-claim cancellation and whole-account donor/recipient transfer arithmetic to the shared engine, with six independent literal golden cases for G01–G04/G09. The first two fill vectors fell below the unchanged 1,000-atom minimum order; use ten 100-atom lots without changing the economic limit. `CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo test -p financial-core --test cross_core --locked --offline` now passes all six development cases. Log: `.local/successor-p19/cross-core-development.log`. These are uncommitted host arithmetic checks, not authority, deployed cross or A24 acceptance.
 - Record ordinary D51 choices and [P19 contract](P19-CROSS-CORE.md), including nonce invalidation on delegate changes, exclusive expiry bounded by the existing order lifetime and inactive historical protection metadata. No account-layout or activation change. No broad inherited suite, SBF/ABI/RPC/WS/PG/UI/devnet/load/soak run for this initial arithmetic addition; owning phase gates remain pending.
-- Exact next action: implement full canonical dependency assembly, per-root owner/delegate authority and two-market order/reservation/route handlers, then independently verify their actual transitions while preserving cross activation rejection.
+- Exact next action: commit the P28 acceptance/operations closeout and submit `phase/p28-account-ui` ready above #39 using `gh stack submit --auto --open`; record its actual PR and leave all phases open.
 
 R038 committed arithmetic checkpoint: clean `a1eb4abfa44ad465a5769598b6c23167e5e61885` passes all six scoped `cross_core` tests with `--locked --offline`; log `.local/successor-p19/cross-core-committed.log`. P18C #27 head `0742c20` now has observed scope/client/financial/shell SUCCESS at CI 40174192760; report SKIPPED, no external review approval claimed.
 
@@ -1632,7 +1632,7 @@ open; no external/funded/24-hour action is authorized.
 - Add bounded finalized-tail catch-up after authenticated forward sequence movement; unchanged history is not fetched again and no unreconciled cursor advances. New funding originals use their canonical market observation stamp, preserving original bytes and unknown fee reserves after expiry. Update stale P21A acceptance text, explicit P20 promotion hash and the exact qualified-image compute boundary. Existing originals retain their authority; no program/risk/oracle/fee change.
 - Preparation: 15 scoped scanner/authority/worker regressions pass. Initial mock health callback lacked a Promise; corrected test harness before acceptance. Typecheck initially found an overly narrow address literal in the new test, then passes after correction. Logs: `.local/r052-focused-tests.log`, `.local/r052-typecheck.log`. Prepare the real RPC/WS/PostgreSQL review driver; it has not run yet.
 - Both tables retain successor Review pending review remediation/integration; P21B's existing evidence remains on its child branch. P15B/P16B Open, endurance Deferred. No credentials/product blocker. No unchanged Rust/SBF/IDL, broad V1 matrix, browser/workload/devnet or endurance rerun: this changes service recovery only; scoped hosted CI handles broad client regressions.
-- Exact next action: pin this checkpoint, run `bash ops/group-indexer-smoke.sh --review-recovery`, record actual results, then restack/publish #30/#31 and resolve the evidenced threads while keeping the stack open.
+- Exact next action: commit the P28 acceptance/operations closeout and submit `phase/p28-account-ui` ready above #39 using `gh stack submit --auto --open`; record its actual PR and leave all phases open.
 
 
 R052 pinned acceptance: clean, unchanged `e4a284c4f519cba64e86ef31f9dfcd1f6385cadf`
@@ -1803,7 +1803,7 @@ remains P22B's separate funded-exit and profit/default contract proof.
   BTC/ETH creditors 100/0 with market attribution versus 50/50 with the existing
   common waterfall. A concrete choice is needed under D56 before dependent work;
   no routine start permission is requested. Publication/checked commit follows.
-- Exact next action: record that loss-policy decision, then finish its full
+- Exact next action: commit the P28 acceptance/operations closeout and submit `phase/p28-account-ui` ready above #39 using `gh stack submit --auto --open`; record its actual PR and leave all phases open.
   settlement/netting/default contract and versioned layouts. Independent authority,
   dependency and funding-proof work may continue meanwhile; P23 cannot start yet.
 
@@ -1868,7 +1868,7 @@ B04/P22B remains Blocked and the next action stays the explicit G17 decision.
 - Blockers: B04 resolved; no access or routine product approval blocks continuing
   the selected contract. An automatic fee percentage and funded reserve calibration
   remain unselected policy, not prerequisites for explicit-allocation engineering.
-- Exact next action: derive and independently test market-attributed settlement/
+- Exact next action: commit the P28 acceptance/operations closeout and submit `phase/p28-account-ui` ready above #39 using `gh stack submit --auto --open`; record its actual PR and leave all phases open.
   insurance and cross-market netting/default identities for mixed-sign debtors,
   cycles and fractional ownership, then finish G17 transitions/layouts in PR #33.
 
@@ -1916,7 +1916,7 @@ the worklog; no new financial test, CI pass or phase completion is inferred.
   B04 remains resolved; no access or unselected fee policy blocks this work.
   G17/A27B are incomplete, the new profile remains disabled, P15B/P16B stay Open
   and endurance stays Deferred. Keep the ready stack open.
-- Exact next action: complete the general market-attributed netting/default
+- Exact next action: commit the P28 acceptance/operations closeout and submit `phase/p28-account-ui` ready above #39 using `gh stack submit --auto --open`; record its actual PR and leave all phases open.
   reference for mixed-sign debtors, cycles and fractional ownership using D58's
   reserve ledger, then pin terminal recovery and versioned layouts before P23.
 
@@ -1979,7 +1979,7 @@ This final worklog-only closeout adds no runtime or hosted-CI claim.
   SBF/IDL, signed SVM, Surfpool/RPC/WS/PostgreSQL, browser/load/devnet/endurance.
   This is new specification-model work; no actual financial-program acceptance
   is inferred. Scoped documentation/committed checks and publication follow.
-- Exact next action: derive bounded numeric representation and persisted work
+- Exact next action: commit the P28 acceptance/operations closeout and submit `phase/p28-account-ui` ready above #39 using `gh stack submit --auto --open`; record its actual PR and leave all phases open.
   state for D59's clearing/rounding candidate, then finish normal settlement/
   recovery authority and exact versioned layouts before P23.
 
@@ -3388,3 +3388,64 @@ R072 history correction checks pass: 12 focused `finalized-indexer.test.ts` case
 require the same contiguous critical sequence; the transport precheck preserves
 that contract. Exact next action: pin this correction, then execute only
 `bash ops/account-indexer-smoke.sh --workload` on its clean revision.
+
+R072 final acceptance (28 October local / 27 October UTC), clean
+`5491752df10a4280114d5e042a73984681908015`,
+`.local/account-workload-rpc/20261027T182447Z-89677/`: `bash
+ops/account-indexer-smoke.sh --workload` passes end to end. Of 150 scheduled intents,
+123 request quotes and 115 submit/finalize; 27 are driver backpressure, six required-
+source refusals and two maker renewals. All 113 observed both-Normal attempts
+finalize, plus two allowed reductions. All six ETH-exposed one-atom withdrawals
+finalize with their original bytes after unrelated fills and sampler advances.
+Three separate drain fills complete. Independent raw-byte audit verifies 118
+fills/six exits with five corruption rejections. The last original completes at
+300,828 ms; drain/audit ends at 308,056 ms. Max scheduled route 259,341 CU / 901 bytes /
+18 accounts; p50/p95 finality latency 2,268/2,354 ms; no throughput claim.
+
+The same fresh environment completes actual lost acknowledgement/executor SIGKILL,
+maker publication/sync/restart, TP fill, normal collection/certified gains,
+consenting post-fee liquidation, complete nine-root default with three risk
+restarts and indexer reopen, sustained source recovery, explicit authority resume
+and a 100-atom withdrawal. 581 durable originals finalize; one actual unbroadcast
+expiry retains its 20,000-lamport risk commitment and has no economic effect.
+Another 1,518 setup/source originals are independently fetched without errors.
+All actual wires/fees match. Maximum durable use: 818,735 CU, 1,176 bytes, 23
+accounts (different paths); every durable/setup source original has at least 20%
+declared CU headroom. Per-budget fees reconcile to actual RPC records.
+
+Four full history rescans discard incomplete candidates and recover from durable
+checkpoints; 41 sequence-ahead tail extensions and one expected externally retried
+sequence-ahead cycle occur. There are zero unexpected financial/identity errors.
+WS counters across three instances are 364/129/67, not distinct transaction counts.
+Final sequence 646, slot 13,639 reconciles 33 accounts/nine roots against exactly
+2,004,707,117 allocated/actual vault atoms and zero surplus. A fresh PostgreSQL
+database reconstructs identical state. Independent Fraction audit verifies all
+nine payouts, one circulation augmentation, frozen funding, insurance/carry,
+strict post-fee liquidation progress and actual exit; five corruptions rejected.
+
+The browser retains its separate passing clean `f595fd7` pin: 17 originals,
+seven named checks, zero page errors; API access blocked from that browser,
+direct cancel/withdraw, retained selection/history and exact balances verified.
+Browser/UI code is unchanged by the final history/fixture correction. Original
+browser resource audit passes 20% CU headroom; max 259,271 CU / 901 bytes / 18
+accounts, 85,000 test lamports. Visual inspection confirms the retained screenshot.
+[The P28 report](evidence/P28.md) preserves all attempts, exact denominators and
+remaining profit-certificate coordination limits; [operations](P28-OPERATIONS.md)
+documents explicit configuration, current test limits and reproduction.
+
+Both tables advance P28 and M8 to Review, not Closed. The qualified artifacts,
+fees, financial/authority rules, oracle limits and V1/V2 economics are unchanged.
+Affected specs/D66 are updated; raw evidence stays ignored/local. Scoped history
+regressions (12), earlier SDK/UI/quote cases, typecheck/build, shell syntax and
+evidence policy pass. A report-only budget helper initially compared decimal
+strings without conversion; it is corrected to explicit integers and confirms
+all source headroom, without another runtime test. No browser repeat, program/
+IDL/SBF build, inherited full suite, V1/V2 runtime, devnet, 24-hour run or external
+review. P28 hosted CI/publication still pending. Exact next action: check changed
+document links/diff/evidence policy, commit and publish a ready P28 PR above #39;
+keep the stack open and record the actual remote result.
+
+R072 documentation closeout: all 250 local file links and fenced blocks in changed
+Markdown pass; diff whitespace and tracked-evidence policy pass. The final evidence
+report and operations guide contain only concise Markdown, with raw captures at
+existing ignored paths. Next: commit this closeout and publish P28 ready above #39.

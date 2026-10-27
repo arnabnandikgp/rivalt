@@ -339,3 +339,20 @@ P23 adds [schema-3 custody](P23-ACCOUNT-CUSTODY.md) under D61: real owner cash
 allocation and market-attributed insurance seed/classification, with trading and
 all unfinished financial paths disabled. Its own signed/ABI/RPC acceptance is
 recorded in WORKLOG and [P23 evidence](evidence/P23.md), not inherited from V2.
+
+## P28 concurrent account qualification
+
+The [P28 report](evidence/P28.md) pins the actual browser and workload/recovery
+revisions. `bash ops/account-indexer-smoke.sh --qualification` runs the combined
+fresh local browser/workload/default/replay gate; `--workload` uses signed SDK
+provisioning when only the workload/recovery portion changes. Preserve the
+[predeclared schedule](P28-ACCOUNT-QUALIFICATION.md), every refused/unsubmitted
+intent, raw original bytes, independent economic audit and fresh PostgreSQL replay.
+The 150 scheduled / 123 actual quote / 115 submitted denominators are distinct.
+Six own-cash withdrawals succeed after unrelated fills and sampler advances.
+
+A bounded-history fix found by this gate has 12 focused transport regressions and
+actual integration recovery. It retries no financial/identity error and exposes
+no partial candidate. No new V1/V2 runtime, SBF build or devnet qualification is
+inferred; broad consumer regression remains assigned to scoped hosted CI. Neither
+internal makers nor a five-minute workload close P15B/P16B or deferred endurance.

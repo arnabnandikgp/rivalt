@@ -650,3 +650,12 @@ P28's [pinned qualification contract](P28-ACCOUNT-QUALIFICATION.md) selects a
 300-second/150-offer fresh population, six original signed funded exits during
 unrelated trading/sampling, explicit source/maker/indexer faults and real browser
 wallet flows. This prospective schedule is not an acceptance result.
+
+R072 records A33/G21 completion and the bounded M8 engineering exit in
+[P28 evidence](evidence/P28.md): 17 browser originals on `f595fd7`, then fresh
+`5491752` with 115 submitted trades, six busy exits, independent financial audits,
+complete nine-root default/recovery and identical fresh PostgreSQL replay. The
+actual workload also qualifies bounded finalized-history rescans without admitting
+partial state. [Operations](P28-OPERATIONS.md) retains measured limits, explicit
+configuration and unpaid-profit certificate coordination. All phase PRs remain
+open in Review until integration; P15B/P16B and deferred endurance are unchanged.

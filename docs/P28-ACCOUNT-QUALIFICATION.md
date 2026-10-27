@@ -63,3 +63,10 @@ liquidation/default/recovery audit. A closed-slot settlement assertion must not
 force maker inventory to zero or manufacture an external hedge. Browser evidence
 can use its separate pinned run; `--workload` provisions the same account boundaries
 through actual signed SDK actions and runs only the affected workload/recovery gate.
+
+R072 acceptance is recorded in [P28 evidence](evidence/P28.md): the browser pin and
+fresh workload/recovery pin are distinct and explicit. The final workload passes
+115 submissions, six busy exits and complete nine-root recovery/replay. Refer to
+[operations](P28-OPERATIONS.md) for explicit deployment configuration and measured
+limitations. Unpaid profit payment remains a separate selected-market certificate
+operation; this qualification does not promise continuous payout under load.

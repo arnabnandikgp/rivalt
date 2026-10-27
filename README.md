@@ -105,3 +105,12 @@ always-live exit availability. The eight-PR successor stack is integrated at
 `d07fccc`; WORKLOG closes P17–P21B/M7 within that bounded scope. The user deferred
 exit-availability redesign at R053; D56 now resumes it within P22–P28's broader
 account-centric work. P15B/P16B and 24-hour endurance remain open/deferred.
+
+[P28's account UI](docs/P28-OPERATIONS.md) exposes owner portfolios and immutable
+isolated/cross accounts without a technical group selector. [Fresh acceptance](docs/evidence/P28.md)
+verifies 17 wallet originals, 115 submitted trades, six funded withdrawals during
+ordinary sampling/trading, complete default/recovery and identical fresh PostgreSQL
+replay. Funded cash stays separate from unpaid claims; profit payment still requires
+current certified market backing. The P22–P28 stack remains open for review;
+WORKLOG owns integration status. These bounded local results do not qualify
+independent makers, funded deployment or deferred 24-hour endurance.

@@ -76,8 +76,8 @@ recovered/terminal exits retain their source-independent contract. Delegated
 cancellation remains account-scoped. Explicit netting binds the source market's
 canonical backing certificate and registry; the SDK cannot bypass that proof.
 Pending signed transactions retain their exact bytes/signatures through shared
-wallet recovery. The initial direct checkpoint does not yet qualify routes,
-current risk previews or worker coordination; WORKLOG records completion evidence.
+wallet recovery. The initial direct checkpoint qualifies only its own scope; subsequent route and
+worker acceptance is pinned separately in [P27 evidence](evidence/P27.md).
 
 
 ## Account risk and routing checkpoint
@@ -121,8 +121,8 @@ RPC batch. The reader verifies the frozen epoch/safety/terms, complete stable
 membership and row order, cash/claim/collection aggregates and the on-chain common
 denominator. A competing progress transition cannot silently change the proposal's
 stage identity. The runtime has no dependency on Python reference code or retained
-evidence dumps. Focused pure/consumer tests are separate from the still-required
-fresh durable worker upload/default/restart acceptance.
+evidence dumps. Focused pure/consumer tests remain distinct from the fresh durable worker
+upload/default/restart acceptance now recorded in [P27 evidence](evidence/P27.md).
 
 
 ## Durable execution boundary
@@ -141,7 +141,7 @@ transaction fee; its budget reservation remains until actual finalized history.
 Actions without a signed pre-state stamp retain no inferred proof. All retries of
 pending or unknown outcomes use the same committed bytes and signature. Worker
 lamport budgets and heartbeat records are market/maker-specific; financial worker
-wiring and actual process/fault qualification remain separate unfinished work.
+wiring and actual process/fault qualification are pinned in the P27 report.
 
 
 ## Worker operation

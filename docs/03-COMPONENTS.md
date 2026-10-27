@@ -386,7 +386,8 @@ to one final RPC batch. Schema-3 route messages bind account/safety/terms and ma
 consumed prefixes without a global discovery or historical observation prerequisite.
 V2 keeps its existing group certificate policy. Fresh route acceptance is
 recorded separately from the verified flat cash lifecycle in WORKLOG. Durable
-service and P28 concurrency/browser qualification remain separate gates.
+service and P28 concurrency/browser qualification retain separate tested pins in
+[P27](evidence/P27.md) and [P28](evidence/P28.md).
 
 
 P28 adds an explicit version-3 trader shell under `apps/trader/src/account/`.
@@ -394,7 +395,8 @@ It discovers only the selected owner portfolio's bounded children, then prepares
 financial actions from current selected-root SDK snapshots. Shared widgets only
 render order/position/receipt data; V1/V2 retain their authority paths. The read API
 supports latest finalized fills without treating indexed balances as admission.
-See [P28 qualification](P28-ACCOUNT-QUALIFICATION.md) for the pending runtime gate.
+See [P28 qualification](P28-ACCOUNT-QUALIFICATION.md), [measured acceptance](evidence/P28.md)
+and [operations](P28-OPERATIONS.md) for the qualified scope and remaining limits.
 
 Finalized history ingestion may discard and rescan an incomplete multi-request
 read twice when a pagination signature repeats or a decoded critical sequence is
