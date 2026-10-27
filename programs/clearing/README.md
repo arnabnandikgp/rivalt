@@ -25,18 +25,24 @@ src/
     v3/                  Venue/custody/safety, account roots and market ledgers (P22B)
   instructions/          Anchor account contexts, handlers and validation
     account_custody/     Fresh schema-3 identity and actual SPL custody (P23)
-    account_trading/    Candidate-only whole-account trading and maker admission (P24)
+    account_trading/    Whole-account trading and maker admission (P24/P26)
       engine.rs         Typed adapters to shared checked risk/order candidates
       authority.rs      Root guards, delegates, orders and protective authority
       routes.rs         Atomic fills, funding, attributed fees and borrowed events
       oracle.rs         Canonical sources and causal common funding
-      activation.rs     Isolated qualification artifact; ordinary trading stays gated
-    account_cash/       Candidate-only own-cash exits and scoped market settlement (P25)
+      activation.rs     Storage-ready qualified local activation; default/devnet gated
+    account_cash/       Own-cash exits and scoped market settlement (P25)
       engine.rs         Whole-account funding/admission and held-corner candidates
       cash.rs           Owner transfer and atomic actual SPL withdrawal
       certificate.rs    Canonical market backing pages and relevant invalidation
       claims.rs         Gross-debt collection, funded payout and flat netting
       fees.rs           Separate fee authority; T withdrawal/allocation, no active I exit
+    account_safety/     Whole-account liquidation and market-attributed default (P26)
+      risk.rs           Consenting receiver; strict post-fee MM-deficit progress
+      resolution/       Frozen pages, verified rates, deterministic atom circulation
+        application.rs  Exactly-once Apply, complete Reconcile and terminal cash
+        recovery.rs     Sustained source recovery and separate reactivation
+        retirement.rs   Complete flat proof and terminal reserve custody
     custody.rs           Register, deposit, custody-only withdrawal and controls
     group_custody.rs     Versioned successor custody; no trading activation (P18A)
     group_margin/       Shared root model, canonical dependencies and authority

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Scoped P26 candidate trading RPC/WS qualification; no service/load/endurance launch.
+# Scoped P26 qualified local safety RPC/WS checks; no service/load/endurance launch.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh

@@ -129,7 +129,7 @@ try {
     runtime:await rpc.call('getVersion'),genesis:await rpc.call('getGenesisHash'),checks,parity,
     wsNotifications:ws.notifications.length,expectedNotifications:expectedNotifications.length,missedNotifications:missed,
     hashes:Object.fromEntries(['clearing','maker_a','maker_b','oracle_fixture'].map(name=>[name,createHash('sha256').update(readFileSync(`.local/account-safety/${name}.so`)).digest('hex')])),
-    scope:"preliminary default/recovery/retirement RPC coverage; maximum-width arithmetic/full acceptance pending",
+    scope:"schema-3 signed safety RPC/WS scenario; service/PostgreSQL/UI gates remain separate",
     ...result,committedEvents:events}));
   console.log(`P26 RPC: ${checks.length} finalized scenarios; ${events.length} events; ${ws.notifications.length} WS notifications; legacy parity passed.`);
 } finally {ws.close();}

@@ -84,6 +84,16 @@ jobs:
       - run: rustup toolchain install 1.97.1 --profile minimal
       - run: mkdir -p .local
       - run: bash ops/financial.sh
+      - name: Schema-3 safety and activation handlers
+        env:
+          CARGO_PROFILE_TEST_DEBUG: '0'
+          CARGO_PROFILE_DEV_DEBUG: '0'
+          CARGO_INCREMENTAL: '0'
+        run: |
+          cargo test --locked -p clearing --lib instructions::account_safety --features account-safety-qualification
+          cargo test --locked -p clearing --lib instructions::account_trading::activation --features account-safety-qualification
+          cargo test --locked -p clearing --lib state::v3::tests --features account-safety-qualification
+          cargo test --locked -p clearing --lib state::v3::tests
   shell:
     needs: scope
     if: needs.scope.outputs.shell == 'true'

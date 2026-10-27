@@ -1,9 +1,9 @@
 # P26 — whole-account liquidation and market-attributed default
 
 This implements D60's [schema-3 contract](P22B-EXECUTABLE-CONTRACT.md), after the
-verified P25 predecessor. WORKLOG owns status. The candidate safety matrix is
-verified; the explicit storage-ready local activation gate requires its own final
-pinned check. Default/devnet activation remains disabled.
+verified P25 predecessor. WORKLOG owns status. The complete candidate matrix and
+storage-ready qualified local activation pass [A31/G20](evidence/P26.md).
+Default/devnet activation remains disabled.
 V1/V2, fees, loss bearers, source limits and the 25% insurance allocation are unchanged.
 
 Implementation proceeds within one cohesive phase/PR:
@@ -41,7 +41,7 @@ resolution. P27 services and P28 concurrency/UI remain distinct downstream gates
 
 ## Frozen preparation and proposal contract
 
-The candidate precreates one header/work pair and all 32 canonical two-row pages.
+The qualified profile precreates one header/work pair and all 32 canonical two-row pages.
 Creation is permissionless rent payment in Custody/Active; it grants no price,
 reserve or payout authority. Freeze requires the completed storage set, the current
 safety/resolution epochs and an authenticated registry member. It accepts common
@@ -72,8 +72,8 @@ two checked u128 slopes in limbs 0–3; register 3 contains L*factor; registers 
 are scratch. This names the existing layout's usage; no account bytes or old
 profile semantics change. Events retain frozen valuation inputs, proposal chunks,
 verification decisions and exact insurance budgets; preparation does not emit a
-fabricated payout. Deterministic rounding/application/recovery remain subsequent
-implementation and acceptance, not implicit effects of reaching FlowPlan.
+fabricated payout. Deterministic rounding/application/reconciliation are mandatory
+subsequent stages, not implicit effects of reaching FlowPlan.
 
 ## Deterministic atom planning and circulation
 
@@ -107,7 +107,7 @@ zero multiplier columns/unused high limbs and leading zero quotient bits, retain
 checked overflow and the maximum 58 subtraction steps. All independent wide,
 row/rate and atom/continuation comparisons were rerun. This is an arithmetic
 implementation improvement, not a higher budget, heap or altered rounding policy.
-Maximum-width signed continuation budgets remain a separate acceptance obligation.
+The separate maximum-width continuation measurements below qualify that envelope.
 
 ## Exactly-once application and terminal cash
 
@@ -139,10 +139,10 @@ including source sequence and coverage changes, for future indexer reconstructio
 
 Resolved/Retired owner withdrawals use the existing signed root guard and actual
 SPL transfer, require flat/no-claim/no-live-order cash and no pause, and consume no
-new funding or artificial source freshness. The candidate feature remains required;
-ordinary activation is still false. The active P25 withdrawal path retains its full
-current risk/held-funding checks. Full maximum-cohort/resource/RPC acceptance
-still gates P26 readiness.
+new funding or artificial source freshness. The explicit local safety feature is
+required; default/devnet remain disabled. The active P25 withdrawal path retains
+its full current risk/held-funding checks. The evidence report records the complete
+maximum-cohort/resource/RPC acceptance.
 
 
 ## Recovery and terminal reserve custody
@@ -153,7 +153,7 @@ Bad sources reset recovery credit; a gap longer than the hold starts a new windo
 Only venue authority can resume a completely reconciled Resolved venue, and this
 returns to Custody. Safety/venue/market terms advance, earned funding and fee carry
 remain, and old observations are cleared. Fresh independent maker/source sampling
-and a separate authority action are required for candidate reactivation. No old
+and a separate authority action are required for separate reactivation. No old
 order, delegate or quote authority is revived. Default/devnet builds stay gated.
 
 Recovered custody roots retain historical generations and nonces. Liability-free
@@ -210,7 +210,7 @@ Measured resource-only single-row maxima are 524,723 CU for exact flows and
 391,738 for whole-atom planning; complete two-market insurance checks peak at
 423,042. These fixture figures exclude full clearing context overhead; do not
 present them as a measured maximum-width venue resolution. The full-context runtime
-matrix and final pinned acceptance remain separate requirements.
+matrix and final pinned acceptance are recorded separately in the evidence report.
 
 The separate `account-safety-context-budget.ts` resource probe forks an actual
 signed 64-root/two-market frozen runtime. It widens only derived denominator scratch,
@@ -225,8 +225,8 @@ comes from actual registration, deposits, trades and source updates.
 
 The initial full-context extremal measurements peak at 774,364 CU (Verify) and
 638,366 (FlowPlan), below 960,000 with the unchanged 1.2M ceiling and default heap.
-Publication requires the final pinned matrix, including default-artifact rejection,
-complete proposal/order/circulation resource paths and actual RPC faults. The
+The final pinned matrix includes default-artifact rejection, complete proposal/
+order/circulation resource paths and actual RPC faults. The
 resource-only fixture and full-context scratch measurements are labelled separately
 from canonical financial acceptance; neither claims a live maximum-value cohort.
 

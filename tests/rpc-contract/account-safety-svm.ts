@@ -115,5 +115,5 @@ writeFileSync(`${output}/summary.json`,json({revision:execFileSync('git',['rev-p
   runtime:'LiteSVM 1.6.1',signatureVerification:true,blockhashVerification:true,checks,
   binaries:Object.fromEntries([...programs.map(([,name])=>name),'clearing-default'].map(name=>[name,createHash('sha256').update(readFileSync(`${artifact}/${name}.so`)).digest('hex')])),
   defaultChecks,restarts,
-  scope:"preliminary default/recovery/retirement runtime; maximum-width arithmetic/full acceptance unfinished",...result}));
+  scope:"schema-3 signed safety scenario; resource probes and default-artifact checks are separate populations; service/UI gates remain",...result}));
 console.log(`P26 trading: ${checks.length} signed outcomes. Evidence: ${output}`);

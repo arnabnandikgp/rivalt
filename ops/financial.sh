@@ -10,3 +10,7 @@ python3 tests/financial/test_market_settlement.py
 cargo test --locked -p financial-core
 cargo build --locked -p financial-core --bin reference-driver
 python3 tests/financial/reference.py | tee .local/p02-financial.json
+cargo build --locked -p financial-core --bin clearing-wide-driver --bin clearing-row-driver --bin clearing-atoms-driver
+python3 tests/financial/test_clearing_wide.py
+python3 tests/financial/test_clearing_rows.py
+python3 tests/financial/test_clearing_atoms.py

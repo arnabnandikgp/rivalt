@@ -606,3 +606,8 @@ uses `activate_accounts_v3` with complete precreated safety pages and fresh init
 qualification. The older candidate transition cannot bypass storage readiness.
 Qualified activation has its own final affected check; P26 enters Review only after
 that evidence and ready publication. P27/P28 and the external gates remain separate.
+
+P26 realization: [A31/G20 evidence](evidence/P26.md) qualifies the complete bounded
+local safety profile and storage-ready activation on pinned `915d8e8`. Its verified
+Review commits satisfy P27's implementation dependency; they do not establish
+service/PostgreSQL/UI, sustained concurrency, funded readiness or an external review.

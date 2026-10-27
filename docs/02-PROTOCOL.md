@@ -3,8 +3,8 @@ Rivalt · baseline R1 · 20 October 2026
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.
-The pinned candidate matrix passes; explicit storage-ready local activation now
-has its own final affected check. Default/devnet remain disabled. WORKLOG owns
+The pinned candidate matrix and explicit storage-ready local activation pass
+[A31/G20](evidence/P26.md). Default/devnet remain disabled. WORKLOG owns
 acceptance and publication status; P27/P28 remain separate service/UI gates.
 
 
