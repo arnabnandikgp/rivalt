@@ -2959,3 +2959,17 @@ untrusted proposer remain due. No inherited full regression, program rebuild,
 devnet/external/funded run, P28 UI/concurrency or deferred 24-hour qualification is
 run. Exact next action: execute the fresh `--route-sdk` command on a clean pinned
 commit, resolve actual failures, then continue the same phase's durable services.
+
+R068 first route integration on clean
+`a0bd27b3dc51e116d6f0311580f5e3ec74c8822b` stops before the second fill at
+`.local/account-route-rpc/20261027T133323Z-24437/`. The deposit and first two-maker
+BTC wallet route independently finalize, and the route survives the signed ETH
+sample after preparation. The next ETH route is correctly refused because BTC
+is Degraded: actual oracle events show BTC samples seven seconds apart after the
+intentional interleaving/finality wait, resetting its required six-second recovery.
+This is incomplete acceptance, not an SDK financial bypass or a passed route run.
+The harness now observes bounded actual recovery (up to five fresh two-second
+sampling rounds) before proceeding, and saves per-fill inputs/captures immediately
+for diagnosis. No risk/source rule changes. Owned runtimes cleaned up. Both tables
+retain P27/M8 In progress; exact next action is the same focused fresh `--route-sdk`
+run on this corrected harness pin, then durable service implementation.

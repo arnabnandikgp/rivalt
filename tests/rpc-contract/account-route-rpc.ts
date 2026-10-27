@@ -38,8 +38,17 @@ try {
   await wallet('SDK funds cross trading account',[await client.deposit(await client.snapshot([setup.cross]),setup.owner.address,setup.cross,setup.operators[0].token.address,2_000_000n)]);
   await setup.qualify();
   async function refresh() {
-    await transport.h.advance(2n);for(let feed=0;feed<6;feed++)await setup.publish(feed);
-    for(const marketIndex of [0,1])await transport.send('refresh source and common funding between SDK routes',[sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(marketIndex))]);
+    // Deliberate signed sampler interleaving plus finalization may leave a >6s
+    // gap. Observe the real six-second recovery instead of assuming one sample
+    // restores Normal or relaxing the program's cadence/source requirements.
+    for(let attempt=0;attempt<5;attempt++) {
+      await transport.h.advance(2n);for(let feed=0;feed<6;feed++)await setup.publish(feed);
+      for(const marketIndex of [0,1])await transport.send('refresh source and common funding between SDK routes',[sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(marketIndex))]);
+      const snapshot=await client.snapshot([setup.cross],'confirmed');
+      writeFileSync(`${directory}/latest-recovery-snapshot.json`,json(snapshot));
+      if(snapshot.marketStates.every(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)==='Normal'))return;
+    }
+    throw new Error('Bounded real source recovery did not reach Normal');
   }
   // Literal independent A/B marginal sums at authenticated prices 60,000/30,000.
   // Inventory stays below each strategy's skew step, so closes use the same spread.
@@ -62,6 +71,7 @@ try {
       snapshot=await client.tradeSnapshot(setup.cross,0);const order=snapshot.roots[setup.cross].book.orders.find(entry=>entry.order.id===1n)!.order;
       stored={id:1n,version:order.version,filled:order.filled};
     }
+    writeFileSync(`${directory}/route-input-${index}.json`,json({vector,snapshot,stored}));
     const quote=await client.route({snapshot,trader:setup.cross,marketIndex:vector.marketIndex,side:vector.side,lots:vector.lots,
       maxFee:10_000n,allInLimit:vector.side===0?100_000_000n:0n,reduceOnly:index>=2,stored},stored?setup.payer.address:setup.owner.address);
     assert(quote,'Actual SDK route must be available');
@@ -98,6 +108,7 @@ try {
     const balance=client.balance(after,setup.cross);assert.equal(balance.positiveUnpaidMarginCredit,'0');assert.equal(balance.correlationDiscount,'0');
     assert.equal(balance.withdrawalStatus,'RequiresAtomicAccountChecksAndSimulation');
     captures.push({vector,before:snapshot,after,balance});
+    writeFileSync(`${directory}/route-financial-capture.json`,json(captures));
   }
   const finalSnapshot=await client.snapshot([setup.cross]),root=finalSnapshot.roots[setup.cross];
   assert.equal(root.cash,1_997_586n);assert(root.positions.every(position=>position.lots===0n));assert.equal(root.reserved,0n);
