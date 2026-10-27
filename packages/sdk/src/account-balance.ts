@@ -38,14 +38,14 @@ export function accountBalanceView(root:Root,safety:Safety,markets:Market[],now:
     marginBalanceView(root,markets,[btc,eth],sources,now,slot,safety.mode===2).riskEquityScaled));
   const heldRiskEquityScaled=corners.some(value=>value===null)?null:
     corners.map(value=>BigInt(value!)).reduce((left,right)=>left<right?left:right);
-  const sourceRequired=root.positions.some(position=>BigInt(position.lots)!==0n)||view.orders.some(order=>BigInt(order.remaining)>0n);
   const sourcesAllowExit=markets.every((market,index)=>
     (BigInt(root.positions[index].lots)===0n&&!root.book.orders.some((stored,orderIndex)=>stored.marketIndex===index&&BigInt(view.orders[orderIndex].remaining)>0n))||
     ['Normal','Degraded'].includes(sources[index]));
-  const terminal=[3,4].includes(safety.mode);
-  const flat=root.positions.every(position=>BigInt(position.lots)===0n&&BigInt(position.virtualScaled)===0n)&&!sourceRequired;
-  const status=safety.paused?'Paused':safety.mode===2?'FrozenResolution':!sourcesAllowExit?'RequiredSourceUnavailable':
-    terminal&&!flat?'TerminalAccountNotSettled':'RequiresAtomicAccountChecksAndSimulation';
+  const terminal=[0,3,4].includes(safety.mode);
+  const flat=root.positions.every(position=>BigInt(position.lots)===0n&&BigInt(position.virtualScaled)===0n)&&
+    BigInt(root.reserved)===0n&&root.book.orders.every(stored=>![1,2].includes(stored.order.state)&&BigInt(stored.order.reserve)===0n);
+  const status=safety.paused?'Paused':safety.mode===2?'FrozenResolution':terminal&&!flat?'TerminalAccountNotSettled':
+    !sourcesAllowExit?'RequiredSourceUnavailable':'RequiresAtomicAccountChecksAndSimulation';
   let indicativeCashHeadroom:string|null=null;
   if(status==='RequiresAtomicAccountChecksAndSimulation'&&view.localCashHeadroom!==null&&heldRiskEquityScaled!==null) {
     const heldCash=heldRiskEquityScaled>0n?heldRiskEquityScaled/1_000_000_000n:0n;

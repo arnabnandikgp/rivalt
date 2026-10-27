@@ -619,7 +619,8 @@ before entering Review. Projection checks on retained histories do not close A32
 
 R068 adds fresh 64-root/119-account PostgreSQL chunk/restart/replay acceptance to
 P27's earlier finalized projection and API-independent flat SDK checkpoints.
-Current risk/route interfaces are implemented; their new four-fill signed RPC
-qualification runs before durable maker/funding/order/settlement/risk services.
+Current risk/route interfaces now pass four-fill signed RPC and fresh PostgreSQL
+qualification on `8267a27`; durable maker/funding/order/settlement/risk services
+and their process/fault qualification remain next.
 This is incremental A32 work, not phase closure; P27 stays In progress and P28
 remains dependent. The exact tested pins and pending command are in WORKLOG.

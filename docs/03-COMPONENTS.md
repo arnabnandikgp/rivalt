@@ -384,5 +384,6 @@ all held-funding corners; they report indicative headroom, not withdrawal author
 Trade snapshots add only the selected market's maker capitals/configurations/code
 to one final RPC batch. Schema-3 route messages bind account/safety/terms and maker
 consumed prefixes without a global discovery or historical observation prerequisite.
-V2 keeps its existing group certificate policy. Fresh route acceptance remains
-recorded separately from the already verified flat cash lifecycle in WORKLOG.
+V2 keeps its existing group certificate policy. Fresh route acceptance is
+recorded separately from the verified flat cash lifecycle in WORKLOG. Durable
+service and P28 concurrency/browser qualification remain separate gates.

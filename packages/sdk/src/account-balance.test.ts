@@ -64,6 +64,10 @@ it('labels pause/freeze/terminal states without inventing spendable claims',asyn
   snapshot.safetyState.mode=2;expect(view()).toMatchObject({withdrawalStatus:'FrozenResolution',indicativeCashHeadroom:null});
   snapshot.safetyState.mode=3;snapshot.now=1000n;
   expect(view()).toMatchObject({indicativeCashHeadroom:'1000'});
+  root.book.orders[0].order.state=1; // Even an expired live record must be cleared by resolution.
+  expect(view()).toMatchObject({withdrawalStatus:'TerminalAccountNotSettled',indicativeCashHeadroom:null});
+  root.book.orders[0].order.state=0;root.reserved=1n;
+  expect(view().withdrawalStatus).toBe('TerminalAccountNotSettled');root.reserved=0n;
   root.positions[0].virtualScaled=1n;expect(view()).toMatchObject({withdrawalStatus:'TerminalAccountNotSettled',indicativeCashHeadroom:null});
   snapshot.safetyState.paused=true;expect(view().withdrawalStatus).toBe('Paused');
 });
