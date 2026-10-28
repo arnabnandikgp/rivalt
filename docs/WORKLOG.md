@@ -3599,3 +3599,17 @@ select the newly added signature by set difference and await that exact original
 Retain the failed run at `.local/demo-checks/R074-production`; it does not count as
 full browser acceptance. No application/financial change is needed. Both status
 rows remain In progress; next action is rerunning the corrected wallet lifecycle.
+
+
+R074 wallet lifecycle: `87099f7` passes all 13 distinct signed wallet originals on
+the `f79bdf5` production runtime: portfolio, cross/isolated accounts, deposits,
+explicit 0.5 allocation, BTC/ETH opens, TP/SL/cancel, both closes and exactly one
+test USD token withdrawal. Actual wallet decline creates no original; reload
+restores the same account and all finalized receipts. Zero browser errors.
+Evidence: `.local/demo-checks/R074-originals`. The screenshot also captures a
+transient indexed-history refusal while reconciliation is active; direct balances
+and exits succeed. Match the standalone indexer's one-second delay *after* each
+cycle instead of a fixed timer, retaining fail-closed readiness and independently
+running the disk guard. Add a final indexed-fill-display check. Typecheck and
+evidence/shell checks pass. Both tables remain In progress until this final fresh
+startup/browser/control check; no new economic or API readiness rule is introduced.

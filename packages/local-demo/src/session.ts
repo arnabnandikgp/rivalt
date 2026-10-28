@@ -147,10 +147,15 @@ try {
   // Ordinary risk probing/default remains active; no receiver is invented.
   // The demo does not orchestrate forced insolvency or authority recovery.
   transport.finishProvisioning();
-  let indexing=false;
+  // Match the standalone indexer: leave one second after each completed cycle.
+  // Readiness still fails closed during reconciliation; never compress its
+  // healthy interval or skip the disk guard while an indexing cycle is busy.
+  void (async()=>{while(!stopping){
+    try{await indexer!.cycle();}catch{if(!stopping)console.error('Indexer recovery required; durable checkpoint retained');}
+    await delay(1000);
+  }})();
   monitor=setInterval(()=>{
-    if(stopping||indexing)return;indexing=true;
-    void indexer!.cycle().catch(()=>{ /* Readiness remains false until actual reconciliation. */ }).finally(()=>{indexing=false;});
+    if(stopping)return;
     const disk=statfsSync(DEMO_ROOT);if(disk.bavail*disk.bsize<768*1024**2)void shutdown('low disk guard',1);
   },1000);
   sourceLoop=(async()=>{while(!stopping){for(let feed=0;feed<6&&!stopping;feed++)await setup!.publish(feed);await delay(3000);}})();

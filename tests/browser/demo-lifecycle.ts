@@ -66,10 +66,12 @@ try{
   await page.reload();await wait(receipts,items=>items.length===finalOriginals&&items.every(item=>item.status==='finalized'),'saved originals after reload');
   await wait(()=>page.getByTestId('account-cash').textContent(),value=>!!value&&value!=='—','same-tab wallet and selected account after reload');
   assert.equal(await page.getByLabel('Margin account',{exact:true}).inputValue(),'0');
+  const fills=page.locator('section').filter({has:page.getByRole('heading',{name:'Recent finalized fills',exact:true})});
+  await wait(()=>fills.locator('tbody tr').count(),count=>count>=4,'indexed finalized fills after reload');
   assert.equal(errors.length,0,errors.join('\n'));await page.screenshot({path:`${directory}/demo-ui.png`,fullPage:true});
   const summary={status:'pass',walletOriginals:outcomes.length,owner,portfolio,cross,isolated,errors,
     checks:['local-origin faucet denial','unauthorized stop denial','fresh browser-generated wallet and real faucet','portfolio and both account modes',
-      'deposits and explicit sibling allocation','actual wallet decline','BTC and ETH fills','TP/SL and cancellation','reduce-only closes','token-reconciled funded withdrawal','reload and saved originals']};
+      'deposits and explicit sibling allocation','actual wallet decline','BTC and ETH fills','TP/SL and cancellation','reduce-only closes','token-reconciled funded withdrawal','reload and saved originals','reconciled indexed fill display']};
   writeFileSync(`${directory}/summary.json`,JSON.stringify(summary,null,2));console.log(JSON.stringify(summary));
 }catch(error){
   await page.screenshot({path:`${directory}/failure.png`,fullPage:true}).catch(()=>{});
