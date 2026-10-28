@@ -3725,3 +3725,11 @@ Both M9/P28A remain Review until
 actual integration. Exact next action: commit/publish the cohesive corrections,
 verify refreshed hosted checks, resolve the two findings and merge PR #41; then
 record the integrated commit and stop until the user chooses the next work.
+
+R076 hosted correction: published runtime remediation `f4ee9c8`. Hosted run
+`40678061790` passes scope/shell but TypeScript rejects an inferred `never` in
+the new faucet concurrency fixture's deferred callback. Add explicit `void`/
+callback promise types; this changes the test only. The 16 runtime-focused local
+cases already passed, but no hosted client pass is claimed for that failed run.
+Both rows remain Review; exact next action is publish the fixture correction,
+verify the refreshed client job and complete the authorized merge.

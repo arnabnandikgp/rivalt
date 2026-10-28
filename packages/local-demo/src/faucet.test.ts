@@ -11,7 +11,7 @@ it('releases preparation failures and the global busy lock without calling submi
 
 it('reserves admission before asynchronous preparation and preserves the session cap',async()=>{
   const faucet=new DemoFaucet();let ready!:(submit:()=>Promise<void>)=>void;
-  const pending=faucet.fund('first',()=>new Promise(resolve=>{ready=resolve;}));
+  const pending=faucet.fund<void>('first',()=>new Promise<()=>Promise<void>>(resolve=>{ready=resolve;}));
   await expect(faucet.fund('first',async()=>async()=>{})).rejects.toMatchObject({status:409});
   await expect(faucet.fund('other',async()=>async()=>{})).rejects.toThrow('Faucet is busy');
   ready(async()=>{});await pending;
