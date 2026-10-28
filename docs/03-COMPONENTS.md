@@ -408,3 +408,11 @@ missing. It always starts from the durable checkpoint with a fresh candidate;
 no partial economic state is published. Persistent gaps and all financial/identity
 mismatches remain fail-closed. Metrics distinguish full history restarts from
 new-finalized-sequence tail catch-up. D66 and WORKLOG record the measured fault.
+
+
+P28A adds `packages/local-demo` / `ops/demo.sh` as a loopback-only interactive
+supervisor. It provisions fresh signed state and runs existing schema-3 services;
+it does not consume qualification outputs or change their authority. Optional
+browser demo-wallet registration and a local-origin-bounded faucet are enabled
+only by this launcher's Vite configuration. Wallet keys stay in tab storage;
+operator keys/config stay in private local files. See [P28A](P28A-LOCAL-DEMO.md).

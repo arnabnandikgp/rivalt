@@ -24,11 +24,17 @@ function Root() {
           validated = raw.version === 3 ? accountUserConfig(raw) : raw.version === 2 ? groupUserConfig(raw) : userConfig(raw);
         if (raw.apiBase !== '/api' || raw.readBase !== '/read')
           throw new Error('Unsupported service configuration.');
+        if (raw.demo === true) {
+          if (validated.version !== 3) throw new Error('Demo requires the current account profile.');
+          const {installDemoWallet} = await import('./account/demo-wallet.js');
+          await installDemoWallet(validated);
+        }
         if (active)
           setConfig({
             ...validated,
             apiBase: raw.apiBase,
             readBase: raw.readBase,
+            ...(raw.demo === true ? {demo: true} : {}),
           });
       })
       .catch((e) => {

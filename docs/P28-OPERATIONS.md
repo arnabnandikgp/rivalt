@@ -5,6 +5,10 @@ commands remain available for their existing profiles; their evidence does not
 qualify a new schema-3 deployment. This guide does not authorize devnet/funded
 operation, an independent maker or an external hedge.
 
+For hands-on exploration with a separate local demo wallet, use the
+[P28A interactive launcher and walkthrough](P28A-LOCAL-DEMO.md). The finite
+qualification command below remains a different operation.
+
 ## Fresh reproducible engineering check
 
 From this repository with the pinned toolchain, qualified local artifacts and

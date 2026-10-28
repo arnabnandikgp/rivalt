@@ -4,6 +4,7 @@ import { terminal } from '../receipts.js';
 import { Field, Metric, GroupReview, GroupReceipts } from '../group/Primitives.js';
 import { GroupPositions, GroupTicket, GroupOrders, GroupAuthority, GroupFills } from '../group/GroupPanels.js';
 import { GROUP_MARKETS } from '../group/model.js';
+import { DemoPanel } from './DemoPanel.js';
 import { accountLabel } from './model.js';
 import { useAccountController, type AccountController } from './useAccountController.js';
 import type { AccountTraderConfig } from './types.js';
@@ -75,6 +76,7 @@ export function AccountApp({config}: {config: AccountTraderConfig}) {
       <div className="market-header"><div><span className="eyebrow">YOUR ACCOUNTS</span><h1>Manage your margin</h1><p>Fund each account. Trade its eligible markets. Withdraw available cash directly.</p></div><span className="status">{status}</span></div>
       {[venue.rpcError,venue.error].filter(Boolean).map((message,index)=><p key={index} className="banner error" role="alert">{message}</p>)}
       {venue.apiError&&<p className="banner warning" role="status">{venue.apiError}</p>}{venue.notice&&<p className="banner" role="status">{venue.notice}</p>}{venue.busy&&<p role="status">{venue.busy}</p>}
+      {config.demo&&<DemoPanel controller={controller}/>}
       <Selection controller={controller}/><GroupReview venue={venue}/>
       <div className="trading-grid"><div className="market-column"><Balances controller={controller}/><GroupPositions controller={controller}/></div><GroupTicket controller={controller}/></div>
       <GroupOrders controller={controller}/><GroupAuthority controller={controller}/><GroupFills controller={controller}/><Reserves controller={controller}/><GroupReceipts venue={venue}/>

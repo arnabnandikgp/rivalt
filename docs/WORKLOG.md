@@ -45,6 +45,8 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 
+| M9 | P28A | Interactive local evaluation follow-up | In progress | D68: launcher/test wallet implementation and scoped checks underway; actual browser/start-stop-reset acceptance pending; M8 unchanged |
+
 ## Phase overview
 
 | Milestone | Phase | PR deliverable | Status | PR / commit | Evidence / next dependency |
@@ -87,6 +89,8 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
 
+| M9 | P28A | Interactive launcher, local test wallet and walkthrough | In progress | `phase/p28a-local-demo` above `4338af6` | [P28A contract](P28A-LOCAL-DEMO.md); actual runtime/browser/stop/reset qualification pending |
+
 ## Latest checkpoint
 
 - Current financial work: qualified P26 artifacts remain unchanged. [P27](evidence/P27.md) and [P28](evidence/P28.md) now record actual services/UI, busy funded exits, default/recovery and fresh PostgreSQL replay. Funded own-cash exits need no venue-wide certificate; unpaid profit payment/netting still needs current selected-market backing. Default/devnet remain gated.
@@ -95,7 +99,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Current review verification (R073): zero unresolved inline threads or requested changes; all eight final heads mergeable with selected CI successful or scope-skipped. Tip `e6ba2cf` passes all five jobs in [hosted run 40576656720](https://github.com/arnabnandikgp/rivalt/actions/runs/40576656720); CodeRabbit is neutral/skipped for the incremental push. Seven local consumer cases, one Rust wire test, typecheck and trader build pass. This is scoped remediation/integration evidence, not an independent protocol review.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: use the integrated [P28 operations guide](P28-OPERATIONS.md) for local evaluation of the completed account-centric MVP. P22–P28 implementation/merge work is complete; further product work or external P15B/P16B execution needs its own scope. Do not start deferred endurance or funded deployment.
+- Exact next action: verify P28A on a clean implementation commit with fresh real startup, browser wallet lifecycle, owned stop and fresh reset; then publish one ready PR. Original M8 remains Closed; only this local-evaluation follow-up is active.
 - Deferred gates: R072 qualifies six busy funded exits in the schema-3 local profile; the older V2 profile keeps its historical limitation. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new devnet/funded deployment or external participation is claimed.
 
 ## Blocker register
@@ -3529,3 +3533,30 @@ or financial tests are warranted for this documentation-only merge closeout.
 P15B/P16B remain Open and endurance Deferred. No outstanding review/access blocker.
 Exact next action: commit/publish the documentation closeout and verify clean local/
 remote `main`; implementation and stack integration are then complete.
+
+
+## R074 — P28A interactive local environment (28 October 2026)
+
+The user authorizes the first recommended follow-up only. Read current specs and
+Git state; preserve untracked `phoenix/` and the design proposal. Created
+`phase/p28a-local-demo` above integrated `4338af6` with `gh stack init`. D68/P28A/M9
+record this extension without reopening M8. A real installed Surfpool persistence
+probe retains balances/history but changes genesis and resets slot 56 to 1; result
+at ignored `.local/demo-persistence-probe/result.json`. Stopped its owned process
+(after graceful exit hung, used SIGKILL on its verified PID). No existing DB copy,
+raw phase evidence or user work was deleted. Existing Apple Containers was stopped;
+started that service without installing/replacing the user's runtime.
+
+Implemented one-DB interactive supervisor, explicit control lifecycle and deployment
+configuration, real signed provisioning, unchanged existing workers, bounded logs,
+finite lease/disk guards, local-origin faucet and opt-in browser-generated local
+wallet. The wallet signs only after current deployment authentication and explicit
+confirmation; keys never enter server responses. Documents explain immutable
+accounts, funded cash/unpaid claims and stop/reset semantics. A small private local
+workspace package reuses exact installed dependencies; offline pnpm install added
+no downloads. Typecheck/build and scoped wallet/faucet tests are being completed.
+No actual interactive/browser acceptance or PR is claimed yet. Both new status
+rows remain In progress. No program rebuild, broad local regression, real devnet,
+external participant or endurance run is warranted for this scope. Exact next
+action: commit the coherent implementation, run fresh launcher/browser/stop/reset
+acceptance on that pin, fix only demonstrated defects, and publish ready.

@@ -45,6 +45,16 @@ Read [AGENTS.md](AGENTS.md), then [the live worklog](docs/WORKLOG.md), [product 
 | [docs/P05-INDEXER.md](docs/P05-INDEXER.md) | PostgreSQL journal/recovery, read endpoints, exact service pins and local operations |
 | [docs/P03-MAKER-CONTRACT.md](docs/P03-MAKER-CONTRACT.md) | Maker curves, capital binding, bounded read-only CPI, epochs and upgrade controls |
 
+## Interactive local demo
+
+[The local walkthrough](docs/P28A-LOCAL-DEMO.md) packages the current schema-3
+profile for hands-on evaluation. With the pinned tools/dependencies and qualified
+artifacts installed, run `bash ops/demo.sh start`, then open
+**http://127.0.0.1:18083** and choose **Rivalt Local Demo** in the wallet picker.
+Use `bash ops/demo.sh status`, `stop`, or `reset` to manage the owned session.
+Sessions use synthetic prices and valueless collateral, last up to 60 minutes,
+and start fresh after a reset. WORKLOG records this follow-up's acceptance status.
+
 ## What “finalized” means
 
 The product architecture, economic contract, scope and delivery order are selected for implementation. Exact financial layouts, arithmetic bounds and synthetic risk parameters are phase deliverables with explicit deadlines in DECISIONS. The pinned P01 stack has its own executable checks; it does not validate later economic behavior.
