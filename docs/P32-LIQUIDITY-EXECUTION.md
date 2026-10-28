@@ -79,7 +79,7 @@ builds retain their gates; legacy V3 sampling/activation still rejects profile4.
 New financial trading remains disabled. P30/P31 deployments and evidence are
 unchanged; candidate artifacts live separately in `.local/liquidity-execution/`.
 
-## Resource probe (not phase acceptance)
+## Pre-D74 resource probes (historical, not phase acceptance)
 
 `bash ops/build-liquidity-execution.sh` builds the candidate; `bash
 ops/liquidity-sampling-smoke.sh` performs the scoped real RPC/WS sampler probe.
@@ -117,7 +117,30 @@ including the103,680 equivalence cases, and seven affected account-trading tests
 pass. The borrowed-capital SBF build passes its frame check; its RPC retry remains
 pending, so heap/resource success is not inferred.
 Keep the complete registry, full code hashes, exact quantities, risk rules and
-20% headroom requirement. No successful sampler, full-book resource acceptance,
+20% headroom requirement. At that pre-D74 checkpoint no successful sampler, full-book resource acceptance,
 actual financial funding/execution or A37/G25 completion is claimed yet.
 Existing custody, source, funded-cash/unpaid-claim, 2 bps/zero-provider and 25%
 insurance rules remain in force. P15B/P16B stay Open; 24-hour endurance Deferred.
+
+
+## D74 published-depth resource result
+
+Clean `2a93394` compiles and passes15 scoped clearing tests,4 independent funding
+reference cases and TypeScript checking. The amended100-lot sampler succeeds in
+simulation and lands at **1,334,329CU**,1,101 bytes v0,29 unique static accounts,
+in `.local/liquidity-execution/runs/20261028T201121Z-29627`. Its fetched event has
+the literal expected bid5,999,900/ask6,000,300 and premium1e9; generated SDK and
+isolated legacy Anchor event decoding agree.
+
+This still **fails** the1.12mCU headroom target. The harness stops before600 lots,
+actual zero-cash makers, stale-input cases and transaction binary/WS checks. Those
+checks, full books, actual trading and phase acceptance remain pending. Thirty
+setup/source/publication transactions pass before this successful but over-budget
+sample. The owned runtime is stopped; no new PostgreSQL directory is created.
+
+Log boundaries attribute530,849CU before the first maker quote,237,366CU within
+eight maker quote calls, and566,114CU to the remaining quote/search/bookkeeping
+work. The first category includes setup/authentication and is not an isolated
+code-hashing measurement. No maker hypothetical financial checks remain in this
+sampler. Profile and reduce the remaining price/authentication overhead next; do
+not label the changed sampler cheap or scalable from this single successful size.

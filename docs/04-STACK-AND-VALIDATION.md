@@ -22,8 +22,9 @@ SDK checks, 24 actual quote comparisons / 73 signed RPC/WS outcomes and 1,000
 maximum-width searches. These qualify pricing/preview only; P32 must prove changed
 financial execution and PostgreSQL integration separately.
 
-P32's scoped sampler probe currently records a compute-limit failure, retained in
-[its implementation record](P32-LIQUIDITY-EXECUTION.md#resource-probe-not-phase-acceptance).
+P32's scoped sampler probe records historical compute/heap failures and a D74
+successful100-lot transaction that still fails required CU headroom; see
+[its implementation record](P32-LIQUIDITY-EXECUTION.md#d74-published-depth-resource-result).
 Native prepared-admission equivalence does not replace the unchanged compiled
 full-coverage/full-book/headroom gates. Do not classify a simulated failure as a
 submitted transaction or successful sample.
