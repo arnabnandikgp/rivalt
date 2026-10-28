@@ -96,6 +96,8 @@ try {
     assert.equal(file.length,artifact.bytes);assert.equal(createHash('sha256').update(file).digest('hex'),artifact.sha256,`Unqualified ${artifact.name}`);
   }
   const disk=statfsSync(DEMO_ROOT);assert(disk.bavail*disk.bsize>1024**3,'At least 1 GiB free disk is required');
+  stage='production UI build';
+  await processes.run('ui-build','pnpm',['build:trader']);
   stage='local RPC';
   const rpcUrl='http://127.0.0.1:18931',wsUrl='ws://127.0.0.1:18932';
   const surfpool=processes.start('surfpool','surfpool',['start','--offline','--no-deploy','--no-tui','--no-studio',
@@ -154,7 +156,7 @@ try {
   sourceLoop=(async()=>{while(!stopping){for(let feed=0;feed<6&&!stopping;feed++)await setup!.publish(feed);await delay(3000);}})();
   sourceLoop.catch(()=>{if(!stopping)void shutdown('synthetic source publisher failed; original retained',1);});
   stage='UI and source readiness';
-  const ui=processes.start('ui',process.execPath,['apps/trader/node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','18083','--strictPort','apps/trader'],{
+  const ui=processes.start('ui',process.execPath,['apps/trader/node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','18083','--strictPort','apps/trader'],{
     ...environment,RIVALT_TRADER_CONFIG:RUNTIME+'/deployment.json',RIVALT_SERVICE_ORIGIN:'http://127.0.0.1:18093',
     RIVALT_INDEXER_ORIGIN:'http://127.0.0.1:18092',RIVALT_LOCAL_DEMO:'1'});
   ui.once('exit',()=>{if(!stopping)void shutdown('UI process exited',1);});

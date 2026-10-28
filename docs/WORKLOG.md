@@ -44,7 +44,6 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
-
 | M9 | P28A | Interactive local evaluation follow-up | In progress | D68: launcher/test wallet implementation and scoped checks underway; actual browser/start-stop-reset acceptance pending; M8 unchanged |
 
 ## Phase overview
@@ -86,10 +85,10 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P27 | SDK, indexer/API and durable services | Closed | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit; integrated at `0916b9d` |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Closed | [PR #40](https://github.com/arnabnandikgp/rivalt/pull/40), published `ac894f1`, above #39 `9498d2e` | [A33/G21/M8](evidence/P28.md): 17 browser originals, 115 submitted trades, six busy exits, four bounded history rescans, complete nine-root default/recovery and identical fresh PostgreSQL replay; tested `f595fd7` / `5491752`; R073 scoped review corrections `e6ba2cf`; integrated at `0916b9d` |
 
+| M9 | P28A | Interactive launcher, local test wallet and walkthrough | In progress | `phase/p28a-local-demo` above `4338af6` | [P28A contract](P28A-LOCAL-DEMO.md); actual runtime/browser/stop/reset qualification pending |
+
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
-
-| M9 | P28A | Interactive launcher, local test wallet and walkthrough | In progress | `phase/p28a-local-demo` above `4338af6` | [P28A contract](P28A-LOCAL-DEMO.md); actual runtime/browser/stop/reset qualification pending |
 
 ## Latest checkpoint
 
@@ -3572,3 +3571,20 @@ retain initial confirmed simulation and any structured submission error, and
 verify the returned signature. Owned runtime cleanup completes. Both new rows
 remain In progress. Exact next action: commit this transport-only correction and
 reset the owned disposable demo state for a new launcher attempt.
+
+
+R074 interactive continuation: `dc471de` reaches ready with actual Normal BTC/ETH,
+four live internal makers, acknowledged WS and reconciled PostgreSQL. Its first
+interactive session stops on the existing low-disk guard (about 539 MiB free);
+the owned DB/logs occupy only 49 MiB. Reclaimed about 950 MiB of rebuildable
+`target/{debug,release,sbpf-solana-solana,flycheck0}` compiler output, preserving
+qualified binaries, evidence and user files. A fresh session reaches ready and
+a second start returns the same session/venue. Browser acceptance then identifies
+`process is not defined` in generated SDK code served by Vite development mode,
+before any wallet transaction. Change this launcher to build/serve the production
+UI, matching existing qualification. Failed captures remain at
+`.local/demo-checks/R074-first` and `R074-browser`; no browser pass is claimed.
+Fix malformed new status-table row placement and an obsolete README stack sentence.
+Both M9/P28A remain In progress. Exact next action: commit the launcher correction,
+verify owned stop, and rerun fresh startup/browser/reset acceptance. No financial,
+IDL/SBF, broad legacy, devnet or endurance suite is needed for this correction.

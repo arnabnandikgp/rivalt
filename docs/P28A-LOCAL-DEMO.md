@@ -47,7 +47,7 @@ bash ops/demo.sh reset
 ```
 
 `start` starts the existing Apple Containers service if necessary, launches the
-owned background processes and prints the UI address when ready:
+owned background processes, builds/serves the production UI, and prints its address when ready:
 **http://127.0.0.1:18083**. Keep the computer awake/lid open while using it. The
 60-minute session lease is a resource bound, not a soak test. `status` reports
 source modes, four maker heartbeats, WS subscription, projection health and finite

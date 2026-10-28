@@ -123,6 +123,6 @@ isolated/cross accounts without a technical group selector. [Fresh acceptance](d
 verifies 17 wallet originals, 115 submitted trades, six funded withdrawals during
 ordinary sampling/trading, complete default/recovery and identical fresh PostgreSQL
 replay. Funded cash stays separate from unpaid claims; profit payment still requires
-current certified market backing. The P22–P28 stack remains open for review;
-WORKLOG owns integration status. These bounded local results do not qualify
+current certified market backing. The P22–P28 stack is integrated under R073/D67;
+WORKLOG records its exact integration and follow-up status. These bounded local results do not qualify
 independent makers, funded deployment or deferred 24-hour endurance.
