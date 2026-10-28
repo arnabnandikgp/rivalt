@@ -86,8 +86,8 @@ D71 amends the fresh maker-liquidity transport gate: measure complete signed
 transactions, keep v0 at≤1,232 bytes and use v1 above that up to4,096 bytes, with
 explicit compute/loaded-data headers and owning-phase RPC/wallet/service checks.
 Mandatory ALT provisioning is superseded; account, compute/headroom, financial and
-qualification boundaries remain. The user's current steering is to stop after
-opening P30's ready PR; defer starting P31 until that conversation resumes.
+qualification boundaries remain. R082 records the user's instruction to resume after the P30 discussion. Continue
+P31–P34 sequentially above the ready P30 PR, keeping the stack open.
 
 The integrated engineering path is P01–P14 → P15A → P16A → P17 → P18A → P18B → P18C → P19 → P20 → P21A → P21B → P22A → P22B → P23 → P24 → P25 → P26 → P27 → P28 → P28A. D69 plans and D70 authorizes P29A → P29B → P30 → P31 → P32 → P33 → P34. External P15B/P16B do not block authorized test engineering; their own prerequisites remain mandatory. Do not reopen settled architecture outside the explicit D56/D69/D70 scopes or ask to start each already-authorized phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
 

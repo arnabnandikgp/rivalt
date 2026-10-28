@@ -1270,3 +1270,18 @@ Anchor. Surfpool log-error hints disagree for16 failures; all signature notifica
 and finalized statuses agree, and rejected state is excluded. This does not qualify
 wallet/indexer v1 support, routes or financial activation. The user instructs
 stopping after opening P30's ready PR; P31 is not started.
+
+## D72 — Resume P31 and bound complete quote discovery (28 October 2026)
+
+The user resumes the authorized P31–P34 sequence after the P30 discussion,
+superseding D71's temporary stop instruction only. Phase PRs remain ready, stacked
+and open. D70 financial gates and D71 measured v0/v1 selection remain unchanged.
+
+P31 uses one final coherent RPC batch for all three sealed candidates, their
+capital/portfolio identities and full program code alongside the selected account's
+financial dependencies. Set the SDK discovery ceiling to 48 distinct RPC keys.
+This is a read-only discovery bound, separate from the retained G22 maximum of
+32 loaded accounts per signed transaction. Unknown pricing capabilities fail
+closed; classified unavailable canonical makers remain visible. No financial
+activation, fee/insurance/loss change or wider exactness guarantee is authorized.
+See [P31 implementation](P31-EXACT-ROUTING.md) for interfaces and scoped acceptance.

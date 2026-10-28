@@ -19,7 +19,7 @@ export const goldenShape: sdk.makerA.ShapeV4Args = {
   asks: [{ endLots: 3n, offset: 3n, slope: 2n }, { endLots: 8n, offset: 12n, slope: 0n }, ...Array(6).fill(zero)],
 };
 
-export async function canonicalMakerCases(h: CanonicalHarness) {
+export async function provisionCanonicalMakers(h: CanonicalHarness) {
   const payer = await payerKey(), owner = await fixtureKey('p30-owner'), updater = await fixtureKey('p30-updater');
   const mint = await fixtureKey('p30-mint'), token = await fixtureKey('p30-token');
   const deployment = await addresses();
@@ -113,6 +113,13 @@ export async function canonicalMakerCases(h: CanonicalHarness) {
       first: marketInstances[0].registration, second: marketInstances[1].registration, third: marketInstances[2].registration })]);
     assert.equal(sdk.getLiquidityRegistryV4Decoder().decode((await h.read(liquidityRegistry))!).sealed, true);
   }
+  return { payer, owner, updater, mint, token, deployment, domain, venue, registry, vault, custody, safety,
+    markets, ledgers, common, admin, tracked, instances, rejected };
+}
+
+export async function canonicalMakerCases(h: CanonicalHarness) {
+  const { payer, owner, updater, mint, token, deployment, domain, venue, registry, vault, custody, safety,
+    markets, ledgers, common, admin, tracked, instances, rejected } = await provisionCanonicalMakers(h);
   // Literal P29B independent per-lot vectors, checked through the deployed maker A and B programs.
   for (const maker of [instances[0], instances[2], instances[3], instances[5]]) {
     for (const [side, lots, inventory, consumed, expected] of [[0n,3n,0n,0n,317n],[0n,4n,0n,0n,431n],

@@ -439,3 +439,13 @@ preflight rejection, finalized failed originals and uncertain submission. Only
 definite failure releases a grant; ambiguous or successful originals retain it.
 Faucet success/failure history uses finalized commitment and verifies the original
 signature; other provisioning/source sends retain confirmed commitment.
+
+### P31 canonical snapshot and allocation interface
+
+The [P31 adapter](P31-EXACT-ROUTING.md) supplies `readLiquidityTradeSnapshot`,
+`authenticateLiquidityMarket`, `allocateLiquidityRoute` and `previewLiquidityRoute`.
+All three sealed maker instances share one final financial RPC context; complete
+code and isolated capital bindings are authenticated before exact quote enumeration.
+The read-only 48-key discovery ceiling is separate from submitted route budgets.
+Profile-4 previews expose no financial transaction builder in P31; P32 owns actual
+execution/funding integration and its activation gate. V3 APIs remain profile-bound.

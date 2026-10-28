@@ -61,6 +61,8 @@ jobs:
       - run: pnpm test
       - name: Canonical maker SDK against independent reference
         run: python3 tests/financial/check_maker_curve_parity.py --implementation sdk
+      - name: Exact liquidity allocation against independent financial enumeration
+        run: python3 tests/financial/check_liquidity_allocation.py
       - run: pnpm build:trader
   report:
     needs: scope

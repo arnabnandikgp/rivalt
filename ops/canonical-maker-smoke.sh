@@ -8,6 +8,11 @@ export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18931}"
 export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18932}"
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
 export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
+case "${1:-}" in
+  '') RIVALT_CANONICAL_DRIVER=tests/rpc-contract/canonical-maker-rpc.ts; RIVALT_CANONICAL_PHASE=P30 ;;
+  --adapters) RIVALT_CANONICAL_DRIVER=tests/rpc-contract/liquidity-adapter-rpc.ts; RIVALT_CANONICAL_PHASE=P31 ;;
+  *) echo 'Usage: canonical-maker-smoke.sh [--adapters]' >&2; exit 2 ;;
+esac
 export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/canonical-maker/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
 test -f .local/canonical-maker/clearing.so
@@ -34,5 +39,5 @@ for component in clearing maker_a maker_b; do
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
-node --import tsx tests/rpc-contract/canonical-maker-rpc.ts
-printf 'P30 evidence: %s\n' "$RIVALT_RUN_DIR"
+node --import tsx "$RIVALT_CANONICAL_DRIVER"
+printf '%s evidence: %s\n' "$RIVALT_CANONICAL_PHASE" "$RIVALT_RUN_DIR"
