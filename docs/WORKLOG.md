@@ -44,7 +44,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
-| M9 | P28A | Interactive local evaluation follow-up | Review | [P28A acceptance](evidence/P28A.md) passes on `4f809d3`: 13 browser originals, indexed fills, immediate owned shutdown and fresh reset; ready publication pending; M8 unchanged |
+| M9 | P28A | Interactive local evaluation follow-up | Review | [P28A acceptance](evidence/P28A.md) passes on `4f809d3`: 13 browser originals, indexed fills, immediate owned shutdown and fresh reset; [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) open/ready above main; M8 unchanged |
 
 ## Phase overview
 
@@ -85,7 +85,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P27 | SDK, indexer/API and durable services | Closed | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit; integrated at `0916b9d` |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Closed | [PR #40](https://github.com/arnabnandikgp/rivalt/pull/40), published `ac894f1`, above #39 `9498d2e` | [A33/G21/M8](evidence/P28.md): 17 browser originals, 115 submitted trades, six busy exits, four bounded history rescans, complete nine-root default/recovery and identical fresh PostgreSQL replay; tested `f595fd7` / `5491752`; R073 scoped review corrections `e6ba2cf`; integrated at `0916b9d` |
 
-| M9 | P28A | Interactive launcher, local test wallet and walkthrough | Review | `phase/p28a-local-demo` above `4338af6`; tested `4f809d3`; ready publication pending | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 distinct wallet originals, indexed fills, reload, stop/reset and idempotency pass |
+| M9 | P28A | Interactive launcher, local test wallet and walkthrough | Review | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) above main `4338af6`; tested `4f809d3`; published `3385065` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 distinct wallet originals, indexed fills, reload, stop/reset and idempotency pass |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -98,7 +98,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Current review verification (R073): zero unresolved inline threads or requested changes; all eight final heads mergeable with selected CI successful or scope-skipped. Tip `e6ba2cf` passes all five jobs in [hosted run 40576656720](https://github.com/arnabnandikgp/rivalt/actions/runs/40576656720); CodeRabbit is neutral/skipped for the incremental push. Seven local consumer cases, one Rust wire test, typecheck and trader build pass. This is scoped remediation/integration evidence, not an independent protocol review.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: publish the verified P28A branch as one ready PR, verify selected hosted checks and record its URL. Keep it open for review; M8 remains Closed and no further product/deployment phase is included.
+- Exact next action: review actual P28A PR #41 findings when available, keeping the PR open. The local demo and acceptance are complete; integration remains required for Closed. M8 remains Closed and no further product/deployment phase is included.
 - Deferred gates: R072 qualifies six busy funded exits in the schema-3 local profile; the older V2 profile keeps its historical limitation. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new devnet/funded deployment or external participation is claimed.
 
 ## Blocker register
@@ -3649,3 +3649,27 @@ and outside this follow-up. Hosted results are not yet claimed. Both new tables
 move to Review, not Closed; original M8 stays Closed. No outstanding runtime/access
 blocker. Exact next action: commit the evidence/spec closeout, submit with
 `gh stack submit --auto --open`, and record the ready PR and observed hosted checks.
+
+
+R074 publication: `gh stack submit --auto --open` creates ready
+[PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) above `main`, head
+`338506557b9c51a14f505b112168b0a339542384`. Metadata independently confirms OPEN and
+`isDraft=false`; the final description covers the whole launcher/wallet deliverable.
+Both status rows remain Review. Actual listener inspection confirms all seven
+ports bind 127.0.0.1; the one current DB is 67 MiB and retained session logs total
+1.1 MiB at this observation. Final changed-document validation passes 316 local
+links/fences, with evidence policy and diff whitespace clean. Untracked `phoenix/`
+and the original design proposal remain untouched. No new local tests are needed
+for this publication-only documentation update. Hosted scope/shell pass and
+financial/report jobs are scope-skipped; client/CodeRabbit are still running at
+this observation, not claimed complete. Exact next action: record the selected
+hosted outcome, publish this metadata and leave PR #41 open for review.
+
+R074 hosted outcome: [run 40648078942](https://github.com/arnabnandikgp/rivalt/actions/runs/40648078942)
+succeeds on exact `3385065`: scope, client (generated-client check, TypeScript,
+Vitest and trader build) and shell pass; unrelated financial/report jobs are
+intentionally scope-skipped. CodeRabbit was still running at the last observation;
+no independent review approval is claimed. The remaining metadata change affects
+only documentation and leaves the verified `4f809d3` runtime unchanged. Next
+action after publication: address actual PR #41 review findings when available;
+keep the PR open and leave M9/P28A in Review until authorized integration.
