@@ -1108,3 +1108,8 @@ originals remain reserved, and faucet responses await finalized history. This is
 local test-faucet/lifecycle handling, not a financial-program or deployment change.
 Keep the demo stopped and stop work after review/integration; subsequent scope is
 for the user's next instruction.
+
+D68 integration result (R076): PR #41 merges at `350e60c`, with a tree identical
+to checked `ba73bcd`. Both findings are resolved and selected hosted checks pass.
+P28A/M9 close within their local-evaluation scope; original program qualification,
+external gates and deferred endurance are unchanged. The demo remains stopped.

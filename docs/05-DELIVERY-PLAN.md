@@ -680,3 +680,8 @@ Closed; this new deliverable has its own Review/integration gate. Require actual
 Surfpool/RPC/WS/PostgreSQL startup, browser-signed lifecycle, independent original
 transaction fetch, reload, owned shutdown and fresh reset. No broad inherited
 matrix or 24-hour run is required. Publish one ready PR; external gates stay Open.
+
+P28A integration (R076): PR #41 is merged at `350e60c` after focused review
+remediation and passing hosted checks; its tree matches `ba73bcd`. WORKLOG closes
+P28A/M9 while retaining the original `4f809d3` runtime evidence and separate R076
+error-path checks. No subsequent phase is authorized by this closeout.
