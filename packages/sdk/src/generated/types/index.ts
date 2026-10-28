@@ -46,6 +46,8 @@ export * from "./resolutionUpdate.js";
 export * from "./riskParticipant.js";
 export * from "./routeIntent.js";
 export * from "./routeLeg.js";
+export * from "./sampleInputV4.js";
+export * from "./sampleLegV4.js";
 export * from "./shapeV4.js";
 export * from "./storedOrder.js";
 export * from "./storedOrderV2.js";

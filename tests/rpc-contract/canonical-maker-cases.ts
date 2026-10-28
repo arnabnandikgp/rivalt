@@ -19,7 +19,8 @@ export const goldenShape: sdk.makerA.ShapeV4Args = {
   asks: [{ endLots: 3n, offset: 3n, slope: 2n }, { endLots: 8n, offset: 12n, slope: 0n }, ...Array(6).fill(zero)],
 };
 
-export async function provisionCanonicalMakers(h: CanonicalHarness) {
+export async function provisionCanonicalMakers(h: CanonicalHarness,shape: sdk.makerA.ShapeV4Args = goldenShape,
+  makerMarkets: readonly (0|1)[] = [0,1]) {
   const payer = await payerKey(), owner = await fixtureKey('p30-owner'), updater = await fixtureKey('p30-updater');
   const mint = await fixtureKey('p30-mint'), token = await fixtureKey('p30-token');
   const deployment = await addresses();
@@ -58,7 +59,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness) {
       market: markets[marketIndex], ledger: ledgers[marketIndex] })]);
   }
   const instances = [];
-  for (const marketIndex of [0, 1]) {
+  for (const marketIndex of makerMarkets) {
     const market = markets[marketIndex];
     const liquidityRegistry = await accountPda('liquidity-v4', keyBytes.encode(market));
     const liquidityCommon = { ...common, market, registry: liquidityRegistry, authority: payer };
@@ -86,7 +87,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness) {
       const capitalBinding = await accountPda('capital-v3', keyBytes.encode(capital));
       const makerCommon = { config, price, program: pricingProgram, eventAuthority: makerEventAuthority };
       await h.send(`initialize canonical curve ${marketIndex}/${instance}`, [await module.getInitializeCurveV4InstructionAsync({ ...makerCommon,
-        owner, venue, market, capital, instance, shape: goldenShape, updater: updater.address, expiry: 1_000_000n })], [owner]);
+        owner, venue, market, capital, instance, shape, updater: updater.address, expiry: 1_000_000n })], [owner]);
       await h.send(`register canonical maker ${marketIndex}/${instance}`, [await sdk.getRegisterLiquidityV4InstructionAsync({ ...liquidityCommon,
         owner, capital, registration, capitalBinding, config, price, pricingProgram, programData, instance })], [owner]);
       tracked.push(capital, config, price, registration, capitalBinding);

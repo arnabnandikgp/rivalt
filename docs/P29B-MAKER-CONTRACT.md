@@ -292,6 +292,10 @@ then the three complete maker tuples (capital read-only, registration read-only,
 program,ProgramData,config,price), event authority and clearing. Market/order
 reservation projections do not write maker roots during a sample. Duplicate program
 metas are deduplicated in the message, not confused with duplicate capital.
+`initialize_liquidity_oracle_v4(primary:key,guard:key)` uses the existing
+`InitializeAccountOracle` context/order and source authority rules, under the
+separate profile4 qualification gate. Legacy two-maker sampling and activation
+remain profile3-only; source initialization grants no trading activation.
 
 Events use existing event-CPI durability. The following lists are ordered Borsh
 payloads. `PayloadV4` means the named account's exact bytes without its 8-byte

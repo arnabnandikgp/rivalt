@@ -1,5 +1,53 @@
 use super::*;
 
+pub(crate) fn execution_base(
+    venue: &VenueV3,
+    custody: &CustodyV3,
+    safety: &SafetyV3,
+    market: &MarketV3,
+) -> Result<()> {
+    require!(
+        cfg!(feature = "liquidity-execution-qualification")
+            && venue.schema_version == 3
+            && venue.profile_version == 4
+            && venue.market_count == 2
+            && venue.insurance_fee_share_bps == 2500
+            && custody.schema_version == 3
+            && safety.schema_version == 3
+            && matches!(safety.mode, CUSTODY | ACTIVE)
+            && market.schema_version == 3
+            && market.index < 2,
+        ClearingError::Profile
+    );
+    Ok(())
+}
+
+pub(crate) fn execution_profile(
+    venue: &VenueV3,
+    custody: &CustodyV3,
+    safety: &SafetyV3,
+    market: &MarketV3,
+) -> Result<()> {
+    execution_base(venue, custody, safety, market)?;
+    require!(!safety.paused, ClearingError::Paused);
+    Ok(())
+}
+
+/// P30 binaries remain custody-only. P32's separate candidate can coordinate
+/// controls with held funding, but frozen/default resolution still rejects them.
+pub(crate) fn control_base(
+    venue: &VenueV3,
+    custody: &CustodyV3,
+    safety: &SafetyV3,
+    market: &MarketV3,
+) -> Result<()> {
+    if cfg!(feature = "liquidity-execution-qualification") {
+        execution_base(venue, custody, safety, market)
+    } else {
+        custody_base(venue, custody, safety, market)
+    }
+}
+
 pub(crate) fn custody_only(
     venue: &VenueV3,
     custody: &CustodyV3,
@@ -141,12 +189,13 @@ pub(crate) fn authenticated_control(
     authority: u64,
     check_hash: bool,
 ) -> Result<CurveStateV4> {
-    custody_only(
+    control_base(
         &accounts.venue,
         &accounts.custody,
         &accounts.safety,
         &accounts.market,
     )?;
+    require!(!accounts.safety.paused, ClearingError::Paused);
     capital_identity(&accounts.capital, &accounts.market)?;
     require!(
         accounts.registration.schema_version == 4

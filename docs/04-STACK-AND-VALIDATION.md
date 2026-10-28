@@ -22,6 +22,12 @@ SDK checks, 24 actual quote comparisons / 73 signed RPC/WS outcomes and 1,000
 maximum-width searches. These qualify pricing/preview only; P32 must prove changed
 financial execution and PostgreSQL integration separately.
 
+P32's scoped sampler probe currently records a compute-limit failure, retained in
+[its implementation record](P32-LIQUIDITY-EXECUTION.md#resource-probe-not-phase-acceptance).
+Native prepared-admission equivalence does not replace the unchanged compiled
+full-coverage/full-book/headroom gates. Do not classify a simulated failure as a
+submitted transaction or successful sample.
+
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
 phase-owned, and the candidate build does not satisfy P26 safety.

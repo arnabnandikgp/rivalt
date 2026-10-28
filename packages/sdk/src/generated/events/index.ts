@@ -40,6 +40,7 @@ export * from "./groupRouteExecutedV2.js";
 export * from "./groupSafetyChangedV2.js";
 export * from "./liquidationApplied.js";
 export * from "./liquidityMakerChangedV4.js";
+export * from "./liquidityOracleChangedV4.js";
 export * from "./liquidityRegistryChangedV4.js";
 export * from "./makerChanged.js";
 export * from "./marginAuthorityChangedV2.js";

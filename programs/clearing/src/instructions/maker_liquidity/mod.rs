@@ -24,8 +24,10 @@ mod validation;
 pub(crate) use validation::*;
 pub(crate) mod pricing;
 pub(crate) mod admission;
+mod reservations;
 pub(crate) mod impact;
 pub(crate) mod funding;
+pub mod sampling;
 
 #[cfg(test)]
 mod tests;
@@ -63,6 +65,15 @@ fn maker_event(
         state: MakerRegistrationPayloadV4::from(&**registration),
         operation,
     })
+}
+
+fn truncate_funding(mode: u8, market: &mut Account<MarketV3>) -> Result<()> {
+    if cfg!(feature = "liquidity-execution-qualification") {
+        let mut next = funding::control_candidate(mode, market, &Clock::get()?)?;
+        increment(&mut next.observation_sequence)?;
+        market.set_inner(next);
+    }
+    Ok(())
 }
 
 pub fn initialize(ctx: Context<InitializeLiquidityV4>) -> Result<()> {
@@ -305,8 +316,7 @@ pub fn control(
         ClearingError::MakerEpoch
     );
     let operation = action.operation() + 1;
-    // This P30 entrypoint rejects active/held financial state. P32 must add causal
-    // materialization before permitting active structural transitions.
+    truncate_funding(accounts.safety.mode, &mut accounts.market)?;
     control_cpi(accounts, &config, action, ctx.bumps.controller)?;
     let emitted_maker = maker_event(
         accounts.venue.key(),
@@ -341,6 +351,7 @@ pub fn replenish(
             && accounts.registration.depth_epoch == expected_depth,
         ClearingError::MakerEpoch
     );
+    truncate_funding(accounts.safety.mode, &mut accounts.market)?;
     increment(&mut accounts.registration.depth_epoch)?;
     if sides & 1 != 0 {
         accounts.registration.buy_consumed = 0;
@@ -362,7 +373,7 @@ pub fn replenish(
 pub fn quarantine(ctx: Context<QuarantineLiquidityV4>, authority: u64) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
-    custody_base(
+    control_base(
         &accounts.venue,
         &accounts.custody,
         &accounts.safety,
@@ -376,6 +387,7 @@ pub fn quarantine(ctx: Context<QuarantineLiquidityV4>, authority: u64) -> Result
             && accounts.registration.owner == accounts.capital.owner,
         ClearingError::MakerBinding
     );
+    truncate_funding(accounts.safety.mode, &mut accounts.market)?;
     increment(&mut accounts.registration.authority_epoch)?;
     accounts.registration.quarantined = true;
     let emitted = maker_event(
@@ -406,6 +418,7 @@ pub fn approve(ctx: Context<ControlLiquidityV4>, authority: u64) -> Result<()> {
         ClearingError::Authority
     );
     let approved_hash = module_hash(&accounts.program_data)?;
+    truncate_funding(accounts.safety.mode, &mut accounts.market)?;
     control_cpi(
         accounts,
         &config,

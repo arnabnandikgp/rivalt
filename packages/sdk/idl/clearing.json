@@ -8960,6 +8960,108 @@
       ]
     },
     {
+      "name": "initialize_liquidity_oracle_v4",
+      "discriminator": [
+        25,
+        98,
+        80,
+        222,
+        78,
+        170,
+        247,
+        2
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "venue"
+          ]
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "custody",
+            "safety",
+            "market"
+          ]
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "primary",
+          "type": "pubkey"
+        },
+        {
+          "name": "guard",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "initialize_liquidity_v4",
       "discriminator": [
         22,
@@ -17186,6 +17288,194 @@
       "args": []
     },
     {
+      "name": "sample_liquidity_v4",
+      "discriminator": [
+        9,
+        149,
+        124,
+        151,
+        174,
+        246,
+        56,
+        42
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "custody",
+            "safety",
+            "market",
+            "registry"
+          ]
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "primary_asset"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_asset"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "first_capital"
+        },
+        {
+          "name": "first_registration"
+        },
+        {
+          "name": "first_program"
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config"
+        },
+        {
+          "name": "first_price"
+        },
+        {
+          "name": "second_capital"
+        },
+        {
+          "name": "second_registration"
+        },
+        {
+          "name": "second_program"
+        },
+        {
+          "name": "second_program_data"
+        },
+        {
+          "name": "second_config"
+        },
+        {
+          "name": "second_price"
+        },
+        {
+          "name": "third_capital"
+        },
+        {
+          "name": "third_registration"
+        },
+        {
+          "name": "third_program"
+        },
+        {
+          "name": "third_program_data"
+        },
+        {
+          "name": "third_config"
+        },
+        {
+          "name": "third_price"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "sample_oracle",
       "discriminator": [
         189,
@@ -21981,6 +22271,19 @@
       ]
     },
     {
+      "name": "LiquidityOracleChangedV4",
+      "discriminator": [
+        113,
+        243,
+        29,
+        5,
+        135,
+        237,
+        79,
+        1
+      ]
+    },
+    {
       "name": "LiquidityRegistryChangedV4",
       "discriminator": [
         211,
@@ -26301,6 +26604,71 @@
       }
     },
     {
+      "name": "LiquidityOracleChangedV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MarketSnapshotV3"
+              }
+            }
+          },
+          {
+            "name": "inputs",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "SampleInputV4"
+                  }
+                },
+                3
+              ]
+            }
+          },
+          {
+            "name": "bid_legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "SampleLegV4"
+                }
+              }
+            }
+          },
+          {
+            "name": "ask_legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "SampleLegV4"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "LiquidityRegistryChangedV4",
       "type": {
         "kind": "struct",
@@ -30444,6 +30812,78 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SampleInputV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registration",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "control_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "shape_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "depth_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "price_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "buy_consumed",
+            "type": "u64"
+          },
+          {
+            "name": "sell_consumed",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SampleLegV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "instance",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross",
+            "type": "u64"
           }
         ]
       }

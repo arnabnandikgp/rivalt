@@ -8,6 +8,8 @@ use financial_core::margin::{Margin, Risk};
 pub(crate) struct MakerAdmission<'market> {
     root: Box<MarginAccountV2>,
     accrued: Margin,
+    selected: financial_core::Participant,
+    reservations: super::reservations::Reservations,
     market: &'market GroupMarketV2,
     funding: [i128; 2],
     risks: [Risk; 2],
@@ -15,6 +17,7 @@ pub(crate) struct MakerAdmission<'market> {
 }
 
 impl<'market> MakerAdmission<'market> {
+    #[inline(never)]
     pub(crate) fn new(
         capital: &MarginAccountV3,
         market: &'market GroupMarketV2,
@@ -34,9 +37,22 @@ impl<'market> MakerAdmission<'market> {
         let mut indexes = [0; 2];
         indexes[usize::from(market.index)] = funding;
         let accrued = group_trading::checked(group_margin::model(&root)?.accrued(indexes))?;
+        let position = accrued.positions[usize::from(market.index)];
+        let selected = financial_core::Participant {
+            id: accrued.id,
+            cash: accrued.cash,
+            lots: position.lots,
+            virtual_scaled: position.virtual_scaled,
+            funding_checkpoint: position.funding_checkpoint,
+            generation: position.generation,
+            reserved: 0,
+        };
+        let reservations = super::reservations::Reservations::new(&root, market, slot);
         Ok(Self {
             root,
             accrued,
+            selected,
+            reservations,
             market,
             funding: indexes,
             risks: group_trading::risk(market, funding)?,
@@ -44,16 +60,47 @@ impl<'market> MakerAdmission<'market> {
         })
     }
 
-    /// Fresh candidate on the stack; no repeated heap allocation and no writes
-    /// to live capital, orders, reservations, counters or consumption.
+    /// The same scalar fill, reserve and risk arithmetic with invariant book
+    /// inputs prepared once. Unhealthy quantities allocate no Anchor errors.
     #[inline(never)]
     pub(crate) fn admits(&self, side: u8, lots: u64, gross: u64) -> bool {
-        if u128::from(gross) * 10 < u128::from(lots) * u128::from(self.market.reference_price) * 9
+        if side > 1
+            || self.root.state_version == u64::MAX
+            || u128::from(gross) * 10
+                < u128::from(lots) * u128::from(self.market.reference_price) * 9
             || u128::from(gross) * 10
                 > u128::from(lots) * u128::from(self.market.reference_price) * 11
         {
             return false;
         }
+        let Ok(mut candidate) = self.selected.quoted_fill(
+            1 - side,
+            lots,
+            gross,
+            self.funding[usize::from(self.market.index)],
+        ) else {
+            return false;
+        };
+        let Ok(reserved) = self
+            .reservations
+            .required(candidate.lots, candidate.generation)
+        else {
+            return false;
+        };
+        candidate.reserved = reserved;
+        candidate
+            .admissible(
+                self.market.lower,
+                self.market.upper,
+                self.funding[usize::from(self.market.index)],
+            )
+            .is_ok()
+    }
+
+    /// Recheck every selected leg with actual whole-root mutation/book refresh,
+    /// not just the prepared projection used to populate the bounded search.
+    #[inline(never)]
+    pub(crate) fn selected_admits(&self, side: u8, lots: u64, gross: u64) -> bool {
         let Ok(model) = self.accrued.maker_quote_candidate(
             usize::from(self.market.index),
             side,
@@ -180,5 +227,101 @@ mod tests {
         assert!(!MakerAdmission::new(&capital, &market, 0, 100)
             .unwrap()
             .admits(0, 3, 30030));
+    }
+
+    #[test]
+    fn prepared_search_matches_full_route_with_funding_orders_and_protection() {
+        use financial_core::SCALE;
+        let mut comparisons = 0;
+        for market_index in 0..2usize {
+            for inventory in [-4i64, -1, 0, 1, 4] {
+                for funding in [-SCALE, 0, SCALE] {
+                    for cash in [0, 500, 15000] {
+                        for claim in [-1, 0, 500 * SCALE] {
+                            for book_kind in 0..4 {
+                                let (mut capital, mut market) = environment();
+                                market.index = market_index as u8;
+                                capital.isolated_market_index = market.index;
+                                capital.cash = cash;
+                                capital.positions = [v2::PositionV2::default(); 2];
+                                capital.positions[market_index] = v2::PositionV2 {
+                                    lots: inventory,
+                                    virtual_scaled: claim - i128::from(inventory) * 10000 * SCALE,
+                                    generation: 1,
+                                    ..Default::default()
+                                };
+                                if book_kind > 0 {
+                                    capital.book.last_order_id = 4;
+                                    capital.reserved = 4;
+                                    let reduce_side = u8::from(inventory >= 0);
+                                    for (index, stored) in
+                                        capital.book.orders.iter_mut().enumerate()
+                                    {
+                                        stored.market_index = market.index;
+                                        stored.order = crate::state::StoredOrder {
+                                            id: index as u64 + 1,
+                                            version: 1,
+                                            state: 1,
+                                            lots: 4,
+                                            filled: 1,
+                                            fee_budget: 7,
+                                            reserve: 1,
+                                            terms_epoch: 1,
+                                            side: if book_kind == 2 {
+                                                reduce_side
+                                            } else {
+                                                index as u8 % 2
+                                            },
+                                            limit: if index % 2 == 0 { 10010 } else { 9990 },
+                                            expiry_slot: if book_kind == 3 && index == 0 {
+                                                100
+                                            } else {
+                                                200
+                                            },
+                                            reduce_only: book_kind == 2,
+                                            generation: 1,
+                                            group_id: if book_kind == 2 { 1 } else { 0 },
+                                            ..Default::default()
+                                        };
+                                        if book_kind == 3 && index == 1 {
+                                            stored.delegate_epoch = 1;
+                                        }
+                                        if book_kind == 3 && index == 2 {
+                                            stored.order.terms_epoch = 0;
+                                        }
+                                    }
+                                    if book_kind == 2 {
+                                        capital.book.last_group_id = 1;
+                                        capital.book.protections[0].market_index = market.index;
+                                        capital.book.protections[0].protection =
+                                            crate::state::ProtectiveGroup {
+                                                id: 1,
+                                                version: 1,
+                                                original: 3,
+                                                remaining: 2,
+                                                generation: 1,
+                                                side: reduce_side,
+                                            };
+                                    }
+                                }
+                                let admission =
+                                    MakerAdmission::new(&capital, &market, funding, 100).unwrap();
+                                for side in 0..=1 {
+                                    for lots in 1..=12 {
+                                        for price in [9000, 9990, 10010, 11000] {
+                                            assert_eq!(admission.admits(side, lots, lots * price),
+                                                admission.selected_admits(side, lots, lots * price),
+                                                "market={market_index} q={inventory} funding={funding} cash={cash} claim={claim} book={book_kind} side={side} lots={lots} price={price}");
+                                            comparisons += 1;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(comparisons, 103680);
     }
 }

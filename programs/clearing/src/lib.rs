@@ -34,6 +34,12 @@ pub mod clearing {
     pub fn initialize_liquidity_v4(ctx: Context<InitializeLiquidityV4>) -> Result<()> {
         maker_liquidity::initialize(ctx)
     }
+    pub fn initialize_liquidity_oracle_v4(ctx: Context<InitializeAccountOracle>, primary: Pubkey, guard: Pubkey) -> Result<()> {
+        maker_liquidity::sampling::initialize(ctx, primary, guard)
+    }
+    pub fn sample_liquidity_v4(ctx: Context<SampleLiquidityV4>) -> Result<()> {
+        maker_liquidity::sampling::sample(ctx)
+    }
     pub fn register_liquidity_v4(ctx: Context<RegisterLiquidityV4>, instance: u8) -> Result<()> {
         maker_liquidity::register(ctx, instance)
     }

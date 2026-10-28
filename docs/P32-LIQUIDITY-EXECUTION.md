@@ -43,12 +43,18 @@ side scratch shape is 3×601 u64 values = 14,424 bytes, below the 16 KiB contrac
 The SBF heap/CU/packet limits remain unmeasured until integration: this static size
 does not establish overall runtime headroom.
 
-The clearing preparation authenticates each sealed registration, capital PDA,
+The clearing sampler authenticates each sealed registration, capital PDA,
 program/ProgramData hash and fixed read-only config/price pair. It shares code-hash
 work only within one instruction. Funding evaluates each quantity with the actual
-route maker transition, whole-root funding, generation/order refresh and IM
-admission, including healthy larger closes after unhealthy smaller quantities.
+scalar fill/reservation/risk arithmetic, whole-root funding and generation/order
+authority, including healthy larger closes after unhealthy smaller quantities.
 Valid zero-capacity publications still participate in required coverage.
+Invariant order terms are prepared once; per-quantity generation, direction and
+protection capacity still apply. Every selected leg also receives the complete
+route maker transition/book refresh/admission. A native exhaustive comparison
+checks the prepared projection against that full path in103,680 combinations.
+This is optimization-equivalence evidence, separate from the independent literal
+financial expectations and required real-program acceptance.
 
 [D73](DECISIONS.md#d73--causal-canonical-funding-observations-p32-29-october-2026)
 records exact old-interval-first funding and structural-control bookkeeping. Native
@@ -56,7 +62,30 @@ literal tests cover failed samples, repeated controls, publication expiry, recov
 gaps, frozen mode and catchup. The staged sampler uses one reusable 14,424-byte
 quantity table; it does not write capital/orders or consumption.
 
-These helpers are not yet wired to a public financial instruction. P30/P31
-deployments and evidence are unchanged, and no new trading activation is claimed.
+`initialize_liquidity_oracle_v4` reuses the existing source-initializer context and
+authority contract, with a separate profile4 entrypoint. `sample_liquidity_v4`
+wires complete sampling and `LiquidityOracleChangedV4`; all four structural-control
+paths materialize/truncate held funding before mutation. They require the explicit
+`liquidity-execution-qualification` candidate build. Default and P30 custody-only
+builds retain their gates; legacy V3 sampling/activation still rejects profile4.
+New financial trading remains disabled. P30/P31 deployments and evidence are
+unchanged; candidate artifacts live separately in `.local/liquidity-execution/`.
+
+## Resource probe (not phase acceptance)
+
+`bash ops/build-liquidity-execution.sh` builds the candidate; `bash
+ops/liquidity-sampling-smoke.sh` performs the scoped real RPC/WS sampler probe.
+The first two builds rejected oversized sampler stack frames. Explicit decode,
+admission-construction and side-search boundaries remove the SBF frame violations.
+The first actual 100-lot sample measures1,101 bytes in v0, but its simulation
+exhausts1.4m CU before completing the search. It is not sent or counted as a
+successful sample. The45 earlier provisioning/source/publication transactions
+finalized. Raw attempted evidence is retained at
+`.local/liquidity-execution/runs/20261028T190442Z-7610`.
+
+This failed resource gate motivates the prepared-reservation optimization above.
+Keep the complete registry, full code hashes, exact quantities, risk rules and
+20% headroom requirement. No successful sampler, full-book resource acceptance,
+actual financial funding/execution or A37/G25 completion is claimed yet.
 Existing custody, source, funded-cash/unpaid-claim, 2 bps/zero-provider and 25%
 insurance rules remain in force. P15B/P16B stay Open; 24-hour endurance Deferred.

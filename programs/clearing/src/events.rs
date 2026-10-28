@@ -954,6 +954,18 @@ pub struct AccountOrderChangedV3 {
     pub markets: [MarketSnapshotV3; 2],
     pub liability_versions: [u64; 2],
 }
+
+#[event]
+pub struct LiquidityOracleChangedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub state: MarketSnapshotV3,
+    pub inputs: [crate::state::v4::SampleInputV4; 3],
+    pub bid_legs: Vec<crate::state::v4::SampleLegV4>,
+    pub ask_legs: Vec<crate::state::v4::SampleLegV4>,
+}
 #[event]
 pub struct AccountAuthorityChangedV3 {
     pub venue: Pubkey,

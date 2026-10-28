@@ -8,7 +8,8 @@ import type { CanonicalHarness } from './canonical-maker-cases.js';
 import { CanonicalConformance } from './canonical-maker-conformance.js';
 import { WireRpc, WireSubscriptions, eventually } from './wire.js';
 
-export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: string) {
+export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: string,
+  options: { computeUnitLimit?: (label: string,instructions: readonly unknown[]) => number } = {}) {
 assert.equal(new URL(url).hostname, '127.0.0.1');
 const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
 const ws = new WireSubscriptions(wsUrl);
@@ -27,7 +28,8 @@ const h: CanonicalHarness = {
   },
   async send(label, instructions, signers = [], expectedError) {
     const started = performance.now();
-    const computeUnitLimit = label.startsWith('reprice ') ? 100_000 : instructions.length > 1 && label.startsWith('atomic') ? 800_000 : 400_000;
+    const computeUnitLimit = options.computeUnitLimit?.(label,instructions)
+      ?? (label.startsWith('reprice ') ? 100_000 : instructions.length > 1 && label.startsWith('atomic') ? 800_000 : 400_000);
     const { transaction, v0Bytes, wireBytes } = await sdk.signCanonicalInstructions(connection, payer, instructions,
       { computeUnitLimit, loadedAccountsDataSizeLimit: 8 * 1024 * 1024 }, signers);
     const wire = transaction.serialize(), wireBase64 = Buffer.from(wire).toString('base64');

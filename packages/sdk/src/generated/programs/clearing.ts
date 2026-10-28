@@ -196,6 +196,7 @@ import {
   getInitializeGroupOracleV2Instruction,
   getInitializeGroupSafetyV2InstructionAsync,
   getInitializeGroupV2InstructionAsync,
+  getInitializeLiquidityOracleV4InstructionAsync,
   getInitializeLiquidityV4InstructionAsync,
   getInitializeLiquidityVenueV4InstructionAsync,
   getInitializeMarketBackingV3InstructionAsync,
@@ -246,6 +247,7 @@ import {
   getRoundAccountResolutionV3InstructionAsync,
   getSampleAccountOracleV3InstructionAsync,
   getSampleGroupOracleV2Instruction,
+  getSampleLiquidityV4InstructionAsync,
   getSampleOracleInstructionAsync,
   getSealLiquidityV4InstructionAsync,
   getSeedMarketInsuranceV3InstructionAsync,
@@ -321,6 +323,7 @@ import {
   parseInitializeGroupOracleV2Instruction,
   parseInitializeGroupSafetyV2Instruction,
   parseInitializeGroupV2Instruction,
+  parseInitializeLiquidityOracleV4Instruction,
   parseInitializeLiquidityV4Instruction,
   parseInitializeLiquidityVenueV4Instruction,
   parseInitializeMarketBackingV3Instruction,
@@ -371,6 +374,7 @@ import {
   parseRoundAccountResolutionV3Instruction,
   parseSampleAccountOracleV3Instruction,
   parseSampleGroupOracleV2Instruction,
+  parseSampleLiquidityV4Instruction,
   parseSampleOracleInstruction,
   parseSealLiquidityV4Instruction,
   parseSeedMarketInsuranceV3Instruction,
@@ -446,6 +450,7 @@ import {
   type InitializeGroupOracleV2Input,
   type InitializeGroupSafetyV2AsyncInput,
   type InitializeGroupV2AsyncInput,
+  type InitializeLiquidityOracleV4AsyncInput,
   type InitializeLiquidityV4AsyncInput,
   type InitializeLiquidityVenueV4AsyncInput,
   type InitializeMarketAsyncInput,
@@ -518,6 +523,7 @@ import {
   type ParsedInitializeGroupOracleV2Instruction,
   type ParsedInitializeGroupSafetyV2Instruction,
   type ParsedInitializeGroupV2Instruction,
+  type ParsedInitializeLiquidityOracleV4Instruction,
   type ParsedInitializeLiquidityV4Instruction,
   type ParsedInitializeLiquidityVenueV4Instruction,
   type ParsedInitializeMarketBackingV3Instruction,
@@ -568,6 +574,7 @@ import {
   type ParsedRoundAccountResolutionV3Instruction,
   type ParsedSampleAccountOracleV3Instruction,
   type ParsedSampleGroupOracleV2Instruction,
+  type ParsedSampleLiquidityV4Instruction,
   type ParsedSampleOracleInstruction,
   type ParsedSealLiquidityV4Instruction,
   type ParsedSeedMarketInsuranceV3Instruction,
@@ -621,6 +628,7 @@ import {
   type RoundAccountResolutionV3AsyncInput,
   type SampleAccountOracleV3AsyncInput,
   type SampleGroupOracleV2Input,
+  type SampleLiquidityV4AsyncInput,
   type SampleOracleAsyncInput,
   type SealLiquidityV4AsyncInput,
   type SeedMarketInsuranceV3AsyncInput,
@@ -1156,6 +1164,7 @@ export enum ClearingEvent {
   GroupSafetyChangedV2,
   LiquidationApplied,
   LiquidityMakerChangedV4,
+  LiquidityOracleChangedV4,
   LiquidityRegistryChangedV4,
   MakerChanged,
   MarginAuthorityChangedV2,
@@ -1554,6 +1563,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([113, 243, 29, 5, 135, 237, 79, 1]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.LiquidityOracleChangedV4;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([211, 73, 106, 79, 120, 190, 40, 231]),
       ),
       0,
@@ -1763,6 +1783,7 @@ export enum ClearingInstruction {
   InitializeGroupOracleV2,
   InitializeGroupSafetyV2,
   InitializeGroupV2,
+  InitializeLiquidityOracleV4,
   InitializeLiquidityV4,
   InitializeLiquidityVenueV4,
   InitializeMarket,
@@ -1813,6 +1834,7 @@ export enum ClearingInstruction {
   RoundAccountResolutionV3,
   SampleAccountOracleV3,
   SampleGroupOracleV2,
+  SampleLiquidityV4,
   SampleOracle,
   SealLiquidityV4,
   SeedMarketInsuranceV3,
@@ -2428,6 +2450,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([25, 98, 80, 222, 78, 170, 247, 2]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeLiquidityOracleV4;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([22, 214, 118, 0, 73, 219, 158, 150]),
       ),
       0,
@@ -2978,6 +3011,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([9, 149, 124, 151, 174, 246, 56, 42]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SampleLiquidityV4;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([189, 254, 170, 62, 147, 181, 131, 127]),
       ),
       0,
@@ -3385,6 +3429,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.InitializeGroupV2;
     } & ParsedInitializeGroupV2Instruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.InitializeLiquidityOracleV4;
+    } & ParsedInitializeLiquidityOracleV4Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.InitializeLiquidityV4;
     } & ParsedInitializeLiquidityV4Instruction<TProgram>)
   | ({
@@ -3534,6 +3581,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.SampleGroupOracleV2;
     } & ParsedSampleGroupOracleV2Instruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.SampleLiquidityV4;
+    } & ParsedSampleLiquidityV4Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.SampleOracle;
     } & ParsedSampleOracleInstruction<TProgram>)
@@ -3977,6 +4027,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeGroupV2Instruction(instruction),
       };
     }
+    case ClearingInstruction.InitializeLiquidityOracleV4: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeLiquidityOracleV4,
+        ...parseInitializeLiquidityOracleV4Instruction(instruction),
+      };
+    }
     case ClearingInstruction.InitializeLiquidityV4: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4325,6 +4382,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.SampleGroupOracleV2,
         ...parseSampleGroupOracleV2Instruction(instruction),
+      };
+    }
+    case ClearingInstruction.SampleLiquidityV4: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SampleLiquidityV4,
+        ...parseSampleLiquidityV4Instruction(instruction),
       };
     }
     case ClearingInstruction.SampleOracle: {
@@ -4836,6 +4900,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeGroupV2InstructionAsync> &
     SelfPlanAndSendFunctions;
+  initializeLiquidityOracleV4: (
+    input: InitializeLiquidityOracleV4AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeLiquidityOracleV4InstructionAsync> &
+    SelfPlanAndSendFunctions;
   initializeLiquidityV4: (
     input: InitializeLiquidityV4AsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5084,6 +5153,11 @@ export type ClearingPluginInstructions = {
     input: SampleGroupOracleV2Input,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSampleGroupOracleV2Instruction> &
+    SelfPlanAndSendFunctions;
+  sampleLiquidityV4: (
+    input: MakeOptional<SampleLiquidityV4AsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSampleLiquidityV4InstructionAsync> &
     SelfPlanAndSendFunctions;
   sampleOracle: (
     input: SampleOracleAsyncInput,
@@ -5796,6 +5870,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          initializeLiquidityOracleV4: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeLiquidityOracleV4InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           initializeLiquidityV4: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6198,6 +6280,17 @@ export function clearingProgram(
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
+            ),
+          sampleLiquidityV4: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSampleLiquidityV4InstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
             ),
           sampleOracle: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(

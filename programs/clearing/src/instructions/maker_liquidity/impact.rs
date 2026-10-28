@@ -2,7 +2,7 @@
 //! its capacity is zero, and each positive quantity gets actual maker admission.
 use super::{
     admission::MakerAdmission,
-    pricing::{CodeApprovalCache, View},
+    pricing::{AuthenticatedCurve, CodeApprovalCache, View},
     *,
 };
 use crate::instructions::{account_trading, group_trading};
@@ -92,80 +92,21 @@ pub(crate) fn sample(
     // Zero entries encode unavailable quantities, leaving health gaps intact.
     let mut table = vec![0u64; SAMPLE_ENTRIES];
     let mut totals = [0; 2];
-    let mut legs = [Vec::with_capacity(2), Vec::with_capacity(2)];
+    let mut legs = [Vec::new(), Vec::new()];
     for side in 0..=1u8 {
-        table.fill(0);
-        let mut first_quotes = [0u64; 3];
-        for instance in 0..3 {
-            let view = &views[instance];
-            let state = &states[instance];
-            let request = view.request(venue, market, state, side, 1);
-            let mut ladder = canonical::QuoteLadderV4::new(
-                &state.config.shape,
-                state.price.anchor,
-                side,
-                request.inventory,
-                request.consumed,
-            )
-            .map_err(|_| error!(ClearingError::MakerQuote))?;
-            if ladder.capacity() == 0 {
-                continue;
-            }
-            first_quotes[instance] = view.quote(state, &request, clock)?.gross;
-            for lots in 1..=quantity.min(ladder.capacity()) {
-                let gross = match ladder.next_quote() {
-                    Ok(Some((gross, _))) => gross,
-                    Ok(None) => break,
-                    // The first marginal was authenticated by CPI above. A
-                    // later global price-bound failure invalidates that and all
-                    // later prefixes, while earlier quantities remain eligible.
-                    Err(maker_interface::QuoteError::Bounds) => break,
-                    Err(_) => return err!(ClearingError::MakerQuote),
-                };
-                if lots == 1 {
-                    require!(
-                        gross == first_quotes[instance],
-                        ClearingError::MakerResponse
-                    );
-                }
-                if admissions[instance].admits(side, lots, gross) {
-                    table[instance * SAMPLE_STRIDE + lots as usize] = gross;
-                }
-            }
-        }
-        let selected = group_trading::checked(best_sample_pair(&table, quantity, side))?
-            .ok_or(ClearingError::MakerCapital)?;
-        let mut invoked = 0u64;
-        for (instance, lots) in selected.quantities.into_iter().enumerate() {
-            if lots == 0 {
-                continue;
-            }
-            let gross = if lots == 1 {
-                first_quotes[instance]
-            } else {
-                views[instance]
-                    .quote(
-                        &states[instance],
-                        &views[instance].request(venue, market, &states[instance], side, lots),
-                        clock,
-                    )?
-                    .gross
-            };
-            require!(
-                gross == table[instance * SAMPLE_STRIDE + lots as usize],
-                ClearingError::MakerResponse
-            );
-            invoked = invoked
-                .checked_add(gross)
-                .ok_or(ClearingError::Arithmetic)?;
-            legs[usize::from(side)].push(SampleLegV4 {
-                instance: instance as u8,
-                lots,
-                gross,
-            });
-        }
-        require!(invoked == selected.gross, ClearingError::MakerResponse);
-        totals[usize::from(side)] = selected.gross;
+        let (gross, selected) = sample_side(
+            venue,
+            market,
+            views,
+            &states,
+            &admissions,
+            quantity,
+            side,
+            clock,
+            &mut table,
+        )?;
+        totals[usize::from(side)] = gross;
+        legs[usize::from(side)] = selected;
     }
     require!(
         totals[0] >= totals[1] && totals[1] > 0,
@@ -181,4 +122,97 @@ pub(crate) fn sample(
         bid_legs,
         ask_legs,
     })
+}
+
+// Separate the search/CPI frame from configuration decoding and root preparation.
+// This keeps the SBF 4 KiB frame bound without extra heap allocations per quantity.
+#[inline(never)]
+fn sample_side(
+    venue: &Account<VenueV3>,
+    market: &Account<MarketV3>,
+    views: &[View; 3],
+    states: &[AuthenticatedCurve],
+    admissions: &[MakerAdmission],
+    quantity: u64,
+    side: u8,
+    clock: &Clock,
+    table: &mut [u64],
+) -> Result<(u64, Vec<SampleLegV4>)> {
+    let mut selected_legs = Vec::with_capacity(2);
+    table.fill(0);
+    let mut first_quotes = [0u64; 3];
+    for instance in 0..3 {
+        let view = &views[instance];
+        let state = &states[instance];
+        let request = view.request(venue, market, state, side, 1);
+        let mut ladder = canonical::QuoteLadderV4::new(
+            &state.config.shape,
+            state.price.anchor,
+            side,
+            request.inventory,
+            request.consumed,
+        )
+        .map_err(|_| error!(ClearingError::MakerQuote))?;
+        if ladder.capacity() == 0 {
+            continue;
+        }
+        first_quotes[instance] = view.quote(state, &request, clock)?.gross;
+        for lots in 1..=quantity.min(ladder.capacity()) {
+            let gross = match ladder.next_quote() {
+                Ok(Some((gross, _))) => gross,
+                Ok(None) => break,
+                // The first marginal was authenticated by CPI above. A
+                // later global price-bound failure invalidates that and all
+                // later prefixes, while earlier quantities remain eligible.
+                Err(maker_interface::QuoteError::Bounds) => break,
+                Err(_) => return err!(ClearingError::MakerQuote),
+            };
+            if lots == 1 {
+                require!(
+                    gross == first_quotes[instance],
+                    ClearingError::MakerResponse
+                );
+            }
+            if admissions[instance].admits(side, lots, gross) {
+                table[instance * SAMPLE_STRIDE + lots as usize] = gross;
+            }
+        }
+    }
+    let selected = group_trading::checked(best_sample_pair(&table, quantity, side))?
+        .ok_or(ClearingError::MakerCapital)?;
+    let mut invoked = 0u64;
+    for (instance, lots) in selected.quantities.into_iter().enumerate() {
+        if lots == 0 {
+            continue;
+        }
+        let gross = if lots == 1 {
+            first_quotes[instance]
+        } else {
+            views[instance]
+                .quote(
+                    &states[instance],
+                    &views[instance].request(venue, market, &states[instance], side, lots),
+                    clock,
+                )?
+                .gross
+        };
+        require!(
+            gross == table[instance * SAMPLE_STRIDE + lots as usize],
+            ClearingError::MakerResponse
+        );
+        require!(
+            admissions[instance].selected_admits(side, lots, gross),
+            ClearingError::MakerCapital
+        );
+        invoked = invoked
+            .checked_add(gross)
+            .ok_or(ClearingError::Arithmetic)?;
+        selected_legs.push(SampleLegV4 {
+            instance: instance as u8,
+            lots,
+            gross,
+        });
+    }
+    require!(invoked == selected.gross, ClearingError::MakerResponse);
+    Ok((selected.gross, selected_legs))
 }

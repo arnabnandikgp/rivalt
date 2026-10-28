@@ -14,6 +14,12 @@ and isolated legacy parity. D71 selects measured v0/v1 messages; v1 uses explici
 resource headers. Financial routing and service/indexer/wallet activation remain
 P31–P34, with P32 gating new financial execution.
 
+[P32's in-progress sampler](P32-LIQUIDITY-EXECUTION.md) has a separate local
+qualification feature, three fixed maker tuples and an extended oracle event.
+It reuses source authority and scalar financial arithmetic, with complete route
+admission on selected funding legs. Resource acceptance and new trading activation
+remain unfulfilled; this does not extend the legacy A/B sampler to profile4.
+
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.
 The pinned candidate matrix and explicit storage-ready local activation pass

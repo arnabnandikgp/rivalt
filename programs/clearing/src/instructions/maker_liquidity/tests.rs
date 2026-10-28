@@ -71,6 +71,77 @@ fn liquidity_controls_refuse_financial_state_and_allow_paused_quarantine_only() 
 }
 
 #[test]
+fn liquidity_sampling_controls_require_the_separate_candidate_and_refuse_frozen_state() {
+    let (mut venue, custody, mut safety, mut market) = state();
+    market.funding_index_scaled = 7;
+    market.gross_lots = 12;
+    market.oracle.held_until = 106;
+    market.oracle.sampled_at = 100;
+    for mode in [CUSTODY, ACTIVE] {
+        safety.mode = mode;
+        assert_eq!(execution_profile(&venue, &custody, &safety, &market).is_ok(),
+            cfg!(feature = "liquidity-execution-qualification"));
+        assert_eq!(control_base(&venue, &custody, &safety, &market).is_ok(),
+            cfg!(feature = "liquidity-execution-qualification"));
+        safety.paused = true;
+        assert!(execution_profile(&venue, &custody, &safety, &market).is_err());
+        assert_eq!(control_base(&venue, &custody, &safety, &market).is_ok(),
+            cfg!(feature = "liquidity-execution-qualification"));
+        safety.paused = false;
+    }
+    for mode in [FROZEN, RESOLVED, RETIRED] {
+        safety.mode = mode;
+        assert!(execution_base(&venue, &custody, &safety, &market).is_err());
+        assert!(control_base(&venue, &custody, &safety, &market).is_err());
+    }
+    safety.mode = ACTIVE;
+    venue.profile_version = 3;
+    assert!(execution_base(&venue, &custody, &safety, &market).is_err());
+}
+
+#[test]
+fn liquidity_sampling_records_match_pinned_widths_offsets_and_v3_event_prefix() {
+    use crate::state::v4::{SampleInputV4, SampleLegV4};
+    fn bytes(value: &impl AnchorSerialize) -> Vec<u8> {
+        let mut result = Vec::new();
+        value.serialize(&mut result).unwrap();
+        result
+    }
+    let input = SampleInputV4 {
+        registration: Pubkey::new_unique(), capital: Pubkey::new_unique(),
+        authority_epoch: 1, control_epoch: 2, shape_epoch: 3, depth_epoch: 4,
+        price_sequence: 5, buy_consumed: 6, sell_consumed: 7, expiry_slot: 8, expiry_time: 9,
+    };
+    let input_bytes = bytes(&input);
+    assert_eq!(input_bytes.len(), 136);
+    for (index, value) in (1u64..=9).enumerate() {
+        assert_eq!(&input_bytes[64 + index * 8..72 + index * 8], &value.to_le_bytes());
+    }
+    let leg = SampleLegV4 { instance: 2, lots: 30, gross: 1800030 };
+    let leg_bytes = bytes(&leg);
+    assert_eq!(leg_bytes.len(), 17);
+    assert_eq!(leg_bytes[0], 2);
+    assert_eq!(&leg_bytes[1..9], &30u64.to_le_bytes());
+    let (_, _, _, market) = state();
+    let base = AccountOracleChangedV3 { venue: Pubkey::new_unique(), sequence: 31, slot: 100,
+        market: Pubkey::new_unique(), state: MarketSnapshotV3::from(&market) };
+    let event = LiquidityOracleChangedV4 {
+        venue: base.venue, sequence: base.sequence, slot: base.slot, market: base.market,
+        state: MarketSnapshotV3::from(&market), inputs: [input; 3],
+        bid_legs: vec![leg], ask_legs: vec![leg, leg],
+    };
+    let base_bytes = bytes(&base);
+    let event_bytes = bytes(&event);
+    assert_eq!(&event_bytes[..base_bytes.len()], base_bytes);
+    let mut expected_tail = input_bytes.repeat(3);
+    expected_tail.extend_from_slice(&1u32.to_le_bytes());
+    expected_tail.extend_from_slice(&leg_bytes);
+    expected_tail.extend_from_slice(&2u32.to_le_bytes());
+    expected_tail.extend_from_slice(&leg_bytes.repeat(2));
+    assert_eq!(&event_bytes[base_bytes.len()..], expected_tail);
+}
+
+#[test]
 fn liquidity_registry_layouts_match_the_frozen_contract() {
     assert_eq!(LiquidityRegistryV4::INIT_SPACE + 8, 173);
     assert_eq!(MakerRegistrationV4::INIT_SPACE + 8, 333);

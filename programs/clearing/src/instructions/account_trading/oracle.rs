@@ -84,6 +84,16 @@ pub fn initialize(
         &ctx.accounts.custody,
         &ctx.accounts.safety,
     )?;
+    initialize_accounts(ctx, primary, guard)
+}
+
+/// Same source authority/state contract; profile-specific callers own activation
+/// gates. This does not admit profile4 to the legacy two-maker sampler.
+pub(crate) fn initialize_accounts(
+    ctx: Context<InitializeAccountOracle>,
+    primary: Pubkey,
+    guard: Pubkey,
+) -> Result<()> {
     let market = &mut ctx.accounts.market;
     require!(
         ctx.accounts.safety.mode == CUSTODY

@@ -17,6 +17,8 @@ successor-test-profile = ["local-test-profile"]
 account-test-profile = ["local-test-profile"]
 # P30: fresh profile-4 custody and maker configuration only. No trading activation.
 maker-liquidity-qualification = ["account-test-profile"]
+# P32 candidate only. Activation remains unavailable until its full safety gate.
+liquidity-execution-qualification = ["maker-liquidity-qualification", "account-safety-qualification"]
 # Candidate-only artifact: no default, custody, or devnet activation before P26.
 account-trading-qualification = ["account-test-profile"]
 account-cash-qualification = ["account-trading-qualification"]

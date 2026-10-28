@@ -87,13 +87,14 @@ pub(crate) struct AuthenticatedCurve {
 }
 
 impl<'account, 'info> View<'account, 'info> {
-    pub(crate) fn authenticate(
+    /// Wrong caller-selected identities reject the transaction; an unavailable
+    /// authentic maker may instead produce an unqualified funding observation.
+    pub(crate) fn bind(
         &self,
         venue: &Account<VenueV3>,
         market: &Account<MarketV3>,
         registry: &Account<LiquidityRegistryV4>,
-        cache: &mut CodeApprovalCache,
-    ) -> Result<AuthenticatedCurve> {
+    ) -> Result<()> {
         sealed_registry(registry, venue.key(), market.key())?;
         capital_identity(self.capital, market)?;
         super::super::account_trading::model(self.capital)?;
@@ -111,7 +112,6 @@ impl<'account, 'info> View<'account, 'info> {
                 && registration.config == self.config.key()
                 && registration.price == self.price.key()
                 && self.program.programdata_address()? == Some(self.data.key())
-                && !registration.quarantined
                 && registration.authority_epoch > 0
                 && registration.depth_epoch > 0
                 && registration.buy_consumed <= canonical::MAX_DEPTH
@@ -148,16 +148,33 @@ impl<'account, 'info> View<'account, 'info> {
             .map_err(|_| error!(ClearingError::MakerBinding))?,
             ClearingError::MakerBinding
         );
+        Ok(())
+    }
+
+    #[inline(never)]
+    pub(crate) fn authenticate(
+        &self,
+        venue: &Account<VenueV3>,
+        market: &Account<MarketV3>,
+        registry: &Account<LiquidityRegistryV4>,
+        cache: &mut CodeApprovalCache,
+    ) -> Result<AuthenticatedCurve> {
+        self.bind(venue, market, registry)?;
+        require!(!self.registration.quarantined, ClearingError::MakerBinding);
         let (config, price) = config_and_price(
             self.config,
             self.price,
             self.program.key(),
-            registration.instance,
+            self.registration.instance,
             venue,
             market,
             self.capital,
         )?;
-        cache.check(self.program.key(), self.data, registration.approved_hash)?;
+        cache.check(
+            self.program.key(),
+            self.data,
+            self.registration.approved_hash,
+        )?;
         Ok(AuthenticatedCurve { config, price })
     }
 
