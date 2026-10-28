@@ -176,6 +176,22 @@ impl Participant {
         next.validate()?;
         Ok(next)
     }
+
+    /// One side of a quoted fill, with no fee or synthetic counterparty. Paired
+    /// fills and isolated-maker funding admission share these exact arithmetic
+    /// and generation rules. Health/reservations must still be checked by callers.
+    pub fn quoted_fill(&self, side: u8, lots: u64, notional: u64, funding: i128) -> Result<Self> {
+        if side > 1 || lots == 0 || lots > MAX_LOTS as u64 || notional == 0 || notional > MAX_CASH {
+            return Err(Error::Bounds);
+        }
+        let accrued = self.accrued(funding)?;
+        let delta = if side == 0 { lots as i64 } else { -(lots as i64) };
+        let mut next = accrued.with_lots(accrued.lots.checked_add(delta).ok_or(Error::Overflow)?)?;
+        next.virtual_scaled = if side == 0 { sub(next.virtual_scaled,scaled(notional)?)? }
+            else { add(next.virtual_scaled,scaled(notional)?)? };
+        next.validate()?;
+        Ok(next)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -194,23 +210,10 @@ pub fn fill(
     notional: u64,
     funding: i128,
 ) -> Result<(Participant, Participant)> {
-    if buyer.id == seller.id
-        || lots == 0
-        || lots > MAX_LOTS as u64
-        || notional == 0
-        || notional > MAX_CASH
-    {
+    if buyer.id == seller.id {
         return Err(Error::Bounds);
     }
-    let b = buyer.accrued(funding)?;
-    let s = seller.accrued(funding)?;
-    let mut b = b.with_lots(b.lots.checked_add(lots as i64).ok_or(Error::Overflow)?)?;
-    let mut s = s.with_lots(s.lots.checked_sub(lots as i64).ok_or(Error::Overflow)?)?;
-    b.virtual_scaled = sub(b.virtual_scaled, scaled(notional)?)?;
-    s.virtual_scaled = add(s.virtual_scaled, scaled(notional)?)?;
-    b.validate()?;
-    s.validate()?;
-    Ok((b, s))
+    Ok((buyer.quoted_fill(0,lots,notional,funding)?,seller.quoted_fill(1,lots,notional,funding)?))
 }
 pub fn charge_fee(
     p: Participant,

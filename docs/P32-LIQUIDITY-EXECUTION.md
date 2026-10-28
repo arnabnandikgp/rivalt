@@ -43,7 +43,20 @@ side scratch shape is 3×601 u64 values = 14,424 bytes, below the 16 KiB contrac
 The SBF heap/CU/packet limits remain unmeasured until integration: this static size
 does not establish overall runtime headroom.
 
-Neither helper is currently wired to a public financial instruction. P30/P31
+The clearing preparation authenticates each sealed registration, capital PDA,
+program/ProgramData hash and fixed read-only config/price pair. It shares code-hash
+work only within one instruction. Funding evaluates each quantity with the actual
+route maker transition, whole-root funding, generation/order refresh and IM
+admission, including healthy larger closes after unhealthy smaller quantities.
+Valid zero-capacity publications still participate in required coverage.
+
+[D73](DECISIONS.md#d73--causal-canonical-funding-observations-p32-29-october-2026)
+records exact old-interval-first funding and structural-control bookkeeping. Native
+literal tests cover failed samples, repeated controls, publication expiry, recovery
+gaps, frozen mode and catchup. The staged sampler uses one reusable 14,424-byte
+quantity table; it does not write capital/orders or consumption.
+
+These helpers are not yet wired to a public financial instruction. P30/P31
 deployments and evidence are unchanged, and no new trading activation is claimed.
 Existing custody, source, funded-cash/unpaid-claim, 2 bps/zero-provider and 25%
 insurance rules remain in force. P15B/P16B stay Open; 24-hour endurance Deferred.

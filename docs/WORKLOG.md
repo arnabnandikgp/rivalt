@@ -50,7 +50,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a`; ready PR #43 is in Review above #42. R081: P30 A35/G23 passes, including123 signed RPC outcomes and legacy event parity; P30 is Review in ready PR #45 above #43. R082: P31 A36/G24 passes: 415 independent cases, 47 scoped tests, 73 signed RPC/WS outcomes and 1,000 maximum-width searches; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open above #45. R083 begins P32 above exact `28d5dd0`; P33/P34 remain |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a`; ready PR #43 is in Review above #42. R081: P30 A35/G23 passes, including123 signed RPC outcomes and legacy event parity; P30 is Review in ready PR #45 above #43. R082: P31 A36/G24 passes: 415 independent cases, 47 scoped tests, 73 signed RPC/WS outcomes and 1,000 maximum-width searches; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open above #45. R083/R084: P32 native pricing, full maker admission and causal funding preparation pass; execution/integrated gates and P33/P34 remain |
 
 ## Phase overview
 
@@ -95,7 +95,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P29B | Exact quote/update/routing/funding contract | Review | Ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), checked `b0c504a`, published `cfea519`, above P29A `ca14b86` / #42 | [A34B/G22](evidence/P29B.md): 26 model checks, 368 local links, layout/packet/search/transition contract and pinned numeric gates pass; no runtime acceptance |
 | M10 | P30 | Configurable maker curves and updates | Review | `phase/p30-canonical-maker` above P29B `b4f43a4` / #43 | [Implementation checkpoint](P30-CANONICAL-MAKERS.md): [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`;123 signed RPC/WS outcomes,104 instruction/20 account/78 event parity;3,172 vectors per evaluator. Ready PR #45 is open; new trading disabled |
 | M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
-| M10 | P32 | Clearing/funding and safe local execution | In progress | `phase/p32-liquidity-execution` above P31 `28d5dd0` / #46 | A37/G25: affected financial safety, signed RPC/WS/PostgreSQL prototype and continuation gate |
+| M10 | P32 | Clearing/funding and safe local execution | In progress | `phase/p32-liquidity-execution` above P31 `28d5dd0` / #46 | R083/R084 native quote/admission/funding preparation passes; A37/G25 execution, safety, signed RPC/WS/PostgreSQL and continuation gate remain |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Open | P32 gate passed | A38/G26 interfaces: actual durable recovery, operator/browser flow and financial reconstruction |
 | M10 | P34 | Comparative qualification and operations | Open | P33 | A39/G26/M10: complete populations, concurrent updates/fills/exits, reconciliation/recovery and measured limits |
 
@@ -4177,3 +4177,40 @@ qualification-gated clearing/funding integration and A37/G25 checks.
   resource acceptance. No unrelated inherited suite, new deployment or endurance
   run; no external blocker. Exact next action: pin the native helpers, then add
   authenticated V4 clearing quote views and complete per-quantity maker admission.
+
+R083 pinned follow-up: clean `5c5f1dd` repeats the three ladder/four sampling
+native checks, 3,172 independent ladder vectors and 642 exhaustive allocations,
+all passing. Logs retain the tested pin in `.local/canonical-maker/p32/`.
+
+## R084 — P32 authenticated pricing, maker admission and causal funding (29 October 2026)
+
+- Continue the same local P32 branch above #46; preserve all four open ready PRs
+  and untracked user research. Add exact capital/registration/code/config/price
+  authentication, read-only canonical CPI comparison and complete three-input
+  impact preparation. Every positive quantity uses actual whole-root maker funding,
+  the shared route's order/generation/reservation refresh and admission. No assumed
+  healthy prefix, synthetic trader, taker fee or consumption mutation.
+- Factor the one-side checked fill arithmetic from the existing paired fill so
+  funding admission and execution share it. Add independent literal non-prefix,
+  fractional debt and full-order-book checks. Quantity-one price validation is
+  separate from post-fill admission; later invalid mathematical prefixes do not
+  erase earlier valid quantities. Valid zero-capacity inputs still authenticate.
+- Add native causal sample/control candidates. D73/P29B records materializing the
+  old valid interval before a failed new sample, publication-bounded held funding,
+  recovery restart after a coverage gap, and exact covered/skipped accounting for
+  repeated controls. Source observations and V1–V3 behavior are preserved. Frozen
+  mode and old slot/catchup limits remain enforced.
+- Actual prepared-tree checks: `cargo test --locked -p financial-core --lib --test
+  economics --test margin --test cross_core` passes 31 tests; affected liquidation
+  and margin-safety files pass 11. `cargo test --locked -p maker-interface
+  canonical:: --lib` passes 11; `cargo test --locked -p clearing maker_liquidity::
+  --lib` passes 10, including four literal funding and two actual admission tests.
+  Native `cargo check --locked -p clearing --lib` passes for pricing/impact helpers;
+  unused-helper warnings are expected while entrypoints are unwired. No SBF, CU,
+  total heap or integrated acceptance inferred from native results.
+- Raw logs remain in `.local/canonical-maker/p32/`. No public financial instruction
+  is newly enabled, no deployment or database copy is created, and no unrelated
+  inherited suite or 24-hour run is executed. Both tables retain P32/M10 In progress;
+  P15B/P16B Open. No external blocker. Exact next action: wire the gated complete
+  sampler and structural controls, then current-state atomic/stored-order routes
+  and the shared safety boundary before A37/G25 runtime qualification.

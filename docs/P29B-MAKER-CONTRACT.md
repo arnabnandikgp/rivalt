@@ -173,6 +173,17 @@ not rewrite a held sample: it describes the next sample, while the old sample ca
 accrue only to its already authenticated bounded endpoint. It never bumps a market
 config/security epoch, root nonce, or unrelated market.
 
+P32/D73 makes interval bookkeeping explicit: a structural control closes the old
+observation at its actual Clock, accounts for covered/skipped seconds once, then
+records an unqualified observation with `sampled_at=held_until=now` (both remain
+zero if no sample has ever existed). It preserves source identities, sequences,
+deadline, risk bounds and their validity. This is not a fresh source observation.
+Repeated controls account only for the time since the preceding observation; the
+next sample retains the two-second interval rule. A failed new sample preserves
+the old valid interval's materialized index. Recovery cannot bridge a gap beyond
+the old publication's held time/slot endpoint. Existing slot-expiry and catchup
+limits still prohibit adding expired, unmaterialized funding. V1–V3 are unchanged.
+
 If a fill lands before another signed route, the latter uses current inventory and
 consumption; it must still fit capacity and user limits. If a reprice lands first,
 the route uses that price within the same limits. If shape/control/depth/authority

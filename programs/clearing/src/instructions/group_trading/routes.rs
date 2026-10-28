@@ -537,7 +537,7 @@ pub(crate) fn candidate_for_version(
 }
 
 #[inline(never)]
-fn finish_maker(
+pub(crate) fn finish_maker(
     root: &mut MarginAccountV2,
     candidate: math::margin::Margin,
     market: &GroupMarketV2,

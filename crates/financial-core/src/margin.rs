@@ -227,6 +227,18 @@ impl Margin {
         Ok(next)
     }
 
+    /// A maker's hypothetical leg for complete funding sampling. Uses the same
+    /// one-sided arithmetic as actual paired fills, without inventing a trader or
+    /// charging a fee. Recompute the candidate's durable reservations and require
+    /// initial-margin admission before using the returned state/price.
+    pub fn maker_quote_candidate(&self, market: usize, taker_side: u8, lots: u64,
+        gross: u64, funding: [i128; MARKETS]) -> Result<Self> {
+        if self.mode != Mode::Isolated(market) || taker_side > 1 { return Err(Error::Bounds); }
+        let accrued = self.accrued(funding)?;
+        let selected = accrued.selected(market)?.quoted_fill(1-taker_side,lots,gross,funding[market])?;
+        accrued.with_selected(market,selected)
+    }
+
     /// Funded cash once, plus each negative market claim. Positive claims never offset losses.
     pub fn risk_equity(&self, risks: [Risk; MARKETS]) -> Result<i128> {
         self.validate()?;

@@ -22,6 +22,10 @@ mod contexts;
 pub use contexts::*;
 mod validation;
 pub(crate) use validation::*;
+pub(crate) mod pricing;
+pub(crate) mod admission;
+pub(crate) mod impact;
+pub(crate) mod funding;
 
 #[cfg(test)]
 mod tests;

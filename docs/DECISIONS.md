@@ -1291,3 +1291,24 @@ D72/P32 implementation checkpoint: exact consecutive-price preparation and a
 its numeric gates. Native parity does not qualify on-chain compute, total heap,
 financial execution or activation. Full source/capital coverage and independent
 health at every quantity remain mandatory; P32 is still In progress.
+
+## D73 — Causal canonical funding observations (P32, 29 October 2026)
+
+Implement D70/P29B's old-interval-first rule explicitly for profile4: materialize
+valid held funding before installing either a qualified or failed new sample.
+Publication time expiry additionally bounds the held endpoint; six-second recovery
+cannot bridge a gap beyond the preceding time/slot endpoint. Existing slot expiry,
+catchup, source freshness and frozen/default mode restrictions remain unchanged.
+
+A structural control closes the old observation at the actual Clock, counts its
+materialized covered time and remaining skipped time once, and records an
+unqualified observation at that Clock (`sampled_at=held_until=now`). Before the
+first sample both stay zero. Source identities/sequences/deadline and risk
+bounds/validity are preserved; this control observation is not a source update.
+Repeated controls cannot double-count coverage or restore depth. The normal
+two-second sampling interval still applies. Pure repricing does none of this.
+
+This resolves bookkeeping details within the approved causal contract; it does
+not supersede risk, loss ownership, fees or V1–V3 implementation behavior. Native
+literal tests are preparation only; A37/G25 still requires compiled and integrated
+execution, safety and reconciliation evidence before new activation.

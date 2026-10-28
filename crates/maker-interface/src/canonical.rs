@@ -396,35 +396,30 @@ pub fn quote_amount(
     ))
 }
 
-pub fn quote(
+/// Validate a required publication without inventing a positive-size trade.
+/// Complete funding coverage includes valid zero-capacity/one-sided makers.
+pub fn validate_publication(
     config_key: Pubkey,
     config: &CurveStateV4,
     price: &PriceStateV4,
-    request: &QuoteRequestV4,
     slot: u64,
     now: i64,
-) -> QuoteResult<QuoteResponseV4> {
+) -> QuoteResult<(u64, i64)> {
     if config.schema_version != VERSION
         || price.schema_version != VERSION
-        || request.version != VERSION
         || config.capability != CAPABILITY
         || config.instance > 2
-        || request.instance != config.instance
         || price.config != config_key
-        || config.domain != request.domain
-        || config.market != request.market
-        || config.capital != request.capital
         || config.control_epoch == 0
         || config.shape_epoch == 0
         || price.control_epoch != config.control_epoch
-        || request.control_epoch != config.control_epoch
-        || request.shape_epoch != config.shape_epoch
-        || request.authority_epoch == 0
-        || request.depth_epoch == 0
     {
         return Err(QuoteError::Binding);
     }
     config.shape.validate()?;
+    if config.shape.mode == 0 || !(1..=MAX_PRICE).contains(&price.anchor) {
+        return Err(QuoteError::Bounds);
+    }
     let valid_until_slot = price
         .updated_slot
         .checked_add(u64::from(config.shape.ttl_slots))
@@ -442,6 +437,31 @@ pub fn quote(
     {
         return Err(QuoteError::Lifetime);
     }
+    Ok((valid_until_slot, valid_until_time))
+}
+
+pub fn quote(
+    config_key: Pubkey,
+    config: &CurveStateV4,
+    price: &PriceStateV4,
+    request: &QuoteRequestV4,
+    slot: u64,
+    now: i64,
+) -> QuoteResult<QuoteResponseV4> {
+    if request.version != VERSION
+        || request.instance != config.instance
+        || config.domain != request.domain
+        || config.market != request.market
+        || config.capital != request.capital
+        || request.control_epoch != config.control_epoch
+        || request.shape_epoch != config.shape_epoch
+        || request.authority_epoch == 0
+        || request.depth_epoch == 0
+    {
+        return Err(QuoteError::Binding);
+    }
+    let (valid_until_slot, valid_until_time) =
+        validate_publication(config_key, config, price, slot, now)?;
     let (gross, remaining) = quote_amount(
         &config.shape,
         price.anchor,
@@ -616,6 +636,25 @@ mod tests {
             consumed: 0,
         };
         (key, config, price, request)
+    }
+
+    #[test]
+    fn required_zero_capacity_publications_remain_authenticated_and_expire_normally() {
+        let (key, mut config, mut price, request) = fixture();
+        config.shape.long_cap = 0;
+        config.shape.short_cap = 0;
+        assert_eq!(
+            validate_publication(key, &config, &price, 11, 21).unwrap(),
+            (160, 26)
+        );
+        assert!(quote(key, &config, &price, &request, 11, 21).is_err());
+        assert!(validate_publication(key, &config, &price, 160, 21).is_err());
+        assert!(validate_publication(key, &config, &price, 11, 26).is_err());
+        price.control_epoch = 0;
+        assert!(validate_publication(key, &config, &price, 11, 21).is_err());
+        price.control_epoch = 1;
+        config.shape.mode = 0;
+        assert!(validate_publication(key, &config, &price, 11, 21).is_err());
     }
 
     #[test]
