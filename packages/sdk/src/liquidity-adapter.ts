@@ -133,11 +133,11 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
     const foreignPosition = capital.positions[1-snapshot.marketIndex];
     requireValue(foreignPosition.lots === 0n && foreignPosition.virtualScaled === 0n && foreignPosition.fundingCheckpointScaled === 0n
       && foreignPosition.generation === 0n, 'Foreign isolated maker position.');
-    const [bindingKey,bindingBump] = await getProgramDerivedAddress({ programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
+    const [bindingKey] = await getProgramDerivedAddress({ programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
       seeds: [new TextEncoder().encode('capital-v3'), KEY.encode(registration.capital)] });
     const binding = decode(bytes(accounts,bindingKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.CAPITAL_BINDING_V3_DISCRIMINATOR,
       clearing.getCapitalBindingV3Decoder());
-    requireValue(binding.schemaVersion === 3 && binding.bump === bindingBump && binding.venue === snapshot.venue && binding.capital === registration.capital
+    requireValue(binding.schemaVersion === 3 && binding.venue === snapshot.venue && binding.capital === registration.capital
       && binding.registration === registrationKey, 'Maker capital is not uniquely bound.');
     const program = registration.pricingProgram;
     requireValue(program === canonical.MAKER_A_PROGRAM_ADDRESS || program === MAKER_B_PROGRAM_ADDRESS, 'Unsupported maker program.');

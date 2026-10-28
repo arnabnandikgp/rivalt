@@ -25,12 +25,12 @@ export async function liquidityAccountFixture() {
     const [registration,bump] = await derive(sdk.CLEARING_PROGRAM_ADDRESS,'maker-v4',market,Uint8Array.of(instance));
     const [config,configBump] = await derive(program,'curve-v4',capital),[price,priceBump] = await derive(program,'price-v4',config);
     const [controller] = await sdk.findLiquidityControllerV4Pda({ venue,capital });
-    const [binding,bindingBump] = await derive(sdk.CLEARING_PROGRAM_ADDRESS,'capital-v3',capital);
+    const [binding] = await derive(sdk.CLEARING_PROGRAM_ADDRESS,'capital-v3',capital);
     const capitalState = { ...emptyState(sdk.getMarginAccountV3Decoder()),schemaVersion: 3,venue,portfolio,owner,subaccountIndex: 1,
       id: instance+1,mode: 1,role: 1,isolatedMarketIndex: 0,cash: 100000n,bump: capitalBump };
     const registrationState = { ...emptyState(sdk.getMakerRegistrationV4Decoder()),schemaVersion: 4,venue,market,owner,capital,instance,bump,
       config,price,pricingProgram: program,programData,approvedHash: hash,authorityEpoch: 1n,depthEpoch: 1n };
-    const bindingState = { ...emptyState(sdk.getCapitalBindingV3Decoder()),schemaVersion: 3,venue,capital,registration,bump: bindingBump };
+    const bindingState = { ...emptyState(sdk.getCapitalBindingV3Decoder()),schemaVersion: 3,venue,capital,registration };
     const configState = { ...emptyState(sdk.makerA.getMakerCurveV4Decoder()).state,schemaVersion: 4,capability: 1,venue,market,capital,controller,
       owner,instance,domain,bump: configBump,controlEpoch: 1n,shapeEpoch: 1n };
     Object.assign(configState.shape,{ mode: 1,ttlSlots: 150,skewStep: 2n,skewTick: 2n,longCap: 4096n,shortCap: 4096n,bidCount: 1,askCount: 1 });

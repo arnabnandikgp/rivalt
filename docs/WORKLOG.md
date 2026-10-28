@@ -4078,3 +4078,10 @@ remains stopped. Exact next action: answer the user's questions; do not begin P3
 - Exact next action: pin this coherent implementation, run the scoped real
   Surfpool adapter comparisons and 1,000-search latency gate, then record results
   and publish the ready P31 PR above #45 before continuing P32.
+
+R082 pre-runtime correction: a late extra check incorrectly expected a stored bump
+in `CapitalBindingV3`, whose 106-byte layout intentionally has no bump field. The
+positive adapter cases exposed it before runtime qualification. Remove that field
+assumption and retain canonical PDA derivation plus exact owner/layout/venue/
+capital/registration checks. Final typecheck and 44 focused SDK cases pass. The
+415-case independent comparison still matches; no program artifact changes.
