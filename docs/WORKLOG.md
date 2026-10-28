@@ -44,7 +44,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
-| M9 | P28A | Interactive local evaluation follow-up | Review | [P28A acceptance](evidence/P28A.md) passes on `4f809d3`: 13 browser originals, indexed fills, immediate owned shutdown and fresh reset; [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) open/ready above main; M8 unchanged |
+| M9 | P28A | Interactive local evaluation follow-up | Review | [P28A acceptance](evidence/P28A.md) passes on `4f809d3`: 13 browser originals, indexed fills, immediate owned shutdown and fresh reset; [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) open/ready above main; R075 user walkthrough accepted, runtime stopped; two review findings pending; M8 unchanged |
 
 ## Phase overview
 
@@ -85,7 +85,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P27 | SDK, indexer/API and durable services | Closed | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit; integrated at `0916b9d` |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Closed | [PR #40](https://github.com/arnabnandikgp/rivalt/pull/40), published `ac894f1`, above #39 `9498d2e` | [A33/G21/M8](evidence/P28.md): 17 browser originals, 115 submitted trades, six busy exits, four bounded history rescans, complete nine-root default/recovery and identical fresh PostgreSQL replay; tested `f595fd7` / `5491752`; R073 scoped review corrections `e6ba2cf`; integrated at `0916b9d` |
 
-| M9 | P28A | Interactive launcher, local test wallet and walkthrough | Review | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) above main `4338af6`; tested `4f809d3`; published `3385065` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 distinct wallet originals, indexed fills, reload, stop/reset and idempotency pass |
+| M9 | P28A | Interactive launcher, local test wallet and walkthrough | Review | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) above main `4338af6`; tested `4f809d3`; published `3385065` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 distinct wallet originals, indexed fills, reload, stop/reset and idempotency pass; R075 user walkthrough accepted, runtime stopped; two review findings pending |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -3673,3 +3673,22 @@ no independent review approval is claimed. The remaining metadata change affects
 only documentation and leaves the verified `4f809d3` runtime unchanged. Next
 action after publication: address actual PR #41 review findings when available;
 keep the PR open and leave M9/P28A in Review until authorized integration.
+
+
+## R075 — user demo evaluation and shutdown (28 October 2026)
+
+The user tried the UI, found it acceptable for now, requested shutdown and wants
+to discuss the next work. On `17e36d7`, `bash ops/demo.sh stop` reports already
+stopped; the retained session `ended.json` records the low-disk guard. Independent
+`ops/check-ports.py` checks all seven demo listeners free and `container list
+--format json` returns no running containers. No reset, deletion or restart is
+performed. Existing evidence and unrelated untracked files remain untouched.
+
+PR #41 remains open/ready. Read-only review inspection finds two unresolved minor
+comments concerning early supervisor exit and faucet allowance on definite versus
+ambiguous submission failure; remediation is not claimed. Both M9/P28A rows remain
+Review. No tests are rerun for this operational/documentation-only action, and no
+new financial/deployment phase or economic decision is authorized by the discussion.
+Exact next action: agree the next scope, with PR #41 review cleanup first and a
+focused profit-payment progress investigation recommended before schema-3 devnet/
+maker-kit updates. P15B/P16B remain Open; endurance remains Deferred.
