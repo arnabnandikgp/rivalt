@@ -9,10 +9,14 @@ comparison tolerances and workloads in G22 before measurement; keep zero unexpla
 financial differences, packet fit and at least 20% measured compute headroom.
 P32 is the integrated prototype continuation gate. No 24-hour run is added.
 D70 authorizes implementation; [G22's pinned contract](P29B-MAKER-CONTRACT.md)
-defines three-maker bounds, explicit frozen lookup-table provisioning, compute and
+defines three-maker bounds, compute/headroom and
 packet limits, 240-offer prototype and 600-offer final comparison populations.
 Run `python3 tests/financial/test_maker_curve_contract.py` for the independent
 contract checks; these do not substitute for P30–P34 compiled/RPC acceptance.
+D71 supersedes mandatory lookup tables: use measured v0≤1,232 bytes or
+v1≤4,096 bytes with explicit resource headers. [P30 evidence](evidence/P30.md)
+qualifies the scoped curve/update lifecycle and records Surfpool log-status
+disagreement; signature notifications and fetched finalized status remain decisive.
 
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains

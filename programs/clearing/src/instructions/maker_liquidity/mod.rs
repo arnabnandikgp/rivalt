@@ -3,6 +3,7 @@
 use super::account_custody::increment;
 use super::account_trading::makers::module_hash;
 use crate::constants::makers::{MAKER_A, MAKER_B};
+use crate::state::v4::{LiquidityRegistryPayloadV4, MakerRegistrationPayloadV4};
 use crate::{
     error::ClearingError,
     events::*,
@@ -12,7 +13,6 @@ use crate::{
     },
 };
 use anchor_lang::prelude::*;
-use crate::state::v4::{LiquidityRegistryPayloadV4, MakerRegistrationPayloadV4};
 use anchor_lang::solana_program::instruction::{AccountMeta, Instruction};
 use anchor_lang::solana_program::program::invoke_signed;
 use maker_interface::canonical::{self, CurveControlV4, CurveStateV4, PriceStateV4};

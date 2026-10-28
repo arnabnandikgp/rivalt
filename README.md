@@ -9,8 +9,10 @@ Rivalt is a new Solana perpetual venue with common clearing, isolated collateral
 defines configurable maker curves, independent quote adapters, bounded best-pair
 routing and consistent funding. D70 authorizes sequential implementation;
 [P29B's contract](docs/P29B-MAKER-CONTRACT.md) pins the independent reference,
-three-maker registry, bounded updates and qualification gates. No new pricing or
-execution behavior is active yet. Existing integrated profiles retain their evidence.
+three-maker registry, bounded updates and qualification gates.
+[P30](docs/evidence/P30.md) qualifies canonical curves and controls in a fresh local
+profile; new financial trading remains disabled until P32. Existing integrated
+profiles retain their evidence.
 
 [P22–P28's account-centric clearing redesign](docs/P22-ACCOUNT-CENTRIC-CLEARING.md)
 is integrated under R073/D67: separate account risk, market eligibility, funded

@@ -1258,3 +1258,15 @@ actual generated-instruction serialization measurements, not finalized RPC evide
 P30 includes a genuine atomic pair of full-shape controls to exercise oversized v1.
 Its execution and actual CU results must be recorded separately. Historical P29B
 ALT models remain labeled as models, not new transaction measurements.
+
+
+D71/P30 acceptance: the pinned clean RPC run on`e9ee447` passes123 finalized
+transactions and actual v1 fetch/dual decode. Single shape-control1,222bytes stays
+v0; the atomic pair is1,854bytes in v1 instead of1,896 in v0, with22 loaded keys
+and629,056/800,000CU (21.368% headroom). The pair composes two400k controls under
+the combined-operation gate; single-control, unique-account and risk limits remain.
+See [P30 evidence](evidence/P30.md). Its78 committed events match isolated legacy
+Anchor. Surfpool log-error hints disagree for16 failures; all signature notifications
+and finalized statuses agree, and rejected state is excluded. This does not qualify
+wallet/indexer v1 support, routes or financial activation. The user instructs
+stopping after opening P30's ready PR; P31 is not started.

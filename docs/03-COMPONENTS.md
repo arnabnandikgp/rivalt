@@ -6,11 +6,13 @@ instance identity, configurable pricing, exact quote adapters and bounded routin
 [P29B](P29B-MAKER-CONTRACT.md) pins the descriptor/read-set/ABI/authority contract;
 D70 authorizes P30–P34 implementation and qualification. Each maker exposes fixed
 config/price dependencies; clearing owns identity, consumption and financial effects.
-Current A/B code and CPI guarantees are unchanged until scoped acceptance.
+Existing profiles retain their A/B code and CPI guarantees.
 Canonical pricing remains exactly validated; arbitrary custom modules are not
 activated by an interface abstraction. [P30](P30-CANONICAL-MAKERS.md) now has
-native Rust/SDK arithmetic; program handlers and generated-ABI acceptance remain
-in progress.
+qualified local canonical maker handlers, registry/control events, generated SDK
+and isolated legacy parity. D71 selects measured v0/v1 messages; v1 uses explicit
+resource headers. Financial routing and service/indexer/wallet activation remain
+P31–P34, with P32 gating new financial execution.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.

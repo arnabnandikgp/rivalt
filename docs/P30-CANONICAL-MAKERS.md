@@ -1,7 +1,8 @@
 # P30 — canonical maker implementation
 
-Contract: [P29B / D70](P29B-MAKER-CONTRACT.md). Status: In progress; A35/G23
-is not complete. New financial execution remains disabled.
+Contract: [P29B / D70](P29B-MAKER-CONTRACT.md). A35/G23 acceptance passes in the fresh local profile;
+[the phase report](evidence/P30.md) records exact code and limits. WORKLOG owns
+Review/publication status. New financial execution remains disabled.
 
 The native Rust module in `crates/maker-interface/src/canonical.rs` implements the
 checked canonical region/potential arithmetic, quantity bounds, versioned quote
@@ -44,7 +45,7 @@ rejections, including max-width curves, two-market v1 batching, aliases, permiss
 CAS/shape/depth races, revocation, disable/re-enable and expiry. Isolated Anchor1.2.1
 with legacy web3.js1.99.0 matches104 submitted instruction encodings/account lists
 across16 distinct instruction APIs and20 actual account decodes. This fast check
-has no event-parity claim; finalized RPC event parity is still pending.
+has no event-parity claim; the later finalized RPC event results appear below.
 
 Run only the affected gates:
 
@@ -64,9 +65,11 @@ mathematical inventory: no actual fill, position or funding is claimed in P30.
 RPC/WS is an independent runtime gate, not replaced by LiteSVM. Raw output remains
 ignored in `.local/canonical-maker/`; no database or archive copies are created.
 
-Remaining A35/G23: finish the corrected full RPC/WS lifecycle and generated event
-parity on a pinned revision, report actual resource/latency limits, then submit the
-ready stacked PR. A first RPC run exposed Surfpool1.6.1 WS notifications whose
+Completed A35/G23: the corrected full RPC/WS lifecycle passes123 signed outcomes
+on `e9ee447`, with104 legacy instruction encodings,20 account and78 committed event
+decodes matching the SDK. Expanded one-sided coverage gives3,172 passing vectors
+for Rust, SDK and both SBF programs. The ready stacked PR is the final publication
+step; there is no new financial activation. A first RPC run exposed Surfpool1.6.1 WS notifications whose
 `err:null` disagrees with finalized rejected transactions. The harness retains both
 and uses independently fetched finalized status plus account snapshots; a WS hint
 never proves financial success. Document that limitation without masking it.

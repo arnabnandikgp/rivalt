@@ -6,6 +6,7 @@ the deployed program artifacts in LiteSVM; neither selection claims RPC acceptan
 No broad inherited tests run.
 """
 import itertools
+from dataclasses import replace
 import argparse
 from pathlib import Path
 import random
@@ -51,6 +52,13 @@ def main():
     for side, inventory, consumed in itertools.product((0, 1), range(-8, 9), range(9)):
         for lots in range(10 - consumed):
             case(golden, 100, side, lots, inventory, consumed)
+
+    # One-sided books need compiled coverage, including their unavailable side,
+    # fragmented consumption and inventory-reducing limits in both directions.
+    for empty_side, reduce_only, inventory, side, lots, consumed in itertools.product(
+            ("bids", "asks"), (False, True), (-3, 0, 3), (0, 1), (0, 1, 3, 4), (0, 2, 3)):
+        one_sided = replace(golden, **{empty_side: (), "reduce_only": reduce_only})
+        case(one_sided, 100, side, lots, inventory, consumed)
 
     rng = random.Random(3001)
     for _ in range(1000):
