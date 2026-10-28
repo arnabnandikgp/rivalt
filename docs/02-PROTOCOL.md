@@ -1,12 +1,13 @@
 # Protocol contract
 Rivalt · baseline R1 · 20 October 2026
 
-D69 plans [P29–P34](P29-MAKER-LIQUIDITY-ROADMAP.md), including a versioned
-configurable maker quote/update contract and generic one/two-maker allocation.
-P29B must resolve consumption, authority, current-price limits and complete funding
-coverage before dependent changes. P32 must qualify affected financial safety before
-activation. Existing profiles and financial rules remain authoritative; planning
-does not relax quote bindings, source safeguards or loss allocation at runtime.
+D70 authorizes implementing [P29–P34](P29-MAKER-LIQUIDITY-ROADMAP.md).
+[P29B's contract](P29B-MAKER-CONTRACT.md) fixes canonical cumulative pricing,
+independent reprice/shape/replenish transitions, three-maker complete coverage and
+strict authority with current-price execution inside signed limits. These changes
+are confined to fresh local profile 4 and remain unimplemented until their owning
+phases qualify them; P32 gates financial activation. Existing profiles, source
+safeguards and loss/fee/insurance accounting remain authoritative.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.

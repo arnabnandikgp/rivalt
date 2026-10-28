@@ -46,11 +46,11 @@ for exact carry/authority rules; preserve total 2 bps/zero-provider fees and V1/
 
 Use P01–P34 as the delivery units, retaining existing IDs and the documented successor suffixes. Each normally produces one cohesive PR or equivalent reviewable local branch/commit set, with its own runnable acceptance evidence. A phase may span several runs. Do not split it into dozens of task PRs or combine several phases into an unreviewable change. If implementation evidence requires splitting a phase, preserve its original ID, add a justified suffix and update plan/worklog.
 
-D69 records the accepted maker-liquidity direction and requested P29A planning.
-Read docs/P29-MAKER-LIQUIDITY-ROADMAP.md before P29–P34 work. P29B must freeze
-the quote/update/routing/funding contract before implementation; new execution
-stays disabled until P32 safety acceptance. The roadmap does not itself authorize
-starting its implementation. Preserve the two-maker atomic execution limit,
+D69 records the maker-liquidity roadmap; D70 records subsequent user authorization
+to implement P29B–P34 sequentially. Read docs/P29-MAKER-LIQUIDITY-ROADMAP.md and
+docs/P29B-MAKER-CONTRACT.md before this work. P29B freezes the quote/update/routing/
+funding contract before implementation; new execution stays disabled until P32
+safety acceptance. Preserve the two-maker atomic execution limit,
 financial engine, external gates and deferred endurance. Keep the new ready PR
 stack open until separately instructed to merge.
 

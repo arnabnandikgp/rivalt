@@ -8,6 +8,11 @@ affected program/quote/routing/safety and RPC/WS/PostgreSQL evidence. Freeze num
 comparison tolerances and workloads in G22 before measurement; keep zero unexplained
 financial differences, packet fit and at least 20% measured compute headroom.
 P32 is the integrated prototype continuation gate. No 24-hour run is added.
+D70 authorizes implementation; [G22's pinned contract](P29B-MAKER-CONTRACT.md)
+defines three-maker bounds, explicit frozen lookup-table provisioning, compute and
+packet limits, 240-offer prototype and 600-offer final comparison populations.
+Run `python3 tests/financial/test_maker_curve_contract.py` for the independent
+contract checks; these do not substitute for P30–P34 compiled/RPC acceptance.
 
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains

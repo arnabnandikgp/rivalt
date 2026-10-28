@@ -9,10 +9,11 @@ The engineering objective is a reproducible local venue, followed by focused dev
 
 ## Selected scope
 
-D69 adds the planned [P29–P34 maker-liquidity extension](P29-MAKER-LIQUIDITY-ROADMAP.md):
+D69/D70 authorize the [P29–P34 maker-liquidity extension](P29-MAKER-LIQUIDITY-ROADMAP.md):
 configurable maker strategies and bounded candidate discovery, with at most two
-maker capitals in any atomic route. P29A records the roadmap; P29B owns its exact
-contract and P32 its new local execution gate. Fees, insurance, margin, funded/unpaid
+maker capitals in any atomic route. P29A records the roadmap;
+[P29B](P29B-MAKER-CONTRACT.md) pins its exact contract and P32 owns the new local
+execution gate. Fees, insurance, margin, funded/unpaid
 claims and external gates are preserved. This is not already implemented liquidity
 or permission to route to existing external spot pools.
 

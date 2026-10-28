@@ -67,7 +67,7 @@ No generic “TBD” may escape into an executable phase. Missing a gate blocks 
 | G19 | Whole-account risk/orders/funding, relevant validity dependencies, settlement ledger and atomic cash exits | P24/P25 | Independent real-implementation checks, signed rollback/conservation/fractions and live-sampler exit cases; ordinary new-profile activation still disabled |
 | G20 | Complete selected liability cohort, loss/insurance allocation, liquidation/default/recovery and activation | P26 | Independent maximum-cohort/shared-debtor/cycle cases, post-fee progress, real signed runtime reconciliation and activation gates |
 | G21 | Account-centric services/events/UI, operator budgets and bounded concurrent qualification | P27/P28 | Actual RPC/WS/PostgreSQL/browser/replay, normal background exits, complete populations and measured resource/contention limits |
-| G22 | Versioned maker identity/quote/curve/update/authority contract; registry/region/read-set/search/resource bounds; funding context/coverage and comparison tolerances | P29B | Independent integer reference/golden cases, full transition/ABI/migration contract and bounded feasibility plan; no runtime qualification |
+| G22 | Versioned maker identity/quote/curve/update/authority contract; registry/region/read-set/search/resource bounds; funding context/coverage and comparison tolerances | P29B / D70 | [P29B contract](P29B-MAKER-CONTRACT.md) freezes profile 4, three makers, canonical potential/prefix arithmetic, exact pair search, complete funding, explicit lookup tables and numeric continuation bounds; independent reference checks only, runtime feasibility remains P30/P32 |
 | G23 | Canonical configurable curves, update/replenish/expiry controls and exact SDK/program quote parity | P30 | Independent vectors, signed actual program/RPC/WS updates and quotes, scoped ABI and measured update resources |
 | G24 | Generic candidate set, best feasible singleton/pair allocation, capital deduplication, exactness and search budget | P31 | Independent exhaustive comparator, three-plus candidate cases and real-program quote parity; measured bounded search |
 | G25 | New clearing/funding/order authority, race behavior, affected safety and local activation; prototype continuation thresholds | P32 | Signed actual rollback/funding/risk/default and comparative RPC/WS/PostgreSQL evidence; no safeguard weakening |
@@ -1170,3 +1170,48 @@ material economic departures require a decision.
 
 P15B/P16B remain Open, 24-hour endurance remains Deferred, and no paid service,
 outreach, devnet/funded rollout or independent review is authorized or claimed.
+
+
+## D70 — authorized implementation and P29B canonical quote contract
+
+The user subsequently says the current plan is accepted and to proceed. This
+supersedes D69's planning-only execution boundary: implement P29B–P34 sequentially,
+with ready stacked PRs kept open. It does not authorize merging this stack, paid
+services, external hedging/outreach or devnet/funded deployment.
+
+[P29B](P29B-MAKER-CONTRACT.md) freezes G22 for fresh local profile 4, preserving
+schema-3 financial accounts and V1–V3 behavior. Three sealed maker instances per
+market use at most two admitted program implementations and unique isolated capital
+bindings; an atomic route still selects at most two capitals. One canonical
+configurable curve capability is admitted; no opaque pricing extension is enabled.
+
+Exact cumulative side offsets plus a convex integer inventory potential replace
+fixed A/B pricing in this profile. Fragmented fills telescope at unchanged terms.
+Price CAS updates preserve consumption; owner-controlled shape, permission and
+replenishment transitions are separate. Structural changes use a restricted
+noncustodial clearing controller and materialize/truncate held funding causally.
+Pure repricing does not invalidate unrelated market security epochs or retroactively
+rewrite a held sample. Published price life is bounded by both 150 slots maximum
+and six seconds. Clearing retains all source/risk/capacity/authority checks.
+
+Routes bind exact maker identities, quantities and authority/control/shape/depth
+epochs, while using landed price/inventory/consumption within explicit signed
+all-in limits. This deliberately supersedes V3 strict quote/prefix binding only for
+profile 4. There is no substitution, resplitting, partial fill or implied slippage
+permission. Exact singleton/pair enumeration includes full-root funding, reservations
+and admission; monotone prices do not justify skipping nonprefix health cases.
+
+Funding authenticates all three configured makers and their current publications,
+even if some contribute zero capacity; missing inputs cannot be silently omitted.
+Use the same executable pricing and two-capital constraint, existing reference
+quantity/premium/causal hold and recovery rules. No funding-only liquidity.
+
+G22 pins account/ABI layouts, three-maker/eight-region bounds, 12,291 maximum
+allocation compositions, explicit frozen address lookup tables, packet/compute
+envelopes with 20% headroom, and prospective 240-offer/600-offer comparison workloads.
+A34B's independent literal/per-lot/exhaustive checks validate the contract, not the
+programs, latency or CU. P30/P31 own implementation parity and P32 must prove actual
+full-hash/full-book signed resource/safety acceptance and continuation tolerances
+before P33. No runtime path activates in P29B. Financial loss ownership, fee/insurance
+allocation and zero positive unpaid margin credit are unchanged. P15B/P16B remain
+Open external gates; continuous 24-hour endurance remains Deferred.

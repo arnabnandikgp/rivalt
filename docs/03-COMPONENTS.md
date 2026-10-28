@@ -3,8 +3,10 @@ Rivalt · baseline R1 · 20 October 2026
 
 D69's [maker-liquidity roadmap](P29-MAKER-LIQUIDITY-ROADMAP.md) separates maker
 instance identity, configurable pricing, exact quote adapters and bounded routing.
-P29B owns the new descriptor/read-set/ABI/authority contract; P30–P34 are planned
-implementation and qualification. Current A/B code and CPI guarantees are unchanged.
+[P29B](P29B-MAKER-CONTRACT.md) pins the descriptor/read-set/ABI/authority contract;
+D70 authorizes P30–P34 implementation and qualification. Each maker exposes fixed
+config/price dependencies; clearing owns identity, consumption and financial effects.
+Current A/B code and CPI guarantees are unchanged until scoped acceptance.
 Canonical pricing remains exactly validated; arbitrary custom modules are not
 activated by an interface abstraction.
 

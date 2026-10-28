@@ -2,8 +2,9 @@
 Rivalt · baseline R1 · 20 October 2026
 
 D69 adds [M10 / P29–P34](P29-MAKER-LIQUIDITY-ROADMAP.md) for programmable maker
-liquidity and bounded best-pair routing. P29A delivers planning; later rows remain
-prospective. P29B freezes the exact contract and P32 owns the first integrated
+liquidity and bounded best-pair routing. D70 records subsequent authorization to
+implement sequentially. [P29B](P29B-MAKER-CONTRACT.md) freezes the exact contract
+and P32 owns the first integrated
 execution/safety and comparison gate before service expansion. Existing milestones,
 external gates and deferred endurance retain their scope and evidence.
 
@@ -81,7 +82,7 @@ M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. 
 | P33 | M10 | SDK, durable services, indexer, UI and maker kit | P32 continuation gate passed | A38 / G26 interfaces |
 | P34 | M10 | Comparative concurrent qualification and operations | P33 | A39 / G26 completion / M10 exit |
 
-The integrated engineering path is P01–P14 → P15A → P16A → P17 → P18A → P18B → P18C → P19 → P20 → P21A → P21B → P22A → P22B → P23 → P24 → P25 → P26 → P27 → P28 → P28A. D69 plans P29A → P29B → P30 → P31 → P32 → P33 → P34; this planning request does not itself start implementation. External P15B/P16B do not block authorized test engineering; their own prerequisites remain mandatory. Do not reopen settled architecture outside the explicit D56/D69 scopes or ask to start each already-authorized phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
+The integrated engineering path is P01–P14 → P15A → P16A → P17 → P18A → P18B → P18C → P19 → P20 → P21A → P21B → P22A → P22B → P23 → P24 → P25 → P26 → P27 → P28 → P28A. D69 plans and D70 authorizes P29A → P29B → P30 → P31 → P32 → P33 → P34. External P15B/P16B do not block authorized test engineering; their own prerequisites remain mandatory. Do not reopen settled architecture outside the explicit D56/D69/D70 scopes or ask to start each already-authorized phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
 
 Workflow amendment, 20 October 2026: submit ready-to-review PRs using `gh stack submit --auto --open`. Once a phase's deliverable and acceptance checks pass, continue its dependent phase on top of those exact commits without waiting for merge. `gh stack` manages the chain and PR bases. An unmerged phase remains Review; this removes a development scheduling barrier, not the integration requirement for Closed. D41 originally required keeping the new PRs stacked and open; D44 records the user's subsequent explicit authorization to address reviews and merge PRs #20/#21. WORKLOG records verified integration.
 
@@ -707,6 +708,11 @@ error-path checks. No subsequent phase is authorized by this closeout.
 The subsequent D69 request accepts R077's five-change direction and asks for
 phase-scoped planning. [The M10 roadmap](P29-MAKER-LIQUIDITY-ROADMAP.md) owns
 detailed deliverables, acceptance, G22–G26 and the P32 continuation gate.
+
+D70 records the subsequent instruction to proceed. P29B's
+[executable contract](P29B-MAKER-CONTRACT.md) pins the three-maker profile-4 ABI,
+pricing/lifecycle/reference and numeric resource/comparison gates. Its reference
+checks are model evidence only; P30–P34 remain separate acceptance phases.
 
 P29A is a ready roadmap PR. P29B must close the exact curve/update/authority,
 bounded candidate search and executable funding contract before implementation.

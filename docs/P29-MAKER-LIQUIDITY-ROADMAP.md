@@ -1,15 +1,16 @@
 # P29–P34: programmable maker liquidity and bounded routing
 
-28 October 2026 · M10 · D69 · roadmap, not runtime qualification
+28 October 2026 · M10 · D69/D70 · roadmap, not runtime qualification
 
 ## Objective and boundary
 
 Deliver the five changes in [R077's assessment](MAKER-QUOTING-ASSESSMENT.md): a
 common quote contract, configurable maker curves, separate repricing/replenishment,
 strategy-independent bounded allocation, and matching clearing/funding safeguards.
-The user accepts this direction and requests phase-scoped planning. P29A is this
-roadmap PR; the remaining rows are planned implementation, not completed work or
-permission inferred for deployment. WORKLOG owns live status.
+The user accepts this direction and subsequently authorizes sequential implementation
+(D70). P29A is the roadmap PR; [P29B](P29B-MAKER-CONTRACT.md) freezes the contract.
+Later rows still require their own implementation/acceptance; deployment permission
+is limited to bounded local qualification. WORKLOG owns live status.
 
 Use the integrated schema-3 account engine. Preserve BTC/ETH, one test collateral,
 per-market isolated maker capital, account risk boundaries, funded cash versus
@@ -71,7 +72,7 @@ One cohesive ready PR per row; a phase can span runs. P29's A/B split deliberate
 separates agreeing the roadmap from proving an exact executable contract, following
 P22's convention. No automatic dozens-of-task-PR expansion. Use `gh stack` and
 verified predecessor commits; keep unmerged work in Review. Do not merge this new
-stack without a later merge instruction. Planning does not itself start P29B.
+stack without a later merge instruction. D70 separately authorizes P29B–P34.
 
 ### P29A — roadmap
 
