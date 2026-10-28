@@ -1099,3 +1099,12 @@ standalone indexer's post-cycle delay and fail-closed readiness. A control timeo
 is not proof of shutdown: wait for the owned process and listeners to exit.
 [P28A acceptance](evidence/P28A.md) records fresh browser/RPC/WS/PostgreSQL and
 stop/reset results on `4f809d3`, without extending financial or external scope.
+
+D68 review/integration authorization (R076): the user explicitly requests addressing
+PR #41 reviews and then merging it, superseding its earlier keep-open instruction.
+Early supervisor death must fail startup promptly. A faucet wallet may retry only
+after non-submission, explicit preflight rejection or finalized failure; uncertain
+originals remain reserved, and faucet responses await finalized history. This is
+local test-faucet/lifecycle handling, not a financial-program or deployment change.
+Keep the demo stopped and stop work after review/integration; subsequent scope is
+for the user's next instruction.

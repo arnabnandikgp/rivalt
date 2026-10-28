@@ -18,7 +18,11 @@ M9 tracks this small local-evaluation milestone separately from closed M8.
   and actual chain admission remain mandatory. This is not Phantom qualification.
 - A local faucet supplies one SOL and 1,000 test USD per wallet, at most 16 wallets
   per session. It accepts only the configured browser origin and current genesis;
-  it cannot sign a user's trade. All collateral/prices/makers are synthetic/internal.
+  it cannot sign a user's trade. Preparation failures and explicit preflight rejection
+  release the wallet allowance. Post-submission failures release it only after the
+  original is finalized as failed; uncertain submissions keep their allowance to
+  prevent duplicate funding. Successful faucet responses also await finality.
+  All collateral/prices/makers are synthetic/internal.
 - One disposable PostgreSQL directory; bounded operational logs; a 60-minute lease
   and low-disk shutdown prevent unattended growth. Startup requires more than
   1 GiB free; the running demo stops below 768 MiB free. No deletion of old qualification
@@ -55,6 +59,8 @@ owned background processes, builds/serves the production UI, and prints its addr
 60-minute session lease is a resource bound, not a soak test. `status` reports
 source modes, four maker heartbeats, WS subscription, projection health and finite
 operator fee budgets. If startup fails, it reports its stage and local log path.
+An early supervisor exit or spawn error is detected even before the status server
+or ended-session record exists, without waiting through the startup polling limit.
 No Docker Desktop installation or external provider/API key is needed.
 
 `stop` ends the chain and stops only owned processes/container. It waits for the

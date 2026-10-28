@@ -2,6 +2,18 @@ import {spawn,type ChildProcess} from 'node:child_process';
 import {appendFileSync,existsSync,renameSync,rmSync,statSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 
+/** Observe startup failures even before the supervisor can serve status or write ended.json. */
+export function watchSupervisor(child:ChildProcess,logPath:string){
+  let failure:Error|undefined;
+  child.once('exit',(code,signal)=>{
+    failure=new Error(`Demo supervisor exited before startup (${signal??code}); inspect ${logPath}`);
+  });
+  child.once('error',error=>{
+    failure=new Error(`Demo supervisor could not start; inspect ${logPath}`,{cause:error});
+  });
+  return ()=>{if(failure)throw failure;};
+}
+
 /** Only owned ChildProcess handles are signalled; no broad pkill/port eviction. */
 export class DemoProcesses {
   readonly children=new Map<string,ChildProcess>();

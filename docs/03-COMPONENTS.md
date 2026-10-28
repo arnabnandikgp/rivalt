@@ -419,3 +419,10 @@ operator keys/config stay in private local files. The launcher builds/serves the
 production UI and keeps the standalone indexer's one-second post-cycle delay;
 readiness remains fail-closed during reconciliation. Shutdown verifies actual
 process exit and port release. See [P28A](P28A-LOCAL-DEMO.md).
+
+P28A review correction: the launcher observes supervisor exit/error events before
+startup polling. Faucet admission distinguishes preparation/non-submission, explicit
+preflight rejection, finalized failed originals and uncertain submission. Only
+definite failure releases a grant; ambiguous or successful originals retain it.
+Faucet success/failure history uses finalized commitment and verifies the original
+signature; other provisioning/source sends retain confirmed commitment.

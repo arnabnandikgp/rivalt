@@ -44,7 +44,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
-| M9 | P28A | Interactive local evaluation follow-up | Review | [P28A acceptance](evidence/P28A.md) passes on `4f809d3`: 13 browser originals, indexed fills, immediate owned shutdown and fresh reset; [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) open/ready above main; R075 user walkthrough accepted, runtime stopped; two review findings pending; M8 unchanged |
+| M9 | P28A | Interactive local evaluation follow-up | Review | [P28A acceptance](evidence/P28A.md) passes on `4f809d3`: 13 browser originals, indexed fills, immediate owned shutdown and fresh reset; [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) open/ready above main; R075 user walkthrough accepted, runtime stopped; R076 both findings fixed with 16 scoped tests; refreshed CI/merge pending; M8 unchanged |
 
 ## Phase overview
 
@@ -85,7 +85,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P27 | SDK, indexer/API and durable services | Closed | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit; integrated at `0916b9d` |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Closed | [PR #40](https://github.com/arnabnandikgp/rivalt/pull/40), published `ac894f1`, above #39 `9498d2e` | [A33/G21/M8](evidence/P28.md): 17 browser originals, 115 submitted trades, six busy exits, four bounded history rescans, complete nine-root default/recovery and identical fresh PostgreSQL replay; tested `f595fd7` / `5491752`; R073 scoped review corrections `e6ba2cf`; integrated at `0916b9d` |
 
-| M9 | P28A | Interactive launcher, local test wallet and walkthrough | Review | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) above main `4338af6`; tested `4f809d3`; published `3385065` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 distinct wallet originals, indexed fills, reload, stop/reset and idempotency pass; R075 user walkthrough accepted, runtime stopped; two review findings pending |
+| M9 | P28A | Interactive launcher, local test wallet and walkthrough | Review | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) above main `4338af6`; tested `4f809d3`; published `3385065` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 distinct wallet originals, indexed fills, reload, stop/reset and idempotency pass; R075 user walkthrough accepted, runtime stopped; R076 both findings fixed, 16 scoped tests pass; refreshed CI/merge pending |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -98,7 +98,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Current review verification (R073): zero unresolved inline threads or requested changes; all eight final heads mergeable with selected CI successful or scope-skipped. Tip `e6ba2cf` passes all five jobs in [hosted run 40576656720](https://github.com/arnabnandikgp/rivalt/actions/runs/40576656720); CodeRabbit is neutral/skipped for the incremental push. Seven local consumer cases, one Rust wire test, typecheck and trader build pass. This is scoped remediation/integration evidence, not an independent protocol review.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: review actual P28A PR #41 findings when available, keeping the PR open. The local demo and acceptance are complete; integration remains required for Closed. M8 remains Closed and no further product/deployment phase is included.
+- Exact next action: publish the R076 review corrections, resolve the verified findings and merge PR #41 after required checks. Keep the demo stopped and await the user’s next scope after integration; M8 remains Closed.
 - Deferred gates: R072 qualifies six busy funded exits in the schema-3 local profile; the older V2 profile keeps its historical limitation. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new devnet/funded deployment or external participation is claimed.
 
 ## Blocker register
@@ -3692,3 +3692,36 @@ new financial/deployment phase or economic decision is authorized by the discuss
 Exact next action: agree the next scope, with PR #41 review cleanup first and a
 focused profit-payment progress investigation recommended before schema-3 devnet/
 maker-kit updates. P15B/P16B remain Open; endurance remains Deferred.
+
+
+## R076 — P28A review remediation and authorized merge (28 October 2026)
+
+The user requests addressing PR #41 reviews and explicitly adds merge authorization.
+Inspected Git state, current contracts, all review threads (pagination complete),
+submitted reviews and discussion comments. Exactly two inline findings are valid:
+early supervisor exit could wait through startup polling, and a definite faucet
+failure consumed the one-grant allowance. Added child exit/error observation and
+explicit send outcomes, with a small session-local faucet admission controller.
+Preparation/preflight rejection releases a grant; finalized failure also releases
+it, while confirmed failure, unknown history, lost acknowledgment and other
+ambiguous results retain it. Successful faucet responses now await finality.
+No financial program, source safeguard, artifact or production deployment changes.
+
+`pnpm exec vitest run packages/local-demo/src/processes.test.ts
+packages/local-demo/src/faucet.test.ts packages/local-demo/src/transport.test.ts
+--maxWorkers=1 --no-file-parallelism` passes 3 files / 16 cases. Tests use actual
+child processes and actual signed transactions with scripted RPC faults, including
+durable original-before-send checks; they are not fresh on-chain acceptance.
+The demo remains stopped. No browser/Surfpool/PostgreSQL restart, financial/Rust/
+IDL suite or endurance run is warranted for these error paths. Local TypeScript
+and build are delegated to the existing hosted client job because free disk is
+about 318 MiB; no user data or evidence is deleted. The generic bot docstring-
+percentage warning is advisory, not a repository gate; added focused documentation
+for the changed boundaries rather than unrelated comment churn.
+
+Raw review/test captures remain ignored at `.local/reviews/R076/`. The unrelated
+`phoenix/`, newly observed `GoonFi_V2/` and design proposal remain untouched.
+Both M9/P28A remain Review until
+actual integration. Exact next action: commit/publish the cohesive corrections,
+verify refreshed hosted checks, resolve the two findings and merge PR #41; then
+record the integrated commit and stop until the user chooses the next work.

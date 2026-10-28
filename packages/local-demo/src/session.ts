@@ -16,6 +16,7 @@ import {accountServiceApi} from '../../services/src/account-service-api.js';
 import {accountServiceSetup} from '../../../tests/rpc-contract/account-service-setup.js';
 import {DemoProcesses} from './processes.js';
 import {demoTransport,until} from './transport.js';
+import {DemoFaucet,FaucetUnavailable} from './faucet.js';
 import {CONTAINER,IMAGE,RUNTIME,DEMO_ROOT,UI,json,publicRequest} from './config.js';
 
 process.umask(0o077);
@@ -30,7 +31,7 @@ let publicConfig:sdk.AccountUserConfig|undefined,indexer:AccountIndexer|undefine
 let readApi:ReturnType<typeof accountApi>|undefined,executionApi:ReturnType<typeof accountServiceApi>|undefined;
 let transport:Awaited<ReturnType<typeof demoTransport>>|undefined,setup:Awaited<ReturnType<typeof accountServiceSetup>>|undefined;
 let sourceLoop:Promise<void>|undefined,monitor:NodeJS.Timeout|undefined,lease:NodeJS.Timeout|undefined;
-const wallets=new Set<string>();let faucetBusy=false;
+const faucet=new DemoFaucet();
 const status=()=>({kind:'rivalt-local-demo-v1',session,state,stage,error:failure||undefined,url:UI,
   deployment:publicConfig?{venue:publicConfig.venue,genesis:publicConfig.genesis}:undefined,
   sessionMinutes:60,logs,warning:'Synthetic prices, internal makers and valueless local test collateral. Stop ends this chain; reset starts fresh.'});
@@ -67,21 +68,22 @@ const control=createServer(async(request,response)=>{
     if(state!=='ready'||!setup||!transport){finish(503,{error:'Demo is not ready'});return;}
     let body='';for await(const chunk of request){body+=chunk;if(body.length>2048){finish(413,{error:'Request too large'});return;}}
     const input=JSON.parse(body);assert(input.genesis===publicConfig!.genesis,'Wrong demo deployment');
-    const owner=address(input.owner);assert(wallets.size<16,'Demo wallet allowance exhausted; reset for another session');
-    if(wallets.has(owner)){finish(409,{error:'This wallet already received its test funds in this session'});return;}
-    if(faucetBusy){finish(409,{error:'Faucet is busy; try again'});return;}
-    faucetBusy=true;wallets.add(owner);
-    try {
+    const owner=address(input.owner),demo=transport,mint=setup.mint.address;
+    const funding=await faucet.fund(owner,async()=>{
       const tokenAccount=await Keypair.generate();
-      const history=await transport.send('demo wallet faucet',[
-        getTransferSolInstruction({source:transport.payer,destination:owner,amount:1_000_000_000n}),
-        getCreateAccountInstruction({payer:transport.payer,newAccount:tokenAccount,lamports:await transport.h.rent(165),space:165n,programAddress:TOKEN_PROGRAM_ADDRESS}),
-        getInitializeAccount3Instruction({account:tokenAccount.address,mint:setup.mint.address,owner}),
-        getMintToInstruction({mint:setup.mint.address,token:tokenAccount.address,mintAuthority:transport.payer,amount:1_000_000_000n}),
-      ],[tokenAccount]);
-      finish(200,{signature:history.transaction.signatures[0],tokenAccount:tokenAccount.address,amount:'1000',unit:'test USD'});
-    }finally{faucetBusy=false;}
-  }catch(error){finish(400,{error:error instanceof Error?error.message:'Demo request failed'});}
+      const instructions=[
+        getTransferSolInstruction({source:demo.payer,destination:owner,amount:1_000_000_000n}),
+        getCreateAccountInstruction({payer:demo.payer,newAccount:tokenAccount,lamports:await demo.h.rent(165),space:165n,programAddress:TOKEN_PROGRAM_ADDRESS}),
+        getInitializeAccount3Instruction({account:tokenAccount.address,mint,owner}),
+        getMintToInstruction({mint,token:tokenAccount.address,mintAuthority:demo.payer,amount:1_000_000_000n}),
+      ];
+      return async()=>{
+        const history=await demo.send('demo wallet faucet',instructions,[tokenAccount],'finalized');
+        return {signature:history.transaction.signatures[0],tokenAccount:tokenAccount.address,amount:'1000',unit:'test USD'};
+      };
+    });
+    finish(200,funding);
+  }catch(error){finish(error instanceof FaucetUnavailable?error.status:400,{error:error instanceof Error?error.message:'Demo request failed'});}
 });
 control.listen(18094,'127.0.0.1');
 for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>void shutdown(signal));

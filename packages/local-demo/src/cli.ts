@@ -3,6 +3,7 @@ import {spawn,execFileSync} from 'node:child_process';
 import {existsSync,mkdirSync,readFileSync,openSync,closeSync,rmSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {CONTROL,DEMO_ROOT,RUNTIME,CONTAINER,PORTS} from './config.js';
+import {watchSupervisor} from './processes.js';
 
 const action=process.argv[2]??'status';
 async function status(){
@@ -65,11 +66,14 @@ else if(action==='start'||action==='reset'){
   mkdirSync(DEMO_ROOT,{recursive:true,mode:0o700});
   const log=openSync(DEMO_ROOT+'/supervisor.log','w',0o600);
   const child=spawn(process.execPath,['--import','tsx','packages/local-demo/src/session.ts'],{cwd:process.cwd(),env:process.env,detached:true,stdio:['ignore',log,log]});
+  const assertSupervisorRunning=watchSupervisor(child,DEMO_ROOT+'/supervisor.log');
   closeSync(log);child.unref();
   console.log('Starting fresh local venue. Progress: bash ops/demo.sh status');
   for(let attempt=0;attempt<900;attempt++){
+    assertSupervisorRunning();
     const current=await status();
     if(existsSync(RUNTIME+'/ended.json'))throw new Error(JSON.parse(readFileSync(RUNTIME+'/ended.json','utf8')).stage);
+    assertSupervisorRunning();
     if(current?.state==='ready'){console.log(current);process.exit(0);}
     if(current?.state==='failed')throw new Error(current.error);
     await delay(200);
