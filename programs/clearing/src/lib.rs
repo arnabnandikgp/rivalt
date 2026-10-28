@@ -31,6 +31,30 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn initialize_liquidity_v4(ctx: Context<InitializeLiquidityV4>) -> Result<()> {
+        maker_liquidity::initialize(ctx)
+    }
+    pub fn register_liquidity_v4(ctx: Context<RegisterLiquidityV4>, instance: u8) -> Result<()> {
+        maker_liquidity::register(ctx, instance)
+    }
+    pub fn seal_liquidity_v4(ctx: Context<SealLiquidityV4>) -> Result<()> {
+        maker_liquidity::seal(ctx)
+    }
+    pub fn control_liquidity_v4(ctx: Context<ControlLiquidityV4>, expected_authority: u64,
+        expected_control: u64, expected_shape: u64, action: maker_interface::canonical::CurveControlV4) -> Result<()> {
+        maker_liquidity::control(ctx, expected_authority, expected_control, expected_shape, action)
+    }
+    pub fn replenish_liquidity_v4(ctx: Context<ControlLiquidityV4>, expected_authority: u64,
+        expected_depth: u64, sides: u8) -> Result<()> {
+        maker_liquidity::replenish(ctx, expected_authority, expected_depth, sides)
+    }
+    pub fn quarantine_liquidity_v4(ctx: Context<QuarantineLiquidityV4>, expected_authority: u64) -> Result<()> {
+        maker_liquidity::quarantine(ctx, expected_authority)
+    }
+    pub fn approve_liquidity_v4(ctx: Context<ControlLiquidityV4>, expected_authority: u64) -> Result<()> {
+        maker_liquidity::approve(ctx, expected_authority)
+    }
+
     pub fn initialize_account_resolution_v3(ctx: Context<InitializeAccountResolutionV3>) -> Result<()> {
         account_safety::resolution::initialize(ctx)
     }
@@ -178,6 +202,16 @@ pub mod clearing {
         args: account_trading::routes::AccountOrderExecutionV3,
     ) -> Result<()> {
         account_trading::routes::execute_order(ctx, args)
+    }
+
+    pub fn initialize_liquidity_venue_v4(
+        ctx: Context<InitializeVenueV3>,
+        domain: [u8; 32],
+        fee_authority: Pubkey,
+        reserve_authority: Pubkey,
+        reserve_destination_owner: Pubkey,
+    ) -> Result<()> {
+        account_custody::initialize_liquidity(ctx, domain, fee_authority, reserve_authority, reserve_destination_owner)
     }
 
     pub fn initialize_venue_v3(

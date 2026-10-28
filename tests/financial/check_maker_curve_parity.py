@@ -1,7 +1,9 @@
 """Compare independent P29B pricing expectations against actual native Rust code.
 
 Run after cargo build --locked -p maker-interface --bin curve-reference-driver.
-This is host parity, not compiled SBF/RPC acceptance. No broad inherited tests run.
+The rust/sdk selections are host parity. Explicit sbf-a/sbf-b selections execute
+the deployed program artifacts in LiteSVM; neither selection claims RPC acceptance.
+No broad inherited tests run.
 """
 import itertools
 import argparse
@@ -29,7 +31,7 @@ def wire_shape(curve):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--implementation", choices=("rust", "sdk", "both"), default="both")
+    parser.add_argument("--implementation", choices=("rust", "sdk", "both", "sbf-a", "sbf-b"), default="both")
     selected = parser.parse_args().implementation
     cases, expected = [], []
 
@@ -81,6 +83,9 @@ def main():
         commands["Rust"] = [str(binary)]
     if selected in ("sdk", "both"):
         commands["SDK"] = ["node", "--import", "tsx", str(root / "tests/financial/maker-curve-sdk-driver.ts")]
+    if selected in ("sbf-a", "sbf-b"):
+        commands[selected] = ["env", f"RIVALT_CANONICAL_PROGRAM=maker_{selected[-1]}", "node", "--import", "tsx",
+                              str(root / "tests/rpc-contract/canonical-maker-svm-driver.ts")]
     for name, command in commands.items():
         result = subprocess.run(command, input="\n".join(cases) + "\n", text=True,
                                 capture_output=True, check=True, cwd=root)

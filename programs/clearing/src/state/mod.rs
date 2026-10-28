@@ -23,3 +23,6 @@ pub mod v2;
 
 /// Fresh account-centric contract layouts; financial activation remains disabled.
 pub mod v3;
+
+/// Canonical maker registry; profile-4 financial execution is not activated here.
+pub mod v4;

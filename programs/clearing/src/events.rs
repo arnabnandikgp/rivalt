@@ -3,6 +3,27 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 
 #[event]
+pub struct LiquidityRegistryChangedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub registry: Pubkey,
+    pub state: crate::state::v4::LiquidityRegistryPayloadV4,
+}
+
+#[event]
+pub struct LiquidityMakerChangedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub market_state: MarketSnapshotV3,
+    pub registration: Pubkey,
+    pub state: crate::state::v4::MakerRegistrationPayloadV4,
+    pub operation: u8,
+}
+
+#[event]
 pub struct OrderChanged {
     pub version: u16,
     pub domain: [u8; 32],

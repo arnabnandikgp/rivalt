@@ -7,6 +7,8 @@
  */
 
 export * from "./clearingGroupV2.js";
+export * from "./curveControlV4.js";
+export * from "./curveStateV4.js";
 export * from "./groupMarketV2.js";
 export * from "./makerState.js";
 export * from "./marginAccountV2.js";
@@ -15,11 +17,16 @@ export * from "./marketV3.js";
 export * from "./oracleState.js";
 export * from "./orderBookV2.js";
 export * from "./positionV2.js";
+export * from "./priceStateV4.js";
 export * from "./protectionV2.js";
 export * from "./protectiveGroup.js";
 export * from "./quoteRequest.js";
+export * from "./quoteRequestV4.js";
 export * from "./quoteResponse.js";
+export * from "./quoteResponseV4.js";
+export * from "./regionV4.js";
 export * from "./safetyV3.js";
+export * from "./shapeV4.js";
 export * from "./storedOrder.js";
 export * from "./storedOrderV2.js";
 export * from "./venueV3.js";

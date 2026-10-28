@@ -113,7 +113,8 @@ search/latency budgets, transaction/account/compute envelopes, comparison worklo
 and numeric continuation tolerances before measurements. Account for the existing
 full ProgramData validation cost, maximum order books and funding's full coverage.
 Retain packet fit and at least 20% measured compute headroom as later acceptance.
-Any lookup-table dependency needs explicit provisioning/authority/recovery rules.
+D71 uses measured v0≤1,232 or v1≤4,096-byte transactions, without mandatory lookup
+tables; verify explicit v1 resource headers and RPC/wallet/service compatibility.
 Design calculations are not signed-program budget evidence.
 
 **A34B:** independent pricing and split examples, transition/race/counterparty

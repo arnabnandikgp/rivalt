@@ -4,6 +4,7 @@ export * as makerA from './generatedMakerA/index.js';
 export * as makerB from './generatedMakerB/index.js';
 export * from './quote-maker.js';
 export * from './canonical-quote.js';
+export * from './canonical-transport.js';
 // Codama names identical participant seeds after the first capital account role.
 export { findCapitalPda as findParticipantPda } from './generated/pdas/capital.js';
 

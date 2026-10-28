@@ -277,7 +277,7 @@ class WireAndResourceContract(unittest.TestCase):
         self.assertEqual(offsets("MakerPriceV4")[0]["sequence"], 50)
         self.assertEqual(offsets("MakerRegistrationV4")[0]["buy_consumed"], 315)
 
-    def test_pinned_packet_envelopes_use_explicit_lookup_table(self):
+    def test_historical_v0_size_model_not_current_transport_acceptance(self):
         # Route: conservative 32 unique keys, 32 ix references, <=256 bytes data.
         self.assertGreater(packet_size(32, ((32, 256),)), 1232)
         self.assertLessEqual(packet_size(10, ((32, 256),), 8, 14), 1232)
@@ -285,7 +285,7 @@ class WireAndResourceContract(unittest.TestCase):
         self.assertLessEqual(packet_size(10, ((32, 64),), 8, 14), 1232)
         # Shape gateway: 16 keys, 16 references, <=512-byte args incl discriminator.
         self.assertLessEqual(packet_size(8, ((16, 512),), 4, 4), 1232)
-        self.assertLessEqual(packet_size(9, ((16, 512),), 4, 3, signatures=2), 1232)
+        self.assertEqual(packet_size(11, ((18, 512),), 4, 3, signatures=3), 1179)
         # Cheap reprice: signer/config/price/event-authority/program/compute.
         self.assertLessEqual(packet_size(6, ((5, 32),)), 512)
 

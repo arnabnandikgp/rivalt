@@ -67,7 +67,7 @@ No generic “TBD” may escape into an executable phase. Missing a gate blocks 
 | G19 | Whole-account risk/orders/funding, relevant validity dependencies, settlement ledger and atomic cash exits | P24/P25 | Independent real-implementation checks, signed rollback/conservation/fractions and live-sampler exit cases; ordinary new-profile activation still disabled |
 | G20 | Complete selected liability cohort, loss/insurance allocation, liquidation/default/recovery and activation | P26 | Independent maximum-cohort/shared-debtor/cycle cases, post-fee progress, real signed runtime reconciliation and activation gates |
 | G21 | Account-centric services/events/UI, operator budgets and bounded concurrent qualification | P27/P28 | Actual RPC/WS/PostgreSQL/browser/replay, normal background exits, complete populations and measured resource/contention limits |
-| G22 | Versioned maker identity/quote/curve/update/authority contract; registry/region/read-set/search/resource bounds; funding context/coverage and comparison tolerances | P29B / D70 | [P29B contract](P29B-MAKER-CONTRACT.md) freezes profile 4, three makers, canonical potential/prefix arithmetic, exact pair search, complete funding, explicit lookup tables and numeric continuation bounds; independent reference checks only, runtime feasibility remains P30/P32 |
+| G22 | Versioned maker identity/quote/curve/update/authority contract; registry/region/read-set/search/resource bounds; funding context/coverage and comparison tolerances | P29B / D70 | [P29B contract](P29B-MAKER-CONTRACT.md) freezes profile 4, three makers, canonical potential/prefix arithmetic, exact pair search, complete funding and numeric continuation bounds; D71 supersedes mandatory tables with measured v0/v1 selection; independent reference checks only, runtime feasibility remains P30/P32 |
 | G23 | Canonical configurable curves, update/replenish/expiry controls and exact SDK/program quote parity | P30 | Independent vectors, signed actual program/RPC/WS updates and quotes, scoped ABI and measured update resources |
 | G24 | Generic candidate set, best feasible singleton/pair allocation, capital deduplication, exactness and search budget | P31 | Independent exhaustive comparator, three-plus candidate cases and real-program quote parity; measured bounded search |
 | G25 | New clearing/funding/order authority, race behavior, affected safety and local activation; prototype continuation thresholds | P32 | Signed actual rollback/funding/risk/default and comparative RPC/WS/PostgreSQL evidence; no safeguard weakening |
@@ -1221,3 +1221,40 @@ D70 implementation checkpoint (R080): P30 begins on the verified P29B stack.
 Canonical Rust and SDK arithmetic/quote payloads pass independent native parity;
 no new on-chain handler, active profile or deployment is inferred. Exact financial
 activation and runtime acceptance remain with the phase gates above.
+
+D70 P30 context realization: fresh profile4 reuses flat custody under a separate
+`maker-liquidity-qualification` feature; legacy trading/activation still rejects4.
+Concrete event-CPI contexts require custody sequencing, the maker event authority
+and potentially an independent transaction payer. The pre-measurement control
+envelope is amended to18 keys/up to3 signers and a1,179-byte conservative model,
+retaining packet/CU/headroom limits. Shape replacement cannot change enable mode;
+quarantine is independent of maker code/state and may run while paused. These
+ordinary implementation corrections and their original rationale are recorded in
+P29B's realization notes; no financial economics or loss ownership changes.
+
+
+## D71 — Size-based v0/v1 transport for profile4 (28 October 2026)
+
+The user directs using Solana v1 for transactions above1,232 bytes instead of
+requiring address lookup tables. Supersede only D70/G22's mandatory ALT provisioning
+and universal1,232-byte wire limit. Preserve account/read-set, compute/headroom,
+search, fee, authority and financial bounds. Keep existing V1–V3 profile transport
+unchanged. The installed web3.js3.1.1 and Kit8.5.0 implement v1; the current
+[Solana transaction reference](https://solana.com/docs/core/transactions) specifies
+4,096 bytes for v1. Library support is not runtime or wallet acceptance.
+
+The fresh canonical transport measures actual signed-size wire bytes, selects v0
+at≤1,232 and v1 above that, rejecting anything over4,096. Explicit compute and
+loaded-account-data limits move into v1's header; priority fee remains zero.
+Current P30 uses8MiB loaded-account data. RPC fetches allow version1 and compare the
+original bytes/signature with independently decoded RPC results. No broadcast
+fallback may silently resign or replace a pending action. Wallet/services/indexer
+compatibility is verified in the phases that own it. No mainnet/devnet deployment
+or stack upgrade is authorized by this transport correction.
+
+Initial P30 signed serialization finds single-shape control1,222 bytes, curve
+initialization1,039, pure reprice460 and joint approval775; all fit v0. These are
+actual generated-instruction serialization measurements, not finalized RPC evidence.
+P30 includes a genuine atomic pair of full-shape controls to exercise oversized v1.
+Its execution and actual CU results must be recorded separately. Historical P29B
+ALT models remain labeled as models, not new transaction measurements.

@@ -7,6 +7,99 @@
   },
   "instructions": [
     {
+      "name": "control_curve_v4",
+      "discriminator": [
+        87,
+        246,
+        69,
+        138,
+        190,
+        131,
+        55,
+        141
+      ],
+      "accounts": [
+        {
+          "name": "controller",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  114,
+                  118,
+                  101,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.state.capital",
+                "account": "MakerCurveV4"
+              }
+            ]
+          }
+        },
+        {
+          "name": "price",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "expected_control",
+          "type": "u64"
+        },
+        {
+          "name": "expected_shape",
+          "type": "u64"
+        },
+        {
+          "name": "action",
+          "type": {
+            "defined": {
+              "name": "CurveControlV4"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "initialize_account_config",
       "discriminator": [
         7,
@@ -262,6 +355,182 @@
         {
           "name": "duration",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_curve_v4",
+      "discriminator": [
+        2,
+        112,
+        249,
+        167,
+        34,
+        145,
+        140,
+        171
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "venue"
+        },
+        {
+          "name": "market"
+        },
+        {
+          "name": "capital",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  103,
+                  105,
+                  110,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital.portfolio",
+                "account": "MarginAccountV3"
+              },
+              {
+                "kind": "account",
+                "path": "capital.subaccount_index",
+                "account": "MarginAccountV3"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                203,
+                88,
+                155,
+                202,
+                90,
+                219,
+                148,
+                43,
+                250,
+                4,
+                140,
+                111,
+                46,
+                96,
+                211,
+                139,
+                13,
+                246,
+                221,
+                44,
+                68,
+                81,
+                197,
+                87,
+                135,
+                138,
+                167,
+                122,
+                240,
+                193,
+                192,
+                202
+              ]
+            }
+          }
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  114,
+                  118,
+                  101,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital"
+              }
+            ]
+          }
+        },
+        {
+          "name": "price",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "shape",
+          "type": {
+            "defined": {
+              "name": "ShapeV4"
+            }
+          }
+        },
+        {
+          "name": "updater",
+          "type": "pubkey"
+        },
+        {
+          "name": "expiry",
+          "type": "u64"
+        },
+        {
+          "name": "instance",
+          "type": "u8"
         }
       ]
     },
@@ -705,6 +974,174 @@
           "name": "QuoteResponse"
         }
       }
+    },
+    {
+      "name": "quote_v4",
+      "discriminator": [
+        186,
+        69,
+        30,
+        223,
+        191,
+        154,
+        12,
+        19
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  114,
+                  118,
+                  101,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.state.capital",
+                "account": "MakerCurveV4"
+              }
+            ]
+          }
+        },
+        {
+          "name": "price",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "request",
+          "type": {
+            "defined": {
+              "name": "QuoteRequestV4"
+            }
+          }
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QuoteResponseV4"
+        }
+      }
+    },
+    {
+      "name": "reprice_v4",
+      "discriminator": [
+        104,
+        190,
+        176,
+        98,
+        109,
+        111,
+        187,
+        154
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  114,
+                  118,
+                  101,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.state.capital",
+                "account": "MakerCurveV4"
+              }
+            ]
+          }
+        },
+        {
+          "name": "price",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "expected_control",
+          "type": "u64"
+        },
+        {
+          "name": "expected_sequence",
+          "type": "u64"
+        },
+        {
+          "name": "anchor",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -735,6 +1172,19 @@
       ]
     },
     {
+      "name": "MakerCurveV4",
+      "discriminator": [
+        193,
+        186,
+        219,
+        30,
+        59,
+        114,
+        63,
+        19
+      ]
+    },
+    {
       "name": "MakerGroupConfig",
       "discriminator": [
         3,
@@ -745,6 +1195,47 @@
         103,
         166,
         58
+      ]
+    },
+    {
+      "name": "MakerPriceV4",
+      "discriminator": [
+        66,
+        156,
+        238,
+        30,
+        240,
+        111,
+        194,
+        0
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "LiquidityPriceV4",
+      "discriminator": [
+        245,
+        185,
+        52,
+        198,
+        79,
+        168,
+        94,
+        143
+      ]
+    },
+    {
+      "name": "LiquidityShapeV4",
+      "discriminator": [
+        52,
+        132,
+        184,
+        47,
+        231,
+        114,
+        255,
+        196
       ]
     }
   ],
@@ -899,6 +1390,129 @@
       }
     },
     {
+      "name": "CurveControlV4",
+      "docs": [
+        "Borsh discriminants 0..3, with no extra vector-length prefix on the payload."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Shape",
+            "fields": [
+              {
+                "defined": {
+                  "name": "ShapeV4"
+                }
+              }
+            ]
+          },
+          {
+            "name": "Updater",
+            "fields": [
+              {
+                "name": "updater",
+                "type": "pubkey"
+              },
+              {
+                "name": "expiry_slot",
+                "type": "u64"
+              }
+            ]
+          },
+          {
+            "name": "Mode",
+            "fields": [
+              {
+                "name": "mode",
+                "type": "u8"
+              }
+            ]
+          },
+          {
+            "name": "Invalidate"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CurveStateV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "controller",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "updater",
+            "type": "pubkey"
+          },
+          {
+            "name": "updater_expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "control_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "shape_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "instance",
+            "type": "u8"
+          },
+          {
+            "name": "capability",
+            "type": "u16"
+          },
+          {
+            "name": "shape",
+            "type": {
+              "defined": {
+                "name": "ShapeV4"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "GroupMarketV2",
       "type": {
         "kind": "struct",
@@ -1011,6 +1625,62 @@
       }
     },
     {
+      "name": "LiquidityPriceV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "control",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "anchor",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityShapeV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "CurveStateV4"
+              }
+            }
+          },
+          {
+            "name": "action",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "MakerAccountConfig",
       "type": {
         "kind": "struct",
@@ -1047,6 +1717,22 @@
       }
     },
     {
+      "name": "MakerCurveV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "CurveStateV4"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "MakerGroupConfig",
       "type": {
         "kind": "struct",
@@ -1060,6 +1746,22 @@
             "type": {
               "defined": {
                 "name": "MakerState"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerPriceV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "PriceStateV4"
               }
             }
           }
@@ -1587,6 +2289,46 @@
       }
     },
     {
+      "name": "PriceStateV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "control_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "anchor",
+            "type": "u64"
+          },
+          {
+            "name": "updated_slot",
+            "type": "u64"
+          },
+          {
+            "name": "updated_time",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "ProtectionV2",
       "type": {
         "kind": "struct",
@@ -1722,6 +2464,71 @@
       }
     },
     {
+      "name": "QuoteRequestV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "instance",
+            "type": "u8"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "control_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "shape_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "depth_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "inventory",
+            "type": "i64"
+          },
+          {
+            "name": "consumed",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "QuoteResponse",
       "type": {
         "kind": "struct",
@@ -1786,6 +2593,66 @@
       }
     },
     {
+      "name": "QuoteResponseV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request",
+            "type": {
+              "defined": {
+                "name": "QuoteRequestV4"
+              }
+            }
+          },
+          {
+            "name": "price_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "anchor",
+            "type": "u64"
+          },
+          {
+            "name": "gross",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until_slot",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until_time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegionV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "end_lots",
+            "type": "u64"
+          },
+          {
+            "name": "offset",
+            "type": "u64"
+          },
+          {
+            "name": "slope",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "SafetyV3",
       "type": {
         "kind": "struct",
@@ -1825,6 +2692,79 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ShapeV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mode",
+            "docs": [
+              "0 disabled, 1 enabled, 3 enabled and maker-inventory reduce-only."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "ttl_slots",
+            "type": "u16"
+          },
+          {
+            "name": "target",
+            "type": "i64"
+          },
+          {
+            "name": "skew_step",
+            "type": "u64"
+          },
+          {
+            "name": "skew_tick",
+            "type": "u64"
+          },
+          {
+            "name": "long_cap",
+            "type": "u64"
+          },
+          {
+            "name": "short_cap",
+            "type": "u64"
+          },
+          {
+            "name": "bid_count",
+            "type": "u8"
+          },
+          {
+            "name": "ask_count",
+            "type": "u8"
+          },
+          {
+            "name": "bids",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "RegionV4"
+                  }
+                },
+                8
+              ]
+            }
+          },
+          {
+            "name": "asks",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "RegionV4"
+                  }
+                },
+                8
+              ]
+            }
           }
         ]
       }

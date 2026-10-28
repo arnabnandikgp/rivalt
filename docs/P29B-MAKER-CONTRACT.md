@@ -66,12 +66,14 @@ The canonical quote supplies **gross notional only**, never funded cash or P&L.
   Neither this CPI nor quote CPI receives a vault signer, writable clearing state
   or arbitrary remaining accounts. Quote CPI gets only read-only config and price.
 
-Profile checks in existing `account_*` instructions currently require 3. P32 must
-audit them explicitly: extend common custody/risk/order/settlement/safety paths to
+Profile checks in existing financial `account_*` instructions require 3. P30 adds
+`initialize_liquidity_venue_v4` and permits existing flat custody provisioning only
+under `maker-liquidity-qualification` in CUSTODY mode. Events report the actual
+venue profile. P32 must audit the remaining paths explicitly: extend common custody/risk/order/settlement/safety paths to
 4 where qualified; legacy maker/route/sample entrypoints continue rejecting 4.
 Clients must reject unknown profiles even when financial schema bytes decode.
-Deployment bundles contain program hashes, domain, addresses, registry and lookup
-table. They cannot depend on retained acceptance dumps. Preserve existing profiles.
+Deployment bundles contain program hashes, domain, addresses, registry and transaction
+resource settings. They cannot depend on retained acceptance dumps. Preserve existing profiles.
 
 ## 3. Canonical arithmetic (capability 1)
 
@@ -216,7 +218,10 @@ instance:u8)` binds existing venue/market/capital/domain/controller, initializin
 config/price; `reprice_v4(expected_control:u64, expected_sequence:u64, anchor:u64)`;
 `control_curve_v4(expected_control:u64, expected_shape:u64, action:u8, payload)`;
 `quote_v4(QuoteRequestV4)`. Control actions: 0 shape(429 bytes), 1 updater(key,u64),
-2 mode(u8), 3 invalidate publication(no payload). Only clearing controller signs
+2 mode(u8), 3 invalidate publication(no payload). These form Borsh enum
+`CurveControlV4` with discriminants0…3 and no vector-length prefix. Shape replacement
+must retain the current mode; re-enabling must use the mode transition and invalidate
+the old price. Only clearing controller signs
 control; action3 is the approval/revocation gateway hook. Reprice accounts in order:
 actor signer, config read-only, price writable, event authority, maker program.
 Quote accounts: config, price, both read-only and no signer. Initialize accounts:
@@ -224,7 +229,10 @@ owner payer/signer, venue, market, capital read-only, config/price writable,
 system program, event authority, maker program. Controller derives from capital;
 no external mutable financial dependency is passed to maker initialization.
 
-**Clearing instructions:** `initialize_liquidity_v4()` creates registry in custody
+**Clearing instructions:** `initialize_liquidity_venue_v4(domain,fee_authority,
+reserve_authority,reserve_destination_owner)` reuses the V3 initializer account/arg
+layout to create immutable profile4, gated by the P30-only build feature.
+`initialize_liquidity_v4()` creates registry in custody
 mode (venue authority); `register_liquidity_v4(instance:u8)` jointly admits the
 owner's capital/program/config/price/hash and unique binding; `seal_liquidity_v4()`
 requires all 3, then immutable membership. `control_liquidity_v4(expected_authority:u64,
@@ -237,14 +245,18 @@ the venue authority and owner; no caller-supplied hash is trusted.
 
 Gateway common ordered accounts: owner/actor signer, venue, custody writable,
 safety, market writable, registration writable, capital read-only, config writable,
-price read-only, maker program, ProgramData, controller, event authority, clearing;
-joint approval adds venue authority signer. Capital is never sent to maker CPI.
-Registry initialization: authority payer/signer, venue, market, safety, registry
+price read-only, maker program, ProgramData, controller, maker event authority, optional co-signer,
+clearing event authority, clearing. Joint approval requires the venue-authority
+co-signer; owner-only operations require no co-signer (Anchor placeholder convention).
+Quarantine uses its own authority,venue,custody,safety,market,registration,capital,
+event-authority,clearing context and invokes/loads no maker dependencies; it remains
+possible while paused or after a maker closes/corrupts its own accounts. Capital is never sent to maker CPI.
+Registry initialization: authority payer/signer, venue, custody writable, market, safety, registry
 writable, system, event authority, clearing. Registration: owner payer/signer,
 venue authority signer, venue, custody writable, safety, market, registry writable,
 capital, registration writable, capital binding writable, config, price, maker
 program, ProgramData, system, event authority, clearing (≤18 keys with compute).
-Seal: authority signer, venue, market, safety, registry writable, the three
+Seal: authority signer, venue, custody writable, market, safety, registry writable, the three
 registrations in ID order, event authority, clearing. No optional
 financial authority can be inferred from a missing signer. Resource envelopes
 below cover these lists; exact generated-IDL parity is a P30 acceptance check.
@@ -354,39 +366,39 @@ repricing does not retroactively replace it; structural updates use section 4.
 ## 7. G22 resource and comparison gates (pinned before measurements)
 
 These are **design envelopes and future pass criteria**, not measured program
-results. Keep the existing toolchain/lockfiles. No lookup table hides loaded keys
-or contention. Full order/protection books use the existing V3 maximum capacity.
+results. Keep the existing toolchain/lockfiles. Transaction compression does not remove
+loaded keys or contention. D71 supersedes the original mandatory lookup-table policy. Full order/protection books use the existing V3 maximum capacity.
 
 | Item | Hard bound / acceptance |
 |---|---|
 | Registry / regions / dependencies | 3 makers/market, 8 regions/side, config+price only, ≤2 distinct programs |
 | Search | ≤12,291 candidate compositions, ≤12,288 nonzero per-maker quantity quotes; exact optimum; SDK p95≤250ms and p99≤500ms over 1,000 warmed worst-width runs on recorded host |
 | Funding search | ≤3×600 per-maker quotes/side and ≤3×599+3 allocations/side; keep only one side's arrays live; ≤16 KiB quote+eligibility scratch, default32 KiB heap |
-| Packet/accounts | ≤1,232 serialized bytes; ≤32 unique loaded accounts for route/sample, ≤16 control gateway accounts; no automatic expansion |
-| Compute | Reprice submitted≤100k, control≤400k, route≤800k, sample≤1.4m CU; measured maximum≤80% of its submitted limit, including full ProgramData verification and max books |
+| Packet/accounts | v0≤1,232 / v1≤4,096 complete serialized bytes; ≤32 unique loaded accounts for route/sample, ≤18 per control gateway including a separate fee payer and up to3 signers; composed controls≤32 total keys; no automatic expansion |
+| Compute | Single reprice submitted≤100k, single control≤400k, atomic pair of controls≤800k, route≤800k, sample≤1.4m CU; measured maximum≤80% of its submitted limit, including full ProgramData verification and max books |
 | Atomic combined operations | Submit only if measured packet/compute/headroom pass; no claim all old transfer+route compositions already fit the new envelope |
 | Concurrency | Record writable keys, conflicts/retries and update-to-landing p50/p95/p99; price publication writes only its price account, not market/custody/capital |
 
-The packet model includes signatures and two compute-budget instructions. A
-32-key/256-data-byte route does not fit legacy/static keys. **Require one explicit
-v0 address lookup table for wide routes, sampling and control**, maximum 32 entries
-per market bundle. Operator payer creates/populates it with immutable deployment
-addresses, waits until usable, independently fetches/verifies its entries and freezes
-it before enabling that deployment. No runtime extension/deactivation authority,
-secret table or table-supplied signer. SDK verifies exact addresses and table state;
-missing/wrong table fails visibly and can be restored by fetching the manifest/table
-over RPC, never guessing indexes. Old original transactions retain their original
-table/signature; ambiguous retries do not create replacement orders.
+**Current transport policy (D71):** measure the complete transaction including
+signatures before broadcast. Use v0 when it fits1,232 bytes; use v1 above that,
+subject to4,096 bytes. No lookup table is required. V1 puts explicit compute and
+loaded-account-data limits in the message header, with zero priority fee; budget
+instructions are not a substitute for the v1 header. P30 uses8MiB loaded-account
+data and the per-operation CU limits above. RPC reads advertise support through
+version1; acceptance independently fetches and decodes the original signed bytes.
+Ambiguous retries preserve the original transaction/signature. Wallet, service and
+indexer v1 compatibility remain owning-phase checks, not assumptions.
 
-Conservative byte envelopes checked by the independent serializer-size model:
-route32 keys/256 data,10 static+22 looked-up→792 bytes; full sample32 keys/64 data→599;
-control16 keys/512 data,8 static+8 looked-up→954; joint-approval conservative two-signature
-envelope with 9 static+7 looked-up→1,049; price6 keys/32 data→356.
-These include no heap-frame instruction. Actual generated instructions may use
-fewer keys/bytes. P30/P32 must serialize/fetch actual signed transactions and measure
-CU; arithmetic packet feasibility is not proof of runtime feasibility. If the
-three-maker/full-hash/full-book budget fails, optimize or record a failed gate;
-do not reduce coverage, admission checks or headroom to report success.
+P29B's original independent v0/ALT size models remain historical evidence on its
+pinned commit. The mandatory table provisioning/freeze/recovery design is explicitly
+superseded by the user's v1 direction. Initial P30 offline signed serialization
+measures full-shape control1,222 bytes, initialization1,039, reprice460 and joint
+approval775 for the actual generated instructions and two signatures. These all
+fit v0 and are not RPC execution evidence. Batched instructions and wider P32
+transactions require their own measurements. Preserve unique-account, compute,
+search and risk bounds; larger wire capacity does not authorize weakening them.
+If the three-maker/full-hash/full-book budget fails, optimize or record a failed
+gate; do not reduce coverage, admission checks or headroom to report success.
 
 **P32 continuation workload:** pinned separate V3/V4 fresh deployments, fixed seed
 2902, same toolchain/host/RPC configuration and initial test balances. Per profile,
@@ -441,3 +453,26 @@ No on-chain implementation, runtime performance, deployment, new financial
 acceptance or external review is proved by this contract/reference. Ordinary
 implementation corrections update this document and D70 with evidence. Material
 economic/scope changes need a decision. P15B/P16B stay Open; 24h stays Deferred.
+
+
+### P30 contract realization notes (R080 continuation)
+
+Implementing the contexts exposed two omitted event dependencies in the initial
+G22 list: clearing custody provides the durable registry event sequence, and maker
+event-CPI authority must accompany a control CPI. A separately sponsored payer can
+add a third signature/key. Before signed measurements, the conservative control
+envelope is therefore explicitly amended from16 keys/1,049bytes for two signers
+to18 keys/1,179bytes for up to3 signers in the initial ALT model. D71 subsequently
+supersedes that transport policy with measured v0/v1 selection;20% compute
+headroom remains unchanged. This is a context/serialization correction, not a change
+to capital, loss, fee, margin or update authority. P29B's original calculation remains
+recorded on its tested commit. Generated-IDL and signed P30 checks must verify the
+realized account lists; no size estimate substitutes for them.
+
+Shape payloads cannot change mode; enabling always increments control epoch and
+requires a new publication. Quarantine has no maker-owned read/code dependency,
+so a hostile/closed module cannot prevent the venue from quarantining it. Control
+CPI results are compared to the complete expected canonical config, including all
+immutable fields. P30 structural transitions accept only custody/zero-funded-index/
+zero-open-interest/unheld state; active causal materialization remains disabled
+until P32 implements and qualifies it.

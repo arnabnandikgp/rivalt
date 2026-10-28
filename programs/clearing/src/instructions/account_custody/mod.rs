@@ -23,7 +23,8 @@ pub(crate) fn custody_profile(
     require!(
         cfg!(feature = "account-test-profile")
             && venue.schema_version == SCHEMA_VERSION
-            && venue.profile_version == PROFILE_VERSION
+            && (venue.profile_version == PROFILE_VERSION
+                || (cfg!(feature = "maker-liquidity-qualification") && venue.profile_version == 4))
             && venue.insurance_fee_share_bps == 2500
             && custody.schema_version == SCHEMA_VERSION
             && safety.schema_version == SCHEMA_VERSION
@@ -170,7 +171,7 @@ fn event(
     increment(&mut custody.sequence)?;
     Ok(AccountCustodyChangedV3 {
         schema_version: SCHEMA_VERSION,
-        profile_version: PROFILE_VERSION,
+        profile_version: venue.profile_version,
         domain: venue.domain,
         venue: venue.key(),
         sequence: custody.sequence,
@@ -212,6 +213,28 @@ pub fn initialize(
     reserve_authority: Pubkey,
     reserve_destination_owner: Pubkey,
 ) -> Result<()> {
+    initialize_profile(ctx, domain, fee_authority, reserve_authority, reserve_destination_owner, PROFILE_VERSION)
+}
+
+pub fn initialize_liquidity(
+    ctx: Context<InitializeVenueV3>,
+    domain: [u8; 32],
+    fee_authority: Pubkey,
+    reserve_authority: Pubkey,
+    reserve_destination_owner: Pubkey,
+) -> Result<()> {
+    require!(cfg!(feature = "maker-liquidity-qualification"), ClearingError::Profile);
+    initialize_profile(ctx, domain, fee_authority, reserve_authority, reserve_destination_owner, 4)
+}
+
+fn initialize_profile(
+    ctx: Context<InitializeVenueV3>,
+    domain: [u8; 32],
+    fee_authority: Pubkey,
+    reserve_authority: Pubkey,
+    reserve_destination_owner: Pubkey,
+    profile_version: u16,
+) -> Result<()> {
     require!(
         cfg!(feature = "account-test-profile") && ctx.remaining_accounts.is_empty(),
         ClearingError::Profile
@@ -226,7 +249,7 @@ pub fn initialize(
     let venue = &mut ctx.accounts.venue;
     venue.set_inner(VenueV3 {
         schema_version: SCHEMA_VERSION,
-        profile_version: PROFILE_VERSION,
+        profile_version,
         domain,
         authority: ctx.accounts.authority.key(),
         fee_authority,

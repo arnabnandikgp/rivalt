@@ -134,6 +134,102 @@ pub struct PriceStateV4 {
     pub bump: u8,
 }
 
+/// Borsh discriminants 0..3, with no extra vector-length prefix on the payload.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+pub enum CurveControlV4 {
+    Shape(ShapeV4),
+    Updater { updater: Pubkey, expiry_slot: u64 },
+    Mode { mode: u8 },
+    Invalidate,
+}
+
+impl CurveControlV4 {
+    pub fn operation(&self) -> u8 {
+        match self {
+            Self::Shape(_) => 0,
+            Self::Updater { .. } => 1,
+            Self::Mode { .. } => 2,
+            Self::Invalidate => 3,
+        }
+    }
+}
+
+/// Instruction caller must authenticate the dedicated clearing controller signer.
+/// Never receives or mutates clearing consumption, capital, cash or funding state.
+pub fn control(
+    config: &CurveStateV4,
+    expected_control: u64,
+    expected_shape: u64,
+    action: CurveControlV4,
+    slot: u64,
+) -> QuoteResult<CurveStateV4> {
+    if config.schema_version != VERSION
+        || config.capability != CAPABILITY
+        || config.control_epoch == 0
+        || config.shape_epoch == 0
+        || config.control_epoch != expected_control
+        || config.shape_epoch != expected_shape
+    {
+        return Err(QuoteError::Binding);
+    }
+    let mut next = config.clone();
+    match action {
+        CurveControlV4::Shape(shape) => {
+            shape.validate()?;
+            // Enabling must always use the explicit mode transition and invalidate
+            // the old publication. A shape payload cannot bypass that transition.
+            if shape.mode != config.shape.mode {
+                return Err(QuoteError::Binding);
+            }
+            next.shape = shape;
+            next.shape_epoch = config
+                .shape_epoch
+                .checked_add(1)
+                .ok_or(QuoteError::Arithmetic)?;
+        }
+        CurveControlV4::Updater {
+            updater,
+            expiry_slot,
+        } => {
+            if (updater == Pubkey::default() && expiry_slot != 0)
+                || (updater != Pubkey::default() && expiry_slot <= slot)
+            {
+                return Err(QuoteError::Lifetime);
+            }
+            next.updater = updater;
+            next.updater_expiry_slot = expiry_slot;
+            next.control_epoch = config
+                .control_epoch
+                .checked_add(1)
+                .ok_or(QuoteError::Arithmetic)?;
+        }
+        CurveControlV4::Mode { mode } => {
+            if !matches!(mode, 0 | 1 | 3) {
+                return Err(QuoteError::Bounds);
+            }
+            next.shape.mode = mode;
+            next.shape_epoch = config
+                .shape_epoch
+                .checked_add(1)
+                .ok_or(QuoteError::Arithmetic)?;
+            if config.shape.mode == 0 && mode != 0 {
+                next.control_epoch = config
+                    .control_epoch
+                    .checked_add(1)
+                    .ok_or(QuoteError::Arithmetic)?;
+            }
+        }
+        CurveControlV4::Invalidate => {
+            next.control_epoch = config
+                .control_epoch
+                .checked_add(1)
+                .ok_or(QuoteError::Arithmetic)?;
+        }
+    }
+    next.shape.validate()?;
+    Ok(next)
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
 pub struct QuoteRequestV4 {
     pub version: u16,
@@ -639,5 +735,51 @@ mod tests {
         let mut trailing = bytes;
         trailing.push(0);
         assert!(validate_response(&response, key, key, &trailing).is_err());
+    }
+
+    #[test]
+    fn canonical_controls_require_fresh_publication_after_enable_or_revocation() {
+        let (key, config, price, request) = fixture();
+        let disabled = control(&config, 1, 1, CurveControlV4::Mode { mode: 0 }, 11).unwrap();
+        assert_eq!((disabled.control_epoch, disabled.shape_epoch), (1, 2));
+        let mut enabling_shape = disabled.shape.clone();
+        enabling_shape.mode = 1;
+        assert!(control(&disabled, 1, 2, CurveControlV4::Shape(enabling_shape), 11).is_err());
+        let enabled = control(&disabled, 1, 2, CurveControlV4::Mode { mode: 1 }, 11).unwrap();
+        assert_eq!((enabled.control_epoch, enabled.shape_epoch), (2, 3));
+        let mut current = request.clone();
+        current.control_epoch = 2;
+        current.shape_epoch = 3;
+        assert_eq!(
+            quote(key, &enabled, &price, &current, 11, 21),
+            Err(QuoteError::Binding)
+        );
+        let fresh = reprice(key, &enabled, &price, enabled.owner, 2, 1, 100, 11, 21).unwrap();
+        assert!(quote(key, &enabled, &fresh, &current, 11, 21).is_ok());
+        let revoked = control(
+            &enabled,
+            2,
+            3,
+            CurveControlV4::Updater {
+                updater: Pubkey::default(),
+                expiry_slot: 0,
+            },
+            11,
+        )
+        .unwrap();
+        assert_eq!(revoked.control_epoch, 3);
+        assert!(reprice(key, &revoked, &fresh, config.updater, 3, 2, 100, 12, 22).is_err());
+        assert!(control(&revoked, 2, 3, CurveControlV4::Invalidate, 12).is_err());
+    }
+
+    #[test]
+    fn canonical_control_payload_is_tagged_without_a_vector_prefix() {
+        let (_, config, _, _) = fixture();
+        let shape = wire(&CurveControlV4::Shape(config.shape.clone()));
+        assert_eq!(shape.len(), 430);
+        assert_eq!(shape[0], 0);
+        assert_eq!(shape[1..], wire(&config.shape));
+        assert_eq!(wire(&CurveControlV4::Mode { mode: 3 }), [2, 3]);
+        assert_eq!(wire(&CurveControlV4::Invalidate), [3]);
     }
 }
