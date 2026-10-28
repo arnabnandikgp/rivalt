@@ -3613,3 +3613,16 @@ cycle instead of a fixed timer, retaining fail-closed readiness and independentl
 running the disk guard. Add a final indexed-fill-display check. Typecheck and
 evidence/shell checks pass. Both tables remain In progress until this final fresh
 startup/browser/control check; no new economic or API readiness rule is introduced.
+
+
+R074 control correction: the final immediate port check on `704e79d` catches
+PostgreSQL still listening after `stop` reports completion. The control handler
+blocks briefly during synchronous container shutdown, and the old one-second
+HTTP timeout was incorrectly treated as process exit. Cleanup subsequently
+finishes and all listeners/container disappear; this is not a persistent orphan.
+Fix stop to wait for its authenticated recorded process to exit **and** all owned
+ports to release; only connection refusal means no control listener, while timeout/
+reset errors remain errors. Final focused wallet/faucet/UI tests pass 3/3 and
+typecheck passes. Raw control failure retained at `.local/demo-checks/R074-controls`.
+M9/P28A remain In progress; exact next action is fresh reset/browser and immediate
+stop/reset verification on the corrected launcher, then ready PR publication.

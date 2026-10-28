@@ -5,14 +5,41 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {CONTROL,DEMO_ROOT,RUNTIME,CONTAINER,PORTS} from './config.js';
 
 const action=process.argv[2]??'status';
-async function status(){try{const response=await fetch(CONTROL+'/status',{signal:AbortSignal.timeout(1000)});return response.ok?await response.json():null;}catch{return null;}}
+async function status(){
+  try{
+    const response=await fetch(CONTROL+'/status',{signal:AbortSignal.timeout(5000)});
+    assert(response.ok,'Demo control returned an error; its session may still be active');
+    const current=await response.json();
+    assert(current.kind==='rivalt-local-demo-v1'&&typeof current.session==='string','Foreign control listener');
+    return current;
+  }catch(error){
+    // A timed-out or resetting connection is not proof that cleanup finished.
+    if((error as {cause?:{code?:string}}).cause?.code==='ECONNREFUSED')return null;
+    throw error;
+  }
+}
+function processAlive(pid:number){
+  assert(Number.isSafeInteger(pid)&&pid>0,'Invalid demo process identity');
+  try{process.kill(pid,0);return true;}catch(error){if((error as NodeJS.ErrnoException).code==='ESRCH')return false;throw error;}
+}
+function portsReleased(){
+  try{execFileSync('python3',['ops/check-ports.py',...PORTS.map(String)],{stdio:'pipe'});return true;}catch{return false;}
+}
 async function stop(){
-  const current=await status();if(!current){console.log('Demo is stopped.');return;}
-  const owner=JSON.parse(readFileSync(RUNTIME+'/owner.json','utf8'));
-  assert(current.session===owner.session,'Foreign control process; refusing to stop');
-  const response=await fetch(CONTROL+'/stop',{method:'POST',headers:{authorization:`Bearer ${owner.token}`}});
+  const current=await status();
+  const owner=existsSync(RUNTIME+'/owner.json')?JSON.parse(readFileSync(RUNTIME+'/owner.json','utf8')):null;
+  if(!current){
+    assert(!owner||!processAlive(owner.pid),'Control unavailable but the recorded demo process is still alive; inspect its log');
+    assert(portsReleased(),'Demo listeners remain; cleanup is not confirmed');
+    console.log('Demo is stopped.');return;
+  }
+  assert(owner?.kind==='rivalt-local-demo-v1'&&current.session===owner.session,'Foreign control process; refusing to stop');
+  const response=await fetch(CONTROL+'/stop',{method:'POST',headers:{authorization:`Bearer ${owner.token}`},signal:AbortSignal.timeout(5000)});
   assert(response.ok,'Owned demo stop rejected');
-  for(let attempt=0;attempt<150;attempt++){if(!await status()){console.log('Stopped owned demo processes and PostgreSQL.');return;}await delay(200);}
+  for(let attempt=0;attempt<300;attempt++){
+    if(!processAlive(owner.pid)&&portsReleased()){console.log('Stopped owned demo processes and PostgreSQL.');return;}
+    await delay(200);
+  }
   throw new Error('Shutdown still pending; inspect the demo supervisor log.');
 }
 if(action==='status')console.log(await status()??{state:'stopped',next:'bash ops/demo.sh start (or reset for an ended session)'});
