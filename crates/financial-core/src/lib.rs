@@ -3,6 +3,7 @@
 //! No runtime, oracle, token, or authority assumptions are supplied by this crate.
 pub mod clearing;
 pub mod liquidation;
+pub mod liquidity;
 pub mod margin;
 pub mod oracle;
 pub mod orders;

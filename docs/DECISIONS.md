@@ -1285,3 +1285,9 @@ This is a read-only discovery bound, separate from the retained G22 maximum of
 closed; classified unavailable canonical makers remain visible. No financial
 activation, fee/insurance/loss change or wider exactness guarantee is authorized.
 See [P31 implementation](P31-EXACT-ROUTING.md) for interfaces and scoped acceptance.
+
+D72/P32 implementation checkpoint: exact consecutive-price preparation and a
+14,424-byte admitted-quantity table realize D70/G22 without changing economics or
+its numeric gates. Native parity does not qualify on-chain compute, total heap,
+financial execution or activation. Full source/capital coverage and independent
+health at every quantity remain mandatory; P32 is still In progress.

@@ -32,7 +32,7 @@ def wire_shape(curve):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--implementation", choices=("rust", "sdk", "both", "sbf-a", "sbf-b"), default="both")
+    parser.add_argument("--implementation", choices=("rust", "rust-ladder", "sdk", "both", "sbf-a", "sbf-b"), default="both")
     selected = parser.parse_args().implementation
     cases, expected = [], []
 
@@ -89,6 +89,8 @@ def main():
     commands = {}
     if selected in ("rust", "both"):
         commands["Rust"] = [str(binary)]
+    if selected == "rust-ladder":
+        commands["Rust consecutive quantity"] = [str(binary), "--ladder"]
     if selected in ("sdk", "both"):
         commands["SDK"] = ["node", "--import", "tsx", str(root / "tests/financial/maker-curve-sdk-driver.ts")]
     if selected in ("sbf-a", "sbf-b"):

@@ -13,6 +13,9 @@ pub const TTL_SECONDS: i64 = 6;
 pub const REQUEST_BYTES: usize = 156;
 pub const RESPONSE_BYTES: usize = 204;
 
+mod ladder;
+pub use ladder::QuoteLadderV4;
+
 #[derive(
     AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Copy, Debug, Default, PartialEq, Eq,
 )]
