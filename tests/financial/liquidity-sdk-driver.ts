@@ -30,8 +30,8 @@ for await (const line of createInterface({ input: process.stdin,crlfDelay: Infin
       maker.registrationState.buyConsumed = BigInt(source.consumed);maker.registrationState.sellConsumed = BigInt(source.consumed);
       maker.shape = { ...maker.shape,mode: source.mode,target: BigInt(source.target),skewStep: BigInt(source.step),skewTick: BigInt(source.tick),
         longCap: BigInt(source.cap),shortCap: BigInt(source.cap),
-        bids: source.regions.map((region: number[]) => ({ endLots: BigInt(region[0]),offset: BigInt(region[1]),slope: BigInt(region[2]) })),
-        asks: source.regions.map((region: number[]) => ({ endLots: BigInt(region[0]),offset: BigInt(region[1]),slope: BigInt(region[2]) })),
+        bids: source.regions.map((region: string[]) => ({ endLots: BigInt(region[0]),offset: BigInt(region[1]),slope: BigInt(region[2]) })),
+        asks: source.regions.map((region: string[]) => ({ endLots: BigInt(region[0]),offset: BigInt(region[1]),slope: BigInt(region[2]) })),
       };
     }
     input.makers = vector.permutation.map((index: number) => makers[index]);

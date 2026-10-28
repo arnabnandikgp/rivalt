@@ -1,6 +1,7 @@
 # P31 — authenticated snapshots and exact bounded allocation
 
-Status: In progress under D70; A36/G24 runtime and performance acceptance pending.
+Status: A36/G24 passes within the bounded preview scope; see [pinned acceptance](evidence/P31.md).
+P31 is Review with ready PR publication pending; financial activation remains disabled.
 Branch `phase/p31-canonical-router` includes exact P30 head `b7e76e3` / PR #45.
 The user resumes P31–P34 in R082 after the P30 transport discussion. Keep phase PRs
 ready and stacked, without merging them.

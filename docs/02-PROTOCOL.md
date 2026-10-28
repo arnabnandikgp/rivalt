@@ -6,8 +6,9 @@ D70 authorizes implementing [P29–P34](P29-MAKER-LIQUIDITY-ROADMAP.md).
 independent reprice/shape/replenish transitions, three-maker complete coverage and
 strict authority with current-price execution inside signed limits. These changes
 are confined to fresh local profile4. P30 qualifies canonical pricing and
-custody-only controls; routing/financial integration remains unimplemented until
-its owning phases qualify it. P32 gates financial activation. Existing profiles, source
+custody-only controls. [P31](P31-EXACT-ROUTING.md) qualifies authenticated read-only
+quote snapshots and exact financial previews; executable routing/funding integration
+remains unimplemented until its owning phase qualifies it. P32 gates financial activation. Existing profiles, source
 safeguards and loss/fee/insurance accounting remain authoritative.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete

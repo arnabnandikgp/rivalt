@@ -226,11 +226,28 @@ def vectors():
     return result
 
 
+def wire_vector(vector):
+    """Financial integers cross JSON as decimal strings, never floating values."""
+    integer_fields = {'cash', 'q', 'v', 'f', 'g', 'lots', 'limit', 'fee', 'anchor',
+                      'consumed', 'target', 'step', 'tick', 'cap', 'filled', 'prefix', 'paid', 'budget'}
+
+    def encode(value, field=''):
+        if isinstance(value, dict):
+            return {key: encode(item, key) for key, item in value.items()}
+        if isinstance(value, list):
+            return [encode(item, field) for item in value]
+        if type(value) is int and field in integer_fields | {'funding', 'regions'}:
+            return str(value)
+        return value
+
+    return encode(vector)
+
+
 if __name__ == '__main__':
     cases = vectors()
     expected = [oracle(vector) for vector in cases]
     completed = subprocess.run(['node', '--import', 'tsx', 'tests/financial/liquidity-sdk-driver.ts'],
-                               input=''.join(json.dumps(vector)+'\n' for vector in cases), text=True, capture_output=True, check=True)
+                               input=''.join(json.dumps(wire_vector(vector))+'\n' for vector in cases), text=True, capture_output=True, check=True)
     actual = [json.loads(line) for line in completed.stdout.splitlines()]
     assert len(actual) == len(expected), (len(actual), len(expected), completed.stderr)
     for index, (result, target) in enumerate(zip(actual, expected)):

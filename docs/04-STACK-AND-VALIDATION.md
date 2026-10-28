@@ -17,6 +17,10 @@ D71 supersedes mandatory lookup tables: use measured v0≤1,232 bytes or
 v1≤4,096 bytes with explicit resource headers. [P30 evidence](evidence/P30.md)
 qualifies the scoped curve/update lifecycle and records Surfpool log-status
 disagreement; signature notifications and fetched finalized status remain decisive.
+[P31 evidence](evidence/P31.md) records 415 independent allocation cases, 47 focused
+SDK checks, 24 actual quote comparisons / 73 signed RPC/WS outcomes and 1,000
+maximum-width searches. These qualify pricing/preview only; P32 must prove changed
+financial execution and PostgreSQL integration separately.
 
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
