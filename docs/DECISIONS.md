@@ -1093,3 +1093,9 @@ It is distinct from the instrumented qualification signer and never enabled in a
 public or devnet application. Test faucet authority creates only valueless local
 SOL/test collateral; it never possesses a trader's signing key. External wallet,
 independent maker/review, funded deployment and deferred endurance gates remain.
+
+D68 acceptance clarification: serve the compiled production UI; retain the
+standalone indexer's post-cycle delay and fail-closed readiness. A control timeout
+is not proof of shutdown: wait for the owned process and listeners to exit.
+[P28A acceptance](evidence/P28A.md) records fresh browser/RPC/WS/PostgreSQL and
+stop/reset results on `4f809d3`, without extending financial or external scope.

@@ -415,4 +415,7 @@ supervisor. It provisions fresh signed state and runs existing schema-3 services
 it does not consume qualification outputs or change their authority. Optional
 browser demo-wallet registration and a local-origin-bounded faucet are enabled
 only by this launcher's Vite configuration. Wallet keys stay in tab storage;
-operator keys/config stay in private local files. See [P28A](P28A-LOCAL-DEMO.md).
+operator keys/config stay in private local files. The launcher builds/serves the
+production UI and keeps the standalone indexer's one-second post-cycle delay;
+readiness remains fail-closed during reconciliation. Shutdown verifies actual
+process exit and port release. See [P28A](P28A-LOCAL-DEMO.md).

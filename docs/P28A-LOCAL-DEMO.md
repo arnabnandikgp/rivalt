@@ -3,6 +3,8 @@
 This follow-up packages the qualified schema-3 profile for hands-on use. It does
 not reopen P22–P28 financial acceptance or authorize the other proposed follow-ups.
 M9 tracks this small local-evaluation milestone separately from closed M8.
+[Acceptance evidence](evidence/P28A.md) records the tested revision and limits;
+[WORKLOG](WORKLOG.md) owns current review/integration status.
 
 ## Contract and acceptance
 
@@ -18,7 +20,8 @@ M9 tracks this small local-evaluation milestone separately from closed M8.
   per session. It accepts only the configured browser origin and current genesis;
   it cannot sign a user's trade. All collateral/prices/makers are synthetic/internal.
 - One disposable PostgreSQL directory; bounded operational logs; a 60-minute lease
-  and low-disk shutdown prevent unattended growth. No deletion of old qualification
+  and low-disk shutdown prevent unattended growth. Startup requires more than
+  1 GiB free; the running demo stops below 768 MiB free. No deletion of old qualification
   evidence or unrelated `.local` data. Reset removes only this launcher's ended
   runtime DB/config after port checks; session logs/receipts remain separate.
 - Demonstrate fresh startup and current source/maker/readiness state, a real browser
@@ -54,7 +57,9 @@ source modes, four maker heartbeats, WS subscription, projection health and fini
 operator fee budgets. If startup fails, it reports its stage and local log path.
 No Docker Desktop installation or external provider/API key is needed.
 
-`stop` ends the chain and stops only owned processes/container. `reset` deliberately
+`stop` ends the chain and stops only owned processes/container. It waits for the
+recorded supervisor to exit and all owned ports to release; a control timeout is
+not reported as successful cleanup. `reset` deliberately
 starts over, with a new venue/mint/genesis; old wallet receipts cannot authorize new
 actions. Session logs live in `.local/interactive-demo/sessions/`; only one DB lives
 in `.local/interactive-demo/runtime/`. Stop before closing the laptop to avoid an
