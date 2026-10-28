@@ -50,7 +50,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a`; ready PR #43 is in Review above #42. R081: P30 A35/G23 passes, including123 signed RPC outcomes and legacy event parity; P30 is Review in ready PR #45 above #43. R082: P31 A36/G24 passes: 415 independent cases, 47 scoped tests, 73 signed RPC/WS outcomes and 1,000 maximum-width searches; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open above #45. R083/R084: P32 sampler/control candidates compile, but the first runtime sample exceeds CU; exact prepared-admission optimization passes native comparison. Execution/integrated gates and P33/P34 remain |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a`; ready PR #43 is in Review above #42. R081: P30 A35/G23 passes, including123 signed RPC outcomes and legacy event parity; P30 is Review in ready PR #45 above #43. R082: P31 A36/G24 passes: 415 independent cases, 47 scoped tests, 73 signed RPC/WS outcomes and 1,000 maximum-width searches; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open above #45. R083/R084: P32 sampler/control candidates compile, but runtime samples still exceed CU; prepared risk/reservation optimization passes native comparison. Execution/integrated gates and P33/P34 remain |
 
 ## Phase overview
 
@@ -95,7 +95,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P29B | Exact quote/update/routing/funding contract | Review | Ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), checked `b0c504a`, published `cfea519`, above P29A `ca14b86` / #42 | [A34B/G22](evidence/P29B.md): 26 model checks, 368 local links, layout/packet/search/transition contract and pinned numeric gates pass; no runtime acceptance |
 | M10 | P30 | Configurable maker curves and updates | Review | `phase/p30-canonical-maker` above P29B `b4f43a4` / #43 | [Implementation checkpoint](P30-CANONICAL-MAKERS.md): [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`;123 signed RPC/WS outcomes,104 instruction/20 account/78 event parity;3,172 vectors per evaluator. Ready PR #45 is open; new trading disabled |
 | M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
-| M10 | P32 | Clearing/funding and safe local execution | In progress | `phase/p32-liquidity-execution` above P31 `28d5dd0` / #46 | R084 wires gated sampler/controls/ABI; first100-lot simulation exceeds1.4mCU. Native admission optimization matches103,680 cases; resources, execution, safety, RPC/WS/PostgreSQL and continuation gate remain |
+| M10 | P32 | Clearing/funding and safe local execution | In progress | `phase/p32-liquidity-execution` above P31 `28d5dd0` / #46 | R084 wires gated sampler/controls/ABI; two100-lot simulations exceed1.4mCU. Prepared risk/reservation and tie-order optimization passes native equivalence; resources, execution, safety, RPC/WS/PostgreSQL and continuation gate remain |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Open | P32 gate passed | A38/G26 interfaces: actual durable recovery, operator/browser flow and financial reconstruction |
 | M10 | P34 | Comparative qualification and operations | Open | P33 | A39/G26/M10: complete populations, concurrent updates/fills/exits, reconciliation/recovery and measured limits |
 
@@ -4249,3 +4249,32 @@ ETH maker setup for this diagnostic. No A37/G25, CU headroom, full-book, integra
 or hosted-CI pass is claimed. Exact next action: measure the optimized sampler at
 100 and600 lots under the unchanged1.4mCU/default32KiB limits, then finish atomic/
 stored-order execution and shared safety before full phase qualification.
+
+R084 resource follow-up: clean SBF build/probe `db2628f` at
+`.local/liquidity-execution/runs/20261028T191745Z-11673` finalizes30 setup/source/
+publication transactions. The100-lot sample reaches the selected buy quote but
+still exhausts1.4mCU in simulation, before completing both sides; it is not sent.
+The reservation optimization improves progress but does not close the gate.
+
+Add checked prepared isolated-risk projection (same funded cash plus negative
+claim, exact per-position IM ceiling and shared generation transition) and avoid
+repeated allocation tie-vector scans by visiting in the complete agreed tie order.
+Every selected leg still runs the full route transition/book/admission. Scoped
+financial-core command `cargo test --locked -p financial-core --lib --test economics
+--test margin --test orders --test liquidation --test margin_safety` passes40 tests,
+including literal fractional/ceil expectations and1,650 extreme-bound comparisons.
+The initial boundary test's expected population was miscounted as3,300; all numeric
+comparisons passed, and correcting that count to1,650 fixes the test-only failure.
+All13 focused clearing cases pass, including103,680 full-route equivalence cases;
+`check_liquidity_sample.py` passes642 independent exhaustive allocations after the
+tie-order optimization. Logs remain under `.local/canonical-maker/p32/`.
+
+Growing prepared records exposes another SBF call-frame violation in impact
+preparation; a separate `prepare_inputs` frame resolves it. The latest candidate
+SBF build passes without frame warnings; record it as prepared-tree evidence,
+not a clean runtime acceptance. Complete unique build logs are retained under
+`.local/liquidity-execution/`. Both tables retain P32/M10 In progress. Actual routes,
+orders, shared safety, integrated PostgreSQL and the comparison workload remain;
+no unrelated broad checks, external services, fresh database copies or endurance.
+Exact next action: pin and measure this prepared-risk candidate's100/600-lot
+sampler resource probe; optimize further if it fails, without weakening G22/G25.

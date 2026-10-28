@@ -42,52 +42,16 @@ pub(crate) fn sample(
     pricing_market.reference_price = bounds.reference;
     pricing_market.lower = bounds.lower;
     pricing_market.upper = bounds.upper;
-    let mut cache = CodeApprovalCache::default();
-    let mut states = Vec::with_capacity(3);
-    let mut admissions = Vec::with_capacity(3);
-    let mut expiry_slot = u64::MAX;
-    let mut expiry_time = i64::MAX;
-    for (instance, view) in views.iter().enumerate() {
-        require!(
-            view.registration.instance as usize == instance
-                && !views[..instance]
-                    .iter()
-                    .any(|other| other.capital.key() == view.capital.key()
-                        || other.capital.id == view.capital.id),
-            ClearingError::Alias
-        );
-        let state = view.authenticate(venue, market, registry, &mut cache)?;
-        let (slot, time) = canonical::validate_publication(
-            view.config.key(),
-            &state.config,
-            &state.price,
-            clock.slot,
-            clock.unix_timestamp,
-        )
-        .map_err(|_| error!(ClearingError::MakerQuote))?;
-        expiry_slot = expiry_slot.min(slot);
-        expiry_time = expiry_time.min(time);
-        inputs[instance] = SampleInputV4 {
-            registration: view.registration.key(),
-            capital: view.capital.key(),
-            authority_epoch: view.registration.authority_epoch,
-            control_epoch: state.config.control_epoch,
-            shape_epoch: state.config.shape_epoch,
-            depth_epoch: view.registration.depth_epoch,
-            price_sequence: state.price.sequence,
-            buy_consumed: view.registration.buy_consumed,
-            sell_consumed: view.registration.sell_consumed,
-            expiry_slot: slot,
-            expiry_time: time,
-        };
-        admissions.push(MakerAdmission::new(
-            view.capital,
-            &pricing_market,
-            funding,
-            clock.slot,
-        )?);
-        states.push(state);
-    }
+    let prepared = prepare_inputs(
+        venue,
+        market,
+        registry,
+        views,
+        &pricing_market,
+        funding,
+        clock,
+        inputs,
+    )?;
     // Allocate once. The SBF allocator does not reclaim ordinary dropped Vecs.
     // Zero entries encode unavailable quantities, leaving health gaps intact.
     let mut table = vec![0u64; SAMPLE_ENTRIES];
@@ -98,8 +62,8 @@ pub(crate) fn sample(
             venue,
             market,
             views,
-            &states,
-            &admissions,
+            &prepared.states,
+            &prepared.admissions,
             quantity,
             side,
             clock,
@@ -117,8 +81,8 @@ pub(crate) fn sample(
         quantity,
         bid: totals[1],
         ask: totals[0],
-        expiry_slot,
-        expiry_time,
+        expiry_slot: prepared.expiry_slot,
+        expiry_time: prepared.expiry_time,
         bid_legs,
         ask_legs,
     })
@@ -215,4 +179,76 @@ fn sample_side(
     }
     require!(invoked == selected.gross, ClearingError::MakerResponse);
     Ok((selected.gross, selected_legs))
+}
+
+struct PreparedInputs<'market> {
+    states: Vec<AuthenticatedCurve>,
+    admissions: Vec<MakerAdmission<'market>>,
+    expiry_slot: u64,
+    expiry_time: i64,
+}
+
+#[inline(never)]
+fn prepare_inputs<'market>(
+    venue: &Account<VenueV3>,
+    market: &Account<MarketV3>,
+    registry: &Account<LiquidityRegistryV4>,
+    views: &[View; 3],
+    pricing_market: &'market crate::state::v2::GroupMarketV2,
+    funding: i128,
+    clock: &Clock,
+    inputs: &mut [SampleInputV4; 3],
+) -> Result<PreparedInputs<'market>> {
+    let mut cache = CodeApprovalCache::default();
+    let mut states = Vec::with_capacity(3);
+    let mut admissions = Vec::with_capacity(3);
+    let mut expiry_slot = u64::MAX;
+    let mut expiry_time = i64::MAX;
+    for (instance, view) in views.iter().enumerate() {
+        require!(
+            view.registration.instance as usize == instance
+                && !views[..instance]
+                    .iter()
+                    .any(|other| other.capital.key() == view.capital.key()
+                        || other.capital.id == view.capital.id),
+            ClearingError::Alias
+        );
+        let state = view.authenticate(venue, market, registry, &mut cache)?;
+        let (slot, time) = canonical::validate_publication(
+            view.config.key(),
+            &state.config,
+            &state.price,
+            clock.slot,
+            clock.unix_timestamp,
+        )
+        .map_err(|_| error!(ClearingError::MakerQuote))?;
+        expiry_slot = expiry_slot.min(slot);
+        expiry_time = expiry_time.min(time);
+        inputs[instance] = SampleInputV4 {
+            registration: view.registration.key(),
+            capital: view.capital.key(),
+            authority_epoch: view.registration.authority_epoch,
+            control_epoch: state.config.control_epoch,
+            shape_epoch: state.config.shape_epoch,
+            depth_epoch: view.registration.depth_epoch,
+            price_sequence: state.price.sequence,
+            buy_consumed: view.registration.buy_consumed,
+            sell_consumed: view.registration.sell_consumed,
+            expiry_slot: slot,
+            expiry_time: time,
+        };
+        admissions.push(MakerAdmission::new(
+            view.capital,
+            pricing_market,
+            funding,
+            clock.slot,
+        )?);
+        states.push(state);
+    }
+    Ok(PreparedInputs {
+        states,
+        admissions,
+        expiry_slot,
+        expiry_time,
+    })
 }

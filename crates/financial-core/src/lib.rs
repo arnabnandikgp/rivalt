@@ -35,6 +35,12 @@ pub enum Error {
 }
 pub type Result<T> = core::result::Result<T, Error>;
 
+fn next_generation(previous: i64, next: i64, generation: u64) -> Result<u64> {
+    if previous != next && (previous == 0 || next == 0 || previous.signum() != next.signum()) {
+        generation.checked_add(1).ok_or(Error::Overflow)
+    } else { Ok(generation) }
+}
+
 fn add(a: i128, b: i128) -> Result<i128> {
     a.checked_add(b).ok_or(Error::Overflow)
 }
@@ -168,10 +174,7 @@ impl Participant {
     /// Generation advances on flat/open and flip boundaries. Old protection never revives.
     pub fn with_lots(&self, lots: i64) -> Result<Self> {
         let mut next = *self;
-        if self.lots != lots && (self.lots == 0 || lots == 0 || self.lots.signum() != lots.signum())
-        {
-            next.generation = next.generation.checked_add(1).ok_or(Error::Overflow)?;
-        }
+        next.generation = next_generation(self.lots, lots, self.generation)?;
         next.lots = lots;
         next.validate()?;
         Ok(next)

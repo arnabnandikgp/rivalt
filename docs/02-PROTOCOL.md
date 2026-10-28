@@ -7,8 +7,9 @@ independent reprice/shape/replenish transitions, three-maker complete coverage a
 strict authority with current-price execution inside signed limits. These changes
 are confined to fresh local profile4. P30 qualifies canonical pricing and
 custody-only controls. [P31](P31-EXACT-ROUTING.md) qualifies authenticated read-only
-quote snapshots and exact financial previews; executable routing/funding integration
-remains unimplemented until its owning phase qualifies it. P32 gates financial activation. Existing profiles, source
+quote snapshots and exact financial previews. [P32](P32-LIQUIDITY-EXECUTION.md)
+contains a gated sampler/control candidate; its resource gate is not yet met and
+financial routing remains disabled. P32 gates financial activation. Existing profiles, source
 safeguards and loss/fee/insurance accounting remain authoritative.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete

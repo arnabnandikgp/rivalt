@@ -84,6 +84,20 @@ finalized. Raw attempted evidence is retained at
 `.local/liquidity-execution/runs/20261028T190442Z-7610`.
 
 This failed resource gate motivates the prepared-reservation optimization above.
+The clean follow-up on`db2628f` reaches the first selected buy quote but again
+exhausts1.4mCU before completing the100-lot sample;30 provisioning/source/update
+transactions finalize, while the sample is not broadcast. Retain
+`.local/liquidity-execution/runs/20261028T191745Z-11673`.
+
+The next candidate prepares isolated risk inputs once and evaluates checked
+cash-plus-negative-claim equity and the exact per-position IM ceiling directly,
+sharing generation transitions with actual fills. Fixed bounds permit u64 IM
+numerators and index-band products without rounding changes. It preserves the full
+selected-leg recheck. Additional native literal/fraction/ceiling cases and1,650
+extreme-bound/generation comparisons agree; the103,680 full-route comparisons and
+642 independent allocation cases still pass. Allocation visitation already follows
+the complete tie order, so equal gross retains the first candidate without rescans.
+These optimizations still require fresh resource measurement.
 Keep the complete registry, full code hashes, exact quantities, risk rules and
 20% headroom requirement. No successful sampler, full-book resource acceptance,
 actual financial funding/execution or A37/G25 completion is claimed yet.

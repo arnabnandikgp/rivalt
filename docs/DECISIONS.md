@@ -1312,3 +1312,12 @@ This resolves bookkeeping details within the approved causal contract; it does
 not supersede risk, loss ownership, fees or V1–V3 implementation behavior. Native
 literal tests are preparation only; A37/G25 still requires compiled and integrated
 execution, safety and reconciliation evidence before new activation.
+
+D73/P32 resource checkpoint: initial and prepared-reservation100-lot probes
+exhaust1.4mCU; neither failed simulation is broadcast. No G25 completion or changed
+budget is inferred. The next optimization prepares validated risk inputs and fixed
+reservation rates, preserves exact per-quantity admission, and rechecks selected
+legs with the full existing route engine. Independent literal financial cases,
+extreme-bound comparisons and full-route projection equivalence remain distinct
+from required compiled/resource acceptance. Complete coverage, full code hashes,
+32KiB heap and20% compute headroom are unchanged.

@@ -8,7 +8,7 @@ use financial_core::margin::{Margin, Risk};
 pub(crate) struct MakerAdmission<'market> {
     root: Box<MarginAccountV2>,
     accrued: Margin,
-    selected: financial_core::Participant,
+    prepared_risk: financial_core::liquidity::PreparedMakerRisk,
     reservations: super::reservations::Reservations,
     market: &'market GroupMarketV2,
     funding: [i128; 2],
@@ -48,10 +48,17 @@ impl<'market> MakerAdmission<'market> {
             reserved: 0,
         };
         let reservations = super::reservations::Reservations::new(&root, market, slot);
+        let prepared_risk =
+            group_trading::checked(financial_core::liquidity::PreparedMakerRisk::new(
+                selected,
+                market.lower,
+                market.upper,
+                funding,
+            ))?;
         Ok(Self {
             root,
             accrued,
-            selected,
+            prepared_risk,
             reservations,
             market,
             funding: indexes,
@@ -64,21 +71,22 @@ impl<'market> MakerAdmission<'market> {
     /// inputs prepared once. Unhealthy quantities allocate no Anchor errors.
     #[inline(never)]
     pub(crate) fn admits(&self, side: u8, lots: u64, gross: u64) -> bool {
-        if side > 1
-            || self.root.state_version == u64::MAX
-            || u128::from(gross) * 10
-                < u128::from(lots) * u128::from(self.market.reference_price) * 9
-            || u128::from(gross) * 10
-                > u128::from(lots) * u128::from(self.market.reference_price) * 11
-        {
+        let Some(ten_gross) = gross.checked_mul(10) else {
+            return false;
+        };
+        let Some(reference_notional) = lots.checked_mul(self.market.reference_price) else {
+            return false;
+        };
+        let Some(low) = reference_notional.checked_mul(9) else {
+            return false;
+        };
+        let Some(high) = reference_notional.checked_mul(11) else {
+            return false;
+        };
+        if side > 1 || self.root.state_version == u64::MAX || ten_gross < low || ten_gross > high {
             return false;
         }
-        let Ok(mut candidate) = self.selected.quoted_fill(
-            1 - side,
-            lots,
-            gross,
-            self.funding[usize::from(self.market.index)],
-        ) else {
+        let Ok(candidate) = self.prepared_risk.quote(side, lots, gross) else {
             return false;
         };
         let Ok(reserved) = self
@@ -87,14 +95,7 @@ impl<'market> MakerAdmission<'market> {
         else {
             return false;
         };
-        candidate.reserved = reserved;
-        candidate
-            .admissible(
-                self.market.lower,
-                self.market.upper,
-                self.funding[usize::from(self.market.index)],
-            )
-            .is_ok()
+        candidate.admits(reserved)
     }
 
     /// Recheck every selected leg with actual whole-root mutation/book refresh,
