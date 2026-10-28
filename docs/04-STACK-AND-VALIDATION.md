@@ -356,3 +356,10 @@ actual integration recovery. It retries no financial/identity error and exposes
 no partial candidate. No new V1/V2 runtime, SBF build or devnet qualification is
 inferred; broad consumer regression remains assigned to scoped hosted CI. Neither
 internal makers nor a five-minute workload close P15B/P16B or deferred endurance.
+
+
+P28A verifies only its new interactive launcher/wallet lifecycle: fresh real local
+programs, RPC/WS/PostgreSQL, actual browser signatures/original RPC history, owned
+stop/reset and current deployment identity. Use focused wallet/faucet boundary
+checks plus typecheck/build. Qualified P26 binaries and P27/P28 financial acceptance
+retain their existing pins; no inherited full suite or endurance rerun is implied.

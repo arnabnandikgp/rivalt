@@ -1069,3 +1069,42 @@ with a tree identical to reviewed/remediated `e6ba2cf`. Scoped local and hosted
 checks pass, all inline findings are resolved, and the independent PR metadata
 confirms integration. This closes P22–P28/M8 only within their qualified local scope;
 it does not close external gates or authorize a funded deployment/endurance run.
+
+
+## D68 — interactive schema-3 local evaluation (P28A)
+
+The user accepts step one of the post-M8 recommendation: a stable interactive
+local environment and guided product walkthrough. Implement this as the P28A
+follow-up / M9, preserving closed P22–P28/M8 acceptance. Other proposed work
+(profit-settlement optimization, schema-3 devnet/maker-kit updates and independent
+participation) is not included. No financial, oracle, authority or program artifact
+changes are authorized by this launcher.
+
+Use fresh signed local provisioning and explicit deployment configuration, with
+one owned PostgreSQL directory, bounded process logs and a 60-minute interactive
+lease. Keep existing evidence untouched. An actual Surfpool 1.6.1 restart probe
+shows changed genesis/reset slots despite retained account/history storage; do not
+claim durable chain restart or bypass identity checks. Stopping ends a session;
+reset explicitly creates a new deployment.
+
+Allow a separately labelled loopback-only demo wallet, generated in its browser
+tab, with explicit review/sign confirmation and real deployment authentication.
+It is distinct from the instrumented qualification signer and never enabled in a
+public or devnet application. Test faucet authority creates only valueless local
+SOL/test collateral; it never possesses a trader's signing key. External wallet,
+independent maker/review, funded deployment and deferred endurance gates remain.
+
+D68 acceptance clarification: serve the compiled production UI; retain the
+standalone indexer's post-cycle delay and fail-closed readiness. A control timeout
+is not proof of shutdown: wait for the owned process and listeners to exit.
+[P28A acceptance](evidence/P28A.md) records fresh browser/RPC/WS/PostgreSQL and
+stop/reset results on `4f809d3`, without extending financial or external scope.
+
+D68 review/integration authorization (R076): the user explicitly requests addressing
+PR #41 reviews and then merging it, superseding its earlier keep-open instruction.
+Early supervisor death must fail startup promptly. A faucet wallet may retry only
+after non-submission, explicit preflight rejection or finalized failure; uncertain
+originals remain reserved, and faucet responses await finalized history. This is
+local test-faucet/lifecycle handling, not a financial-program or deployment change.
+Keep the demo stopped and stop work after review/integration; subsequent scope is
+for the user's next instruction.

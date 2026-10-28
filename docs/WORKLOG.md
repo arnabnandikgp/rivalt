@@ -44,6 +44,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
+| M9 | P28A | Interactive local evaluation follow-up | Review | [P28A acceptance](evidence/P28A.md) passes on `4f809d3`: 13 browser originals, indexed fills, immediate owned shutdown and fresh reset; [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) open/ready above main; R075 user walkthrough accepted, runtime stopped; R076 both findings fixed with 16 scoped tests; refreshed CI/merge pending; M8 unchanged |
 
 ## Phase overview
 
@@ -84,6 +85,8 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P27 | SDK, indexer/API and durable services | Closed | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit; integrated at `0916b9d` |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Closed | [PR #40](https://github.com/arnabnandikgp/rivalt/pull/40), published `ac894f1`, above #39 `9498d2e` | [A33/G21/M8](evidence/P28.md): 17 browser originals, 115 submitted trades, six busy exits, four bounded history rescans, complete nine-root default/recovery and identical fresh PostgreSQL replay; tested `f595fd7` / `5491752`; R073 scoped review corrections `e6ba2cf`; integrated at `0916b9d` |
 
+| M9 | P28A | Interactive launcher, local test wallet and walkthrough | Review | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) above main `4338af6`; tested `4f809d3`; published `3385065` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 distinct wallet originals, indexed fills, reload, stop/reset and idempotency pass; R075 user walkthrough accepted, runtime stopped; R076 both findings fixed, 16 scoped tests pass; refreshed CI/merge pending |
+
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
 
@@ -95,7 +98,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Current review verification (R073): zero unresolved inline threads or requested changes; all eight final heads mergeable with selected CI successful or scope-skipped. Tip `e6ba2cf` passes all five jobs in [hosted run 40576656720](https://github.com/arnabnandikgp/rivalt/actions/runs/40576656720); CodeRabbit is neutral/skipped for the incremental push. Seven local consumer cases, one Rust wire test, typecheck and trader build pass. This is scoped remediation/integration evidence, not an independent protocol review.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: use the integrated [P28 operations guide](P28-OPERATIONS.md) for local evaluation of the completed account-centric MVP. P22–P28 implementation/merge work is complete; further product work or external P15B/P16B execution needs its own scope. Do not start deferred endurance or funded deployment.
+- Exact next action: publish the R076 review corrections, resolve the verified findings and merge PR #41 after required checks. Keep the demo stopped and await the user’s next scope after integration; M8 remains Closed.
 - Deferred gates: R072 qualifies six busy funded exits in the schema-3 local profile; the older V2 profile keeps its historical limitation. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new devnet/funded deployment or external participation is claimed.
 
 ## Blocker register
@@ -3529,3 +3532,204 @@ or financial tests are warranted for this documentation-only merge closeout.
 P15B/P16B remain Open and endurance Deferred. No outstanding review/access blocker.
 Exact next action: commit/publish the documentation closeout and verify clean local/
 remote `main`; implementation and stack integration are then complete.
+
+
+## R074 — P28A interactive local environment (28 October 2026)
+
+The user authorizes the first recommended follow-up only. Read current specs and
+Git state; preserve untracked `phoenix/` and the design proposal. Created
+`phase/p28a-local-demo` above integrated `4338af6` with `gh stack init`. D68/P28A/M9
+record this extension without reopening M8. A real installed Surfpool persistence
+probe retains balances/history but changes genesis and resets slot 56 to 1; result
+at ignored `.local/demo-persistence-probe/result.json`. Stopped its owned process
+(after graceful exit hung, used SIGKILL on its verified PID). No existing DB copy,
+raw phase evidence or user work was deleted. Existing Apple Containers was stopped;
+started that service without installing/replacing the user's runtime.
+
+Implemented one-DB interactive supervisor, explicit control lifecycle and deployment
+configuration, real signed provisioning, unchanged existing workers, bounded logs,
+finite lease/disk guards, local-origin faucet and opt-in browser-generated local
+wallet. The wallet signs only after current deployment authentication and explicit
+confirmation; keys never enter server responses. Documents explain immutable
+accounts, funded cash/unpaid claims and stop/reset semantics. A small private local
+workspace package reuses exact installed dependencies; offline pnpm install added
+no downloads. Typecheck/build and scoped wallet/faucet tests are being completed.
+No actual interactive/browser acceptance or PR is claimed yet. Both new status
+rows remain In progress. No program rebuild, broad local regression, real devnet,
+external participant or endurance run is warranted for this scope. Exact next
+action: commit the coherent implementation, run fresh launcher/browser/stop/reset
+acceptance on that pin, fix only demonstrated defects, and publish ready.
+
+
+R074 first-launch correction: clean `81d5682` deploys all four qualified programs
+and starts PostgreSQL, but the first provisioning SOL transfer is rejected by
+`sendTransaction` before venue creation. The original signature/wire and failed
+session stage remain in `.local/interactive-demo/sessions/20261028063101477-5a145c05`.
+The generic RPC wrapper did not retain the underlying error, so its exact cause is
+not claimed. Match send preflight to the confirmed blockhash commitment explicitly,
+retain initial confirmed simulation and any structured submission error, and
+verify the returned signature. Owned runtime cleanup completes. Both new rows
+remain In progress. Exact next action: commit this transport-only correction and
+reset the owned disposable demo state for a new launcher attempt.
+
+
+R074 interactive continuation: `dc471de` reaches ready with actual Normal BTC/ETH,
+four live internal makers, acknowledged WS and reconciled PostgreSQL. Its first
+interactive session stops on the existing low-disk guard (about 539 MiB free);
+the owned DB/logs occupy only 49 MiB. Reclaimed about 950 MiB of rebuildable
+`target/{debug,release,sbpf-solana-solana,flycheck0}` compiler output, preserving
+qualified binaries, evidence and user files. A fresh session reaches ready and
+a second start returns the same session/venue. Browser acceptance then identifies
+`process is not defined` in generated SDK code served by Vite development mode,
+before any wallet transaction. Change this launcher to build/serve the production
+UI, matching existing qualification. Failed captures remain at
+`.local/demo-checks/R074-first` and `R074-browser`; no browser pass is claimed.
+Fix malformed new status-table row placement and an obsolete README stack sentence.
+Both M9/P28A remain In progress. Exact next action: commit the launcher correction,
+verify owned stop, and rerun fresh startup/browser/reset acceptance. No financial,
+IDL/SBF, broad legacy, devnet or endurance suite is needed for this correction.
+
+
+R074 browser harness correction: clean `f79bdf5` starts the compiled UI and the real
+browser wallet successfully creates a portfolio/account and deposits 10 test USD.
+The new harness incorrectly assumed receipt array order, repeatedly fetched the
+old portfolio original and attempted another deposit before its actual original
+was finalized. The UI correctly blocked the unresolved action. Fix the harness to
+select the newly added signature by set difference and await that exact original.
+Retain the failed run at `.local/demo-checks/R074-production`; it does not count as
+full browser acceptance. No application/financial change is needed. Both status
+rows remain In progress; next action is rerunning the corrected wallet lifecycle.
+
+
+R074 wallet lifecycle: `87099f7` passes all 13 distinct signed wallet originals on
+the `f79bdf5` production runtime: portfolio, cross/isolated accounts, deposits,
+explicit 0.5 allocation, BTC/ETH opens, TP/SL/cancel, both closes and exactly one
+test USD token withdrawal. Actual wallet decline creates no original; reload
+restores the same account and all finalized receipts. Zero browser errors.
+Evidence: `.local/demo-checks/R074-originals`. The screenshot also captures a
+transient indexed-history refusal while reconciliation is active; direct balances
+and exits succeed. Match the standalone indexer's one-second delay *after* each
+cycle instead of a fixed timer, retaining fail-closed readiness and independently
+running the disk guard. Add a final indexed-fill-display check. Typecheck and
+evidence/shell checks pass. Both tables remain In progress until this final fresh
+startup/browser/control check; no new economic or API readiness rule is introduced.
+
+
+R074 control correction: the final immediate port check on `704e79d` catches
+PostgreSQL still listening after `stop` reports completion. The control handler
+blocks briefly during synchronous container shutdown, and the old one-second
+HTTP timeout was incorrectly treated as process exit. Cleanup subsequently
+finishes and all listeners/container disappear; this is not a persistent orphan.
+Fix stop to wait for its authenticated recorded process to exit **and** all owned
+ports to release; only connection refusal means no control listener, while timeout/
+reset errors remain errors. Final focused wallet/faucet/UI tests pass 3/3 and
+typecheck passes. Raw control failure retained at `.local/demo-checks/R074-controls`.
+M9/P28A remain In progress; exact next action is fresh reset/browser and immediate
+stop/reset verification on the corrected launcher, then ready PR publication.
+
+
+R074 acceptance closeout: final runtime/browser/control pin
+`4f809d31065d21a23e017c41e23d765bf4ea8758` passes fresh startup and all 13 distinct
+wallet originals, independent original-wire/history checks, both account modes,
+exact allocation balances, BTC/ETH opens/closes, TP/SL/cancel, actual signature
+decline, a 1,000,000-atom token withdrawal, reload and all four indexed fills.
+Zero browser errors; final screenshot inspected. The immediate stop check now
+passes every owned port and container check before returning. Ended-chain start
+refuses, reset changes session/venue/genesis, repeated start is idempotent, and
+UI/config return HTTP 200. A fresh usable 60-minute demo remains running.
+
+Evidence stays ignored at `.local/demo-checks/R074-final`,
+`R074-final-controls` and `.local/interactive-demo/sessions/`; concise results
+are [P28A](evidence/P28A.md). Three focused Vitest cases, final TypeScript, actual
+production UI build, shell syntax, evidence policy and 311 local documentation
+links/fences pass. Only the existing Vite bundle-size warning remains. Broader
+financial/Rust/SBF/IDL regression, devnet, external wallet/participant qualification,
+funded deployment and endurance are not run: program/economic paths are unchanged
+and outside this follow-up. Hosted results are not yet claimed. Both new tables
+move to Review, not Closed; original M8 stays Closed. No outstanding runtime/access
+blocker. Exact next action: commit the evidence/spec closeout, submit with
+`gh stack submit --auto --open`, and record the ready PR and observed hosted checks.
+
+
+R074 publication: `gh stack submit --auto --open` creates ready
+[PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) above `main`, head
+`338506557b9c51a14f505b112168b0a339542384`. Metadata independently confirms OPEN and
+`isDraft=false`; the final description covers the whole launcher/wallet deliverable.
+Both status rows remain Review. Actual listener inspection confirms all seven
+ports bind 127.0.0.1; the one current DB is 67 MiB and retained session logs total
+1.1 MiB at this observation. Final changed-document validation passes 316 local
+links/fences, with evidence policy and diff whitespace clean. Untracked `phoenix/`
+and the original design proposal remain untouched. No new local tests are needed
+for this publication-only documentation update. Hosted scope/shell pass and
+financial/report jobs are scope-skipped; client/CodeRabbit are still running at
+this observation, not claimed complete. Exact next action: record the selected
+hosted outcome, publish this metadata and leave PR #41 open for review.
+
+R074 hosted outcome: [run 40648078942](https://github.com/arnabnandikgp/rivalt/actions/runs/40648078942)
+succeeds on exact `3385065`: scope, client (generated-client check, TypeScript,
+Vitest and trader build) and shell pass; unrelated financial/report jobs are
+intentionally scope-skipped. CodeRabbit was still running at the last observation;
+no independent review approval is claimed. The remaining metadata change affects
+only documentation and leaves the verified `4f809d3` runtime unchanged. Next
+action after publication: address actual PR #41 review findings when available;
+keep the PR open and leave M9/P28A in Review until authorized integration.
+
+
+## R075 — user demo evaluation and shutdown (28 October 2026)
+
+The user tried the UI, found it acceptable for now, requested shutdown and wants
+to discuss the next work. On `17e36d7`, `bash ops/demo.sh stop` reports already
+stopped; the retained session `ended.json` records the low-disk guard. Independent
+`ops/check-ports.py` checks all seven demo listeners free and `container list
+--format json` returns no running containers. No reset, deletion or restart is
+performed. Existing evidence and unrelated untracked files remain untouched.
+
+PR #41 remains open/ready. Read-only review inspection finds two unresolved minor
+comments concerning early supervisor exit and faucet allowance on definite versus
+ambiguous submission failure; remediation is not claimed. Both M9/P28A rows remain
+Review. No tests are rerun for this operational/documentation-only action, and no
+new financial/deployment phase or economic decision is authorized by the discussion.
+Exact next action: agree the next scope, with PR #41 review cleanup first and a
+focused profit-payment progress investigation recommended before schema-3 devnet/
+maker-kit updates. P15B/P16B remain Open; endurance remains Deferred.
+
+
+## R076 — P28A review remediation and authorized merge (28 October 2026)
+
+The user requests addressing PR #41 reviews and explicitly adds merge authorization.
+Inspected Git state, current contracts, all review threads (pagination complete),
+submitted reviews and discussion comments. Exactly two inline findings are valid:
+early supervisor exit could wait through startup polling, and a definite faucet
+failure consumed the one-grant allowance. Added child exit/error observation and
+explicit send outcomes, with a small session-local faucet admission controller.
+Preparation/preflight rejection releases a grant; finalized failure also releases
+it, while confirmed failure, unknown history, lost acknowledgment and other
+ambiguous results retain it. Successful faucet responses now await finality.
+No financial program, source safeguard, artifact or production deployment changes.
+
+`pnpm exec vitest run packages/local-demo/src/processes.test.ts
+packages/local-demo/src/faucet.test.ts packages/local-demo/src/transport.test.ts
+--maxWorkers=1 --no-file-parallelism` passes 3 files / 16 cases. Tests use actual
+child processes and actual signed transactions with scripted RPC faults, including
+durable original-before-send checks; they are not fresh on-chain acceptance.
+The demo remains stopped. No browser/Surfpool/PostgreSQL restart, financial/Rust/
+IDL suite or endurance run is warranted for these error paths. Local TypeScript
+and build are delegated to the existing hosted client job because free disk is
+about 318 MiB; no user data or evidence is deleted. The generic bot docstring-
+percentage warning is advisory, not a repository gate; added focused documentation
+for the changed boundaries rather than unrelated comment churn.
+
+Raw review/test captures remain ignored at `.local/reviews/R076/`. The unrelated
+`phoenix/`, newly observed `GoonFi_V2/` and design proposal remain untouched.
+Both M9/P28A remain Review until
+actual integration. Exact next action: commit/publish the cohesive corrections,
+verify refreshed hosted checks, resolve the two findings and merge PR #41; then
+record the integrated commit and stop until the user chooses the next work.
+
+R076 hosted correction: published runtime remediation `f4ee9c8`. Hosted run
+`40678061790` passes scope/shell but TypeScript rejects an inferred `never` in
+the new faucet concurrency fixture's deferred callback. Add explicit `void`/
+callback promise types; this changes the test only. The 16 runtime-focused local
+cases already passed, but no hosted client pass is claimed for that failed run.
+Both rows remain Review; exact next action is publish the fixture correction,
+verify the refreshed client job and complete the authorized merge.

@@ -13,6 +13,7 @@ const configure = (server: any) => {
       res.end(
         JSON.stringify({
           ...Object.fromEntries(publicKeys.map((k) => [k, source[k]])),
+          ...(process.env.RIVALT_LOCAL_DEMO === '1' && source.version === 3 ? {demo: true} : {}),
           apiBase: '/api',
           readBase: '/read',
         }),
@@ -24,6 +25,7 @@ const configure = (server: any) => {
   });
 };
 const proxy = {
+  ...(process.env.RIVALT_LOCAL_DEMO === '1' ? {'/demo': {target: 'http://127.0.0.1:18094', changeOrigin: true, rewrite: (p: string) => p.replace(/^\/demo/, '')}} : {}),
   '/api': {
     target: process.env.RIVALT_SERVICE_ORIGIN ?? 'http://127.0.0.1:18081',
     rewrite: (p: string) => p.replace(/^\/api/, ''),

@@ -668,3 +668,15 @@ in WORKLOG. Earlier incremental checkpoints above retain their historical scope;
 [P27](evidence/P27.md) and [P28](evidence/P28.md) retain exact real runtime pins.
 [The review report](evidence/R073-STACK-REVIEW.md) records the integration corrections.
 No independent maker/review/funded-pilot gate or deferred endurance is closed.
+
+
+## P28A — interactive local evaluation (M9 follow-up)
+
+Depends on integrated P28 / D67. D68 authorizes a cohesive local launcher,
+standalone test wallet/faucet and hands-on walkthrough, without extending financial
+scope. [P28A](P28A-LOCAL-DEMO.md) defines the start/status/stop/reset lifecycle,
+resource/authority boundaries and acceptance. M8 and its original evidence remain
+Closed; this new deliverable has its own Review/integration gate. Require actual
+Surfpool/RPC/WS/PostgreSQL startup, browser-signed lifecycle, independent original
+transaction fetch, reload, owned shutdown and fresh reset. No broad inherited
+matrix or 24-hour run is required. Publish one ready PR; external gates stay Open.
