@@ -4,7 +4,7 @@ Baseline R1 · initialized 20 October 2026
 **Maker-liquidity implementation (R079 / D70):** the user authorizes sequential
 [P29B–P34 implementation](P29-MAKER-LIQUIDITY-ROADMAP.md). P29A remains in Review
 as ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42). P29B's
-[contract/reference](P29B-MAKER-CONTRACT.md) passes A34B/G22 on `b0c504a` and is published in ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), stacked above #42 in Review. P30 A35/G23 acceptance passes on pinned code and ready [PR #45](https://github.com/arnabnandikgp/rivalt/pull/45) is open above #43 in Review. Local quote/control deployment is tested, with new trading disabled. R082 resumes P31–P34 under the user’s new instruction; P31 A36/G24 passes on pinned code above exact P30 head `b7e76e3`; ready publication is pending. P15B/P16B stay Open; 24-hour endurance stays Deferred.
+[contract/reference](P29B-MAKER-CONTRACT.md) passes A34B/G22 on `b0c504a` and is published in ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), stacked above #42 in Review. P30 A35/G23 acceptance passes on pinned code and ready [PR #45](https://github.com/arnabnandikgp/rivalt/pull/45) is open above #43 in Review. Local quote/control deployment is tested, with new trading disabled. R082 resumes P31–P34 under the user’s new instruction; P31 A36/G24 passes on pinned code above exact P30 head `b7e76e3`; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open in Review. P15B/P16B stay Open; 24-hour endurance stays Deferred.
 
 **Current position:** P01–P14 and M1–M5b are Closed. The original phase stack, readability maintenance and [R030 devnet closeout PR #19](https://github.com/arnabnandikgp/rivalt/pull/19) are integrated into `main`. PR #19 merged at `67059fc99ca3b48cff4d89e9f97aa9c1c51538eb`; its tree exactly matches verified head `633892c`. Actual maker upgrades/joint approvals, corrected ownership checks, independent accounting and fresh PostgreSQL/HTTP verification close the remaining engineering follow-up. P15A maker kit/tooling and P16A engineering reliability are now Closed: PRs #20/#21 merged at `74fc2963341a5a4cfacb027fed7d51c071e72265` under D44, with both review findings resolved and scoped CI passing. M6 remains In progress because external P15B/P16B remain Open. Continuous 24-hour endurance stays Deferred under D42.
 
@@ -50,7 +50,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a`; ready PR #43 is in Review above #42. R081: P30 A35/G23 passes, including123 signed RPC outcomes and legacy event parity; P30 is Review in ready PR #45 above #43. R082: P31 A36/G24 passes: 415 independent cases, 47 scoped tests, 73 signed RPC/WS outcomes and 1,000 maximum-width searches; publication pending. P32–P34 remain |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a`; ready PR #43 is in Review above #42. R081: P30 A35/G23 passes, including123 signed RPC outcomes and legacy event parity; P30 is Review in ready PR #45 above #43. R082: P31 A36/G24 passes: 415 independent cases, 47 scoped tests, 73 signed RPC/WS outcomes and 1,000 maximum-width searches; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open above #45. P32–P34 remain |
 
 ## Phase overview
 
@@ -94,7 +94,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P29A | Maker-liquidity roadmap and scoped gates | Review | Ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42), `phase/p29a-maker-roadmap`, roadmap `bb53b53` above R077 `8ca0691` / integrated `1c59592` | A34A: scoped documentation/link/fence/phase/gate/evidence-policy checks pass; no program acceptance; kept open |
 | M10 | P29B | Exact quote/update/routing/funding contract | Review | Ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), checked `b0c504a`, published `cfea519`, above P29A `ca14b86` / #42 | [A34B/G22](evidence/P29B.md): 26 model checks, 368 local links, layout/packet/search/transition contract and pinned numeric gates pass; no runtime acceptance |
 | M10 | P30 | Configurable maker curves and updates | Review | `phase/p30-canonical-maker` above P29B `b4f43a4` / #43 | [Implementation checkpoint](P30-CANONICAL-MAKERS.md): [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`;123 signed RPC/WS outcomes,104 instruction/20 account/78 event parity;3,172 vectors per evaluator. Ready PR #45 is open; new trading disabled |
-| M10 | P31 | Generic adapters and bounded best-pair router | Review | `phase/p31-canonical-router` above P30 `b7e76e3` / #45; publication pending | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
+| M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
 | M10 | P32 | Clearing/funding and safe local execution | Open | P31 | A37/G25: affected financial safety, signed RPC/WS/PostgreSQL prototype and continuation gate |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Open | P32 gate passed | A38/G26 interfaces: actual durable recovery, operator/browser flow and financial reconstruction |
 | M10 | P34 | Comparative qualification and operations | Open | P33 | A39/G26/M10: complete populations, concurrent updates/fills/exits, reconciliation/recovery and measured limits |
@@ -104,7 +104,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- R082/P31: [A36/G24](evidence/P31.md) passes on pinned code. Exact three-maker authentication/allocation matches 415 independent cases; 47 scoped tests, 73 real RPC/WS transactions and 1,000 maximum-width search measurements pass. P31 is Review with publication pending above #45. Next: ready PR, then P32 financial integration.
+- R082/P31: [A36/G24](evidence/P31.md) passes on pinned code. Exact three-maker authentication/allocation matches 415 independent cases; 47 scoped tests, 73 real RPC/WS transactions and 1,000 maximum-width search measurements pass. P31 is Review in ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) above #45. Next: P32 financial integration.
 
 - R081/P30: A35/G23 passes on pinned code. Both SBF maker programs and Rust/SDK pass3,172 reference cases;123 finalized RPC cases and104 instruction/20 account/78 event parity pass. Ready PR #45 is open above #43; stopped per user direction. P31 has not started.
 
@@ -4138,3 +4138,12 @@ no unrelated suites, PostgreSQL/browser/devnet/deployment/endurance claims.
 Exact next action: publish ready P31 above #45 with `gh stack submit --auto --open`,
 then create P32 above its exact head and implement the qualification-gated execution
 and complete-coverage funding path. P15B/P16B remain Open; 24-hour endurance Deferred.
+
+R082 publication: `gh stack submit --auto --open` creates ready PR #46 above
+`phase/p30-canonical-maker` / #45, with exact submitted head `17d45a3`. GitHub
+confirms OPEN and `isDraft:false`; stack #44 contains #42 → #43 → #45 → #46.
+All remain open. P31/M10 status is Review/In progress; CI outcomes are not assumed.
+319 local Markdown links, eight fence balances and `git diff --check` pass for
+closeout. No additional runtime was needed for evidence/publication-only changes.
+Exact next action: create P32 above the P31 publication commit and implement the
+qualification-gated clearing/funding integration and A37/G25 checks.
