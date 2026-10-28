@@ -1,7 +1,7 @@
 """Independent exhaustive exact-pair check for P32's native table search.
 
-Table holes model nonprefix financial feasibility; no chain or source evidence is
-inferred. Whole-account table construction is separately qualified in P32 clearing.
+Table holes exercise the generic allocator, including price-policy exclusions;
+they no longer imply D74 funding checks maker health. No chain evidence is inferred.
 """
 import itertools
 import random

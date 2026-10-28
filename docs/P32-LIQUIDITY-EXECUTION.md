@@ -2,8 +2,9 @@
 
 In progress on `phase/p32-liquidity-execution`, above exact P31 `28d5dd0` / ready
 [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46). A37/G25 is not complete.
-The governing contract remains [P29B](P29B-MAKER-CONTRACT.md); no financial policy,
-resource gate or external authorization changes here.
+The governing contract is [P29B](P29B-MAKER-CONTRACT.md), explicitly amended by
+the user's D74 published-liquidity funding decision. Resource gates, execution
+financial checks and external authorization are unchanged.
 
 ## Implementation sequence within this phase
 
@@ -13,9 +14,10 @@ resource gate or external authorization changes here.
    config/price accounts. Execute the signed one/two-leg allocation through the
    existing whole-account candidate, order and fee/insurance engine. Current price
    and consumption may change within signed limits; structural epochs may not.
-3. Sample all three sealed makers with actual funded capital, reservations and
-   current funding. Fill each side's full reference quantity without a synthetic
-   trader, taker fee or depth mutation. Causal structural controls materialize and
+3. Sample all three sealed makers' authenticated published curves under D74,
+   without hypothetical funding/margin/reservation admission. Fill each side's
+   full reference quantity without a synthetic trader, taker fee or depth mutation.
+   Causal structural controls materialize and
    truncate old held funding; ordinary repricing does not modify it.
 4. Integrate the profile with complete account liquidation/default/recovery and
    funded exits. Preserve old profile behavior and reject old A/B sampling/routes
@@ -33,28 +35,34 @@ for consecutive quantities. It walks region offsets and uses the discrete potent
 increment `tick * floor(distance / step)`, reversing that increment when inventory
 moves toward target. Every marginal must remain within the same global price bounds;
 an invalid marginal invalidates all later prefixes. This is a price optimization
-only: **maker health is still evaluated independently at each quantity**.
+only: D74 funding deliberately does not evaluate maker health. Actual execution
+retains financial admission.
 
 The pure `financial_core::liquidity::best_sample_pair` scans all singletons and
 unordered pairs from three per-maker quantity tables. A zero entry represents an
 unavailable quantity; it never implies that larger quantities are unavailable.
 It has the agreed deterministic tie order and no fee or third capital. Its single
 side scratch shape is 3×601 u64 values = 14,424 bytes, below the 16 KiB contract.
-The SBF heap/CU/packet limits remain unmeasured until integration: this static size
-does not establish overall runtime headroom.
+This static size does not establish overall runtime headroom; the historical
+financially admitted sampler fails the resource probes recorded below.
 
 The clearing sampler authenticates each sealed registration, capital PDA,
 program/ProgramData hash and fixed read-only config/price pair. It shares code-hash
-work only within one instruction. Funding evaluates each quantity with the actual
-scalar fill/reservation/risk arithmetic, whole-root funding and generation/order
-authority, including healthy larger closes after unhealthy smaller quantities.
-Valid zero-capacity publications still participate in required coverage.
-Invariant order terms are prepared once; per-quantity generation, direction and
-protection capacity still apply. Every selected leg also receives the complete
-route maker transition/book refresh/admission. A native exhaustive comparison
-checks the prepared projection against that full path in103,680 combinations.
-This is optimization-equivalence evidence, separate from the independent literal
-financial expectations and required real-program acceptance.
+work only within one instruction. D74 removes hypothetical maker funding accrual,
+cash/claim/IM checks, order-reservation refresh and selected-leg financial rechecks
+from sampling. It retains identity/code/price authentication, all declared depth,
+inventory/reduce-only caps, the 90–110% independent index price band and exact
+one/two-maker allocation. Zero-capacity publications still participate in required
+coverage. Zero funded cash does not itself remove a published curve. This changes
+the funding trust assumption: published depth need not be executable. Automatic
+economic-failure exclusion is deferred; existing quarantine remains fail-closed.
+
+The prior prepared financial projections and103,680 full-route comparisons remain
+test-only regression coverage; they are not compiled into the sampling path.
+New literal tests distinguish published prices from financial trade admission and
+check price-band edges, consumed depth and reduce-only capacity. The scoped real
+RPC probe additionally withdraws all three makers' actual funded cash and samples
+their unchanged published depth, without enabling trading.
 
 [D73](DECISIONS.md#d73--causal-canonical-funding-observations-p32-29-october-2026)
 records exact old-interval-first funding and structural-control bookkeeping. Native

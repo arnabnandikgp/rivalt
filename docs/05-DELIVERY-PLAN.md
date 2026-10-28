@@ -728,6 +728,12 @@ P32 integrates and qualifies current-state clearing, persistent orders/protectio
 complete funding coverage and affected liquidation/default before the services/UI
 work. P33/P34 then prove durable consumer behavior and comparative runtime results.
 
+D74 amends P32 funding to authenticated published liquidity without hypothetical
+maker financial admission; actual execution retains full margin/order checks.
+Fresh 100/600-lot resource and zero-cash-publisher evidence is required. Temporary
+failure-based maker exclusion is deferred; P33/P34 must label the resulting
+funding liquidity accordingly. No earlier failed resource gate is waived.
+
 Retain at most two makers per route while testing discovery/selection beyond the
 fixed A/B identity pair. A price update cannot implicitly restore consumed depth.
 Unknown/custom pricing capabilities cannot inherit canonical validation or funding

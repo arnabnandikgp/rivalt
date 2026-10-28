@@ -28,6 +28,13 @@ Native prepared-admission equivalence does not replace the unchanged compiled
 full-coverage/full-book/headroom gates. Do not classify a simulated failure as a
 submitted transaction or successful sample.
 
+D74 explicitly supersedes financial eligibility inside profile-4 funding samples.
+Requalify the published-depth sampler at 100/600 lots, including actual zero-cash
+makers, while proving execution margin checks remain effective. Retain complete
+authenticated coverage, stale/disabled/index-band failures, declared capacity,
+causal accrual and unchanged resource ceilings. The pre-D74 equivalence cases
+remain historical regression coverage, not the new funding contract.
+
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
 phase-owned, and the candidate build does not satisfy P26 safety.

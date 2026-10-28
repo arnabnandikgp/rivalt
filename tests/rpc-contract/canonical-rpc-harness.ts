@@ -52,6 +52,8 @@ const h: CanonicalHarness = {
       response => response.value[0]?.confirmationStatus === 'finalized', label);
     const history = await eventually(() => rpc.call('getTransaction', [signature,
       { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]), value => Boolean(value), `fetch ${label}`);
+    // Preserve a landed result even when a later resource or parity check fails.
+    writeFileSync(`${runDir}/transaction-${checks.length}.json`, serialize(history));
     assert.equal(history.transaction.signatures[0], signature);
     if (expectedError === undefined) assert.equal(history.meta.err, null, label);
     else assert.equal(history.meta.err?.InstructionError?.[1]?.Custom, expectedError, label);
@@ -71,7 +73,6 @@ const h: CanonicalHarness = {
     // the discrepancy and prove failed state is excluded via case snapshots.
     if (expectedError === undefined) assert.equal(notification.params.result.value.err, null);
     const wsErrorMatchesFinalized = JSON.stringify(notification.params.result.value.err) === JSON.stringify(history.meta.err);
-    writeFileSync(`${runDir}/transaction-${checks.length}.json`, serialize(history));
     writeFileSync(`${runDir}/ws-${checks.length}.json`, serialize({ logs: notification, signature: signatureNotification }));
     checks.push({ label, signature, version: transaction.version, v0Bytes, bytes: wireBytes,
       error: history.meta.err, confirmationMs: performance.now() - started, computeUnits: history.meta.computeUnitsConsumed, computeUnitLimit,

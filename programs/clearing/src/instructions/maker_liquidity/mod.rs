@@ -23,7 +23,11 @@ pub use contexts::*;
 mod validation;
 pub(crate) use validation::*;
 pub(crate) mod pricing;
+// Retain the pre-D74 projection/full-execution comparisons as regression tests;
+// the published-liquidity sampler does not compile or invoke these checks.
+#[cfg(test)]
 pub(crate) mod admission;
+#[cfg(test)]
 mod reservations;
 pub(crate) mod impact;
 pub(crate) mod funding;

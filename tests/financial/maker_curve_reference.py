@@ -243,7 +243,7 @@ def held_index(base: int, premium_scaled: int, sampled_at: int, held_until: int,
     return base + (abs(product) // 3600) * (-1 if product < 0 else 1)
 
 
-def funding_quote(candidates, publications, reference, slot, time, eligible=lambda *_: True):
+def funding_quote(candidates, publications, reference, slot, time):
     bounded(reference, 10_000, 100_000)
     if len(candidates) != 3 or len(publications) != 3:
         raise ValueError("incomplete coverage")
@@ -251,8 +251,13 @@ def funding_quote(candidates, publications, reference, slot, time, eligible=lamb
         raise ValueError("unqualified input")
     quantity = (6_000_000 + reference - 1) // reference
     # Caller already authenticates candidates and their publication bindings.
-    bid = best_route(candidates, 1, quantity, eligible, charge_fee=False)
-    ask = best_route(candidates, 0, quantity, eligible, charge_fee=False)
+    # D74: published depth is not a financial-admission promise. Retain the
+    # independent price band, but no maker health or reservation predicate.
+    def price_band(legs, amounts, _fee):
+        return all(9 * size * reference <= 10 * gross <= 11 * size * reference
+                   for (_, size), gross in zip(legs, amounts))
+    bid = best_route(candidates, 1, quantity, price_band, charge_fee=False)
+    ask = best_route(candidates, 0, quantity, price_band, charge_fee=False)
     if bid is None or ask is None:
         raise ValueError("unavailable reference size")
     return bid, ask, premium(reference, quantity, bid[1], ask[1])

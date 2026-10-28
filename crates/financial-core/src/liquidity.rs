@@ -1,4 +1,4 @@
-//! Exact three-instance funding allocation over independently admitted quantities.
+//! Exact three-instance funding allocation over available published quantities.
 //! Zero means unavailable at that quantity, not an empty prefix of feasibility.
 //! No source, capital identity, risk admission or consumption is invented here.
 use crate::{Error, Participant, Result, IM_BPS, MAX_CASH, MAX_LOTS, MAX_PRICE, MAX_SCALED, SCALE};
@@ -125,7 +125,7 @@ pub struct SampleAllocation {
 }
 
 /// The caller authenticates all three candidates and fills this one-side table
-/// with exact prices only where full maker post-fill admission succeeds. The same
+/// with exact prices at available, in-band published quantities (D74). The same
 /// allocation buffer can be cleared/reused for the other side (14,424 bytes).
 /// Funding has no taker fee, no synthetic trader and no depth mutation.
 pub fn best_sample_pair(

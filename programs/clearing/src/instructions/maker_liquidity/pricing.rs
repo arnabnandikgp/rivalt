@@ -97,7 +97,8 @@ impl<'account, 'info> View<'account, 'info> {
     ) -> Result<()> {
         sealed_registry(registry, venue.key(), market.key())?;
         capital_identity(self.capital, market)?;
-        super::super::account_trading::model(self.capital)?;
+        // Identity and quote inventory are needed for D74 funding. Financial
+        // admission belongs to execution, not publication authentication.
         let registration = self.registration;
         require!(
             registration.schema_version == 4

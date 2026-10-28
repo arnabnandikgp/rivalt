@@ -159,8 +159,11 @@ all-in limits. No claim of best prices outside the admitted snapshot/candidate s
 Integrate new maker registration/config validation and consumption into clearing's
 immediate routes, persistent subfills and TP/SL. Implement the frozen update-race
 policy, current whole-account funding/health and reservation checks. Rework funding
-sampling to use the same executable pricing/capacity and search constraints, with
-complete configured coverage and no consumed depth. Ordinary maker repricing must
+sampling to use the same published pricing/depth and search constraints, with
+complete configured coverage and no consumed depth. D74 deliberately removes
+hypothetical maker financial checks from funding only; published depth is not an
+execution guarantee, and automated economic-failure exclusion is deferred.
+Ordinary maker repricing must
 not bump unrelated account/market security epochs.
 
 Keep candidate execution behind a qualification-only gate until the affected safety

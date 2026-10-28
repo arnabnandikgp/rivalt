@@ -1,6 +1,6 @@
 //! Exact consecutive quantity quotes for bounded clearing search. Validate the
 //! shape once, then walk its marginal offsets and convex inventory potential.
-//! This is pricing only; each quantity still needs independent capital admission.
+//! Pricing only: execution requires capital admission; D74 funding does not.
 use super::*;
 
 pub struct QuoteLadderV4<'shape> {

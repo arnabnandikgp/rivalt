@@ -1321,3 +1321,42 @@ legs with the full existing route engine. Independent literal financial cases,
 extreme-bound comparisons and full-route projection equivalence remain distinct
 from required compiled/resource acceptance. Complete coverage, full code hashes,
 32KiB heap and20% compute headroom are unchanged.
+
+## D74 — Published-liquidity funding, financial admission at execution (P32, 29 October 2026)
+
+The user explicitly selects published maker liquidity for impact-price sampling,
+trusting makers' ability to finance the reference quantity for now. This supersedes
+D70/P29B section 6 and D73's resource follow-up **only where they require maker
+financial admission during profile-4 funding sampling**. It is a changed funding
+contract, not an optimization-equivalence claim or acceptance of the failed probes.
+V1–V3 and actual trade financial admission remain unchanged.
+
+The sampler reads the same authenticated canonical shape, fresh publication,
+current inventory and consumed depth as execution. Keep all three sealed inputs,
+identity/owner/code authentication, canonical CPI parity, declared inventory and
+reduce-only caps, independent 90–110% index price band, exact best one/two-maker
+allocation and complete reference size on both sides. Remove hypothetical maker
+funding accrual, cash/claim health, IM, order-reservation refresh and selected-leg
+financial rechecks from sampling. Capital remains read-only for identity/inventory;
+no hypothetical orders, fills, cash transfers or depth consumption are created.
+
+The impact midpoint, signed premium/cap, causal held interval, source freshness,
+expiry/recovery and outage rules are unchanged. Sampling measures **published
+liquidity, not guaranteed executable liquidity**: undercollateralized makers can
+influence funding until their publications/eligibility change. No profit-payout or
+margin guarantee follows. SDK/UI/reporting must distinguish this from P31's
+financially feasible route preview. All actual routes, orders, liquidation, cash
+and default paths retain their complete financial checks and unchanged economics.
+
+The user's suggestion to temporarily exclude makers after repeated economic
+execution failures is deferred. Do not invent a threshold, epoch duration,
+failure-attribution rule or keeper-selected subset now. Existing quarantine still
+invalidates required funding coverage; dynamic exclusion would need its own
+coverage/recovery contract. No new blacklist mechanism is part of this change.
+
+P32 must newly measure successful 100/600-lot samples under unchanged packet,
+heap, CU/headroom and complete-input gates; prove zero funded cash does not remove
+published depth while execution still rejects insufficient margin; retain stale,
+missing, disabled, price-band, consumption, causal and reconstruction checks.
+Prior failed measurements remain historical evidence. Trading stays disabled
+until complete P32 acceptance; P15B/P16B and deferred endurance are unchanged.

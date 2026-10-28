@@ -154,8 +154,6 @@ pub fn sample(ctx: Context<SampleLiquidityV4>) -> Result<()> {
         )
         .ok()
     });
-    let funding =
-        account_trading::oracle::effective(accounts.safety.mode, &accounts.market, &clock)?;
     let prices = bounds.filter(|bounds| bounds.normal).and_then(|bounds| {
         impact::sample(
             &accounts.venue,
@@ -163,7 +161,6 @@ pub fn sample(ctx: Context<SampleLiquidityV4>) -> Result<()> {
             &accounts.registry,
             &views,
             bounds,
-            funding,
             &clock,
             &mut inputs,
         )

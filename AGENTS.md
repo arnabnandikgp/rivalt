@@ -54,6 +54,12 @@ safety acceptance. Preserve the two-maker atomic execution limit,
 financial engine, external gates and deferred endurance. Keep the new ready PR
 stack open until separately instructed to merge.
 
+D74 supersedes maker financial admission inside profile-4 funding sampling only:
+use authenticated published depth, preserving price/source/coverage safeguards.
+Actual execution keeps complete financial admission. Temporary failure-based
+maker exclusion is deferred; do not describe published funding depth as guaranteed
+executable liquidity. Requalify the changed sampler before claiming resource fit.
+
 Proceed through authorized routine implementation without asking to start each run. Finish and verify each deliverable before moving on, then continue its dependent phase without waiting for the previous PR to merge. A verified predecessor in Review satisfies the implementation dependency when its exact commits are included in the new branch. Use `gh stack` to manage these branches and their parent/base relationships. Submit ready-to-review PRs with `gh stack submit --auto --open`; never create draft PRs. If remote access is unavailable, leave reviewable local commits and mark publication pending. Keep unmerged phases in Review, not Closed; do not claim a PR exists or is merged when it does not.
 
 Production/funded deployments, paid services, outreach, recruiting and external hedging require their own authorization. Request a devnet RPC credential through secure configuration only when P13 needs it. An independent review or user pilot is an external gate, not something to fabricate.

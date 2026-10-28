@@ -315,8 +315,14 @@ class FundingContract(unittest.TestCase):
                   replace(self.makers[2], curve=replace(self.curve, long_cap=0, short_cap=0)))
         bid, ask, _ = funding_quote(makers, self.publications, 10_000, 11, 21)
         self.assertEqual((bid[0], ask[0]), (((1, 600),), ((0, 600),)))
+        # A financial execution predicate can reject every trade without
+        # removing these same published prices from D74 funding.
+        self.assertIsNone(best_route(makers, 0, 600, lambda *_: False))
+
+    def test_published_funding_preserves_independent_price_band(self):
+        outside = tuple(replace(maker, anchor=12_000) for maker in self.makers)
         with self.assertRaises(ValueError):
-            funding_quote(makers, self.publications, 10_000, 11, 21, lambda *_: False)
+            funding_quote(outside, self.publications, 10_000, 11, 21)
 
     def test_structural_truncation_keeps_accrued_funding_and_reprice_is_causal(self):
         self.assertEqual(held_index(100, 3600, 10, 16, 13), 103)

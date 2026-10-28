@@ -116,8 +116,10 @@ Quantity cap is min(unconsumed side depth, directional inventory cap). A taker b
 has headroom `q+short_cap`; sell has `long_cap-q`, floored at zero. Caps are
 0…100,000,000. Reduce-only additionally caps buy at `max(q,0)`, sell at `max(-q,0)`;
 it cannot cross zero. Shape replacement below consumed depth leaves zero capacity.
-This cap is an upper bound, **not a claim every smaller size is healthy**. Exact
-funding, reservations, fee/claims and post-fill root health decide feasibility.
+This cap is an upper bound, **not a claim every smaller size is healthy**. For
+execution, funding, reservations, fee/claims and post-fill root health decide
+feasibility. D74 funding sampling deliberately uses published depth without those
+financial checks; section 6 records the supersession.
 
 At fixed anchor/shape, cumulative offsets and potential telescope: splitting a
 same-direction fill produces exactly the same gross as the combined fill, including
@@ -362,10 +364,15 @@ aggregate sides must still fill the full reference quantity with ≤2 capitals e
 
 Keep source validation and reference interval10,000…100,000; quantity
 `ceil(6,000,000/reference)` (60…600). Quote using the same anchor, shape, inventory,
-consumption and maker post-fill admission as execution, with no synthetic trader
-or fee and no consumed depth. Precompute exact quote/eligibility arrays per maker,
-side and quantity; evaluate every feasible singleton/pair. No binary search on a
-presumed monotone health predicate. Same canonical CPI checks, at most first-lot
+consumption as execution, with no synthetic trader or fee and no consumed depth.
+**D74 supersedes the original maker post-fill admission requirement for funding:**
+do not accrue hypothetical maker funding, evaluate cash/claims/IM, refresh order
+reservations or recheck selected legs financially. Read capital only for bound
+identity and inventory. Retain declared depth/inventory/reduce-only caps and the
+90–110% independent index price band. Precompute exact published quote arrays per
+maker, side and quantity; evaluate every price-eligible singleton/pair. These are
+published-liquidity observations, not executable-liquidity guarantees. Actual
+routes retain the full financial admission above. Same canonical CPI checks, at most first-lot
 plus selected quote per maker/side (≤10 CPIs); a zero/invalid first-lot price cannot
 be hidden by a later average. Maker public quote code has no funding-only context.
 
@@ -413,7 +420,10 @@ fit v0 and are not RPC execution evidence. Batched instructions and wider P32
 transactions require their own measurements. Preserve unique-account, compute,
 search and risk bounds; larger wire capacity does not authorize weakening them.
 If the three-maker/full-hash/full-book budget fails, optimize or record a failed
-gate; do not reduce coverage, admission checks or headroom to report success.
+gate; do not reduce coverage, execution admission checks or headroom to report
+success. D74 is an explicit user-authorized funding contract amendment, not a
+resource pass; rerun the changed sampler. Automatic economic-failure exclusion is
+deferred, and existing quarantine still invalidates complete funding coverage.
 
 **P32 continuation workload:** pinned separate V3/V4 fresh deployments, fixed seed
 2902, same toolchain/host/RPC configuration and initial test balances. Per profile,

@@ -16,8 +16,10 @@ P31–P34, with P32 gating new financial execution.
 
 [P32's in-progress sampler](P32-LIQUIDITY-EXECUTION.md) has a separate local
 qualification feature, three fixed maker tuples and an extended oracle event.
-It reuses source authority and scalar financial arithmetic, with complete route
-admission on selected funding legs. Resource acceptance and new trading activation
+Under D74 it authenticates published curves and calculates their impact prices
+without hypothetical maker financial admission. Capital supplies identity and
+inventory; full financial checks remain in execution. Consumer views must label
+funding liquidity as published, not guaranteed executable. Resource acceptance and new trading activation
 remain unfulfilled; this does not extend the legacy A/B sampler to profile4.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete

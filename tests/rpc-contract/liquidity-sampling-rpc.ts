@@ -84,6 +84,18 @@ try {
   // Independent literal optimum: two identical curves avoid the step at512;
   // buy=Q*(10000+3), sell=Q*(10000-1). No SDK optimizer computes this expected.
   await sample('maximum 600-lot three-maker search',{ quantity: 600n,bid: 5_999_400n,ask: 6_001_800n });
+  // Actual SPL withdrawals, not mutated fixtures: all quoted makers now have
+  // zero funded cash. D74 still observes their published liquidity; execution
+  // margin admission is a separate unchanged requirement.
+  for (const maker of makers) {
+    await h.send('withdraw maker cash before published-depth sample',[
+      await sdk.getWithdrawAccountCustodyV3InstructionAsync({ ...fixture.common,owner: fixture.owner,
+        margin: maker.capital,quoteMint: fixture.mint.address,userToken: fixture.token.address,amount: 1_000_000n })
+    ],[fixture.owner]);
+    assert.equal(sdk.getMarginAccountV3Decoder().decode((await h.read(maker.capital))!).cash,0n);
+  }
+  await fresh(10_000n);
+  await sample('zero funded margin still contributes published depth',{ quantity: 600n,bid: 5_999_400n,ask: 6_001_800n });
   const third = makers[2],thirdConfig = await third.state();
   await h.send('zero-cap required input control',[sdk.getControlLiquidityV4Instruction({ ...third.controlCommon,
     expectedAuthority: 1n,expectedControl: thirdConfig.controlEpoch,expectedShape: thirdConfig.shapeEpoch,
@@ -105,6 +117,6 @@ try {
     runtime: await rpc.call('getVersion'),genesis: await rpc.call('getGenesisHash'),checks,observations,parity,
     binaries: Object.fromEntries(['clearing','maker_a','maker_b','oracle_fixture'].map(name => [name,
       createHash('sha256').update(readFileSync(`.local/liquidity-execution/${name}.so`)).digest('hex')])),
-    financialTradingActivated: false,phaseAcceptance: false }));
+    fundingLiquidityPolicy: 'published-depth-D74',financialTradingActivated: false,phaseAcceptance: false }));
   console.log(`P32 sampler probe: ${observations.length} actual observations, ${checks.length} signed RPC/WS outcomes. Trading disabled.`);
 } finally { ws.close(); }

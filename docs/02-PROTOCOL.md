@@ -12,6 +12,13 @@ contains a gated sampler/control candidate; its resource gate is not yet met and
 financial routing remains disabled. P32 gates financial activation. Existing profiles, source
 safeguards and loss/fee/insurance accounting remain authoritative.
 
+D74 changes only profile-4 funding to a **published-liquidity impact midpoint**:
+authenticate all required curves and enforce freshness/depth/index price bounds,
+but do not test hypothetical maker margin, funding debt or order reservations.
+Undercollateralized published depth may influence funding. Actual trade admission
+and independent risk valuation remain unchanged; automatic failure-based maker
+exclusion is deferred. See P29B section 6 and D74 for the explicit supersession.
+
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.
 The pinned candidate matrix and explicit storage-ready local activation pass
