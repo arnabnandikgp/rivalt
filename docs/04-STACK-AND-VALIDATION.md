@@ -1,6 +1,14 @@
 # Stack, validation and measurement
 Rivalt · baseline R1 · 20 October 2026
 
+D69's [P29–P34 roadmap](P29-MAKER-LIQUIDITY-ROADMAP.md) retains the installed
+stack and scopes checks by phase. A34A is documentation validation; A34B is an
+independent contract/reference, not implementation evidence. A35–A39 require fresh
+affected program/quote/routing/safety and RPC/WS/PostgreSQL evidence. Freeze numeric
+comparison tolerances and workloads in G22 before measurement; keep zero unexplained
+financial differences, packet fit and at least 20% measured compute headroom.
+P32 is the integrated prototype continuation gate. No 24-hour run is added.
+
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
 phase-owned, and the candidate build does not satisfy P26 safety.

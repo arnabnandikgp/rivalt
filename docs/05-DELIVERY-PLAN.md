@@ -1,6 +1,12 @@
 # Delivery plan
 Rivalt · baseline R1 · 20 October 2026
 
+D69 adds [M10 / P29–P34](P29-MAKER-LIQUIDITY-ROADMAP.md) for programmable maker
+liquidity and bounded best-pair routing. P29A delivers planning; later rows remain
+prospective. P29B freezes the exact contract and P32 owns the first integrated
+execution/safety and comparison gate before service expansion. Existing milestones,
+external gates and deferred endurance retain their scope and evidence.
+
 D60 completes the schema-3 [financial/state/authority contract](P22B-EXECUTABLE-CONTRACT.md)
 and supersedes the earlier P22B-incomplete wording below. The exact normal
 settlement, bounded terminal arithmetic and layouts apply only to the new profile.
@@ -23,6 +29,8 @@ The original six milestone families retain P01–P16, with P15/P16 split into en
 | M6 | P15A/P16A + P15B/P16B | Standalone maker tooling/reliability, followed by independent commercial/pilot readiness | A: reproducible operator qualification and bounded, change-focused reliability/operations evidence. B: independent observations/review, calibrated funded risk and a separate pilot decision. All four must close for M6 closure |
 | M7 | P17–P21 | Bounded isolated/cross successor, one mint and two markets | Versioned contract, isolated foundation, whole-account engine, safe liquidation/complete-group default and fresh service/UI/RPC/WS/PostgreSQL qualification; no funded-readiness claim |
 | M8 | P22–P28 | Account-centric clearing, one mint and two markets | Separate account/eligibility/settlement/default contract; qualified safety, atomic admissible funded exits during normal background activity, fresh service/UI/RPC/WS/PostgreSQL reconciliation; no funded-readiness claim |
+| M9 | P28A | Interactive local evaluation follow-up | Existing P28A local startup, wallet, replay and owned shutdown acceptance; separate from financial qualification |
+| M10 | P29A–P34 | Configurable maker liquidity and bounded best-pair routing | Exact contract, canonical curve/program parity, independent allocation optimum, safe funding/execution, usable services and fresh comparative qualification; no external-maker or funded-readiness claim |
 
 M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. M6 engineering extensions P15A/P16A can proceed with explicitly internal makers and test assets. P15B/P16B require independent people/data/review and separate funded authorization. Completing A never closes B or establishes funded readiness.
 
@@ -64,8 +72,16 @@ M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. 
 | P26 | M8 | Liquidation, complete liability-cohort default and qualified local activation | P25 | A31 / G20 |
 | P27 | M8 | Account-centric SDK/indexer/API and durable services | P26 | A32 / G21 interfaces |
 | P28 | M8 | UI, operations and fresh bounded qualification | P27 | A33 / G21 completion / M8 exit |
+| P28A | M9 | Interactive local launcher, test wallet and walkthrough | Integrated P28 | P28A acceptance / D68 |
+| P29A | M10 | Maker-liquidity roadmap and decision/acceptance boundaries | Integrated P28A and R077 | A34A |
+| P29B | M10 | Exact quote/update/routing/funding contract and independent reference | P29A | A34B / G22 |
+| P30 | M10 | Configurable maker curves and authorized update lifecycle | P29B | A35 / G23 |
+| P31 | M10 | Generic quote adapters and exact bounded best-pair allocator | P30 | A36 / G24 |
+| P32 | M10 | Clearing, funding and qualified local execution integration | P31 | A37 / G25 / prototype continuation gate |
+| P33 | M10 | SDK, durable services, indexer, UI and maker kit | P32 continuation gate passed | A38 / G26 interfaces |
+| P34 | M10 | Comparative concurrent qualification and operations | P33 | A39 / G26 completion / M10 exit |
 
-The engineering path is P01–P14 → P15A → P16A → P17 → P18A → P18B → P18C → P19 → P20 → P21A → P21B → P22A → P22B → P23 → P24 → P25 → P26 → P27 → P28. External P15B/P16B do not block authorized test engineering; their own prerequisites remain mandatory. Do not reopen settled architecture outside the explicit D56 redesign or ask to start every phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
+The integrated engineering path is P01–P14 → P15A → P16A → P17 → P18A → P18B → P18C → P19 → P20 → P21A → P21B → P22A → P22B → P23 → P24 → P25 → P26 → P27 → P28 → P28A. D69 plans P29A → P29B → P30 → P31 → P32 → P33 → P34; this planning request does not itself start implementation. External P15B/P16B do not block authorized test engineering; their own prerequisites remain mandatory. Do not reopen settled architecture outside the explicit D56/D69 scopes or ask to start each already-authorized phase. A concrete access/credential/external decision may block dependent work; record it and continue genuinely independent authorized work where useful. No fabricated substitute closes a gate.
 
 Workflow amendment, 20 October 2026: submit ready-to-review PRs using `gh stack submit --auto --open`. Once a phase's deliverable and acceptance checks pass, continue its dependent phase on top of those exact commits without waiting for merge. `gh stack` manages the chain and PR bases. An unmerged phase remains Review; this removes a development scheduling barrier, not the integration requirement for Closed. D41 originally required keeping the new PRs stacked and open; D44 records the user's subsequent explicit authorization to address reviews and merge PRs #20/#21. WORKLOG records verified integration.
 
@@ -685,3 +701,27 @@ P28A integration (R076): PR #41 is merged at `350e60c` after focused review
 remediation and passing hosted checks; its tree matches `ba73bcd`. WORKLOG closes
 P28A/M9 while retaining the original `4f809d3` runtime evidence and separate R076
 error-path checks. No subsequent phase is authorized by this closeout.
+
+## M10 — programmable maker liquidity (P29–P34)
+
+The subsequent D69 request accepts R077's five-change direction and asks for
+phase-scoped planning. [The M10 roadmap](P29-MAKER-LIQUIDITY-ROADMAP.md) owns
+detailed deliverables, acceptance, G22–G26 and the P32 continuation gate.
+
+P29A is a ready roadmap PR. P29B must close the exact curve/update/authority,
+bounded candidate search and executable funding contract before implementation.
+P30/P31 prove the module and allocation independently; they do not activate trading.
+P32 integrates and qualifies current-state clearing, persistent orders/protection,
+complete funding coverage and affected liquidation/default before the services/UI
+work. P33/P34 then prove durable consumer behavior and comparative runtime results.
+
+Retain at most two makers per route while testing discovery/selection beyond the
+fixed A/B identity pair. A price update cannot implicitly restore consumed depth.
+Unknown/custom pricing capabilities cannot inherit canonical validation or funding
+optimality. Risk oracles, margin, loss ownership, fee/insurance economics and V1–V3
+evidence remain distinct from maker execution prices.
+
+Use ready stacked PRs and exact verified predecessor commits; keep them open until
+the user authorizes integration. No new 24-hour, external-maker/review or deployment
+gate is folded into this local engineering scope. No old runtime result qualifies
+the changed implementation.

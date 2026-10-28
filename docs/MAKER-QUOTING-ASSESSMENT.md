@@ -7,6 +7,11 @@ No new implementation phase, deployment, test result or economic policy is
 authorized or established by this assessment. P15B/P16B remain external gates;
 24-hour endurance remains deferred. The demo remains stopped.
 
+R078 follow-up: the user accepts the five-change direction and requests a scoped
+plan. [D69 / P29–P34](P29-MAKER-LIQUIDITY-ROADMAP.md) now records that roadmap;
+this original assessment remains research, not an exact executable specification
+or implementation evidence.
+
 ## What the references establish
 
 Jupiter's public integration boundary separates account discovery/update,

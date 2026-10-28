@@ -44,7 +44,15 @@ for exact carry/authority rules; preserve total 2 bps/zero-provider fees and V1/
 
 ## Work phase by phase
 
-Use P01–P28 as the delivery units, retaining existing IDs and the documented successor suffixes. Each normally produces one cohesive PR or equivalent reviewable local branch/commit set, with its own runnable acceptance evidence. A phase may span several runs. Do not split it into dozens of task PRs or combine several phases into an unreviewable change. If implementation evidence requires splitting a phase, preserve its original ID, add a justified suffix and update plan/worklog.
+Use P01–P34 as the delivery units, retaining existing IDs and the documented successor suffixes. Each normally produces one cohesive PR or equivalent reviewable local branch/commit set, with its own runnable acceptance evidence. A phase may span several runs. Do not split it into dozens of task PRs or combine several phases into an unreviewable change. If implementation evidence requires splitting a phase, preserve its original ID, add a justified suffix and update plan/worklog.
+
+D69 records the accepted maker-liquidity direction and requested P29A planning.
+Read docs/P29-MAKER-LIQUIDITY-ROADMAP.md before P29–P34 work. P29B must freeze
+the quote/update/routing/funding contract before implementation; new execution
+stays disabled until P32 safety acceptance. The roadmap does not itself authorize
+starting its implementation. Preserve the two-maker atomic execution limit,
+financial engine, external gates and deferred endurance. Keep the new ready PR
+stack open until separately instructed to merge.
 
 Proceed through authorized routine implementation without asking to start each run. Finish and verify each deliverable before moving on, then continue its dependent phase without waiting for the previous PR to merge. A verified predecessor in Review satisfies the implementation dependency when its exact commits are included in the new branch. Use `gh stack` to manage these branches and their parent/base relationships. Submit ready-to-review PRs with `gh stack submit --auto --open`; never create draft PRs. If remote access is unavailable, leave reviewable local commits and mark publication pending. Keep unmerged phases in Review, not Closed; do not claim a PR exists or is merged when it does not.
 

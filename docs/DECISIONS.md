@@ -67,6 +67,11 @@ No generic “TBD” may escape into an executable phase. Missing a gate blocks 
 | G19 | Whole-account risk/orders/funding, relevant validity dependencies, settlement ledger and atomic cash exits | P24/P25 | Independent real-implementation checks, signed rollback/conservation/fractions and live-sampler exit cases; ordinary new-profile activation still disabled |
 | G20 | Complete selected liability cohort, loss/insurance allocation, liquidation/default/recovery and activation | P26 | Independent maximum-cohort/shared-debtor/cycle cases, post-fee progress, real signed runtime reconciliation and activation gates |
 | G21 | Account-centric services/events/UI, operator budgets and bounded concurrent qualification | P27/P28 | Actual RPC/WS/PostgreSQL/browser/replay, normal background exits, complete populations and measured resource/contention limits |
+| G22 | Versioned maker identity/quote/curve/update/authority contract; registry/region/read-set/search/resource bounds; funding context/coverage and comparison tolerances | P29B | Independent integer reference/golden cases, full transition/ABI/migration contract and bounded feasibility plan; no runtime qualification |
+| G23 | Canonical configurable curves, update/replenish/expiry controls and exact SDK/program quote parity | P30 | Independent vectors, signed actual program/RPC/WS updates and quotes, scoped ABI and measured update resources |
+| G24 | Generic candidate set, best feasible singleton/pair allocation, capital deduplication, exactness and search budget | P31 | Independent exhaustive comparator, three-plus candidate cases and real-program quote parity; measured bounded search |
+| G25 | New clearing/funding/order authority, race behavior, affected safety and local activation; prototype continuation thresholds | P32 | Signed actual rollback/funding/risk/default and comparative RPC/WS/PostgreSQL evidence; no safeguard weakening |
+| G26 | Maker/trader service integration, recovery, economics reporting and bounded comparative qualification | P33/P34 | Actual RPC/WS/PostgreSQL/browser, ambiguous-original recovery, independent replay/reconciliation and measured populations/limits |
 
 G02 is an implementation precision choice, not permission to change the cash/claims rules. Program addresses, keys and endpoints are deployment outputs; this documentation must not invent them.
 
@@ -1113,3 +1118,55 @@ D68 integration result (R076): PR #41 merges at `350e60c`, with a tree identical
 to checked `ba73bcd`. Both findings are resolved and selected hosted checks pass.
 P28A/M9 close within their local-evaluation scope; original program qualification,
 external gates and deferred endurance are unchanged. The demo remains stopped.
+
+## D69 — programmable maker liquidity direction and scoped roadmap (P29–P34)
+
+The user accepts R077's five-change proposal, particularly generic bounded routing,
+and requests phase-scoped PR planning before another development cycle.
+[P29–P34 / M10](P29-MAKER-LIQUIDITY-ROADMAP.md) records the plan. P29A is a
+documentation-only ready PR; P29B–P34 are prospective and this planning request
+does not itself start their implementation. Keep the new stack open until a later
+merge instruction. P29A supersedes D68's stop-after-PR-41 boundary only for this
+subsequently requested planning work.
+
+Selected direction: standardize exact quote/execution envelopes, provide a reusable
+canonical configurable curve, separate repricing from authorized replenishment and
+security changes, select the best eligible one/two-maker route independently of
+fixed A/B IDs, and keep common clearing/funding authoritative. Demonstrate discovery
+and selection with at least three separately funded maker instances per market,
+including shared strategy implementation; G22 freezes the initial bounds after feasibility
+analysis. A distinct quote account is not a distinct collateral backing source.
+
+Deliberate future supersessions are scoped to the fresh bounded profile and must
+be realized by phase-owned contracts and evidence:
+
+- D22/G04's fixed strategy constants, fixed module-instance identity and expired-only
+  publication give way to the G22/G23 configurable curve and update lifecycle.
+  Preserve funded-capital binding, no implicit consumption reset and code admission.
+- D23/G05's fixed A/B allocation enumeration becomes G24's bounded best feasible
+  singleton/pair search. Preserve exact-size atomic execution, aggregate user limits,
+  one fee, current risk admission and the two-capital execution bound.
+- D53/D62's reuse of the fixed A/B pricing/search implementation changes through
+  G24/G25. The exact signed price/prefix policy is a P29B gate; planning does not
+  silently relax today's security, consumption or user-price bindings.
+- G08's complete configured funding coverage and causal accrual remain. Its fixed
+  A/B evaluator is replaced only with validated executable quotes and the same route
+  constraints; no funding-only prices or keeper-selected favorable subset.
+
+This direction does not alter D57/D60 loss ownership or accounting, D58 fees and
+insurance, independent risk sources, existing account modes/custody/withdrawal
+rules, TP/SL or liquidation/default obligations. Preserve V1/V2 and qualified V3;
+prefer new maker layouts/instructions in a fresh local deployment over an in-place
+financial account rewrite. P29B records exact versions and migration boundaries.
+
+The first release admits canonical configurable pricing only. Custom opaque modules,
+private RFQs, arbitrary nonconvex search, external spot-pool collateral, public LP
+capital and external hedging are not implied by the adapter boundary. New financial
+execution remains disabled until P32's affected safety and comparison gate passes.
+P33/P34 do not proceed over failed prototype evidence. Numeric workloads/tolerances
+are pinned in G22 before measurement; no resource, performance or profitability
+claim is created here. Routine technical corrections stay within their phase;
+material economic departures require a decision.
+
+P15B/P16B remain Open, 24-hour endurance remains Deferred, and no paid service,
+outreach, devnet/funded rollout or independent review is authorized or claimed.

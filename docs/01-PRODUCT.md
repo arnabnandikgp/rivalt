@@ -9,6 +9,13 @@ The engineering objective is a reproducible local venue, followed by focused dev
 
 ## Selected scope
 
+D69 adds the planned [P29–P34 maker-liquidity extension](P29-MAKER-LIQUIDITY-ROADMAP.md):
+configurable maker strategies and bounded candidate discovery, with at most two
+maker capitals in any atomic route. P29A records the roadmap; P29B owns its exact
+contract and P32 its new local execution gate. Fees, insurance, margin, funded/unpaid
+claims and external gates are preserved. This is not already implemented liquidity
+or permission to route to existing external spot pools.
+
 D56 adds [P22–P28](P22-ACCOUNT-CENTRIC-CLEARING.md), a fresh bounded local redesign
 that separates account risk, market eligibility, funded exits and settlement/default
 rules. The intended UX removes technical group selection; BTC/ETH, one test mint,

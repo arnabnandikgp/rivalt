@@ -5,6 +5,11 @@ Rivalt is a new Solana perpetual venue with common clearing, isolated collateral
 
 ## Start here
 
+[P29–P34's maker-liquidity roadmap](docs/P29-MAKER-LIQUIDITY-ROADMAP.md)
+plans configurable maker curves, independent quote adapters, bounded best-pair
+routing and consistent funding. P29A is planning only; no new pricing or execution
+behavior is active. The existing integrated profiles below retain their evidence.
+
 [P22–P28's account-centric clearing redesign](docs/P22-ACCOUNT-CENTRIC-CLEARING.md)
 is integrated under R073/D67: separate account risk, market eligibility, funded
 exits and settlement/default responsibilities. P22B defines the financial contract;

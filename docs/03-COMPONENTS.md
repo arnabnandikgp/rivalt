@@ -1,6 +1,13 @@
 # Components and interfaces
 Rivalt · baseline R1 · 20 October 2026
 
+D69's [maker-liquidity roadmap](P29-MAKER-LIQUIDITY-ROADMAP.md) separates maker
+instance identity, configurable pricing, exact quote adapters and bounded routing.
+P29B owns the new descriptor/read-set/ABI/authority contract; P30–P34 are planned
+implementation and qualification. Current A/B code and CPI guarantees are unchanged.
+Canonical pricing remains exactly validated; arbitrary custom modules are not
+activated by an interface abstraction.
+
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.
 The pinned candidate matrix and explicit storage-ready local activation pass
