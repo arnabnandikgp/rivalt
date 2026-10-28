@@ -4101,3 +4101,16 @@ on-chain expiry rules; add a regression. Raw attempted evidence remains at
 Typecheck and 46 focused tests pass after that correction and two additional
 maximum-size/index-band regressions. Final clean RPC and worst-width benchmark
 remain the exact next action, with no program binary change or external blocker.
+
+R082 strict search gate passes on clean `f9a70c3`: all 1,000 measured searches use
+Q=4,097 and eight regions/full books, with buy/sell and funded/unfunded traders.
+p95=36.956ms, p99=45.960ms, maximum=51.113ms; all maximum work counters reach12,288.
+Report: `.local/canonical-maker/p31/search-f9a70c3.json`. The second RPC attempt
+(`.local/canonical-maker/runs/20261028T180050Z-89308`) authenticates the real 31-key
+batch (reported context2267, actual Clock2268) but a harness deep-object assertion
+compares `Buffer` with `Uint8Array` discriminator containers. Their bytes agree;
+replace that assertion with exact encoded-account bytes versus independently
+fetched raw bytes. No production reader/pricing/risk change follows. Preserve the
+38 actual finalized setup/reprice transactions as partial evidence, not a passed
+RPC gate. The final scoped RPC retry is the next action; search need not rerun for
+this test-only byte-comparison correction.

@@ -33,8 +33,8 @@ try {
       assert.equal(snapshot.liquidity?.adapters.length,3);
       const adapter = snapshot.liquidity!.adapters.find(candidate => candidate.registration === maker.registration)!;
       assert.equal(adapter.unavailable,null);
-      const rawCapital = sdk.getMarginAccountV3Decoder().decode((await h.read(maker.capital))!);
-      assert.deepEqual(adapter.capital,rawCapital);
+      const rawCapital = (await h.read(maker.capital))!;
+      assert.deepEqual(Buffer.from(sdk.getMarginAccountV3Encoder().encode(adapter.capital)),rawCapital);
       assert.equal(adapter.capital.cash,1_000_000n);
       for (const lots of [1n,3n]) {
         const quoted = adapter.quote(side,lots);
