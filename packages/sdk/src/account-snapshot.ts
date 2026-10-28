@@ -131,7 +131,10 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const clock=raw(accounts.get(ACCOUNT_CLOCK),'Sysvar1111111111111111111111111111111111111');requireValue(clock.length===40,'Invalid Clock.');
   const clockView=new DataView(clock.buffer,clock.byteOffset,clock.byteLength);
   const slot=clockView.getBigUint64(0,true),now=clockView.getBigInt64(32,true);
-  requireValue(slot<=contextSlot&&now>=0n,'Invalid snapshot clock/context.');
+  // Surfpool can return a Clock ahead of its reported commitment context (R019).
+  // Preserve both observations: use actual Clock for expiry, and require RPC
+  // contexts to be monotone above. Never substitute an older context for Clock.
+  requireValue(now>=0n,'Invalid snapshot clock.');
   const makers=await authenticateAccountMakers({venue,markets,venueState,roots},identities,accounts);
   const liquidity=liquidityMarketIndex===undefined?undefined:await authenticateLiquidityMarket({venue,
     market:markets[liquidityMarketIndex],marketIndex:liquidityMarketIndex,domain:venueState.domain,slot,now,contextSlot},accounts);

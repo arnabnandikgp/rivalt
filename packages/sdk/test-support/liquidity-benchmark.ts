@@ -7,7 +7,7 @@ import { allocateLiquidityRoute } from '../src/liquidity-allocation.js';
 
 const cases = [0,1,2,3].map(index => {
   const { input,root,makers } = liquidityFixture();
-  input.lots = index < 2 ? 4097n : 4608n;input.side = index % 2 as 0|1;
+  input.lots = 4097n;input.side = (index < 2 ? 0 : 1) as 0|1;
   input.allInLimit = input.side === 0 ? 10n**12n : 0n;
   root.cash = index % 2 === 0 ? 10n**12n : 0n; // Failed trader admission forces every pair candidate to be valued.
   root.positions[1].lots = 3n;root.positions[1].virtualScaled = -30000n*10n**9n;

@@ -4085,3 +4085,19 @@ positive adapter cases exposed it before runtime qualification. Remove that fiel
 assumption and retain canonical PDA derivation plus exact owner/layout/venue/
 capital/registration checks. Final typecheck and 44 focused SDK cases pass. The
 415-case independent comparison still matches; no program artifact changes.
+
+R082 pinned development observations on `79a8578`: the first 1,000-search stress
+run (half maximum-composition Q=4,097, half maximum-request Q=4,608) records
+p95 37.649ms / p99 42.964ms, max 12,288 compositions/quotes/trader checks on Apple
+M3/Node24.22.0. Retain `.local/canonical-maker/p31/search-79a8578.json`; tighten the
+final G24 benchmark to **all 1,000** at maximum-composition width, and retain a
+separate literal maximum-request regression rather than claim mixed-width runs
+satisfy that wording. The first RPC attempt reaches 38 real finalized setup/reprice
+transactions, then rejects the snapshot because an added assertion requires Clock
+slot≤reported context. R019 already documents Surfpool's lagging commitment context.
+Preserve actual Clock and monotone reported RPC context independently, retaining
+on-chain expiry rules; add a regression. Raw attempted evidence remains at
+`.local/canonical-maker/runs/20261028T175501Z-87682`; it is not A36/G24 acceptance.
+Typecheck and 46 focused tests pass after that correction and two additional
+maximum-size/index-band regressions. Final clean RPC and worst-width benchmark
+remain the exact next action, with no program binary change or external blocker.

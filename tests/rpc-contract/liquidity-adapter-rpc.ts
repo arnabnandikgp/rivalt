@@ -16,7 +16,9 @@ try {
   let largestBatch = 0;
   const reader = { async call(method: string,params: unknown[] = []) {
     if (method === 'getMultipleAccounts') largestBatch = Math.max(largestBatch,(params[0] as unknown[]).length);
-    return rpc.call(method,params);
+    const response = await rpc.call(method,params);
+    if (method === 'getMultipleAccounts') writeFileSync(`${runDir}/latest-snapshot-batch.json`,serialize({ params,response }));
+    return response;
   } };
   // All six real capital roots were created and funded through the deployed
   // clearing program. P31 consumes their real inventory/consumption, never a

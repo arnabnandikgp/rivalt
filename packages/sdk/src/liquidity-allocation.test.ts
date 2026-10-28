@@ -97,3 +97,21 @@ it('does not mutate inputs and never uses three capitals to satisfy an exact-siz
   expect(allocate({ ...input,lots: 4n,maxFee: 9n,allInLimit: 40049n })).not.toBeNull();
   expect(allocate({ ...input,lots: 4n,maxFee: 8n })).toBeNull(); // ceil(40040/5000)=9, not per-leg fees.
 });
+it('fills the 4,608-lot ceiling exactly within the search budget',() => {
+  const { input } = liquidityFixture();
+  const result = allocateLiquidityRoute({ ...input,lots: 4608n });
+  expect(result.allocation).toMatchObject({ grossQuote: 46_126_080n,fee: 9226n,allIn: 46_135_306n,
+    legs: [{ instance: 0,lots: 4096n },{ instance: 1,lots: 512n }] });
+  expect(result.metrics.compositions).toBe(10755);expect(result.metrics.quantityQuotes).toBe(12288);
+  expect(() => allocate({ ...input,lots: 4609n })).toThrow(/financial context/);
+});
+it('applies per-leg index bands, aggregate minimum notional and exact user limits',() => {
+  const { input,makers,markets } = liquidityFixture();
+  makers[0].price.anchor = 8500n;makers[1].price.anchor = 12000n;
+  expect(allocate(input)!.legs.map(leg => leg.instance)).toEqual([2]);
+  expect(allocate({ ...input,allInLimit: 10012n })).toBeNull();
+  for (const maker of makers) maker.price.anchor = 100n;
+  Object.assign(markets[0],{ lower: 90n,referencePrice: 100n,upper: 110n });
+  expect(allocate(input)).toBeNull(); // Every quote is in-band, but gross=110<1000.
+  expect(allocate({ ...input,lots: 10n })).not.toBeNull();
+});

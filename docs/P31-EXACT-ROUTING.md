@@ -78,3 +78,9 @@ No new PostgreSQL/service/browser flow belongs to P31. P32 owns their first chan
 financial integration. Broad inherited SDK regression and the independent oracle
 are included in CI; this local run scopes checks to changed interfaces and gates.
 Raw reports remain ignored under their existing local evidence paths.
+
+Surfpool compatibility follows the previously recorded R019 behavior: its reported
+RPC commitment context may lag the fetched Clock. Preserve both values separately;
+expiry/source calculations use actual Clock, never the older reported context.
+Discovery/final RPC contexts must still be monotone. Live reports retain both, and
+only independently fetched finalized transaction results count as executed quotes.
