@@ -3,7 +3,7 @@ Baseline R1 · initialized 20 October 2026
 
 **Maker-liquidity planning (R078 / D69):** the user accepts the five-change
 direction and requests [P29–P34 planning](P29-MAKER-LIQUIDITY-ROADMAP.md).
-P29A is In progress for documentation validation/publication; P29B–P34 are Open
+P29A is in Review as ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42); P29B–P34 are Open
 planned phases. No runtime changes or new deployment are started. Prior milestones
 retain their acceptance; P15B/P16B stay Open and 24-hour endurance stays Deferred.
 
@@ -51,7 +51,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R078/D69: roadmap preparation; A34A validation/publication pending. G22 exact contract and all implementation/qualification gates remain prospective |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R078/D69: A34A roadmap checks pass; P29A is ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42) in Review. G22 exact contract and all implementation/qualification gates remain prospective |
 
 ## Phase overview
 
@@ -92,7 +92,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P27 | SDK, indexer/API and durable services | Closed | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit; integrated at `0916b9d` |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Closed | [PR #40](https://github.com/arnabnandikgp/rivalt/pull/40), published `ac894f1`, above #39 `9498d2e` | [A33/G21/M8](evidence/P28.md): 17 browser originals, 115 submitted trades, six busy exits, four bounded history rescans, complete nine-root default/recovery and identical fresh PostgreSQL replay; tested `f595fd7` / `5491752`; R073 scoped review corrections `e6ba2cf`; integrated at `0916b9d` |
 | M9 | P28A | Interactive launcher, local test wallet and walkthrough | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41), final head `ba73bcd`, merged `350e60c` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 wallet originals, indexed fills, reload and stop/reset; R076 resolves both reviews, 16 scoped tests and hosted client/shell checks pass; user evaluation accepted and demo stopped. R077 records a separate proposal without reopening P28A |
-| M10 | P29A | Maker-liquidity roadmap and scoped gates | In progress | Local preparation above R077 `8ca0691` / integrated `1c59592` | A34A documentation checks/publication pending; no program acceptance |
+| M10 | P29A | Maker-liquidity roadmap and scoped gates | Review | Ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42), `phase/p29a-maker-roadmap`, roadmap `bb53b53` above R077 `8ca0691` / integrated `1c59592` | A34A: scoped documentation/link/fence/phase/gate/evidence-policy checks pass; no program acceptance; kept open |
 | M10 | P29B | Exact quote/update/routing/funding contract | Open | P29A | A34B/G22: independent reference, versioned layouts/authority, search/funding semantics and numeric budgets/tolerances |
 | M10 | P30 | Configurable maker curves and updates | Open | P29B | A35/G23: real program/SDK parity and signed update lifecycle; new trading disabled |
 | M10 | P31 | Generic adapters and bounded best-pair router | Open | P30 | A36/G24: independent optimum, candidate/capital binding, actual quote parity and search budget |
@@ -105,7 +105,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- Current planning (R078): D69 accepts the five-change direction and [P29–P34 roadmap](P29-MAKER-LIQUIDITY-ROADMAP.md). P29A documentation validation/publication is in progress; no executable contract, runtime or performance acceptance is claimed. R077's assessment remains the inspected-code basis at `1c59592`.
+- Current planning (R078): D69 accepts the five-change direction and [P29–P34 roadmap](P29-MAKER-LIQUIDITY-ROADMAP.md). P29A passes scoped documentation checks and is published in ready PR #42, kept open in Review; no executable contract, runtime or performance acceptance is claimed. R077's assessment remains the inspected-code basis at `1c59592`.
 
 - Latest integration (R076): P28A PR #41 merged at `350e60ca1de2de77b9ed2a80a16b0aa5eb5aa481`, with tree `ea3a96ed66c4f99e3d68cc5a012ac76880e12813` identical to verified `ba73bcd`. Both inline findings are resolved; [hosted run 40678439011](https://github.com/arnabnandikgp/rivalt/actions/runs/40678439011) passes selected scope/client/shell jobs, with unrelated jobs scope-skipped and CodeRabbit neutral. Local main is synchronized; original financial qualifications below are unchanged.
 
@@ -115,7 +115,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
 - Current review verification (R073): zero unresolved inline threads or requested changes; all eight final heads mergeable with selected CI successful or scope-skipped. Tip `e6ba2cf` passes all five jobs in [hosted run 40576656720](https://github.com/arnabnandikgp/rivalt/actions/runs/40576656720); CodeRabbit is neutral/skipped for the incremental push. Seven local consumer cases, one Rust wire test, typecheck and trader build pass. This is scoped remediation/integration evidence, not an independent protocol review.
 - Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: finish P29A documentation checks and publish its ready roadmap PR, then present the plan. P29B's exact contract is the first proposed implementation step once the user directs execution; no automatic implementation cycle is started by this planning request.
+- Exact next action: present the published P29A plan. P29B's exact contract/reference is the first proposed implementation step once the user directs execution; no automatic implementation cycle is started by this planning request.
 - Deferred gates: R072 qualifies six busy funded exits in the schema-3 local profile; the older V2 profile keeps its historical limitation. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new devnet/funded deployment or external participation is claimed.
 
 ## Blocker register
@@ -3838,8 +3838,14 @@ Checks: `git diff --check` and `python3 ops/check-evidence-policy.py` pass.
 The scoped Python documentation check passes across 11 changed documents and 354
 existing local link targets, balanced fences, seven consistent phase rows and five
 unique new gate IDs; later phases remain Open. Fetched `origin/main` and confirmed
-it still equals `1c59592`. Ready `gh stack` publication is pending. No runtime tests,
+it still equals `1c59592`. Roadmap commit `bb53b53` is published through
+`gh stack init --base main phase/p29a-maker-roadmap` and
+`gh stack submit --auto --open` as [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42).
+Independent `gh pr view` confirms OPEN, `isDraft=false`, base `main`, exact roadmap
+head `bb53b5325812ddec6b1100ea0e933edf1d069c7e`. Both status tables now record
+P29A Review/M10 In progress. CodeRabbit was still running at inspection; no new
+review approval or hosted test pass is claimed. No runtime tests,
 financial suites, builds or RPC/PostgreSQL run are needed or claimed for this plan;
 the hosted workflow excludes documentation-only changes. No new runtime benchmark
-is reported. Blockers: none for planning. Exact next action: validate and publish
-P29A, then present the plan before starting its implementation.
+is reported. Blockers: none for planning. Exact next action: present ready PR #42
+and the seven-PR plan; P29B is the proposed next step when execution is directed.
