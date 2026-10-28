@@ -2,11 +2,11 @@
 //! must not replace financial feasibility with a prefix or free-cash estimate.
 use super::*;
 use crate::instructions::{account_trading, group_margin, group_trading};
-use crate::state::v2::{GroupMarketV2, MarginAccountV2};
+use crate::state::v2::GroupMarketV2;
 use financial_core::margin::{Margin, Risk};
 
 pub(crate) struct MakerAdmission<'market> {
-    root: Box<MarginAccountV2>,
+    capital: &'market MarginAccountV3,
     accrued: Margin,
     prepared_risk: financial_core::liquidity::PreparedMakerRisk,
     reservations: super::reservations::Reservations,
@@ -19,7 +19,7 @@ pub(crate) struct MakerAdmission<'market> {
 impl<'market> MakerAdmission<'market> {
     #[inline(never)]
     pub(crate) fn new(
-        capital: &MarginAccountV3,
+        capital: &'market MarginAccountV3,
         market: &'market GroupMarketV2,
         funding: i128,
         slot: u64,
@@ -32,7 +32,7 @@ impl<'market> MakerAdmission<'market> {
                 && market.index < 2,
             ClearingError::MakerCapital
         );
-        let root = account_trading::root_view(capital)?;
+        let root = account_trading::root_view_value(capital)?;
         group_trading::book::validate(&root)?;
         let mut indexes = [0; 2];
         indexes[usize::from(market.index)] = funding;
@@ -56,7 +56,7 @@ impl<'market> MakerAdmission<'market> {
                 funding,
             ))?;
         Ok(Self {
-            root,
+            capital,
             accrued,
             prepared_risk,
             reservations,
@@ -83,7 +83,8 @@ impl<'market> MakerAdmission<'market> {
         let Some(high) = reference_notional.checked_mul(11) else {
             return false;
         };
-        if side > 1 || self.root.state_version == u64::MAX || ten_gross < low || ten_gross > high {
+        if side > 1 || self.capital.state_version == u64::MAX || ten_gross < low || ten_gross > high
+        {
             return false;
         }
         let Ok(candidate) = self.prepared_risk.quote(side, lots, gross) else {
@@ -111,7 +112,9 @@ impl<'market> MakerAdmission<'market> {
         ) else {
             return false;
         };
-        let mut candidate = (*self.root).clone();
+        let Ok(mut candidate) = account_trading::root_view_value(self.capital) else {
+            return false;
+        };
         group_trading::routes::finish_maker(
             &mut candidate,
             model,

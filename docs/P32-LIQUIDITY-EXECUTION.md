@@ -98,6 +98,16 @@ extreme-bound/generation comparisons agree; the103,680 full-route comparisons an
 642 independent allocation cases still pass. Allocation visitation already follows
 the complete tie order, so equal gross retains the first candidate without rescans.
 These optimizations still require fresh resource measurement.
+The clean`478613a` probe advances into the sell-side search, then fails with an
+explicit heap allocation error at1,201,380 simulated CU. It remains a failed,
+unbroadcast100-lot sample;30 preceding setup/source/update transactions finalize.
+Retain`.local/liquidity-execution/runs/20261028T193112Z-17106`. This is the first
+observed heap failure, distinct from the prior compute exhaustion. The next change
+borrows the already-loaded capital and uses temporary stack adapters, removing
+persistent duplicate root allocations. Thirteen focused native clearing tests,
+including the103,680 equivalence cases, and seven affected account-trading tests
+pass. The borrowed-capital SBF build passes its frame check; its RPC retry remains
+pending, so heap/resource success is not inferred.
 Keep the complete registry, full code hashes, exact quantities, risk rules and
 20% headroom requirement. No successful sampler, full-book resource acceptance,
 actual financial funding/execution or A37/G25 completion is claimed yet.

@@ -193,7 +193,7 @@ fn prepare_inputs<'market>(
     venue: &Account<VenueV3>,
     market: &Account<MarketV3>,
     registry: &Account<LiquidityRegistryV4>,
-    views: &[View; 3],
+    views: &'market [View; 3],
     pricing_market: &'market crate::state::v2::GroupMarketV2,
     funding: i128,
     clock: &Clock,
