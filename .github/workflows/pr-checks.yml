@@ -59,6 +59,8 @@ jobs:
       - run: pnpm generate:check
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Canonical maker SDK against independent reference
+        run: python3 tests/financial/check_maker_curve_parity.py --implementation sdk
       - run: pnpm build:trader
   report:
     needs: scope

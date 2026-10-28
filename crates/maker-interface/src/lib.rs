@@ -2,6 +2,9 @@
 use anchor_lang::prelude::*;
 use financial_core::{MAX_CASH, MAX_LOTS, MAX_PRICE};
 
+/// Profile-4 canonical curves. No legacy entrypoint dispatches into this module.
+pub mod canonical;
+
 pub const VERSION: u16 = 1;
 pub const GROUP_VERSION: u16 = 2;
 pub const ACCOUNT_VERSION: u16 = 3;

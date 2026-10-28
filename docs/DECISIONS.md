@@ -1215,3 +1215,9 @@ full-hash/full-book signed resource/safety acceptance and continuation tolerance
 before P33. No runtime path activates in P29B. Financial loss ownership, fee/insurance
 allocation and zero positive unpaid margin credit are unchanged. P15B/P16B remain
 Open external gates; continuous 24-hour endurance remains Deferred.
+
+
+D70 implementation checkpoint (R080): P30 begins on the verified P29B stack.
+Canonical Rust and SDK arithmetic/quote payloads pass independent native parity;
+no new on-chain handler, active profile or deployment is inferred. Exact financial
+activation and runtime acceptance remain with the phase gates above.

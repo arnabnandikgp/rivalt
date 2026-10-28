@@ -8,7 +8,9 @@ D70 authorizes P30–P34 implementation and qualification. Each maker exposes fi
 config/price dependencies; clearing owns identity, consumption and financial effects.
 Current A/B code and CPI guarantees are unchanged until scoped acceptance.
 Canonical pricing remains exactly validated; arbitrary custom modules are not
-activated by an interface abstraction.
+activated by an interface abstraction. [P30](P30-CANONICAL-MAKERS.md) now has
+native Rust/SDK arithmetic; program handlers and generated-ABI acceptance remain
+in progress.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.
