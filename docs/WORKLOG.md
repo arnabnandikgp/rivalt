@@ -3588,3 +3588,14 @@ Fix malformed new status-table row placement and an obsolete README stack senten
 Both M9/P28A remain In progress. Exact next action: commit the launcher correction,
 verify owned stop, and rerun fresh startup/browser/reset acceptance. No financial,
 IDL/SBF, broad legacy, devnet or endurance suite is needed for this correction.
+
+
+R074 browser harness correction: clean `f79bdf5` starts the compiled UI and the real
+browser wallet successfully creates a portfolio/account and deposits 10 test USD.
+The new harness incorrectly assumed receipt array order, repeatedly fetched the
+old portfolio original and attempted another deposit before its actual original
+was finalized. The UI correctly blocked the unresolved action. Fix the harness to
+select the newly added signature by set difference and await that exact original.
+Retain the failed run at `.local/demo-checks/R074-production`; it does not count as
+full browser acceptance. No application/financial change is needed. Both status
+rows remain In progress; next action is rerunning the corrected wallet lifecycle.

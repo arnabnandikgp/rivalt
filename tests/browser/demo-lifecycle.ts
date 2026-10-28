@@ -20,11 +20,11 @@ async function wait<Value>(read:()=>Promise<Value>,accept:(value:Value)=>boolean
   for(let attempt=0;attempt<160;attempt++){const value=await read();if(accept(value))return value;await delay(200);}throw new Error(label);
 }
 async function action(name:string){
-  const before=(await receipts()).length;
+  const before=new Set((await receipts()).map(item=>item.signature));
   await button(name).first().click();await page.getByRole('region',{name:'Review transaction'}).waitFor();
   await button('Sign transaction').click();
-  const saved=await wait(receipts,items=>items.length===before+1&&['finalized','failed'].includes(items.at(-1)!.status),`${name} finality`);
-  const receipt=saved.at(-1)!;assert.equal(receipt.status,'finalized',JSON.stringify(receipt.error));
+  const saved=await wait(receipts,items=>items.length===before.size+1&&items.some(item=>!before.has(item.signature)&&['finalized','failed'].includes(item.status)),`${name} finality`);
+  const receipt=saved.find(item=>!before.has(item.signature))!;assert.equal(receipt.status,'finalized',JSON.stringify(receipt.error));
   const history=await client.rpc.call('getTransaction',[receipt.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:0}]);
   assert.equal(history.transaction[0],receipt.wire);assert.equal(history.meta.err,null);
   outcomes.push({label:receipt.label,signature:receipt.signature,wire:receipt.wire,fee:history.meta.fee});
