@@ -4003,3 +4003,13 @@ was2.0GiB at the last check. No external access blocker; only remaining phase ch
 User steering: stop after opening the ready P30 PR; do not start P31. Exact next
 action: commit the coherent candidate, run the corrected pinned RPC/WS and event
 parity gate, record its actual measurements, then submit P30 above #43 and stop.
+
+
+R081 pinned candidate preparation: committed implementation at
+`2d6fcddeaef59b638eb4d897563e81a1c0e91aef`. Rebuilt all six artifacts and generated
+IDL/SDK from that clean tracked tree; no changed generated files. Before final RPC,
+add a post-simulation signature-subscription acknowledgement and fresh log cursor
+so simulation notifications cannot satisfy the landing check. Preserve both log
+and signature WS payloads alongside authoritative fetched status. This is a
+qualification-harness correction, with program sources/artifacts unchanged.
+Exact next action: run the pinned full RPC/WS/event parity check, publish P30 and stop.

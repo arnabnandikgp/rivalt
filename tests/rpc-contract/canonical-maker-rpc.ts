@@ -41,6 +41,11 @@ const h: CanonicalHarness = {
     writeFileSync(`${runDir}/simulation-${checks.length}.json`, serialize(simulation));
     if (expectedError === undefined) assert.equal(simulation.value.err, null, `${label}: ${simulation.value.logs?.join('\n')}`);
     else assert.equal(simulation.value.err?.InstructionError?.[1]?.Custom, expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
+    // Subscribe after simulation, before broadcast. The acknowledgement is a WS
+    // ordering barrier: simulation logs cannot satisfy the landing observation.
+    const signatureSubscription = await ws.call('signatureSubscribe', [expectedSignature,
+      { commitment: 'finalized', enableReceivedNotification: false }]);
+    const notificationOffset = ws.notifications.length;
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
     assert.equal(signature, expectedSignature);
     await eventually(() => rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
@@ -58,18 +63,19 @@ const h: CanonicalHarness = {
     assert.equal(decoded.version, transaction.version);
     const independent = getCompiledTransactionMessageDecoder().decode(getTransactionDecoder().decode(fetched).messageBytes);
     assert.equal(independent.version, transaction.version);
-    const notification: any = await eventually(async () => ws.notifications.find(message => message.params?.subscription === subscription
+    const notification: any = await eventually(async () => ws.notifications.slice(notificationOffset).find(message => message.params?.subscription === subscription
       && message.params.result.value.signature === signature), Boolean, `WS ${label}`);
+    const signatureNotification = await ws.notification(signatureSubscription);
     // WS is a discovery hint; finalized fetched status controls application.
     // Surfpool 1.6.1 can announce rejected transactions with err:null. Preserve
     // the discrepancy and prove failed state is excluded via case snapshots.
     if (expectedError === undefined) assert.equal(notification.params.result.value.err, null);
     const wsErrorMatchesFinalized = JSON.stringify(notification.params.result.value.err) === JSON.stringify(history.meta.err);
     writeFileSync(`${runDir}/transaction-${checks.length}.json`, serialize(history));
-    writeFileSync(`${runDir}/ws-${checks.length}.json`, serialize(notification));
+    writeFileSync(`${runDir}/ws-${checks.length}.json`, serialize({ logs: notification, signature: signatureNotification }));
     checks.push({ label, signature, version: transaction.version, v0Bytes, bytes: wireBytes,
       error: history.meta.err, confirmationMs: performance.now() - started, computeUnits: history.meta.computeUnitsConsumed, computeUnitLimit,
-      feeLamports: String(history.meta.fee), signatures: transaction.signatures.length, ws: true, wsErrorMatchesFinalized, wsError: notification.params.result.value.err });
+      feeLamports: String(history.meta.fee), signatures: transaction.signatures.length, ws: true, wsErrorMatchesFinalized, wsError: notification.params.result.value.err, signatureWsError: signatureNotification.params.result.value.err });
     conformance.record(instructions, history);
     latestHistory = history;
   },
