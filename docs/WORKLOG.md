@@ -3560,3 +3560,15 @@ rows remain In progress. No program rebuild, broad local regression, real devnet
 external participant or endurance run is warranted for this scope. Exact next
 action: commit the coherent implementation, run fresh launcher/browser/stop/reset
 acceptance on that pin, fix only demonstrated defects, and publish ready.
+
+
+R074 first-launch correction: clean `81d5682` deploys all four qualified programs
+and starts PostgreSQL, but the first provisioning SOL transfer is rejected by
+`sendTransaction` before venue creation. The original signature/wire and failed
+session stage remain in `.local/interactive-demo/sessions/20261028063101477-5a145c05`.
+The generic RPC wrapper did not retain the underlying error, so its exact cause is
+not claimed. Match send preflight to the confirmed blockhash commitment explicitly,
+retain initial confirmed simulation and any structured submission error, and
+verify the returned signature. Owned runtime cleanup completes. Both new rows
+remain In progress. Exact next action: commit this transport-only correction and
+reset the owned disposable demo state for a new launcher attempt.

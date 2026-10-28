@@ -18,7 +18,7 @@ export async function until<Value>(read:()=>Promise<Value>,accept:(value:Value)=
 export async function demoTransport(url:string,journal:string){
   assert.equal(new URL(url).hostname,'127.0.0.1');
   const rpc=new Rpc(url),connection=new Connection(url,'confirmed'),payer=await payerKey();
-  let anchor='',recording=true;
+  let anchor='',recording=true,first=true;
   const read=async(key:sdk.Participant['owner'])=>{
     const result=await rpc.call('getAccountInfo',[key,{encoding:'base64',commitment:'confirmed'}]);
     return result.value?Buffer.from(result.value.data[0],'base64'):null;
@@ -30,7 +30,20 @@ export async function demoTransport(url:string,journal:string){
     if(recording)appendFileSync(journal,JSON.stringify({label,signature,wire})+'\n',{mode:0o600});
     else writeFileSync(journal+'.'+label.replaceAll(/[^a-z0-9]+/gi,'-')+'.pending.json',JSON.stringify({label,signature,wire}),{mode:0o600});
     // Retry only the exact signed bytes; fetch final history independently.
-    await rpc.call('sendTransaction',[wire,{encoding:'base64',skipPreflight:false,maxRetries:3}]);
+    if(first){
+      first=false;
+      const preflight=await rpc.call('simulateTransaction',[wire,{encoding:'base64',sigVerify:true,commitment:'confirmed'}]);
+      writeFileSync(journal+'.initial-preflight.json',JSON.stringify(preflight),{mode:0o600});
+      assert.equal(preflight.value.err,null,'Initial confirmed preflight rejected');
+    }
+    const response=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},signal:AbortSignal.timeout(10000),
+      body:JSON.stringify({jsonrpc:'2.0',id:1,method:'sendTransaction',params:[wire,{encoding:'base64',skipPreflight:false,preflightCommitment:'confirmed',maxRetries:3}]})});
+    const submitted=await response.json();
+    if(!response.ok||submitted.error){
+      writeFileSync(journal+'.submission-error.json',JSON.stringify({label,signature,response:submitted}),{mode:0o600});
+      throw new Error(`Signed demo submission rejected: ${label}; see retained submission-error.json`);
+    }
+    assert.equal(submitted.result,signature,'RPC returned a different signature');
     const history=await until<any>(()=>rpc.call('getTransaction',[signature,{encoding:'json',commitment:'confirmed',maxSupportedTransactionVersion:0}]),Boolean,label);
     assert.equal(history.meta.err,null,`${label}: ${JSON.stringify(history.meta.err)}`);
     if(label==='setup fresh clearing venue')anchor=signature;
