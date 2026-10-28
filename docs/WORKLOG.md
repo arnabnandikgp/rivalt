@@ -4,8 +4,7 @@ Baseline R1 · initialized 20 October 2026
 **Maker-liquidity implementation (R079 / D70):** the user authorizes sequential
 [P29B–P34 implementation](P29-MAKER-LIQUIDITY-ROADMAP.md). P29A remains in Review
 as ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42). P29B's
-[contract/reference](P29B-MAKER-CONTRACT.md) is prepared with 26 scoped model checks;
-pinned verification and stacked publication are next. No new runtime trading or
+[contract/reference](P29B-MAKER-CONTRACT.md) passes A34B/G22 on `b0c504a` and is ready for stacked publication in Review. No new runtime trading or
 deployment is active. P15B/P16B stay Open; 24-hour endurance stays Deferred.
 
 **Current position:** P01–P14 and M1–M5b are Closed. The original phase stack, readability maintenance and [R030 devnet closeout PR #19](https://github.com/arnabnandikgp/rivalt/pull/19) are integrated into `main`. PR #19 merged at `67059fc99ca3b48cff4d89e9f97aa9c1c51538eb`; its tree exactly matches verified head `633892c`. Actual maker upgrades/joint approvals, corrected ownership checks, independent accounting and fresh PostgreSQL/HTTP verification close the remaining engineering follow-up. P15A maker kit/tooling and P16A engineering reliability are now Closed: PRs #20/#21 merged at `74fc2963341a5a4cfacb027fed7d51c071e72265` under D44, with both review findings resolved and scoped CI passing. M6 remains In progress because external P15B/P16B remain Open. Continuous 24-hour endurance stays Deferred under D42.
@@ -52,7 +51,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B contract/reference checks pass in the working tree pending pinned verification/publication. P30–P34 acceptance remains outstanding |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a` and are in Review; publication follows. P30–P34 acceptance remains outstanding |
 
 ## Phase overview
 
@@ -94,7 +93,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P28 | UI, operations and bounded concurrent qualification | Closed | [PR #40](https://github.com/arnabnandikgp/rivalt/pull/40), published `ac894f1`, above #39 `9498d2e` | [A33/G21/M8](evidence/P28.md): 17 browser originals, 115 submitted trades, six busy exits, four bounded history rescans, complete nine-root default/recovery and identical fresh PostgreSQL replay; tested `f595fd7` / `5491752`; R073 scoped review corrections `e6ba2cf`; integrated at `0916b9d` |
 | M9 | P28A | Interactive launcher, local test wallet and walkthrough | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41), final head `ba73bcd`, merged `350e60c` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 wallet originals, indexed fills, reload and stop/reset; R076 resolves both reviews, 16 scoped tests and hosted client/shell checks pass; user evaluation accepted and demo stopped. R077 records a separate proposal without reopening P28A |
 | M10 | P29A | Maker-liquidity roadmap and scoped gates | Review | Ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42), `phase/p29a-maker-roadmap`, roadmap `bb53b53` above R077 `8ca0691` / integrated `1c59592` | A34A: scoped documentation/link/fence/phase/gate/evidence-policy checks pass; no program acceptance; kept open |
-| M10 | P29B | Exact quote/update/routing/funding contract | In progress | `phase/p29b-maker-contract` above P29A `ca14b86` / #42 | [A34B/G22 contract](P29B-MAKER-CONTRACT.md) and 26 model checks; pinned verification/publication next; no runtime acceptance |
+| M10 | P29B | Exact quote/update/routing/funding contract | Review | `phase/p29b-maker-contract`, checked `b0c504a`, above P29A `ca14b86` / #42; publication pending | [A34B/G22](evidence/P29B.md): 26 model checks, 368 local links, layout/packet/search/transition contract and pinned numeric gates pass; no runtime acceptance |
 | M10 | P30 | Configurable maker curves and updates | Open | P29B | A35/G23: real program/SDK parity and signed update lifecycle; new trading disabled |
 | M10 | P31 | Generic adapters and bounded best-pair router | Open | P30 | A36/G24: independent optimum, candidate/capital binding, actual quote parity and search budget |
 | M10 | P32 | Clearing/funding and safe local execution | Open | P31 | A37/G25: affected financial safety, signed RPC/WS/PostgreSQL prototype and continuation gate |
@@ -106,7 +105,7 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 
 ## Latest checkpoint
 
-- R079/D70: authorized P29B contract/reference is prepared; fresh profile-4 layouts, cumulative pricing, update races, complete funding and numeric resource/comparison gates are specified. Scoped model checks pass; exact committed verification and publication follow. Existing runtime profiles remain unchanged.
+- R079/D70: authorized P29B contract/reference is prepared; fresh profile-4 layouts, cumulative pricing, update races, complete funding and numeric resource/comparison gates are specified. 26 scoped model checks pass on `b0c504a`; P29B is in Review pending publication. Existing runtime profiles remain unchanged.
 
 - Current planning (R078): D69 accepts the five-change direction and [P29–P34 roadmap](P29-MAKER-LIQUIDITY-ROADMAP.md). P29A passes scoped documentation checks and is published in ready PR #42, kept open in Review; no executable contract, runtime or performance acceptance is claimed. R077's assessment remains the inspected-code basis at `1c59592`.
 
@@ -3891,3 +3890,11 @@ serialization-size model, not fetched transactions. No raw evidence was tracked.
 Candidate preparation checkpoint: pending exact committed rerun and publication.
 Blockers: none. Exact next action: verify the committed P29B candidate, publish its
 ready PR above #42, then implement P30 canonical curves and update/control paths.
+
+R079 pinned verification: candidate `b0c504a394a3b7b5a3fbd779088fa46825542d4b`
+passes all26 scoped Python tests, evidence policy, shell syntax and diff checks.
+The documentation check passes12 changed Markdown files,368 local link targets,
+balanced fences and all seven phase rows. A34B/G22 design/reference acceptance
+is complete and P29B enters Review; runtime feasibility and implementation remain
+P30–P34. No external test/CI result is inferred. Exact next action: submit the ready
+P29B PR above #42, verify its published head/base, then begin P30.

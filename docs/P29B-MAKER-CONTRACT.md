@@ -181,7 +181,7 @@ leg reject the entire route without fee, counter, root, order or vault changes.
 ## 5. Wire contract and bounded dependencies
 
 Borsh, little endian, no padding; bool one byte, public keys32, signed values two's
-complement. Anchor discriminators are first8 SHA256 of `account:<Type>`,
+complement. Anchor discriminators are first 8 SHA256 of `account:<Type>`,
 `global:<snake_case_instruction>` or `event:<Type>` respectively. Reject trailing
 data, unsupported version/capability, noncanonical bools, unused region bytes or
 unexpected accounts. `LAYOUTS` in the reference pins field order/width/offsets.
@@ -215,7 +215,7 @@ the clearing state; clearing/SDK must authenticate them. Only clearing consumes.
 instance:u8)` binds existing venue/market/capital/domain/controller, initializing
 config/price; `reprice_v4(expected_control:u64, expected_sequence:u64, anchor:u64)`;
 `control_curve_v4(expected_control:u64, expected_shape:u64, action:u8, payload)`;
-`quote_v4(QuoteRequestV4)`. Control actions: 0 shape(429bytes), 1 updater(key,u64),
+`quote_v4(QuoteRequestV4)`. Control actions: 0 shape(429 bytes), 1 updater(key,u64),
 2 mode(u8), 3 invalidate publication(no payload). Only clearing controller signs
 control; action3 is the approval/revocation gateway hook. Reprice accounts in order:
 actor signer, config read-only, price writable, event authority, maker program.
@@ -227,7 +227,7 @@ no external mutable financial dependency is passed to maker initialization.
 **Clearing instructions:** `initialize_liquidity_v4()` creates registry in custody
 mode (venue authority); `register_liquidity_v4(instance:u8)` jointly admits the
 owner's capital/program/config/price/hash and unique binding; `seal_liquidity_v4()`
-requires all3, then immutable membership. `control_liquidity_v4(expected_authority:u64,
+requires all 3, then immutable membership. `control_liquidity_v4(expected_authority:u64,
 expected_control:u64, expected_shape:u64, action:u8, payload)` invokes maker control
 after materialization; `replenish_liquidity_v4(expected_authority:u64,
 expected_depth:u64, sides:u8)` uses mask1 buy,2 sell,3 both. Quarantine/reapproval
@@ -271,7 +271,7 @@ reservation projections do not write maker roots during a sample. Duplicate prog
 metas are deduplicated in the message, not confused with duplicate capital.
 
 Events use existing event-CPI durability. The following lists are ordered Borsh
-payloads. `PayloadV4` means the named account's exact bytes without its8-byte
+payloads. `PayloadV4` means the named account's exact bytes without its 8-byte
 discriminator. Nested V3 snapshot records retain their existing field order.
 
 - Maker `LiquidityPriceV4`: config:key, control/sequence/anchor/slot:u64,time:i64.
@@ -286,12 +286,12 @@ discriminator. Nested V3 snapshot records retain their existing field order.
 - `LiquidityRouteExecutedV4`: exactly the ordered `AccountRouteExecutedV3`
   payload in `programs/clearing/src/events.rs`, replacing `maker_states` with
   `Vec<MakerRegistrationPayloadV4>` and appending `legs:Vec<ExecutedLegV4>`.
-  Root states count2/3 and maker/leg count1/2, all in selected-leg order.
+  Root states count 2/3 and maker/leg count 1/2, all in selected-leg order.
   `ExecutedLegV4`: registration,capital:keys;instance:u8; lots,gross,price_sequence,
   authority_epoch,control_epoch,shape_epoch,depth_epoch,consumed_before,
   consumed_after:u64. All fee/carry/ledger/liability effects are retained.
 - `LiquidityOracleChangedV4`: existing `AccountOracleChangedV3` ordered payload,
-  then `inputs:[SampleInputV4;3]`, `bid_legs,ask_legs:Vec<SampleLegV4>` (each≤2).
+  then `inputs:[SampleInputV4;3]`, `bid_legs,ask_legs:Vec<SampleLegV4>` (each ≤2).
   Input: registration,capital:keys; authority/control/shape/depth epochs,
   price_sequence,buy_consumed,sell_consumed,expiry_slot:u64;expiry_time:i64.
   Leg: instance:u8,lots/gross:u64. Market snapshot contains reference, quantity,
@@ -369,7 +369,7 @@ or contention. Full order/protection books use the existing V3 maximum capacity.
 
 The packet model includes signatures and two compute-budget instructions. A
 32-key/256-data-byte route does not fit legacy/static keys. **Require one explicit
-v0 address lookup table for wide routes, sampling and control**, maximum32 entries
+v0 address lookup table for wide routes, sampling and control**, maximum 32 entries
 per market bundle. Operator payer creates/populates it with immutable deployment
 addresses, waits until usable, independently fetches/verifies its entries and freezes
 it before enabling that deployment. No runtime extension/deactivation authority,
@@ -379,9 +379,9 @@ over RPC, never guessing indexes. Old original transactions retain their origina
 table/signature; ambiguous retries do not create replacement orders.
 
 Conservative byte envelopes checked by the independent serializer-size model:
-route32keys/256data,10static+22looked-up→792bytes; full sample32keys/64data→599;
-control16keys/512data,8static+8looked-up→954; joint-approval conservative two-signature
-envelope with9static+7looked-up→1,049; price6keys/32data→356.
+route32 keys/256 data,10 static+22 looked-up→792 bytes; full sample32 keys/64 data→599;
+control16 keys/512 data,8 static+8 looked-up→954; joint-approval conservative two-signature
+envelope with 9 static+7 looked-up→1,049; price6 keys/32 data→356.
 These include no heap-frame instruction. Actual generated instructions may use
 fewer keys/bytes. P30/P32 must serialize/fetch actual signed transactions and measure
 CU; arithmetic packet feasibility is not proof of runtime feasibility. If the
@@ -390,16 +390,16 @@ do not reduce coverage, admission checks or headroom to report success.
 
 **P32 continuation workload:** pinned separate V3/V4 fresh deployments, fixed seed
 2902, same toolchain/host/RPC configuration and initial test balances. Per profile,
-240 offers over120seconds, alternating buy/sell, lots cycling1,2,4,8,16; risk reference
-60,000 with identical 2-second source updates, funding every2seconds. Baseline A/B
+240 offers over120 seconds, alternating buy/sell, lots cycling1,2,4,8,16; risk reference
+60,000 with identical 2-second source updates, funding every 2 seconds. Baseline A/B
 parameters are documented; canonical controls match flat-center legacy offsets
-(A512lots spread10/slope1; B4096lots spread30, first256flat then slope1), with
+(A512 lots spread10/slope1; B4096 lots spread30, first256 flat then slope1), with
 inventory kept within legacy zero-skew ranges for direct price comparisons. The
-canonical control republishes the unchanged anchor every500ms to maintain TTL;
-legacy A/B uses a3,600-slot epoch, with no fake depth reset. Third
-maker is funded but zero-capped in this control. A separate240-offer treatment uses
-all3 (third4096lots spread20/slope1), canonical target0/step64/tick4, price updates
-every500ms alternating ±1atom, plus per-maker depletion and explicit replenish.
+canonical control republishes the unchanged anchor every 500ms to maintain TTL;
+legacy A/B uses a 3,600-slot epoch, with no fake depth reset. Third
+maker is funded but zero-capped in this control. A separate 240-offer treatment uses
+all 3 (third4096 lots spread20/slope1), canonical target0/step64/tick4, price updates
+every 500ms alternating ±1 atom, plus per-maker depletion and explicit replenish.
 Never attribute changed spreads/depth to a better allocator.
 
 Schedule the same source outage at30–38s, updater outage at60–68s and one
@@ -412,11 +412,11 @@ zero safety regressions; eligible-at-construction finalized success must not fal
 more than5 percentage points below the control. No greater-than25% p95 signed
 route landing-latency regression in the control (report sample populations; fewer
 than100 comparable attempts is insufficient). Do not count fault-window rejection
-as a risk failure or exclude it from offered availability. Demonstrate at least20
-price updates after consumption with no reset and20 strict-epoch stale rejections.
+as a risk failure or exclude it from offered availability. Demonstrate at least 20
+price updates after consumption with no reset and 20 strict-epoch stale rejections.
 
 **P34 final workload:** same seed/control/treatment definitions on final artifacts,
-both markets and isolated/cross traders, each300seconds/600offers, six maker roots,
+both markets and isolated/cross traders, each 300 seconds/600 offers, six maker roots,
 maximum order/protection-book budget cases, both venue programs, concurrent funding,
 orders, reprices, exits, one worker restart and one indexer restart. Add deterministic
 default/recovery and complete flat exit/replay fixtures outside timed pricing samples.
