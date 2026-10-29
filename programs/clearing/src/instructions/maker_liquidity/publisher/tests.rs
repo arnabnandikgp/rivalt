@@ -231,6 +231,36 @@ fn unavailable_attestation_carries_no_usable_price_or_expiry() {
 }
 
 #[test]
+fn signed_available_reports_preserve_both_funding_cap_directions() {
+    let (_, mut market, _, report, clock) = fixture();
+    market.lots_per_unit = 1_000_000;
+    market.cross_eligible = true;
+    for (gross, expected_premium) in [(5_400_000, -300_000_000_000), (6_600_000, 300_000_000_000)] {
+        let bounded = FundingReportV4 {
+            bid: gross,
+            ask: gross,
+            ..report
+        };
+        let impact = report_impact(&bounded, Some(bounds(60_000)))
+            .unwrap()
+            .unwrap();
+        let next = funding::sample_candidate(
+            CUSTODY,
+            &market,
+            &clock,
+            Some(bounds(60_000)),
+            [10; 4],
+            Some(&impact),
+        )
+        .unwrap();
+        // 10% allowed published premium is independently clamped to index*50bps:
+        // 60,000 * 50 / 10,000 = 300 atoms per lot per hour, in either direction.
+        assert_eq!(next.oracle.premium_scaled, expected_premium);
+        assert_eq!(next.funding_index_scaled, 0); // custody never accrues active funding
+    }
+}
+
+#[test]
 fn report_receipt_starts_new_funding_at_landing_and_preserves_previous_earned_interval() {
     let (_, mut market, _, report, clock) = fixture();
     market.lots_per_unit = 1_000_000;

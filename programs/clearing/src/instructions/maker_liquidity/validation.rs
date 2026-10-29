@@ -222,3 +222,96 @@ pub(crate) fn authenticated_control(
     }
     Ok(config)
 }
+
+/// The complete pre-CPI binding/hash/shape validation has already run. Only the
+/// curve is writable in this CPI; the runtime protects its read-only price and
+/// clearing dependencies. Verify its owner/layout and the ENTIRE expected next
+/// state, including all identity fields, instead of searching the same PDAs again.
+pub(crate) fn verify_control_result(
+    config: &AccountInfo,
+    program: Pubkey,
+    expected: &CurveStateV4,
+) -> Result<()> {
+    require!(
+        *config.owner == program && !config.executable,
+        ClearingError::MakerBinding
+    );
+    let bytes = config.try_borrow_data()?;
+    require!(
+        bytes.len() == 691 && bytes[..8] == hash(b"account:MakerCurveV4").to_bytes()[..8],
+        ClearingError::MakerBinding
+    );
+    let actual = CurveStateV4::try_from_slice(&bytes[8..])
+        .map_err(|_| error!(ClearingError::MakerBinding))?;
+    require!(actual == *expected, ClearingError::MakerBinding);
+    Ok(())
+}
+
+#[cfg(test)]
+mod control_result_tests {
+    use super::*;
+
+    #[test]
+    fn post_cpi_verification_rejects_every_changed_byte_and_foreign_layout_or_owner() {
+        let mut shape = canonical::ShapeV4 {
+            mode: 1,
+            ttl_slots: 150,
+            skew_step: 1,
+            long_cap: 100,
+            short_cap: 100,
+            bid_count: 1,
+            ask_count: 1,
+            ..Default::default()
+        };
+        shape.bids[0] = canonical::RegionV4 {
+            end_lots: 100,
+            offset: 1,
+            slope: 0,
+        };
+        shape.asks[0] = canonical::RegionV4 {
+            end_lots: 100,
+            offset: 2,
+            slope: 0,
+        };
+        shape.validate().unwrap();
+        let expected = CurveStateV4 {
+            schema_version: 4,
+            venue: Pubkey::new_unique(),
+            market: Pubkey::new_unique(),
+            capital: Pubkey::new_unique(),
+            controller: Pubkey::new_unique(),
+            owner: Pubkey::new_unique(),
+            updater: Pubkey::new_unique(),
+            updater_expiry_slot: 1000,
+            control_epoch: 2,
+            shape_epoch: 2,
+            domain: [17; 32],
+            instance: 1,
+            capability: 1,
+            shape,
+            bump: 252,
+        };
+        let mut encoded = hash(b"account:MakerCurveV4").to_bytes()[..8].to_vec();
+        expected.serialize(&mut encoded).unwrap();
+        assert_eq!(encoded.len(), 691);
+        let check = |bytes: &mut [u8], owner: Pubkey, executable: bool| {
+            let key = Pubkey::new_unique();
+            let mut lamports = 1;
+            let info =
+                AccountInfo::new(&key, false, true, &mut lamports, bytes, &owner, executable);
+            verify_control_result(&info, MAKER_A, &expected)
+        };
+        assert!(check(&mut encoded.clone(), MAKER_A, false).is_ok());
+        for position in 0..encoded.len() {
+            let mut changed = encoded.clone();
+            changed[position] ^= 1;
+            assert!(
+                check(&mut changed, MAKER_A, false).is_err(),
+                "unchecked byte {position}"
+            );
+        }
+        assert!(check(&mut encoded.clone(), MAKER_B, false).is_err());
+        assert!(check(&mut encoded.clone(), MAKER_A, true).is_err());
+        assert!(check(&mut encoded[..690], MAKER_A, false).is_err());
+    }
+}

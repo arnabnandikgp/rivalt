@@ -285,17 +285,7 @@ fn control_cpi(
         ],
         &[seeds],
     )?;
-    let (actual, _) = config_and_price(
-        &accounts.config,
-        &accounts.price,
-        accounts.pricing_program.key(),
-        accounts.registration.instance,
-        &accounts.venue,
-        &accounts.market,
-        &accounts.capital,
-    )?;
-    require!(actual == expected, ClearingError::MakerBinding);
-    Ok(())
+    verify_control_result(&accounts.config, accounts.pricing_program.key(), &expected)
 }
 
 pub fn control(

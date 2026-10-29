@@ -50,7 +50,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a`; ready PR #43 is in Review above #42. R081: P30 A35/G23 passes, including123 signed RPC outcomes and legacy event parity; P30 is Review in ready PR #45 above #43. R082: P31 A36/G24 passes: 415 independent cases, 47 scoped tests, 73 signed RPC/WS outcomes and 1,000 maximum-width searches; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open above #45. R085/D74: user selects published-liquidity funding without hypothetical maker financial checks; implementation and focused native/reference checks pass. Clean `2a93394`100-lot sample lands with correct event/legacy parity at1,334,329CU, failing20% headroom;600-lot/zero-cash runtime checks not reached. Historical failures remain recorded. R087/D76 freezes and implements the restricted publisher candidate: 6 report-contract +4 causal native tests and6 focused SDK cases pass; generated ABI/typecheck pass. Clean`94e0645`SBF build passes; initialization lands at29,380CU. The first report stops at an off-chain Clock/RPC-context mismatch; bounded diagnostic identifies Surfpool context+1 behavior. Corrected client pending rerun. Execution/integrated gates and P33/P34 remain |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a`; ready PR #43 is in Review above #42. R081: P30 A35/G23 passes, including123 signed RPC outcomes and legacy event parity; P30 is Review in ready PR #45 above #43. R082: P31 A36/G24 passes: 415 independent cases, 47 scoped tests, 73 signed RPC/WS outcomes and 1,000 maximum-width searches; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open above #45. R085/D74: user selects published-liquidity funding without hypothetical maker financial checks; implementation and focused native/reference checks pass. Clean `2a93394`100-lot sample lands with correct event/legacy parity at1,334,329CU, failing20% headroom;600-lot/zero-cash runtime checks not reached. Historical failures remain recorded. R087/D76 freezes and implements the restricted publisher candidate: 6 report-contract +4 causal native tests and6 focused SDK cases pass; generated ABI/typecheck pass. Clean`9129bda`client/`94e0645`SBF reports land at30,511–30,571CU/871bytes/14keys, including600lots/zero cash. Scope probe reaches7 accepted reports and rejects authority/replay/control failures, then a shape-control transaction fails320k headroom at337,446CU. Exact post-CPI verification optimization pending remeasurement. Execution/integrated gates and P33/P34 remain |
 
 ## Phase overview
 
@@ -95,7 +95,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P29B | Exact quote/update/routing/funding contract | Review | Ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), checked `b0c504a`, published `cfea519`, above P29A `ca14b86` / #42 | [A34B/G22](evidence/P29B.md): 26 model checks, 368 local links, layout/packet/search/transition contract and pinned numeric gates pass; no runtime acceptance |
 | M10 | P30 | Configurable maker curves and updates | Review | `phase/p30-canonical-maker` above P29B `b4f43a4` / #43 | [Implementation checkpoint](P30-CANONICAL-MAKERS.md): [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`;123 signed RPC/WS outcomes,104 instruction/20 account/78 event parity;3,172 vectors per evaluator. Ready PR #45 is open; new trading disabled |
 | M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
-| M10 | P32 | Clearing/funding and safe local execution | In progress | `phase/p32-liquidity-execution` above P31 `28d5dd0` / #46 | R085/D74 removes hypothetical maker financial checks from funding only; 15 scoped native and 4 independent funding-reference cases pass. Clean `2a93394`100-lot sample lands at1,334,329CU with correct literal event/legacy parity but fails20% headroom;600-lot/zero-cash runtime checks not reached. R087/D76 implements the frozen publisher account/report, authority controls, coherent backend builder and SDK. 10 scoped native/6 SDK checks, regenerated ABI and typecheck pass; clean`94e0645`SBF build passes; init29,380CU. First report stops before signing at an extra client Clock/context comparison; diagnosed and corrected without changing on-chain fences. Rerun pending. Execution, safety, integration and continuation gate remain |
+| M10 | P32 | Clearing/funding and safe local execution | In progress | `phase/p32-liquidity-execution` above P31 `28d5dd0` / #46 | R085/D74 removes hypothetical maker financial checks from funding only; 15 scoped native and 4 independent funding-reference cases pass. Clean `2a93394`100-lot sample lands at1,334,329CU with correct literal event/legacy parity but fails20% headroom;600-lot/zero-cash runtime checks not reached. R087/D76 implements the frozen publisher account/report, authority controls, coherent backend builder and SDK. 10 scoped native/6 SDK checks, regenerated ABI and typecheck pass; clean`9129bda`client/`94e0645`SBF reports land at30,511–30,571CU/871bytes/14keys;7 accepted reports. Final fixture control lands337,446CU, above320k headroom. Post-CPI verification optimization pending clean remeasurement. Execution, safety, integration and continuation gate remain |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Open | P32 gate passed | A38/G26 interfaces: actual durable recovery, operator/browser flow and financial reconstruction |
 | M10 | P34 | Comparative qualification and operations | Open | P33 | A39/G26/M10: complete populations, concurrent updates/fills/exits, reconciliation/recovery and measured limits |
 
@@ -4453,3 +4453,34 @@ actual Clock observation fences and all on-chain future/age/expiry checks. This 
 not an oracle-age or risk-policy relaxation. The owned runtimes are stopped.
 Exact next action: rerun the corrected client against the unchanged pinned SBF
 artifacts and finish the scoped publisher resource/authority/parity probe.
+
+
+R087 second probe: clean client`9129bda`with unchanged`94e0645`SBF artifacts,
+`.local/liquidity-execution/runs/20261029T103745Z-83030`. Seven reports land and
+match independent expected prices:100lots30,511CU;600lots/zero-cash30,571CU;
+all report packets871bytes/v0 with14 loaded keys. Publisher controls measure
+22,699–22,704CU; initialization29,380CU. Rotation/revocation/replay, wrong market/
+domain/time/quantity, stale structural-control reports and unavailable source/
+zero-cap publication checks pass.80 transactions complete fetched-byte/RPC/WS
+checks. The81st lands successfully but fails the unchanged400k-control/320k
+headroom gate at337,446CU, before the final insufficient-depth report and legacy
+parity finish. Do not call the entire probe passed or claim its final summary.
+
+Inspecting the control handler finds it derives the same three PDAs and revalidates
+all identities after an already authenticated CPI. Preserve its complete pre-CPI
+code/hash/identity/shape validation, read-only price account and full expected-state
+comparison; replace only redundant post-CPI reauthentication with owner/layout/
+non-executable checks and equality against EVERY field of the expected next curve.
+A scoped native test flips every one of691 serialized bytes and also tests foreign
+owner, executable flag and length: all invalid outputs reject. The single-control
+budget remains400k, not raised. Exact next action: pin/build this optimization and
+rerun the scoped publisher/control resource probe to completion.
+
+Additional scoped publisher cap case passes in both signed directions (the allowed
+10% price envelope still clamps funding to±50bps of index). Publisher native suite
+now has7 passing tests; with4 causal and1 complete-control-result check,12 scoped
+native tests have passed. No ABI changed in this optimization, so unchanged
+IDL generation/typecheck and unrelated financial suites are not repeated.
+Free space subsequently fell below200MiB; after the native checks completed,
+remove only rebuildable`target/debug`(~1.7GiB). Preserve all evidence, keys,
+configuration, databases, deploy/SBF artifacts and unrelated work.

@@ -9,6 +9,13 @@ P32 remains In progress above P31 PR #46. `sample_liquidity_v4` now rejects rath
 than offering a second authoritative funding path. Its superseded D74 100-lot
 transaction at 1,334,329 CU remains historical evidence, not a publisher result.
 
+The clean `9129bda` client / `94e0645` program probe has seven accepted reports;
+100/600-lot updates measure30,511/30,571CU,871bytes/v0 and14 keys. It stops at a
+separate maker control's337,446CU headroom failure. The control candidate now avoids
+repeating PDA searches after CPI, retaining complete pre-authentication and exact
+post-CPI owner/layout/full-state verification. Remeasure before declaring this
+scoped probe passed. Full P32 financial acceptance remains separate.
+
 Do not restart P29–P31 or add a separate phase/PR for each internal step. Deliver
 one cohesive P32 PR after its revised acceptance passes, then stack P33 and P34
 as already authorized. Preserve V1–V3, external P15B/P16B and deferred endurance.
