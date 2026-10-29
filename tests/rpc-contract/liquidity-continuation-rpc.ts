@@ -10,6 +10,7 @@ import * as sdk from '@rivalt/sdk';
 import { eventPayloads } from '../../packages/indexer/src/events.js';
 import { openCanonicalRpcHarness } from './canonical-rpc-harness.js';
 import { continuationSetup } from './liquidity-continuation-setup.js';
+import { depletionSupplement } from './liquidity-continuation-depletion.js';
 import { candidates, referenceAllocation, referenceQuote, auditFill, type Candidate, type Profile } from './liquidity-continuation-model.js';
 
 const runDir = process.env.RIVALT_RUN_DIR!, profile = process.env.RIVALT_CONTINUATION_PROFILE as Profile;
@@ -21,9 +22,9 @@ const build = JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR}/build-
 const has = (instructions: readonly unknown[], discriminator: ReadonlyUint8Array) => (instructions as Instruction[])
   .some(instruction => Buffer.from(instruction.data ?? []).subarray(0, 8).equals(Buffer.from(discriminator)));
 const { h, rpc, ws, checks, flush } = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, runDir, {
-  deferFinality: true, observeOutcomes: label => label.startsWith('offered route '),
+  deferFinality: true, observeOutcomes: label => label.startsWith('offered route ') || label === 'continuation publisher reports',
   computeUnitLimit: (label, instructions) => has(instructions, sdk.SAMPLE_ACCOUNT_ORACLE_V3_DISCRIMINATOR) ? 1_200_000
-    : label.startsWith('offered route ') || label === 'supplement stale structural route' ? (profile === 'baseline' ? 600_000 : 800_000)
+    : label.startsWith('offered route ') || label === 'supplement stale structural route' || label.startsWith('supplement route ') ? (profile === 'baseline' ? 600_000 : 800_000)
     : label.includes('publisher') ? 200_000 : label === 'continuation reprice batch' ? 600_000 : 400_000,
   maxLoadedAccounts: label => label.includes('publisher') ? 20 : 32,
 });
@@ -99,6 +100,12 @@ try {
   await flush();
   assert.equal(offers.length, 240, 'Complete offered population');
   assert(elapsedMs < 125_000, 'Bounded schedule must not silently become a slower workload');
+  const publisherRejections = checks.filter(check => check.label === 'continuation publisher reports' && check.error);
+  for (const check of publisherRejections) {
+    const error = check.error as { InstructionError: [number, { Custom: number }] };
+    assert([sdk.CLEARING_ERROR__ORACLE_POLICY, sdk.CLEARING_ERROR__FUNDING_REPORT].includes(error.InstructionError?.[1]?.Custom),
+      'Only explicit stale/timing/report fences are recoverable by the next scheduled fresh report');
+  }
 
   // Independently decode finalized event payloads. Anchors are keyed by the exact
   // landed sequence, so repricing between quote and landing is not a discrepancy.
@@ -166,6 +173,7 @@ try {
   assert.equal(ledger.insurance, totalFees / 4n); assert.equal(ledger.fees, totalFees - totalFees / 4n);
   assert.equal(BigInt(ledger.insuranceFeeRemainder), totalFees % 4n);
   const strictEpochRejections = await setup.strictEpochs();
+  const depletion = profile === 'treatment' ? await depletionSupplement(h, setup.canonical!) : [];
   await flush();
   if (profile !== 'baseline') assert(setup.repricesAfterConsumption() >= 20);
   const eligible = offers.filter(offer => offer.eligible).length;
@@ -173,7 +181,8 @@ try {
     host: { cpu: cpus()[0].model, os: release(), node: process.version }, elapsedMs, offers, schedules, checks,
     denominators: { offered: offers.length, eligible, quoted: offers.filter(offer => offer.quoted).length,
       attempted: offers.filter(offer => offer.attempted).length, submitted: offers.filter(offer => offer.attempted).length, finalized },
-    totalFees, fundedCash: cash, initial, finalRoots, markets, ledger, strictEpochRejections,
+    totalFees, fundedCash: cash, initial, finalRoots, markets, ledger, strictEpochRejections, depletion, publisherRejections,
+    financialSnapshotScope: 'timed 240-offer workload before structural/depletion supplements',
     repricesAfterConsumption: setup.repricesAfterConsumption(), unexpectedFinancialDifferences: 0,
     independentMakers: false, hedges: 'none; no hedge cost or profitability inference', phaseAcceptance: false };
   writeFileSync(`${runDir}/summary.json`, json(summary));

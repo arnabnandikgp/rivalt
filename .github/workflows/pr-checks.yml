@@ -101,6 +101,8 @@ jobs:
           cargo test --locked -p clearing --lib state::v3::tests
           cargo test --locked -p clearing --lib instructions::maker_liquidity::tests --features maker-liquidity-qualification,account-safety-qualification
           cargo test --locked -p clearing --lib instructions::maker_liquidity::tests
+          cargo test --locked -p clearing --lib instructions::maker_liquidity::publisher::tests --features liquidity-execution-qualification
+          cargo test --locked -p clearing --lib instructions::maker_liquidity::routes::tests --features liquidity-execution-qualification
   shell:
     needs: scope
     if: needs.scope.outputs.shell == 'true'
