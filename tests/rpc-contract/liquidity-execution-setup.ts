@@ -90,25 +90,26 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc)
       return { programAddress: ORACLE_FIXTURE, accounts: [{ address: authority.address, role: AccountRole.READONLY_SIGNER },
         { address: feed, role: AccountRole.WRITABLE }], data };
     });
-    await h.send('refresh all independent risk sources', sourceInstructions, [primary, guard]);
     const reprices = await Promise.all(instances.map(async (maker, index) => {
       const config = await maker.state(), price = maker.module.getMakerPriceV4Decoder().decode((await h.read(maker.price))!).state;
       return maker.module.getRepriceV4Instruction({ ...maker.makerCommon, actor: fixture.updater,
         expectedControl: config.controlEpoch, expectedSequence: price.sequence, anchor: index < 3 ? 60_000n : 30_000n });
     }));
-    await h.send('refresh six maker publications', reprices, [fixture.updater]);
+    await h.send('refresh independent sources and six maker publications', [...sourceInstructions, ...reprices], [primary, guard, fixture.updater]);
   }
   async function sample() {
     const previous = await Promise.all([0, 1].map(marketState));
     await waitUntil(previous.reduce((latest, market) => market.oracle.sampledAt > latest ? market.oracle.sampledAt : latest, 0n) + 2n);
     await fresh();
+    const reports: Instruction[] = [];
     for (const index of [0, 1] as const) {
       const input = await sdk.readFundingReport(rpc, venue, index);
       assert.equal(input.report.outcome, 0, input.coverageReason ?? 'available complete publication');
       assert.equal(input.report.quantity, index === 0 ? 100n : 200n);
-      await h.send('P32 publisher normal report', [sdk.getPublishFundingReportV4Instruction({ ...common,
-        ...input.instructionAccounts, publisher: fixture.updater, report: input.report })], [fixture.updater]);
+      reports.push(sdk.getPublishFundingReportV4Instruction({ ...common,
+        ...input.instructionAccounts, publisher: fixture.updater, report: input.report }));
     }
+    await h.send('P32 publisher available two-market reports', reports, [fixture.updater]);
   }
   const qualify = async () => { for (let round = 0; round < 4; round++) await sample(); };
   await qualify();

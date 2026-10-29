@@ -10,7 +10,8 @@ import { WireRpc, WireSubscriptions, eventually } from './wire.js';
 
 export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: string,
   options: { computeUnitLimit?: (label: string,instructions: readonly unknown[]) => number;
-    maxLoadedAccounts?: (label: string) => number | undefined } = {}) {
+    maxLoadedAccounts?: (label: string) => number | undefined;
+    deferFinality?: boolean } = {}) {
 assert.equal(new URL(url).hostname, '127.0.0.1');
 const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
 const ws = new WireSubscriptions(wsUrl);
@@ -21,13 +22,19 @@ await ws.ready();
 const subscription = await ws.call('logsSubscribe', ['all', { commitment: 'confirmed' }]);
 const conformance = new CanonicalConformance();
 let latestHistory: any;
+let nextTransaction = 0;
+let verificationError: unknown;
+const verifications: Promise<void>[] = [];
+const flush = async () => { await Promise.all(verifications); if (verificationError) throw verificationError; };
 const h: CanonicalHarness = {
   async rent(size) { return BigInt(await rpc.call('getMinimumBalanceForRentExemption', [size])); },
   async read(key) {
-    const response = await rpc.call('getAccountInfo', [key, { encoding: 'base64', commitment: 'finalized' }]);
+    const response = await rpc.call('getAccountInfo', [key, { encoding: 'base64', commitment: options.deferFinality ? 'confirmed' : 'finalized' }]);
     return response.value ? Buffer.from(response.value.data[0], 'base64') : null;
   },
   async send(label, instructions, signers = [], expectedError) {
+    if (verificationError) throw verificationError;
+    const transactionIndex = nextTransaction++;
     const started = performance.now();
     const computeUnitLimit = options.computeUnitLimit?.(label,instructions)
       ?? (label.startsWith('reprice ') ? 100_000 : instructions.length > 1 && label.startsWith('atomic') ? 800_000 : 400_000);
@@ -36,10 +43,10 @@ const h: CanonicalHarness = {
     const wire = transaction.serialize(), wireBase64 = Buffer.from(wire).toString('base64');
     const expectedSignature = getBase58Decoder().decode(transaction.signatures[0]);
     const saved = { label, wireBase64, signature: expectedSignature, version: transaction.version, v0Bytes, wireBytes };
-    writeFileSync(`${runDir}/wire-${checks.length}.json`, serialize(saved));
-    console.log(`${checks.length}: ${label}: v${transaction.version} ${wireBytes} bytes (v0 ${v0Bytes})`);
+    writeFileSync(`${runDir}/wire-${transactionIndex}.json`, serialize(saved));
+    console.log(`${transactionIndex}: ${label}: v${transaction.version} ${wireBytes} bytes (v0 ${v0Bytes})`);
     const simulation = await rpc.call('simulateTransaction', [wireBase64, { encoding: 'base64', sigVerify: true, commitment: 'confirmed' }]);
-    writeFileSync(`${runDir}/simulation-${checks.length}.json`, serialize(simulation));
+    writeFileSync(`${runDir}/simulation-${transactionIndex}.json`, serialize(simulation));
     if (expectedError === undefined) assert.equal(simulation.value.err, null, `${label}: ${simulation.value.logs?.join('\n')}`);
     else assert.equal(simulation.value.err?.InstructionError?.[1]?.Custom, expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
     // Subscribe after simulation, before broadcast. The acknowledgement is a WS
@@ -49,12 +56,13 @@ const h: CanonicalHarness = {
     const notificationOffset = ws.notifications.length;
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
     assert.equal(signature, expectedSignature);
+    const verify = async () => {
     await eventually(() => rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
       response => response.value[0]?.confirmationStatus === 'finalized', label);
     const history = await eventually(() => rpc.call('getTransaction', [signature,
       { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]), value => Boolean(value), `fetch ${label}`);
     // Preserve a landed result even when a later resource or parity check fails.
-    writeFileSync(`${runDir}/transaction-${checks.length}.json`, serialize(history));
+    writeFileSync(`${runDir}/transaction-${transactionIndex}.json`, serialize(history));
     const loadedAccounts = new Set([...history.transaction.message.accountKeys,
       ...history.meta.loadedAddresses?.writable ?? [], ...history.meta.loadedAddresses?.readonly ?? []]).size;
     const maximumLoadedAccounts = options.maxLoadedAccounts?.(label);
@@ -78,21 +86,36 @@ const h: CanonicalHarness = {
     // the discrepancy and prove failed state is excluded via case snapshots.
     if (expectedError === undefined) assert.equal(notification.params.result.value.err, null);
     const wsErrorMatchesFinalized = JSON.stringify(notification.params.result.value.err) === JSON.stringify(history.meta.err);
-    writeFileSync(`${runDir}/ws-${checks.length}.json`, serialize({ logs: notification, signature: signatureNotification }));
-    checks.push({ label, signature, version: transaction.version, v0Bytes, bytes: wireBytes,
+    writeFileSync(`${runDir}/ws-${transactionIndex}.json`, serialize({ logs: notification, signature: signatureNotification }));
+    checks[transactionIndex] = { label, signature, version: transaction.version, v0Bytes, bytes: wireBytes,
       error: history.meta.err, confirmationMs: performance.now() - started, computeUnits: history.meta.computeUnitsConsumed, computeUnitLimit,
-      loadedAccounts, feeLamports: String(history.meta.fee), signatures: transaction.signatures.length, ws: true, wsErrorMatchesFinalized, wsError: notification.params.result.value.err, signatureWsError: signatureNotification.params.result.value.err });
+      loadedAccounts, feeLamports: String(history.meta.fee), signatures: transaction.signatures.length, ws: true, wsErrorMatchesFinalized, wsError: notification.params.result.value.err, signatureWsError: signatureNotification.params.result.value.err };
     conformance.record(instructions, history);
     latestHistory = history;
+    };
+    if (options.deferFinality) {
+      // Live qualification cannot wait 32 slots between every independent
+      // publication. Keep the full finalized-byte/resource/WS audit in flight,
+      // require confirmed execution now, and require flush before any pass claim.
+      verifications.push(verify().catch(error => { verificationError ??= error; }));
+      const confirmed = await eventually(() => rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
+        response => ['confirmed', 'finalized'].includes(response.value[0]?.confirmationStatus), `confirmed ${label}`);
+      if (expectedError === undefined) assert.equal(confirmed.value[0].err, null, label);
+      else assert.equal(confirmed.value[0].err?.InstructionError?.[1]?.Custom, expectedError, label);
+    } else await verify();
   },
   async quote(label, instruction, expected) {
+    const transactionIndex = nextTransaction;
     await h.send(label, [instruction]);
-    assert.equal(latestHistory.meta.returnData.programId, instruction.programAddress);
-    const raw = Buffer.from(latestHistory.meta.returnData.data[0], 'base64');
+    await flush();
+    const history = options.deferFinality ? await rpc.call('getTransaction', [checks[transactionIndex].signature,
+      { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]) : latestHistory;
+    assert.equal(history.meta.returnData.programId, instruction.programAddress);
+    const raw = Buffer.from(history.meta.returnData.data[0], 'base64');
     assert.equal(raw.length, 204);
     const quote = sdk.makerA.getQuoteResponseV4Decoder().decode(raw);
     assert.equal(quote.gross, expected, label);
   },
 };
-return { rpc,ws,h,checks,conformance };
+return { rpc,ws,h,checks,conformance,flush };
 }

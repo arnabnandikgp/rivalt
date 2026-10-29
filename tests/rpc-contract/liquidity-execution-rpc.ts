@@ -10,10 +10,12 @@ import { liquidityExecutionSetup } from './liquidity-execution-setup.js';
 
 const runDir = process.env.RIVALT_RUN_DIR!;
 const runtime = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, runDir, {
+  deferFinality: true,
   computeUnitLimit: label => label.startsWith('P32 route') ? 800_000 : label.startsWith('P32 publisher') ? 200_000 : 400_000,
-  maxLoadedAccounts: label => label.startsWith('P32 route') ? 32 : label.startsWith('P32 publisher') ? 20 : undefined,
+  maxLoadedAccounts: label => label.startsWith('P32 publisher') ? 20
+    : label.startsWith('P32 route') || label.startsWith('refresh independent') ? 32 : undefined,
 });
-const { h, rpc, ws, checks, conformance } = runtime;
+const { h, rpc, ws, checks, conformance, flush } = runtime;
 const serialize = (value: unknown) => JSON.stringify(value, (_, item) => typeof item === 'bigint' ? item.toString() : item, 2) + '\n';
 try {
   const setup = await liquidityExecutionSetup(h, rpc);
@@ -104,6 +106,7 @@ try {
   assert.equal(completedOrder.book.orders[0].order.notional, 120_006n);
   assert.equal(completedOrder.book.orders[0].order.feeCharged, 25n);
 
+  await flush();
   const allRoots = await Promise.all([...setup.roots, ...setup.instances.map(maker => maker.capital)].map(state));
   const markets = await Promise.all([0, 1].map(setup.marketState));
   for (const index of [0, 1]) {
@@ -128,4 +131,4 @@ try {
     build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')), checks, parity,
     allRoots, markets, ledgers, custody, financialTradingActivated: true, phaseAcceptance: false }));
   console.log(`P32 scoped execution: ${checks.length} signed RPC/WS outcomes. Full safety/PG/continuation acceptance remains open.`);
-} finally { ws.close(); }
+} finally { try { await flush(); } finally { ws.close(); } }
