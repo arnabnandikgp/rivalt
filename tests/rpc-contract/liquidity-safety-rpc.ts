@@ -70,9 +70,10 @@ try {
   await h.send('same-owner funded transfer preserves active reservations', [sdk.getTransferFundedAccountV3Instruction({ ...common,
     owner, donor: isolated, recipient: cross, guard: await guard(isolated), amount: 100n })], [owner]);
   await setup.sample();
-  await sendRoute('manual partial close shrinks shared protective allowance', 0, isolated, 1, 1n,
+  await sendRoute('manual partial close clips current protective eligibility', 0, isolated, 1, 1n,
     { reduceOnly: true, generation: protection.generation });
-  assert.equal((await root(isolated)).book.protections[0].protection.remaining, 3n);
+  assert.equal((await root(isolated)).positions[0].lots, 3n);
+  assert.equal((await root(isolated)).book.protections[0].protection.remaining, 4n);
   setup.sourcePrices.btc = 54_000_000_000n;
   await setup.qualify();
   isolatedState = await root(isolated);
@@ -80,8 +81,11 @@ try {
   const stopped = await sendRoute('permissionless SL shares the current generation allowance', 0, isolated, 1, 2n,
     { stored: { id: stop.id, version: stop.version, filled: stop.filled } });
   assert.equal((await root(isolated)).positions[0].lots, 1n);
-  assert.equal((await root(isolated)).book.protections[0].protection.remaining, 1n);
+  assert.equal((await root(isolated)).book.protections[0].protection.remaining, 2n);
   await reject('P32 route stored stop prefix cannot replay', stopped, sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);
+  await reject('P32 route protection cannot exceed current position despite larger child and group remainders',
+    await route({ trader: isolated, actor: setup.payer, marketIndex: 0, side: 1, makers: [setup.instances[0]], lots: [2n],
+      stored: { id: stop.id, version: stop.version, filled: 2n } }), sdk.CLEARING_ERROR__ORDER_STATE);
   const takeProfit = (await root(isolated)).book.orders.find(entry => entry.order.id === 1n)!.order;
   await reject('P32 route TP cannot ignore its trigger', await route({ trader: isolated, actor: setup.payer, marketIndex: 0,
     side: 1, makers: [setup.instances[0]], lots: [1n], stored: { id: takeProfit.id, version: takeProfit.version, filled: takeProfit.filled } }),
