@@ -169,21 +169,7 @@ fn execute_core(
     let mut quotes = Vec::with_capacity(views.len());
     let mut roots = Vec::with_capacity(views.len());
     for (view, leg) in views.iter().zip(signed_legs) {
-        let state = view.authenticate(
-            &identity.venue,
-            &identity.market,
-            &accounts.registry,
-            &mut cache,
-        )?;
-        validate_leg(leg, view.registration, &state.config)?;
-        let request = view.request(
-            &identity.venue,
-            &identity.market,
-            &state,
-            intent.side,
-            leg.lots,
-        );
-        let actual = view.quote(&state, &request, clock)?;
+        let actual = quote_current(view, accounts, leg, intent.side, clock, &mut cache)?;
         quotes.push(financial_quote(&actual, &identity.market, clock));
         roots.push(*root_view(view.capital)?);
         actual_quotes.push(actual);
@@ -205,4 +191,23 @@ fn execute_core(
     )?;
     drop(views);
     commit::apply(accounts, &intent, order_index, clock, &next, &actual_quotes)
+}
+
+/// Keep decoded curve/request temporaries out of the financial engine's frame.
+/// All original authentication, canonical CPI verification and code-cache checks
+/// remain; this boundary changes stack lifetime, not admission or wire semantics.
+#[inline(never)]
+fn quote_current(
+    view: &pricing::View,
+    accounts: &ExecuteLiquidityRouteV4,
+    leg: &LiquidityRouteLegV4,
+    side: u8,
+    clock: &Clock,
+    cache: &mut pricing::CodeApprovalCache,
+) -> Result<canonical::QuoteResponseV4> {
+    let identity = &accounts.identity;
+    let state = view.authenticate(&identity.venue, &identity.market, &accounts.registry, cache)?;
+    validate_leg(leg, view.registration, &state.config)?;
+    let request = view.request(&identity.venue, &identity.market, &state, side, leg.lots);
+    view.quote(&state, &request, clock)
 }
