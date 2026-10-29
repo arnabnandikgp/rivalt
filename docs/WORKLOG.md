@@ -50,7 +50,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | P29A–P31 remain ready Review in open #42/#43/#45/#46. [P32 A37/G25/G22](evidence/P32.md) now passes on its recorded pins: maximum full-book route 615,433 CU, 290 safety and 120 PostgreSQL outcomes, 574/574 eligible comparison routes, +13.84% matched p95 latency. P32 ready [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47) is open above #46 in Review. R091 resumes the authorized sequence: P33 In progress above exact #47 head `6de5cea`; P34 Open |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | P29A–P31 remain ready Review in open #42/#43/#45/#46. [P32 A37/G25/G22](evidence/P32.md) now passes on its recorded pins: maximum full-book route 615,433 CU, 290 safety and 120 PostgreSQL outcomes, 574/574 eligible comparison routes, +13.84% matched p95 latency. P32 ready [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47) is open above #46 in Review. R091 resumes the authorized sequence: P33 In progress above exact #47 head `6de5cea`: fresh production indexing passes, SDK/workers/UI prepared, integrated service acceptance remains; P34 Open |
 
 ## Phase overview
 
@@ -4992,3 +4992,10 @@ only rebuildable inactive Rust incremental cache files to recover disk space; al
 raw evidence, databases, keys and unrelated research remain. Exact next action:
 run fresh actual canonical workers/executor plus browser, lost acknowledgements,
 independent publisher-input replay and complete finalized accounting reconstruction.
+
+R091 integrated harness preparation: the new scoped launcher provisions actual
+workers, executor death after upstream acceptance, independent retained-input
+arithmetic, source outage, indexer restart and browser signatures. Typecheck caught
+incorrect test-only generated decoder/member names; corrected to current generated
+layouts. These are harness corrections, not runtime pass evidence. Next: run this
+harness on its clean recorded revision, then finish fresh operator packaging.
