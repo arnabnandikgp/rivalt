@@ -126,8 +126,8 @@ changes future quotes and is outside fragmented-fill equivalence. Inventory skew
 telescopes on a round trip; nonnegative side offsets prevent extracting it for profit.
 
 Literal example: anchor100, step2, tick2, target0, bids `(3,2,1),(8,8,0)`, asks
-`(3,3,2),(8,12,0)`, zero consumption/inventory. Buy3 costs317, buy4 costs431,
-sell3 receives289. Buy3 starting inventory3 costs313; sell3 at inventory−3 receives293.
+`(3,3,2),(8,12,0)`, zero consumption/inventory. Buy 3 costs 317, buy 4 costs 431,
+sell 3 receives 289. Buy 3 starting inventory 3 costs 313; sell 3 at inventory −3 receives 293.
 `tests/financial/maker_curve_reference.py` is the independent specification;
 `test_maker_curve_contract.py` checks a separate per-lot derivation and literal values.
 P30 must compare real Rust/SDK/program results against these expectations.
@@ -152,7 +152,7 @@ increments reject at exhaustion. Every failure is atomic, including failed CPI.
 Publication requires CAS `(expected_control, expected_price_sequence)`; different
 updates cannot reorder silently. The price is valid only if config/price control
 epochs agree, `updated_slot ≤ slot < updated_slot + ttl_slots`, and
-`updated_time ≤ now < updated_time + 6`. `ttl_slots` is 1…150 (default150). Both
+`updated_time ≤ now < updated_time + 6`. `ttl_slots` is 1…150 (default 150). Both
 deadlines apply. Actual timestamps come from Clock, never user input. An updater's
 accepted publication can live for its TTL after its delegation expires; revocation
 actively invalidates it. No heartbeat restores depth. Repricing a disabled/paused
@@ -180,7 +180,7 @@ leg reject the entire route without fee, counter, root, order or vault changes.
 
 ## 5. Wire contract and bounded dependencies
 
-Borsh, little endian, no padding; bool one byte, public keys32, signed values two's
+Borsh, little endian, no padding; bool one byte, public keys 32, signed values two's
 complement. Anchor discriminators are first 8 SHA256 of `account:<Type>`,
 `global:<snake_case_instruction>` or `event:<Type>` respectively. Reject trailing
 data, unsupported version/capability, noncanonical bools, unused region bytes or
@@ -313,7 +313,7 @@ optimizer guarantee. The route guarantee is **best feasible single/pair within
 that authenticated snapshot**, not all Solana venues or future landing state.
 
 For every singleton and unordered pair enumerate each integer split with nonzero
-legs, exact requested total, each ≤4,096. At most12,291 compositions (peakQ=4,097);
+legs, exact requested total, each ≤4,096. At most12,291 compositions (peak Q=4,097);
 prices/capacity may prune work but not feasibility assumptions. Check both selected
 makers' and the trader's current **whole-root** funding, claims, reservations,
 per-market IM ceilings, applicable reduction/deficit rules, order/TP/SL generation,
@@ -349,7 +349,7 @@ period, 2-second sampling, 6-second hold/recovery, 30-second catchup and 12-seco
 funding outage rule; no synthetic update to risk freshness. Held end is additionally
 bounded by every publication's actual time/slot expiry and source deadline.
 Interval accrual uses the old held sample before installing the next one. Pure
-repricing does not retroactively replace it; structural updates use section4.
+repricing does not retroactively replace it; structural updates use section 4.
 
 ## 7. G22 resource and comparison gates (pinned before measurements)
 
@@ -390,7 +390,7 @@ do not reduce coverage, admission checks or headroom to report success.
 
 **P32 continuation workload:** pinned separate V3/V4 fresh deployments, fixed seed
 2902, same toolchain/host/RPC configuration and initial test balances. Per profile,
-240 offers over120 seconds, alternating buy/sell, lots cycling1,2,4,8,16; risk reference
+240 offers over 120 seconds, alternating buy/sell, lots cycling1,2,4,8,16; risk reference
 60,000 with identical 2-second source updates, funding every 2 seconds. Baseline A/B
 parameters are documented; canonical controls match flat-center legacy offsets
 (A512 lots spread10/slope1; B4096 lots spread30, first256 flat then slope1), with
@@ -403,15 +403,15 @@ every 500ms alternating ±1 atom, plus per-maker depletion and explicit replenis
 Never attribute changed spreads/depth to a better allocator.
 
 Schedule the same source outage at30–38s, updater outage at60–68s and one
-quarantine/recovery at90–98s; count offered240 including these windows, and
+quarantine/recovery at90–98s; count offered 240 including these windows, and
 separately report eligibility. Baseline can't perform live reprice; record that
 limitation instead of refreshing its depth or granting it different risk sources.
 Every omission/rejection is classified. Zero unexplained quote/financial differences
 against each profile's independent expectations; exact V4 optimum on every offer;
 zero safety regressions; eligible-at-construction finalized success must not fall
-more than5 percentage points below the control. No greater-than25% p95 signed
+more than 5 percentage points below the control. No greater-than25% p95 signed
 route landing-latency regression in the control (report sample populations; fewer
-than100 comparable attempts is insufficient). Do not count fault-window rejection
+than 100 comparable attempts is insufficient). Do not count fault-window rejection
 as a risk failure or exclude it from offered availability. Demonstrate at least 20
 price updates after consumption with no reset and 20 strict-epoch stale rejections.
 

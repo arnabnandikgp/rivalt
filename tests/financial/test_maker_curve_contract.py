@@ -215,7 +215,9 @@ class AllocationContract(unittest.TestCase):
         rng = random.Random(2902)
         for _ in range(80):
             makers = tuple(replace(maker, inventory=rng.randrange(-4, 5),
-                                   consumed=rng.randrange(4), anchor=1000 + rng.randrange(-5, 6))
+                                   consumed=rng.randrange(4), anchor=1000 + rng.randrange(-5, 6),
+                                   curve=replace(maker.curve, tick=rng.randrange(1, 4),
+                                                 step=rng.randrange(1, 4)))
                            for maker in self.candidates)
             side, lots = rng.randrange(2), rng.randrange(1, 10)
             self.assertEqual(best_route(makers, side, lots),
