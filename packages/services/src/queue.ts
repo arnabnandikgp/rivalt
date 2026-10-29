@@ -8,9 +8,10 @@ import { json } from '../../indexer/src/events.js';
 import {groupAuthorityValue, type GroupAuthority} from './group-authority.js';
 import {accountAuthorityValue, type AccountAuthority} from './account-authority.js';
 import {persistLiquidityInputs,type LiquidityInputs} from './liquidity-inputs.js';
+import {liquidityPriceSequence,type LiquidityPriceAuthority} from './liquidity-authority.js';
 
 export const RESERVATION=20_000n;
-export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string} | GroupAuthority | AccountAuthority;
+export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string} | GroupAuthority | AccountAuthority | LiquidityPriceAuthority;
 export function signedWire(wire:string,maxVersion:0|1=0) {
   const maximum=maxVersion===1?4096:1232;
   if(typeof wire!=='string' || wire.length>4*Math.ceil(maximum/3))throw new Error('Invalid transaction size');
@@ -104,6 +105,13 @@ export class Queue {
         }else if(!s){
           const valid=await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'finalized'}]);
           if(valid.value===false && r.authority){
+            if(r.authority.kind==='liquidityPriceSequence') {
+              if(this.maxVersion!==1)throw new Error('Canonical authority requires profile 4');
+              const proof=await liquidityPriceSequence(this.rpc,r.authority,integer(valid.context.slot));
+              if(proof.value.toString()===r.authority.value) {
+                status='expired-unexecuted';result={slot:proof.slot.toString(),fee:null,error:null,economicEffect:'not-applied'};
+              }
+            }else{
             const a=await this.rpc.call('getAccountInfo',[r.authority.account,{encoding:'base64',commitment:'finalized',minContextSlot:integer(valid.context.slot)}]);
             if(a.value?.owner===this.program){
               const bytes=Buffer.from(a.value.data[0],'base64');
@@ -115,6 +123,7 @@ export class Queue {
               // landing/network fee hidden by incomplete history. Keep any fee
               // reservation until independent transaction evidence exists.
               if(value.toString()===r.authority.value){status='expired-unexecuted';result={slot:integer(a.context.slot).toString(),fee:null,error:null,economicEffect:'not-applied'};}
+            }
             }
           }else if(valid.value===true){
             // The INSERT was committed before this worker can broadcast. Lost

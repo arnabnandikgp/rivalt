@@ -92,8 +92,8 @@ export function AccountApp({config}: {config: AccountTraderConfig}) {
   const mode=snapshot?.safetyState.mode;
   const status=snapshot?.safetyState.paused?'Venue paused':mode===2?'Resolution in progress':mode===3?'Resolution complete':mode===4?'Venue retired':mode===1?'Cross + isolated local test':'Local test venue';
   return <>
-    <header className="topbar"><a className="wordmark" href="#">Rivalt<span className="brand-dot"/></a><span className="network">Local test venue · BTC + ETH · internal makers</span><div className="header-actions"><button onClick={()=>void venue.refresh()} disabled={Boolean(venue.busy)}>Refresh</button><WalletMultiButton/></div></header>
-    <main onChange={venue.invalidate}>
+    <header className="topbar"><a className="wordmark" href="#">Rivalt<span className="brand-dot"/></a><span className="network">Local test venue · BTC + ETH · internal makers</span><div className="header-actions"><button onClick={()=>void venue.refresh()} disabled={Boolean(venue.busy)||venue.refreshing}>Refresh</button><WalletMultiButton/></div></header>
+    <main onChange={venue.invalidate} aria-busy={Boolean(venue.busy)||venue.refreshing}>
       <div className="market-header"><div><span className="eyebrow">YOUR ACCOUNTS</span><h1>Manage your margin</h1><p>Fund each account. Trade its eligible markets. Withdraw available cash directly.</p></div><span className="status">{status}</span></div>
       {[venue.rpcError,venue.error].filter(Boolean).map((message,index)=><p key={index} className="banner error" role="alert">{message}</p>)}
       {venue.apiError&&<p className="banner warning" role="status">{venue.apiError}</p>}{venue.notice&&<p className="banner" role="status">{venue.notice}</p>}{venue.busy&&<p role="status">{venue.busy}</p>}

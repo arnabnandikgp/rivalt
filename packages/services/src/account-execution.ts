@@ -9,6 +9,7 @@ import {hash} from '../../indexer/src/events.js';
 import {Queue} from './queue.js';
 import {accountUserAuthority} from './account-ingress.js';
 import type {AccountAuthority} from './account-authority.js';
+import type {LiquidityPriceAuthority} from './liquidity-authority.js';
 import {enqueueOperator} from './operator-enqueue.js';
 import {publicRequestId} from './quote-window.js';
 import type {LiquidityInputs} from './liquidity-inputs.js';
@@ -65,10 +66,13 @@ export class AccountExecution {
   async budget(role:OperatorRole,payer:Keypair,marketIndex?:number,makerId?:number) {
     const budget=accountBudget(role,marketIndex,makerId,this.profile);await this.queue.budget(budget.name,payer.address,budget.cap);return budget.name;
   }
-  async enqueue(id:string,instructions:Instruction[],payer:Keypair,budget:string,authority:AccountAuthority|null,preflight=false,inputs?:LiquidityInputs) {
+  async enqueue(id:string,instructions:Instruction[],payer:Keypair,budget:string,authority:AccountAuthority|LiquidityPriceAuthority|null,preflight=false,inputs?:LiquidityInputs) {
     if(!/^(funding|keeper|maker|maker-sync|order|risk):/.test(id))throw new Error('Reserved account operator request namespace required');
     const binding=await this.environment();if(authority&&authority.venue!==binding.venue)throw new Error('Foreign account execution authority');
-    if(this.profile===3)return enqueueOperator(this,id,instructions,payer,budget,authority,preflight);
+    if(this.profile===3){
+      if(authority?.kind==='liquidityPriceSequence')throw new Error('Canonical authority requires profile 4');
+      return enqueueOperator(this,id,instructions,payer,budget,authority,preflight);
+    }
     const economic=instructions.filter(instruction=>instruction.programAddress!=='ComputeBudget111111111111111111111111111111');
     const route=economic.some(instruction=>[sdk.EXECUTE_LIQUIDITY_ROUTE_V4_DISCRIMINATOR,sdk.EXECUTE_LIQUIDITY_ORDER_V4_DISCRIMINATOR]
       .some(discriminator=>sdk.hex(discriminator)===sdk.hex(instruction.data?.slice(0,8)??[])));

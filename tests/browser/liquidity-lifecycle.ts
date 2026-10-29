@@ -18,7 +18,7 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Liquid
   const readEndpoint=await readApp.listen({host:'127.0.0.1',port:0});
   const publicPath=resolve(directory,'trader-public.json');writeFileSync(publicPath,json(client.config));
   let vite:ChildProcess|undefined;
-  const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,
+  const browser=await chromium.launch({...(process.env.RIVALT_CHROME_PATH?{executablePath:process.env.RIVALT_CHROME_PATH}:{}),headless:true,
     args:['--disable-background-networking','--disable-component-update','--no-first-run']});
   const context=await browser.newContext({viewport:{width:1440,height:1100},reducedMotion:'reduce'}),page=await context.newPage();
   page.setDefaultTimeout(20_000);
@@ -44,9 +44,16 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Liquid
     assert.equal(fetched.transaction[0],wire);assert.equal(fetched.meta.err,null);
     outcomes.push({label:receipt.label,signature:receipt.signature,fee:fetched.meta.fee,units:fetched.meta.computeUnitsConsumed,bytes:Buffer.from(wire,'base64').length});
     writeFileSync(`${directory}/browser-finalized-${outcomes.length}.json`,json(fetched));
-    await button('Refresh').click();await delay(200);
+    await button('Refresh').click();
+    await wait(()=>page.getByRole('main').getAttribute('aria-busy'),value=>value==='false','refresh completed');
   }
-  const select=async(label:string,value:string)=>{await page.getByLabel(label,{exact:true}).selectOption(value);await delay(300);};
+  const select=async(label:string,value:string)=>{
+    await page.getByLabel(label,{exact:true}).selectOption(value);
+    if(label==='Side')await page.getByLabel(value==='0'?'Maximum all-in spend (test USD)':'Minimum all-in proceeds (test USD)',{exact:true}).waitFor();
+    if(label==='Market')await wait(()=>page.getByLabel(/^Quantity \(/).inputValue(),quantity=>quantity===(value==='0'?'0.000005':'0.00005'),'market quantity updated');
+    if(label==='Margin account')await wait(()=>page.getByLabel('Market',{exact:true}).isDisabled(),Boolean,'isolated account loaded');
+    await wait(()=>button('Review atomic trade').isEnabled(),Boolean,'selected account ready');
+  };
   try {
     const log=openSync(`${directory}/vite.log`,'w');
     vite=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','18093','--strictPort'],{

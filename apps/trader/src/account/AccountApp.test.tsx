@@ -17,7 +17,7 @@ it('distinguishes independent index, attested impact, classified gaps and supers
       publishers:{btc:{market:'btc',publisher:sdk.CLEARING_PROGRAM_ADDRESS,enabled:true,authorityEpoch:'1'},
         eth:{market:'eth',publisher:sdk.CLEARING_PROGRAM_ADDRESS,enabled:false,authorityEpoch:'2'}}}}}}} as unknown as AccountController;
   let html=renderToStaticMarkup(<FundingReports controller={controller}/>);
-  expect(html).toContain('60,000.5');expect(html).toContain('60,000');expect(html).toContain('10 seconds');
+  expect(html).toContain('<td>60,000.5</td>');expect(html).toContain('<td>60,000</td>');expect(html).toContain('10 seconds');
   expect(html).toContain('Maker coverage unavailable');expect(html).toContain('Revoked');expect(html).toContain('restricted operator');
   (controller.venue.feed.group as any).liquidity.publishers.btc.authorityEpoch='2';
   html=renderToStaticMarkup(<FundingReports controller={controller}/>);expect(html).toContain('Superseded by publisher control');

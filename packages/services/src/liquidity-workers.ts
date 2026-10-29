@@ -32,9 +32,9 @@ export async function repriceLiquidity(runtime:AccountRuntime,marketIndex:0|1,in
   const [eventAuthority]=await getProgramDerivedAddress({programAddress:maker.registrationState.pricingProgram,seeds:[Buffer.from('__event_authority')]});
   const instruction=module.getRepriceV4Instruction({actor:key,config:maker.registrationState.config,price:maker.registrationState.price,
     eventAuthority,program:maker.registrationState.pricingProgram,expectedControl:maker.config.controlEpoch,expectedSequence:maker.price.sequence,anchor:market.referencePrice});
-  // Price account belongs to the maker program. Do not invent a clearing-account
-  // expiry proof; missing finalized history leaves this original unresolved.
-  await runtime.enqueue(`maker:${marketIndex}:${instance}:${maker.config.controlEpoch}:${maker.price.sequence}`,[instruction],key,budget,null);
+  await runtime.enqueue(`maker:${marketIndex}:${instance}:${maker.config.controlEpoch}:${maker.price.sequence}`,[instruction],key,budget,
+    {kind:'liquidityPriceSequence',venue:snapshot.venue,account:maker.registrationState.price,registration:maker.registration,
+      pricingProgram:maker.registrationState.pricingProgram,value:maker.price.sequence.toString()});
   return {status:'queued',reason:'internal-index-reference-reprice'};
 }
 

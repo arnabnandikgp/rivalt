@@ -27,9 +27,11 @@ it('allows instance 2 only in profile 4 and partitions budgets by market and ins
   expect(()=>accountBudget('maker',0,2)).toThrow();expect(accountBudget('maker',0,2,4).name).toBe('liquidity-maker-0-2');
   expect(accountBudget('maker',1,2,4).name).toBe('liquidity-maker-1-2');expect(()=>accountBudget('maker',1,3,4)).toThrow();
 });
-it('reprices with current strict epochs, without replenishment or a fabricated expiry proof',async()=>{
+it('reprices with strict epochs and a maker-owned sequence proof without replenishment',async()=>{
   const test=await fixture();expect((await repriceLiquidity(test.runtime,0,2,test.key)).status).toBe('queued');
-  const [id,instructions,,,authority]=test.queued[0];expect(id).toBe('maker:0:2:3:9');expect(authority).toBeNull();
+  const [id,instructions,,,authority]=test.queued[0];expect(id).toBe('maker:0:2:3:9');
+  expect(authority).toEqual({kind:'liquidityPriceSequence',venue:test.snapshot.venue,account:test.maker.registrationState.price,
+    registration:test.maker.registration,pricingProgram:test.maker.registrationState.pricingProgram,value:'9'});
   expect(sdk.makerA.parseRepriceV4Instruction(instructions[0]).data).toMatchObject({expectedControl:3n,expectedSequence:9n,anchor:test.snapshot.marketStates[0].referencePrice});
   expect(instructions).toHaveLength(1);
 });

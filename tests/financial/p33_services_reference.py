@@ -8,6 +8,49 @@ import sys
 from pathlib import Path
 
 
+def check_traders(state, openings, events):
+    scale=10**9
+    markets=state['venue']['markets']
+    traders={key:dict(cash=1_000_000,lots=[0,0],claims=[0,0],fills=[]) for key,root in state['roots'].items() if root['role']==0}
+    assert len(traders)==2
+    identities={root['id']:key for key,root in state['roots'].items()}
+    indexes=[int(opening['fundingIndexScaled']) for opening in openings]
+    sequence=int(openings[0]['sequence']);assert sequence==int(openings[1]['sequence'])
+    for event in events:
+        change=event['payload'];sequence+=1;assert int(change['sequence'])==sequence
+        for value in [change.get('marketState'),change.get('otherMarketState'),change.get('state'),*change.get('markets',[])]:
+            if isinstance(value,dict) and 'fundingIndexScaled' in value:
+                market=value['index'];updated=int(value['fundingIndexScaled'])
+                for trader in traders.values():trader['claims'][market]-=trader['lots'][market]*(updated-indexes[market])
+                indexes[market]=updated
+        if event['kind']=='LiquidityRouteExecutedV4':
+            market=markets.index(change['market']);side=change['side'];lots=int(change['lots'])
+            gross=lots*((60000 if market==0 else 30000)+(3 if side==0 else -2))
+            assert int(change['grossQuote'])==gross
+            fee=(gross+4999)//5000;assert int(change['fee'])==fee
+            trader=traders[identities[change['rootStates'][0]['id']]]
+            trader['cash']-=fee;trader['lots'][market]+=lots*(1 if side==0 else -1)
+            trader['claims'][market]+=gross*scale*(-1 if side==0 else 1)
+            trader['fills'].append((market,side,lots))
+        elif event['kind']=='AccountFinancialChangedV3':
+            assert change['kind']==0 and len(change['roots'])==1
+            traders[change['roots'][0]]['cash']-=int(change['amount'])
+        elif event['kind']=='AccountCustodyChangedV3':
+            assert change['kind']==4
+            traders[change['subject']]['cash']+=int(change['amount'])
+    assert str(sequence)==state['sequence']
+    for key,trader in traders.items():
+        root=state['roots'][key]
+        assert int(root['cash'])==trader['cash'],'Per-trader funded cash'
+        assert trader['lots']==[0,0]
+        for index,position in enumerate(root['positions']):
+            assert int(position['lots'])==0
+            assert int(position['virtualScaled'])==trader['claims'][index],'Per-trader fractional unpaid claim'
+        expected=[(0,0,5),(1,0,5),(1,1,5),(0,1,5),(0,0,1),(0,1,1)] if root['mode']==0 else [(0,0,5),(0,1,5)]
+        assert trader['fills']==expected
+    return traders
+
+
 def check(path):
     run = json.loads(Path(path).read_text())
     assert run['trackedDirty'] is False
@@ -15,6 +58,10 @@ def check(path):
     assert all(row['status'] in ('finalized', 'failed') for row in run['intents'])
     assert run['reconciliation']['unallocatedSurplus'] == '0'
     state = run['state']
+    directory = Path(path).parent
+    inputs = [json.loads((directory / f'maker-{index}-0-economics-input.json').read_text()) for index in (0, 1)]
+    assert inputs[0]['events'] == inputs[1]['events']
+    check_traders(state, [value['opening'] for value in inputs], inputs[0]['events'])
     markets = state['venue']['markets']
     # Each exact-base taker execution pays ceil(gross/5000), independently.
     btc_fees = sum((quantity*price+4999)//5000 for quantity, price in

@@ -3,6 +3,7 @@ import { useWallet } from '@solana/wallet-adapter';
 import { address } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import type { AccountTraderConfig } from './types.js';
+import { supportsAccountTransactions } from './transaction-versions.js';
 import { terminal, retain, mergeReconciled } from '../receipts.js';
 import { useReceiptRecords } from '../group/useReceiptRecords.js';
 
@@ -63,6 +64,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
   const { records, recordsRef, replaceRecords } = useReceiptRecords();
   const [review, setReview] = useState<Review>(),
     [busy, setBusy] = useState(''),
+    [refreshing, setRefreshing] = useState(false),
     operation = useRef(0),
     reading = useRef(false),
     polling = useRef(false);
@@ -103,6 +105,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
   const refresh = useCallback(async () => {
     if (reading.current) return;
     reading.current = true;
+    setRefreshing(true);
     const epoch = current.current.epoch;
     try {
       await client.environment();
@@ -161,6 +164,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
       if (epoch === current.current.epoch) setRpcError((e as Error).message);
     } finally {
       reading.current = false;
+      setRefreshing(false);
     }
   }, [client, owner, config, portfolioIndex, subaccountIndex]);
   useEffect(() => {
@@ -212,7 +216,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
   const canSign = Boolean(
     owner &&
     wallet.signTransaction &&
-    wallet.supportedTransactionVersions?.has(0) &&
+    supportsAccountTransactions(config.version, wallet.supportedTransactionVersions) &&
     wallet.account?.chains.includes(config.chain),
   );
   const invalidate = () => {
@@ -231,7 +235,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
     setNotice('');
     setReview(undefined);
     if (!owner || !canSign) {
-      setError('Connect a wallet account that supports this test network and v0 signing.');
+      setError(`Connect a wallet account that supports this test network and ${config.version === 4 ? 'v0 and v1' : 'v0'} signing.`);
       return;
     }
     setBusy('Preparing transaction');
@@ -358,6 +362,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
     records,
     review,
     busy,
+    refreshing,
     feed,
     canSign,
     refresh,

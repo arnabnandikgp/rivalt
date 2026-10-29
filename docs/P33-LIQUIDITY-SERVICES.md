@@ -96,3 +96,25 @@ replay and all six maker reports pass on the [recorded pin](evidence/P33.md).
 The browser uses an instrumented local Wallet Standard signer; this is not new
 Phantom or external-wallet compatibility evidence. Both transport formats have
 scoped boundary tests; the ten actual browser transactions fit v0.
+
+## R094 review correction — maker expiry proof
+
+New profile-4 reprice originals retain the registered maker program, registration,
+price PDA and expected sequence. After finalized blockhash expiry, one finalized
+RPC batch at or after that expiry fence must authenticate both account owners,
+exact schema/discriminators/sizes, registration/venue/program bindings and canonical
+registration/config/price addresses. Only an unchanged monotone price sequence
+proves that the reprice did not apply. Runtime artifact verification remains required.
+Missing, advanced or malformed state keeps the original unresolved.
+
+A proven unexecuted original permits a separately reserved retry under the existing
+operator retry limit. Its immutable wire/signature and unknown-fee reservation stay
+in PostgreSQL. Only an independently fetched finalized transaction releases that
+reservation; budget exhaustion and handover can still wait for historical fees.
+Previously persisted null-authority originals are not rewritten or retroactively
+proved. This changes availability, not fee accounting or financial authority.
+
+Profile-4 wallet admission requires both v0 and v1 signing. The browser harness
+uses an explicit system-browser path or an already installed Playwright Chromium;
+its waits observe refresh/selection state. Independent P33 reconciliation now
+checks each trader root, rejecting offsetting cash and unpaid-claim errors.

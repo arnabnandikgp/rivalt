@@ -1453,3 +1453,11 @@ rotation reconstruction follows D76's advancing Clock fence and preserved report
 sequence. Explicit operator budget handover preserves lifetime cap/spend and
 requires resolved originals/fees. This adds no financial authority, economic
 change or production approval. P33 stays Review; proceed to P34 with the stack open.
+
+D77 review correction (R094): permit the existing finalized-expiry/nonapplication
+rule for new canonical maker reprices using an authenticated maker-owned sequence,
+not a clearing-account decoder. Keep immutable originals, all unknown-fee reserves,
+retry limits, exact program/PDA/schema bindings and the handover guard. No financial
+or fee authority changes. Profile-4 UI signing requires both supported wire formats.
+Focused adversarial tests and fresh RPC/WS/PostgreSQL recovery qualify this change;
+no earlier run is represented as having tested the new proof.
