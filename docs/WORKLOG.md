@@ -5176,3 +5176,20 @@ Use an isolated BTC operation root at index 3; both actual cross and isolated
 timed traders remain unchanged. No program or authority rule changed. Preserve
 failed evidence; no 600-offer result claimed. Include exact service originals in
 the final report for independent packet/fee audit. Next: pin and retry baseline.
+
+R093 baseline `2dc5b0b`, local
+`.local/liquidity-execution/qualification/20261029T191724Z-93635/baseline`, completes
+600 offers, two actual stored-order fills, two funded exits, publisher SIGKILL/restart,
+indexer restart, all-original receipt drain and identical fresh database replay.
+The final per-offer audit then rejects identical discriminator bytes represented as
+`Buffer` versus `Uint8Array`; no economic difference is displayed. Compare complete
+encoded account bytes instead. Preserve a complete measured capture before offline
+audits so later reader corrections can reuse the actual run. No final comparative
+pass is claimed from this failed closeout; control/treatment have not run.
+
+Disk headroom fell to about 358 MiB. P34 now supports restarting only its explicitly
+configured owned PostgreSQL data directory, retaining prior databases and creating
+uniquely named fresh databases per attempt. PostgreSQL's own checkpoint/WAL policy
+is bounded to 64/32 MiB with fsync/durability unchanged; no evidence/database files
+are manually deleted. Reuse is explicit local configuration, not an acceptance
+summary. Next: pin these harness/storage corrections and rerun the three profiles.

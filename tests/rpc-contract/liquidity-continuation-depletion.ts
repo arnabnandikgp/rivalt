@@ -1,6 +1,7 @@
 // Separate from timed offers: actually exhaust each treatment maker's declared
 // one-lot ask side, then prove only an explicit replenishment restores it.
 import assert from 'node:assert/strict';
+import type {Address} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import type { CanonicalHarness } from './canonical-maker-cases.js';
 import type { liquidityExecutionSetup } from './liquidity-execution-setup.js';
@@ -8,7 +9,7 @@ import { executionTestHelpers } from './liquidity-execution-helpers.js';
 import { comparisonShape } from './liquidity-continuation-setup.js';
 import { candidates, referenceQuote, auditFill } from './liquidity-continuation-model.js';
 
-export async function depletionSupplement(h: CanonicalHarness, setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>) {
+export async function depletionSupplement(h: CanonicalHarness, setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>, cohort?:Address[]) {
   const helpers = executionTestHelpers(h, setup), trader = setup.roots[1], results = [];
   const initialCash = sdk.getCustodyV3Decoder().decode((await h.read(setup.custody))!).totalCash;
   const initialLedger = sdk.getMarketLedgerV3Decoder().decode((await h.read(setup.ledgers[0]))!);
@@ -57,7 +58,7 @@ export async function depletionSupplement(h: CanonicalHarness, setup: Awaited<Re
   const ledger = sdk.getMarketLedgerV3Decoder().decode((await h.read(setup.ledgers[0]))!);
   assert.equal(custody.totalCash, initialCash - fees);
   assert.equal(ledger.insurance + ledger.fees, initialLedger.insurance + initialLedger.fees + fees);
-  const roots = await Promise.all([...setup.instances.map(maker => maker.capital), ...setup.roots].map(helpers.root));
+  const roots = await Promise.all((cohort??[...setup.instances.map(maker => maker.capital), ...setup.roots]).map(helpers.root));
   for (const index of [0, 1]) {
     const market = await setup.marketState(index);
     assert.equal(roots.reduce((sum, root) => sum + root.positions[index].lots, 0n), 0n);

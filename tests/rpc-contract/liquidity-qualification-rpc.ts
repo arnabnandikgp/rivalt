@@ -109,6 +109,9 @@ try {
   await Promise.all(horizonReads);if(backgroundError)throw backgroundError;
   await services.pause();await flush();
   const serviceReport=await services.report();
+  // Preserve complete measured inputs before offline audits; a reader correction
+  // must not require repeating an otherwise unchanged live workload.
+  writeFileSync(`${runDir}/comparison-capture.json`,json({revision,build,profile,seed:2902,elapsedMs,offers,schedules,checks,initial,serviceReport}));
   assert.equal(offers.length, 600, 'Complete offered population');
   assert(elapsedMs < 305_000, 'Bounded schedule must not silently become a slower workload');
   const publisherRejections = checks.filter(check => check.label === 'continuation publisher reports' && check.error);
@@ -142,7 +145,7 @@ try {
       offer.reason = `onchain:${JSON.stringify(transaction.meta.err)}`;
       for (const after of offer.after!) {
         const before = Object.values(offer.roots).find(root => root.id === after.id)!;
-        assert.deepEqual(after, before, 'Rejected timed route is financially atomic');
+        assert.deepEqual(sdk.getMarginAccountV3Encoder().encode(after), sdk.getMarginAccountV3Encoder().encode(before), 'Rejected timed route is financially atomic');
       }
       continue;
     }
@@ -188,8 +191,9 @@ try {
   const ledgers=await Promise.all(setup.ledgers.map(async key=>sdk.getMarketLedgerV3Decoder().decode((await h.read(key))!)));
   ledgers.forEach((ledger,index)=>{assert.equal(ledger.insurance,journalFees[index]/4n);assert.equal(ledger.fees,journalFees[index]-journalFees[index]/4n);assert.equal(BigInt(ledger.insuranceFeeRemainder),journalFees[index]%4n);});
   assert.equal(journalFees[1],marketFees[1]);assert(journalFees[0]>marketFees[0],'Actual order-worker fills contribute separate fees');
+  if(setup.canonical)await setup.canonical.qualify();
   const strictEpochRejections = await setup.strictEpochs();
-  const depletion = profile === 'treatment' ? await depletionSupplement(h, setup.canonical!) : [];
+  const depletion = profile === 'treatment' ? await depletionSupplement(h, setup.canonical!,setup.allRoots) : [];
   await flush();
   if (profile !== 'baseline') assert(setup.repricesAfterConsumption() >= 20);
   const eligible = offers.filter(offer => offer.eligible).length;

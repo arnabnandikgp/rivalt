@@ -10,7 +10,7 @@ RIVALT_QUALIFICATION_ROOT="$RIVALT_RUN_DIR"
 export RIVALT_PG_PORT="${RIVALT_PG_PORT:-15448}"
 container system status >/dev/null
 trap 'if [[ -n ${RIVALT_PG_CONTAINER:-} ]]; then container stop "$RIVALT_PG_CONTAINER" >/dev/null 2>&1 || true; container delete "$RIVALT_PG_CONTAINER" >/dev/null 2>&1 || true; fi' EXIT
-source ops/postgres.sh
+source ops/liquidity-qualification-postgres.sh
 # Optional scoped retry selects a declared profile, never alters offer/time counts.
 for RIVALT_CONTINUATION_PROFILE in ${RIVALT_QUALIFICATION_PROFILES:-baseline control treatment}; do
   export RIVALT_CONTINUATION_PROFILE

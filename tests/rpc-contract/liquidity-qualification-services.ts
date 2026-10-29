@@ -23,8 +23,8 @@ export async function waitFor<Value>(read:()=>Promise<Value>,accept:(value:Value
 }
 export async function qualificationServices(setup:QualificationSetup,transport:Awaited<ReturnType<typeof openCanonicalRpcHarness>>,profile:Profile,directory:string) {
   const {rpc,h,checks,flush}=transport;await flush();
-  const rootUrl=process.env.RIVALT_DATABASE_URL!,databaseUrl=new URL(rootUrl);databaseUrl.pathname=`/p34_${profile}`;
-  const admin=new AccountStore(rootUrl,'p34-admin');try{await admin.pool.query(`CREATE DATABASE p34_${profile}`);}finally{await admin.close();}
+  const databaseName=`p34_${profile}_${process.pid}`,rootUrl=process.env.RIVALT_DATABASE_URL!,databaseUrl=new URL(rootUrl);databaseUrl.pathname=`/${databaseName}`;
+  const admin=new AccountStore(rootUrl,'p34-admin');try{await admin.pool.query(`CREATE DATABASE ${databaseName}`);}finally{await admin.close();}
   let anchor:string|undefined;
   for(let index=0;index<checks.length;index++) {
     const transaction=JSON.parse(readFileSync(`${directory}/transaction-${index}.json`,'utf8'));
@@ -93,8 +93,8 @@ export async function qualificationServices(setup:QualificationSetup,transport:A
     indexing=false;await indexLoop;await flush();await indexer.cycle();}
   async function report() {
     await indexer.cycle();const state=(await indexer.store.snapshot()).state,reconciliation=await indexer.reconcile();
-    await indexer.store.pool.query(`CREATE DATABASE p34_${profile}_replay`);
-    const replayUrl=new URL(base.databaseUrl);replayUrl.pathname=`/p34_${profile}_replay`;
+    await indexer.store.pool.query(`CREATE DATABASE ${databaseName}_replay`);
+    const replayUrl=new URL(base.databaseUrl);replayUrl.pathname=`/${databaseName}_replay`;
     const replay=makeIndexer({databaseUrl:replayUrl.toString(),runId:`${runId}-replay`});
     try{await replay.open();await replay.cycle();assert.deepEqual((await replay.store.snapshot()).state,state);}finally{await replay.close();}
     const intents=(await runtime.store.pool.query('SELECT request_id,signature,wire,status,budget,result,created_at FROM service_intents WHERE run_id=$1 ORDER BY created_at',[runId])).rows;
