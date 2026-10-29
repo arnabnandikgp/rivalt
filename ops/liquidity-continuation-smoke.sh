@@ -50,5 +50,5 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
-node --import tsx tests/rpc-contract/liquidity-continuation-rpc.ts
-printf 'P32 continuation evidence: %s\n' "$RIVALT_RUN_DIR"
+node --import tsx "${RIVALT_CONTINUATION_ENTRY:-tests/rpc-contract/liquidity-continuation-rpc.ts}"
+printf 'Scoped comparison evidence: %s\n' "$RIVALT_RUN_DIR"

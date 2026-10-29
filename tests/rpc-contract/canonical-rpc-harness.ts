@@ -95,7 +95,7 @@ const h: CanonicalHarness = {
     writeFileSync(`${runDir}/ws-${transactionIndex}.json`, serialize({ logs: notification, signature: signatureNotification }));
     checks[transactionIndex] = { label, signature, version: transaction.version, v0Bytes, bytes: wireBytes,
       error: history.meta.err, confirmationMs: performance.now() - started, computeUnits: history.meta.computeUnitsConsumed, computeUnitLimit,
-      signedToConfirmedMs: confirmedMs, simulationError: simulation.value.err,
+      buildSignMs: signedAt - started, signedToConfirmedMs: confirmedMs, simulationError: simulation.value.err,
       loadedAccounts, feeLamports: String(history.meta.fee), signatures: transaction.signatures.length, ws: true, wsErrorMatchesFinalized, wsError: notification.params.result.value.err, signatureWsError: signatureNotification.params.result.value.err };
     conformance.record(instructions, history);
     latestHistory = history;
