@@ -138,7 +138,13 @@ try {
   await first.publish(setup.updater, 60_001n);
   assert.deepEqual(await first.registrationState(), registrationBefore, 'reprice cannot replenish consumed depth');
 
-  await setup.sample();
+  await setup.fresh();
+  // This inventory distribution produces a crossed published aggregate: the
+  // high-skew short maker bids above the untouched maker's ask. Record the
+  // unavailable result; do not manufacture a qualifying funding observation.
+  const crossedReport = await sdk.readFundingReport(rpc, setup.venue, 0);
+  assert.equal(crossedReport.report.outcome, 3);
+  // Existing source/qualification lifetimes still govern the next transaction.
   // The sell side still has all4096 lots. This exercises maximum single-leg
   // depth and crossing the skew target with full books before generation cleanup.
   let expectedSell = 0n;
@@ -186,6 +192,6 @@ try {
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
     build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')), checks, parity,
     expectedPerLeg, expectedGross, expectedFee, expectedSell, sellFee, totalFees, allRoots, markets, ledgers, custody,
-    fullBooks: true, fullRegions: true, phaseAcceptance: false }));
+    fullBooks: true, fullRegions: true, crossedReport: crossedReport.report, phaseAcceptance: false }));
   console.log(`P32 full-book resource probe: ${checks.length} finalized outcomes. Full safety/PG/continuation acceptance remains open.`);
 } finally { try { await flush(); } finally { ws.close(); } }

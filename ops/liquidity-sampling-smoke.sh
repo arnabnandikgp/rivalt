@@ -39,6 +39,7 @@ case "${RIVALT_LIQUIDITY_PROBE:-sampling}" in
   funding-publisher) node --import tsx tests/rpc-contract/funding-publisher-rpc.ts ;;
   execution) node --import tsx tests/rpc-contract/liquidity-execution-rpc.ts ;;
   resources) node --import tsx tests/rpc-contract/liquidity-resource-rpc.ts ;;
+  safety) node --import tsx tests/rpc-contract/liquidity-safety-rpc.ts ;;
   *) echo 'Unknown scoped liquidity probe' >&2; exit 1 ;;
 esac
 printf 'P32 sampler probe evidence: %s\n' "$RIVALT_RUN_DIR"

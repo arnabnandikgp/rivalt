@@ -29,6 +29,9 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
     while (await now() < time) { assert(Date.now() < deadline, 'Clock progress'); await delay(100); }
   };
   const marketState = async (index: number) => sdk.getMarketV3Decoder().decode((await h.read(markets[index]))!);
+  // Signed test oracle values, independently converted to each market's lot
+  // units. Mutating these inputs never injects account state or funding indexes.
+  const sourcePrices = { btc: 60_000_000_000n, eth: 3_000_000_000n };
   const primary = await fixtureKey('p32-primary'), guard = await fixtureKey('p32-guard');
   const traderOwner = await fixtureKey('p32-trader'), traderToken = await fixtureKey('p32-trader-token');
   await h.send('fund local test participants', [primary, guard, traderOwner].map(signer => getTransferSolInstruction({
@@ -86,7 +89,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
     const sourceInstructions: Instruction[] = feeds.map(({ index, feed, authority }) => {
       const data = Buffer.alloc(69); discriminator('publish').copy(data);
       data.set(encoder.encode(ORACLE_FIXTURE), 8); data[40] = 2;
-      data.writeBigInt64LE([0, 2].includes(index) ? 60_000_000_000n : [4, 5].includes(index) ? 3_000_000_000n : 1_000_000n, 41);
+      data.writeBigInt64LE([0, 2].includes(index) ? sourcePrices.btc : [4, 5].includes(index) ? sourcePrices.eth : 1_000_000n, 41);
       data.writeBigUInt64LE(0n, 49); data.writeInt32LE(-6, 57); data.writeBigInt64LE(time, 61);
       return { programAddress: ORACLE_FIXTURE, accounts: [{ address: authority.address, role: AccountRole.READONLY_SIGNER },
         { address: feed, role: AccountRole.WRITABLE }], data };
@@ -94,7 +97,8 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
     const reprices = await Promise.all(instances.map(async (maker, index) => {
       const config = await maker.state(), price = maker.module.getMakerPriceV4Decoder().decode((await h.read(maker.price))!).state;
       return maker.module.getRepriceV4Instruction({ ...maker.makerCommon, actor: fixture.updater,
-        expectedControl: config.controlEpoch, expectedSequence: price.sequence, anchor: index < 3 ? 60_000n : 30_000n });
+        expectedControl: config.controlEpoch, expectedSequence: price.sequence,
+        anchor: index < 3 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n });
     }));
     await h.send('refresh independent sources and six maker publications', [...sourceInstructions, ...reprices], [primary, guard, fixture.updater]);
   }
@@ -106,7 +110,9 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
     for (const index of [0, 1] as const) {
       const input = await sdk.readFundingReport(rpc, venue, index);
       assert.equal(input.report.outcome, 0, input.coverageReason ?? 'available complete publication');
-      assert.equal(input.report.quantity, index === 0 ? 100n : 200n);
+      const reference = index === 0 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n;
+      assert.equal(input.report.referencePrice, reference);
+      assert.equal(input.report.quantity, (6_000_000n + reference - 1n) / reference);
       reports.push(sdk.getPublishFundingReportV4Instruction({ ...common,
         ...input.instructionAccounts, publisher: fixture.updater, report: input.report }));
     }
@@ -121,5 +127,5 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
   const identity = { venue, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
   const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readLiquidityTradeSnapshot(rpc, identity, root, marketIndex);
   return { ...fixture, primary, guard, traderOwner, traderToken, roots, feeds, configurations, resolution, work, pages,
-    safetyCommon, now, slot, waitUntil, marketState, fresh, sample, qualify, identity, snapshot };
+    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, fresh, sample, qualify, identity, snapshot };
 }
