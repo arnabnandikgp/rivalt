@@ -5,8 +5,8 @@ In progress on `phase/p32-liquidity-execution`, above exact P31 `28d5dd0` / read
 The governing contract is [P29B](P29B-MAKER-CONTRACT.md), explicitly amended by
 D74's published-liquidity decision and D75's subsequently accepted
 [restricted publisher replacement](P32-FUNDING-PUBLISHER.md). R087 implements the
-handler/backend candidate under the frozen D76 contract; its scoped RPC probe and
-the full execution/safety gates remain in progress. Execution financial checks
+handler/backend under the frozen D76 contract. Its [scoped publisher probe](evidence/P32-PUBLISHER.md)
+passes on clean`4f4e47d`; full execution/safety gates remain in progress. Execution financial checks
 and external authorization are unchanged.
 
 ## Implementation sequence within this phase

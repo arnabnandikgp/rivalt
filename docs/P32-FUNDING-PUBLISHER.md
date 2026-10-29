@@ -4,17 +4,17 @@
 
 D75 records the user's acceptance of the restricted publisher proposal. D76 below
 freezes its exact contract. R087 implements the gated configuration/report handler,
-coherent off-chain builder and generated SDK; runtime qualification is pending.
+coherent off-chain builder and generated SDK. The scoped publisher probe passes;
+full P32 financial qualification remains open.
 P32 remains In progress above P31 PR #46. `sample_liquidity_v4` now rejects rather
 than offering a second authoritative funding path. Its superseded D74 100-lot
 transaction at 1,334,329 CU remains historical evidence, not a publisher result.
 
-The clean `9129bda` client / `94e0645` program probe has seven accepted reports;
-100/600-lot updates measure30,511/30,571CU,871bytes/v0 and14 keys. It stops at a
-separate maker control's337,446CU headroom failure. The control candidate now avoids
-repeating PDA searches after CPI, retaining complete pre-authentication and exact
-post-CPI owner/layout/full-state verification. Remeasure before declaring this
-scoped probe passed. Full P32 financial acceptance remains separate.
+[The scoped D76 probe](evidence/P32-PUBLISHER.md) passes on clean`4f4e47d`:
+84 signed RPC/WS outcomes,8 accepted reports, generated/legacy ABI parity;
+100/600-lot reports30,511/30,571CU,871bytes/v0 and14 keys. The diagnosed control
+headroom failure is repaired without raising its budget; measured maximum318,874CU.
+Active/full-book control budgets and full P32 financial acceptance remain separate.
 
 Do not restart P29–P31 or add a separate phase/PR for each internal step. Deliver
 one cohesive P32 PR after its revised acceptance passes, then stack P33 and P34
@@ -108,8 +108,8 @@ external hedge or funded deployment under this authorization.
 
 ## Immediate next action
 
-Run the scoped actual-RPC publisher probe against the D76 candidate, then complete
-the existing P32 execution/safety/PostgreSQL and continuation acceptance. Do not
+Integrate signed one/two-maker current-price routes and durable orders with the
+existing account engine, then complete P32 safety/PostgreSQL and continuation acceptance. Do not
 continue optimizing the superseded
 on-chain exhaustive funding search as the chosen production path for this profile.
 

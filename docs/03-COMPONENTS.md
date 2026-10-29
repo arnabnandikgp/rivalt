@@ -29,8 +29,9 @@ handler; P33 owns durable worker operation, reconciliation and consumer provenan
 Maker financial admission remains in execution, not funding calculation. The
 R087 candidate now implements `FundingPublisherV4`, signed `FundingReportV4`,
 configuration/report events and the coherent SDK `readFundingReport` builder.
-The old sampler rejects explicitly. Runtime qualification and financial execution
-integration remain open; these events are not yet a P33 indexer/service acceptance.
+The old sampler rejects explicitly. The scoped publisher RPC/WS/legacy-parity probe
+passes on clean`4f4e47d`; financial execution integration remains open. These events
+are not yet a P33 indexer/service acceptance.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.
