@@ -9,7 +9,8 @@ import {proposeAccountRates,type AccountRateInputs} from './account-rate-proposa
 /** Current canonical frozen pages, not projected or retained acceptance data.
  * One final batch includes header/registry/safety and the complete <=32 pages.
  * The service's environment additionally authenticates genesis/anchor/artifacts. */
-export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint) {
+export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:3|4=3) {
+  assert(expectedProfile===3||expectedProfile===4,'Unsupported frozen proposal profile.');
   const component=(name:Parameters<typeof sdk.findVenueComponentV3Pda>[1])=>sdk.findVenueComponentV3Pda(venue,name);
   const [[resolution,resolutionBump],[safety,safetyBump],[registry,registryBump]]=await Promise.all([component('resolution'),component('safety'),component('registry')]);
   const decode=<Value>(account:any,discriminator:ReadonlyUint8Array,decoder:Decoder<Value>&{fixedSize?:number})=>{
@@ -31,7 +32,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   const registryState=decode(response.value[2],sdk.VENUE_REGISTRY_V3_DISCRIMINATOR,sdk.getVenueRegistryV3Decoder());
   const header=decode(response.value[3],sdk.RESOLUTION_V3_DISCRIMINATOR,sdk.getResolutionV3Decoder());
   const [canonicalVenue,venueBump]=await sdk.deriveAccountVenue(Uint8Array.from(venueState.domain));
-  assert(canonicalVenue===venue&&venueState.bump===venueBump&&venueState.schemaVersion===3&&venueState.profileVersion===3&&
+  assert(canonicalVenue===venue&&venueState.bump===venueBump&&venueState.schemaVersion===3&&venueState.profileVersion===expectedProfile&&
     venueState.marketCount===2&&venueState.insuranceFeeShareBps===2500,'Foreign proposal venue/profile.');
   assert(safetyState.schemaVersion===3&&safetyState.venue===venue&&safetyState.bump===safetyBump&&safetyState.mode===2&&safetyState.paused&&
     safetyState.resolutionEpoch===epoch&&safetyState.epoch===header.safetyEpoch,'Proposal venue is not in the expected freeze.');

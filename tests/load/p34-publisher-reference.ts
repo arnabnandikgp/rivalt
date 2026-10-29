@@ -28,7 +28,7 @@ for(const input of inputs) {
   const [signed,end]=sdk.getPublishFundingReportV4InstructionDataDecoder().read(instructions[0].data,0);
   assert.equal(end,instructions[0].data.length);
   assert.deepEqual(JSON.parse(JSON.stringify(signed.report,(_key,value)=>typeof value==='bigint'?value.toString():
-    ArrayBuffer.isView(value)?Array.from(value as Uint8Array):value)),report,'Independent calculation is bound to the persisted signed original');
+    ArrayBuffer.isView(value)?Buffer.from(value as Uint8Array).toString('hex'):value)),report,'Independent calculation is bound to the persisted signed original');
   const raw=(key:string)=>{const value=accounts.get(key);assert(value&&!value.executable&&value.data[1]==='base64');return Buffer.from(value.data[0],'base64');};
   const market=sdk.getMarketV3Decoder().decode(raw(report.market)),marketIndex=market.index as 0|1;
   const now=BigInt(report.observedTime),slot=BigInt(report.observedSlot),reference=marketIndex===0?60_000n:30_000n,quantity=(6_000_000n+reference-1n)/reference;

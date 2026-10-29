@@ -497,3 +497,9 @@ RPC/WS/PostgreSQL/browser, immutable-original recovery, publisher handover,
 retained-input binding and independent replay/accounting on clean `fccf062`.
 Earlier pending-consumer notes above describe their original implementation stages;
 P34 comparative qualification and integration remain separate.
+
+P34 operational integration correction (R093): the frozen-cohort proposal reader
+accepts the runtime's explicitly authenticated profile3 or4 while retaining schema3
+financial layouts and every complete-cohort binding. It defaults to profile3 and
+rejects mismatched/unsupported profiles; canonical service recovery cannot silently
+inherit the legacy-only reader. Fresh profile4 default/recovery evidence is required.

@@ -1468,3 +1468,9 @@ local chain blockTime drift is not a valid host-latency measurement. These are
 observability and verification changes, not authority/economic amendments. The
 conservative unresolved maker original limitation remains documented in
 [P34 operations](P34-OPERATIONS.md); no absent-history fee release is authorized.
+
+R093 also identifies and corrects an implementation-only profile binding in the
+frozen proposal service reader: use the configured profile3/4, keeping the shared
+schema3 financial contract and exact complete-cohort checks. No broader profile,
+loss allocation, payout authority or activation is introduced. The failed profile4
+operational run remains recorded until a fresh rerun qualifies the correction.

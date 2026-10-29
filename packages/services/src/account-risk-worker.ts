@@ -14,7 +14,7 @@ export async function accountResolutionInstruction(runtime:AccountRuntime,snapsh
   const {header,workState,rows,pages,registryState}=continuation;
   const common={...snapshot,...continuation,epoch:header.epoch},start=header.cursor;
   if(header.stage===4) {
-    const {header:current,proposal}=await readAccountRateProposal(runtime.rpc,snapshot.venue,header.epoch);
+    const {header:current,proposal}=await readAccountRateProposal(runtime.rpc,snapshot.venue,header.epoch,runtime.profile);
     assert(current.evaluation===header.evaluation,'Rate evaluation advanced; reread');
     const matches=sdk.hex(current.proposalHash)===sdk.hex(proposal.hash);
     const offset=matches?current.proposalUploaded:0;
