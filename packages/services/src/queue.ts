@@ -7,14 +7,18 @@ import { Rpc, integer } from '../../indexer/src/rpc.js';
 import { json } from '../../indexer/src/events.js';
 import {groupAuthorityValue, type GroupAuthority} from './group-authority.js';
 import {accountAuthorityValue, type AccountAuthority} from './account-authority.js';
+import {persistLiquidityInputs,type LiquidityInputs} from './liquidity-inputs.js';
+import {liquidityPriceSequence,type LiquidityPriceAuthority} from './liquidity-authority.js';
 
 export const RESERVATION=20_000n;
-export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string} | GroupAuthority | AccountAuthority;
-export function signedWire(wire:string) {
-  if(typeof wire!=='string' || wire.length>1644)throw new Error('Invalid transaction size');
-  const bytes=Buffer.from(wire,'base64');if(bytes.length>1232 || bytes.toString('base64')!==wire)throw new Error('Noncanonical transaction');
+export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string} | GroupAuthority | AccountAuthority | LiquidityPriceAuthority;
+export function signedWire(wire:string,maxVersion:0|1=0) {
+  const maximum=maxVersion===1?4096:1232;
+  if(typeof wire!=='string' || wire.length>4*Math.ceil(maximum/3))throw new Error('Invalid transaction size');
+  const bytes=Buffer.from(wire,'base64');if(bytes.length>maximum || bytes.toString('base64')!==wire)throw new Error('Noncanonical transaction');
   const tx=VersionedTransaction.deserialize(bytes);
-  if(tx.message.version!==0 || tx.message.addressTableLookups.length)throw new Error('Only v0 static-account messages supported');
+  if(tx.message.version!==0&&!(maxVersion===1&&tx.message.version===1))throw new Error('Unsupported transaction version');
+  if(tx.message.version===0&&(tx.message.addressTableLookups.length||bytes.length>1232))throw new Error('Only bounded static-account messages supported');
   if(!Buffer.from(tx.serialize()).equals(bytes))throw new Error('Noncanonical wire encoding');
   const message=tx.message.serialize(),keys=tx.message.staticAccountKeys.map(k=>k.toString());
   if(tx.signatures.length!==tx.message.header.numRequiredSignatures)throw new Error('Signature count');
@@ -55,15 +59,15 @@ export function userAuthority(wire:string,market:string,program:Address=sdk.CLEA
   throw new Error('Unsupported financial action');
 }
 export class Queue {
-  constructor(readonly store:Pick<Store,'pool'|'runId'>,readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS){}
+  constructor(readonly store:Pick<Store,'pool'|'runId'>,readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS,readonly maxVersion:0|1=0){}
   async budget(name:string,wallet:string,cap:bigint){
     await this.store.pool.query('INSERT INTO service_budgets(run_id,name,wallet,cap) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[this.store.runId,name,wallet,cap.toString()]);
     const r=(await this.store.pool.query('SELECT * FROM service_budgets WHERE run_id=$1 AND name=$2',[this.store.runId,name])).rows[0];
     if(r.wallet!==wallet || BigInt(r.cap)!==cap)throw new Error('Budget identity changed');
   }
-  async put(id:string,wire:string,authority:Authority|null,budget:string|null=null){
+  async put(id:string,wire:string,authority:Authority|null,budget:string|null=null,inputs?:LiquidityInputs){
     if(!/^[a-zA-Z0-9:._-]{1,160}$/.test(id))throw new Error('Invalid request identity');
-    const signed=signedWire(wire),c=await this.store.pool.connect();
+    const signed=signedWire(wire,this.maxVersion),c=await this.store.pool.connect();
     try{
       await c.query('BEGIN');
       await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`${this.store.runId}/intent/${id}`]);
@@ -76,6 +80,7 @@ export class Queue {
         if(fee.value===null || BigInt(integer(fee.value))>RESERVATION)throw new Error('Operator fee exceeds reserved budget');
       }
       const r=(await c.query(`INSERT INTO service_intents(run_id,request_id,signature,wire,blockhash,authority,budget) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`,[this.store.runId,id,signed.signature,wire,signed.blockhash,authority?json(authority):null,budget])).rows[0];
+      if(inputs){if(this.maxVersion!==1)throw new Error('Input provenance requires the canonical queue');await persistLiquidityInputs(c,this.store.runId,id,inputs,wire);}
       // PostgreSQL delivers this hint only after the signed bytes are committed.
       await c.query("SELECT pg_notify('rivalt_intents',$1)",[this.store.runId]);
       await c.query('COMMIT');return r;
@@ -92,14 +97,24 @@ export class Queue {
       let status=r.status==='expired-unexecuted'?r.status:'unresolved',result:any=r.status==='expired-unexecuted'?r.result:null,release=false;
       try{
         const s=(await this.rpc.call('getSignatureStatuses',[[r.signature],{searchTransactionHistory:true}])).value[0];
+        if(this.maxVersion===1&&s&&['confirmed','finalized'].includes(s.confirmationStatus))
+          console.log(JSON.stringify({event:'executor-observed',runId:this.store.runId,requestId:id,signature:r.signature,
+            commitment:s.confirmationStatus,at:Date.now()}));
         if(s?.confirmationStatus==='finalized'){
-          const tx=await this.rpc.call('getTransaction',[r.signature,{commitment:'finalized',encoding:'json',maxSupportedTransactionVersion:0}]);
+          const tx=await this.rpc.call('getTransaction',[r.signature,{commitment:'finalized',encoding:'json',maxSupportedTransactionVersion:this.maxVersion}]);
           if(tx?.meta && tx.transaction?.signatures?.[0]===r.signature && json(tx.meta.err)===json(s.err)){
             status=tx.meta.err===null?'finalized':'failed';result={slot:integer(tx.slot).toString(),fee:integer(tx.meta.fee).toString(),error:tx.meta.err};release=true;
           }
         }else if(!s){
           const valid=await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'finalized'}]);
           if(valid.value===false && r.authority){
+            if(r.authority.kind==='liquidityPriceSequence') {
+              if(this.maxVersion!==1)throw new Error('Canonical authority requires profile 4');
+              const proof=await liquidityPriceSequence(this.rpc,r.authority,integer(valid.context.slot));
+              if(proof.value.toString()===r.authority.value) {
+                status='expired-unexecuted';result={slot:proof.slot.toString(),fee:null,error:null,economicEffect:'not-applied'};
+              }
+            }else{
             const a=await this.rpc.call('getAccountInfo',[r.authority.account,{encoding:'base64',commitment:'finalized',minContextSlot:integer(valid.context.slot)}]);
             if(a.value?.owner===this.program){
               const bytes=Buffer.from(a.value.data[0],'base64');
@@ -111,6 +126,7 @@ export class Queue {
               // landing/network fee hidden by incomplete history. Keep any fee
               // reservation until independent transaction evidence exists.
               if(value.toString()===r.authority.value){status='expired-unexecuted';result={slot:integer(a.context.slot).toString(),fee:null,error:null,economicEffect:'not-applied'};}
+            }
             }
           }else if(valid.value===true){
             // The INSERT was committed before this worker can broadcast. Lost

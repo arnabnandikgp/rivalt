@@ -35,6 +35,8 @@
     "maker:build": "bash ops/build-maker-kit.sh",
     "maker:qualify": "bash ops/load-soak.sh --maker-kit",
     "maker:bot": "node --import tsx packages/maker-kit/src/bot.ts",
+    "liquidity:bot": "node --import tsx packages/maker-kit/src/liquidity-bot.ts",
+    "liquidity:report": "node --import tsx packages/maker-kit/src/liquidity-report.ts",
     "maker:record": "node --import tsx packages/maker-kit/src/record.ts",
     "maker:report": "node --import tsx packages/maker-kit/src/report.ts",
     "test:readiness": "bash ops/load-soak.sh --readiness",

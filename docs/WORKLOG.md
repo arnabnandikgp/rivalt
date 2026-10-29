@@ -1,6 +1,11 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
+**Maker-liquidity implementation (R079 / D70):** the user authorizes sequential
+[P29B–P34 implementation](P29-MAKER-LIQUIDITY-ROADMAP.md). P29A remains in Review
+as ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42). P29B's
+[contract/reference](P29B-MAKER-CONTRACT.md) passes A34B/G22 on `b0c504a` and is published in ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), stacked above #42 in Review. P30 A35/G23 acceptance passes on pinned code and ready [PR #45](https://github.com/arnabnandikgp/rivalt/pull/45) is open above #43 in Review. Local quote/control deployment is tested, with new trading disabled. R082 resumes P31–P34 under the user’s new instruction; P31 A36/G24 passes on pinned code above exact P30 head `b7e76e3`; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open in Review. P15B/P16B stay Open; 24-hour endurance stays Deferred.
+
 **Current position:** P01–P14 and M1–M5b are Closed. The original phase stack, readability maintenance and [R030 devnet closeout PR #19](https://github.com/arnabnandikgp/rivalt/pull/19) are integrated into `main`. PR #19 merged at `67059fc99ca3b48cff4d89e9f97aa9c1c51538eb`; its tree exactly matches verified head `633892c`. Actual maker upgrades/joint approvals, corrected ownership checks, independent accounting and fresh PostgreSQL/HTTP verification close the remaining engineering follow-up. P15A maker kit/tooling and P16A engineering reliability are now Closed: PRs #20/#21 merged at `74fc2963341a5a4cfacb027fed7d51c071e72265` under D44, with both review findings resolved and scoped CI passing. M6 remains In progress because external P15B/P16B remain Open. Continuous 24-hour endurance stays Deferred under D42.
 
 **Successor integration (R053):** P17, P18A–C, P19, P20 and P21A–B are Closed within their bounded local test scope. The user authorized merging the complete successor stack; PRs #23/#24/#26/#27/#28/#29/#30/#31 merged atomically at `d07fccc108384381c0c5df743d14c2a0bc4f5089`. The merged tree exactly equals reviewed tip `1a3cc2c0c86e8ec9f1c87d8f8451ac72057274e9`. A22–A26/G13–G16 and the M7 exit retain their phase-specific pinned evidence, including R052 service and receipt fixes; no new runtime qualification is inferred from the merge. All seven prior review findings are resolved, the final sweep found no new findings or requested changes, and every selected hosted check passed. M7 is Closed for the operator-controlled two-market test profile. Busy-group exit redesign is explicitly deferred by the user; P15B/P16B remain Open and 24-hour endurance remains Deferred. No successor devnet/funded deployment or independent-review approval is claimed.
@@ -44,7 +49,8 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M6 | P15A/P16A + P15B/P16B | Maker engineering/tooling/reliability plus independent commercial/pilot readiness | In progress | R033: A20A/A21A acceptance retained; two maker-kit findings fixed with nine focused regressions and scoped CI passing. PRs #20/#21 integrated at `74fc296`, closing both A phases; external P15B/P16B Open; endurance Deferred; A cannot close B or M6 |
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
-| M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped |
+| M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | Review | All seven ready PRs #42/#43/#45/#46/#47/#48/#49 stay open. Original A34–A39/G22–G26 evidence retained; [R094 review fixes](evidence/R094-STACK-REVIEW.md) cover nine inline and six additional findings. Fresh expiry/retry and service/browser RPC/WS/PostgreSQL checks pass on `791fb8d`, with independent accounting; all seven restacked heads published, all nine inline threads resolved, zero remaining; selected hosted checks pass. [R095 self-review](evidence/R095-SELF-REVIEW.md) covers skipped PRs #45/#47: one wire-documentation correction, no actionable financial/authority defect; fresh compiled and 84/125-outcome RPC probes pass on `608f73c`. Integration is required to close M10; external gates Open and endurance Deferred |
 
 ## Phase overview
 
@@ -84,23 +90,49 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P26 | Liquidation, complete default and local activation | Closed | [PR #38](https://github.com/arnabnandikgp/rivalt/pull/38), above #37 `75e34c5`; tested `915d8e8` | [A31/G20 safety](evidence/P26.md): complete default/recovery/retirement, 837 qualified RPC outcomes / 672 WS, exact 64-root audit, cyclic and both-market/full-book cases, 31 ABI variants, default gating and maximum-width resource headroom. Qualified local activation only; P27/P28 evidence is separate; integrated at `0916b9d` |
 | M8 | P27 | SDK, indexer/API and durable services | Closed | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit; integrated at `0916b9d` |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Closed | [PR #40](https://github.com/arnabnandikgp/rivalt/pull/40), published `ac894f1`, above #39 `9498d2e` | [A33/G21/M8](evidence/P28.md): 17 browser originals, 115 submitted trades, six busy exits, four bounded history rescans, complete nine-root default/recovery and identical fresh PostgreSQL replay; tested `f595fd7` / `5491752`; R073 scoped review corrections `e6ba2cf`; integrated at `0916b9d` |
-| M9 | P28A | Interactive launcher, local test wallet and walkthrough | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41), final head `ba73bcd`, merged `350e60c` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 wallet originals, indexed fills, reload and stop/reset; R076 resolves both reviews, 16 scoped tests and hosted client/shell checks pass; user evaluation accepted and demo stopped |
+| M9 | P28A | Interactive launcher, local test wallet and walkthrough | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41), final head `ba73bcd`, merged `350e60c` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 wallet originals, indexed fills, reload and stop/reset; R076 resolves both reviews, 16 scoped tests and hosted client/shell checks pass; user evaluation accepted and demo stopped. R077 records a separate proposal without reopening P28A |
+| M10 | P29A | Maker-liquidity roadmap and scoped gates | Review | Ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42), `phase/p29a-maker-roadmap`, roadmap `bb53b53` above R077 `8ca0691` / integrated `1c59592` | A34A: scoped documentation/link/fence/phase/gate/evidence-policy checks pass; no program acceptance; kept open |
+| M10 | P29B | Exact quote/update/routing/funding contract | Review | Ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), checked `b0c504a`, published `cfea519`, above P29A `d124215` / #42 | [A34B/G22](evidence/P29B.md): 26 model checks, 368 local links, layout/packet/search/transition contract and pinned numeric gates pass; no runtime acceptance; R094 skew/prose/checkpoint fixes, 26 scoped tests pass |
+| M10 | P30 | Configurable maker curves and updates | Review | `phase/p30-canonical-maker` above P29B `48abd8b` / #43 | [Implementation checkpoint](P30-CANONICAL-MAKERS.md): [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`;123 signed RPC/WS outcomes,104 instruction/20 account/78 event parity;3,172 vectors per evaluator. Ready PR #45 is open; P30 alone keeps trading disabled. [R095 self-review](evidence/R095-SELF-REVIEW.md) verifies canonical pricing/controls on unchanged final artifacts and corrects the trailing-instruction-data claim |
+| M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `fe91497` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
+| M10 | P32 | Clearing/funding and safe local execution | Review | [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47), `phase/p32-liquidity-execution` above P31 `693e5f9`/#46; acceptance closeout `cdffcc8` | [A37/G25/G22 acceptance](evidence/P32.md) passes. SBF `6437f7d`; safety/PG client `5d26561`, full books `df70e7c`, canonical continuation `34b4325`. All eligible routes finalize; exact quote/accounting, safety, SQL and resource gates pass. Ready PR published; all selected CI checks pass at `6de5cea`. R091 resumes P33; integration remains separate. [R095 self-review](evidence/R095-SELF-REVIEW.md) finds no actionable financial/authority defect; fresh publisher/execution RPC probes pass on `608f73c`; current #47 CI passes at `46be8d4` |
+| M10 | P33 | Services, SDK, indexer, UI and maker kit | Review | Ready [PR #48](https://github.com/arnabnandikgp/rivalt/pull/48), `phase/p33-liquidity-services` above P32 `46be8d4` / #47; closeout `322a4e9` | [A38/G26 interfaces](evidence/P33.md): clean runtime `fccf062`, 365 finalized + one classified failed intent, ten browser originals, three SIGKILL/lost-ack recoveries, 88 signed-input reports, 172-event fresh replay, six maker reports and independent literal financial audit pass. R094 proof/UI/audit corrections at `5941cd9`, freshly qualified on descendant `791fb8d` |
+| M10 | P34 | Comparative qualification and operations | Review | Ready [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49), `phase/p34-liquidity-qualification` above P33 `5941cd9` / #48; acceptance closeout `e545fbc` | [A39/G26](evidence/P34.md): baseline `fb082de`, control/treatment `03c4e73`, operational default/recovery/all-funded exits `aae8bb0`, fresh maximum books `875b647`. Exact financial/report replay passes; max 615,433 CU/800,000 budget. Original scoped CI passes on `3a987b6`; R094 review corrections, fresh scoped verification and selected hosted CI pass; published with all nine stack threads resolved. Narrow latency pass and missing-history maker limitation documented; stack stays open |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
 
 ## Latest checkpoint
 
-- Latest integration (R076): P28A PR #41 merged at `350e60ca1de2de77b9ed2a80a16b0aa5eb5aa481`, with tree `ea3a96ed66c4f99e3d68cc5a012ac76880e12813` identical to verified `ba73bcd`. Both inline findings are resolved; [hosted run 40678439011](https://github.com/arnabnandikgp/rivalt/actions/runs/40678439011) passes selected scope/client/shell jobs, with unrelated jobs scope-skipped and CodeRabbit neutral. Local main is synchronized; original financial qualifications below are unchanged.
-
-- Current financial work: qualified P26 artifacts remain unchanged. [P27](evidence/P27.md) and [P28](evidence/P28.md) now record actual services/UI, busy funded exits, default/recovery and fresh PostgreSQL replay. Funded own-cash exits need no venue-wide certificate; unpaid profit payment/netting still needs current selected-market backing. Default/devnet remain gated.
-- Current roadmap: P22A–P28 and M8 are Closed after authorized atomic integration. P28 A33/G21/M8 exit retains `5491752`, with browser evidence on `f595fd7`; R073 consumer/documentation corrections are verified on `e6ba2cf`. No new deployment or runtime qualification is inferred.
-- Integrated baseline: R073 PRs #32/#33/#35/#36/#37/#38/#39/#40 merged atomically at `0916b9dc7896f9cdfc68081ad56daa93dabf3d94`. Local `main` is fast-forwarded and the merged tree exactly equals verified `e6ba2cfdbdb41dbfe037453ed75444f3baf94aa3`. Prior R053 `d07fccc`, R033 `74fc296`, R030 `67059fc` and the original MVP remain integrated.
-- Deployment: clean `df336c0` uploads reviewed `a9d9f26` A/B binaries at slots 514709495/514709597; exact finalized code/padding/authority checks pass. Existing clearing stays on `b3a2fc1`, and the guard is unchanged. [R030 identities and evidence](evidence/R030-DEVNET-CLOSEOUT.md) preserve that mapping.
-- Current review verification (R073): zero unresolved inline threads or requested changes; all eight final heads mergeable with selected CI successful or scope-skipped. Tip `e6ba2cf` passes all five jobs in [hosted run 40576656720](https://github.com/arnabnandikgp/rivalt/actions/runs/40576656720); CodeRabbit is neutral/skipped for the incremental push. Seven local consumer cases, one Rust wire test, typecheck and trader build pass. This is scoped remediation/integration evidence, not an independent protocol review.
-- Storage: raw phase evidence and this run's review/merge captures remain local and ignored. The original untracked design proposal is preserved; no archive/upload or raw JSON enters Git.
-- Exact next action: await the user’s next instruction. P28A/M9 review and integration are complete, the demo remains stopped, and no further financial/deployment phase has been started.
-- Deferred gates: R072 qualifies six busy funded exits in the schema-3 local profile; the older V2 profile keeps its historical limitation. P15B/P16B independent maker/review/funded-readiness gates remain Open; continuous 24-hour endurance remains Deferred under D42. No new devnet/funded deployment or external participation is claimed.
+- R095: personally reviewed skipped PRs #45/#47 at `fe91497`/`46be8d4`, including
+  their current-stack interactions. [The report](evidence/R095-SELF-REVIEW.md) records
+  one reproduced wire-documentation mismatch and its explicit correction; no
+  actionable financial, authority or atomicity defect was found. All 24 focused
+  client tests, 27 independent contract cases, 3,172 vectors per SDK/maker SBF,
+  123 compiled lifecycle cases, three native helper tests and fresh 84/125-outcome
+  RPC/WS probes pass on clean `608f73c`. Program sources/binaries are unchanged.
+  This is self-review, not independent P16B approval. The stack stays open.
+- R094: the user's open-stack review request is addressed in the owning PRs.
+  [The disposition report](evidence/R094-STACK-REVIEW.md) covers nine inline and
+  six additional findings. Scope: #42/#43/#45/#46/#47/#48/#49; all remain Review.
+- Fresh clean `791fb8d` verifies real finalized maker expiry, durable nonapplication
+  proof, restart, separately reserved retry and exact retained unknown-fee balance.
+  The affected service/browser run resolves 370 originals, ten browser transactions,
+  90 retained publisher reports and identical 174-event fresh PostgreSQL replay.
+  Independent per-trader financial accounting passes with zero unexplained difference.
+- Original P29–P34 acceptance and binary pins remain recorded. R094 changes service
+  recovery, wallet capability checks and validation, not financial programs or economics.
+  The narrow P34 latency result remains a one-host measurement.
+- Missing or advanced maker proof state stays unresolved. Unknown fees remain
+  reserved and block handover; repeated missing-history outcomes can exhaust the
+  bounded budget. Previously stored null-authority originals are not rewritten.
+- Exact next action: await the user’s separate integration instruction or assess
+  newly arriving feedback. All nine inline threads are resolved; all selected
+  hosted checks pass on the recorded restacked heads. Keep all PRs open.
+- Latest integration remains P28A / PR #41 at `350e60ca1de2de77b9ed2a80a16b0aa5eb5aa481`.
+  Default/devnet activation remains gated. P15B/P16B Open; 24-hour endurance Deferred.
+- Raw evidence remains local and ignored. Research, databases, keys and configuration
+  are preserved. The owned qualification servers have stopped.
 
 ## Blocker register
 
@@ -3756,3 +3788,1764 @@ updated in this documentation-only closeout. No runtime or unrelated local suite
 are rerun. The demo remains stopped, no user files/evidence were deleted and no
 next phase is started. Exact next action: publish this closeout on main and await
 the user's next instruction. P15B/P16B remain Open; endurance stays Deferred.
+
+## R077 — maker quoting and routing architecture assessment (28 October 2026)
+
+Scope: the user requests an explanation and deep assessment before another
+development cycle. Inspected baseline `1c59592eeaf96f0f2fec144ea0a5e63eebeff933`;
+this is not a new numbered implementation phase. Both status tables retain
+P28A/M9 Closed and note the separate research. P15B/P16B and deferred endurance
+are unchanged.
+
+Delivered [the assessment](MAKER-QUOTING-ASSESSMENT.md): source-level GoonFi tier,
+cumulative-price, inventory, consumption/decay, staleness and route-context
+findings; primary Jupiter adapter/parity, Phoenix spline and Meteora bin references;
+actual Rivalt code-to-proposal gaps; configurable curves/common quote contract,
+funding implications and a bounded proposed evaluation. The supplied GoonFi
+metadata identifies an incomplete reconstruction, so no binary equivalence,
+deployed behavior or real aggregator-adapter conformance is claimed. Its external
+price-context publisher is outside the inspected implementation.
+
+Actual checks: `git status --short --branch`, `git rev-parse HEAD`, targeted
+`rg`/`sed` source/specification inspection, Python metadata extraction and source
+SHA-256, primary-source web reads, and documentation diff/link validation. Runtime
+tests, financial suites, builds, CI and qualification were not run: executable
+behavior is unchanged. Existing test counts remain historical evidence. No
+vendor program was executed, no archive downloaded, and no service restarted.
+
+The coherent documentation change is retained as a reviewable local research
+commit; no implementation PR is opened. Current protocol decisions and delivery
+phases remain authoritative, so no supersession is recorded for an unaccepted
+proposal. User-supplied `GoonFi_V2/`, `phoenix/` and the prior design note stay
+untracked and untouched; raw evidence remains in its original local paths.
+
+Blockers: none for this assessment. Custom pricing admission, funding sampling,
+replenishment and a possible bounded-latest quote policy are design questions for
+the proposed next contract, not silently implemented choices. Exact next action:
+discuss the recommendation with the user before defining or starting a bounded
+prototype; agree quantitative acceptance rather than opening a long new stack.
+
+## R078 — P29A maker-liquidity roadmap (28 October 2026)
+
+The user accepts R077's five proposed changes and requests phase-scoped planning.
+Delivered [P29–P34 / M10](P29-MAKER-LIQUIDITY-ROADMAP.md), D69 and G22–G26:
+P29A roadmap, P29B exact executable contract/reference, P30 canonical curve/update
+module, P31 generic best-singleton/pair allocation, P32 safe clearing/funding and
+comparative prototype gate, P33 services/UI/kit, P34 concurrent qualification.
+The A/B suffix separates planning from contract closure, following P22's convention.
+No later implementation phase is started by this run.
+
+Recorded existing-code coupling at `1c59592` / research `8ca0691`: fixed strategy
+constants/identities, clearing's exact formula recomputation, expired-only update,
+fixed pair allocator and funding evaluator. The plan targets at least three
+separately funded maker instances per market while retaining at most two execution legs;
+G22 must freeze feasible exact bounds, race/funding semantics and numeric comparison
+tolerances before implementation. P32 must pass real financial/resource evidence
+before consumer expansion. Unknown/custom modules, risk relaxation, changed
+financial loss/fee/insurance policy, external pools/hedges, paid/funded deployment
+and a new 24-hour requirement are excluded.
+
+Updated both status tables, delivery plan, decisions, product/protocol/component/
+validation pointers, README and AGENTS phase range. Existing qualifications are
+retained, not reused as proof for new behavior. All supplied research files stay
+untracked/untouched; the demo remains stopped. P15B/P16B remain external Open gates.
+
+Checks: `git diff --check` and `python3 ops/check-evidence-policy.py` pass.
+The scoped Python documentation check passes across 11 changed documents and 354
+existing local link targets, balanced fences, seven consistent phase rows and five
+unique new gate IDs; later phases remain Open. Fetched `origin/main` and confirmed
+it still equals `1c59592`. Roadmap commit `bb53b53` is published through
+`gh stack init --base main phase/p29a-maker-roadmap` and
+`gh stack submit --auto --open` as [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42).
+Independent `gh pr view` confirms OPEN, `isDraft=false`, base `main`, exact roadmap
+head `bb53b5325812ddec6b1100ea0e933edf1d069c7e`. Both status tables now record
+P29A Review/M10 In progress. CodeRabbit was still running at inspection; no new
+review approval or hosted test pass is claimed. No runtime tests,
+financial suites, builds or RPC/PostgreSQL run are needed or claimed for this plan;
+the hosted workflow excludes documentation-only changes. No new runtime benchmark
+is reported. Blockers: none for planning. Exact next action: present ready PR #42
+and the seven-PR plan; P29B is the proposed next step when execution is directed.
+
+
+## R079 — P29B canonical maker contract and independent reference (28 October 2026)
+
+The user authorizes proceeding through the accepted plan. D70 supersedes D69's
+planning-only boundary while preserving open stacked PRs and all external gates.
+Created `phase/p29b-maker-contract` with `gh stack add`, above P29A `ca14b86`.
+Inspected actual maker/registration/route/funding/whole-root admission code and
+retained the user research directories and stopped demo unchanged.
+
+Delivered [P29B's contract](P29B-MAKER-CONTRACT.md): exact profile-4 account layouts
+and quote/route/control ABI, fixed three-maker registry with unique capital,
+eight-region canonical pricing and integer inventory potential, reprice/shape/
+replenish authority, bounded-latest execution with strict security/shape/depth epochs,
+complete executable funding coverage and causal structural-update truncation.
+Retain schema-3 financial accounts, fees/insurance, risk and loss ownership. G22
+pins lookup-table provisioning, packet/search/CU envelopes and quantitative P32/P34
+workloads before measurements. No runtime instruction or activation is added.
+
+Added an independent Python reference and 26 scoped checks: literal notional
+vectors, separate per-lot evaluation, fragmented fills/round trips, region/capacity
+bounds, update/replenish races, whole-root negative/fractional claims and fees,
+Cartesian-versus-pair enumeration including nonprefix feasibility, complete funding,
+causal truncation, layouts and transaction-size envelopes. First run caught an
+incorrect hand-written three-maker expected total (4015 instead of4014); direct
+per-lot sums confirmed maker0+maker2 wins, and the literal vector was corrected.
+This was a reference expectation error, not a production behavior change.
+
+Actual working-tree checks: `python3 tests/financial/test_maker_curve_contract.py`
+passes26; `git diff --check`, `python3 ops/check-evidence-policy.py` and
+`bash -n ops/financial.sh` pass. The new suite is included in hosted financial
+regression; that broader suite was not rerun locally. No Rust/SBF/SDK builds,
+RPC/WS/PostgreSQL runs or performance/compute measurements are claimed: these
+remain the owning implementation phases' acceptance. Resource figures are a
+serialization-size model, not fetched transactions. No raw evidence was tracked.
+
+Candidate preparation checkpoint: pending exact committed rerun and publication.
+Blockers: none. Exact next action: verify the committed P29B candidate, publish its
+ready PR above #42, then implement P30 canonical curves and update/control paths.
+
+R079 pinned verification: candidate `b0c504a394a3b7b5a3fbd779088fa46825542d4b`
+passes all26 scoped Python tests, evidence policy, shell syntax and diff checks.
+The documentation check passes12 changed Markdown files,368 local link targets,
+balanced fences and all seven phase rows. A34B/G22 design/reference acceptance
+is complete and P29B enters Review; runtime feasibility and implementation remain
+P30–P34. No external test/CI result is inferred. Exact next action: submit the ready
+P29B PR above #42, verify its published head/base, then begin P30.
+
+R079 publication: `gh stack submit --auto --open` creates ready
+[PR #43](https://github.com/arnabnandikgp/rivalt/pull/43) above #42. Independent
+`gh pr view` confirms OPEN, `isDraft=false`, base `phase/p29a-maker-roadmap`,
+published head `cfea5192b0875266c2ff194c29b69679c63d478d`. No merge or CI/review pass
+is claimed. Both status tables record Review. Exact next action: branch P30 above
+this verified contract and implement the canonical curve/update module and parity.
+
+
+## R080 — P30 canonical arithmetic and native/SDK parity (28 October 2026)
+
+Continued directly after publishing P29B: `gh stack add phase/p30-canonical-maker`
+creates the dependent branch above `b4f43a4` / PR #43. Implemented checked canonical
+Rust arithmetic and bounded shape/request/response/config/price payloads in
+`maker-interface::canonical`, finite dual-clock expiry, owner/updater CAS publication
+and exact producer/return-byte validation. Legacy dispatch and all program handlers
+remain unchanged. Added SDK bigint quoting plus separate native/SDK wire drivers
+consuming the independent P29B reference expectations.
+
+Actual candidate checks: `cargo test --locked -p maker-interface canonical::tests`
+passes5; `cargo build --locked -p maker-interface --bin curve-reference-driver`
+passes; `pnpm exec vitest run packages/sdk/src/canonical-quote.test.ts` passes9.
+`python3 tests/financial/check_maker_curve_parity.py` passes2,884 vectors for each
+implementation (1,481 exact quotes and1,403 expected rejections). After splitting
+the CI entrypoints, both `--implementation rust` and `--implementation sdk` pass
+those same vectors. Focused `tsc` over the new SDK/test/driver, `rustfmt --check`,
+`git diff --check`, shell syntax and four `test_ci_scope.py` checks pass.
+
+Initial development failures were an unclosed Rust delimiter and using a serialization
+convenience method absent from the pinned Anchor/Borsh version. Fixed both; use the
+existing `AnchorSerialize::serialize` API. Neither failure reached a deployed program.
+The scoped crate build used cached dependencies; no new dependency or lockfile change.
+Available disk space is3.7GiB after the build; no database or raw evidence copy created.
+
+Configured hosted financial/client jobs for the relevant native/SDK parity and
+ensured maker-interface-only edits select the financial job. Broad regression is
+left to CI; no new hosted pass is claimed. No SBF build, generated ABI/legacy-client
+parity, Surfpool/RPC/WS/PostgreSQL check, resource measurement or deployment is
+claimed in this checkpoint. P30 stays In progress, not Review.
+
+Blockers: none. Exact next action: implement fresh profile-4 custody provisioning
+and actual maker account/control instructions, keeping all new trading gated, then
+prove generated ABI and signed local RPC/WS parity for the complete P30 lifecycle.
+
+
+## R081 — P30 on-chain lifecycle, generated ABI and size-based v1 transport (28 October 2026)
+
+Continued on `phase/p30-canonical-maker` above `ad179d4`, preserving the research
+directories and stopped demo. Implemented the profile4 custody-only entrypoint,
+fixed registry/capital binding, two canonical maker programs, scoped owner/delegate
+repricing and restricted controller shape/permission/mode lifecycle. Added explicit
+replenishment, module-independent quarantine and joint hash approval. New financial
+activation remains disabled. Structural operations reject active/held financial
+state; P32 must implement causal funding integration before allowing it.
+
+Build corrections: a registration stack frame exceeded the4,096-byte SBF limit;
+move complete decoded-config validation into an uninlined helper before writes.
+Six default/qualified SBF builds then pass with no stack-overflow diagnostics.
+Generated event types initially imported nested account types incorrectly; use
+separate discriminator-free payload structs and check byte parity. IDL generation
+and TypeScript checking now pass. No dependency/lockfile change.
+
+D71 follows the user's transaction-format instruction and explicitly supersedes
+mandatory ALT provisioning. Measured signed single-control1,222bytes (10 spare),
+initialization1,039, reprice460 and approval775 all fit v0. The genuine two-market
+atomic control pair is1,896 bytes in v0 (664 over),1,854 in v1,22 loaded keys.
+Surfpool accepts that v1 transaction; standard RPC fetch matches signed bytes and
+both decoders, with WS confirmation and629,056/800,000CU. Actual local evidence:
+`.local/canonical-maker/runs/20261028T163536Z-61219/transaction-85.json`, original
+signature`5sQ4ifM3Wbszz1a2Cyg4B9NUHS68NunWhpCjfQ6g3akbdA1hVHjqS5hJeai7BuhDxJVnNvZjuyXxh18A8rtaYcjP`.
+This was a dirty-tree development run based on`ad179d4`, not final phase acceptance.
+
+Actual checks: `cargo test --locked -p maker-interface canonical::tests` passes7;
+clearing `instructions::maker_liquidity::tests` passes4 both default and combined
+`maker-liquidity-qualification,account-safety-qualification`; focused Vitest passes9
+quote and5 transport cases. The26 Python contract checks pass. Both `sbf-a` and
+`sbf-b` selections in `check_maker_curve_parity.py` pass2,884 independent cases each:
+1,481 exact quotes and1,403 expected rejections. The signed compiled lifecycle
+passes123 cases/16 rejections with6,000,000 test-collateral atoms reconciled across
+six isolated accounts and the real vault. Isolated legacy Anchor matches104
+instruction encodings/metas across16 APIs and20 actual account decodes; RPC event
+parity remains pending. Full TypeScript, generation check, shell syntax and evidence
+policy pass. No full matrix or unrelated inherited financial suite ran; broad
+regression stays in CI, with no hosted pass claimed.
+
+Development RPC failures were (1) a fixture registering makers before both markets
+existed, (2) an eight-region positive-spread quote anchored at the global maximum
+price, correctly rejected by marginal bounds, and (3) a test incorrectly expecting
+shape replacement to invalidate the anchor. Correct the fixtures: initialize both
+markets, use900,000 anchor with independently summed marginals, and reject the old
+shape-bound request as specified. The implementation/economic contract did not
+change to satisfy these expectations. Fast SBF execution now validates the entire
+corrected lifecycle before another RPC run.
+
+The RPC run also exposed WS `err:null` for a finalized rejected transaction. Retain
+that discrepancy; WS only triggers authoritative finalized fetch. Failed signed
+transactions must remain rejected and preserve all tracked state; do not treat the
+notification as success. Full corrected RPC/event acceptance is next, not claimed.
+Raw logs/transactions remain local; no archives/database copies. Available disk
+was2.0GiB at the last check. No external access blocker; only remaining phase checks.
+
+User steering: stop after opening the ready P30 PR; do not start P31. Exact next
+action: commit the coherent candidate, run the corrected pinned RPC/WS and event
+parity gate, record its actual measurements, then submit P30 above #43 and stop.
+
+
+R081 pinned candidate preparation: committed implementation at
+`2d6fcddeaef59b638eb4d897563e81a1c0e91aef`. Rebuilt all six artifacts and generated
+IDL/SDK from that clean tracked tree; no changed generated files. Before final RPC,
+add a post-simulation signature-subscription acknowledgement and fresh log cursor
+so simulation notifications cannot satisfy the landing check. Preserve both log
+and signature WS payloads alongside authoritative fetched status. This is a
+qualification-harness correction, with program sources/artifacts unchanged.
+Exact next action: run the pinned full RPC/WS/event parity check, publish P30 and stop.
+
+
+R081 final acceptance: clean tracked RPC revision
+`e9ee447c99fa7913bfb0be328674a7375e867995`, with identical program/SDK sources to
+clean artifact build`2d6fcdd`, passes all123 signed/finalized/fetched scenarios
+(107 successes,16 expected rejections). The post-simulation WS barrier observes
+123 log and123 signature notifications. All signature statuses agree with finalized
+RPC; all16 rejected log hints misleadingly report`err:null`. Raw failed statuses,
+logs and unchanged-state assertions are retained, never applied as success.
+Isolated Anchor matches104 instruction encodings/metas across16 APIs,20 actual
+account decodes and78 committed events. See [P30 report](evidence/P30.md) for exact
+byte/CU/latency/fee populations and artifact hashes. Raw evidence remains at
+`.local/canonical-maker/runs/20261028T165549Z-69894/`.
+
+Final coverage audit added288 one-sided/reduce-only/consumption reference vectors;
+Rust, SDK and both actual SBF evaluators each pass3,172 total (1,547 quotes and
+1,625 rejections). This only expands the test generator; it does not change the
+program, SDK or RPC harness tested above. The unchanged scoped SDK suite passes14
+on the pinned source. Both status tables now record P30 Review, never Closed.
+Broad CI, PostgreSQL, routing, financial activation and wallet compatibility were
+not run or claimed; they are outside P30. P15B/P16B and deferred24h remain unchanged.
+Exact next action: commit the final report/coverage addition, submit the ready P30
+PR above #43, verify its base/head/non-draft state, record publication and stop.
+
+
+R081 closeout checks: the scoped new Rust files pass`rustfmt --check` after moving
+one import into canonical order; this is formatting only, with no executable
+change. The final follow-up contains reference-vector coverage, affected specs and
+report/status updates. Runtime evidence remains pinned to the recorded build and
+RPC revisions; no repeat deployment is required for an import-order/doc-only edit.
+
+
+R081 publication: `gh stack submit --auto --open` creates ready
+[PR #45](https://github.com/arnabnandikgp/rivalt/pull/45) above #43 in stack#44.
+Independent `gh pr view` confirms OPEN,`isDraft=false`, base
+`phase/p29b-maker-contract`, head`phase/p30-canonical-maker` at
+`0d067791e8d800fe65d1ff028fd7e7e2d930c11d`. The title/body now describe the complete
+P30 implementation, acceptance, WS limitation and remaining financial gates.
+Both status tables retain Review; no merge, hosted CI pass or external review is
+claimed. Local test validator was stopped by its owned-process trap; user demo
+remains stopped. Exact next action: answer the user's questions; do not begin P31.
+
+## R082 — P31 authenticated discovery and exact allocation (28 October 2026)
+
+- User resumes P31–P34 after the P30 stop/discussion. Create `phase/p31-canonical-router`
+  through `gh stack add` above exact P30 `b7e76e3` / ready PR #45. Preserve all three
+  unrelated research paths. D72 records the resume and separate 48-key RPC discovery
+  bound; both status tables mark P31/M10 In progress.
+- Implement authenticated three-instance canonical adapters, coherent profile-4
+  discovery, exhaustive singleton/pair allocation and shared whole-account
+  funding/risk/reservation admission. Preview only; no program/financial activation.
+  Extract existing real provisioner/transport for scoped P31 quote acceptance.
+- Development checks: 27 focused adapter/allocation cases and 415 independent
+  exhaustive reference cases pass (198 allocated, 145 unavailable, 72 rejected).
+  Initial fixture import/type annotations were corrected; final affected reader
+  regression, clean runtime and full-width search measurements remain pending.
+- New raw evidence will remain local/ignored. P30 binaries and qualifications are
+  unchanged. No PostgreSQL, browser, whole financial suite, devnet or endurance run:
+  these do not test P31's changed preview interfaces; broader SDK regression is in
+  CI, not claimed run here. No new PR or A36/G24 completion yet; no external blocker.
+- Exact next action: pin this coherent implementation, run the scoped real
+  Surfpool adapter comparisons and 1,000-search latency gate, then record results
+  and publish the ready P31 PR above #45 before continuing P32.
+
+R082 pre-runtime correction: a late extra check incorrectly expected a stored bump
+in `CapitalBindingV3`, whose 106-byte layout intentionally has no bump field. The
+positive adapter cases exposed it before runtime qualification. Remove that field
+assumption and retain canonical PDA derivation plus exact owner/layout/venue/
+capital/registration checks. Final typecheck and 44 focused SDK cases pass. The
+415-case independent comparison still matches; no program artifact changes.
+
+R082 pinned development observations on `79a8578`: the first 1,000-search stress
+run (half maximum-composition Q=4,097, half maximum-request Q=4,608) records
+p95 37.649ms / p99 42.964ms, max 12,288 compositions/quotes/trader checks on Apple
+M3/Node24.22.0. Retain `.local/canonical-maker/p31/search-79a8578.json`; tighten the
+final G24 benchmark to **all 1,000** at maximum-composition width, and retain a
+separate literal maximum-request regression rather than claim mixed-width runs
+satisfy that wording. The first RPC attempt reaches 38 real finalized setup/reprice
+transactions, then rejects the snapshot because an added assertion requires Clock
+slot≤reported context. R019 already documents Surfpool's lagging commitment context.
+Preserve actual Clock and monotone reported RPC context independently, retaining
+on-chain expiry rules; add a regression. Raw attempted evidence remains at
+`.local/canonical-maker/runs/20261028T175501Z-87682`; it is not A36/G24 acceptance.
+Typecheck and 46 focused tests pass after that correction and two additional
+maximum-size/index-band regressions. Final clean RPC and worst-width benchmark
+remain the exact next action, with no program binary change or external blocker.
+
+R082 strict search gate passes on clean `f9a70c3`: all 1,000 measured searches use
+Q=4,097 and eight regions/full books, with buy/sell and funded/unfunded traders.
+p95=36.956ms, p99=45.960ms, maximum=51.113ms; all maximum work counters reach12,288.
+Report: `.local/canonical-maker/p31/search-f9a70c3.json`. The second RPC attempt
+(`.local/canonical-maker/runs/20261028T180050Z-89308`) authenticates the real 31-key
+batch (reported context2267, actual Clock2268) but a harness deep-object assertion
+compares `Buffer` with `Uint8Array` discriminator containers. Their bytes agree;
+replace that assertion with exact encoded-account bytes versus independently
+fetched raw bytes. No production reader/pricing/risk change follows. Preserve the
+38 actual finalized setup/reprice transactions as partial evidence, not a passed
+RPC gate. The final scoped RPC retry is the next action; search need not rerun for
+this test-only byte-comparison correction.
+
+R082 acceptance closeout: A36/G24 passes on clean runtime `2fda67b` and clean search
+`f9a70c3`. The real offline Surfpool run at
+`.local/canonical-maker/runs/20261028T180430Z-90147` finalizes all73 signed outcomes,
+including24 authenticated SDK/literal/program quote comparisons across six real
+maker instances/two markets. All73 log and73 signature WS observations agree with
+independently fetched finalized results and exact original bytes. Pure quotes are
+462bytes /28,093–29,162CU; largest setup transaction1,039bytes; minimum headroom
+33.62225%. The31-key actual discovery batch retains Clock one slot ahead of RPC
+context. No financial trading is enabled. The complete P30 binaries retain their
+recorded hashes; no historical test count substitutes for these new outcomes.
+
+All47 focused SDK checks and415 independent oracle cases pass on `2fda67b`.
+The final reference-driver cleanup sends financial integers as decimal JSON
+strings; its scoped415-case recheck also passes. Maximum-request literal, index
+band/minimum-notional and actual-Clock regressions are included. The strict1,000-run
+search gate remains unchanged by that test-only wire cleanup. [P31 evidence](evidence/P31.md)
+records all pins, measurements, failed attempts and limitations. Both tables now
+mark P31 Review/M10 In progress; ready PR publication pending. Affected protocol,
+component and validation documents agree. Broad inherited checks belong to CI;
+no unrelated suites, PostgreSQL/browser/devnet/deployment/endurance claims.
+Exact next action: publish ready P31 above #45 with `gh stack submit --auto --open`,
+then create P32 above its exact head and implement the qualification-gated execution
+and complete-coverage funding path. P15B/P16B remain Open; 24-hour endurance Deferred.
+
+R082 publication: `gh stack submit --auto --open` creates ready PR #46 above
+`phase/p30-canonical-maker` / #45, with exact submitted head `17d45a3`. GitHub
+confirms OPEN and `isDraft:false`; stack #44 contains #42 → #43 → #45 → #46.
+All remain open. P31/M10 status is Review/In progress; CI outcomes are not assumed.
+319 local Markdown links, eight fence balances and `git diff --check` pass for
+closeout. No additional runtime was needed for evidence/publication-only changes.
+Exact next action: create P32 above the P31 publication commit and implement the
+qualification-gated clearing/funding integration and A37/G25 checks.
+
+## R083 — P32 bounded funding-search preparation (28 October 2026)
+
+- Create `phase/p32-liquidity-execution` using `gh stack add` above exact ready P31
+  head `28d5dd0` / PR #46. Both tables mark P32/M10 In progress; all four predecessor
+  PRs remain open. Read P29B transitions, wire/funding/budget contract and current
+  shared route/risk/order/oracle/activation/safety boundaries before implementation.
+- Add the allocation-free `QuoteLadderV4`: one validated shape, exact marginal
+  region/potential increments, sticky invalid-prefix rejection and independent
+  capacity. This optimizes mathematical prices only; it does not infer monotone
+  maker health. Add pure three-maker single/pair sampling over admitted quantities,
+  explicit deterministic ties and one-side14,424-byte scratch representation.
+- Development checks on the prepared tree: three targeted maker-interface tests,
+  four targeted financial-core tests, actual native consecutive-quote comparison
+  against3,172 independent vectors (1,547 quotes/1,625 rejections), and642 independent
+  exhaustive sampling allocations all pass. Actual commands: `cargo test --locked
+  -p maker-interface canonical::ladder --lib`, `cargo test --locked -p financial-core
+  liquidity:: --lib`, scoped native-driver builds, `check_maker_curve_parity.py
+  --implementation rust-ladder`, and `check_liquidity_sample.py`. Logs are retained
+  locally under `.local/canonical-maker/p32/`; no raw evidence enters Git.
+- [P32 implementation](P32-LIQUIDITY-EXECUTION.md) records the remaining route/CPI,
+  full-coverage funding, causal controls, shared safety and qualified activation,
+  actual RPC/WS/PostgreSQL audit and predeclared comparison workload. These helpers
+  are not wired to public financial instructions; no P32 runtime, CU, total heap,
+  activation or A37/G25 completion is claimed. Native scratch size is not SBF
+  resource acceptance. No unrelated inherited suite, new deployment or endurance
+  run; no external blocker. Exact next action: pin the native helpers, then add
+  authenticated V4 clearing quote views and complete per-quantity maker admission.
+
+R083 pinned follow-up: clean `5c5f1dd` repeats the three ladder/four sampling
+native checks, 3,172 independent ladder vectors and 642 exhaustive allocations,
+all passing. Logs retain the tested pin in `.local/canonical-maker/p32/`.
+
+## R084 — P32 authenticated pricing, maker admission and causal funding (29 October 2026)
+
+- Continue the same local P32 branch above #46; preserve all four open ready PRs
+  and untracked user research. Add exact capital/registration/code/config/price
+  authentication, read-only canonical CPI comparison and complete three-input
+  impact preparation. Every positive quantity uses actual whole-root maker funding,
+  the shared route's order/generation/reservation refresh and admission. No assumed
+  healthy prefix, synthetic trader, taker fee or consumption mutation.
+- Factor the one-side checked fill arithmetic from the existing paired fill so
+  funding admission and execution share it. Add independent literal non-prefix,
+  fractional debt and full-order-book checks. Quantity-one price validation is
+  separate from post-fill admission; later invalid mathematical prefixes do not
+  erase earlier valid quantities. Valid zero-capacity inputs still authenticate.
+- Add native causal sample/control candidates. D73/P29B records materializing the
+  old valid interval before a failed new sample, publication-bounded held funding,
+  recovery restart after a coverage gap, and exact covered/skipped accounting for
+  repeated controls. Source observations and V1–V3 behavior are preserved. Frozen
+  mode and old slot/catchup limits remain enforced.
+- Actual prepared-tree checks: `cargo test --locked -p financial-core --lib --test
+  economics --test margin --test cross_core` passes 31 tests; affected liquidation
+  and margin-safety files pass 11. `cargo test --locked -p maker-interface
+  canonical:: --lib` passes 11; `cargo test --locked -p clearing maker_liquidity::
+  --lib` passes 10, including four literal funding and two actual admission tests.
+  Native `cargo check --locked -p clearing --lib` passes for pricing/impact helpers;
+  unused-helper warnings are expected while entrypoints are unwired. No SBF, CU,
+  total heap or integrated acceptance inferred from native results.
+- Raw logs remain in `.local/canonical-maker/p32/`. No public financial instruction
+  is newly enabled, no deployment or database copy is created, and no unrelated
+  inherited suite or 24-hour run is executed. Both tables retain P32/M10 In progress;
+  P15B/P16B Open. No external blocker. Exact next action: wire the gated complete
+  sampler and structural controls, then current-state atomic/stored-order routes
+  and the shared safety boundary before A37/G25 runtime qualification.
+
+R084 continued implementation: checkpoint `9739e1c` records the pricing/admission/
+causal helpers above. Wire separate `initialize_liquidity_oracle_v4` and
+`sample_liquidity_v4` handlers, the exact extended oracle event and generated SDK.
+Structural controls now close held funding in the new candidate feature only;
+legacy/default/custody profiles retain their prior gates and profile4 still cannot
+activate trading. Twelve focused clearing tests pass in the candidate and default
+builds; native candidate check, Anchor IDL build, generation and TypeScript checking
+pass. A test initially used unsupported `try_to_vec`; explicit `serialize` fixed
+that test-only compile error before the successful IDL/native runs.
+
+The initial SBF builds reject sampler frames (estimated5,056 then4,864 bytes).
+Separate decoding/admission construction and side-search boundaries produce safe
+compiled artifacts; the second failed log remains
+`.local/liquidity-execution/sbf-attempt-2.log`, and subsequent full build attempts
+have unique local logs. First resource probe on the dirty prepared tree above
+`9739e1c`, `.local/liquidity-execution/runs/20261028T190442Z-7610`, finalizes45 signed
+provisioning/source/publication transactions with fetched-byte/WS agreement. The
+next100-lot sampler serializes to1,101-byte v0 but its simulation exhausts1.4mCU;
+it is **not broadcast** and is not a successful sample. Existing P30/P31 binaries
+remain untouched. No PostgreSQL instance/copy or financial trading activation.
+
+Optimize fixed reservation preparation rather than reducing coverage or risk:
+the existing reservation function now shares validated `ReservationRate` terms;
+search reuses those terms and scalar fill/risk arithmetic without full root/book
+copies per quantity, then rechecks selected legs through the complete route path.
+Three focused admission tests pass, including103,680 comparisons against the full
+route across both markets, funding, cash, fractional claims, partial orders,
+expiry/delegation and protection. Two independent order-reservation tests pass;
+TypeScript checking passes. Build/resource remeasurement is pending. The probe now
+provisions only BTC makers, retaining both market identities, to avoid irrelevant
+ETH maker setup for this diagnostic. No A37/G25, CU headroom, full-book, integrated
+or hosted-CI pass is claimed. Exact next action: measure the optimized sampler at
+100 and600 lots under the unchanged1.4mCU/default32KiB limits, then finish atomic/
+stored-order execution and shared safety before full phase qualification.
+
+R084 resource follow-up: clean SBF build/probe `db2628f` at
+`.local/liquidity-execution/runs/20261028T191745Z-11673` finalizes30 setup/source/
+publication transactions. The100-lot sample reaches the selected buy quote but
+still exhausts1.4mCU in simulation, before completing both sides; it is not sent.
+The reservation optimization improves progress but does not close the gate.
+
+Add checked prepared isolated-risk projection (same funded cash plus negative
+claim, exact per-position IM ceiling and shared generation transition) and avoid
+repeated allocation tie-vector scans by visiting in the complete agreed tie order.
+Every selected leg still runs the full route transition/book/admission. Scoped
+financial-core command `cargo test --locked -p financial-core --lib --test economics
+--test margin --test orders --test liquidation --test margin_safety` passes40 tests,
+including literal fractional/ceil expectations and1,650 extreme-bound comparisons.
+The initial boundary test's expected population was miscounted as3,300; all numeric
+comparisons passed, and correcting that count to1,650 fixes the test-only failure.
+All13 focused clearing cases pass, including103,680 full-route equivalence cases;
+`check_liquidity_sample.py` passes642 independent exhaustive allocations after the
+tie-order optimization. Logs remain under `.local/canonical-maker/p32/`.
+
+Growing prepared records exposes another SBF call-frame violation in impact
+preparation; a separate `prepare_inputs` frame resolves it. The latest candidate
+SBF build passes without frame warnings; record it as prepared-tree evidence,
+not a clean runtime acceptance. Complete unique build logs are retained under
+`.local/liquidity-execution/`. Both tables retain P32/M10 In progress. Actual routes,
+orders, shared safety, integrated PostgreSQL and the comparison workload remain;
+no unrelated broad checks, external services, fresh database copies or endurance.
+Exact next action: pin and measure this prepared-risk candidate's100/600-lot
+sampler resource probe; optimize further if it fails, without weakening G22/G25.
+
+R084 latest resource result: clean build/runtime `478613a`,
+`.local/liquidity-execution/runs/20261028T193112Z-17106`, again finalizes30 preceding
+setup/source/publication transactions. The100-lot sample now reaches the sell-side
+search, then reports `memory allocation failed, out of memory` at1,201,380 simulated
+CU. It is not broadcast; there is no successful sample or20% headroom claim. This
+is the first measured heap failure, in addition to the earlier compute failures.
+The user's explanation questions are answered: this is periodic funding sampling,
+not a trader route or per-curve collateral reservation; existing pending-order
+reservations are only one part of the financial admission check.
+
+Replace retained duplicate root boxes in sampler admission with references to the
+already-loaded capital and short-lived scalar stack adapters. Preserve the existing
+boxed adapter for other callers and its exact fields/validation. All13 scoped
+maker-liquidity native cases pass, including103,680 projection/full-route comparisons.
+The affected account-trading adapter tests and safe-SBF build are pending at this
+checkpoint; no memory savings or runtime pass is claimed without measurement.
+P32/M10 remain In progress, all predecessor PRs remain open, P15B/P16B stay Open
+and24-hour endurance Deferred. Exact next action: complete the borrowed-capital SBF
+check and measure the sampler again, addressing remaining per-quantity compute
+and heap costs before wiring routes or claiming A37/G25 acceptance.
+
+R084 borrowed-capital checkpoint: all seven affected `instructions::account_trading::tests`
+pass, including adapter identity/schema and whole-account financial expectations.
+`bash ops/build-liquidity-execution.sh` passes for the prepared tree without unsafe
+SBF-frame diagnostics. No real sampler retry is run for this last heap change yet;
+100/600-lot compute, default-heap fit, full books and final financial paths remain
+unqualified. Source changes retain exact V3 account bytes/validation and ordinary
+boxed callers. Save the scoped logs locally; commit this coherent checkpoint.
+Both status tables remain unchanged in classification: P32/M10 In progress with
+failed resource acceptance. Exact next action: run the borrowed-capital sampler
+probe and use its measured stage costs to remove remaining repeated per-quantity
+work before enabling or qualifying any new trading path.
+
+
+## R085 — P32 published-liquidity funding amendment (29 October 2026)
+
+- User explicitly selects published curve depth for impact pricing, trusting maker
+  funding capacity for now; D74 supersedes funding-only financial admission. Keep
+  full execution risk/order checks, authenticated complete coverage, freshness,
+  declared depth/inventory caps, independent price bounds and causal funding.
+  Temporary exclusion after repeated economic failures is deferred.
+- Remove maker hypothetical funding/cash/claim/IM/reservation evaluation and selected
+  financial rechecks from the sampler. Keep its price checks/CPI authentication and
+  existing instruction/event layouts. Retain prior financial projection comparisons
+  as test-only regression code. Update protocol/component/validation/roadmap/contract
+  records together; no old measured result qualifies this changed contract.
+- Prepared tree above `5e69e6d`: scoped `cargo test --locked -p clearing --features
+  liquidity-execution-qualification --lib instructions::maker_liquidity` passes15
+  cases, including published zero-cash depth versus actual financial rejection,
+  literal price-band boundaries, consumption/reduce-only limits and prior103,680
+  projection comparisons. `python3 tests/financial/test_maker_curve_contract.py
+  FundingContract` passes4 independent cases. `pnpm typecheck` and `git diff --check`
+  pass. Logs are local; no full inherited
+  suite, PostgreSQL, CI or endurance run is claimed.
+- Extend the scoped RPC harness with real owner-signed withdrawals of all three
+  makers' funds and unchanged publication sampling. Save fetched transaction
+  evidence before resource assertions so a landed over-budget outcome cannot lose
+  its independent RPC record. Runtime test is pending, not passed.
+- Both status tables keep P32/M10 In progress. No external blocker; all predecessor
+  PRs stay open, P15B/P16B Open,24-hour endurance Deferred. Exact next action: pin
+  this change, build candidate SBF and measure the100/600-lot published-depth probe
+  under the unchanged resource ceilings, then record actual outcomes before
+  continuing P32 execution/safety/integration.
+
+R085 runtime result: clean `2a93394` candidate build passes safe SBF checks. The
+scoped Surfpool probe at `.local/liquidity-execution/runs/20261028T201121Z-29627`
+finalizes30 setup/source/publication transactions, then successfully simulates,
+lands and independently fetches the100-lot sampling transaction at1,334,329CU,
+1,101 bytes v0,29 unique static accounts. Signature:
+`5zkqnkyDdLyABEVRPLVGASkJHAgV514jUFpNyTQTUKufUavqPtTrSjXHEU1RBZLPxhrAHSnqjBnuoqCCZGYztTWi`.
+The transaction succeeds but exceeds the1,120,000CU headroom target. The harness
+stops at that resource assertion before its binary/WS parity checks,600-lot case,
+zero-cash withdrawals, expiry cases or overall summary; none are reported passed.
+The owned runtime exits through its cleanup trap. No full-books or scaling pass.
+
+A targeted offline check of the independently fetched successful event verifies
+literal quantity100, bid5,999,900, ask6,000,300, premium1e9, three inputs and one leg
+per side. Generated SDK and the isolated legacy Anchor client agree on that actual
+event; `landed-event-check.json` records it. This is event parity, not completed
+transaction binary/WS qualification. The logs bound530,849CU before the first quote
+CPI,237,366CU inside eight quote CPIs, and566,114CU elsewhere. Those are stage
+boundaries, not an isolated hash/financial-cost profile; the remaining sampler
+contains no hypothetical maker financial admission. Removing that work alone does
+not solve the resource problem. Raw build/RPC/native/typecheck logs remain local
+under `.local/liquidity-execution/d74/`; unchanged generated ABI needs no regeneration.
+Changed Markdown fences and326 local links pass; `git diff --check` passes.
+
+Both tables retain P32/M10 In progress. No remote PR publication, CI, full
+PostgreSQL/financial execution or endurance is claimed. Exact next action: profile
+and reduce the remaining authenticated price-search overhead, then rerun the
+100/600-lot published-depth resource gate without restoring financial sampling
+checks or weakening execution/source/identity safeguards.
+
+
+## R086 — P32–P34 restricted publisher delivery amendment (29 October 2026)
+
+- The user accepts the proposed restricted backend funding publisher and asks how
+  it fits the active phases. D75 and [the delivery contract](P32-FUNDING-PUBLISHER.md)
+  keep the existing phase IDs and PR stack. P30/P31 remain reusable for canonical
+  pricing/snapshots and trader routing. Update the earlier funding contract by
+  explicit supersession inside P32, without claiming it was already implemented.
+- P32 now freezes report/configuration layouts, authority and causal transitions,
+  builds the real snapshot/calculation/publisher client plus bounded report handler,
+  then completes its existing trading/safety/RPC/WS/PostgreSQL and continuation
+  acceptance. Do not postpone the essential off-chain producer until P33. P33 owns
+  durable service recovery, provenance, operator/SDK/indexer/UI integration; P34
+  owns final comparative cost, contention, coverage and incident qualification.
+- Retain two-second publication initially, independent index/risk prices, bounded
+  causal funding, full execution financial admission and unchanged fees/insurance.
+  Maker snapshot completeness and aggregate correctness become explicit publisher
+  attestations, not on-chain proofs. Signer rotation/revocation, replay/configuration
+  invalidation and input audit retention are required. Automatic failure-based
+  exclusion remains deferred. No new deployment, external participant or endurance.
+- Documentation-only change above `a6d6188`; existing code still implements D74.
+  No publisher runtime/benchmark/financial test is claimed. Validate changed local
+  Markdown links/fences, phase ownership and `git diff --check`: all pass, including
+  398 local link targets and both current status rows. No Rust/TS/full
+  regression, Surfpool, PostgreSQL or CI run is needed for this planning amendment.
+  Both tables retain P32/M10 In progress; predecessor PRs stay Review/open and
+  P33/P34 Open. P15B/P16B Open and24-hour endurance Deferred are unchanged.
+- No external blocker. Exact next action: freeze the P32 publisher configuration/
+  report layout, authority/expiry/replay/structural-control transitions and reduced
+  resource target before implementing the real producer-to-clearing flow.
+
+
+## R087 — P32 restricted publisher implementation and resource probe (29 October 2026)
+
+- Freeze D76 before measurement:140-byte configuration,203-byte report payload,
+  market/domain/authority/sequence and observation/config/terms fences, two-second
+  observation age, six-second/150-slot maximum hold, explicit unavailable outcomes.
+  Venue authority rotates/revokes the signer; controls close the previous causal
+  interval. Clearing independently reads all four sources, derives risk bounds,
+  checks reference quantity/price bands and applies the unchanged funding cap.
+  The old sampling instruction now rejects. New financial execution stays disabled.
+- Implement the real coherent SDK producer: discovery chooses keys, one final RPC
+  batch supplies Clock, sources, all makers/config/price/capital/code and publisher
+  state. Authenticate complete coverage and enumerate exact one/two-maker published
+  prices off-chain, with deterministic ties and no hypothetical financial admission.
+  Digest references ordered raw inputs; it is not an on-chain proof. Add generated
+  configuration/report/event codecs and a scoped actual-RPC/WS authority/resource
+  harness with local input retention. P33 durable worker/indexer recovery is separate.
+- On the candidate above`964c938`: scoped`cargo test -p clearing --locked --features
+  liquidity-execution-qualification maker_liquidity::publisher` passes6 tests;
+  `maker_liquidity::funding` passes4 causal cases. Independent literal vectors in
+  `pnpm exec vitest run packages/sdk/src/funding-publisher.test.ts` pass6 cases,
+  including100/600-lot optima, disconnected quantities, no third leg, source rules
+  and digest mutations. Regenerate clearing IDL with pinned Anchor and`pnpm generate`;
+  `pnpm typecheck` passes. No unrelated inherited regression, CI, PostgreSQL,
+  financial execution or endurance is claimed. Earlier native fixture expectations
+  were corrected for schema/profile and slot-expiry rules; the rules were preserved.
+- Publisher budget is fixed before runtime:200,000 submitted CU,≤160,000 measured,
+  ≤20 loaded keys, default32-KiB heap. These are targets, not measured results yet.
+  Test logs are local under`.local/liquidity-execution/publisher/`; raw evidence
+  remains ignored. Reclaimed580MiB only from rebuildable`target/debug/incremental`
+  after free disk fell to~1GiB; no database/evidence/key files were deleted.
+- Both tables retain P32/M10 In progress. No P32 PR exists yet; predecessor PRs
+  remain open/Review, P33/P34 Open, P15B/P16B Open and24-hour endurance Deferred.
+  No external blocker. Exact next action: build the pinned publisher candidate and
+  run`bash ops/funding-publisher-smoke.sh` to measure real signed100/600-lot reports,
+  authority/replay/control/unavailability failures and independent fetched ABI/WS parity.
+
+
+R087 runtime follow-up: clean`94e0645`SBF build passes the stack-frame scan;
+`.local/liquidity-execution/runs/20261029T103257Z-81719` records32 finalized
+RPC/WS transactions. Publisher initialization succeeds at29,380CU/537bytes;
+the retired sampler rejects with6131 at37,208CU and leaves state unchanged.
+No price report is sent: the new client incorrectly required Clock.slot≤RPC
+context.slot. A separate10-read owned Surfpool diagnostic records Clock consistently
+one slot ahead of context in the same batch (`publisher/clock-probe/results.json`).
+Remove this extra, uncontracted comparison; retain monotonic RPC context checks,
+actual Clock observation fences and all on-chain future/age/expiry checks. This is
+not an oracle-age or risk-policy relaxation. The owned runtimes are stopped.
+Exact next action: rerun the corrected client against the unchanged pinned SBF
+artifacts and finish the scoped publisher resource/authority/parity probe.
+
+
+R087 second probe: clean client`9129bda`with unchanged`94e0645`SBF artifacts,
+`.local/liquidity-execution/runs/20261029T103745Z-83030`. Seven reports land and
+match independent expected prices:100lots30,511CU;600lots/zero-cash30,571CU;
+all report packets871bytes/v0 with14 loaded keys. Publisher controls measure
+22,699–22,704CU; initialization29,380CU. Rotation/revocation/replay, wrong market/
+domain/time/quantity, stale structural-control reports and unavailable source/
+zero-cap publication checks pass.80 transactions complete fetched-byte/RPC/WS
+checks. The81st lands successfully but fails the unchanged400k-control/320k
+headroom gate at337,446CU, before the final insufficient-depth report and legacy
+parity finish. Do not call the entire probe passed or claim its final summary.
+
+Inspecting the control handler finds it derives the same three PDAs and revalidates
+all identities after an already authenticated CPI. Preserve its complete pre-CPI
+code/hash/identity/shape validation, read-only price account and full expected-state
+comparison; replace only redundant post-CPI reauthentication with owner/layout/
+non-executable checks and equality against EVERY field of the expected next curve.
+A scoped native test flips every one of691 serialized bytes and also tests foreign
+owner, executable flag and length: all invalid outputs reject. The single-control
+budget remains400k, not raised. Exact next action: pin/build this optimization and
+rerun the scoped publisher/control resource probe to completion.
+
+Additional scoped publisher cap case passes in both signed directions (the allowed
+10% price envelope still clamps funding to±50bps of index). Publisher native suite
+now has7 passing tests; with4 causal and1 complete-control-result check,12 scoped
+native tests have passed. No ABI changed in this optimization, so unchanged
+IDL generation/typecheck and unrelated financial suites are not repeated.
+Free space subsequently fell below200MiB; after the native checks completed,
+remove only rebuildable`target/debug`(~1.7GiB). Preserve all evidence, keys,
+configuration, databases, deploy/SBF artifacts and unrelated work.
+
+
+R087 final scoped outcome: clean source/build`4f4e47d6a2555c7858fd98ba723737b2a9f93200`
+passes`bash ops/build-liquidity-execution.sh`and`bash ops/funding-publisher-smoke.sh`.
+Raw`.local/liquidity-execution/runs/20261029T104949Z-86844/summary.json`and the
+[tracked concise evidence](evidence/P32-PUBLISHER.md) record84 signed RPC/WS outcomes
+(75 success/9 expected rejection),8 accepted reports and independent legacy parity
+for75 instructions/2 accounts/73 events. Reports measure30,511–30,571CU for the
+100/600-lot available cases,871bytes/v0,14 keys; init29,380CU and authority changes
+22,699–22,704CU. These all meet200k submitted/160k measured/20-key gates. Published
+zero-cash depth is observed after real SPL withdrawals; no successful trade is
+fabricated. Final unavailable-depth case completes. Maker shape controls now
+measure296,374–318,874CU under the unchanged320k headroom ceiling; the remaining
+1,126CU margin at the maximum is a measured limitation, not active/full-book proof.
+All9 expected rejections retain Surfpool's known misleading log-WS status; fetched
+finalized errors and unchanged state control acceptance. No lookups or extra heap.
+
+IDL compatibility check confirms all existing instruction/account/event/type/error
+definitions remain unchanged. New publisher definitions alone are added.331 local
+Markdown targets/eight documents' fences and`git diff --check`pass. No unrelated
+regression/CI/PostgreSQL/endurance run is claimed. The owned Surfpool runtime is
+stopped. Both tables remain P32/M10 In progress, with no P32 PR yet; predecessors
+remain open. P15B/P16B and deferred24-hour endurance stay unchanged. Exact next
+action: implement the gated one/two-maker current-price route and stored-order
+adapters against the existing whole-account financial engine, preserving structural
+fences, actual maker admission, consumption, fee carry and atomic rollback.
+
+## R088 — P32 canonical financial execution and safety integration (29 October 2026)
+
+- Implement P29B immediate/stored-order current-price handlers, exact structural
+  fences, fixed read-only maker CPI, full whole-account financial admission,
+  consumption and atomic fee/insurance/order commit. Add the actual-leg event and
+  SDK builder preserving caller limits. Borrow event roots instead of duplicating
+  full books. Extend isolated Anchor parity to nested account groups and option
+  arguments; retain unchanged legacy instruction/account/event/type definitions.
+- D77 records explicit candidate-only safety activation and shared financial
+  instruction reuse. Require all32 precreated pages and the existing complete
+  fresh-market qualification; legacy A/B route/sampling/initial activation stays
+  profile3-only. Order authority, funded exits, liquidation, complete resolution,
+  recovery and retirement use the existing accounting engine under the new gate.
+- Candidate above`b471632`: scoped native`maker_liquidity::routes` passes6 cases:
+  literal two-maker balances/claims, exact post-fee margin boundary, unfunded
+  second maker, whole-account funding, structural/consumption fences, stored fee
+  prefixes13+12=25, insurance6/protocol19/carry1 and borrowed event parity.
+  `account_trading::activation` passes2 cases with the candidate feature and2
+  with`--no-default-features`. Focused Vitest route/builder and legacy conformance
+  passes4 cases, covering7 independently encoded instruction variants. Earlier
+  SDK fixtures omitted cross eligibility; corrected fixtures without relaxing rules.
+- Pinned Anchor IDL regeneration,`pnpm generate`,`pnpm generate:check`,
+  `pnpm typecheck`and`git diff --check`pass. Logs and semantic ABI compatibility
+  report remain local in`.local/liquidity-execution/routes/`. Old definitions are
+  unchanged; add3 instructions,1 event and5 types. Native event-test helper was
+  corrected to use the pinned Borsh serializer; no financial rule changed.
+- Prepare a fresh signed Surfpool route/order probe with actual mint/deposits,
+  six makers, six sources, both publishers and complete safety storage. It has
+  not run yet. No SBF resource, financial RPC, PostgreSQL, full-book, safety, CI,
+  endurance or phase pass is claimed by these native/client checks. Unrelated
+  regression suites are intentionally not repeated.
+- Both tables retain P32/M10 In progress; no P32 PR yet. P29A–P31 remain Review
+  and open, P33/P34 Open, P15B/P16B Open,24-hour endurance Deferred. No external
+  blocker. Exact next action: pin/build this candidate and run
+  `bash ops/liquidity-execution-smoke.sh`to measure actual canonical immediate/
+  stored routes, fetched RPC/WS/event parity and independent financial totals.
+
+R088 compiled follow-up: clean`8279017`is rejected by the SBF frame scan before
+deployment: canonical`execute_core`reports stack offset4344,248 bytes over4096
+(estimated frame4800). No runtime trade is submitted. Move the per-leg decoded
+curve/request/CPI verification into a non-inlined function; preserve all identity,
+code-hash, epoch, price and financial checks. The six scoped native route cases
+pass again. No ABI changed, so generation/typecheck and unrelated suites are not
+repeated for this stack-lifetime change. Both status tables remain In progress.
+Exact next action: rebuild the pinned frame repair and run the scoped real route probe.
+
+R088 second compiled attempt on clean`5a517cf`still reports a call-frame overlap
+in`execute_core`; no artifact is deployed. Isolate construction of maker financial
+views in a second non-inlined helper and populate the candidate vector directly,
+removing intermediate boxed root copies. The next candidate SBF build passes the
+stack-frame scan for all four artifacts. Account contexts were already boxed; the
+measured fault was temporary handler storage, so no zero-copy layout/migration is
+introduced. Native financial semantics and ABI are unchanged. Pin this successful
+source, then run the actual execution probe; runtime heap/CU remain unmeasured.
+
+R088 first RPC attempt on clean source/build`022f52e`records40 finalized successful
+RPC/WS provisioning transactions at`.local/liquidity-execution/runs/20261029T143448Z-10828`.
+The next registration is rejected in simulation: the new test helper incorrectly
+requested cross mode in subaccount1, whereas the preserved identity contract
+reserves subaccount0 for cross. Correct the helper to cross0/isolated1; do not change
+the on-chain identity rule. No activation/trade was submitted. The owned runtime
+is stopped. Both tables retain In progress; rerun the corrected client against the
+unchanged pinned SBF artifacts, then continue runtime qualification.
+
+R088 second RPC attempt: clean client`1808a87`, unchanged`022f52e`SBF artifacts,
+`.local/liquidity-execution/runs/20261029T143853Z-11855`.105 transactions finalize
+(103 success/2 intended rejection), including complete safety pages and8 accepted
+reports. Initial activation then rejects in simulation with6124; no trade is sent.
+The independently decoded`qualification-diagnostic.json`shows report gaps of6–7
+seconds and all8 market outcomes still Warmup. The driver serialized four separate
+finalization waits per cycle, exceeding the preserved six-second continuity rule.
+
+Batch independent source/publication updates and both reports. Add an opt-in
+confirmed-execution driver that keeps every finalized-fetch/original-byte/CU/key/
+WS verification in flight, with unique transaction IDs and mandatory flush before
+conformance or any pass report. No finality check is skipped; errors still fail the
+probe. Historical callers retain synchronous finalization. Preserve2-second minimum
+cadence,6-second hold/recovery,200k/160k publisher and800k/640k route budgets.
+`pnpm typecheck`passes. No program/ABI changed; no SBF/native rerun is needed for
+this test-driver correction. Both tables remain In progress. Exact next action:
+rerun the corrected live driver against the unchanged pinned candidate artifacts.
+
+R088 scoped execution outcome: clean client`8ed4da2`/unchanged clean SBF`022f52e`
+passes`bash ops/liquidity-execution-smoke.sh`. Raw
+`.local/liquidity-execution/runs/20261029T145011Z-14725/summary.json`and
+[evidence](evidence/P32-EXECUTION.md) record125 finalized RPC/WS outcomes
+(121 success/4 expected rejection),138 instruction/2 account/143 event legacy
+parity, actual activation, one/two-maker fills, repricing/replay, cross-market
+funding and isolated stored subfills. Every deferred finalization audit completes.
+Independent totals:83 charged fee atoms; BTC insurance/protocol/carry19/57/0,
+ETH1/6/3; funded cash+fees=8,000,000 deposits and zero whole-cohort lots/claims.
+
+Single-maker routes349,496–355,677CU/1,080bytes/v0; two-program route639,830CU/
+1,262bytes/v1/26keys; stored orders356,728–357,399CU/933bytes/v0. Paired reports
+60,603–63,161CU/1,226bytes/v0/18keys. Combined source/reprice134,856CU/1,874bytes/
+v1/27keys. No ALT or extra heap. Four rejected log-WS outcomes retain the known
+err:null mismatch; fetched finalized status and rollback control acceptance.
+The two-program case has only170 CU spare below the640k headroom ceiling, so this
+is not maximum-book/shape resource acceptance. Runtime is stopped. Both status
+tables remain P32/M10 In progress; no PR opened or external gate closed.
+No unrelated regression, PostgreSQL, broad CI, full safety, continuation or
+endurance result is claimed. Exact next action: reduce canonical quote overhead
+without dropping full code authentication or financial checks, then measure
+maximum-shape/full-book and rollback cases before the remaining safety/PG gates.
+
+## R089 — P32 maximum-book resource qualification (29 October 2026)
+
+- Continue P32 above #46. Latest user instruction: finish P32, open its ready
+  stacked PR, then stop and explain the stack-frame fix with code references;
+  do not start P33 in this run.
+- Replace checked i128 division/remainder in canonical inventory potential with
+  checked u64 operations on the bounded distance. Retain checked i128 products:
+  the allowed potential can exceed u64. No shape bounds, price, financial admission,
+  full ProgramData authentication, risk rules or account layouts change.
+- Targeted `cargo test --locked -p maker-interface canonical::tests` passes12;
+  rebuilt `curve-reference-driver` and independent
+  `python3 tests/financial/check_maker_curve_parity.py --implementation rust`
+  passes3172 vectors (1547 exact quotes/1625 expected rejection). Logs remain in
+  `.local/liquidity-execution/routes/quote-{native,driver-build,reference}.log`.
+  Removed only rebuildable `target/debug` after prior checks completed when disk
+  free space reached963MiB; retained evidence, all databases, keys/config and SBF
+  artifacts. The scoped native rebuild leaves about2GiB free.
+- Add a fresh real RPC full eight-region/4096-depth and full4-order/2-protection
+  book probe, populated through actual deposits, seed fills and protected orders.
+  It checks a zero-cash second maker's atomic rollback, maximum one/two-program
+  routes, repricing without replenishment and structural epoch rejection, followed
+  by independent lot/claim/cash/fee/insurance reconciliation and legacy parity.
+  This new runtime check has not run yet. Initial TypeScript check caught a test
+  helper using nonexistent active flags; corrected it to actual order states and
+  protection remaining fields. `pnpm typecheck` and `git diff --check` pass.
+- Both status tables retain M10/P32 In progress; no P32 PR exists, predecessors
+  remain open, P15B/P16B Open and24-hour endurance Deferred. No full financial,
+  PostgreSQL, continuation, broad CI or endurance pass is claimed; unrelated
+  suites intentionally not repeated. No external blocker. Exact next action:
+  pin/build this candidate with `bash ops/build-liquidity-execution.sh`, then run
+  `bash ops/liquidity-resource-smoke.sh` and address any measured resource failure
+  before the remaining safety/PG/continuation gates.
+
+R089 first resource result: clean source/build`5408314` passes the four-artifact SBF
+frame scan. `bash ops/liquidity-resource-smoke.sh` fails on the first actual
+8-region/two-program seed fill:641,820CU exceeds the640k ceiling, despite landing
+successfully under the unchanged800k submitted limit. Raw
+`.local/liquidity-execution/runs/20261029T151830Z-23511` retains115 fetched finalized
+outcomes (112 successful/3 expected rejection), including the over-budget fill
+and the next refresh already in flight. No full-book case was reached. Runtime
+stopped, no PostgreSQL directory created. The earlier bounded-division optimization
+alone is insufficient; do not claim a headroom pass.
+
+Replace endpoint validation's repeated prefix sums with exact region marginals
+and the single-lot convex-potential increment. Both endpoints, all shape/binding/
+expiry/price checks and the actual cumulative quote remain checked. The same12
+focused native cases and3172 independent Python-to-Rust vectors pass on this
+follow-up candidate; logs`quote-marginal-{native,driver-build,reference}.log`.
+No ABI, financial rule or resource ceiling changes. Both tables stay In progress.
+Exact next action: pin/rebuild the marginal optimization and repeat the scoped
+resource probe; proceed to safety only when its actual full-book headroom passes.
+
+R089 marginal-optimization probe: clean source/build`5fc7a9b`, raw
+`.local/liquidity-execution/runs/20261029T152409Z-25789`. The same8-region two-program
+seed lands614,488CU (27,332 fewer than5408314), within the640k ceiling. Real
+full4-order/2-protection books on trader and both makers are created; actual
+zero-cash second-maker failure leaves all financial/books/consumption unchanged.
+139 finalized outcomes (135 success/4 expected rejection) precede the next
+unbroadcast simulation failure6117: the resource fixture requested8188 total lots,
+above the preserved4608 route bound. This is a test-fixture error, not permission
+to expand trading size. Correct the maximum route to2304+2304, still visiting all
+8 regions; retain the oversized request as an explicit rollback case and verify
+exact per-leg gross140,880,145 using independent per-lot accumulation. Preserve a
+4096-lot singleton/target-crossing check and independent scaled-claim deltas.
+No SBF rebuild is needed for this harness correction. Both tables stay In progress.
+Exact next action: rerun the corrected resource fixture against unchanged5fc7a9b
+artifacts, then complete affected safety/PG and continuation acceptance.
+
+R089 maximum legal route result: clean client`f1c7389`/SBF`5fc7a9b`, raw
+`.local/liquidity-execution/runs/20261029T152757Z-26868`.144 fetched finalized
+outcomes (139 success/5 expected rejection) include the4608-lot two-program
+trade with all three full books and all8 curve regions. Literal per-leg gross,
+whole-account scaled claims, charged fee, inventory and consumed prefixes agree.
+It lands at659,622CU, failing the unchanged640k headroom ceiling; the next two
+in-flight reprices also finalize. The singleton/remaining structural/audit checks
+are not reached. The resource gate remains failed; runtime is stopped.
+
+Optimize only mathematically bounded spread/potential prefix intermediates using
+checked u64 operations; retain i128 for the final potential (which can exceed
+u64). Avoid revalidating the exact same immutable shape inside an internal amount
+helper after `validate_publication` already validated it. The public amount API
+still validates all shapes; all publication/binding/marginal/global price and
+financial checks remain. The12 scoped native cases and3172 independent Rust
+reference vectors pass again; local`quote-bounded-*`logs record this candidate.
+No ABI/economics/budget change. Both status tables remain In progress. Exact next
+action: pin/build these bounded arithmetic changes and rerun the full-book probe.
+
+R089 bounded-prefix result: clean source/build`6437f7d` passes SBF frames and the
+maximum legal full-book route lands615,334CU (44,288 fewer than5fc7a9b), within640k.
+Raw`.local/liquidity-execution/runs/20261029T153532Z-29441` retains144 finalized
+outcomes (139 success/5 intended rejection). Exact per-leg/whole-root expectations
+still agree. The wrapper then stops because its helper wrongly demanded an
+available funding report after the extreme trade: high-skew short makers now bid
+above the untouched maker's ask, correctly yielding crossed-publication outcome3.
+No invalid report was submitted and no source/price guard changed. Preserve that
+explicit unavailable outcome; the singleton resource check uses still-valid prior
+qualification and fresh sources/prices without manufacturing a new funding pass.
+Runtime stopped. Full probe/phase acceptance is still pending.
+
+Prepare the next scoped safety fixture: actual SL/TP shared allowances/generation,
+reservation/withdrawal/transfer fences, two-market whole-account liquidation with
+full books and post-fee progress, complete8-member default with independent
+Fraction-rate proposals and raw-byte payout/atom ownership audit, terminal cash
+exit and separate sustained recovery/reactivation. No safety execution or acceptance
+is claimed yet. Shared setup now accepts explicit signed source price changes and
+checks independently converted lot prices/Q. Narrow route helpers permit deliberate
+inadmissible intents for actual on-chain rejection. `pnpm typecheck` passes after
+correcting the fixture signer type; no ABI/program change or unrelated test rerun.
+Both tables remain M10/P32 In progress, no P32 PR. Exact next action: finish the
+corrected resource run on6437f7d, then run `bash ops/liquidity-safety-smoke.sh` before
+PostgreSQL/continuation qualification. Stop after P32 PR publication as requested.
+
+R089 complete resource checkpoint: clean client`038f31a`/unchanged SBF`6437f7d`
+passes`bash ops/liquidity-resource-smoke.sh`, raw
+`.local/liquidity-execution/runs/20261029T154240Z-31201/summary.json`.
+[Full-book evidence](evidence/P32-RESOURCES.md) records147 finalized RPC/WS outcomes
+(141 success/6 expected rejection),186 instruction/2 account/189 event parity.
+Maximum4608-lot pair615,334CU/1262bytes/v1/26keys;4096-lot singleton340,927CU/
+1072bytes/v0/21keys. All three full books,8 regions, post-trade inventory skew,
+zero-cash second-maker rollback, oversized intent, strict depth epoch and reprice
+consumption invariants pass. Exact total fees103,883 split BTC insurance25,970 /
+protocol77,913 /carry3; cash+fees=307m after308m deposits and1m actual withdrawal.
+Crossed publication outcome3 is explicitly recorded; no available report is forged.
+Every deferred finality/byte/WS audit completes. Owned runtime stopped. No PostgreSQL,
+continuation, safety, CI or phase completion follows from this scoped resource pass.
+
+R089 safety first attempt: same clean client/build, raw
+`.local/liquidity-execution/runs/20261029T154503Z-31941`.118 finalized outcomes
+(113 success/5 expected rejection) reach actual protection, reservation/withdrawal
+rollback, same-owner funded transfer and manual partial close. The harness then
+asserts group remaining3 but reads4. The existing contract correctly clips eligible
+quantity by current position3 without consuming group allowance on a manual close;
+only child fills consume it. Correct the assertion, and add an actual attempted
+2-lot SL after only1 lot remains to prove min(child remainder, group remainder,
+current position) is enforced. No financial code change. Restore the inherited
+P29A status row that had accidentally been replaced by the milestone summary;
+P29A remains Review, and both current status tables retain P32/M10 In progress.
+Exact next action: pin/rerun the corrected safety fixture on unchanged6437f7d;
+then real PostgreSQL journal/replay and the bounded continuation workload.
+
+R089 safety second attempt: clean client`5fa5c8f`/SBF`6437f7d`, raw
+`.local/liquidity-execution/runs/20261029T155120Z-33744`.267 finalized RPC/WS outcomes
+(247 success/20 intended rejection) cover real SL/TP generation/allowance bounds,
+withdrawal/reservation guards and funded transfer, two-market cross trades,
+full-book liquidation (101,766CU), exact complete8-member valuation/rate proof,
+insurance-floor handling, deterministic atom circulation/application and terminal
+reconciliation. The old signed pre-default exit rejects after resolution. No full
+safety pass: the next requested30-second source-staleness wait exceeded the
+helper's20-second progress watchdog. Split it into three actual10-second Clock
+waits; preserve oracle expiry, recovery and all program rules. Runtime stopped.
+Independent raw-byte audit, terminal withdrawal and recovery were not reached.
+
+Prepare the narrow P32 PostgreSQL fixture using the production generic JournalStore
+with an explicitly test-only schema4 digest/sequence projection. Real RPC history
+pagination, authenticated critical event bytes, SQL rollback on corrupt sequence,
+failed-CPI exclusion, stopped journal/backfill, append-only conflicts and a fresh
+PostgreSQL database replay are required. Public schema3 consumers continue rejecting
+schema4; production balances/read APIs remain P33. No PostgreSQL run/pass claimed.
+`pnpm typecheck`, scoped shell syntax and`git diff --check`pass. No program/ABI
+change requires SBF regeneration; unrelated suites not repeated. Both tables retain
+P32/M10 In progress. Exact next action: finish the corrected pinned safety probe,
+then run `bash ops/liquidity-journal-smoke.sh` and the predeclared continuation.
+
+R089 safety and journal acceptance checkpoint: clean client `5d26561`, unchanged
+SBF `6437f7d`. `bash ops/liquidity-safety-smoke.sh` passes all 290 finalized
+outcomes (267 success / 23 intended rejection), including the previously unreached
+independent eight-account Fraction payout/atom-owner audit, ten corrupt captures,
+actual stale-source terminal cash exit and sustained recovery/reactivation.
+[Safety report](evidence/P32-SAFETY.md) records raw run
+`.local/liquidity-execution/runs/20261029T155705Z-35376/` and actual resource limits.
+
+`RIVALT_RPC_PORT=18951 RIVALT_WS_PORT=18952 bash ops/liquidity-journal-smoke.sh`
+passes 120 finalized outcomes (116 success / four intended rejection), real
+PostgreSQL rollback/disconnect/backfill/conflict handling and fresh database replay:
+72 authenticated critical events, 72 outbox records, zero unresolved jobs. Its
+schema-4 digest projection is explicitly test-only; production balances/read APIs
+remain P33. [Journal report](evidence/P32-JOURNAL.md) records raw run
+`.local/liquidity-execution/runs/20261029T155732Z-35413/`. Owned runtimes/container
+stopped; evidence and the single new database are retained.
+
+After all native/build jobs stopped, remove only rebuildable `target/debug` and
+`target/release` dependency/build/fingerprint caches to recover local disk space.
+Keep SBF artifacts, independent reference driver, all evidence/databases/keys.
+Add explicit ordinary-entry and permissionless stored-order full-book variants:
+the prior resource pass covers protection books, not these different reservation
+paths. `pnpm typecheck` passes. No program/ABI change or unrelated test rerun.
+Both status tables remain In progress; no P32 PR or complete phase claim.
+Exact next action: pin and measure both full-book variants on `6437f7d`, then run
+the predeclared three-profile bounded continuation. Stop after P32 publication.
+
+R089 additional full-book results: clean `df70e7c` / SBF `6437f7d`, two independent
+fresh deployments pass `RIVALT_RESOURCE_BOOK=entry|stored bash
+ops/liquidity-resource-smoke.sh`. Raw runs `20261029T161757Z-40728` and
+`20261029T161758Z-40744` each retain 165 finalized outcomes (159 success / six
+intended rejection). Entry pair 614,030 CU; permissionless stored pair 615,433 CU.
+All financial/book assertions and legacy parity pass. [Resource report](evidence/P32-RESOURCES.md)
+now distinguishes all three full-book populations. Both runtimes stopped.
+
+Prepare the predeclared continuation: fresh pinned baseline/control/treatment,
+240 scheduled offers each, independent per-lot/exhaustive pair reference, exact
+funded/unpaid financial event audit, concurrent source/publisher/reprice loops,
+classified fault windows and strict-epoch supplements outside the timed population.
+Retained clean build artifacts are hash-checked deployment inputs; old runtime
+state/evidence is never used for provisioning. Preserve all transaction outcomes,
+full RPC/WS audits and unchanged headroom. No measured comparison pass yet.
+`pnpm typecheck` passes after fixture type corrections. Local disk becomes scarce
+again; remove only rebuildable SBF intermediate and project dependency caches,
+including the inactive fresh-operator fixture's installed dependencies. Preserve
+all source, lockfiles, evidence, databases, keys and qualified binaries. No unrelated
+suite or SBF rebuild is needed. Both tables retain In progress. Exact next action:
+pin this harness and run the fresh baseline, then control and treatment sequentially.
+
+R089 bounded continuation baseline: clean client `2f6281b` with independently
+hash-checked clean V3 SBF `915d8e8`, fresh run
+`.local/liquidity-execution/comparison/20261029T163106Z-baseline-44116/`.
+`RIVALT_CONTINUATION_PROFILE=baseline bash ops/liquidity-continuation-smoke.sh`
+completes all 240 scheduled offers in 120 seconds: 207 eligible/quoted/submitted/
+finalized successful routes, 474 finalized original transactions in total. Every
+quote agrees with independent per-lot/exhaustive pair expectations; event cash,
+whole-account funding/claims, fee carry and final totals reconcile. Taker fees are
+15,643 atoms. All 33 omitted offers remain classified in the denominator. This is
+a new execution on old pinned artifacts, not reuse of old test counts. Runtime stopped.
+
+First canonical control on the same client and SBF `6437f7d`, raw
+`.local/liquidity-execution/comparison/20261029T163511Z-control-45132/`, stops at the
+planned 90-second quarantine after 181 recorded offers and 511 finalized outcomes
+(508 success / three setup rejections). A concurrent report was prepared before
+the quarantine materialized funding and advanced `sampled_at`; its simulation
+correctly rejects OraclePolicy6124 at the unchanged two-second sample fence. The
+report is not broadcast. No complete control/comparison pass is claimed.
+
+Make the prototype publisher preserve/classify actual timing or stale-report
+rejections and rebuild on its next scheduled tick; resource/transport errors still
+fail the run. Keep all on-chain checks unchanged. Add the exact comparison gate
+reader and explicit post-timing depletion/replenishment for each treatment maker;
+these supplements cannot inflate timed offer metrics. Add changed publisher/route
+native coverage to supported hosted CI, without claiming CI has run. Type checking
+passes. No program/binary change or broad local test rerun. Both tables retain
+In progress. Exact next action: pin the publisher retry fixture, rerun control and
+treatment sequentially, then evaluate the predeclared combined comparison gates.
+
+## R090 — P32 continuation acceptance and ready publication (29 October 2026)
+
+The final canonical control and treatment pass on clean client
+`34b43253804aca5b67b9d64794de9a600ab8deed`, unchanged clean SBF
+`6437f7d7b5d941dd29e3da7aeaccb4401722aa2d`. Fresh local runs are
+`.local/liquidity-execution/comparison/20261029T164128Z-control-46693/` and
+`20261029T164540Z-treatment-47694/`. Each executes the complete 240-offer,
+120-second schedule. Control has 186/186 eligible successes and 667 finalized
+harness outcomes; treatment has 181/181 and 729 outcomes. The control/treatment
+publisher retains one/two real timing-fence rejections and recovers on the next
+scheduled fresh attempt. No source/recovery or timing safeguard changes.
+
+Combined with R089's fresh baseline (207/207), all 574 eligible routes finalize.
+Independent exhaustive pair selection, fetched publication-sequence prices,
+full-root funding/cash/unpaid claims, fee carry and exact final totals agree.
+158 matched ordinary attempts give baseline/control p95 179.14/203.92 ms: +13.84%,
+below the unchanged +25% gate; zero eligible-success regression meets the 5pp gate.
+All offered240 remain visible per profile, including 33/54/59 omitted offers.
+Source pause causes no omission within the actual age allowance; updater expiry,
+quarantine and sustained recovery explain the remaining unavailable windows.
+
+Both canonical profiles prove 223 consumption-preserving reprices and 20 actual
+strict-epoch rejections. Treatment separately depletes all three declared one-lot
+ask sides through real trades, proves repricing cannot restore them, rejects
+exhausted fills, explicitly replenishes and independently reconciles 39 extra fee
+atoms outside timed metrics. Max timed canonical route599,654CU; previous maximum
+full-book615,433CU still bounds measured routes. Reports63,179CU and six-reprice
+batches110,020CU pass their unchanged ceilings. Fetched writable/read sets record
+real price-read/update conflicts and shared custody/market publisher locks; no
+AccountInUse or transport retry is observed. This is not a scalability guarantee.
+
+`python3 tests/load/p32_comparison.py <baseline-summary> <control-summary>
+<treatment-summary>` passes all combined gates; exact paths/commands and limitations
+are in [continuation evidence](evidence/P32-COMPARISON.md). Add explicit rejection
+classification and read/write lock extraction to that report reader and rerun it
+against retained fetched transactions; no runtime code or binary changes. The
+phase [acceptance report](evidence/P32.md) links all scoped evidence and explains
+the compiler stack-frame diagnosis and repair. Update current protocol/component/
+validation/roadmap/decision status in this same change; no economic supersession.
+
+Disk exhaustion briefly prevented writing the aggregate report, after the runtime
+summaries had completed successfully. Remove only the inactive P15A operator
+fixture's dependency-download cache (about182MiB); preserve all evidence, databases,
+keys, source/lockfiles and qualified binaries. The aggregate report then writes
+successfully. Runtimes are stopped. Future builds still require the launcher's
+explicit1GiB free-space check; no additional build is needed for these report changes.
+
+Actual checks: three fresh comparative deployments as recorded; combined independent
+comparison/locks report; `pnpm typecheck` for the fixture changes; scoped shell syntax,
+`git diff --check`, and tracked evidence policy. Unrelated broad native/client/E2E
+suites are not repeated because binaries/ABI are unchanged after the qualified pin;
+changed publisher/route native cases are added to hosted CI. No hosted CI result,
+independent review, production service compatibility, endurance or funded deployment
+is claimed. P15B/P16B Open and24-hour endurance Deferred. Both status tables now
+record P32 Review / M10 In progress. Exact next action: commit the acceptance
+closeout, publish one ready PR above #46 with `gh stack submit --auto --open`, record
+the actual PR/head, then stop before P33 and explain the stack-frame repair.
+
+R090 closeout verification: 305 affected local documentation links resolve; the
+comparison reader compiles, scoped shell syntax and whitespace checks pass, and
+the tracked evidence policy confirms summaries/fixtures only. No additional
+financial implementation or binary change occurred after the recorded runtime pins.
+
+R090 publication: `gh stack submit --auto --open` creates ready
+[PR #47](https://github.com/arnabnandikgp/rivalt/pull/47) above #46, at acceptance
+closeout `cdffcc8`, and updates stack #44 with five open PRs. Predecessor heads are
+unchanged. Set its title/body to the complete qualified execution/publisher scope
+and exact acceptance evidence. No merge or P33 work is performed. Both tables
+remain P32 Review / M10 In progress. Final documentation commit records this actual
+publication; no implementation changes or repeated runtime tests. Exact next
+action: await the user's direction after the requested P32 stopping point; P33
+would own durable service/indexer/UI integration, not another prototype acceptance.
+
+## R091 — P33 durable integration begins (29 October 2026)
+
+The user resumes P33 followed by P34 after the requested P32 stop. Created
+`phase/p33-liquidity-services` with `gh stack add` above exact P32 head
+`6de5cea`. PR #47 is ready/open and all five selected hosted checks pass;
+CodeRabbit is skipped, not an independent approval. Keep the entire stack open.
+
+Initial slice adds explicit profile-4 finalized event reconstruction and artifact
+binding, canonical maker consumption, publisher history/provenance, shared
+financial conservation and `/v4` read surfaces. V3 remains separately bound.
+The durable queue gains an explicit v1-capable transport boundary, preserving
+its default v0 limit and immutable-original recovery. No new economic rule,
+program layout or executable is introduced. [P33 contract](P33-LIQUIDITY-SERVICES.md)
+records remaining operational/SDK/browser/kit acceptance.
+
+Diagnostics: the new projection replays the retained P32 journal's 72 authenticated
+events, reconstructing six makers and two publisher histories. This is a development
+diagnostic using old local inputs, not new RPC/PostgreSQL acceptance. Actual artifact
+SHA-256/byte lengths match the P32 manifest. New targeted checks and a fresh
+RPC/WS/PostgreSQL projection run are being prepared; results follow below.
+No unrelated Rust/SBF rebuild or broad inherited runtime suite is needed for this
+TypeScript slice. P33 is not ready, P34 has not started. P15B/P16B remain Open;
+24-hour endurance remains Deferred. Exact next action: run the scoped projection
+checks and fresh production-indexer lifecycle, then implement durable canonical
+updater/publisher operation and wallet/UI integration in the same P33 branch.
+
+R091 scoped preparation checks: 40 tests pass across the profile-4 projection,
+existing financial projection/API/history recovery and durable wire/retry suites;
+`pnpm typecheck` passes. Initial wire-test fixture attempted to sign an oversized
+v0 message, which the installed SDK correctly refused; the corrected negative
+case checks queue rejection before signature verification. No production rule was
+relaxed. The initial root-level diagnostic import lacked a workspace dependency;
+running it from the indexer workspace resolved that development-only issue.
+Fresh signed indexer acceptance is next; no runtime pass is claimed yet.
+
+R091 production indexer result: `bash ops/liquidity-indexer-smoke.sh` passes on
+clean `3233201`, using unchanged qualified SBF `6437f7d`. Local raw evidence is
+`.local/liquidity-execution/runs/20261029T174317Z-66279`. There are 120 signed
+RPC/WS outcomes (116 successes/four expected rejections), 96 journal transactions,
+72 critical events/outbox rows and zero unresolved jobs. Eight roots and 30
+financial/control accounts reconcile at custody sequence 72. Restart/backfill,
+failed-CPI exclusion, versioned API readiness and a fresh PostgreSQL replay agree.
+Literal two-fill fee/insurance expectations are 26/6 atoms, retained fees 20 and
+carry 2; vault and allocated custody both equal 8,000,000 atoms. This closes only
+the projection slice, not A38.
+
+SDK/services/UI preparation now adds explicit profile-4 clients, maker-free cash
+exits, v0/v1 wallet/ingress budgets, durable three-instance repricing and restricted
+publisher workers with content-addressed immutable input retention. Current
+reference quoting uses admitted on-chain books; daemon heartbeats are observability,
+not authority to suppress otherwise valid liquidity. The UI labels publisher trust
+and shows maker instances/provenance. Forty-four distinct scoped SDK/service/UI
+cases pass across the recorded focused invocations, including the corrected demo
+profile fixture and source-valid worker fixture. Typecheck passes; the trader build
+passes with its existing bundle-size advisory. No Rust/SBF or unrelated runtime
+suite was repeated. Integrated worker/browser acceptance remains unrun. Removed
+only rebuildable inactive Rust incremental cache files to recover disk space; all
+raw evidence, databases, keys and unrelated research remain. Exact next action:
+run fresh actual canonical workers/executor plus browser, lost acknowledgements,
+independent publisher-input replay and complete finalized accounting reconstruction.
+
+R091 integrated harness preparation: the new scoped launcher provisions actual
+workers, executor death after upstream acceptance, independent retained-input
+arithmetic, source outage, indexer restart and browser signatures. Typecheck caught
+incorrect test-only generated decoder/member names; corrected to current generated
+layouts. These are harness corrections, not runtime pass evidence. Next: run this
+harness on its clean recorded revision, then finish fresh operator packaging.
+
+R091 first integrated run on clean `d35580c` used
+`.local/liquidity-execution/runs/20261029T181700Z-75235`. Both cash-exit and
+maker-reprice originals survive real executor SIGKILL after upstream acceptance;
+six maker workers and two publishers run, and six actual browser actions finalize
+(BTC/ETH opens/closes and TP/SL creation/cancellation). The run stops at the next
+quote: the browser fixture retained its one-atom minimum-sell value as the new
+maximum-buy limit. The UI correctly refuses that quote; no failed trade is sent.
+The fixture now explicitly sets its intended buy limit before the isolated trade.
+This partial run does not close A38.
+
+The operator entry point now consumes a private explicit profile-4 configuration,
+checks signer/deployment/database bindings and starts the same leased durable
+worker. The next fresh harness launches maker processes through this kit. Five
+focused kit checks and typecheck pass: exact independent funded/unpaid/fractional
+funding arithmetic, fee attribution, incomplete/failed-history rejection, exceptional
+window rejection and strict operator configuration. [Operator guide](P33-MAKER-KIT.md)
+documents provisioning, permissions, funding, quoting, reconciliation and exits.
+P33 remains In progress; P34 Open. Exact next action: rerun the corrected actual
+worker/browser/outage/replay harness on its new clean pin and address only its
+actionable failures. No unrelated build or financial suite is required.
+
+R091 second integrated run on clean `1db14f4`, local
+`.local/liquidity-execution/runs/20261029T182513Z-77857`, passes ten actual browser
+transactions, six maker-kit processes, both original crash recoveries, the separate
+stored-order worker, real source outage/recovery and indexer restart. Retained
+publisher snapshots pass digest and literal flat-curve arithmetic checks. The run
+stops because the negative SQL assertion expects “immutable” while the real trigger
+correctly raises “append-only journal”. Corrected only that expected message. Fresh
+replay and the final economics report still require the next complete run.
+
+Publisher-key review identified an operational handover gap: the existing fee budget
+is intentionally bound to its payer. Added an explicit local handover that verifies
+the new on-chain authority, refuses any unresolved original/reservation and preserves
+lifetime cap/spent amounts. Ordinary startup still rejects a silently changed budget
+identity. Typecheck passes; a real rotate/revoke/restore plus lost-ack publication
+case is added to the next full run. No financial authority/economics, safeguards or
+external gate changes. Next: run the clean complete P33 harness including key
+handover, original publication recovery, SQL replay and six independent maker reports.
+
+## R092 — P33 real publisher rotation and projection correction (30 October 2026)
+
+The full run on clean `869c34f` uses
+`.local/liquidity-execution/runs/20261029T183235Z-79771`. Ten browser originals,
+actual order execution, source outage/recovery, signer rotation/revocation/restore
+and the original-signature publisher crash recovery pass. Its publisher original
+finalizes for 5,000 lamports. The 5,000,000-lamport lifetime cap stays unchanged;
+spent rises from 125,000 to 130,000 through the handover. Pending originals prevent
+budget handover as required.
+
+This run exposes a real production projection defect: it incorrectly requires
+last observed time/slot to remain unchanged on publisher control. D76 and the
+unchanged on-chain program instead preserve report sequence and stamp a new Clock
+fence. The finalized read API fails closed; no financial program rule is changed.
+Corrected the indexer to preserve report sequence, authenticate the event's Clock
+slot and reject a regressed slot. Fifteen focused projection checks pass including
+the advanced-fence regression. A new complete replay is still required.
+
+Retained publisher provenance is now explicitly bound to the original signed report
+bytes on both insert and read, including JSONB key-order independence. The UI shows
+independent index versus attested impact midpoint, human-readable unavailable
+reasons, signer identity and control-superseded reports. Six affected queue/input/UI
+cases pass, along with typecheck and trader build (existing size advisory only).
+The new UI assertion initially omitted existing number-format grouping; corrected
+the test expectation without changing pricing. Publisher-control fixture budgets
+now explicitly use the same 200,000-CU budget as publication. No unrelated tests,
+Rust/SBF builds or new external/deployment activity were run.
+
+P33 remains In progress; P34 Open. Exact next action: run the corrected production
+indexer with the actual publisher-control history and finish fresh PostgreSQL
+replay plus six independent maker-economics reports, then publish the cohesive
+ready P33 PR and continue P34 above it. All raw evidence remains local/ignored.
+
+R092 fresh corrected run on clean `d3d43d1`, local
+`.local/liquidity-execution/runs/20261029T184121Z-82524`, passes production publisher
+rotation reconstruction, all ten browser originals (including live publisher-price
+display and RPC balances after blocked-API reload), retained signed-report binding,
+source recovery, independent raw-input arithmetic, identical fresh PostgreSQL replay
+and all six maker-economics reconciliations. It stops at the final unresolved-receipt
+assertion. The harness used `queue.pending()`, which selects only retries due now,
+to decide when to stop the executor; five not-yet-due originals still had unresolved
+receipt rows even though their transactions were independently fetched. This is
+not a financial mismatch or a relaxation of immutable-original recovery.
+
+The shutdown gate now counts every nonterminal row regardless of retry time and
+keeps the executor running until all originals resolve. No production queue behavior
+or unrelated test is changed. Next: rerun this corrected final gate in the scoped
+lifecycle, record its complete counts and publish P33 only if all acceptance checks
+pass. P33 In progress and P34 Open; raw failed-run evidence is preserved.
+
+R092 run on `26944e3`, local
+`.local/liquidity-execution/runs/20261029T184717Z-84197`, reaches publisher recovery
+after another successful ten-original browser flow. A deliberately interrupted
+report expires, then its newly built retry is accepted. The next negative assertion
+races that retry's durable receipt: the worker correctly returns “original pending”
+before inspecting revoked authority, while the test expects an authorization error.
+The handover fixture now waits for the accepted original's finalized receipt before
+testing the subsequent revocation. No worker or on-chain rule changes. This run is
+not final acceptance. The next clean lifecycle includes the all-originals shutdown
+gate and a standalone literal financial audit (328 total taker-fee atoms, 81
+insurance atoms, seven net withdrawn atoms and zero aggregate flat claims).
+
+R092 final scoped acceptance on clean `fccf06274af8dc71aecff214efd46d7f696ecec7`:
+`bash ops/liquidity-services-smoke.sh` passes with actual owned Surfpool RPC/WS,
+PostgreSQL and browser. Raw evidence remains at
+`.local/liquidity-execution/runs/20261029T185230Z-85732/`; log
+`.local/p33-services-latest.log`. It records 212 fixture checks, 366 durable intents
+(365 finalized, one finalized failure: expired funding report /6131/5,000 lamports),
+ten browser originals, two additional SDK originals, six maker processes and two
+publishers, three actual SIGKILL/lost-ACK recoveries, publisher rotation/revocation/
+restoration and preserved lifetime budgets. The expired original resolves before
+a new report succeeds. Source outage is classified; recovery retains source rules.
+
+Production indexing and a fresh database agree on 197 clearing transactions,
+172 critical events/outbox rows, zero unresolved jobs; every service original is
+terminal. Final reconciliation independently reads 30 accounts/eight roots at
+slot 4467: vault and allocation both 7,999,993 atoms, surplus zero. All 88 retained
+reports are bound to their signed originals; 84 available reports pass independent
+flat-price arithmetic. All six maker-economics reports reconcile actual fills,
+inventory, fractional funding, funded/unpaid P&L and their attributed network fees.
+
+`python3 tests/financial/p33_services_reference.py <run>/summary.json` passes its
+literal expected economics: BTC/ETH fees 267/61, insurance 66/15, protocol fees
+201/46, cash 7,999,665, eight flat roots and zero aggregate scaled unpaid claims.
+The offline reader's field name was corrected from `surplus` to the actual
+`unallocatedSurplus` after the runtime finished; no scenario or expected arithmetic
+changed. Its output is `.local/p33-reference-latest.json`; the runtime pin remains
+`fccf062`, distinct from this reader/documentation closeout. The raw harness's
+conservative `phaseAcceptance:false` predates this separate audit/closeout and is
+preserved; [the phase report](evidence/P33.md) combines the acceptance layers.
+
+The passing run supersedes neither failed evidence nor prior observations. Removed
+only inactive rebuildable Rust incremental cache (~440 MiB) and 513 single-link
+`.rlib`/`.rmeta`/`.d` cache files (168,376,291 bytes), after confirming no compiler
+process. No retained evidence, runtime database, executable, key or user file was
+deleted. Approximately 619 MiB remains free; P34 must reuse bounded runtime storage.
+
+Both tables now mark P33 Review / M10 In progress, P34 Open. No unrelated full
+suite, SBF rebuild, external wallet, devnet deployment, endurance, independent-maker
+or external-review claim. Scoped unit/type/build results above remain applicable;
+final source/evidence-policy checks and actual ready publication follow. Exact next
+action: commit this closeout, publish P33 with `gh stack submit --auto --open`, then
+start P34 above its exact published head.
+
+R092 publication: `gh stack submit --auto --open` creates ready
+[PR #48](https://github.com/arnabnandikgp/rivalt/pull/48), independently observed
+OPEN / `isDraft:false` / base `phase/p32-liquidity-execution` / head
+`322a4e9a7a2f89416277328391d25cae17286b6e`. All six PRs remain open.
+Evidence-policy, shell syntax and `git diff --check` pass. Hosted CI is pending,
+not inferred. Both tables retain P33 Review / M10 In progress. Exact next action:
+push this publication record, create P34 above its exact head and implement A39.
+
+## R093 — P34 comparative and operational qualification (30 October 2026)
+
+Created `phase/p34-liquidity-qualification` through `gh stack add` above exact
+P33 `964ca5f` / ready #48. A38 runtime acceptance remains `fccf062`, independent
+audit/documentation `322a4e9`; publication-only `964ca5f` adds no runtime change.
+Both tables mark P34/M10 In progress; all predecessor PRs remain Review/open.
+
+The [P34 execution plan](P34-LIQUIDITY-QUALIFICATION.md) preserves G22's 300-second/
+600-offer populations, source/reprice/funding schedules and comparison thresholds.
+It makes both market/account-mode assignment and separate operational supplements
+explicit before measurement. One owned PostgreSQL cluster can hold separate fresh
+profile/replay databases, avoiding redundant base/WAL directory copies on this
+space-constrained host. Retained evidence is not deleted. No risk/oracle relaxation,
+new economic decision, external participation or endurance run is authorized.
+
+No P34 result is claimed yet. Exact next action: implement and pin the scoped
+comparison, independent accounting/report reader and operational fixtures, then
+run actual RPC/WS/PostgreSQL acceptance on that clean revision.
+
+R093 preparation: the final comparison now provisions equal 3,004,000,000-atom
+capital across six maker roots and four trader/operation roots, exercises both
+markets and margin modes, and runs actual production funding/order/executor/indexer
+services. It records two- and ten-second observed index markouts, build/sign timing,
+all offered outcomes and independent per-market fee/claim conservation. One funding
+worker and the finalized indexer restart; raw funding inputs are content-addressed
+to avoid repeated executable-byte dumps. Baseline unsupported extra makers remain
+unregistered, and its legacy epoch is not artificially renewed for the benchmark.
+
+`pnpm typecheck`, shell syntax and `git diff --check` pass. No runtime result is
+claimed. Exact next action: commit this harness and execute the fresh baseline
+300-second/600-offer profile, then control and treatment with the same workload.
+
+R093 first baseline provisioning on `b8ea33b`, local
+`.local/liquidity-execution/qualification/20261029T191356Z-92730/baseline`,
+stops before the pricing window: the new operation fixture attempted a cross root
+at subaccount 3, which correctly rejects (Profile/6108; cross is index 0 only).
+Use an isolated BTC operation root at index 3; both actual cross and isolated
+timed traders remain unchanged. No program or authority rule changed. Preserve
+failed evidence; no 600-offer result claimed. Include exact service originals in
+the final report for independent packet/fee audit. Next: pin and retry baseline.
+
+R093 baseline `2dc5b0b`, local
+`.local/liquidity-execution/qualification/20261029T191724Z-93635/baseline`, completes
+600 offers, two actual stored-order fills, two funded exits, publisher SIGKILL/restart,
+indexer restart, all-original receipt drain and identical fresh database replay.
+The final per-offer audit then rejects identical discriminator bytes represented as
+`Buffer` versus `Uint8Array`; no economic difference is displayed. Compare complete
+encoded account bytes instead. Preserve a complete measured capture before offline
+audits so later reader corrections can reuse the actual run. No final comparative
+pass is claimed from this failed closeout; control/treatment have not run.
+
+Disk headroom fell to about 358 MiB. P34 now supports restarting only its explicitly
+configured owned PostgreSQL data directory, retaining prior databases and creating
+uniquely named fresh databases per attempt. PostgreSQL's own checkpoint/WAL policy
+is bounded to 64/32 MiB with fsync/durability unchanged; no evidence/database files
+are manually deleted. Reuse is explicit local configuration, not an acceptance
+summary. Next: pin these harness/storage corrections and rerun the three profiles.
+
+R093 fresh baseline on `8e91324` stops at the 90-second quarantine window: the
+fixture classified eligibility using only the selected market. An ETH request on a
+cross root with an open BTC position correctly fails the SDK's required-BTC-source
+check after quarantine. The harness now records all required market modes and
+classifies these offers as unavailable; no fee, risk rule or oracle safeguard is
+changed. Timed roots explicitly have no live orders; their open positions and
+selected market determine the required source set. No comparative pass claimed.
+
+The separate literal audit reader passes two tests, including five corruptions
+(missing history, one-atom cash/fee/vault errors and a one-scaled-unit claim error).
+Operational/publisher audit code typechecks. Confirmed no active compiler, then
+removed only rebuildable `target/debug` (95,743,047 bytes) and
+`target/sbpf-solana-solana` (44,848,319 bytes) caches. Qualified binaries,
+`target/deploy`, all database/evidence/configuration/keys remain. PostgreSQL's
+normal checkpointing reduces WAL without manual deletion. Next: pin the complete
+source-eligibility classifier and run fresh comparison with the same 600 offers.
+
+R093 comparison on clean `fb082de`, local
+`.local/liquidity-execution/qualification/20261029T193517Z-98596`, passes baseline:
+600 offered / 287 eligible / 287 submitted / 286 successful finalized. Expired
+legacy epochs, required-market Degraded modes and one MakerQuote/6115 rejection
+remain classified. Independent per-root cash, fractional claims, fees, insurance
+and fresh PostgreSQL replay pass. Control completes all 600 offers and identical
+replay; its per-root audit and all 251 retained publisher calculations (242 available,
+9 coverage-unavailable) pass independently. A subsequent standalone publisher
+supplement times out awaiting finality; control is not yet a complete profile pass,
+and treatment did not start. Preserve the capture and failed supplement. Add
+commitment diagnostics on timeout, without extending any transaction/source fence.
+
+The final report measures publisher persistence-to-final-receipt on PostgreSQL's
+own clock. Surfpool's simulated blockTime drifts from wall time, so subtracting it
+from a database timestamp is not a valid millisecond landing measurement. Timed
+route/reprice first-confirmation measurements retain their monotonic-clock basis.
+P33's exact published `964ca5f` selected CI succeeds in run `40936985054`.
+New independent publisher replay, per-root report checks and the separate actual
+default/recovery/all-funded-exit harness typecheck; two report tests pass. The latter
+runtime remains unrun. Unrelated SBF/full-suite checks are skipped: artifacts and
+financial program code are unchanged. Exact next action: pin the bounded readers,
+operational harness and timeout diagnostics; retry control/treatment, then execute
+the fresh operational and maximum-book resource supplements. P34 remains In progress.
+
+R093 control/treatment retry on clean `03c4e73`, local
+`.local/liquidity-execution/qualification/20261029T200515Z-8948`, passes both
+complete 600-offer windows, structural rejection and actual treatment depletion
+supplements. Control: 542 eligible/submitted/successful finalized; treatment:546.
+Baseline remains the accepted `fb082de` run above; only diagnostic/reader additions
+separate the pins, with identical workload and qualified binaries. Independent
+per-root financial replay and retained-input report replay pass. Combined report
+`.local/p34-comparison-report.json`: 209 matched ordinary attempts, baseline/control
+p95 192.262334/240.320167 ms, ratio1.249959688 against the predeclared1.25 ceiling.
+This is a very narrow pass, not a claim of stable production performance. Eligible
+success gate passes; actual route maxima453,233/589,875/600,221CU retain20% headroom.
+The prior finality timeout does not recur; its cause is not asserted from missing
+observations. Raw failed and passing evidence remain local.
+
+Add bounded publisher build/persistence and first-executor-observation telemetry
+for the separate operational run; no financial or retry authority changes. Strengthen
+P33's literal audit with each trader's actual funding/claims/cash and two regressions
+that reject offsetting trader errors. Replaying the retained P33 run passes; actual
+cross cash999,786 and isolated999,879, with exact fractional claims. Browser selection
+now accepts `RIVALT_CHROME_PATH` or Playwright's installed Chromium. The review's
+maker-owned missing-history expiry proof is an explicit conservative availability
+limitation, not silently replaced by a weaker clearing-owner check; the operations
+guide records its budget/hand-over consequences. No automatic proof is claimed.
+
+The new literal test initially had a Python helper argument-name collision; fixed,
+then both cases pass. Prior two P34 financial-reader tests pass. Remaining targeted
+checks and actual operational/full-book runs are next; no SBF rebuild or unrelated
+full matrix is necessary. Exact next action: pin telemetry/audit/operations docs and
+run the real complete-cohort default, worker restart, recovery and full funded exits.
+
+R093 pre-operational verification: typecheck, seven affected service queue/maker
+checks, both literal trader-replay tests, independent control/treatment arithmetic replay, shell syntax, diff whitespace and tracked evidence policy pass.
+The browser's transaction flow is unchanged; its full lifecycle is not rerun for
+an executable-path configuration fix. Raw P33 browser originals remain pinned.
+
+R093 operational run `5388556`, local
+`.local/liquidity-execution/qualification/20261029T202542Z-operations-15570/operations`,
+performs a real funded liquidation and freezes/collects all ten registered roots,
+then stops at proposal stage4. The real worker returns unavailable; direct RPC
+reproduction records `Foreign proposal venue/profile.` in `proposal-diagnostic.json`.
+The inherited `readAccountRateProposal` hardcoded profile3. Pass the runtime's exact
+configured3/4 profile into this reader, preserving schema3, canonical PDA/owner,
+complete-cohort hash, collection and denominator checks. Default behavior remains3;
+mismatched and unsupported profiles still reject. No payout/risk economics change.
+Fresh operational acceptance is required; the earlier default is not called complete.
+
+Correction to the pre-operational reader record: the added independent signed-wire
+comparison initially represented byte arrays as arrays while retained JSON encodes
+hex. The original arithmetic replay already passed; the new binding assertion did
+not. Normalize exact bytes to hex without changing report values. A separate untracked
+reader correction replays both retained profiles successfully (253 control /255
+treatment reports); fold it into this commit and rerun the checked-in reader. No
+new live pricing run is needed for this offline encoding fix. Preserve all raw runs.
+Next: scoped profile-binding tests, pin the fix, then fresh operational rerun.
+
+R093 profile correction verification: eight focused frozen-proposal/risk-worker tests
+and typecheck pass, including explicit profile4 success, profile3/profile4 mismatch
+rejection and unsupported-profile rejection. Both checked-in signed-report-bound
+readers now pass all508 retained canonical reports; diff whitespace passes. The
+pricing workload and programs are unchanged, so only the failed operational path
+needs a fresh runtime rerun. Exact next action: commit and rerun owned operations.
+
+R093 operational acceptance on clean `aae8bb0`, local
+`.local/liquidity-execution/qualification/20261029T203440Z-operations-17884/operations`,
+passes: actual whole-account liquidation; ten-root default; SIGKILL/restart during
+partial proposal upload; exact proposal/check/order/round/apply/verify continuation;
+sustained source recovery and authority resume; all remaining funded balances exit.
+All90 service originals finalize successfully (72 risk,18 publisher), with identical
+fresh PostgreSQL replay and zero unexplained vault difference. The independent raw
+financial reference recreates all10 Fraction payouts and rejects5 corrupted states.
+All roots finish flat with zero cash/claims; vault452 atoms is only retained market
+insurance/protocol fees. Risk-service maximum419,737CU/1,196bytes/22keys passes its
+submitted resource ceiling/headroom. Actual18 publisher samples: read/calculate
+p95 77.786ms, build-to-persistence168.865ms, build-to-first-executor-observation1360ms;
+this is an observation latency, not a leader execution timestamp. Independent
+receipt/resource audit is retained at `.local/p34-operations-report.json`.
+
+Strengthen the final reader's one baseline MakerQuote classification: the actual
+failed offer302 lands at slot4722, exactly the selected legacy maker's recorded
+expiry4722. Do not whitelist an unexplained capacity failure merely by error code.
+No pricing runtime repeat is needed for that independent evidence check. Exact next
+action: commit the accepted operational audit and run fresh protected/entry/stored
+maximum-book resource cases, then complete the P34 ready PR. Stack stays open.
+
+R093 final resource acceptance on clean `875b647db55be5c424acdfa8faa5b0679554a849`,
+local `.local/liquidity-execution/qualification/20261029T204230Z-resources-19910`,
+passes fresh protected/entry/stored-book runs with 147/165/165 actual signed RPC/WS
+outcomes respectively. Each uses three full books and eight regions, maximum
+4,608-lot two-leg and 4,096-lot singleton routes. Two-leg measured CU:
+615,334 / 614,030 / 615,433, all below the 640,000 headroom ceiling for an
+800,000-CU submitted budget. Protected/entry packets are 1,262-byte v1; stored is
+1,165-byte v0; all use 26 keys. Singleton maxima are 340,927 / 342,822 / 341,532 CU,
+1,072-byte v0 and 21 keys. Actual second-maker rollback, stale-depth rejection,
+literal financial balances and legacy IDL parity pass. These are fresh P34 runs of
+the scoped probe, not historical P32 counts. Independent receipt/wire/signature/CU
+inspection is retained at `.local/p34-resource-report.json`.
+
+Commands: the existing hash-verifying continuation loader with
+`RIVALT_CONTINUATION_PROFILE=treatment`,
+`RIVALT_CONTINUATION_ENTRY=tests/rpc-contract/liquidity-resource-rpc.ts` and
+`RIVALT_RESOURCE_BOOK=protected|entry|stored`, each in a fresh owned run directory.
+All owned services stopped on completion; the RPC/WS/PostgreSQL ports are no longer
+listening. No qualified binary was rebuilt or source revision changed during a run.
+
+Closeout records [P34's complete evidence](evidence/P34.md), exact reproduction,
+source/publisher trust, complete offer/rejection populations, narrow latency gate,
+resource/fee/lock measurements, default/exits, failed attempts and operational
+limits. Update product/protocol/components/validation/roadmap and append D77's final
+qualification checkpoint without changing economics or closing external gates.
+Both tables now mark P34/M10 Review, not Closed. P33 review's portable browser and
+per-trader financial-audit issues are fixed here; absent-history maker proof remains
+an explicitly documented limitation, and no review thread is claimed resolved.
+Broad inherited SBF/Rust/browser/full-matrix checks were not rerun for unchanged
+artifacts or the browser executable-path-only fix. Scoped hosted CI is delegated
+to publication; no unobserved CI result is claimed. Next: final documentation and
+evidence-policy checks, commit, then publish ready P34 above #48 with the stack open.
+
+R093 final documentation checks: 437 local Markdown links exist, changed fences
+balance, `git diff --check` and tracked evidence policy pass. Only concise Markdown
+is added under `docs/evidence/`; raw runs remain ignored. Exact P33 `964ca5f` remains
+OPEN and ready; hosted run `40936985054` passes scope/client/financial/shell, with
+report explicitly skipped by its selector. This is predecessor CI, not a P34 claim.
+
+
+R093 publication: `gh stack submit --auto --open` creates ready
+[PR #49](https://github.com/arnabnandikgp/rivalt/pull/49) above #48, with exact
+acceptance closeout head `e545fbc2b68a79908efb451103a84eb37fc5dbc1`. GitHub confirms
+OPEN, `isDraft=false`, base `phase/p33-liquidity-services`; all seven phase PRs stay
+open in stack #44. P33 parent remains exact `964ca5f`. The initial P34 hosted run
+`40953601763` passes scope and starts client/report/financial/shell; completion is
+not yet claimed. Publication records do not change executable source or rerun
+runtime qualification. Exact next action: push this publication record, inspect
+selected hosted checks and correct any failure; keep the stack open for review.
+
+
+R093 hosted closeout: actual [run 40953732338](https://github.com/arnabnandikgp/rivalt/actions/runs/40953732338)
+on `3a987b6049e3273b6728d765688fc05ddd08e41a` completes successfully: all five selected
+scope/client/financial/report/shell jobs pass. This includes generated SDK parity,
+typecheck/client suite/UI build, independent quote/allocation references, native
+financial/safety checks, report regressions and shell syntax. No fresh SBF build or
+runtime soak is inferred. The tracked tree is clean apart from this documentation
+record; the user's three untracked research paths remain untouched. All seven
+ready phase PRs are open. Next: review the open stack after external feedback;
+merge only under separate authorization. P15B/P16B Open; endurance Deferred.
+
+
+## R094 — 30 October 2026 — open-stack review remediation
+
+User requests review of the open stack, without merge authorization. Inspect all
+seven PRs #42/#43/#45/#46/#47/#48/#49, including inline, outside-diff and optional
+review comments. Initial local snapshot `.local/r094-reviews.json` contains nine
+unresolved inline threads and six additional findings; pagination checks pass.
+#45/#47 explicitly skipped automated review, and #46 reports no actionable finding;
+absence of comments is not independent review approval.
+
+Apply the two roadmap fixes in #42; contract prose, current P29B next action and
+optional randomized inventory-skew coverage in #43 (26 independent tests pass).
+In #48 add authenticated maker-owned sequence proof after finalized blockhash
+expiry, retaining unknown fees and bounded separately reserved retries. Correct
+profile-4 wallet format admission, condition-based browser waits and precise index
+cell assertions. Move the existing portable-browser and per-trader financial-audit
+fixes from #49 into their owning #48. Typecheck initially exposed nullable wallet
+capability and a branded bump type in the negative fixture; fix both, then typecheck
+passes. Twelve targeted service/UI tests and two independent trader cases pass;
+seven affected tests and the two trader cases pass again after the type fixes.
+No financial program, binary, price, oracle safeguard or fee policy changes.
+
+Cascading `gh stack rebase --no-trunk` preserves all phases. Resolve only a stale
+historical WORKLOG checkpoint in favor of P33's later checkpoint and retain both
+DECISIONS additions. Correct #49's prose, reversed compute-budget comparison and
+explicit browser-install prerequisite. Historical runtime pins remain evidence
+for their actual code, not proof of the new recovery path. Both status tables stay
+Review, with review verification pending. Exact next action: pin the review tip,
+run focused real Surfpool/RPC/WS/PostgreSQL expiry/retry and affected service/browser
+checks using unchanged qualified binaries and an existing stopped owned PG cluster;
+then record evidence, publish the restacked ready PRs and resolve verified threads.
+
+
+R094 runtime acceptance: clean `791fb8d5109bff0ae4131239f27e547fd8a19c7f` passes both
+scoped runs under `.local/liquidity-execution/qualification/20261029T214547Z-r094-36761`.
+The `expiry` entrypoint waits for actual finalized blockhash expiry of an unbroadcast
+persisted reprice, authenticates nonapplication, restarts the runtime and executes
+one separately reserved retry. Independent RPC wire and finalized signature WS
+agree; retry fee is 5,000 lamports, old reservation remains 20,000, and handover
+rejects. Eight roots/30 accounts retain an unchanged financial projection and
+8,000,000-atom vault allocation with zero surplus. No history or fee receipt is invented.
+
+The `services` entrypoint passes 370 resolved originals (369 finalized success,
+one actual failure), ten browser originals plus two SDK originals, three actual
+SIGKILL/lost-ack recoveries, source outage/recovery and publisher handover. All 90
+retained reports pass the literal independent flat-curve check (86 available).
+Fresh PostgreSQL replay matches 174 events/outbox rows with no unresolved financial
+jobs. Separate `python3 tests/financial/p33_services_reference.py <summary>` passes
+per-trader cash/claim/funding/fee replay and six internal-maker reports: vault
+7,999,993 atoms, root cash 7,999,665, BTC/ETH fees 267/61 and insurance 66/15; no
+unexplained difference. Typecheck and trader production build also pass after
+restacking. Build reports its existing bundle-size warning; no new bundle-limit
+claim is made. Evidence policy/whitespace pass; owned RPC/WS/PG/browser listeners
+are stopped. The PG cluster was reused with fresh databases; none were deleted.
+
+These are focused changed-path runs using unchanged hash-verified binaries. No
+SBF rebuild, full historical matrix, final 600-offer comparison or endurance repeat
+was necessary; broader regression is delegated to selected hosted CI. Update both
+status tables and current recovery/operational specs. Exact next action: commit
+the review report, publish with `gh stack submit --auto --open`, resolve verified
+threads and verify CI without merging.
+
+
+R094 publication/CI closeout: all seven restacked PRs are OPEN and non-draft, with
+local/remote heads verified equal. The nine verified inline threads resolve on
+GitHub and a fresh all-stack query returns zero unresolved threads. All six
+additional findings are also addressed in the tracked disposition report. No
+review messages/outreach were sent; no PR was merged. Selected hosted checks pass
+on #43 `48abd8b`, #45 `fe91497`, #46 `693e5f9`, #47 `46be8d4`, #48 `5941cd9` and
+#49 `8ca2072`; scope-skipped jobs are explicitly identified in the report. #42
+`d124215` is documentation-only and has no selected runtime workflow. CodeRabbit
+is neutral/skipped for the incremental push, not an independent approval. Current
+snapshots remain `.local/r094-ci.json`, `.local/r094-reviews-after.json` and
+`.local/r094-resolution-result.json`. Changed Markdown checks cover 134 existing
+local links and balanced fences; tracked evidence policy/whitespace pass.
+
+No runtime or price/risk economics were changed after the clean `791fb8d` checks.
+Final documentation records the actual outcome; both tables remain Review. Exact
+next action: await separate integration authorization or assess newly arriving
+feedback, keeping the full ready stack open. External gates/endurance unchanged.
+
+
+## R095 — 30 October 2026 — self-review of skipped P30/P32 PRs
+
+The user requests a personal review of the two PRs skipped because of changed-file
+limits. Verify #45 `fe91497` (130 files, 77 generated/IDL) and #47 `46be8d4`
+(133 files, 28 generated/IDL), inspect each phase diff and the final stack, and
+trace canonical arithmetic, maker authority/CPI, current-price atomic execution,
+stored-order/funding/reservation accounting, publisher fencing/causality, shared
+financial helpers and profile/safety gates. [R095's report](evidence/R095-SELF-REVIEW.md)
+records the exact coverage, finding and limits. No actionable financial, authority
+or atomicity defect is found.
+
+Reproduce one low-severity documentation mismatch: Anchor 1.2.1 accepts an unused
+suffix after instruction arguments despite P29B's general trailing-data rejection
+claim. Both actual makers accept a suffixed golden quote and return 317 atoms with
+five lots remaining. Correct P29B and append the explicit D70/D77 wire clarification.
+Retain strict maker-account/204-byte response checks, canonical SDK encoding and
+nonce/order/publication replay rules. No program, financial or authority change.
+
+Actual fresh checks pin clean `608f73c641cc10b90fbbb92f4e2984890ae5100e`:
+
+- `python3 tests/financial/test_maker_curve_contract.py`: 27 pass.
+- `python3 tests/financial/check_maker_curve_parity.py --implementation sdk`: 3,172
+  pass; the same independent driver against each current retained maker SBF passes
+  3,172 each (1,547 quotes / 1,625 expected rejections). Local path-only wrappers
+  preserve prior evidence; the compiled lifecycle passes 123 signed cases/16
+  expected rejections and 104 instruction/20 account legacy matches.
+- `pnpm exec vitest run` for canonical-quote, canonical-transport, funding-publisher,
+  liquidity-route and liquidity-route-conformance: 24 pass after generation.
+  `pnpm generate:check` reproduces all three SDK trees exactly. An initial overlap
+  with generation failed module resolution; the serial rerun passes. The local
+  SBF wrapper's first import failure is also retained, then corrected using existing
+  RPC workspace dependency links. Neither failed attempt counts as a pass.
+- `cargo test --offline --locked -p financial-core --test margin funding_maker_candidate`
+  and `--test orders`, with this run's separate target directory and debug/incremental
+  disabled: one plus two pass; existing unused helper warnings only.
+- `ops/liquidity-continuation-smoke.sh` with treatment and separate publisher/
+  execution entrypoints: 84 signed RPC/WS outcomes (nine expected failures/eight
+  reports), then 125 outcomes (four expected failures). Independent expected quotes,
+  fees, roots and claims reconcile; execution cash 7,999,917 plus 83 fee/insurance
+  atoms equals 8,000,000. Publisher maximum 30,588 CU/871 bytes/14 keys; tested route
+  maximum 589,740 CU/1,262 bytes/v1/26 keys. Both enforce their existing budgets.
+- All four retained artifact hashes verify; `git diff 6437f7d HEAD -- programs crates
+  Cargo.toml Cargo.lock` is empty. No SBF rebuild or new binary qualification claim.
+- `gh pr checks` confirms scope/client/financial/report/shell SUCCESS on both exact
+  reviewed heads; CodeRabbit NEUTRAL is not a completed review.
+
+Evidence: `.local/r095-review/{publisher,execution,lifecycle}/`, local parity/native
+wrappers/logs and `.local/r095-*.log`; concise report/spec correction is carried by
+ready stack-tip PR #49. Both status tables remain Review. All raw evidence stays
+untracked and old evidence/research/databases/keys remain intact. No outreach,
+external review, production/funded deployment or merge occurs.
+
+Not run: unrelated native suites, fresh PostgreSQL/browser/service recovery, full
+safety/default matrix, maximum-book/600-offer comparison and endurance. No financial
+code changed and those gates retain their original pins; the scoped RPC probes do
+not claim new integrated PostgreSQL acceptance. With less than 0.5 GiB free, use
+verified retained SBFs instead of rebuilding Anchor dependencies. The native financial
+crate has no external dependencies. No access/product blocker remains for this review.
+Exact next action: keep the seven ready PRs open, assess new feedback or await the
+user's separate integration instruction. P15B/P16B Open; 24-hour endurance Deferred.
+
+Closeout checks: 205 local Markdown targets exist, fences balance, tracked-evidence
+policy and diff whitespace pass. Both owned Surfpool listeners are stopped. The
+review correction/report is a documentation-only commit on existing stack tip #49;
+the reviewed #45/#47 code heads remain unchanged.

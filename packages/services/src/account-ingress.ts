@@ -8,6 +8,7 @@ type Parser=(instruction:ParsedInput)=>{accounts:Record<string,AccountMeta|undef
 const action=(discriminator:ReadonlyUint8Array,parse:Parser,decoder:Decoder<unknown>,wallet:'owner'|'actor',root?:'trader'|'margin'|'donor')=>
   ({discriminator,parse,decoder,wallet,root});
 const actions=[
+  action(sdk.EXECUTE_LIQUIDITY_ROUTE_V4_DISCRIMINATOR,sdk.parseExecuteLiquidityRouteV4Instruction,sdk.getExecuteLiquidityRouteV4InstructionDataDecoder(),'actor','trader'),
   action(sdk.EXECUTE_ACCOUNT_ROUTE_V3_DISCRIMINATOR,sdk.parseExecuteAccountRouteV3Instruction,sdk.getExecuteAccountRouteV3InstructionDataDecoder(),'actor','trader'),
   action(sdk.WITHDRAW_FUNDED_ACCOUNT_V3_DISCRIMINATOR,sdk.parseWithdrawFundedAccountV3Instruction,sdk.getWithdrawFundedAccountV3InstructionDataDecoder(),'owner','margin'),
   action(sdk.TRANSFER_FUNDED_ACCOUNT_V3_DISCRIMINATOR,sdk.parseTransferFundedAccountV3Instruction,sdk.getTransferFundedAccountV3InstructionDataDecoder(),'owner','donor'),
@@ -23,16 +24,20 @@ const actions=[
 
 /** Opaque signed wallet bytes, one qualified financial action, explicit zero
  * priority fee. Generated schema parsers bind account roles; no V2 index reuse. */
-export function accountUserAuthority(wire:string,venue:string):AccountAuthority|null {
-  const {tx,keys}=signedWire(wire);if(tx.signatures.length!==1)throw new Error('Expected one account wallet signer');
-  let economic:ParsedInput|undefined,limit:Buffer|undefined,price=false;
+export function accountUserAuthority(wire:string,venue:string,profile:3|4=3):AccountAuthority|null {
+  const {tx,keys}=signedWire(wire,profile===4?1:0);if(tx.signatures.length!==1)throw new Error('Expected one account wallet signer');
+  let economic:ParsedInput|undefined,limit:Buffer|undefined,price=false,loaded=false;
+  const canonicalLimit=Buffer.alloc(5);canonicalLimit[0]=2;canonicalLimit.writeUInt32LE(800_000,1);
+  const loadedLimit=Buffer.alloc(5);loadedLimit[0]=4;loadedLimit.writeUInt32LE(8*1024*1024,1);
   for(const instruction of tx.message.compiledInstructions) {
     const data=Buffer.from(instruction.data);
     if(keys[instruction.programIdIndex]==='ComputeBudget111111111111111111111111111111') {
-      if(economic||instruction.accountKeyIndexes.length)throw new Error('Misplaced account compute budget');
+      if(tx.message.version===1||economic||instruction.accountKeyIndexes.length)throw new Error('Misplaced account compute budget');
       if(data.equals(Buffer.from(sdk.zeroPriorityFee().data!))) {if(price)throw new Error('Duplicate account priority price');price=true;}
+      else if(profile===4&&data.equals(loadedLimit)){if(loaded)throw new Error('Duplicate loaded account budget');loaded=true;}
       else {
-        if(limit||![sdk.routeComputeBudget(),sdk.groupRouteComputeBudget()].some(budget=>data.equals(Buffer.from(budget.data!))))throw new Error('Unsupported account compute budget');
+        const allowed=profile===4?[Buffer.from(sdk.routeComputeBudget().data!),canonicalLimit]:[sdk.routeComputeBudget(),sdk.groupRouteComputeBudget()].map(budget=>Buffer.from(budget.data!));
+        if(limit||!allowed.some(budget=>data.equals(budget)))throw new Error('Unsupported account compute budget');
         limit=data;
       }
     }else {
@@ -44,11 +49,18 @@ export function accountUserAuthority(wire:string,venue:string):AccountAuthority|
       })};
     }
   }
-  if(!economic||!limit||!price)throw new Error('Missing explicit account action/budget/zero price');
+  if(!economic||tx.message.version===0&&(!limit||!price||profile===4&&!loaded))throw new Error('Missing explicit account action/budget/zero price');
   const entry=actions.find(entry=>sdk.hex(entry.discriminator)===sdk.hex(economic!.data.slice(0,8)));
   if(!entry)throw new Error('Unsupported account wallet action');
-  const required=entry.root==='trader'?sdk.groupRouteComputeBudget():sdk.routeComputeBudget();
-  if(!limit.equals(Buffer.from(required.data!)))throw new Error('Incorrect account action budget');
+  const canonicalRoute=sdk.hex(entry.discriminator)===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_V4_DISCRIMINATOR);
+  if(entry.root==='trader'&&(profile===4)!==canonicalRoute)throw new Error('Foreign account route profile');
+  const units=entry.root==='trader'?(profile===4?800_000:600_000):400_000;
+  if(tx.message.version===1) {
+    const config=tx.message.transactionConfig;
+    if(!config||Object.keys(config).some(key=>!['computeUnitLimit','loadedAccountsDataSizeLimit','priorityFeeLamports'].includes(key))
+      ||config.computeUnitLimit!==units||config.loadedAccountsDataSizeLimit!==8*1024*1024||config.priorityFeeLamports!==0n)
+      throw new Error('Incorrect canonical header budget/priority fee');
+  } else if(!limit||limit.readUInt32LE(1)!==units)throw new Error('Incorrect account action budget');
   const [,end]=entry.decoder.read(economic.data,0);if(end!==economic.data.length)throw new Error('Trailing account instruction bytes');
   const parsed=entry.parse(economic);
   if(Object.keys(parsed.accounts).length!==economic.accounts.length)throw new Error('Unexpected account instruction dependencies');

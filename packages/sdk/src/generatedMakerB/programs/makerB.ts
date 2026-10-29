@@ -37,17 +37,25 @@ import {
 import {
   getMakerAccountConfigCodec,
   getMakerConfigCodec,
+  getMakerCurveV4Codec,
   getMakerGroupConfigCodec,
+  getMakerPriceV4Codec,
   type MakerAccountConfig,
   type MakerAccountConfigArgs,
   type MakerConfig,
   type MakerConfigArgs,
+  type MakerCurveV4,
+  type MakerCurveV4Args,
   type MakerGroupConfig,
   type MakerGroupConfigArgs,
+  type MakerPriceV4,
+  type MakerPriceV4Args,
 } from "../accounts/index.js";
 import {
+  getControlCurveV4InstructionAsync,
   getInitializeAccountConfigInstructionAsync,
   getInitializeConfigInstructionAsync,
+  getInitializeCurveV4InstructionAsync,
   getInitializeGroupConfigInstructionAsync,
   getPublishAccountEpochInstruction,
   getPublishEpochInstruction,
@@ -55,8 +63,12 @@ import {
   getQuoteAccountInstruction,
   getQuoteGroupInstruction,
   getQuoteInstruction,
+  getQuoteV4InstructionAsync,
+  getRepriceV4InstructionAsync,
+  parseControlCurveV4Instruction,
   parseInitializeAccountConfigInstruction,
   parseInitializeConfigInstruction,
+  parseInitializeCurveV4Instruction,
   parseInitializeGroupConfigInstruction,
   parsePublishAccountEpochInstruction,
   parsePublishEpochInstruction,
@@ -64,11 +76,17 @@ import {
   parseQuoteAccountInstruction,
   parseQuoteGroupInstruction,
   parseQuoteInstruction,
+  parseQuoteV4Instruction,
+  parseRepriceV4Instruction,
+  type ControlCurveV4AsyncInput,
   type InitializeAccountConfigAsyncInput,
   type InitializeConfigAsyncInput,
+  type InitializeCurveV4AsyncInput,
   type InitializeGroupConfigAsyncInput,
+  type ParsedControlCurveV4Instruction,
   type ParsedInitializeAccountConfigInstruction,
   type ParsedInitializeConfigInstruction,
+  type ParsedInitializeCurveV4Instruction,
   type ParsedInitializeGroupConfigInstruction,
   type ParsedPublishAccountEpochInstruction,
   type ParsedPublishEpochInstruction,
@@ -76,16 +94,22 @@ import {
   type ParsedQuoteAccountInstruction,
   type ParsedQuoteGroupInstruction,
   type ParsedQuoteInstruction,
+  type ParsedQuoteV4Instruction,
+  type ParsedRepriceV4Instruction,
   type PublishAccountEpochInput,
   type PublishEpochInput,
   type PublishGroupEpochInput,
   type QuoteAccountInput,
   type QuoteGroupInput,
   type QuoteInput,
+  type QuoteV4AsyncInput,
+  type RepriceV4AsyncInput,
 } from "../instructions/index.js";
 import {
   findAccountConfigPda,
   findConfigPda,
+  findCurveConfigV4Pda,
+  findCurvePriceV4Pda,
   findInitializeGroupConfigConfigPda,
 } from "../pdas/index.js";
 
@@ -95,7 +119,9 @@ export const MAKER_B_PROGRAM_ADDRESS =
 export enum MakerBAccount {
   MakerAccountConfig,
   MakerConfig,
+  MakerCurveV4,
   MakerGroupConfig,
+  MakerPriceV4,
 }
 
 export function identifyMakerBAccount(
@@ -128,6 +154,17 @@ export function identifyMakerBAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([193, 186, 219, 30, 59, 114, 63, 19]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBAccount.MakerCurveV4;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([3, 173, 181, 180, 176, 103, 166, 58]),
       ),
       0,
@@ -135,15 +172,64 @@ export function identifyMakerBAccount(
   ) {
     return MakerBAccount.MakerGroupConfig;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([66, 156, 238, 30, 240, 111, 194, 0]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBAccount.MakerPriceV4;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
     { accountData: data, programName: "makerB" },
   );
 }
 
+export enum MakerBEvent {
+  LiquidityPriceV4,
+  LiquidityShapeV4,
+}
+
+export function identifyMakerBEvent(
+  event: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
+): MakerBEvent {
+  const data = "data" in event ? event.data : event;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([245, 185, 52, 198, 79, 168, 94, 143]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBEvent.LiquidityPriceV4;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([52, 132, 184, 47, 231, 114, 255, 196]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBEvent.LiquidityShapeV4;
+  }
+  throw new Error(
+    "The provided event could not be identified as a makerB event.",
+  );
+}
+
 export enum MakerBInstruction {
+  ControlCurveV4,
   InitializeAccountConfig,
   InitializeConfig,
+  InitializeCurveV4,
   InitializeGroupConfig,
   PublishAccountEpoch,
   PublishEpoch,
@@ -151,12 +237,25 @@ export enum MakerBInstruction {
   Quote,
   QuoteAccount,
   QuoteGroup,
+  QuoteV4,
+  RepriceV4,
 }
 
 export function identifyMakerBInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): MakerBInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([87, 246, 69, 138, 190, 131, 55, 141]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBInstruction.ControlCurveV4;
+  }
   if (
     containsBytes(
       data,
@@ -178,6 +277,17 @@ export function identifyMakerBInstruction(
     )
   ) {
     return MakerBInstruction.InitializeConfig;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([2, 112, 249, 167, 34, 145, 140, 171]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBInstruction.InitializeCurveV4;
   }
   if (
     containsBytes(
@@ -256,6 +366,28 @@ export function identifyMakerBInstruction(
   ) {
     return MakerBInstruction.QuoteGroup;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([186, 69, 30, 223, 191, 154, 12, 19]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBInstruction.QuoteV4;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([104, 190, 176, 98, 109, 111, 187, 154]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBInstruction.RepriceV4;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "makerB" },
@@ -266,11 +398,17 @@ export type ParsedMakerBInstruction<
   TProgram extends string = "F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc",
 > =
   | ({
+      instructionType: MakerBInstruction.ControlCurveV4;
+    } & ParsedControlCurveV4Instruction<TProgram>)
+  | ({
       instructionType: MakerBInstruction.InitializeAccountConfig;
     } & ParsedInitializeAccountConfigInstruction<TProgram>)
   | ({
       instructionType: MakerBInstruction.InitializeConfig;
     } & ParsedInitializeConfigInstruction<TProgram>)
+  | ({
+      instructionType: MakerBInstruction.InitializeCurveV4;
+    } & ParsedInitializeCurveV4Instruction<TProgram>)
   | ({
       instructionType: MakerBInstruction.InitializeGroupConfig;
     } & ParsedInitializeGroupConfigInstruction<TProgram>)
@@ -291,13 +429,26 @@ export type ParsedMakerBInstruction<
     } & ParsedQuoteAccountInstruction<TProgram>)
   | ({
       instructionType: MakerBInstruction.QuoteGroup;
-    } & ParsedQuoteGroupInstruction<TProgram>);
+    } & ParsedQuoteGroupInstruction<TProgram>)
+  | ({
+      instructionType: MakerBInstruction.QuoteV4;
+    } & ParsedQuoteV4Instruction<TProgram>)
+  | ({
+      instructionType: MakerBInstruction.RepriceV4;
+    } & ParsedRepriceV4Instruction<TProgram>);
 
 export function parseMakerBInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
 ): ParsedMakerBInstruction<TProgram> {
   const instructionType = identifyMakerBInstruction(instruction);
   switch (instructionType) {
+    case MakerBInstruction.ControlCurveV4: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: MakerBInstruction.ControlCurveV4,
+        ...parseControlCurveV4Instruction(instruction),
+      };
+    }
     case MakerBInstruction.InitializeAccountConfig: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -310,6 +461,13 @@ export function parseMakerBInstruction<TProgram extends string>(
       return {
         instructionType: MakerBInstruction.InitializeConfig,
         ...parseInitializeConfigInstruction(instruction),
+      };
+    }
+    case MakerBInstruction.InitializeCurveV4: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: MakerBInstruction.InitializeCurveV4,
+        ...parseInitializeCurveV4Instruction(instruction),
       };
     }
     case MakerBInstruction.InitializeGroupConfig: {
@@ -361,6 +519,20 @@ export function parseMakerBInstruction<TProgram extends string>(
         ...parseQuoteGroupInstruction(instruction),
       };
     }
+    case MakerBInstruction.QuoteV4: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: MakerBInstruction.QuoteV4,
+        ...parseQuoteV4Instruction(instruction),
+      };
+    }
+    case MakerBInstruction.RepriceV4: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: MakerBInstruction.RepriceV4,
+        ...parseRepriceV4Instruction(instruction),
+      };
+    }
     default:
       throw new SolanaError(
         SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
@@ -383,11 +555,20 @@ export type MakerBPluginAccounts = {
     SelfFetchFunctions<MakerAccountConfigArgs, MakerAccountConfig>;
   makerConfig: ReturnType<typeof getMakerConfigCodec> &
     SelfFetchFunctions<MakerConfigArgs, MakerConfig>;
+  makerCurveV4: ReturnType<typeof getMakerCurveV4Codec> &
+    SelfFetchFunctions<MakerCurveV4Args, MakerCurveV4>;
   makerGroupConfig: ReturnType<typeof getMakerGroupConfigCodec> &
     SelfFetchFunctions<MakerGroupConfigArgs, MakerGroupConfig>;
+  makerPriceV4: ReturnType<typeof getMakerPriceV4Codec> &
+    SelfFetchFunctions<MakerPriceV4Args, MakerPriceV4>;
 };
 
 export type MakerBPluginInstructions = {
+  controlCurveV4: (
+    input: ControlCurveV4AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getControlCurveV4InstructionAsync> &
+    SelfPlanAndSendFunctions;
   initializeAccountConfig: (
     input: InitializeAccountConfigAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -397,6 +578,11 @@ export type MakerBPluginInstructions = {
     input: InitializeConfigAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeConfigInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  initializeCurveV4: (
+    input: InitializeCurveV4AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeCurveV4InstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeGroupConfig: (
     input: InitializeGroupConfigAsyncInput,
@@ -429,11 +615,22 @@ export type MakerBPluginInstructions = {
     input: QuoteGroupInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getQuoteGroupInstruction> & SelfPlanAndSendFunctions;
+  quoteV4: (
+    input: QuoteV4AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getQuoteV4InstructionAsync> & SelfPlanAndSendFunctions;
+  repriceV4: (
+    input: RepriceV4AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRepriceV4InstructionAsync> &
+    SelfPlanAndSendFunctions;
 };
 
 export type MakerBPluginPdas = {
+  curvePriceV4: typeof findCurvePriceV4Pda;
   accountConfig: typeof findAccountConfigPda;
   config: typeof findConfigPda;
+  curveConfigV4: typeof findCurveConfigV4Pda;
   initializeGroupConfigConfig: typeof findInitializeGroupConfigConfigPda;
 };
 
@@ -457,12 +654,22 @@ export function makerBProgram(
             getMakerAccountConfigCodec(),
           ),
           makerConfig: addSelfFetchFunctions(client, getMakerConfigCodec()),
+          makerCurveV4: addSelfFetchFunctions(client, getMakerCurveV4Codec()),
           makerGroupConfig: addSelfFetchFunctions(
             client,
             getMakerGroupConfigCodec(),
           ),
+          makerPriceV4: addSelfFetchFunctions(client, getMakerPriceV4Codec()),
         },
         instructions: {
+          controlCurveV4: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getControlCurveV4InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           initializeAccountConfig: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -475,6 +682,14 @@ export function makerBProgram(
             addSelfPlanAndSendFunctions(
               client,
               getInitializeConfigInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          initializeCurveV4: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeCurveV4InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -535,8 +750,29 @@ export function makerBProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          quoteV4: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getQuoteV4InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          repriceV4: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRepriceV4InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
         },
         pdas: {
+          curvePriceV4: (seeds, pdaConfig) =>
+            findCurvePriceV4Pda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           accountConfig: (seeds, pdaConfig) =>
             findAccountConfigPda(seeds, {
               programAddress:
@@ -544,6 +780,11 @@ export function makerBProgram(
             }),
           config: (seeds, pdaConfig) =>
             findConfigPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          curveConfigV4: (seeds, pdaConfig) =>
+            findCurveConfigV4Pda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

@@ -3,6 +3,27 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 
 #[event]
+pub struct LiquidityRegistryChangedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub registry: Pubkey,
+    pub state: crate::state::v4::LiquidityRegistryPayloadV4,
+}
+
+#[event]
+pub struct LiquidityMakerChangedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub market_state: MarketSnapshotV3,
+    pub registration: Pubkey,
+    pub state: crate::state::v4::MakerRegistrationPayloadV4,
+    pub operation: u8,
+}
+
+#[event]
 pub struct OrderChanged {
     pub version: u16,
     pub domain: [u8; 32],
@@ -933,6 +954,39 @@ pub struct AccountOrderChangedV3 {
     pub markets: [MarketSnapshotV3; 2],
     pub liability_versions: [u64; 2],
 }
+
+#[event]
+pub struct LiquidityOracleChangedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub state: MarketSnapshotV3,
+    pub inputs: [crate::state::v4::SampleInputV4; 3],
+    pub bid_legs: Vec<crate::state::v4::SampleLegV4>,
+    pub ask_legs: Vec<crate::state::v4::SampleLegV4>,
+}
+#[event]
+pub struct FundingPublisherChangedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub configuration: Pubkey,
+    pub state: crate::state::v4::FundingPublisherPayloadV4,
+    pub market_state: MarketSnapshotV3,
+}
+
+#[event]
+pub struct FundingReportAcceptedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub publisher: Pubkey,
+    pub report: crate::state::v4::FundingReportV4,
+    pub state: MarketSnapshotV3,
+}
 #[event]
 pub struct AccountAuthorityChangedV3 {
     pub venue: Pubkey,
@@ -967,6 +1021,33 @@ pub struct AccountRouteExecutedV3 {
     pub maker_states: Vec<MakerRegistrationSnapshotV3>,
     pub total_cash: u64,
     pub liability_versions: [u64; 2],
+}
+
+#[event]
+pub struct LiquidityRouteExecutedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub market_state: MarketSnapshotV3,
+    pub other_market_state: MarketSnapshotV3,
+    pub nonce: u64,
+    pub side: u8,
+    pub lots: u64,
+    pub gross_quote: u64,
+    pub fee: u64,
+    pub insurance_credit: u64,
+    pub retained_fee: u64,
+    pub carry_before: u8,
+    pub carry_after: u8,
+    pub ledger: MarketLedgerSnapshotV3,
+    pub order_id: u64,
+    pub order_version: u64,
+    pub root_states: Vec<MarginAccountSnapshotV3>,
+    pub maker_states: Vec<crate::state::v4::MakerRegistrationPayloadV4>,
+    pub total_cash: u64,
+    pub liability_versions: [u64; 2],
+    pub legs: Vec<crate::state::v4::ExecutedLegV4>,
 }
 
 #[event]

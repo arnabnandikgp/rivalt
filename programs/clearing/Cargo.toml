@@ -15,6 +15,10 @@ local-test-profile = []
 successor-test-profile = ["local-test-profile"]
 # Fresh schema-3 custody only; financial activation is separately gated.
 account-test-profile = ["local-test-profile"]
+# P30: fresh profile-4 custody and maker configuration only. No trading activation.
+maker-liquidity-qualification = ["account-test-profile"]
+# P32 candidate only. Explicit local activation for acceptance testing; no default/devnet enablement.
+liquidity-execution-qualification = ["maker-liquidity-qualification", "account-safety-qualification"]
 # Candidate-only artifact: no default, custody, or devnet activation before P26.
 account-trading-qualification = ["account-test-profile"]
 account-cash-qualification = ["account-trading-qualification"]

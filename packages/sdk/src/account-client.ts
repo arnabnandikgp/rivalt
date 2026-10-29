@@ -1,19 +1,34 @@
-import {address,createNoopSigner,getProgramDerivedAddress,type Address,type Instruction} from '@solana/kit';
+import {address,createNoopSigner,getProgramDerivedAddress,type Address,type Instruction,type Blockhash} from '@solana/kit';
+import {PublicKey} from '@solana/web3.js';
 import {getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import * as protocol from './generated/index.js';
 import {testRpcUrl} from './test-deployment.js';
 import {AccountArtifactVerifier} from './account-artifacts.js';
+import {LiquidityArtifactVerifier} from './liquidity-artifacts.js';
+import {compileCanonicalTransaction} from './canonical-transport.js';
+import {buildLiquidityRoute} from './liquidity-route.js';
 import {deriveAccountPortfolio,findMarginV3Pda,findBackingV3Pda,findVenueComponentV3Pda} from './account-addresses.js';
 import {WalletClient,hex,requireValue,fromBase64} from './wallet-client.js';
 import {walletComputeBudget} from './route-budget.js';
-import {readAccountSnapshot,readAccountTradeSnapshot,accountGuard,type AccountSnapshot} from './account-snapshot.js';
+import {readAccountSnapshot,readAccountTradeSnapshot,readLiquiditySnapshot,readLiquidityTradeSnapshot,accountGuard,type AccountSnapshot} from './account-snapshot.js';
 import {accountBalanceView} from './account-balance.js';
 import {buildAccountRoute,type AccountAllocationInput} from './account-route.js';
 
 export type AccountUserConfig={version:3;chain:'solana:localnet';profile:'account-safety-qualification';rpcUrl:string;wsUrl:string;
   genesis:string;anchor:string;anchorHash:string;venue:Address;mint:Address;domain:string};
+export type LiquidityUserConfig=Omit<AccountUserConfig,'version'|'profile'>&{version:4;profile:'liquidity-execution-qualification'};
+type UserConfig=AccountUserConfig|LiquidityUserConfig;
+type UserRoute<Config extends UserConfig>=Config extends LiquidityUserConfig?
+  Awaited<ReturnType<typeof buildLiquidityRoute>>:Awaited<ReturnType<typeof buildAccountRoute>>;
 export function accountUserConfig(value:AccountUserConfig):AccountUserConfig {
   requireValue(value?.version===3&&value.chain==='solana:localnet'&&value.profile==='account-safety-qualification','Explicit qualified local account deployment required.');
+  return validateAccountConfig(value);
+}
+export function liquidityUserConfig(value:LiquidityUserConfig):LiquidityUserConfig {
+  requireValue(value?.version===4&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
+  return validateAccountConfig(value);
+}
+function validateAccountConfig<Config extends UserConfig>(value:Config):Config {
   for(const key of ['rpcUrl','wsUrl'] as const) {
     testRpcUrl(value[key],value.chain,key==='wsUrl');const endpoint=new URL(value[key]);
     requireValue(!endpoint.search&&!endpoint.hash&&!endpoint.username&&!endpoint.password,'Public account RPC configuration cannot contain credentials.');
@@ -37,10 +52,25 @@ export function accountWalletInstructions(instructions:Instruction[]) {
 
 /** Owner/delegate operations over direct RPC. Saved signed originals use the
  * shared immutable wallet transport; the venue API is not an exit dependency. */
-export class AccountUserClient extends WalletClient {
-  readonly config:AccountUserConfig;
-  private readonly artifacts:AccountArtifactVerifier;
-  constructor(config:AccountUserConfig) {super(accountUserConfig(config).rpcUrl);this.config=accountUserConfig(config);this.artifacts=new AccountArtifactVerifier(this.rpc);}
+export class AccountUserClient<Config extends UserConfig=AccountUserConfig> extends WalletClient {
+  readonly config:Config;
+  private readonly artifacts:AccountArtifactVerifier|LiquidityArtifactVerifier;
+  constructor(config:Config) {
+    const checked=config.version===4?liquidityUserConfig(config):accountUserConfig(config);
+    super(checked.rpcUrl);this.config=checked as Config;
+    this.artifacts=config.version===4?new LiquidityArtifactVerifier(this.rpc):new AccountArtifactVerifier(this.rpc);
+  }
+  protected override get maxTransactionVersion():0|1{return this.config.version===4?1:0;}
+  protected override compile(owner:Address,recentBlockhash:Blockhash,instructions:Instruction[]) {
+    if(this.config.version===3)return super.compile(owner,recentBlockhash,instructions);
+    const economic=instructions.filter(instruction=>instruction.programAddress!=='ComputeBudget111111111111111111111111111111');
+    requireValue(economic.length===1&&economic[0].programAddress===protocol.CLEARING_PROGRAM_ADDRESS,'Unsupported canonical wallet envelope.');
+    const route=hex(economic[0].data?.slice(0,8)??[])===hex(protocol.EXECUTE_LIQUIDITY_ROUTE_V4_DISCRIMINATOR);
+    requireValue(hex(economic[0].data?.slice(0,8)??[])!==hex(protocol.EXECUTE_ACCOUNT_ROUTE_V3_DISCRIMINATOR),'Foreign route profile.');
+    if(!route)accountWalletInstructions(economic); // Shared financial action allowlist.
+    return compileCanonicalTransaction({payerKey:new PublicKey(owner),recentBlockhash},economic,
+      {computeUnitLimit:route?800_000:400_000,loadedAccountsDataSizeLimit:8*1024*1024}).transaction;
+  }
   protected override walletInstructions(instructions:Instruction[]){return accountWalletInstructions(instructions);}
   async environment() {
     const [genesis,anchor,observed]=await Promise.all([this.rpc.call('getGenesisHash'),this.rpc.call('getTransaction',[
@@ -54,28 +84,28 @@ export class AccountUserClient extends WalletClient {
     const bytes=fromBase64(observed.value.data[0]);
     requireValue(bytes.length===protocol.getVenueV3Size()&&hex(bytes.slice(0,8))===hex(protocol.VENUE_V3_DISCRIMINATOR),'Wrong venue schema.');
     const venue=protocol.getVenueV3Decoder().decode(bytes);
-    requireValue(venue.schemaVersion===3&&venue.profileVersion===3&&hex(venue.domain)===this.config.domain&&venue.quoteMint===this.config.mint,'Venue deployment identity mismatch.');
+    requireValue(venue.schemaVersion===3&&venue.profileVersion===this.config.version&&hex(venue.domain)===this.config.domain&&venue.quoteMint===this.config.mint,'Venue deployment identity mismatch.');
     await this.artifacts.verify(venue.authority);
   }
   async snapshot(margins:Address[],commitment:'confirmed'|'finalized'='finalized') {
-    await this.environment();return readAccountSnapshot(this.rpc,this.config,margins,commitment);
+    await this.environment();return (this.config.version===4?readLiquiditySnapshot:readAccountSnapshot)(this.rpc,this.config,margins,commitment);
   }
   async tradeSnapshot(trader:Address,marketIndex:0|1) {
-    await this.environment();return readAccountTradeSnapshot(this.rpc,this.config,trader,marketIndex,'confirmed');
+    await this.environment();return (this.config.version===4?readLiquidityTradeSnapshot:readAccountTradeSnapshot)(this.rpc,this.config,trader,marketIndex,'confirmed');
   }
   balance(snapshot:AccountSnapshot,margin:Address) {
     this.bound(snapshot);requireValue(snapshot.roots[margin],'Margin absent from snapshot.');
     return accountBalanceView(snapshot.roots[margin],snapshot.safetyState,snapshot.marketStates,snapshot.now,snapshot.slot);
   }
-  async route(input:AccountAllocationInput,actor:Address) {
-    this.bound(input.snapshot);return buildAccountRoute(input,actor);
+  async route(input:AccountAllocationInput,actor:Address):Promise<UserRoute<Config>> {
+    this.bound(input.snapshot);return await (this.config.version===4?buildLiquidityRoute(input,actor):buildAccountRoute(input,actor)) as UserRoute<Config>;
   }
   async common() {
     const [eventAuthority]=await getProgramDerivedAddress({programAddress:protocol.CLEARING_PROGRAM_ADDRESS,seeds:[new TextEncoder().encode('__event_authority')]});
     return {venue:this.config.venue,eventAuthority,program:protocol.CLEARING_PROGRAM_ADDRESS};
   }
   private bound(snapshot:AccountSnapshot) {
-    requireValue(snapshot.venue===this.config.venue&&snapshot.venueState.quoteMint===this.config.mint&&hex(snapshot.venueState.domain)===this.config.domain,'Foreign account snapshot.');
+    requireValue(snapshot.venue===this.config.venue&&snapshot.venueState.profileVersion===this.config.version&&snapshot.venueState.quoteMint===this.config.mint&&hex(snapshot.venueState.domain)===this.config.domain,'Foreign account snapshot.');
   }
   private owned(snapshot:AccountSnapshot,owner:Address,margin:Address) {
     this.bound(snapshot);const root=snapshot.roots[margin];requireValue(root?.owner===owner,'Owner margin authority required.');return root;
@@ -180,3 +210,6 @@ export class AccountUserClient extends WalletClient {
       guard:accountGuard(snapshot,margin),sourceMarket:sourceMarketIndex,certificate,registry,amount});
   }
 }
+
+/** Explicit profile-4 entrypoint; shared custody and margin arithmetic stay common. */
+export class LiquidityUserClient extends AccountUserClient<LiquidityUserConfig> {}

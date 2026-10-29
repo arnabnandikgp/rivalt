@@ -135,3 +135,4 @@ pub enum MakerError {
 }
 
 include!("maker-account.rs");
+include!("maker-canonical.rs");

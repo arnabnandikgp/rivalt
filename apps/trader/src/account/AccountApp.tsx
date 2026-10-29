@@ -66,20 +66,41 @@ function Reserves({controller}: {controller: AccountController}) {
     </tbody></table></div>
   </section>;
 }
+export function FundingReports({controller}: {controller:AccountController}) {
+  const reports=controller.venue.feed.group?.liquidity?.reports??{},publishers=controller.venue.feed.group?.liquidity?.publishers??{};
+  return <section className="panel"><h2>Funding publications</h2>
+    <p className="caption">Funding uses published maker depth attested by a restricted operator. A trade separately checks actual maker capital and your account’s margin. Makers are internal reference bots; no live hedging is performed.</p>
+    <div className="table-scroll"><table><thead><tr><th>Market</th><th>Index · USD/unit</th><th>Published impact mid · USD/unit</th><th>Latest finalized report</th><th>Report age</th><th>Publisher</th></tr></thead><tbody>
+      {GROUP_MARKETS.map((market,index)=>{
+        const key=controller.snapshot?.markets[index],entry=key?reports[key]:undefined;
+        const publisher=Object.values(publishers).find((value:any)=>value.market===key) as any;
+        const age=entry&&controller.snapshot?controller.snapshot.now-BigInt(entry.report.observedTime):null;
+        const state=controller.snapshot?.marketStates[index],quantity=entry?BigInt(entry.report.quantity):0n;
+        const impact=entry?.report.outcome===0&&quantity>0n&&state?
+          (BigInt(entry.report.bid)+BigInt(entry.report.ask))*state.lotsPerUnit/(2n*quantity):undefined;
+        const outcomes=['Depth available at publication','Independent sources unavailable','Maker coverage unavailable','Insufficient published depth'];
+        const status=entry?publisher&&String(entry.report.authorityEpoch)!==String(publisher.authorityEpoch)?'Superseded by publisher control':
+          outcomes[entry.report.outcome]??'Unknown report outcome':'Awaiting reconciled history';
+        return <tr key={market.name}><td>{market.name}</td><td>{fixed(state?state.referencePrice*state.lotsPerUnit:undefined)}</td><td>{fixed(impact)}</td><td>{status}</td>
+          <td>{age===null?'—':`${age<0n?0n:age} seconds`}</td><td>{publisher?`${publisher.enabled?'Enabled':'Revoked'} · ${short(publisher.publisher)} · epoch ${publisher.authorityEpoch}`:'—'}</td></tr>;
+      })}
+    </tbody></table></div><p className="caption">This is finalized publication history, not a live execution guarantee. Current source, expiry and account checks still apply.</p>
+  </section>;
+}
 export function AccountApp({config}: {config: AccountTraderConfig}) {
   const controller=useAccountController(config),{venue,snapshot}=controller;
   const mode=snapshot?.safetyState.mode;
   const status=snapshot?.safetyState.paused?'Venue paused':mode===2?'Resolution in progress':mode===3?'Resolution complete':mode===4?'Venue retired':mode===1?'Cross + isolated local test':'Local test venue';
   return <>
-    <header className="topbar"><a className="wordmark" href="#">Rivalt<span className="brand-dot"/></a><span className="network">Local test venue · BTC + ETH · internal makers</span><div className="header-actions"><button onClick={()=>void venue.refresh()} disabled={Boolean(venue.busy)}>Refresh</button><WalletMultiButton/></div></header>
-    <main onChange={venue.invalidate}>
+    <header className="topbar"><a className="wordmark" href="#">Rivalt<span className="brand-dot"/></a><span className="network">Local test venue · BTC + ETH · internal makers</span><div className="header-actions"><button onClick={()=>void venue.refresh()} disabled={Boolean(venue.busy)||venue.refreshing}>Refresh</button><WalletMultiButton/></div></header>
+    <main onChange={venue.invalidate} aria-busy={Boolean(venue.busy)||venue.refreshing}>
       <div className="market-header"><div><span className="eyebrow">YOUR ACCOUNTS</span><h1>Manage your margin</h1><p>Fund each account. Trade its eligible markets. Withdraw available cash directly.</p></div><span className="status">{status}</span></div>
       {[venue.rpcError,venue.error].filter(Boolean).map((message,index)=><p key={index} className="banner error" role="alert">{message}</p>)}
       {venue.apiError&&<p className="banner warning" role="status">{venue.apiError}</p>}{venue.notice&&<p className="banner" role="status">{venue.notice}</p>}{venue.busy&&<p role="status">{venue.busy}</p>}
       {config.demo&&<DemoPanel controller={controller}/>}
       <Selection controller={controller}/><GroupReview venue={venue}/>
       <div className="trading-grid"><div className="market-column"><Balances controller={controller}/><GroupPositions controller={controller}/></div><GroupTicket controller={controller}/></div>
-      <GroupOrders controller={controller}/><GroupAuthority controller={controller}/><GroupFills controller={controller}/><Reserves controller={controller}/><GroupReceipts venue={venue}/>
+      <GroupOrders controller={controller}/><GroupAuthority controller={controller}/><GroupFills controller={controller}/><Reserves controller={controller}/>{config.version===4&&<FundingReports controller={controller}/>}<GroupReceipts venue={venue}/>
       <p className="caption">{venue.records.filter(record=>!terminal(record)).length} unresolved saved transaction(s). Test venue {short(config.venue)} · one collateral mint · no funded deployment.</p>
     </main>
   </>;

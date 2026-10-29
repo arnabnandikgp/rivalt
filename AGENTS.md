@@ -44,7 +44,29 @@ for exact carry/authority rules; preserve total 2 bps/zero-provider fees and V1/
 
 ## Work phase by phase
 
-Use P01–P28 as the delivery units, retaining existing IDs and the documented successor suffixes. Each normally produces one cohesive PR or equivalent reviewable local branch/commit set, with its own runnable acceptance evidence. A phase may span several runs. Do not split it into dozens of task PRs or combine several phases into an unreviewable change. If implementation evidence requires splitting a phase, preserve its original ID, add a justified suffix and update plan/worklog.
+Use P01–P34 as the delivery units, retaining existing IDs and the documented successor suffixes. Each normally produces one cohesive PR or equivalent reviewable local branch/commit set, with its own runnable acceptance evidence. A phase may span several runs. Do not split it into dozens of task PRs or combine several phases into an unreviewable change. If implementation evidence requires splitting a phase, preserve its original ID, add a justified suffix and update plan/worklog.
+
+D69 records the maker-liquidity roadmap; D70 records subsequent user authorization
+to implement P29B–P34 sequentially. Read docs/P29-MAKER-LIQUIDITY-ROADMAP.md and
+docs/P29B-MAKER-CONTRACT.md before this work. P29B freezes the quote/update/routing/
+funding contract before implementation; new execution stays disabled until P32
+safety acceptance. Preserve the two-maker atomic execution limit,
+financial engine, external gates and deferred endurance. Keep the new ready PR
+stack open until separately instructed to merge.
+
+D74 supersedes maker financial admission inside profile-4 funding sampling only:
+use authenticated published depth, preserving price/source/coverage safeguards.
+Actual execution keeps complete financial admission. Temporary failure-based
+maker exclusion is deferred; do not describe published funding depth as guaranteed
+executable liquidity. Requalify the changed sampler before claiming resource fit.
+
+D75 selects a restricted off-chain funding publisher within P32–P34; read
+docs/P32-FUNDING-PUBLISHER.md. This supersedes per-sample on-chain maker hashing,
+CPI and allocation verification for the fresh profile's funding path. The backend
+attests complete fresh published liquidity; clearing retains report authorization,
+independent source/bounds checks and causal funding accounting. Exact layouts and
+transitions must be frozen before implementation; no activation or resource pass
+follows from the accepted design. Execution financial admission stays unchanged.
 
 Proceed through authorized routine implementation without asking to start each run. Finish and verify each deliverable before moving on, then continue its dependent phase without waiting for the previous PR to merge. A verified predecessor in Review satisfies the implementation dependency when its exact commits are included in the new branch. Use `gh stack` to manage these branches and their parent/base relationships. Submit ready-to-review PRs with `gh stack submit --auto --open`; never create draft PRs. If remote access is unavailable, leave reviewable local commits and mark publication pending. Keep unmerged phases in Review, not Closed; do not claim a PR exists or is merged when it does not.
 

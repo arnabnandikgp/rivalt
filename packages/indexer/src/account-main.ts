@@ -1,10 +1,13 @@
 import {setTimeout as delay} from 'node:timers/promises';
 import {AccountIndexer} from './account-indexer.js';
 import {accountApi} from './account-api.js';
+import {LiquidityIndexer} from './liquidity-indexer.js';
 const required=(name:string)=>{const value=process.env[name];if(!value)throw new Error(`Missing ${name}`);return value;};
-if(required('RIVALT_ACCOUNT_PROFILE')!=='account-safety-qualification')throw new Error('Explicit qualified local account profile required');
-const indexer=new AccountIndexer({rpcUrl:required('RIVALT_RPC_URL'),wsUrl:required('RIVALT_WS_URL'),databaseUrl:required('RIVALT_DATABASE_URL'),
-  runId:required('RIVALT_RUN_ID'),venue:required('RIVALT_VENUE'),anchor:required('RIVALT_INIT_SIGNATURE'),profile:'account-safety-qualification'});
+const profile=required('RIVALT_ACCOUNT_PROFILE');
+if(!['account-safety-qualification','liquidity-execution-qualification'].includes(profile))throw new Error('Explicit qualified local account profile required');
+const config={rpcUrl:required('RIVALT_RPC_URL'),wsUrl:required('RIVALT_WS_URL'),databaseUrl:required('RIVALT_DATABASE_URL'),
+  runId:required('RIVALT_RUN_ID'),venue:required('RIVALT_VENUE'),anchor:required('RIVALT_INIT_SIGNATURE')};
+const indexer=profile==='liquidity-execution-qualification'?new LiquidityIndexer({...config,profile}):new AccountIndexer({...config,profile:'account-safety-qualification'});
 const app=accountApi(indexer);let stopping=false;
 for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>{stopping=true;});
 try {

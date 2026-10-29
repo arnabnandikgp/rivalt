@@ -40,6 +40,16 @@ it('derives an untrusted proposal from one complete current frozen RPC batch',as
   expect(result.proposal.rates).toEqual([{numerator:7n,denominator:8n},{numerator:3n,denominator:4n}]);
   expect(result.proposal.insuranceSpent).toEqual([20n,10n]);expect(result.header.proposalUploaded).toBe(0);
 });
+it('binds the unchanged financial schema to the explicitly configured profile',async()=>{
+  const value=await fixture(),venue=value.config.venue;
+  const original=sdk.getVenueV3Decoder().decode(Buffer.from(value.accounts.get(venue).data[0],'base64'));
+  await expect(readAccountRateProposal(value.rpc,venue,1n,4)).rejects.toThrow(/profile/);
+  value.put(venue,sdk.getVenueV3Encoder().encode({...original,profileVersion:4}));
+  const result=await readAccountRateProposal(value.rpc,venue,1n,4);
+  expect(result.proposal.rates).toEqual([{numerator:7n,denominator:8n},{numerator:3n,denominator:4n}]);
+  await expect(readAccountRateProposal(value.rpc,venue,1n)).rejects.toThrow(/profile/);
+  await expect(readAccountRateProposal(value.rpc,venue,1n,5 as 3)).rejects.toThrow(/Unsupported/);
+});
 it('refuses a partial page, out-of-order member or already-applied row',async()=>{
   for(const mutation of ['count','member','applied'] as const) {
     const value=await fixture(),{key,page}=value.pageStates[0];

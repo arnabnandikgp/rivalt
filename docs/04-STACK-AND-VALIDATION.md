@@ -1,6 +1,78 @@
 # Stack, validation and measurement
 Rivalt · baseline R1 · 20 October 2026
 
+D69's [P29–P34 roadmap](P29-MAKER-LIQUIDITY-ROADMAP.md) retains the installed
+stack and scopes checks by phase. A34A is documentation validation; A34B is an
+independent contract/reference, not implementation evidence. A35–A39 require fresh
+affected program/quote/routing/safety and RPC/WS/PostgreSQL evidence. Freeze numeric
+comparison tolerances and workloads in G22 before measurement; keep zero unexplained
+financial differences, packet fit and at least 20% measured compute headroom.
+P32 is the integrated prototype continuation gate. No 24-hour run is added.
+D70 authorizes implementation; [G22's pinned contract](P29B-MAKER-CONTRACT.md)
+defines three-maker bounds, compute/headroom and
+packet limits, 240-offer prototype and 600-offer final comparison populations.
+Run `python3 tests/financial/test_maker_curve_contract.py` for the independent
+contract checks; these do not substitute for P30–P34 compiled/RPC acceptance.
+D71 supersedes mandatory lookup tables: use measured v0≤1,232 bytes or
+v1≤4,096 bytes with explicit resource headers. [P30 evidence](evidence/P30.md)
+qualifies the scoped curve/update lifecycle and records Surfpool log-status
+disagreement; signature notifications and fetched finalized status remain decisive.
+[P31 evidence](evidence/P31.md) records 415 independent allocation cases, 47 focused
+SDK checks, 24 actual quote comparisons / 73 signed RPC/WS outcomes and 1,000
+maximum-width searches. These qualify pricing/preview only; P32 must prove changed
+financial execution and PostgreSQL integration separately.
+
+P32's scoped sampler probe records historical compute/heap failures and a D74
+successful100-lot transaction that still fails required CU headroom; see
+[its implementation record](P32-LIQUIDITY-EXECUTION.md#d74-published-depth-resource-result).
+Native prepared-admission equivalence does not replace the unchanged compiled
+full-coverage/full-book/headroom gates. Do not classify a simulated failure as a
+submitted transaction or successful sample.
+
+D74 explicitly supersedes financial eligibility inside profile-4 funding samples.
+Requalify the published-depth sampler at 100/600 lots, including actual zero-cash
+makers, while proving execution margin checks remain effective. Retain complete
+authenticated coverage, stale/disabled/index-band failures, declared capacity,
+causal accrual and unchanged resource ceilings. The pre-D74 equivalence cases
+remain historical regression coverage, not the new funding contract.
+
+D75 replaces per-update on-chain funding search with restricted publisher reports.
+Use [the revised P32–P34 acceptance](P32-FUNDING-PUBLISHER.md): independently test
+backend calculation/complete-input handling and on-chain report acceptance as
+distinct trust boundaries. Freeze the smaller resource target before benchmarking;
+measure real signed reports, authority/replay/expiry/recovery, actual financial
+effects and PostgreSQL reconstruction. Historical sampler probes cannot qualify
+this new authority path. D76 freezes a 200,000-CU submitted budget with at most
+160,000 CU measured, at most20 loaded keys and default32-KiB heap for publisher
+initialization/configuration/report updates. `ops/funding-publisher-smoke.sh`
+exercises this scoped boundary separately from full P32 acceptance.
+
+`bash ops/liquidity-execution-smoke.sh` provisions fresh two-market canonical
+makers, real collateral, sources, publisher and all safety pages for a scoped
+signed route/order probe. It records original/fetched v0/v1 bytes, actual CU/keys,
+RPC/WS observations, event/legacy parity and independent cash/claim/fee totals.
+Its success alone does not close liquidation/default, full-book, PostgreSQL or
+the P32 continuation gate. Default-profile activation stays rejected.
+The additional [P32 acceptance matrix](evidence/P32.md) now records passing maximum
+books, safety, PostgreSQL and the three-profile continuation, each on its own pin.
+The comparison reader checks complete denominators, independent financial results,
+resource ceilings, matched latency and actual read/write lock sets.
+
+[P33's focused acceptance](evidence/P33.md) adds production consumers and durable
+services. `bash ops/liquidity-services-smoke.sh` provisions real RPC/WS/PostgreSQL,
+internal maker/publisher processes and browser flows; the separate
+`tests/financial/p33_services_reference.py` audits literal expected economics from
+its completed summary. It does not replace P34's three-profile workload or any
+independent-maker/review gate. No unrelated full regression is required per phase.
+
+[P34 A39/G26](evidence/P34.md) now records three fresh 600-offer populations,
+508 independent signed-input publisher replays, complete default/recovery/exits,
+fresh PostgreSQL reconstruction and maximum protected/entry/stored books. The
+predeclared latency ratio passes narrowly at 1.249959688 against 1.25; it is not a
+robust production latency margin. Maximum full-book use is 615,433 CU within the
+800,000-CU budget and 640,000-CU headroom ceiling. Follow the phase's operational
+guide for scoped reproduction; no broad SBF rebuild or 24-hour run is implied.
+
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
 phase-owned, and the candidate build does not satisfy P26 safety.

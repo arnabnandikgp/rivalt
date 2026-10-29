@@ -38,7 +38,11 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
       'registry-v3': 'venueRegistryV3', 'portfolio-v3': 'portfolioV3',
       'margin-v3': 'marginAccountV3', 'vault-v3': 'venueVaultV3',
       'market-v3': 'marketV3', 'ledger-v3': 'marketLedgerV3',
-    } : {maker: 'config', 'maker-v2': 'initializeGroupConfigConfig', 'maker-v3': 'accountConfig'})
+      'liquidity-v4': 'liquidityRegistryV4', 'maker-v4': 'makerRegistrationV4',
+      'liquidity-control-v4': 'liquidityControllerV4',
+      'funding-publisher-v4': 'fundingPublisherV4',
+    } : {maker: 'config', 'maker-v2': 'initializeGroupConfigConfig', 'maker-v3': 'accountConfig',
+      'curve-v4': 'curveConfigV4', 'price-v4': 'curvePriceV4'})
       .map(([label, name]) => [seedIdentity(label), name]));
     const aliases = new Map();
     for (const pda of codama.getRoot().program.pdas ?? []) {

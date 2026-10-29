@@ -9,6 +9,23 @@ The engineering objective is a reproducible local venue, followed by focused dev
 
 ## Selected scope
 
+D69/D70 authorize the [P29–P34 maker-liquidity extension](P29-MAKER-LIQUIDITY-ROADMAP.md):
+configurable maker strategies and bounded candidate discovery, with at most two
+maker capitals in any atomic route. P29A records the roadmap;
+[P29B](P29B-MAKER-CONTRACT.md) pins its exact contract and P32 owns the new local
+execution gate. Fees, insurance, margin, funded/unpaid
+claims and external gates are preserved. The bounded local implementation is now
+qualified through P34; it does not route to existing external spot pools.
+
+D75 selects a restricted backend publisher for fresh profile-4 funding, initially
+publishing every two seconds. Complete maker coverage and impact calculation are
+explicit publisher trust assumptions; clearing retains bounded report validation,
+independent risk prices and causal funding. Actual trading keeps full financial
+admission. [P32 local acceptance](evidence/P32.md), [P33 services/UI](evidence/P33.md)
+and [P34 comparative operations](evidence/P34.md) pass on their recorded pins.
+Review/integration and independent commercial validation remain separate. Internal
+maker results and synthetic markouts do not establish external maker profitability.
+
 D56 adds [P22–P28](P22-ACCOUNT-CENTRIC-CLEARING.md), a fresh bounded local redesign
 that separates account risk, market eligibility, funded exits and settlement/default
 rules. The intended UX removes technical group selection; BTC/ETH, one test mint,

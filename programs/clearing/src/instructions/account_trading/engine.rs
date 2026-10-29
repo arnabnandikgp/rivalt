@@ -3,12 +3,20 @@
 //! or PDA is invoked, and immutable identity is never copied back from a candidate.
 use super::*;
 
+#[inline(never)]
 pub(crate) fn root_view(root: &MarginAccountV3) -> Result<Box<v2::MarginAccountV2>> {
+    Ok(Box::new(root_view_value(root)?))
+}
+
+/// The same authenticated scalar adapter without a persistent heap copy. Used
+/// for short-lived funding projections in a separate bounded SBF frame.
+#[inline(never)]
+pub(crate) fn root_view_value(root: &MarginAccountV3) -> Result<v2::MarginAccountV2> {
     require!(
         root.schema_version == SCHEMA_VERSION,
         ClearingError::Profile
     );
-    let view = Box::new(v2::MarginAccountV2 {
+    let view = v2::MarginAccountV2 {
         schema_version: v2::SCHEMA_VERSION,
         group: root.venue,
         portfolio: root.portfolio,
@@ -28,7 +36,7 @@ pub(crate) fn root_view(root: &MarginAccountV3) -> Result<Box<v2::MarginAccountV
         reserved: root.reserved,
         book: root.book,
         bump: root.bump,
-    });
+    };
     super::super::group_margin::model(&view)?;
     Ok(view)
 }

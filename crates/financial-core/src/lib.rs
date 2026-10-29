@@ -3,6 +3,7 @@
 //! No runtime, oracle, token, or authority assumptions are supplied by this crate.
 pub mod clearing;
 pub mod liquidation;
+pub mod liquidity;
 pub mod margin;
 pub mod oracle;
 pub mod orders;
@@ -33,6 +34,12 @@ pub enum Error {
     Generation,
 }
 pub type Result<T> = core::result::Result<T, Error>;
+
+fn next_generation(previous: i64, next: i64, generation: u64) -> Result<u64> {
+    if previous != next && (previous == 0 || next == 0 || previous.signum() != next.signum()) {
+        generation.checked_add(1).ok_or(Error::Overflow)
+    } else { Ok(generation) }
+}
 
 fn add(a: i128, b: i128) -> Result<i128> {
     a.checked_add(b).ok_or(Error::Overflow)
@@ -167,11 +174,24 @@ impl Participant {
     /// Generation advances on flat/open and flip boundaries. Old protection never revives.
     pub fn with_lots(&self, lots: i64) -> Result<Self> {
         let mut next = *self;
-        if self.lots != lots && (self.lots == 0 || lots == 0 || self.lots.signum() != lots.signum())
-        {
-            next.generation = next.generation.checked_add(1).ok_or(Error::Overflow)?;
-        }
+        next.generation = next_generation(self.lots, lots, self.generation)?;
         next.lots = lots;
+        next.validate()?;
+        Ok(next)
+    }
+
+    /// One side of a quoted fill, with no fee or synthetic counterparty. Paired
+    /// fills and isolated-maker funding admission share these exact arithmetic
+    /// and generation rules. Health/reservations must still be checked by callers.
+    pub fn quoted_fill(&self, side: u8, lots: u64, notional: u64, funding: i128) -> Result<Self> {
+        if side > 1 || lots == 0 || lots > MAX_LOTS as u64 || notional == 0 || notional > MAX_CASH {
+            return Err(Error::Bounds);
+        }
+        let accrued = self.accrued(funding)?;
+        let delta = if side == 0 { lots as i64 } else { -(lots as i64) };
+        let mut next = accrued.with_lots(accrued.lots.checked_add(delta).ok_or(Error::Overflow)?)?;
+        next.virtual_scaled = if side == 0 { sub(next.virtual_scaled,scaled(notional)?)? }
+            else { add(next.virtual_scaled,scaled(notional)?)? };
         next.validate()?;
         Ok(next)
     }
@@ -193,23 +213,10 @@ pub fn fill(
     notional: u64,
     funding: i128,
 ) -> Result<(Participant, Participant)> {
-    if buyer.id == seller.id
-        || lots == 0
-        || lots > MAX_LOTS as u64
-        || notional == 0
-        || notional > MAX_CASH
-    {
+    if buyer.id == seller.id {
         return Err(Error::Bounds);
     }
-    let b = buyer.accrued(funding)?;
-    let s = seller.accrued(funding)?;
-    let mut b = b.with_lots(b.lots.checked_add(lots as i64).ok_or(Error::Overflow)?)?;
-    let mut s = s.with_lots(s.lots.checked_sub(lots as i64).ok_or(Error::Overflow)?)?;
-    b.virtual_scaled = sub(b.virtual_scaled, scaled(notional)?)?;
-    s.virtual_scaled = add(s.virtual_scaled, scaled(notional)?)?;
-    b.validate()?;
-    s.validate()?;
-    Ok((b, s))
+    Ok((buyer.quoted_fill(0,lots,notional,funding)?,seller.quoted_fill(1,lots,notional,funding)?))
 }
 pub fn charge_fee(
     p: Participant,

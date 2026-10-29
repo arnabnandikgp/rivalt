@@ -1,5 +1,36 @@
 //! Instruction contexts, handlers and their domain-specific validation helpers.
 
+pub mod maker_liquidity;
+pub use maker_liquidity::routes::{ExecuteLiquidityRouteV4, LiquidityRouteIntentV4, LiquidityOrderExecutionV4};
+pub(crate) use maker_liquidity::routes::__client_accounts_execute_liquidity_route_v4;
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::routes::__cpi_client_accounts_execute_liquidity_route_v4;
+pub(crate) use maker_liquidity::publisher::{
+    __client_accounts_configure_funding_publisher_v4,
+    __client_accounts_initialize_funding_publisher_v4, __client_accounts_publish_funding_report_v4,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::publisher::{
+    __cpi_client_accounts_configure_funding_publisher_v4,
+    __cpi_client_accounts_initialize_funding_publisher_v4,
+    __cpi_client_accounts_publish_funding_report_v4,
+};
+pub use maker_liquidity::publisher::{
+    ConfigureFundingPublisherV4, InitializeFundingPublisherV4, PublishFundingReportV4,
+};
+pub use maker_liquidity::sampling::SampleLiquidityV4;
+pub(crate) use maker_liquidity::sampling::__client_accounts_sample_liquidity_v4;
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::sampling::__cpi_client_accounts_sample_liquidity_v4;
+pub use maker_liquidity::{InitializeLiquidityV4, RegisterLiquidityV4, SealLiquidityV4, ControlLiquidityV4, QuarantineLiquidityV4};
+pub(crate) use maker_liquidity::{__client_accounts_initialize_liquidity_v4,
+    __client_accounts_register_liquidity_v4, __client_accounts_seal_liquidity_v4,
+    __client_accounts_control_liquidity_v4, __client_accounts_quarantine_liquidity_v4};
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::{__cpi_client_accounts_initialize_liquidity_v4,
+    __cpi_client_accounts_register_liquidity_v4, __cpi_client_accounts_seal_liquidity_v4,
+    __cpi_client_accounts_control_liquidity_v4, __cpi_client_accounts_quarantine_liquidity_v4};
+
 pub mod account_cash;
 pub use account_cash::fees::ManageMarketFeesV3;
 pub(crate) use account_cash::fees::__client_accounts_manage_market_fees_v3;

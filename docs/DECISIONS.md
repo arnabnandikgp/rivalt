@@ -67,6 +67,11 @@ No generic “TBD” may escape into an executable phase. Missing a gate blocks 
 | G19 | Whole-account risk/orders/funding, relevant validity dependencies, settlement ledger and atomic cash exits | P24/P25 | Independent real-implementation checks, signed rollback/conservation/fractions and live-sampler exit cases; ordinary new-profile activation still disabled |
 | G20 | Complete selected liability cohort, loss/insurance allocation, liquidation/default/recovery and activation | P26 | Independent maximum-cohort/shared-debtor/cycle cases, post-fee progress, real signed runtime reconciliation and activation gates |
 | G21 | Account-centric services/events/UI, operator budgets and bounded concurrent qualification | P27/P28 | Actual RPC/WS/PostgreSQL/browser/replay, normal background exits, complete populations and measured resource/contention limits |
+| G22 | Versioned maker identity/quote/curve/update/authority contract; registry/region/read-set/search/resource bounds; funding context/coverage and comparison tolerances | P29B / D70 | [P29B contract](P29B-MAKER-CONTRACT.md) freezes profile 4, three makers, canonical potential/prefix arithmetic, exact pair search, complete funding and numeric continuation bounds; D71 supersedes mandatory tables with measured v0/v1 selection; independent reference checks only, runtime feasibility remains P30/P32 |
+| G23 | Canonical configurable curves, update/replenish/expiry controls and exact SDK/program quote parity | P30 | Independent vectors, signed actual program/RPC/WS updates and quotes, scoped ABI and measured update resources |
+| G24 | Generic candidate set, best feasible singleton/pair allocation, capital deduplication, exactness and search budget | P31 | Independent exhaustive comparator, three-plus candidate cases and real-program quote parity; measured bounded search |
+| G25 | New clearing/funding/order authority, race behavior, affected safety and local activation; prototype continuation thresholds | P32 | Signed actual rollback/funding/risk/default and comparative RPC/WS/PostgreSQL evidence; no safeguard weakening |
+| G26 | Maker/trader service integration, recovery, economics reporting and bounded comparative qualification | P33/P34 | Actual RPC/WS/PostgreSQL/browser, ambiguous-original recovery, independent replay/reconciliation and measured populations/limits |
 
 G02 is an implementation precision choice, not permission to change the cash/claims rules. Program addresses, keys and endpoints are deployment outputs; this documentation must not invent them.
 
@@ -1113,3 +1118,391 @@ D68 integration result (R076): PR #41 merges at `350e60c`, with a tree identical
 to checked `ba73bcd`. Both findings are resolved and selected hosted checks pass.
 P28A/M9 close within their local-evaluation scope; original program qualification,
 external gates and deferred endurance are unchanged. The demo remains stopped.
+
+## D69 — programmable maker liquidity direction and scoped roadmap (P29–P34)
+
+The user accepts R077's five-change proposal, particularly generic bounded routing,
+and requests phase-scoped PR planning before another development cycle.
+[P29–P34 / M10](P29-MAKER-LIQUIDITY-ROADMAP.md) records the plan. P29A is a
+documentation-only ready PR; P29B–P34 are prospective and this planning request
+does not itself start their implementation. Keep the new stack open until a later
+merge instruction. P29A supersedes D68's stop-after-PR-41 boundary only for this
+subsequently requested planning work.
+
+Selected direction: standardize exact quote/execution envelopes, provide a reusable
+canonical configurable curve, separate repricing from authorized replenishment and
+security changes, select the best eligible one/two-maker route independently of
+fixed A/B IDs, and keep common clearing/funding authoritative. Demonstrate discovery
+and selection with at least three separately funded maker instances per market,
+including shared strategy implementation; G22 freezes the initial bounds after feasibility
+analysis. A distinct quote account is not a distinct collateral backing source.
+
+Deliberate future supersessions are scoped to the fresh bounded profile and must
+be realized by phase-owned contracts and evidence:
+
+- D22/G04's fixed strategy constants, fixed module-instance identity and expired-only
+  publication give way to the G22/G23 configurable curve and update lifecycle.
+  Preserve funded-capital binding, no implicit consumption reset and code admission.
+- D23/G05's fixed A/B allocation enumeration becomes G24's bounded best feasible
+  singleton/pair search. Preserve exact-size atomic execution, aggregate user limits,
+  one fee, current risk admission and the two-capital execution bound.
+- D53/D62's reuse of the fixed A/B pricing/search implementation changes through
+  G24/G25. The exact signed price/prefix policy is a P29B gate; planning does not
+  silently relax today's security, consumption or user-price bindings.
+- G08's complete configured funding coverage and causal accrual remain. Its fixed
+  A/B evaluator is replaced only with validated executable quotes and the same route
+  constraints; no funding-only prices or keeper-selected favorable subset.
+
+This direction does not alter D57/D60 loss ownership or accounting, D58 fees and
+insurance, independent risk sources, existing account modes/custody/withdrawal
+rules, TP/SL or liquidation/default obligations. Preserve V1/V2 and qualified V3;
+prefer new maker layouts/instructions in a fresh local deployment over an in-place
+financial account rewrite. P29B records exact versions and migration boundaries.
+
+The first release admits canonical configurable pricing only. Custom opaque modules,
+private RFQs, arbitrary nonconvex search, external spot-pool collateral, public LP
+capital and external hedging are not implied by the adapter boundary. New financial
+execution remains disabled until P32's affected safety and comparison gate passes.
+P33/P34 do not proceed over failed prototype evidence. Numeric workloads/tolerances
+are pinned in G22 before measurement; no resource, performance or profitability
+claim is created here. Routine technical corrections stay within their phase;
+material economic departures require a decision.
+
+P15B/P16B remain Open, 24-hour endurance remains Deferred, and no paid service,
+outreach, devnet/funded rollout or independent review is authorized or claimed.
+
+
+## D70 — authorized implementation and P29B canonical quote contract
+
+The user subsequently says the current plan is accepted and to proceed. This
+supersedes D69's planning-only execution boundary: implement P29B–P34 sequentially,
+with ready stacked PRs kept open. It does not authorize merging this stack, paid
+services, external hedging/outreach or devnet/funded deployment.
+
+[P29B](P29B-MAKER-CONTRACT.md) freezes G22 for fresh local profile 4, preserving
+schema-3 financial accounts and V1–V3 behavior. Three sealed maker instances per
+market use at most two admitted program implementations and unique isolated capital
+bindings; an atomic route still selects at most two capitals. One canonical
+configurable curve capability is admitted; no opaque pricing extension is enabled.
+
+Exact cumulative side offsets plus a convex integer inventory potential replace
+fixed A/B pricing in this profile. Fragmented fills telescope at unchanged terms.
+Price CAS updates preserve consumption; owner-controlled shape, permission and
+replenishment transitions are separate. Structural changes use a restricted
+noncustodial clearing controller and materialize/truncate held funding causally.
+Pure repricing does not invalidate unrelated market security epochs or retroactively
+rewrite a held sample. Published price life is bounded by both 150 slots maximum
+and six seconds. Clearing retains all source/risk/capacity/authority checks.
+
+Routes bind exact maker identities, quantities and authority/control/shape/depth
+epochs, while using landed price/inventory/consumption within explicit signed
+all-in limits. This deliberately supersedes V3 strict quote/prefix binding only for
+profile 4. There is no substitution, resplitting, partial fill or implied slippage
+permission. Exact singleton/pair enumeration includes full-root funding, reservations
+and admission; monotone prices do not justify skipping nonprefix health cases.
+
+Funding authenticates all three configured makers and their current publications,
+even if some contribute zero capacity; missing inputs cannot be silently omitted.
+Use the same executable pricing and two-capital constraint, existing reference
+quantity/premium/causal hold and recovery rules. No funding-only liquidity.
+
+G22 pins account/ABI layouts, three-maker/eight-region bounds, 12,291 maximum
+allocation compositions, explicit frozen address lookup tables, packet/compute
+envelopes with 20% headroom, and prospective 240-offer/600-offer comparison workloads.
+A34B's independent literal/per-lot/exhaustive checks validate the contract, not the
+programs, latency or CU. P30/P31 own implementation parity and P32 must prove actual
+full-hash/full-book signed resource/safety acceptance and continuation tolerances
+before P33. No runtime path activates in P29B. Financial loss ownership, fee/insurance
+allocation and zero positive unpaid margin credit are unchanged. P15B/P16B remain
+Open external gates; continuous 24-hour endurance remains Deferred.
+
+
+D70 implementation checkpoint (R080): P30 begins on the verified P29B stack.
+Canonical Rust and SDK arithmetic/quote payloads pass independent native parity;
+no new on-chain handler, active profile or deployment is inferred. Exact financial
+activation and runtime acceptance remain with the phase gates above.
+
+D70 P30 context realization: fresh profile4 reuses flat custody under a separate
+`maker-liquidity-qualification` feature; legacy trading/activation still rejects4.
+Concrete event-CPI contexts require custody sequencing, the maker event authority
+and potentially an independent transaction payer. The pre-measurement control
+envelope is amended to18 keys/up to3 signers and a1,179-byte conservative model,
+retaining packet/CU/headroom limits. Shape replacement cannot change enable mode;
+quarantine is independent of maker code/state and may run while paused. These
+ordinary implementation corrections and their original rationale are recorded in
+P29B's realization notes; no financial economics or loss ownership changes.
+
+
+## D71 — Size-based v0/v1 transport for profile4 (28 October 2026)
+
+The user directs using Solana v1 for transactions above1,232 bytes instead of
+requiring address lookup tables. Supersede only D70/G22's mandatory ALT provisioning
+and universal1,232-byte wire limit. Preserve account/read-set, compute/headroom,
+search, fee, authority and financial bounds. Keep existing V1–V3 profile transport
+unchanged. The installed web3.js3.1.1 and Kit8.5.0 implement v1; the current
+[Solana transaction reference](https://solana.com/docs/core/transactions) specifies
+4,096 bytes for v1. Library support is not runtime or wallet acceptance.
+
+The fresh canonical transport measures actual signed-size wire bytes, selects v0
+at≤1,232 and v1 above that, rejecting anything over4,096. Explicit compute and
+loaded-account-data limits move into v1's header; priority fee remains zero.
+Current P30 uses8MiB loaded-account data. RPC fetches allow version1 and compare the
+original bytes/signature with independently decoded RPC results. No broadcast
+fallback may silently resign or replace a pending action. Wallet/services/indexer
+compatibility is verified in the phases that own it. No mainnet/devnet deployment
+or stack upgrade is authorized by this transport correction.
+
+Initial P30 signed serialization finds single-shape control1,222 bytes, curve
+initialization1,039, pure reprice460 and joint approval775; all fit v0. These are
+actual generated-instruction serialization measurements, not finalized RPC evidence.
+P30 includes a genuine atomic pair of full-shape controls to exercise oversized v1.
+Its execution and actual CU results must be recorded separately. Historical P29B
+ALT models remain labeled as models, not new transaction measurements.
+
+
+D71/P30 acceptance: the pinned clean RPC run on`e9ee447` passes123 finalized
+transactions and actual v1 fetch/dual decode. Single shape-control1,222bytes stays
+v0; the atomic pair is1,854bytes in v1 instead of1,896 in v0, with22 loaded keys
+and629,056/800,000CU (21.368% headroom). The pair composes two400k controls under
+the combined-operation gate; single-control, unique-account and risk limits remain.
+See [P30 evidence](evidence/P30.md). Its78 committed events match isolated legacy
+Anchor. Surfpool log-error hints disagree for16 failures; all signature notifications
+and finalized statuses agree, and rejected state is excluded. This does not qualify
+wallet/indexer v1 support, routes or financial activation. The user instructs
+stopping after opening P30's ready PR; P31 is not started.
+
+## D72 — Resume P31 and bound complete quote discovery (28 October 2026)
+
+The user resumes the authorized P31–P34 sequence after the P30 discussion,
+superseding D71's temporary stop instruction only. Phase PRs remain ready, stacked
+and open. D70 financial gates and D71 measured v0/v1 selection remain unchanged.
+
+P31 uses one final coherent RPC batch for all three sealed candidates, their
+capital/portfolio identities and full program code alongside the selected account's
+financial dependencies. Set the SDK discovery ceiling to 48 distinct RPC keys.
+This is a read-only discovery bound, separate from the retained G22 maximum of
+32 loaded accounts per signed transaction. Unknown pricing capabilities fail
+closed; classified unavailable canonical makers remain visible. No financial
+activation, fee/insurance/loss change or wider exactness guarantee is authorized.
+See [P31 implementation](P31-EXACT-ROUTING.md) for interfaces and scoped acceptance.
+
+D72/P32 implementation checkpoint: exact consecutive-price preparation and a
+14,424-byte admitted-quantity table realize D70/G22 without changing economics or
+its numeric gates. Native parity does not qualify on-chain compute, total heap,
+financial execution or activation. Full source/capital coverage and independent
+health at every quantity remain mandatory; P32 is still In progress.
+
+## D73 — Causal canonical funding observations (P32, 29 October 2026)
+
+Implement D70/P29B's old-interval-first rule explicitly for profile4: materialize
+valid held funding before installing either a qualified or failed new sample.
+Publication time expiry additionally bounds the held endpoint; six-second recovery
+cannot bridge a gap beyond the preceding time/slot endpoint. Existing slot expiry,
+catchup, source freshness and frozen/default mode restrictions remain unchanged.
+
+A structural control closes the old observation at the actual Clock, counts its
+materialized covered time and remaining skipped time once, and records an
+unqualified observation at that Clock (`sampled_at=held_until=now`). Before the
+first sample both stay zero. Source identities/sequences/deadline and risk
+bounds/validity are preserved; this control observation is not a source update.
+Repeated controls cannot double-count coverage or restore depth. The normal
+two-second sampling interval still applies. Pure repricing does none of this.
+
+This resolves bookkeeping details within the approved causal contract; it does
+not supersede risk, loss ownership, fees or V1–V3 implementation behavior. Native
+literal tests are preparation only; A37/G25 still requires compiled and integrated
+execution, safety and reconciliation evidence before new activation.
+
+D73/P32 resource checkpoint: initial and prepared-reservation100-lot probes
+exhaust1.4mCU; neither failed simulation is broadcast. No G25 completion or changed
+budget is inferred. The next optimization prepares validated risk inputs and fixed
+reservation rates, preserves exact per-quantity admission, and rechecks selected
+legs with the full existing route engine. Independent literal financial cases,
+extreme-bound comparisons and full-route projection equivalence remain distinct
+from required compiled/resource acceptance. Complete coverage, full code hashes,
+32KiB heap and20% compute headroom are unchanged.
+
+## D74 — Published-liquidity funding, financial admission at execution (P32, 29 October 2026)
+
+The user explicitly selects published maker liquidity for impact-price sampling,
+trusting makers' ability to finance the reference quantity for now. This supersedes
+D70/P29B section 6 and D73's resource follow-up **only where they require maker
+financial admission during profile-4 funding sampling**. It is a changed funding
+contract, not an optimization-equivalence claim or acceptance of the failed probes.
+V1–V3 and actual trade financial admission remain unchanged.
+
+The sampler reads the same authenticated canonical shape, fresh publication,
+current inventory and consumed depth as execution. Keep all three sealed inputs,
+identity/owner/code authentication, canonical CPI parity, declared inventory and
+reduce-only caps, independent 90–110% index price band, exact best one/two-maker
+allocation and complete reference size on both sides. Remove hypothetical maker
+funding accrual, cash/claim health, IM, order-reservation refresh and selected-leg
+financial rechecks from sampling. Capital remains read-only for identity/inventory;
+no hypothetical orders, fills, cash transfers or depth consumption are created.
+
+The impact midpoint, signed premium/cap, causal held interval, source freshness,
+expiry/recovery and outage rules are unchanged. Sampling measures **published
+liquidity, not guaranteed executable liquidity**: undercollateralized makers can
+influence funding until their publications/eligibility change. No profit-payout or
+margin guarantee follows. SDK/UI/reporting must distinguish this from P31's
+financially feasible route preview. All actual routes, orders, liquidation, cash
+and default paths retain their complete financial checks and unchanged economics.
+
+The user's suggestion to temporarily exclude makers after repeated economic
+execution failures is deferred. Do not invent a threshold, epoch duration,
+failure-attribution rule or keeper-selected subset now. Existing quarantine still
+invalidates required funding coverage; dynamic exclusion would need its own
+coverage/recovery contract. No new blacklist mechanism is part of this change.
+
+P32 must newly measure successful 100/600-lot samples under unchanged packet,
+heap, CU/headroom and complete-input gates; prove zero funded cash does not remove
+published depth while execution still rejects insufficient margin; retain stale,
+missing, disabled, price-band, consumption, causal and reconstruction checks.
+Prior failed measurements remain historical evidence. Trading stays disabled
+until complete P32 acceptance; P15B/P16B and deferred endurance are unchanged.
+
+## D75 — Restricted off-chain funding publisher within P32–P34 (29 October 2026)
+
+The user accepts the recommended backend publisher approach and asks how it fits
+the active phases. Implement it within existing P32–P34, as described in
+[the publisher delivery contract](P32-FUNDING-PUBLISHER.md), with ready stacked
+PRs kept open. Do not reopen completed maker-curve/router work or silently claim
+that the existing on-chain sampler already implements this architecture.
+
+For fresh local profile4, move complete maker snapshot authentication and exact
+published-depth impact calculation to the backend. A narrowly authorized signer
+submits a sequenced, expiring report; clearing checks authority, report/domain/
+configuration/time/price bounds and independent oracle validity, then derives
+premium and causal funding accrual itself. No arbitrary cumulative-index writes.
+Observe changes/slots off-chain, but retain the two-second publication cadence
+initially, maximum six-second hold and existing shorter expiry/recovery/outage
+rules. Exact versioned layouts, authority controls, transitions and a lower
+resource target must be frozen in P32 before implementation/measurement.
+
+This deliberately supersedes D70/P29B section6 and D74 **where they require all
+maker accounts, full code hashing, quote CPIs and allocation verification on-chain
+for each funding sample**. Complete fresh maker coverage and correct calculation
+become publisher duties, checked independently by replay; a signed digest is not
+a proof. The accepted trust assumption includes possible dishonest reports within
+allowed bounds. Preserve D74's omission of hypothetical maker financial admission,
+the existing impact/premium formula, independent risk prices, full execution
+financial checks, fees/insurance and V1–V3. Publisher authority is explicitly scoped,
+rotatable/revocable and distinct from custody, risk-source and trading authority.
+
+P32 must prove a real builder/publisher-to-clearing flow, then complete its existing
+trading/safety/qualification scope; P33 adds durable operations/consumers and P34
+qualifies final comparative performance and recovery. Prior failed resource probes
+remain evidence of the old path, not acceptance of the replacement. Trading stays
+disabled until full P32 acceptance. Automatic failure-based maker exclusion,
+24-hour endurance, P15B/P16B and deployment/outreach restrictions are unchanged.
+
+## D76 — Publisher report/authority transitions and resource target (P32, 29 October 2026)
+
+Freeze [P32's exact publisher contract](P32-FUNDING-PUBLISHER.md#frozen-publisher-contract--d76):
+140-byte per-market configuration,203-byte report, restricted authority with
+monotone report sequence and Clock fences, two-second maximum report age and
+publication cadence, six-second/150-slot maximum hold bounded by actual declared
+input expiry. Authority/control epochs invalidate prepared reports. Rotation/
+revocation cannot rewrite funding or give the publisher cash/risk authority;
+revocation remains possible in unsafe modes without changing frozen market state.
+
+On-chain independent source validation, exact current index/Q, price bands and
+causal premium accrual remain. Backend coverage/authentication/aggregation/expiry
+are explicitly trusted attestations. Disable the previous sampling entrypoint in
+the replacement build. Freeze200k submitted/160k measured CU and20 unique keys
+for publisher updates and controls before benchmarking; no measured pass exists.
+These are ordinary resolutions within D75, not new financial economics or
+permission for default/devnet activation. Phase acceptance and external gates remain.
+
+## D77 — Canonical financial adapter and candidate safety activation (P32, 29 October 2026)
+
+Implement P29B's immediate/stored-order contract using the existing whole-account
+financial engine after current canonical quote/CPI authentication. Sign structural
+epochs and user limits; read price sequence, inventory and consumed depth at landing.
+Commit roots, consumption, order prefixes and 2 bps fees/25% insurance carry atomically.
+The extended event records actual execution inputs; no maker CPI gets financial
+writes or vault authority. No loss, collateral-credit or economic rule is superseded.
+
+Reuse account financial/safety layouts and instructions for immutable profile4 only
+under `liquidity-execution-qualification`. Introduce `activate_liquidity_v4` with the
+existing storage-ready qualification context and unchanged fresh-source/recovery
+requirements; see [the precise transition](P32-LIQUIDITY-EXECUTION.md#canonical-execution-and-safety-contract-r088).
+Legacy A/B route, sampler and initial activation entrypoints remain profile3-only.
+Default/devnet/P30-only artifacts cannot activate this profile. Candidate activation
+allows actual safety testing; it does not close A37/G25 or enable P33 prematurely.
+Complete-cohort recovery, terminal exits and external/endurance gates are unchanged.
+
+D77 implementation checkpoint (R090): [A37/G25/G22](evidence/P32.md) passes on the
+recorded local code/artifact pins. Default/devnet remain disabled. The bounded
+publisher recovers from a confirmed timing/control rejection by reading fresh
+chain state at the next scheduled tick; the two-second fence and all source/
+coverage/recovery rules remain. Ambiguous-signature durable recovery remains P33.
+This records acceptance, not a new economic decision or production permission.
+Keep P32 Review until integrated and stop after its ready PR as the user requested.
+
+D77 delivery continuation (R091): the user now explicitly resumes P33 and P34.
+P32's exact ready head `6de5cea` and passing scoped CI satisfy the development
+dependency; the stack stays open. [P33](P33-LIQUIDITY-SERVICES.md) preserves the
+qualified executable pins, distinct consumer profile, financial conservation and
+immutable-original recovery. This supersedes the requested stopping point only;
+no economics, production permission or external/endurance gate changes.
+
+D77 consumer acceptance checkpoint (R092): [P33 A38/G26 interfaces](evidence/P33.md)
+passes on clean `fccf062` with separate independent financial audit. Publisher
+rotation reconstruction follows D76's advancing Clock fence and preserved report
+sequence. Explicit operator budget handover preserves lifetime cap/spend and
+requires resolved originals/fees. This adds no financial authority, economic
+change or production approval. P33 stays Review; proceed to P34 with the stack open.
+
+D77 review correction (R094): permit the existing finalized-expiry/nonapplication
+rule for new canonical maker reprices using an authenticated maker-owned sequence,
+not a clearing-account decoder. Keep immutable originals, all unknown-fee reserves,
+retry limits, exact program/PDA/schema bindings and the handover guard. No financial
+or fee authority changes. Profile-4 UI signing requires both supported wire formats.
+Focused adversarial tests and fresh RPC/WS/PostgreSQL recovery qualify this change;
+no earlier run is represented as having tested the new proof.
+D77 bounded qualification checkpoint (R093): P34's three-profile 600-offer comparison
+passes on its recorded pins; operational/default/exit and maximum-book supplements
+remain open. Measure publisher build/queue/observation times on host/database clocks;
+local chain blockTime drift is not a valid host-latency measurement. These are
+observability and verification changes, not authority/economic amendments. The
+conservative unresolved maker original limitation remains documented in
+[P34 operations](P34-OPERATIONS.md); no absent-history fee release is authorized.
+
+R093 also identifies and corrects an implementation-only profile binding in the
+frozen proposal service reader: use the configured profile3/4, keeping the shared
+schema3 financial contract and exact complete-cohort checks. No broader profile,
+loss allocation, payout authority or activation is introduced. The failed profile4
+operational run remains recorded until a fresh rerun qualifies the correction.
+
+R093 correction acceptance: fresh clean `aae8bb0` completes the actual profile4
+worker default, partial-upload restart, sustained recovery and all ten funded exits,
+with independent exact Fraction accounting and fresh PostgreSQL replay. This
+qualifies the configured-profile correction; final P34 maximum-book checks and
+PR integration remain separate. No external gate or default/devnet build activates.
+
+
+R093 final qualification checkpoint: [P34 A39/G26](evidence/P34.md) passes all
+bounded engineering checks, including fresh full protected/entry/stored books on
+`875b647`. Maximum measured use is 615,433 CU within the 800,000-CU budget and
+640,000-CU headroom ceiling. The comparison's 1.249959688 p95 ratio is a narrow
+one-host pass against the predeclared 1.25 limit; it does not establish a stable
+production margin. Recorded complete-cohort payouts, recovery and ten funded exits
+reconcile exactly. P34/M10 stay Review until integration; the ready stack stays
+open. No risk/oracle safeguard, fee/insurance rule, funding authority, external
+gate or deferred-endurance decision changes.
+
+## D70/D77 wire clarification — self-review R095 (30 October 2026)
+
+Supersede P29B section 5's blanket rejection of trailing data only for the unused
+suffix after Anchor instruction arguments. The pinned Anchor 1.2.1 dispatcher
+permits it; both actual maker artifacts accept a suffixed quote request and return
+the unchanged literal 317-atom quote. Retain this existing dispatcher behavior and
+document it explicitly. Maker-owned account bytes and quote return data still
+require exact lengths, and generated SDK instructions remain canonical.
+
+This is a wire-contract documentation correction, not a change to program code,
+signature verification, nonce/order/publication replay checks, financial authority
+or economics. [R095](evidence/R095-SELF-REVIEW.md) records the source review and fresh
+compiled/RPC evidence for skipped-review PRs #45/#47. No independent security audit,
+new full qualification or integration follows; the ready stack remains open.

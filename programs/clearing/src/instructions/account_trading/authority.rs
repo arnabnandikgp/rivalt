@@ -73,10 +73,10 @@ pub fn manage(
         &operation,
         GroupOrderAction::Cancel { .. } | GroupOrderAction::Cleanup
     ) {
-        base_profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
+        financial_base_profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
         require!(accounts.safety.mode == ACTIVE, ClearingError::Profile);
     } else {
-        activated(&accounts.venue, &accounts.custody, &accounts.safety)?;
+        financial_activated(&accounts.venue, &accounts.custody, &accounts.safety)?;
     }
     guard.check(&accounts.venue, &accounts.safety, &accounts.margin)?;
     let clock = Clock::get()?;
@@ -133,7 +133,7 @@ pub fn delegate(
     require!(
         cfg!(feature = "account-trading-qualification")
             && accounts.venue.schema_version == SCHEMA_VERSION
-            && accounts.venue.profile_version == PROFILE_VERSION
+            && financial_profile_version(&accounts.venue)
             && accounts.custody.schema_version == SCHEMA_VERSION
             && accounts.safety.schema_version == SCHEMA_VERSION
             && matches!(accounts.safety.mode, CUSTODY | ACTIVE),

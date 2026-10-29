@@ -20,6 +20,53 @@ fn risks(market: usize, lower: u64, upper: u64, funding: i128) -> [Risk; 2] {
 }
 
 #[test]
+fn funding_maker_candidate_has_no_synthetic_trader_fee_or_monotone_health_assumption() {
+    for market in 0..2 {
+        let mut maker = isolated(1, market, 500);
+        maker.positions[market] = Position {
+            lots: 3,
+            virtual_scaled: -30_000 * SCALE,
+            funding_checkpoint: 0,
+            generation: 1,
+        };
+        let mut funding = [0; 2];
+        funding[market] = SCALE;
+        let mut admitted = Vec::new();
+        for quantity in 1..=4 {
+            let next = maker
+                .maker_quote_candidate(market, 0, quantity, 10_010 * quantity, funding)
+                .unwrap();
+            assert_eq!(next.cash, 500);
+            assert_eq!(next.positions[1 - market], Position::default());
+            assert_eq!(next.positions[market].funding_checkpoint, SCALE);
+            admitted.push(next.admissible(risks(market, 9900, 10100, SCALE)).is_ok());
+            if quantity == 3 {
+                assert_eq!(next.positions[market].lots, 0);
+                assert_eq!(next.positions[market].generation, 2);
+                assert_eq!(next.positions[market].virtual_scaled, 27 * SCALE);
+                assert_eq!(
+                    next.risk_equity(risks(market, 9900, 10100, SCALE)).unwrap(),
+                    500 * SCALE
+                );
+                let reserved = Margin {
+                    reserved: 501,
+                    ..next
+                };
+                assert_eq!(
+                    reserved.admissible(risks(market, 9900, 10100, SCALE)),
+                    Err(Error::Health)
+                );
+            }
+        }
+        assert_eq!(admitted, [false, false, true, false]);
+        assert_eq!(maker.positions[market].lots, 3);
+        assert!(maker
+            .maker_quote_candidate(1 - market, 0, 1, 10010, funding)
+            .is_err());
+    }
+}
+
+#[test]
 fn isolated_btc_eth_share_accounting_without_sharing_cash() {
     for (market, price, gross, fee) in [(0, 60_000, 300_000, 60), (1, 30_000, 150_000, 30)] {
         let trader = isolated(0, market, 100_000);

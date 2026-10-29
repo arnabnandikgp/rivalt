@@ -59,6 +59,10 @@ jobs:
       - run: pnpm generate:check
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Canonical maker SDK against independent reference
+        run: python3 tests/financial/check_maker_curve_parity.py --implementation sdk
+      - name: Exact liquidity allocation against independent financial enumeration
+        run: python3 tests/financial/check_liquidity_allocation.py
       - run: pnpm build:trader
   report:
     needs: scope
@@ -95,6 +99,10 @@ jobs:
           cargo test --locked -p clearing --lib instructions::account_trading::routes::event_tests --features account-safety-qualification
           cargo test --locked -p clearing --lib state::v3::tests --features account-safety-qualification
           cargo test --locked -p clearing --lib state::v3::tests
+          cargo test --locked -p clearing --lib instructions::maker_liquidity::tests --features maker-liquidity-qualification,account-safety-qualification
+          cargo test --locked -p clearing --lib instructions::maker_liquidity::tests
+          cargo test --locked -p clearing --lib instructions::maker_liquidity::publisher::tests --features liquidity-execution-qualification
+          cargo test --locked -p clearing --lib instructions::maker_liquidity::routes::tests --features liquidity-execution-qualification
   shell:
     needs: scope
     if: needs.scope.outputs.shell == 'true'

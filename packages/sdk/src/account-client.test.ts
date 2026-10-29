@@ -10,6 +10,14 @@ it('reads only selected roots and uses one coherent final batch without a regist
   expect(snapshot.roots[fixture.margins[0]].cash).toBe(50_000n);expect(snapshot.actualVault).toBe(100_010n);
   expect(sdk.accountGuard(snapshot,fixture.margins[0])).toEqual({safetyEpoch:2n,venueTermsEpoch:1n,nonce:4n,stateVersion:9n});
 });
+it('preserves actual Clock separately from a lagging Surfpool RPC commitment context',async()=>{
+  const fixture=await environment();
+  const clock=Buffer.from(fixture.accounts.get(sdk.ACCOUNT_CLOCK).data[0],'base64');
+  clock.writeBigUInt64LE(101n,0);
+  fixture.accounts.get(sdk.ACCOUNT_CLOCK).data[0]=clock.toString('base64');
+  const snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,[fixture.margins[0]]);
+  expect(snapshot.slot).toBe(101n);expect(snapshot.contextSlot).toBe(100n);
+});
 it('does not invalidate selected-account discovery when an unrelated event advances custody',async()=>{
   const fixture=await environment(),original=fixture.rpc.call;
   fixture.rpc.call=async(method,params)=>{

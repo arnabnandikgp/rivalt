@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {address,getAddressDecoder,type ReadonlyUint8Array} from '@solana/kit';
+import {address,getAddressDecoder,getAddressEncoder,getProgramDerivedAddress,type ReadonlyUint8Array} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
 import {integer} from './rpc.js';
@@ -10,7 +10,7 @@ import type {AccountBatch} from './group-reconcile.js';
 
 /** Every <=100-key chunk includes the custody sequence. A newer finalized prefix
  * requests backfill; no different economic snapshots are silently combined. */
-export async function reconcileAccountSnapshot(state:AccountState,binding:AccountBinding,read:AccountBatch) {
+export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<AccountBinding,'venue'|'domain'|'program'>,read:AccountBatch) {
   reconcileAccountLedger(state);
   const venue=address(binding.venue),program=address(binding.program);
   const identities=new Map<string,{bump:number;decoder:{decode(bytes:Uint8Array):unknown};discriminator:ReadonlyUint8Array;expected:unknown}>();
@@ -32,6 +32,13 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Accoun
   for(const [key,value] of Object.entries(state.portfolios))await expect(key,sdk.deriveAccountPortfolio(venue,address(value.owner),value.index,program),sdk.getPortfolioV3Decoder(),sdk.PORTFOLIO_V3_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.roots))await expect(key,sdk.findMarginV3Pda(address(value.portfolio),value.subaccountIndex,program),sdk.getMarginAccountV3Decoder(),sdk.MARGIN_ACCOUNT_V3_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.makers))await expect(key,sdk.findAccountMakerV3Pda(address(value.market),value.makerId,program),sdk.getMakerRegistrationV3Decoder(),sdk.MAKER_REGISTRATION_V3_DISCRIMINATOR,value);
+  if(state.liquidity) {
+    assert.equal(state.venue!.profileVersion,4);
+    for(const [key,value] of Object.entries(state.liquidity.registries))await expect(key,sdk.findLiquidityRegistryV4Pda({market:address(value.market)},{programAddress:program}),sdk.getLiquidityRegistryV4Decoder(),sdk.LIQUIDITY_REGISTRY_V4_DISCRIMINATOR,value);
+    for(const [key,value] of Object.entries(state.liquidity.makers))await expect(key,getProgramDerivedAddress({programAddress:program,
+      seeds:[Buffer.from('maker-v4'),getAddressEncoder().encode(address(value.market)),Uint8Array.of(value.instance)]}),sdk.getMakerRegistrationV4Decoder(),sdk.MAKER_REGISTRATION_V4_DISCRIMINATOR,value);
+    for(const [key,value] of Object.entries(state.liquidity.publishers))await expect(key,sdk.findFundingPublisherV4Pda({market:address(value.market)},{programAddress:program}),sdk.getFundingPublisherV4Decoder(),sdk.FUNDING_PUBLISHER_V4_DISCRIMINATOR,value);
+  }
   for(const [key,value] of Object.entries(state.backing))await expect(key,sdk.findBackingV3Pda(venue,value.marketIndex,program),sdk.getSettlementCertificateV3Decoder(),sdk.SETTLEMENT_CERTIFICATE_V3_DISCRIMINATOR,value);
   if(state.retirement){const [key]=await component('retirement');await expect(key,component('retirement'),sdk.getRetirementCertificateV3Decoder(),sdk.RETIREMENT_CERTIFICATE_V3_DISCRIMINATOR,state.retirement);}
   const resolutionKeys:string[]=[];

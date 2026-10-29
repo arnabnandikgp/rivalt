@@ -5,6 +5,28 @@ Rivalt is a new Solana perpetual venue with common clearing, isolated collateral
 
 ## Start here
 
+[P29–P34's maker-liquidity roadmap](docs/P29-MAKER-LIQUIDITY-ROADMAP.md)
+defines configurable maker curves, independent quote adapters, bounded best-pair
+routing and consistent funding. D70 authorizes sequential implementation;
+[P29B's contract](docs/P29B-MAKER-CONTRACT.md) pins the independent reference,
+three-maker registry, bounded updates and qualification gates.
+[P30](docs/evidence/P30.md) qualifies canonical curves and controls in a fresh local
+profile; new financial trading remains disabled until P32. Existing integrated
+profiles retain their evidence.
+
+D75 selects [a restricted off-chain funding publisher](docs/P32-FUNDING-PUBLISHER.md)
+within the active P32–P34 sequence. The backend computes published-depth impact
+prices; clearing authorizes bounded reports and keeps funding accounting on-chain.
+The scoped publisher is implemented and passes [real RPC/WS checks](docs/evidence/P32-PUBLISHER.md).
+[P32 local trading/safety and continuation acceptance](docs/evidence/P32.md) now
+pass, including full books and real PostgreSQL replay. Default/devnet stay disabled;
+[P33 services/UI and maker-kit acceptance](docs/evidence/P33.md) now passes.
+[P34 comparative and operational qualification](docs/evidence/P34.md) also passes:
+three complete 600-offer populations, default/recovery, full funded exits and fresh
+maximum-book resource checks. The latency gate passes narrowly; the report states
+the remaining operational limits. The ready stack stays open for review;
+WORKLOG owns review/integration status.
+
 [P22–P28's account-centric clearing redesign](docs/P22-ACCOUNT-CENTRIC-CLEARING.md)
 is integrated under R073/D67: separate account risk, market eligibility, funded
 exits and settlement/default responsibilities. P22B defines the financial contract;

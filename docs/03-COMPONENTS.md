@@ -1,6 +1,49 @@
 # Components and interfaces
 Rivalt · baseline R1 · 20 October 2026
 
+D69's [maker-liquidity roadmap](P29-MAKER-LIQUIDITY-ROADMAP.md) separates maker
+instance identity, configurable pricing, exact quote adapters and bounded routing.
+[P29B](P29B-MAKER-CONTRACT.md) pins the descriptor/read-set/ABI/authority contract;
+D70 authorizes P30–P34 implementation and qualification. Each maker exposes fixed
+config/price dependencies; clearing owns identity, consumption and financial effects.
+Existing profiles retain their A/B code and CPI guarantees.
+Canonical pricing remains exactly validated; arbitrary custom modules are not
+activated by an interface abstraction. [P30](P30-CANONICAL-MAKERS.md) now has
+qualified local canonical maker handlers, registry/control events, generated SDK
+and isolated legacy parity. D71 selects measured v0/v1 messages; v1 uses explicit
+resource headers. Financial routing and service/indexer/wallet activation remain
+P31–P34, with P32 gating new financial execution.
+
+[P32's historical sampler](P32-LIQUIDITY-EXECUTION.md) has a separate local
+qualification feature, three fixed maker tuples and an extended oracle event.
+Under D74 it authenticates published curves and calculates their impact prices
+without hypothetical maker financial admission. Capital supplies identity and
+inventory; full financial checks remain in execution. Consumer views must label
+funding liquidity as published, not guaranteed executable. Its resource gate failed before D75 superseded that implementation; this does
+not extend the legacy A/B sampler to profile4.
+
+D75 supersedes that per-sample on-chain quote/CPI path with
+[a restricted off-chain publisher](P32-FUNDING-PUBLISHER.md). P32 owns the real
+snapshot/report builder, scoped authority and on-chain bounded-report/accrual
+handler; P33 owns durable worker operation, reconciliation and consumer provenance.
+Maker financial admission remains in execution, not funding calculation. The
+R087 candidate now implements `FundingPublisherV4`, signed `FundingReportV4`,
+configuration/report events and the coherent SDK `readFundingReport` builder.
+The old sampler rejects explicitly. The scoped publisher RPC/WS/legacy-parity probe
+passes on clean`4f4e47d`; [integrated P32 acceptance](evidence/P32.md) now passes
+on its separately recorded pins. These events
+are not yet a P33 indexer/service acceptance.
+
+R088/D77 adds canonical immediate/stored-order handlers and the
+`LiquidityRouteExecutedV4` event. `buildLiquidityRoute` binds caller limits and
+structural epochs, returning a resource budget for the v0/v1 compiler. Shared
+financial/safety instructions admit profile4 only in the explicit P32 candidate;
+legacy routes, sampling and initial activation remain profile3-only. The new
+`activate_liquidity_v4` reuses the complete safety-storage qualification context.
+[Deployed financial acceptance](evidence/P32.md) now passes in that candidate,
+including safety, prototype PostgreSQL and bounded comparison. Public consumers
+and durable operation remain P33.
+
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.
 The pinned candidate matrix and explicit storage-ready local activation pass
@@ -426,3 +469,44 @@ preflight rejection, finalized failed originals and uncertain submission. Only
 definite failure releases a grant; ambiguous or successful originals retain it.
 Faucet success/failure history uses finalized commitment and verifies the original
 signature; other provisioning/source sends retain confirmed commitment.
+
+### P31 canonical snapshot and allocation interface
+
+The [P31 adapter](P31-EXACT-ROUTING.md) supplies `readLiquidityTradeSnapshot`,
+`authenticateLiquidityMarket`, `allocateLiquidityRoute` and `previewLiquidityRoute`.
+All three sealed maker instances share one final financial RPC context; complete
+code and isolated capital bindings are authenticated before exact quote enumeration.
+The read-only 48-key discovery ceiling is separate from submitted route budgets.
+Profile-4 previews expose no financial transaction builder in P31; P32 owns actual
+execution/funding integration and its activation gate. V3 APIs remain profile-bound.
+
+### P33 profile-4 consumers (qualified local interfaces)
+
+[P33](P33-LIQUIDITY-SERVICES.md) adds a distinct finalized `LiquidityIndexer` /
+`LiquidityStore` binding over the shared journal. It reconstructs canonical
+registrations, consumption, registry sealing, publisher authority and accepted
+report provenance alongside the shared financial accounting. Reconciliation
+compares those derived accounts with finalized RPC bytes and pinned P32 code.
+The `/v4` read envelope labels internal makers and restricted-publisher trust;
+V3 keeps its separate profile and endpoints. The queue accepts v1 only through
+an explicit version-capable boundary; default queues remain bounded v0. Worker,
+SDK/browser and fresh-operator acceptance remain in progress, not inherited.
+
+P33 acceptance update (R092): [A38/G26 interfaces](evidence/P33.md) passes real
+RPC/WS/PostgreSQL/browser, immutable-original recovery, publisher handover,
+retained-input binding and independent replay/accounting on clean `fccf062`.
+Earlier pending-consumer notes above describe their original implementation stages;
+P34 comparative qualification and integration remain separate.
+
+P34 operational integration correction (R093): the frozen-cohort proposal reader
+accepts the runtime's explicitly authenticated profile 3 or 4 while retaining schema 3
+financial layouts and every complete-cohort binding. It defaults to profile 3 and
+rejects mismatched/unsupported profiles; canonical service recovery cannot silently
+inherit the legacy-only reader. Fresh profile 4 default/recovery evidence is required.
+
+R093 closeout: [fresh P34 evidence](evidence/P34.md) now qualifies that correction,
+including a production risk-worker restart during partial proposal upload, all ten
+funded exits and identical fresh PostgreSQL replay. Publisher build/persistence/
+first-observation telemetry measures actual durable originals. The missing-history
+maker-original limitation remains explicit in [operations](P34-OPERATIONS.md);
+no weaker authority proof or fee-reservation release is introduced.

@@ -33,7 +33,7 @@ pub(crate) fn profile(venue: &VenueV3, custody: &CustodyV3, safety: &SafetyV3) -
         cfg!(feature = "account-cash-qualification"),
         ClearingError::Profile
     );
-    trading::activated(venue, custody, safety)
+    trading::financial_activated(venue, custody, safety)
 }
 
 fn begin(identity: &AccountFinancialIdentityV3) -> Result<Snapshot> {

@@ -79,6 +79,8 @@ export const CLEARING_ERROR__ORDER_TRIGGER = 0x17f0; // 6128
 export const CLEARING_ERROR__LIQUIDATION = 0x17f1; // 6129
 /** Resolution: Resolution epoch, stage, cursor, cohort or accounting check failed */
 export const CLEARING_ERROR__RESOLUTION = 0x17f2; // 6130
+/** FundingReport: Funding publisher authority, report binding, sequence or lifetime rejected */
+export const CLEARING_ERROR__FUNDING_REPORT = 0x17f3; // 6131
 
 export type ClearingError =
   | typeof CLEARING_ERROR__ALIAS
@@ -89,6 +91,7 @@ export type ClearingError =
   | typeof CLEARING_ERROR__DOMAIN
   | typeof CLEARING_ERROR__EXIT_COHORT
   | typeof CLEARING_ERROR__FINANCIAL_SEQUENCE
+  | typeof CLEARING_ERROR__FUNDING_REPORT
   | typeof CLEARING_ERROR__LIQUIDATION
   | typeof CLEARING_ERROR__MAKER_BINDING
   | typeof CLEARING_ERROR__MAKER_CAPITAL
@@ -125,6 +128,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [CLEARING_ERROR__DOMAIN]: `Domain identity must be nonzero`,
     [CLEARING_ERROR__EXIT_COHORT]: `Exit cohort is incomplete, insolvent, foreign or stale`,
     [CLEARING_ERROR__FINANCIAL_SEQUENCE]: `Financial action is bound to a different market sequence`,
+    [CLEARING_ERROR__FUNDING_REPORT]: `Funding publisher authority, report binding, sequence or lifetime rejected`,
     [CLEARING_ERROR__LIQUIDATION]: `Liquidation receiver, funded fee or strict risk progress check failed`,
     [CLEARING_ERROR__MAKER_BINDING]: `Maker program, config or capital binding mismatch`,
     [CLEARING_ERROR__MAKER_CAPITAL]: `Maker capital is unfunded or outside the implemented profile`,

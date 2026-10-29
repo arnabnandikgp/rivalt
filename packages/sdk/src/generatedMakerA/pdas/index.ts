@@ -8,4 +8,6 @@
 
 export * from "./accountConfig.js";
 export * from "./config.js";
+export * from "./curveConfigV4.js";
+export * from "./curvePriceV4.js";
 export * from "./initializeGroupConfigConfig.js";

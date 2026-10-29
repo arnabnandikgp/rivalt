@@ -6,8 +6,10 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./controlCurveV4.js";
 export * from "./initializeAccountConfig.js";
 export * from "./initializeConfig.js";
+export * from "./initializeCurveV4.js";
 export * from "./initializeGroupConfig.js";
 export * from "./publishAccountEpoch.js";
 export * from "./publishEpoch.js";
@@ -15,3 +17,5 @@ export * from "./publishGroupEpoch.js";
 export * from "./quote.js";
 export * from "./quoteAccount.js";
 export * from "./quoteGroup.js";
+export * from "./quoteV4.js";
+export * from "./repriceV4.js";

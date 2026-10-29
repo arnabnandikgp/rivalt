@@ -3,6 +3,11 @@ import {eventPayloads, json, PROGRAM, type JournalEvent} from './events.js';
 import {integer} from './rpc.js';
 
 const decoders = [
+  ['LiquidityRegistryChangedV4', sdk.LIQUIDITY_REGISTRY_CHANGED_V4_EVENT_DISCRIMINATOR, sdk.getLiquidityRegistryChangedV4EventDecoder()],
+  ['LiquidityMakerChangedV4', sdk.LIQUIDITY_MAKER_CHANGED_V4_EVENT_DISCRIMINATOR, sdk.getLiquidityMakerChangedV4EventDecoder()],
+  ['FundingPublisherChangedV4', sdk.FUNDING_PUBLISHER_CHANGED_V4_EVENT_DISCRIMINATOR, sdk.getFundingPublisherChangedV4EventDecoder()],
+  ['FundingReportAcceptedV4', sdk.FUNDING_REPORT_ACCEPTED_V4_EVENT_DISCRIMINATOR, sdk.getFundingReportAcceptedV4EventDecoder()],
+  ['LiquidityRouteExecutedV4', sdk.LIQUIDITY_ROUTE_EXECUTED_V4_EVENT_DISCRIMINATOR, sdk.getLiquidityRouteExecutedV4EventDecoder()],
   ['AccountAuthorityChangedV3', sdk.ACCOUNT_AUTHORITY_CHANGED_V3_EVENT_DISCRIMINATOR, sdk.getAccountAuthorityChangedV3EventDecoder()],
   ['AccountBackingChangedV3', sdk.ACCOUNT_BACKING_CHANGED_V3_EVENT_DISCRIMINATOR, sdk.getAccountBackingChangedV3EventDecoder()],
   ['AccountCustodyChangedV3', sdk.ACCOUNT_CUSTODY_CHANGED_V3_EVENT_DISCRIMINATOR, sdk.getAccountCustodyChangedV3EventDecoder()],
@@ -30,18 +35,20 @@ const decoders = [
  ] as const;
 export type AccountEvent = JournalEvent & {type: typeof decoders[number][0]};
 
-/** Only authenticated, successful CPI payloads can affect schema-3 state. */
+/** Shared financial schemas do not imply interchangeable deployment profiles. */
 export function decodeAccounts(signature: string, transaction: any, authority: string,
-  venue: string, program: string = PROGRAM): AccountEvent[] {
+  venue: string, program: string = PROGRAM, profile: 3 | 4 = 3): AccountEvent[] {
   return eventPayloads(signature, transaction, authority, program).flatMap(({outer, inner, payload}) => {
     const entry = decoders.find(([, discriminator]) => payload.subarray(0,8).equals(Buffer.from(discriminator)));
     if (!entry) throw new Error('Unknown critical account event schema');
     const [type, , decoder] = entry;
+    if (type.endsWith('V4') && profile !== 4 || profile === 4 &&
+      ['AccountMakerChangedV3', 'AccountRouteExecutedV3'].includes(type)) throw new Error('Foreign account event profile');
     const [value, end] = decoder.read(payload, 0);
     if (end !== payload.length) throw new Error('Trailing account event bytes');
     const data = JSON.parse(json(value));
     if (BigInt(data.slot) !== BigInt(transaction.slot)) throw new Error('Account event slot mismatch');
-    if (type === 'AccountCustodyChangedV3' && (data.schemaVersion !== 3 || data.profileVersion !== 3))
+    if (type === 'AccountCustodyChangedV3' && (data.schemaVersion !== 3 || data.profileVersion !== profile))
       throw new Error('Unsupported account event version');
     if (data.venue !== venue) return [];
     return [{signature, outer, inner, ordinal:0, slot:transaction.slot,

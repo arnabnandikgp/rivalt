@@ -19,6 +19,8 @@ class ScopeTests(unittest.TestCase):
     def test_report_and_financial_domains_stay_separate(self):
         self.assertEqual(module.scope(["tests/e2e/matrix.py"]), {"client": False, "financial": False, "report": True, "shell": False})
         self.assertTrue(module.scope(["crates/financial-core/src/lib.rs"])["financial"])
+        self.assertEqual(module.scope(["crates/maker-interface/src/canonical.rs"]),
+                         {"client": False, "financial": True, "report": False, "shell": False})
         self.assertEqual(module.scope(["programs/clearing/src/instructions/account_safety/risk.rs"]),
                          {"client": False, "financial": True, "report": False, "shell": False})
         self.assertEqual(module.scope(["tests/load/reference.py"]), {"client": False, "financial": False, "report": True, "shell": False})

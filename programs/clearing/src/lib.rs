@@ -31,6 +31,67 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn activate_liquidity_v4(ctx: Context<ActivateAccountsV3>) -> Result<()> {
+        account_trading::activation::activate_liquidity(ctx)
+    }
+
+    pub fn execute_liquidity_route_v4(ctx: Context<ExecuteLiquidityRouteV4>, args: LiquidityRouteIntentV4) -> Result<()> {
+        maker_liquidity::routes::execute(ctx, args)
+    }
+    pub fn execute_liquidity_order_v4(ctx: Context<ExecuteLiquidityRouteV4>, args: LiquidityOrderExecutionV4) -> Result<()> {
+        maker_liquidity::routes::execute_order(ctx, args)
+    }
+
+    pub fn initialize_funding_publisher_v4(
+        ctx: Context<InitializeFundingPublisherV4>,
+        publisher: Pubkey,
+    ) -> Result<()> {
+        maker_liquidity::publisher::initialize(ctx, publisher)
+    }
+    pub fn configure_funding_publisher_v4(
+        ctx: Context<ConfigureFundingPublisherV4>,
+        expected_authority: u64,
+        publisher: Pubkey,
+    ) -> Result<()> {
+        maker_liquidity::publisher::configure(ctx, expected_authority, publisher)
+    }
+    pub fn publish_funding_report_v4(
+        ctx: Context<PublishFundingReportV4>,
+        report: state::v4::FundingReportV4,
+    ) -> Result<()> {
+        maker_liquidity::publisher::publish(ctx, report)
+    }
+
+    pub fn initialize_liquidity_v4(ctx: Context<InitializeLiquidityV4>) -> Result<()> {
+        maker_liquidity::initialize(ctx)
+    }
+    pub fn initialize_liquidity_oracle_v4(ctx: Context<InitializeAccountOracle>, primary: Pubkey, guard: Pubkey) -> Result<()> {
+        maker_liquidity::sampling::initialize(ctx, primary, guard)
+    }
+    pub fn sample_liquidity_v4(ctx: Context<SampleLiquidityV4>) -> Result<()> {
+        maker_liquidity::sampling::sample(ctx)
+    }
+    pub fn register_liquidity_v4(ctx: Context<RegisterLiquidityV4>, instance: u8) -> Result<()> {
+        maker_liquidity::register(ctx, instance)
+    }
+    pub fn seal_liquidity_v4(ctx: Context<SealLiquidityV4>) -> Result<()> {
+        maker_liquidity::seal(ctx)
+    }
+    pub fn control_liquidity_v4(ctx: Context<ControlLiquidityV4>, expected_authority: u64,
+        expected_control: u64, expected_shape: u64, action: maker_interface::canonical::CurveControlV4) -> Result<()> {
+        maker_liquidity::control(ctx, expected_authority, expected_control, expected_shape, action)
+    }
+    pub fn replenish_liquidity_v4(ctx: Context<ControlLiquidityV4>, expected_authority: u64,
+        expected_depth: u64, sides: u8) -> Result<()> {
+        maker_liquidity::replenish(ctx, expected_authority, expected_depth, sides)
+    }
+    pub fn quarantine_liquidity_v4(ctx: Context<QuarantineLiquidityV4>, expected_authority: u64) -> Result<()> {
+        maker_liquidity::quarantine(ctx, expected_authority)
+    }
+    pub fn approve_liquidity_v4(ctx: Context<ControlLiquidityV4>, expected_authority: u64) -> Result<()> {
+        maker_liquidity::approve(ctx, expected_authority)
+    }
+
     pub fn initialize_account_resolution_v3(ctx: Context<InitializeAccountResolutionV3>) -> Result<()> {
         account_safety::resolution::initialize(ctx)
     }
@@ -178,6 +239,16 @@ pub mod clearing {
         args: account_trading::routes::AccountOrderExecutionV3,
     ) -> Result<()> {
         account_trading::routes::execute_order(ctx, args)
+    }
+
+    pub fn initialize_liquidity_venue_v4(
+        ctx: Context<InitializeVenueV3>,
+        domain: [u8; 32],
+        fee_authority: Pubkey,
+        reserve_authority: Pubkey,
+        reserve_destination_owner: Pubkey,
+    ) -> Result<()> {
+        account_custody::initialize_liquidity(ctx, domain, fee_authority, reserve_authority, reserve_destination_owner)
     }
 
     pub fn initialize_venue_v3(
