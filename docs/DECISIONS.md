@@ -1480,3 +1480,14 @@ worker default, partial-upload restart, sustained recovery and all ten funded ex
 with independent exact Fraction accounting and fresh PostgreSQL replay. This
 qualifies the configured-profile correction; final P34 maximum-book checks and
 PR integration remain separate. No external gate or default/devnet build activates.
+
+
+R093 final qualification checkpoint: [P34 A39/G26](evidence/P34.md) passes all
+bounded engineering checks, including fresh full protected/entry/stored books on
+`875b647`. Maximum measured use is 615,433 CU within the 800,000-CU budget and
+640,000-CU headroom ceiling. The comparison's 1.249959688 p95 ratio is a narrow
+one-host pass against the predeclared 1.25 limit; it does not establish a stable
+production margin. Recorded complete-cohort payouts, recovery and ten funded exits
+reconcile exactly. P34/M10 stay Review until integration; the ready stack stays
+open. No risk/oracle safeguard, fee/insurance rule, funding authority, external
+gate or deferred-endurance decision changes.

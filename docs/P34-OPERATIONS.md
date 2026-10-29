@@ -18,7 +18,9 @@ source ops/env.sh
 bash ops/liquidity-qualification-smoke.sh
 bash ops/liquidity-operations-smoke.sh
 for variant in protected entry stored; do
-  RIVALT_RESOURCE_BOOK="$variant" bash ops/liquidity-resource-smoke.sh
+  RIVALT_CONTINUATION_PROFILE=treatment \
+  RIVALT_CONTINUATION_ENTRY=tests/rpc-contract/liquidity-resource-rpc.ts \
+  RIVALT_RESOURCE_BOOK="$variant" bash ops/liquidity-continuation-smoke.sh
 done
 ```
 

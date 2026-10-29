@@ -503,3 +503,10 @@ accepts the runtime's explicitly authenticated profile3 or4 while retaining sche
 financial layouts and every complete-cohort binding. It defaults to profile3 and
 rejects mismatched/unsupported profiles; canonical service recovery cannot silently
 inherit the legacy-only reader. Fresh profile4 default/recovery evidence is required.
+
+R093 closeout: [fresh P34 evidence](evidence/P34.md) now qualifies that correction,
+including a production risk-worker restart during partial proposal upload, all ten
+funded exits and identical fresh PostgreSQL replay. Publisher build/persistence/
+first-observation telemetry measures actual durable originals. The missing-history
+maker-original limitation remains explicit in [operations](P34-OPERATIONS.md);
+no weaker authority proof or fee-reservation release is introduced.

@@ -65,6 +65,14 @@ internal maker/publisher processes and browser flows; the separate
 its completed summary. It does not replace P34's three-profile workload or any
 independent-maker/review gate. No unrelated full regression is required per phase.
 
+[P34 A39/G26](evidence/P34.md) now records three fresh 600-offer populations,
+508 independent signed-input publisher replays, complete default/recovery/exits,
+fresh PostgreSQL reconstruction and maximum protected/entry/stored books. The
+predeclared latency ratio passes narrowly at 1.249959688 against 1.25; it is not a
+robust production latency margin. Maximum full-book use is 615,433 CU within the
+800,000-CU budget and 640,000-CU headroom ceiling. Follow the phase's operational
+guide for scoped reproduction; no broad SBF rebuild or 24-hour run is implied.
+
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
 phase-owned, and the candidate build does not satisfy P26 safety.

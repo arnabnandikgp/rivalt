@@ -33,6 +33,13 @@ D77 connects current canonical quotes to the existing whole-account financial
 engine and complete safety lifecycle, with separate storage-ready local activation.
 It changes neither loss ownership nor risk/fee/insurance rules.
 
+R093's [P34 qualification](evidence/P34.md) exercises that unchanged financial
+contract through actual fills, funding, post-fee liquidation, complete ten-root
+default, sustained recovery and funded exits. The service proposal reader now
+binds explicitly to the configured profile 3/4; shared schema-3 layouts and exact
+complete-cohort checks remain mandatory. This fixes service availability without
+changing payout authority or activating default/devnet builds.
+
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.
 The pinned candidate matrix and explicit storage-ready local activation pass

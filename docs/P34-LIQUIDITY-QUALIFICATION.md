@@ -1,10 +1,11 @@
 # P34 — final bounded qualification
 
-In progress above P33 `964ca5f` / ready #48. A39/G26/M10 exit is not yet passed.
-Keep the stack open; M10 closes only after accepted phases integrate.
+Review above P33 `964ca5f` / ready #48. [A39/G26 engineering acceptance](evidence/P34.md)
+passes on recorded R093 pins. Keep the stack open; M10 closes only after accepted
+phases integrate.
 
-The final three-profile comparison passes on recorded R093 pins. Operational
-default/recovery/all-funded exits now pass; maximum-book supplements remain outstanding.
+The final three-profile comparison, operational default/recovery/all-funded exits
+and fresh maximum-book supplements pass. No external or endurance gate is closed.
 See [the operational guide](P34-OPERATIONS.md) for reproduction and explicit limits.
 
 ## Pinned workload interpretation

@@ -748,7 +748,10 @@ remain independent gates; the standalone publisher probe cannot close P32.
 R090 now records [complete local A37/G25/G22 acceptance](evidence/P32.md), with
 P32 in Review pending integration. R091 records the user's subsequent resumption:
 [P33 A38/G26 interfaces](evidence/P33.md) now passes above exact P32 `6de5cea`;
-P34 follows its verified ready PR and owns the final comparative/runtime gate.
+P34 follows its verified ready PR. R093 now records [A39/G26 acceptance](evidence/P34.md):
+the complete comparison, independent accounting/report replay, operational default/
+recovery/exits and fresh maximum-book checks pass on their exact pins. The M10
+engineering exit checks pass; integration is still required to close the milestone.
 The stack stays open. No production or external gate is closed.
 
 Retain at most two makers per route while testing discovery/selection beyond the
