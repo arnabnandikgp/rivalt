@@ -103,20 +103,31 @@ try {
     await route([first, empty], [1n, 1n]), sdk.CLEARING_ERROR__ROUTE_HEALTH);
 
   await setup.sample();
-  // Literal independent per-lot sum: j=2..4095, ask spread 3 for j<256,
+  await reject('total quantity cannot exceed preserved 4608-lot route bound',
+    await route([first, second], [4094n, 4094n]), sdk.CLEARING_ERROR__ROUTE_INTENT);
+  await setup.fresh();
+  // Literal independent per-lot sum: j=2..2305, ask spread 3 for j<256,
   // otherwise 3+j; skew 2*floor(j/512). No SDK/program pricing is used here.
   let expectedPerLeg = 0n;
-  for (let index = 2n; index < 4096n; index++) {
+  for (let index = 2n; index < 2306n; index++) {
     expectedPerLeg += 60_000n + 3n + (index < 256n ? 0n : index) + 2n * (index / 512n);
   }
   const expectedGross = expectedPerLeg * 2n, expectedFee = (expectedGross + 4999n) / 5000n;
-  const cashBefore = (await rootState(trader)).cash;
-  await h.send('P32 route maximum depth eight regions and three full books', [await route([first, second], [4094n, 4094n])], [owner]);
-  assert.equal((await rootState(trader)).cash, cashBefore - expectedFee);
-  assert.equal((await rootState(trader)).positions[0].lots, 8192n);
+  assert.equal(expectedPerLeg, 140_880_145n);
+  const traderBefore = await rootState(trader);
+  const makerBefore = await Promise.all([first, second].map(maker => rootState(maker.capital)));
+  await h.send('P32 route maximum quantity eight regions and three full books', [await route([first, second], [2304n, 2304n])], [owner]);
+  const traderAfter = await rootState(trader);
+  assert.equal(traderAfter.cash, traderBefore.cash - expectedFee);
+  assert.equal(traderAfter.positions[0].lots, 4612n);
+  const fundingAdjusted = (before: sdk.MarginAccountV3, after: sdk.MarginAccountV3) => before.positions[0].virtualScaled
+    - before.positions[0].lots * (after.positions[0].fundingCheckpointScaled - before.positions[0].fundingCheckpointScaled);
+  assert.equal(traderAfter.positions[0].virtualScaled, fundingAdjusted(traderBefore, traderAfter) - expectedGross * 1_000_000_000n);
   for (const maker of [first, second]) {
-    assert.equal((await rootState(maker.capital)).positions[0].lots, -4096n);
-    assert.equal((await maker.registrationState()).buyConsumed, 4096n);
+    const after = await rootState(maker.capital), before = makerBefore[maker === first ? 0 : 1];
+    assert.equal(after.positions[0].lots, -2306n);
+    assert.equal(after.positions[0].virtualScaled, fundingAdjusted(before, after) + expectedPerLeg * 1_000_000_000n);
+    assert.equal((await maker.registrationState()).buyConsumed, 2306n);
   }
   for (const margin of [trader, first.capital, second.capital]) {
     const root = await rootState(margin);
@@ -129,16 +140,21 @@ try {
 
   await setup.sample();
   // The sell side still has all4096 lots. This exercises maximum single-leg
-  // depth and target approach with full books before generation cleanup.
+  // depth and crossing the skew target with full books before generation cleanup.
   let expectedSell = 0n;
   for (let index = 0n; index < 4096n; index++) {
-    expectedSell += 60_000n - 2n - (index < 256n ? 0n : index) + 2n * ((4095n - index) / 512n);
+    const inventory = -2306n + index;
+    const skew = inventory < 0n ? -2n * ((-inventory - 1n) / 512n) : 2n * (inventory / 512n);
+    expectedSell += 60_000n - 2n - (index < 256n ? 0n : index) - skew;
   }
   const sellFee = (expectedSell + 4999n) / 5000n;
-  await h.send('P32 route maximum singleton full books with skew target approach', [await route([first], [4096n], 1)], [owner]);
-  assert.equal((await rootState(first.capital)).positions[0].lots, 0n);
+  const beforeSell = await rootState(trader);
+  await h.send('P32 route maximum singleton full books with skew target crossing', [await route([first], [4096n], 1)], [owner]);
+  const afterSell = await rootState(trader);
+  assert.equal(afterSell.positions[0].virtualScaled, fundingAdjusted(beforeSell, afterSell) + expectedSell * 1_000_000_000n);
+  assert.equal((await rootState(first.capital)).positions[0].lots, 1790n);
   assert.equal((await first.registrationState()).sellConsumed, 4096n);
-  assert.equal((await rootState(trader)).positions[0].lots, 4096n);
+  assert.equal(afterSell.positions[0].lots, 516n);
   const prepared = await route([second], [1n], 1);
   const secondRegistration = await second.registrationState();
   await h.send('explicit replenishment changes structural depth epoch', [sdk.getReplenishLiquidityV4Instruction({
