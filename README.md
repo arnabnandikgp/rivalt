@@ -20,7 +20,8 @@ prices; clearing authorizes bounded reports and keeps funding accounting on-chai
 The scoped publisher is implemented and passes [real RPC/WS checks](docs/evidence/P32-PUBLISHER.md).
 [P32 local trading/safety and continuation acceptance](docs/evidence/P32.md) now
 pass, including full books and real PostgreSQL replay. Default/devnet stay disabled;
-production services/UI remain P33. WORKLOG owns review/integration status.
+[P33 services/UI and maker-kit acceptance](docs/evidence/P33.md) now passes.
+P34 comparative qualification remains separate. WORKLOG owns review/integration status.
 
 [P22–P28's account-centric clearing redesign](docs/P22-ACCOUNT-CENTRIC-CLEARING.md)
 is integrated under R073/D67: separate account risk, market eligibility, funded

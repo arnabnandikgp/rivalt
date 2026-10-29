@@ -13,7 +13,7 @@ def check(path):
     assert run['trackedDirty'] is False
     assert len(run['browser']) == 10 and len(run['wallets']) == 2
     assert all(row['status'] in ('finalized', 'failed') for row in run['intents'])
-    assert run['reconciliation']['surplus'] == '0'
+    assert run['reconciliation']['unallocatedSurplus'] == '0'
     state = run['state']
     markets = state['venue']['markets']
     # Each exact-base taker execution pays ceil(gross/5000), independently.

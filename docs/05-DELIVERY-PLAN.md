@@ -747,7 +747,8 @@ probe on clean`4f4e47d`:84 signed RPC/WS outcomes and8 accepted reports. Trading
 remain independent gates; the standalone publisher probe cannot close P32.
 R090 now records [complete local A37/G25/G22 acceptance](evidence/P32.md), with
 P32 in Review pending integration. R091 records the user's subsequent resumption:
-P33 is in progress above exact P32 `6de5cea`; P34 follows its verified ready PR.
+[P33 A38/G26 interfaces](evidence/P33.md) now passes above exact P32 `6de5cea`;
+P34 follows its verified ready PR and owns the final comparative/runtime gate.
 The stack stays open. No production or external gate is closed.
 
 Retain at most two makers per route while testing discovery/selection beyond the

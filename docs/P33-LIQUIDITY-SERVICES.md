@@ -1,7 +1,8 @@
 # P33 — canonical maker services and user integration
 
-Status: implementation in progress above exact P32 `6de5cea` / ready PR #47.
-A38/G26 is not yet passed. P34 follows P33's verified ready PR. Keep the stack open.
+Status: A38/G26 interfaces passes on clean `fccf062`; see [evidence](evidence/P33.md).
+P33 remains Review until integrated above P32 `6de5cea` / #47. P34 owns the final
+comparative qualification. Keep the stack open.
 
 ## Deployment and version boundaries
 
@@ -44,7 +45,7 @@ two-second cadence. Rejection after a concurrent structural control is classifie
 the next eligible tick rebuilds after the original is resolved. No risk or oracle
 check is weakened to increase availability.
 
-## User and operator acceptance remaining
+## Qualified user and operator acceptance
 
 - Versioned direct SDK and browser wallet flow, preserving cash/unpaid distinctions,
   user price/fee bounds, stored-order authority and service-independent safe exits.
@@ -63,7 +64,7 @@ P34 owns the complete bounded comparative workload and final measured limits.
 No inherited P32/P16A run substitutes for these gates. P15B/P16B stay Open and
 24-hour endurance stays Deferred.
 
-## Implemented consumer boundary (R091; integration pending)
+## Implemented consumer boundary
 
 `LiquidityUserClient` uses explicit version 4 and immutable executable pins. Shared
 financial SDK calls retain account layouts and maker-free direct exits. The service
@@ -74,27 +75,24 @@ is operational information; current authenticated books determine quote admissio
 
 Funding originals and content-addressed raw input rows commit in one PostgreSQL
 transaction before broadcast. Shared executable bytes are stored once by digest.
-Append-only input references preserve every report's provenance. Replaying the SDK
-is reproducibility only; independent arithmetic checks remain an acceptance gate.
+Append-only references preserve provenance; calculation and digest must exactly
+match the persisted signed report on insert and read. Fresh acceptance includes
+independent literal arithmetic, not just rerunning the SDK.
 
-Production finalized indexing passes the scoped fresh run on `3233201` recorded in
-WORKLOG. Worker processes, independent retained-input replay, browser and fresh
-operator kit acceptance are still pending; no A38 completion is implied.
+The [operator kit](P33-MAKER-KIT.md) packages private configuration, executable
+workers and independent normal-lifecycle economics reporting. Explicit budget
+handover verifies the newly authorized on-chain signer, requires every original
+and fee reservation resolved, and preserves lifetime cap/spent values. Ordinary
+startup rejects a changed payer. Fresh operator configuration and provisioning
+are tested; a fresh OS installation and external operator are not claimed.
 
-The [operator kit](P33-MAKER-KIT.md) now packages an explicit private-config entry
-point and an independent normal maker-economics report. The first integrated run
-passes both original-signature crash recoveries and six browser transactions, then
-stops on a corrected test input limit. The fresh full run remains required.
+Publisher control preserves report sequence while fencing observed time/slot at
+the authoritative Clock (D76). The production projection now matches this rule.
+The UI distinguishes index and attested impact prices, exposes unavailability,
+signer/epoch/age and marks historical reports superseded by authority control.
 
-Explicit operator budget handover verifies the newly authorized on-chain signer,
-requires every original and network fee to be resolved, and preserves lifetime
-cap/spent values. It does not reset allowances. Ordinary worker startup still rejects
-a changed payer. The ten-action browser/worker/outage slice passes on `1db14f4`;
-full replay and rotation acceptance remain pending in the next recorded run.
-
-R092 corrects the production projection's interpretation of publisher control:
-report sequence is preserved, while observed slot/time are fenced at the new
-authoritative Clock. This follows D76 and does not amend it. Retained calculation
-and digest must exactly match the persisted signed report, including after JSONB
-round trips. UI provenance now distinguishes index and attested impact prices and
-marks historical reports superseded by authority control. Fresh acceptance follows.
+Actual restart, rotation, source outage, ten browser originals, fresh database
+replay and all six maker reports pass on the [recorded pin](evidence/P33.md).
+The browser uses an instrumented local Wallet Standard signer; this is not new
+Phantom or external-wallet compatibility evidence. Both transport formats have
+scoped boundary tests; the ten actual browser transactions fit v0.

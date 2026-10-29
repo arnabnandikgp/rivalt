@@ -58,6 +58,13 @@ books, safety, PostgreSQL and the three-profile continuation, each on its own pi
 The comparison reader checks complete denominators, independent financial results,
 resource ceilings, matched latency and actual read/write lock sets.
 
+[P33's focused acceptance](evidence/P33.md) adds production consumers and durable
+services. `bash ops/liquidity-services-smoke.sh` provisions real RPC/WS/PostgreSQL,
+internal maker/publisher processes and browser flows; the separate
+`tests/financial/p33_services_reference.py` audits literal expected economics from
+its completed summary. It does not replace P34's three-profile workload or any
+independent-maker/review gate. No unrelated full regression is required per phase.
+
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
 phase-owned, and the candidate build does not satisfy P26 safety.
