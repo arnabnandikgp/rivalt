@@ -42,16 +42,20 @@ export async function publishLiquidityFunding(runtime:AccountRuntime,marketIndex
   const budget=await runtime.budget('funding',key,marketIndex);
   if(await runtime.pendingBudget(budget))return {status:'blocked',reason:'original-funding-intent-pending'};
   const {identity}=await runtime.discovery();
+  const buildStartedAt=Date.now(),buildStarted=performance.now();
   const input=await sdk.readFundingReport(runtime.rpc,identity.venue,marketIndex);
+  const readAndCalculateMs=performance.now()-buildStarted;
   if(input.configurationState.publisher!==key.address)throw new Error('Restricted funding publisher signer mismatch');
   if(input.report.observedTime-input.marketState.oracle.sampledAt<intervalSeconds)return {status:'idle',reason:'report-not-due'};
   const [eventAuthority]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('__event_authority')]});
   const instruction=sdk.getPublishFundingReportV4Instruction({...input.instructionAccounts,publisher:key,eventAuthority,
     program:sdk.CLEARING_PROGRAM_ADDRESS,report:input.report});
-  await runtime.enqueue(`funding:${marketIndex}:${input.report.authorityEpoch}:${input.report.sequence}`,[instruction],key,budget,
+  const original=await runtime.enqueue(`funding:${marketIndex}:${input.report.authorityEpoch}:${input.report.sequence}`,[instruction],key,budget,
     {kind:'accountObservation',venue:identity.venue,account:input.report.market,value:input.marketState.observationSequence.toString()},false,
     {contextSlot:input.contextSlot,accounts:input.accounts,inputDigest:Uint8Array.from(input.report.inputDigest),
       calculation:{kind:'funding-report-v1',trust:'restricted-publisher-attestation',report:input.report,allocations:input.allocations,coverageReason:input.coverageReason}});
+  if(original)console.log(JSON.stringify({event:'funding-report-prepared',runId:runtime.runId,requestId:original.request_id,
+    signature:original.signature,marketIndex,buildStartedAt,readAndCalculateMs,buildToPersistMs:performance.now()-buildStarted}));
   return {status:'queued',reason:input.report.outcome===0?'available-published-funding-depth':`funding-unavailable-outcome-${input.report.outcome}`};
 }
 

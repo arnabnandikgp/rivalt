@@ -1461,3 +1461,10 @@ retry limits, exact program/PDA/schema bindings and the handover guard. No finan
 or fee authority changes. Profile-4 UI signing requires both supported wire formats.
 Focused adversarial tests and fresh RPC/WS/PostgreSQL recovery qualify this change;
 no earlier run is represented as having tested the new proof.
+D77 bounded qualification checkpoint (R093): P34's three-profile600-offer comparison
+passes on its recorded pins; operational/default/exit and maximum-book supplements
+remain open. Measure publisher build/queue/observation times on host/database clocks;
+local chain blockTime drift is not a valid host-latency measurement. These are
+observability and verification changes, not authority/economic amendments. The
+conservative unresolved maker original limitation remains documented in
+[P34 operations](P34-OPERATIONS.md); no absent-history fee release is authorized.

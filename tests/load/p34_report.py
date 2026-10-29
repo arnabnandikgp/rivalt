@@ -173,6 +173,27 @@ def audit_finances(run):
                 exact_fractional_conservation=True, internal_makers=makers)
 
 
+def quality_by_size(offers):
+    result={}
+    for market in (0,1):
+        for mode in ('isolated','cross'):
+            for size in (1,2,4,8,16):
+                selected=[offer for offer in offers if offer['marketIndex']==market and offer['mode']==mode and int(offer['lots'])==size]
+                successful=[offer for offer in selected if offer['attempted'] and not offer.get('finalError')]
+                reference=60000 if market==0 else 30000
+                notional=cost=drift=0
+                for offer in successful:
+                    gross=int(offer['landedGross']);fee=(gross+4999)//5000
+                    notional+=size*reference
+                    cost+=(gross-size*reference if offer['side']==0 else size*reference-gross)+fee
+                    drift+=int(offer['quoteDriftAtoms'])*(1 if offer['side']==0 else -1)
+                result[f'{market}/{mode}/{size}']=dict(offered=len(selected),eligible=sum(o['eligible'] for o in selected),filled=len(successful),
+                    reference_notional_atoms=str(notional),all_in_cost_vs_index_atoms=str(cost),
+                    all_in_cost_bps_exact=str(Fraction(cost*10000,notional)) if notional else None,
+                    adverse_quote_drift_atoms=str(drift))
+    return result
+
+
 def summarize(run, directory):
     offers, checks, services = run['offers'], run['checks'], run['serviceReport']
     assert len(offers) == 600 and [offer['index'] for offer in offers] == list(range(600))
@@ -244,7 +265,7 @@ def summarize(run, directory):
                 publisher_failures[str(code)]+=1
 
     route_checks = [check for check in checks if check['label'].startswith('offered route ')]
-    return dict(denominators=run['denominators'], reasons=dict(categories),
+    return dict(denominators=run['denominators'], reasons=dict(categories), size_quality=quality_by_size(offers),
                 market_modes={f'{market}/{mode}':sum(offer['marketIndex']==market and offer['mode']==mode for offer in offers) for market in (0,1) for mode in ('isolated','cross')},
                 build_ms={f'p{p}':quantile([offer['buildMs'] for offer in successful],p) for p in (50,95,99)},
                 build_sign_ms={f'p{p}':quantile([check['buildSignMs'] for check in route_checks],p) for p in (50,95,99)},

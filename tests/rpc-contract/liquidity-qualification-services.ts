@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync,writeFileSync,createWriteStream,mkdirSync,existsSync} from 'node:fs';
+import {readFileSync,writeFileSync,createWriteStream,mkdirSync,existsSync,readdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {spawn,type ChildProcess} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -114,7 +114,20 @@ export async function qualificationServices(setup:QualificationSetup,transport:A
     const counts=(await indexer.store.pool.query(`SELECT (SELECT count(*) FROM events WHERE run_id=$1) AS events,
       (SELECT count(*) FROM outbox WHERE run_id=$1) AS outbox,(SELECT count(*) FROM jobs WHERE run_id=$1 AND status IN ('pending','unresolved')) AS unresolved`,[runId])).rows[0];
     assert.equal(counts.events,state.sequence);assert.equal(counts.outbox,state.sequence);assert.equal(counts.unresolved,'0');
-    return {opening,state,reconciliation,counts,journal,intents,incidents,operational,indexerErrors,retainedReports:inputs.length,freshReplayIdentical:true};
+    const telemetry:any[]=[];
+    for(const name of readdirSync(directory).filter(name=>/^(funding|executor)-.*\.log$/.test(name)))
+      for(const line of readFileSync(`${directory}/${name}`,'utf8').split('\n')){
+        try{const row=JSON.parse(line);if(['funding-report-prepared','executor-observed'].includes(row.event))telemetry.push(row);}catch{/* Non-JSON process diagnostics are retained in the log. */}
+      }
+    const publisherTimings=telemetry.filter(row=>row.event==='funding-report-prepared').map(row=>{
+      const original=intents.find(intent=>intent.request_id===row.requestId);assert.equal(original?.signature,row.signature);
+      const observations=telemetry.filter(observation=>observation.event==='executor-observed'&&observation.requestId===row.requestId);
+      assert(observations.length>0);assert(observations.every(observation=>observation.signature===row.signature));
+      const firstObservedAt=Math.min(...observations.map(observation=>observation.at));assert(firstObservedAt>=row.buildStartedAt);
+      return {...row,firstObservedAt,buildToObservedConfirmationMs:firstObservedAt-row.buildStartedAt,
+        observationScope:'same-host wall clock; first executor confirmed/finalized observation, not leader execution timestamp'};
+    });
+    return {opening,state,reconciliation,counts,journal,intents,incidents,operational,indexerErrors,publisherTimings,retainedReports:inputs.length,freshReplayIdentical:true};
   }
   async function close(){for(const child of children)await stop(child).catch(()=>child.kill('SIGKILL'));indexing=false;await indexLoop;await runtime.close();await indexer.close();}
   return {runtime,client,opening,restartWorker,restartIndexer,operation,pause,report,close};

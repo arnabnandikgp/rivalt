@@ -97,6 +97,9 @@ export class Queue {
       let status=r.status==='expired-unexecuted'?r.status:'unresolved',result:any=r.status==='expired-unexecuted'?r.result:null,release=false;
       try{
         const s=(await this.rpc.call('getSignatureStatuses',[[r.signature],{searchTransactionHistory:true}])).value[0];
+        if(this.maxVersion===1&&s&&['confirmed','finalized'].includes(s.confirmationStatus))
+          console.log(JSON.stringify({event:'executor-observed',runId:this.store.runId,requestId:id,signature:r.signature,
+            commitment:s.confirmationStatus,at:Date.now()}));
         if(s?.confirmationStatus==='finalized'){
           const tx=await this.rpc.call('getTransaction',[r.signature,{commitment:'finalized',encoding:'json',maxSupportedTransactionVersion:this.maxVersion}]);
           if(tx?.meta && tx.transaction?.signatures?.[0]===r.signature && json(tx.meta.err)===json(s.err)){
