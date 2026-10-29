@@ -97,7 +97,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
 | M10 | P32 | Clearing/funding and safe local execution | Review | [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47), `phase/p32-liquidity-execution` above P31 `28d5dd0`/#46; acceptance closeout `cdffcc8` | [A37/G25/G22 acceptance](evidence/P32.md) passes. SBF `6437f7d`; safety/PG client `5d26561`, full books `df70e7c`, canonical continuation `34b4325`. All eligible routes finalize; exact quote/accounting, safety, SQL and resource gates pass. Ready PR published; all selected CI checks pass at `6de5cea`. R091 resumes P33; integration remains separate |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Review | Ready [PR #48](https://github.com/arnabnandikgp/rivalt/pull/48), `phase/p33-liquidity-services` above P32 `6de5cea` / #47; closeout `322a4e9` | [A38/G26 interfaces](evidence/P33.md): clean runtime `fccf062`, 365 finalized + one classified failed intent, ten browser originals, three SIGKILL/lost-ack recoveries, 88 signed-input reports, 172-event fresh replay, six maker reports and independent literal financial audit pass |
-| M10 | P34 | Comparative qualification and operations | Review | Ready [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49), `phase/p34-liquidity-qualification` above P33 `964ca5f` / #48; acceptance closeout `e545fbc` | [A39/G26](evidence/P34.md): baseline `fb082de`, control/treatment `03c4e73`, operational default/recovery/all-funded exits `aae8bb0`, fresh maximum books `875b647`. Exact financial/report replay passes; max 615,433 CU/800,000 budget. Narrow latency pass and missing-history maker limitation documented; stack stays open |
+| M10 | P34 | Comparative qualification and operations | Review | Ready [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49), `phase/p34-liquidity-qualification` above P33 `964ca5f` / #48; acceptance closeout `e545fbc` | [A39/G26](evidence/P34.md): baseline `fb082de`, control/treatment `03c4e73`, operational default/recovery/all-funded exits `aae8bb0`, fresh maximum books `875b647`. Exact financial/report replay passes; max 615,433 CU/800,000 budget. Scoped CI passes on `3a987b6`. Narrow latency pass and missing-history maker limitation documented; stack stays open |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -122,8 +122,9 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
   local fixtures; no real hedge or independent profitability is claimed.
 - Raw evidence remains local/ignored at its original paths. Research, databases,
   keys and configuration are preserved. Owned qualification runtimes are stopped.
-- Exact next action: inspect P34’s selected hosted checks and address any actual
-  failure; then await stack review/integration authorization. Do not merge the stack.
+- Exact next action: review P34 and the open stack after external feedback; keep
+  every PR open until separately authorized to integrate. All selected hosted
+  checks pass on published implementation `3a987b6`; no runtime work remains in P34.
 - P15B/P16B stay Open. Continuous 24-hour endurance stays Deferred.
 
 ## Blocker register
@@ -5382,3 +5383,14 @@ open in stack #44. P33 parent remains exact `964ca5f`. The initial P34 hosted ru
 not yet claimed. Publication records do not change executable source or rerun
 runtime qualification. Exact next action: push this publication record, inspect
 selected hosted checks and correct any failure; keep the stack open for review.
+
+
+R093 hosted closeout: actual [run 40953732338](https://github.com/arnabnandikgp/rivalt/actions/runs/40953732338)
+on `3a987b6049e3273b6728d765688fc05ddd08e41a` completes successfully: all five selected
+scope/client/financial/report/shell jobs pass. This includes generated SDK parity,
+typecheck/client suite/UI build, independent quote/allocation references, native
+financial/safety checks, report regressions and shell syntax. No fresh SBF build or
+runtime soak is inferred. The tracked tree is clean apart from this documentation
+record; the user's three untracked research paths remain untouched. All seven
+ready phase PRs are open. Next: review the open stack after external feedback;
+merge only under separate authorization. P15B/P16B Open; endurance Deferred.
