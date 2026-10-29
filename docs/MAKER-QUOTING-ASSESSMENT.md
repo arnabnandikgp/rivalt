@@ -69,11 +69,14 @@ existing bin positions.
 
 ## Actual Rivalt gaps
 
+Clearing `account_trading/` paths below are relative to
+`programs/clearing/src/instructions/`.
+
 | Area | Inspected implementation | Proposed direction |
 |---|---|---|
-| Pricing shape | `crates/maker-interface/src/lib.rs:133` fixes A/B depth, spread, knee and skew; V2/V3 reuse it | Configurable independent bid/ask regions and inventory response |
-| Maker identity | `account_trading/makers.rs:100` binds IDs 0/1 to two programs and one exact config layout | Separate maker instance/capital identity from strategy implementation/version |
-| Clearing coupling | `account_trading/makers.rs:464` recomputes the fixed curve and checks full response equality | Stable execution checks plus an admitted pricing evaluator; preserve exact canonical-curve validation |
+| Pricing shape | `crates/maker-interface/src/lib.rs:135–136` fixes A/B depth, spread, knee and skew; V2/V3 reuse it | Configurable independent bid/ask regions and inventory response |
+| Maker identity | `account_trading/makers.rs:101–110` binds IDs 0/1 to two programs and one exact config layout | Separate maker instance/capital identity from strategy implementation/version |
+| Clearing coupling | `account_trading/makers.rs:459–482` recomputes the fixed curve and checks full response equality | Stable execution checks plus an admitted pricing evaluator; preserve exact canonical-curve validation |
 | Quote updates | `programs/maker-account.rs:95` only renews an expired epoch; fixed shape and externally supplied reference | Separate price update, shape update, replenishment and security epochs |
 | Allocation | `packages/sdk/src/allocate-route.ts:17` exactly enumerates the fixed A/B partitions | Common exact quote adapter; optimize feasible one/two-maker allocations independently of maker IDs |
 | Funding | `account_trading/oracle.rs:212,241` prices candidate allocations with the same fixed math and searches using curve shape assumptions | A canonical, executable funding quote context and validated curve/search properties |

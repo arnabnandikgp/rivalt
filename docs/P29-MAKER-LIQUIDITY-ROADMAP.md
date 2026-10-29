@@ -204,7 +204,8 @@ inherited suites; leave supported broad regression to scoped hosted CI.
 
 Run the G22-pinned bounded comparative workload with concurrent repricing, fills,
 funding, orders, safe exits, recovery and replay on final artifacts. Include both
-markets, isolated/cross trader accounts and all admitted maker instances. Measure
+markets, isolated or two-position cross margin accounts, and all admitted maker
+instances. Measure
 offered, eligible, quoted, attempted, submitted and finalized populations separately;
 classify every rejection/unavailability reason. Report size-sensitive execution
 quality, quote drift, update-to-landing latency, p95/p99, search cost, bytes/compute,
