@@ -32,6 +32,7 @@ mod reservations;
 pub(crate) mod impact;
 pub(crate) mod funding;
 pub mod sampling;
+pub mod publisher;
 
 #[cfg(test)]
 mod tests;

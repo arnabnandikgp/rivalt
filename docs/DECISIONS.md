@@ -1395,3 +1395,21 @@ qualifies final comparative performance and recovery. Prior failed resource prob
 remain evidence of the old path, not acceptance of the replacement. Trading stays
 disabled until full P32 acceptance. Automatic failure-based maker exclusion,
 24-hour endurance, P15B/P16B and deployment/outreach restrictions are unchanged.
+
+## D76 — Publisher report/authority transitions and resource target (P32, 29 October 2026)
+
+Freeze [P32's exact publisher contract](P32-FUNDING-PUBLISHER.md#frozen-publisher-contract--d76):
+140-byte per-market configuration,203-byte report, restricted authority with
+monotone report sequence and Clock fences, two-second maximum report age and
+publication cadence, six-second/150-slot maximum hold bounded by actual declared
+input expiry. Authority/control epochs invalidate prepared reports. Rotation/
+revocation cannot rewrite funding or give the publisher cash/risk authority;
+revocation remains possible in unsafe modes without changing frozen market state.
+
+On-chain independent source validation, exact current index/Q, price bands and
+causal premium accrual remain. Backend coverage/authentication/aggregation/expiry
+are explicitly trusted attestations. Disable the previous sampling entrypoint in
+the replacement build. Freeze200k submitted/160k measured CU and20 unique keys
+for publisher updates and controls before benchmarking; no measured pass exists.
+These are ordinary resolutions within D75, not new financial economics or
+permission for default/devnet activation. Phase acceptance and external gates remain.

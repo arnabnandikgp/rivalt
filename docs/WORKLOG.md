@@ -50,7 +50,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a`; ready PR #43 is in Review above #42. R081: P30 A35/G23 passes, including123 signed RPC outcomes and legacy event parity; P30 is Review in ready PR #45 above #43. R082: P31 A36/G24 passes: 415 independent cases, 47 scoped tests, 73 signed RPC/WS outcomes and 1,000 maximum-width searches; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open above #45. R085/D74: user selects published-liquidity funding without hypothetical maker financial checks; implementation and focused native/reference checks pass. Clean `2a93394`100-lot sample lands with correct event/legacy parity at1,334,329CU, failing20% headroom;600-lot/zero-cash runtime checks not reached. Historical failures remain recorded. R086/D75 accepts a restricted off-chain publisher within P32–P34; report contract/implementation pending. Execution/integrated gates and P33/P34 remain |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | R079/D70 authorizes implementation; P29A remains Review in #42, P29B A34B/G22 model/contract checks pass on `b0c504a`; ready PR #43 is in Review above #42. R081: P30 A35/G23 passes, including123 signed RPC outcomes and legacy event parity; P30 is Review in ready PR #45 above #43. R082: P31 A36/G24 passes: 415 independent cases, 47 scoped tests, 73 signed RPC/WS outcomes and 1,000 maximum-width searches; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open above #45. R085/D74: user selects published-liquidity funding without hypothetical maker financial checks; implementation and focused native/reference checks pass. Clean `2a93394`100-lot sample lands with correct event/legacy parity at1,334,329CU, failing20% headroom;600-lot/zero-cash runtime checks not reached. Historical failures remain recorded. R087/D76 freezes and implements the restricted publisher candidate: 6 report-contract +4 causal native tests and6 focused SDK cases pass; generated ABI/typecheck pass. Runtime resource/authority probe pending. Execution/integrated gates and P33/P34 remain |
 
 ## Phase overview
 
@@ -95,7 +95,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P29B | Exact quote/update/routing/funding contract | Review | Ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), checked `b0c504a`, published `cfea519`, above P29A `ca14b86` / #42 | [A34B/G22](evidence/P29B.md): 26 model checks, 368 local links, layout/packet/search/transition contract and pinned numeric gates pass; no runtime acceptance |
 | M10 | P30 | Configurable maker curves and updates | Review | `phase/p30-canonical-maker` above P29B `b4f43a4` / #43 | [Implementation checkpoint](P30-CANONICAL-MAKERS.md): [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`;123 signed RPC/WS outcomes,104 instruction/20 account/78 event parity;3,172 vectors per evaluator. Ready PR #45 is open; new trading disabled |
 | M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
-| M10 | P32 | Clearing/funding and safe local execution | In progress | `phase/p32-liquidity-execution` above P31 `28d5dd0` / #46 | R085/D74 removes hypothetical maker financial checks from funding only; 15 scoped native and 4 independent funding-reference cases pass. Clean `2a93394`100-lot sample lands at1,334,329CU with correct literal event/legacy parity but fails20% headroom;600-lot/zero-cash runtime checks not reached. R086/D75 selects the restricted publisher replacement; exact report/authority contract comes next. Execution, safety, integration and continuation gate remain |
+| M10 | P32 | Clearing/funding and safe local execution | In progress | `phase/p32-liquidity-execution` above P31 `28d5dd0` / #46 | R085/D74 removes hypothetical maker financial checks from funding only; 15 scoped native and 4 independent funding-reference cases pass. Clean `2a93394`100-lot sample lands at1,334,329CU with correct literal event/legacy parity but fails20% headroom;600-lot/zero-cash runtime checks not reached. R087/D76 implements the frozen publisher account/report, authority controls, coherent backend builder and SDK. 10 scoped native/6 SDK checks, regenerated ABI and typecheck pass; runtime probe pending. Execution, safety, integration and continuation gate remain |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Open | P32 gate passed | A38/G26 interfaces: actual durable recovery, operator/browser flow and financial reconstruction |
 | M10 | P34 | Comparative qualification and operations | Open | P33 | A39/G26/M10: complete populations, concurrent updates/fills/exits, reconciliation/recovery and measured limits |
 
@@ -4402,3 +4402,40 @@ checks or weakening execution/source/identity safeguards.
 - No external blocker. Exact next action: freeze the P32 publisher configuration/
   report layout, authority/expiry/replay/structural-control transitions and reduced
   resource target before implementing the real producer-to-clearing flow.
+
+
+## R087 — P32 restricted publisher implementation and resource probe (29 October 2026)
+
+- Freeze D76 before measurement:140-byte configuration,203-byte report payload,
+  market/domain/authority/sequence and observation/config/terms fences, two-second
+  observation age, six-second/150-slot maximum hold, explicit unavailable outcomes.
+  Venue authority rotates/revokes the signer; controls close the previous causal
+  interval. Clearing independently reads all four sources, derives risk bounds,
+  checks reference quantity/price bands and applies the unchanged funding cap.
+  The old sampling instruction now rejects. New financial execution stays disabled.
+- Implement the real coherent SDK producer: discovery chooses keys, one final RPC
+  batch supplies Clock, sources, all makers/config/price/capital/code and publisher
+  state. Authenticate complete coverage and enumerate exact one/two-maker published
+  prices off-chain, with deterministic ties and no hypothetical financial admission.
+  Digest references ordered raw inputs; it is not an on-chain proof. Add generated
+  configuration/report/event codecs and a scoped actual-RPC/WS authority/resource
+  harness with local input retention. P33 durable worker/indexer recovery is separate.
+- On the candidate above`964c938`: scoped`cargo test -p clearing --locked --features
+  liquidity-execution-qualification maker_liquidity::publisher` passes6 tests;
+  `maker_liquidity::funding` passes4 causal cases. Independent literal vectors in
+  `pnpm exec vitest run packages/sdk/src/funding-publisher.test.ts` pass6 cases,
+  including100/600-lot optima, disconnected quantities, no third leg, source rules
+  and digest mutations. Regenerate clearing IDL with pinned Anchor and`pnpm generate`;
+  `pnpm typecheck` passes. No unrelated inherited regression, CI, PostgreSQL,
+  financial execution or endurance is claimed. Earlier native fixture expectations
+  were corrected for schema/profile and slot-expiry rules; the rules were preserved.
+- Publisher budget is fixed before runtime:200,000 submitted CU,≤160,000 measured,
+  ≤20 loaded keys, default32-KiB heap. These are targets, not measured results yet.
+  Test logs are local under`.local/liquidity-execution/publisher/`; raw evidence
+  remains ignored. Reclaimed580MiB only from rebuildable`target/debug/incremental`
+  after free disk fell to~1GiB; no database/evidence/key files were deleted.
+- Both tables retain P32/M10 In progress. No P32 PR exists yet; predecessor PRs
+  remain open/Review, P33/P34 Open, P15B/P16B Open and24-hour endurance Deferred.
+  No external blocker. Exact next action: build the pinned publisher candidate and
+  run`bash ops/funding-publisher-smoke.sh` to measure real signed100/600-lot reports,
+  authority/replay/control/unavailability failures and independent fetched ABI/WS parity.

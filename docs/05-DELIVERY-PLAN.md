@@ -741,6 +741,10 @@ the existing trading/safety prototype before closing A37/G25. P33 integrates its
 durable worker, recovery and provenance in SDK/indexer/API/UI/operator flows. P34
 measures final costs, coverage, contention and fault recovery. Keep predecessor
 PRs and phase IDs; do not split this amendment into a new series of task PRs.
+D76 now fixes the report/configuration contract and smaller200,000-CU/20-key
+publisher budget before measurement. R087 implements the candidate and scoped
+producer-to-program probe. Trading/safety/PostgreSQL and continuation acceptance
+still gate P32; the standalone publisher probe cannot close it.
 
 Retain at most two makers per route while testing discovery/selection beyond the
 fixed A/B identity pair. A price update cannot implicitly restore consumed depth.

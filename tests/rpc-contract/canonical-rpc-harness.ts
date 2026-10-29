@@ -9,7 +9,8 @@ import { CanonicalConformance } from './canonical-maker-conformance.js';
 import { WireRpc, WireSubscriptions, eventually } from './wire.js';
 
 export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: string,
-  options: { computeUnitLimit?: (label: string,instructions: readonly unknown[]) => number } = {}) {
+  options: { computeUnitLimit?: (label: string,instructions: readonly unknown[]) => number;
+    maxLoadedAccounts?: (label: string) => number | undefined } = {}) {
 assert.equal(new URL(url).hostname, '127.0.0.1');
 const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
 const ws = new WireSubscriptions(wsUrl);
@@ -54,6 +55,10 @@ const h: CanonicalHarness = {
       { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]), value => Boolean(value), `fetch ${label}`);
     // Preserve a landed result even when a later resource or parity check fails.
     writeFileSync(`${runDir}/transaction-${checks.length}.json`, serialize(history));
+    const loadedAccounts = new Set([...history.transaction.message.accountKeys,
+      ...history.meta.loadedAddresses?.writable ?? [], ...history.meta.loadedAddresses?.readonly ?? []]).size;
+    const maximumLoadedAccounts = options.maxLoadedAccounts?.(label);
+    if (maximumLoadedAccounts !== undefined) assert(loadedAccounts <= maximumLoadedAccounts, `${label}: loaded account budget`);
     assert.equal(history.transaction.signatures[0], signature);
     if (expectedError === undefined) assert.equal(history.meta.err, null, label);
     else assert.equal(history.meta.err?.InstructionError?.[1]?.Custom, expectedError, label);
@@ -76,7 +81,7 @@ const h: CanonicalHarness = {
     writeFileSync(`${runDir}/ws-${checks.length}.json`, serialize({ logs: notification, signature: signatureNotification }));
     checks.push({ label, signature, version: transaction.version, v0Bytes, bytes: wireBytes,
       error: history.meta.err, confirmationMs: performance.now() - started, computeUnits: history.meta.computeUnitsConsumed, computeUnitLimit,
-      feeLamports: String(history.meta.fee), signatures: transaction.signatures.length, ws: true, wsErrorMatchesFinalized, wsError: notification.params.result.value.err, signatureWsError: signatureNotification.params.result.value.err });
+      loadedAccounts, feeLamports: String(history.meta.fee), signatures: transaction.signatures.length, ws: true, wsErrorMatchesFinalized, wsError: notification.params.result.value.err, signatureWsError: signatureNotification.params.result.value.err });
     conformance.record(instructions, history);
     latestHistory = history;
   },

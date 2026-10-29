@@ -2,13 +2,12 @@
 
 ## Authority and current status
 
-D75 records the user's acceptance of the restricted publisher proposal. This is
-the approved direction for the fresh bounded local profile, not an implemented or
-qualified publisher. P32 remains In progress above P31 PR #46. The current
-`sample_liquidity_v4` implementation is the D74 on-chain published-depth sampler;
-its 100-lot transaction succeeds at 1,334,329 CU but fails required headroom.
-Retain that result as the superseded implementation's evidence, not a baseline
-measurement for a publisher that does not yet exist.
+D75 records the user's acceptance of the restricted publisher proposal. D76 below
+freezes its exact contract. R087 implements the gated configuration/report handler,
+coherent off-chain builder and generated SDK; runtime qualification is pending.
+P32 remains In progress above P31 PR #46. `sample_liquidity_v4` now rejects rather
+than offering a second authoritative funding path. Its superseded D74 100-lot
+transaction at 1,334,329 CU remains historical evidence, not a publisher result.
 
 Do not restart P29–P31 or add a separate phase/PR for each internal step. Deliver
 one cohesive P32 PR after its revised acceptance passes, then stack P33 and P34
@@ -106,3 +105,68 @@ Freeze the exact P32 publisher configuration/report transition contract and its
 numeric resource target, then implement and test the handler plus real publisher
 client on the existing P32 branch. Do not continue optimizing the superseded
 on-chain exhaustive funding search as the chosen production path for this profile.
+
+## Frozen publisher contract — D76
+
+This resolves D75's implementation-owned contract before coding and benchmarking.
+Scope remains the fresh profile4 local qualification artifact; V1–V3 are unchanged.
+
+- `FundingPublisherV4` PDA: `["funding-publisher-v4", market]`, clearing-owned,
+  140 bytes including the discriminator. Borsh field order: schema_version u16=4;
+  venue, market, publisher Pubkeys; authority_epoch, last_sequence,
+  last_observed_slot u64; last_observed_time i64; enabled bool; bump u8.
+- `FundingReportV4` instruction payload: 203 bytes. Field order: version u16=1,
+  domain [u8;32], market Pubkey; authority_epoch, sequence,
+  expected_observation_sequence, expected_config_epoch, expected_terms_epoch,
+  observed_slot u64; observed_time i64; valid_until_slot u64; valid_until_time i64;
+  reference_price, quantity, bid, ask u64; outcome u8; input_digest [u8;32].
+  Prices/totals are collateral atoms per lot / collateral atoms respectively.
+  Digest is SHA-256 over the builder's versioned ordered raw snapshot, not a proof.
+- Outcomes: 0 available, 1 invalid independent sources, 2 unavailable/invalid maker
+  coverage, 3 insufficient published depth. Unavailable reports have zero reference,
+  quantity, bid, ask and both validity endpoints; all require a nonzero audit digest.
+- Initialize requires venue authority in unpaused custody mode, initialized source
+  bindings, a sealed complete registry and a nonzero publisher. Authority epoch=1,
+  last_sequence=0; initial observed-slot/time fences are the authoritative Clock.
+- Rotate/revoke requires venue authority and an exact current authority epoch.
+  A nonzero new publisher rotates/enables; zero revokes. In custody/active modes,
+  materialize/truncate old funding, advance market observation sequence and
+  authority epoch, preserve report sequence, and fence observations at this Clock.
+  Revocation is also allowed while paused/frozen/resolved/retired; outside custody/
+  active modes it changes only publisher authority/fences and custody event
+  sequence, not market/default financial state. Enabling outside custody/active
+  modes or while paused is rejected. No publisher can rotate its own authority.
+- Publish requires an enabled matching publisher transaction signer, no extra
+  accounts, the profile gate and unpaused custody/active mode. Require exact venue
+  domain/market, authority epoch, next report sequence (`last_sequence+1`), current
+  market observation/config/terms epochs. Observed slot must be strictly newer than
+  the config fence and no later than Clock; time must be nondecreasing, not future,
+  and at most two seconds old. Available expiry must exceed Clock and be no later
+  than observed time+6 seconds / observed slot+150. These caps do not independently
+  prove the backend's declared input expiry; that is its attestation obligation.
+- Independently read/authenticate the four existing source accounts on-chain. An
+  available report requires Normal bounds and exact matching current reference;
+  Q remains ceil(6,000,000/reference), ask>=bid>0 and each aggregate VWAP within
+  90–110% of index. On-chain signed premium/cap and all funding arithmetic remain
+  unchanged. Unavailable reports use the normal failed-observation transition.
+- Accept only at the existing two-second sample interval. Accrue the preceding
+  valid interval first; install the new sample from landing Clock, never from the
+  historical observation time. Its hold also ends at the report's shorter expiry.
+  Persist report sequence/observation fences and emit report plus resulting market
+  state. Invalid reports revert every effect. Authority/control changes invalidate
+  prepared reports through epoch/observation CAS; pure repricing retains the
+  bounded snapshot-lag trust assumption and does not rewrite already-held funding.
+- Disable `sample_liquidity_v4` in the new source; it cannot compete with reports.
+  No new financial activation instruction is enabled by this replacement.
+- Resource gate: submit publisher updates with 200,000 CU, require measured maximum
+  <=160,000 CU (20% headroom), <=20 unique loaded keys, default32KiB heap and existing
+  measured v0/v1 packet bounds. Initialize/rotate/revoke use the same 200k/160k gate.
+  This is an unmeasured target. A miss requires repair or an explicit recorded
+  contract change, not silent budget inflation. Route gates remain unchanged.
+
+The backend must authenticate complete current maker coverage, preserve all
+publication/depth/capacity rules, select exact best published one/two-maker totals
+and use the earliest actual publication expiry. It must reject mixed/old snapshots,
+record source inputs and never re-date cached observations. Default/devnet handlers
+remain gated. P32 still owes source/financial integration, real RPC/WS/PostgreSQL
+and all other phase checks before acceptance.

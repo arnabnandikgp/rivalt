@@ -40,6 +40,7 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
       'market-v3': 'marketV3', 'ledger-v3': 'marketLedgerV3',
       'liquidity-v4': 'liquidityRegistryV4', 'maker-v4': 'makerRegistrationV4',
       'liquidity-control-v4': 'liquidityControllerV4',
+      'funding-publisher-v4': 'fundingPublisherV4',
     } : {maker: 'config', 'maker-v2': 'initializeGroupConfigConfig', 'maker-v3': 'accountConfig',
       'curve-v4': 'curveConfigV4', 'price-v4': 'curvePriceV4'})
       .map(([label, name]) => [seedIdentity(label), name]));

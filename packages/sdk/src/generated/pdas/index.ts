@@ -14,6 +14,7 @@ export * from "./certificate.js";
 export * from "./classifyGroupSurplusV2Vault.js";
 export * from "./custodyV3.js";
 export * from "./ethLedgerV3.js";
+export * from "./fundingPublisherV4.js";
 export * from "./group.js";
 export * from "./groupBinding.js";
 export * from "./groupExitGuard.js";

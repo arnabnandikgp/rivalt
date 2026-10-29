@@ -34,5 +34,9 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
-node --import tsx tests/rpc-contract/liquidity-sampling-rpc.ts
+case "${RIVALT_LIQUIDITY_PROBE:-sampling}" in
+  sampling) node --import tsx tests/rpc-contract/liquidity-sampling-rpc.ts ;;
+  funding-publisher) node --import tsx tests/rpc-contract/funding-publisher-rpc.ts ;;
+  *) echo 'Unknown scoped liquidity probe' >&2; exit 1 ;;
+esac
 printf 'P32 sampler probe evidence: %s\n' "$RIVALT_RUN_DIR"

@@ -30,6 +30,8 @@ export * from "./accountRouteExecutedV3.js";
 export * from "./accountSafetyRecoveryV3.js";
 export * from "./accountsRetiredV3.js";
 export * from "./custodyChanged.js";
+export * from "./fundingPublisherChangedV4.js";
+export * from "./fundingReportAcceptedV4.js";
 export * from "./groupCustodyChangedV2.js";
 export * from "./groupLiquidationV2.js";
 export * from "./groupMakerChangedV2.js";

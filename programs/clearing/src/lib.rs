@@ -31,6 +31,26 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn initialize_funding_publisher_v4(
+        ctx: Context<InitializeFundingPublisherV4>,
+        publisher: Pubkey,
+    ) -> Result<()> {
+        maker_liquidity::publisher::initialize(ctx, publisher)
+    }
+    pub fn configure_funding_publisher_v4(
+        ctx: Context<ConfigureFundingPublisherV4>,
+        expected_authority: u64,
+        publisher: Pubkey,
+    ) -> Result<()> {
+        maker_liquidity::publisher::configure(ctx, expected_authority, publisher)
+    }
+    pub fn publish_funding_report_v4(
+        ctx: Context<PublishFundingReportV4>,
+        report: state::v4::FundingReportV4,
+    ) -> Result<()> {
+        maker_liquidity::publisher::publish(ctx, report)
+    }
+
     pub fn initialize_liquidity_v4(ctx: Context<InitializeLiquidityV4>) -> Result<()> {
         maker_liquidity::initialize(ctx)
     }

@@ -12,6 +12,7 @@ export * from "./capitalBindingV3.js";
 export * from "./clearingGroupV2.js";
 export * from "./custodyV3.js";
 export * from "./exitGuard.js";
+export * from "./fundingPublisherV4.js";
 export * from "./groupExitGuardV2.js";
 export * from "./groupMarketV2.js";
 export * from "./groupRegistryV2.js";

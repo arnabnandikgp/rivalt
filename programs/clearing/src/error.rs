@@ -67,4 +67,6 @@ pub enum ClearingError {
     Liquidation,
     #[msg("Resolution epoch, stage, cursor, cohort or accounting check failed")]
     Resolution,
+    #[msg("Funding publisher authority, report binding, sequence or lifetime rejected")]
+    FundingReport,
 }

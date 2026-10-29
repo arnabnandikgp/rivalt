@@ -4121,6 +4121,149 @@
       ]
     },
     {
+      "name": "configure_funding_publisher_v4",
+      "discriminator": [
+        110,
+        142,
+        188,
+        144,
+        187,
+        218,
+        246,
+        26
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "venue"
+          ]
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "custody",
+            "safety",
+            "market",
+            "configuration"
+          ]
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "configuration"
+          ]
+        },
+        {
+          "name": "configuration",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  45,
+                  112,
+                  117,
+                  98,
+                  108,
+                  105,
+                  115,
+                  104,
+                  101,
+                  114,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "expected_authority",
+          "type": "u64"
+        },
+        {
+          "name": "publisher",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "control_liquidity_v4",
       "discriminator": [
         62,
@@ -8600,6 +8743,178 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "initialize_funding_publisher_v4",
+      "discriminator": [
+        46,
+        125,
+        193,
+        138,
+        25,
+        29,
+        38,
+        77
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "venue"
+          ]
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "custody",
+            "safety",
+            "market",
+            "registry"
+          ]
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configuration",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  45,
+                  112,
+                  117,
+                  98,
+                  108,
+                  105,
+                  115,
+                  104,
+                  101,
+                  114,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "publisher",
+          "type": "pubkey"
+        }
+      ]
     },
     {
       "name": "initialize_group_market_v2",
@@ -13531,6 +13846,161 @@
         {
           "name": "bytes",
           "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "publish_funding_report_v4",
+      "discriminator": [
+        215,
+        24,
+        92,
+        183,
+        31,
+        114,
+        182,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "publisher",
+          "signer": true,
+          "relations": [
+            "configuration"
+          ]
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "custody",
+            "safety",
+            "market",
+            "configuration"
+          ]
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "configuration"
+          ]
+        },
+        {
+          "name": "configuration",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  45,
+                  112,
+                  117,
+                  98,
+                  108,
+                  105,
+                  115,
+                  104,
+                  101,
+                  114,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "primary_asset"
+        },
+        {
+          "name": "primary_collateral"
+        },
+        {
+          "name": "guard_asset"
+        },
+        {
+          "name": "guard_collateral"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "report",
+          "type": {
+            "defined": {
+              "name": "FundingReportV4"
+            }
+          }
         }
       ]
     },
@@ -21450,6 +21920,19 @@
       ]
     },
     {
+      "name": "FundingPublisherV4",
+      "discriminator": [
+        44,
+        251,
+        162,
+        245,
+        60,
+        52,
+        128,
+        8
+      ]
+    },
+    {
       "name": "GroupExitGuardV2",
       "discriminator": [
         43,
@@ -22141,6 +22624,32 @@
       ]
     },
     {
+      "name": "FundingPublisherChangedV4",
+      "discriminator": [
+        69,
+        250,
+        247,
+        174,
+        178,
+        243,
+        46,
+        47
+      ]
+    },
+    {
+      "name": "FundingReportAcceptedV4",
+      "discriminator": [
+        157,
+        0,
+        211,
+        150,
+        191,
+        4,
+        31,
+        22
+      ]
+    },
+    {
       "name": "GroupCustodyChangedV2",
       "discriminator": [
         100,
@@ -22626,6 +23135,11 @@
       "code": 6130,
       "name": "Resolution",
       "msg": "Resolution epoch, stage, cursor, cohort or accounting check failed"
+    },
+    {
+      "code": 6131,
+      "name": "FundingReport",
+      "msg": "Funding publisher authority, report binding, sequence or lifetime rejected"
     }
   ],
   "types": [
@@ -25108,6 +25622,280 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FundingPublisherChangedV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "configuration",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "FundingPublisherPayloadV4"
+              }
+            }
+          },
+          {
+            "name": "market_state",
+            "type": {
+              "defined": {
+                "name": "MarketSnapshotV3"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "FundingPublisherPayloadV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "publisher",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "last_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "last_observed_slot",
+            "type": "u64"
+          },
+          {
+            "name": "last_observed_time",
+            "type": "i64"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FundingPublisherV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "publisher",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "last_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "last_observed_slot",
+            "type": "u64"
+          },
+          {
+            "name": "last_observed_time",
+            "type": "i64"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FundingReportAcceptedV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "publisher",
+            "type": "pubkey"
+          },
+          {
+            "name": "report",
+            "type": {
+              "defined": {
+                "name": "FundingReportV4"
+              }
+            }
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MarketSnapshotV3"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "FundingReportV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "expected_observation_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "expected_config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "expected_terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "observed_slot",
+            "type": "u64"
+          },
+          {
+            "name": "observed_time",
+            "type": "i64"
+          },
+          {
+            "name": "valid_until_slot",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until_time",
+            "type": "i64"
+          },
+          {
+            "name": "reference_price",
+            "type": "u64"
+          },
+          {
+            "name": "quantity",
+            "type": "u64"
+          },
+          {
+            "name": "bid",
+            "type": "u64"
+          },
+          {
+            "name": "ask",
+            "type": "u64"
+          },
+          {
+            "name": "outcome",
+            "type": "u8"
+          },
+          {
+            "name": "input_digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }

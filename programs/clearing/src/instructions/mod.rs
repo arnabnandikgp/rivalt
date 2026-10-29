@@ -1,6 +1,19 @@
 //! Instruction contexts, handlers and their domain-specific validation helpers.
 
 pub mod maker_liquidity;
+pub(crate) use maker_liquidity::publisher::{
+    __client_accounts_configure_funding_publisher_v4,
+    __client_accounts_initialize_funding_publisher_v4, __client_accounts_publish_funding_report_v4,
+};
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::publisher::{
+    __cpi_client_accounts_configure_funding_publisher_v4,
+    __cpi_client_accounts_initialize_funding_publisher_v4,
+    __cpi_client_accounts_publish_funding_report_v4,
+};
+pub use maker_liquidity::publisher::{
+    ConfigureFundingPublisherV4, InitializeFundingPublisherV4, PublishFundingReportV4,
+};
 pub use maker_liquidity::sampling::SampleLiquidityV4;
 pub(crate) use maker_liquidity::sampling::__client_accounts_sample_liquidity_v4;
 #[cfg(feature = "cpi")]

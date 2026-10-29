@@ -27,7 +27,10 @@ D75 supersedes that per-sample on-chain quote/CPI path with
 snapshot/report builder, scoped authority and on-chain bounded-report/accrual
 handler; P33 owns durable worker operation, reconciliation and consumer provenance.
 Maker financial admission remains in execution, not funding calculation. The
-publisher replacement is selected but not yet implemented.
+R087 candidate now implements `FundingPublisherV4`, signed `FundingReportV4`,
+configuration/report events and the coherent SDK `readFundingReport` builder.
+The old sampler rejects explicitly. Runtime qualification and financial execution
+integration remain open; these events are not yet a P33 indexer/service acceptance.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.

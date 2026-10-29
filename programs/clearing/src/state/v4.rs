@@ -4,6 +4,74 @@ use anchor_lang::prelude::*;
 pub const VERSION: u16 = 4;
 pub const MAKER_COUNT: usize = 3;
 
+#[account]
+#[derive(InitSpace)]
+pub struct FundingPublisherV4 {
+    pub schema_version: u16,
+    pub venue: Pubkey,
+    pub market: Pubkey,
+    pub publisher: Pubkey,
+    pub authority_epoch: u64,
+    pub last_sequence: u64,
+    pub last_observed_slot: u64,
+    pub last_observed_time: i64,
+    pub enabled: bool,
+    pub bump: u8,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, Default)]
+pub struct FundingReportV4 {
+    pub version: u16,
+    pub domain: [u8; 32],
+    pub market: Pubkey,
+    pub authority_epoch: u64,
+    pub sequence: u64,
+    pub expected_observation_sequence: u64,
+    pub expected_config_epoch: u64,
+    pub expected_terms_epoch: u64,
+    pub observed_slot: u64,
+    pub observed_time: i64,
+    pub valid_until_slot: u64,
+    pub valid_until_time: i64,
+    pub reference_price: u64,
+    pub quantity: u64,
+    pub bid: u64,
+    pub ask: u64,
+    pub outcome: u8,
+    pub input_digest: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
+pub struct FundingPublisherPayloadV4 {
+    pub schema_version: u16,
+    pub venue: Pubkey,
+    pub market: Pubkey,
+    pub publisher: Pubkey,
+    pub authority_epoch: u64,
+    pub last_sequence: u64,
+    pub last_observed_slot: u64,
+    pub last_observed_time: i64,
+    pub enabled: bool,
+    pub bump: u8,
+}
+
+impl From<&FundingPublisherV4> for FundingPublisherPayloadV4 {
+    fn from(value: &FundingPublisherV4) -> Self {
+        Self {
+            schema_version: value.schema_version,
+            venue: value.venue,
+            market: value.market,
+            publisher: value.publisher,
+            authority_epoch: value.authority_epoch,
+            last_sequence: value.last_sequence,
+            last_observed_slot: value.last_observed_slot,
+            last_observed_time: value.last_observed_time,
+            enabled: value.enabled,
+            bump: value.bump,
+        }
+    }
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, Default)]
 pub struct SampleInputV4 {
     pub registration: Pubkey,

@@ -24,8 +24,9 @@ For the replacement profile-4 funding path, complete maker authentication and
 aggregation move off-chain; their correctness is a publisher attestation, not an
 on-chain proof. Clearing keeps signer/configuration/sequence/expiry checks,
 independent oracle bounds, premium derivation and prospective causal accrual.
-The existing D74 code is historical candidate implementation until replaced;
-exact publisher layouts/transitions and acceptance remain P32 work.
+D76 freezes the publisher account/report layouts, authority fencing and bounded
+transitions. R087 implements that candidate and explicitly disables the old D74
+sampling instruction. Runtime and integrated acceptance remain P32 work.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.

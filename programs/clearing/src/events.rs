@@ -967,6 +967,27 @@ pub struct LiquidityOracleChangedV4 {
     pub ask_legs: Vec<crate::state::v4::SampleLegV4>,
 }
 #[event]
+pub struct FundingPublisherChangedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub configuration: Pubkey,
+    pub state: crate::state::v4::FundingPublisherPayloadV4,
+    pub market_state: MarketSnapshotV3,
+}
+
+#[event]
+pub struct FundingReportAcceptedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub publisher: Pubkey,
+    pub report: crate::state::v4::FundingReportV4,
+    pub state: MarketSnapshotV3,
+}
+#[event]
 pub struct AccountAuthorityChangedV3 {
     pub venue: Pubkey,
     pub sequence: u64,

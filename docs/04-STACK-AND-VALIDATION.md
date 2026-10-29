@@ -42,7 +42,10 @@ backend calculation/complete-input handling and on-chain report acceptance as
 distinct trust boundaries. Freeze the smaller resource target before benchmarking;
 measure real signed reports, authority/replay/expiry/recovery, actual financial
 effects and PostgreSQL reconstruction. Historical sampler probes cannot qualify
-this new authority path. No test or gate is closed by this planning amendment.
+this new authority path. D76 freezes a 200,000-CU submitted budget with at most
+160,000 CU measured, at most20 loaded keys and default32-KiB heap for publisher
+initialization/configuration/report updates. `ops/funding-publisher-smoke.sh`
+exercises this scoped boundary separately from full P32 acceptance.
 
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
