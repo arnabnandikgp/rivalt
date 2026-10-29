@@ -19,10 +19,11 @@ import {liquidityMakerEconomics} from '../../packages/maker-kit/src/liquidity-ec
 const directory=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATABASE_URL!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert(databaseUrl,'Owned real PostgreSQL required');
-const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{
+const transport=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{
   deferFinality:true,computeUnitLimit:label=>label.startsWith('P32 publisher')?200_000:400_000,
   maxLoadedAccounts:label=>label.startsWith('refresh independent')?32:undefined,
 });
+const {h,rpc,ws,checks,flush}=transport;
 const children:ChildProcess[]=[],wallets:unknown[]=[],observations:unknown[]=[],faults:unknown[]=[];
 let indexer:LiquidityIndexer|undefined,replay:LiquidityIndexer|undefined,runtime:AccountRuntime|undefined;
 let api:ReturnType<typeof accountServiceApi>|undefined,indexing=false,feeding=false,paused=false;
@@ -100,7 +101,7 @@ try {
     writeFileSync(`${directory}/observations.json`,json(observations));
   }await delay(250);}})();};
   beginIndex();feeding=true;feedLoop=(async()=>{while(feeding){if(!paused)await setup.freshSources();await delay(1000);}})();
-  const executor=start('executor'),makers:ChildProcess[]=[],publishers:ChildProcess[]=[];
+  let executor=start('executor');const makers:ChildProcess[]=[],publishers:ChildProcess[]=[];
   for(const market of [0,1])for(const instance of [0,1,2])makers.push(start('maker',setup.updater,market,instance));
   for(const market of [0,1])publishers.push(start('funding',setup.updater,market));
   await until(()=>runtime!.heartbeats(),rows=>rows.length===6&&rows.every(row=>row.online),'six live canonical maker workers');
@@ -137,6 +138,13 @@ try {
   await until(()=>client.snapshot([margin],'confirmed'),value=>value.roots[margin].positions[0].lots===0n,'actual stored order worker fill');await stop(orders);
   assert.equal((await client.snapshot([margin])).roots[margin].reserved,0n);
 
+  for(const publisher of publishers)await stop(publisher);
+  await until(async()=>(await runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget LIKE 'liquidity-funding-%' AND status NOT IN ('finalized','failed')",[config.runId])).rows[0].count,
+    value=>value==='0','old publisher originals resolved');await stop(executor);
+  const handover=await (await import('./liquidity-publisher-handover.js')).publisherHandover(runtime,setup,transport,databaseUrl,directory);
+  writeFileSync(`${directory}/publisher-handover.json`,json(handover));faults.push(handover);
+  executor=start('executor');for(const market of [0,1])publishers.push(start('funding',setup.updater,market));await normal();
+
   // Stop sources until the real independent source deadline fails. No fixture
   // changes clocks/mode and no safeguard is relaxed to make recovery pass.
   paused=true;
@@ -172,7 +180,7 @@ try {
     }
   }
   assert(available>=4);
-  await assert.rejects(()=>runtime!.store.pool.query('UPDATE liquidity_intent_inputs SET calculation=calculation WHERE run_id=$1',[config.runId]),/immutable/i);
+  await assert.rejects(()=>runtime!.store.pool.query('UPDATE liquidity_intent_inputs SET calculation=calculation WHERE run_id=$1',[config.runId]),/append-only journal/);
   await indexer.store.pool.query('CREATE DATABASE rivalt_p33_service_replay');
   const replayUrl=new URL(databaseUrl);replayUrl.pathname='/rivalt_p33_service_replay';
   replay=new LiquidityIndexer({...config,databaseUrl:replayUrl.toString(),runId:'p33-service-replay'});await replay.open();await replay.cycle();

@@ -78,6 +78,14 @@ token accounts, funds, upgrades and independent admissions are outside this kit.
   ambiguous/missing history remain distinct; only resolved failures allow a fresh
   attempt. Collateral, protocol fees and insurance do not pay worker network fees.
 
+For key rotation, stop the old role, resolve every signed original and its network
+fee, then authorize the new key on-chain. Update the private operator configuration
+and run `pnpm liquidity:bot /absolute/private/operator.json handover` before starting
+the new worker. This explicit local handover preserves the existing role's lifetime
+cap and spent amount; it cannot reset its allowance or release pending reservations.
+It verifies the current on-chain publisher/updater authority and refuses unresolved
+originals. Revocation alone never transfers a fee budget to an arbitrary key.
+
 `readLiquidityTradeSnapshot` and `buildLiquidityRoute` expose authenticated books
 and current whole-account trade admission. `readFundingReport` calculates published
 funding depth without hypothetical maker margin checks. These are intentionally

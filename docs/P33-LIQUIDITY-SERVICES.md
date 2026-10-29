@@ -85,3 +85,9 @@ The [operator kit](P33-MAKER-KIT.md) now packages an explicit private-config ent
 point and an independent normal maker-economics report. The first integrated run
 passes both original-signature crash recoveries and six browser transactions, then
 stops on a corrected test input limit. The fresh full run remains required.
+
+Explicit operator budget handover verifies the newly authorized on-chain signer,
+requires every original and network fee to be resolved, and preserves lifetime
+cap/spent values. It does not reset allowances. Ordinary worker startup still rejects
+a changed payer. The ten-action browser/worker/outage slice passes on `1db14f4`;
+full replay and rotation acceptance remain pending in the next recorded run.
