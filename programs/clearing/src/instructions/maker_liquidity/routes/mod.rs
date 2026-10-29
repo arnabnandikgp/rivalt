@@ -167,13 +167,12 @@ fn execute_core(
     let mut cache = pricing::CodeApprovalCache::default();
     let mut actual_quotes = Vec::with_capacity(views.len());
     let mut quotes = Vec::with_capacity(views.len());
-    let mut roots = Vec::with_capacity(views.len());
     for (view, leg) in views.iter().zip(signed_legs) {
         let actual = quote_current(view, accounts, leg, intent.side, clock, &mut cache)?;
         quotes.push(financial_quote(&actual, &identity.market, clock));
-        roots.push(*root_view(view.capital)?);
         actual_quotes.push(actual);
     }
+    let roots = maker_roots(accounts, has_second)?;
     let domain = Box::new(v2::ClearingGroupV2 {
         domain: identity.venue.domain,
         ..Default::default()
@@ -191,6 +190,18 @@ fn execute_core(
     )?;
     drop(views);
     commit::apply(accounts, &intent, order_index, clock, &next, &actual_quotes)
+}
+
+/// Construct large root values in their own frame and place them directly in the
+/// candidate vector. Avoid temporary boxed copies on the non-reclaiming SBF heap.
+#[inline(never)]
+fn maker_roots(accounts: &ExecuteLiquidityRouteV4, has_second: bool) -> Result<Vec<v2::MarginAccountV2>> {
+    let mut roots = Vec::with_capacity(if has_second { 2 } else { 1 });
+    roots.push(trading::root_view_value(&accounts.first_capital)?);
+    if has_second {
+        roots.push(trading::root_view_value(accounts.second_capital.as_deref().unwrap())?);
+    }
+    Ok(roots)
 }
 
 /// Keep decoded curve/request temporaries out of the financial engine's frame.
