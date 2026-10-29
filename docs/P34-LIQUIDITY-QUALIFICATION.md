@@ -23,7 +23,9 @@ zero inventory cap; treatment enables it. State those differences in results.
 
 Separate signed provisioning adds the missing isolated ETH/cross identities as
 needed. All offers remain in the denominator, including unavailable books, expired
-legacy epochs, source restrictions and known control races. Exact independent
+legacy epochs, source restrictions and known control races. Eligibility checks every market with an open position, as well as the traded
+market; the timed trader roots have no live orders. Explicit non-reduce-only
+requests require Normal sources for all such markets. Exact independent
 per-lot prices/allocation and per-market accounting are required. More than 5pp
 eligible-success regression or 25% matched p95 landing regression fails; fewer
 than 100 matched attempts is insufficient. No threshold is selected after results.

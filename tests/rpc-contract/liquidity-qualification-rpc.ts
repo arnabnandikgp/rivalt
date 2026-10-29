@@ -33,7 +33,7 @@ const {h,rpc,ws,checks,flush}=transport;
 let services:Awaited<ReturnType<typeof qualificationServices>>|undefined;
 type Offer = {
   index: number; dueMs: number; startedMs: number; lagMs: number; window: string;
-  trader: import('@solana/kit').Address; marketIndex:0|1; mode:'isolated'|'cross'; buildMs:number; side: 0 | 1; lots: bigint; source: string; eligible: boolean; quoted: boolean; attempted: boolean;
+  trader: import('@solana/kit').Address; marketIndex:0|1; mode:'isolated'|'cross'; sourceModes:string[]; requiredMarkets:number[]; buildMs:number; side: 0 | 1; lots: bigint; source: string; eligible: boolean; quoted: boolean; attempted: boolean;
   reason: string | null; makers: Candidate[]; roots: sdk.AccountSnapshot['roots'];
   allocation?: { grossQuote: bigint; fee: bigint; allIn: bigint; legs: { instance: number; lots: bigint }[] };
   markouts?:{horizonSeconds:number;observedAfterMs:number;referencePrice:bigint;sourceMode:string}[]; landedGross?:bigint; quoteDriftAtoms?:bigint; after?: sdk.MarginAccountV3[]; finalError?: unknown; signedToConfirmedMs?: unknown;
@@ -73,10 +73,15 @@ try {
       const mode=cycle<4?'isolated':'cross',trader=mode==='isolated'?setup.isolated[marketIndex]:setup.cross;
       const snapshot=await setup.read(trader,marketIndex),side=(index%2) as 0|1,lots=[1n,2n,4n,8n,16n][Math.floor(index/8)%5];
       const model=candidates(snapshot,profile,marketIndex),source=sdk.accountSourceMode(snapshot.safetyState,snapshot.marketStates[marketIndex],snapshot.now,snapshot.slot);
+      const root=snapshot.roots[trader];
+      assert(root.book.orders.every(entry=>![1,2].includes(entry.order.state)),'Timed roots have no fixture-owned live orders');
+      const sourceModes=snapshot.marketStates.map(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot));
+      const requiredMarkets=[0,1].filter(index=>index===marketIndex||root.positions[index].lots!==0n);
+      const blockedMarket=requiredMarkets.find(index=>sourceModes[index]!=='Normal');
       const expected = referenceAllocation(model, side, lots);
       const offer: Offer = { index, dueMs: index * 500, startedMs, lagMs: Math.max(0, startedMs - index * 500),
-        window: window(index * 500),trader,marketIndex,mode,buildMs:0, side, lots, source, eligible: source === 'Normal' && expected !== null,
-        quoted: false, attempted: false, reason: source !== 'Normal' ? `source-${source}` : expected ? null
+        window: window(index * 500),trader,marketIndex,mode,sourceModes,requiredMarkets,buildMs:0, side, lots, source, eligible: blockedMarket===undefined && expected !== null,
+        quoted: false, attempted: false, reason: blockedMarket!==undefined ? `required-market-${blockedMarket}-${sourceModes[blockedMarket]}` : expected ? null
           : `liquidity:${model.map(maker => maker.reason ?? 'capacity').join(',')}`, makers: model, roots: snapshot.roots };
       offers.push(offer);
       if (offer.eligible) {

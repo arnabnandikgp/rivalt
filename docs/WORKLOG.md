@@ -5193,3 +5193,20 @@ uniquely named fresh databases per attempt. PostgreSQL's own checkpoint/WAL poli
 is bounded to 64/32 MiB with fsync/durability unchanged; no evidence/database files
 are manually deleted. Reuse is explicit local configuration, not an acceptance
 summary. Next: pin these harness/storage corrections and rerun the three profiles.
+
+R093 fresh baseline on `8e91324` stops at the 90-second quarantine window: the
+fixture classified eligibility using only the selected market. An ETH request on a
+cross root with an open BTC position correctly fails the SDK's required-BTC-source
+check after quarantine. The harness now records all required market modes and
+classifies these offers as unavailable; no fee, risk rule or oracle safeguard is
+changed. Timed roots explicitly have no live orders; their open positions and
+selected market determine the required source set. No comparative pass claimed.
+
+The separate literal audit reader passes two tests, including five corruptions
+(missing history, one-atom cash/fee/vault errors and a one-scaled-unit claim error).
+Operational/publisher audit code typechecks. Confirmed no active compiler, then
+removed only rebuildable `target/debug` (95,743,047 bytes) and
+`target/sbpf-solana-solana` (44,848,319 bytes) caches. Qualified binaries,
+`target/deploy`, all database/evidence/configuration/keys remain. PostgreSQL's
+normal checkpointing reduces WAL without manual deletion. Next: pin the complete
+source-eligibility classifier and run fresh comparison with the same 600 offers.
