@@ -1,6 +1,10 @@
 //! Instruction contexts, handlers and their domain-specific validation helpers.
 
 pub mod maker_liquidity;
+pub use maker_liquidity::routes::{ExecuteLiquidityRouteV4, LiquidityRouteIntentV4, LiquidityOrderExecutionV4};
+pub(crate) use maker_liquidity::routes::__client_accounts_execute_liquidity_route_v4;
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::routes::__cpi_client_accounts_execute_liquidity_route_v4;
 pub(crate) use maker_liquidity::publisher::{
     __client_accounts_configure_funding_publisher_v4,
     __client_accounts_initialize_funding_publisher_v4, __client_accounts_publish_funding_report_v4,

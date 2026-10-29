@@ -8,8 +8,9 @@ strict authority with current-price execution inside signed limits. These change
 are confined to fresh local profile4. P30 qualifies canonical pricing and
 custody-only controls. [P31](P31-EXACT-ROUTING.md) qualifies authenticated read-only
 quote snapshots and exact financial previews. [P32](P32-LIQUIDITY-EXECUTION.md)
-contains a gated sampler/control candidate; its resource gate is not yet met and
-financial routing remains disabled. P32 gates financial activation. Existing profiles, source
+contains the restricted publisher and canonical execution candidate. Trading is
+available only in the explicit local acceptance artifact; full P32 gates still
+control qualification and subsequent service enablement. Existing profiles, source
 safeguards and loss/fee/insurance accounting remain authoritative.
 
 D74 changes only profile-4 funding to a **published-liquidity impact midpoint**:
@@ -26,7 +27,10 @@ on-chain proof. Clearing keeps signer/configuration/sequence/expiry checks,
 independent oracle bounds, premium derivation and prospective causal accrual.
 D76 freezes the publisher account/report layouts, authority fencing and bounded
 transitions. R087 implements that candidate and explicitly disables the old D74
-sampling instruction. Runtime and integrated acceptance remain P32 work.
+sampling instruction. Its scoped runtime probe passes; integrated acceptance remains P32 work.
+D77 connects current canonical quotes to the existing whole-account financial
+engine and complete safety lifecycle, with separate storage-ready local activation.
+It changes neither loss ownership nor risk/fee/insurance rules.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.

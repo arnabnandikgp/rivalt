@@ -149,6 +149,7 @@ import {
   getActivateAccountsV3InstructionAsync,
   getActivateCrossGroupV2InstructionAsync,
   getActivateIsolatedGroupV2InstructionAsync,
+  getActivateLiquidityV4InstructionAsync,
   getAdvanceAccountResolutionV3InstructionAsync,
   getAdvanceGroupResolutionV2InstructionAsync,
   getAdvanceResolutionInstructionAsync,
@@ -181,6 +182,8 @@ import {
   getExecuteAccountRouteV3InstructionAsync,
   getExecuteGroupOrderV2InstructionAsync,
   getExecuteGroupRouteV2InstructionAsync,
+  getExecuteLiquidityOrderV4InstructionAsync,
+  getExecuteLiquidityRouteV4InstructionAsync,
   getExecuteMarginOrderV2InstructionAsync,
   getExecuteMarginRouteV2InstructionAsync,
   getExecuteOrderInstructionAsync,
@@ -279,6 +282,7 @@ import {
   parseActivateAccountsV3Instruction,
   parseActivateCrossGroupV2Instruction,
   parseActivateIsolatedGroupV2Instruction,
+  parseActivateLiquidityV4Instruction,
   parseAdvanceAccountResolutionV3Instruction,
   parseAdvanceGroupResolutionV2Instruction,
   parseAdvanceResolutionInstruction,
@@ -311,6 +315,8 @@ import {
   parseExecuteAccountRouteV3Instruction,
   parseExecuteGroupOrderV2Instruction,
   parseExecuteGroupRouteV2Instruction,
+  parseExecuteLiquidityOrderV4Instruction,
+  parseExecuteLiquidityRouteV4Instruction,
   parseExecuteMarginOrderV2Instruction,
   parseExecuteMarginRouteV2Instruction,
   parseExecuteOrderInstruction,
@@ -409,6 +415,7 @@ import {
   type ActivateAccountsV3AsyncInput,
   type ActivateCrossGroupV2AsyncInput,
   type ActivateIsolatedGroupV2AsyncInput,
+  type ActivateLiquidityV4AsyncInput,
   type AdvanceAccountResolutionV3AsyncInput,
   type AdvanceGroupResolutionV2AsyncInput,
   type AdvanceResolutionAsyncInput,
@@ -441,6 +448,8 @@ import {
   type ExecuteAccountRouteV3AsyncInput,
   type ExecuteGroupOrderV2AsyncInput,
   type ExecuteGroupRouteV2AsyncInput,
+  type ExecuteLiquidityOrderV4AsyncInput,
+  type ExecuteLiquidityRouteV4AsyncInput,
   type ExecuteMarginOrderV2AsyncInput,
   type ExecuteMarginRouteV2AsyncInput,
   type ExecuteOrderAsyncInput,
@@ -484,6 +493,7 @@ import {
   type ParsedActivateAccountsV3Instruction,
   type ParsedActivateCrossGroupV2Instruction,
   type ParsedActivateIsolatedGroupV2Instruction,
+  type ParsedActivateLiquidityV4Instruction,
   type ParsedAdvanceAccountResolutionV3Instruction,
   type ParsedAdvanceGroupResolutionV2Instruction,
   type ParsedAdvanceResolutionInstruction,
@@ -516,6 +526,8 @@ import {
   type ParsedExecuteAccountRouteV3Instruction,
   type ParsedExecuteGroupOrderV2Instruction,
   type ParsedExecuteGroupRouteV2Instruction,
+  type ParsedExecuteLiquidityOrderV4Instruction,
+  type ParsedExecuteLiquidityRouteV4Instruction,
   type ParsedExecuteMarginOrderV2Instruction,
   type ParsedExecuteMarginRouteV2Instruction,
   type ParsedExecuteOrderInstruction,
@@ -1196,6 +1208,7 @@ export enum ClearingEvent {
   LiquidityMakerChangedV4,
   LiquidityOracleChangedV4,
   LiquidityRegistryChangedV4,
+  LiquidityRouteExecutedV4,
   MakerChanged,
   MarginAuthorityChangedV2,
   MarginClaimsNettedV2,
@@ -1637,6 +1650,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([56, 145, 24, 73, 218, 166, 221, 174]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.LiquidityRouteExecutedV4;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([208, 85, 87, 120, 6, 221, 0, 171]),
       ),
       0,
@@ -1785,6 +1809,7 @@ export enum ClearingInstruction {
   ActivateAccountsV3,
   ActivateCrossGroupV2,
   ActivateIsolatedGroupV2,
+  ActivateLiquidityV4,
   AdvanceAccountResolutionV3,
   AdvanceGroupResolutionV2,
   AdvanceResolution,
@@ -1817,6 +1842,8 @@ export enum ClearingInstruction {
   ExecuteAccountRouteV3,
   ExecuteGroupOrderV2,
   ExecuteGroupRouteV2,
+  ExecuteLiquidityOrderV4,
+  ExecuteLiquidityRouteV4,
   ExecuteMarginOrderV2,
   ExecuteMarginRouteV2,
   ExecuteOrder,
@@ -1950,6 +1977,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ActivateIsolatedGroupV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([166, 6, 187, 7, 126, 14, 139, 6]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ActivateLiquidityV4;
   }
   if (
     containsBytes(
@@ -2302,6 +2340,28 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ExecuteGroupRouteV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([212, 85, 15, 174, 43, 247, 199, 170]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteLiquidityOrderV4;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([195, 172, 220, 84, 16, 82, 29, 7]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteLiquidityRouteV4;
   }
   if (
     containsBytes(
@@ -3367,6 +3427,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ActivateIsolatedGroupV2;
     } & ParsedActivateIsolatedGroupV2Instruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ActivateLiquidityV4;
+    } & ParsedActivateLiquidityV4Instruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.AdvanceAccountResolutionV3;
     } & ParsedAdvanceAccountResolutionV3Instruction<TProgram>)
   | ({
@@ -3462,6 +3525,12 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.ExecuteGroupRouteV2;
     } & ParsedExecuteGroupRouteV2Instruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ExecuteLiquidityOrderV4;
+    } & ParsedExecuteLiquidityOrderV4Instruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ExecuteLiquidityRouteV4;
+    } & ParsedExecuteLiquidityRouteV4Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ExecuteMarginOrderV2;
     } & ParsedExecuteMarginOrderV2Instruction<TProgram>)
@@ -3774,6 +3843,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseActivateIsolatedGroupV2Instruction(instruction),
       };
     }
+    case ClearingInstruction.ActivateLiquidityV4: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ActivateLiquidityV4,
+        ...parseActivateLiquidityV4Instruction(instruction),
+      };
+    }
     case ClearingInstruction.AdvanceAccountResolutionV3: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -3996,6 +4072,20 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ExecuteGroupRouteV2,
         ...parseExecuteGroupRouteV2Instruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteLiquidityOrderV4: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteLiquidityOrderV4,
+        ...parseExecuteLiquidityOrderV4Instruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteLiquidityRouteV4: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteLiquidityRouteV4,
+        ...parseExecuteLiquidityRouteV4Instruction(instruction),
       };
     }
     case ClearingInstruction.ExecuteMarginOrderV2: {
@@ -4771,6 +4861,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getActivateIsolatedGroupV2InstructionAsync> &
     SelfPlanAndSendFunctions;
+  activateLiquidityV4: (
+    input: ActivateLiquidityV4AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getActivateLiquidityV4InstructionAsync> &
+    SelfPlanAndSendFunctions;
   advanceAccountResolutionV3: (
     input: AdvanceAccountResolutionV3AsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -4929,6 +5024,16 @@ export type ClearingPluginInstructions = {
     input: ExecuteGroupRouteV2AsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getExecuteGroupRouteV2InstructionAsync> &
+    SelfPlanAndSendFunctions;
+  executeLiquidityOrderV4: (
+    input: ExecuteLiquidityOrderV4AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteLiquidityOrderV4InstructionAsync> &
+    SelfPlanAndSendFunctions;
+  executeLiquidityRouteV4: (
+    input: ExecuteLiquidityRouteV4AsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteLiquidityRouteV4InstructionAsync> &
     SelfPlanAndSendFunctions;
   executeMarginOrderV2: (
     input: ExecuteMarginOrderV2AsyncInput,
@@ -5598,6 +5703,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          activateLiquidityV4: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getActivateLiquidityV4InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           advanceAccountResolutionV3: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -5850,6 +5963,22 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getExecuteGroupRouteV2InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeLiquidityOrderV4: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteLiquidityOrderV4InstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeLiquidityRouteV4: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteLiquidityRouteV4InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

@@ -33,6 +33,14 @@ The old sampler rejects explicitly. The scoped publisher RPC/WS/legacy-parity pr
 passes on clean`4f4e47d`; financial execution integration remains open. These events
 are not yet a P33 indexer/service acceptance.
 
+R088/D77 adds canonical immediate/stored-order handlers and the
+`LiquidityRouteExecutedV4` event. `buildLiquidityRoute` binds caller limits and
+structural epochs, returning a resource budget for the v0/v1 compiler. Shared
+financial/safety instructions admit profile4 only in the explicit P32 candidate;
+legacy routes, sampling and initial activation remain profile3-only. The new
+`activate_liquidity_v4` reuses the complete safety-storage qualification context.
+Scoped native/client parity is distinct from deployed financial acceptance.
+
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.
 The pinned candidate matrix and explicit storage-ready local activation pass

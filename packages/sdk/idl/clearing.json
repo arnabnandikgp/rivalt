@@ -519,6 +519,219 @@
       "args": []
     },
     {
+      "name": "activate_liquidity_v4",
+      "discriminator": [
+        166,
+        6,
+        187,
+        7,
+        126,
+        14,
+        139,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "qualification",
+          "accounts": [
+            {
+              "name": "authority",
+              "signer": true,
+              "relations": [
+                "venue"
+              ]
+            },
+            {
+              "name": "venue",
+              "relations": [
+                "custody",
+                "safety",
+                "btc",
+                "eth",
+                "btc_ledger",
+                "eth_ledger"
+              ]
+            },
+            {
+              "name": "custody",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      99,
+                      117,
+                      115,
+                      116,
+                      111,
+                      100,
+                      121,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "safety",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      115,
+                      97,
+                      102,
+                      101,
+                      116,
+                      121,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "btc",
+              "writable": true
+            },
+            {
+              "name": "eth",
+              "writable": true
+            },
+            {
+              "name": "btc_ledger",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      108,
+                      101,
+                      100,
+                      103,
+                      101,
+                      114,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "btc"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "eth_ledger",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      108,
+                      101,
+                      100,
+                      103,
+                      101,
+                      114,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "eth"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              },
+              "relations": [
+                "venue"
+              ]
+            },
+            {
+              "name": "event_authority"
+            },
+            {
+              "name": "program"
+            }
+          ]
+        },
+        {
+          "name": "resolution",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "qualification.venue",
+                "account": "QualifyAccountTradingV3"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "advance_account_resolution_v3",
       "discriminator": [
         158,
@@ -6099,6 +6312,606 @@
           "type": {
             "defined": {
               "name": "RouteIntent"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_liquidity_order_v4",
+      "discriminator": [
+        212,
+        85,
+        15,
+        174,
+        43,
+        247,
+        199,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "identity",
+          "accounts": [
+            {
+              "name": "actor",
+              "signer": true
+            },
+            {
+              "name": "venue",
+              "relations": [
+                "custody",
+                "safety",
+                "market",
+                "other_market",
+                "ledger",
+                "other_ledger",
+                "trader"
+              ]
+            },
+            {
+              "name": "custody",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      99,
+                      117,
+                      115,
+                      116,
+                      111,
+                      100,
+                      121,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "safety",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      115,
+                      97,
+                      102,
+                      101,
+                      116,
+                      121,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "market",
+              "writable": true,
+              "relations": [
+                "ledger"
+              ]
+            },
+            {
+              "name": "other_market",
+              "writable": true
+            },
+            {
+              "name": "ledger",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      108,
+                      101,
+                      100,
+                      103,
+                      101,
+                      114,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "market"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "other_ledger",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      108,
+                      101,
+                      100,
+                      103,
+                      101,
+                      114,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "other_market"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              },
+              "relations": [
+                "venue"
+              ]
+            },
+            {
+              "name": "trader",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      97,
+                      114,
+                      103,
+                      105,
+                      110,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "trader.portfolio",
+                    "account": "MarginAccountV3"
+                  },
+                  {
+                    "kind": "account",
+                    "path": "trader.subaccount_index",
+                    "account": "MarginAccountV3"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.market",
+                "account": "AccountRouteIdentityV3"
+              }
+            ]
+          }
+        },
+        {
+          "name": "first_capital",
+          "writable": true
+        },
+        {
+          "name": "first_registration",
+          "writable": true
+        },
+        {
+          "name": "first_program"
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config"
+        },
+        {
+          "name": "first_price"
+        },
+        {
+          "name": "second_capital",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_registration",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_program",
+          "optional": true
+        },
+        {
+          "name": "second_program_data",
+          "optional": true
+        },
+        {
+          "name": "second_config",
+          "optional": true
+        },
+        {
+          "name": "second_price",
+          "optional": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "LiquidityOrderExecutionV4"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_liquidity_route_v4",
+      "discriminator": [
+        195,
+        172,
+        220,
+        84,
+        16,
+        82,
+        29,
+        7
+      ],
+      "accounts": [
+        {
+          "name": "identity",
+          "accounts": [
+            {
+              "name": "actor",
+              "signer": true
+            },
+            {
+              "name": "venue",
+              "relations": [
+                "custody",
+                "safety",
+                "market",
+                "other_market",
+                "ledger",
+                "other_ledger",
+                "trader"
+              ]
+            },
+            {
+              "name": "custody",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      99,
+                      117,
+                      115,
+                      116,
+                      111,
+                      100,
+                      121,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "safety",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      115,
+                      97,
+                      102,
+                      101,
+                      116,
+                      121,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "market",
+              "writable": true,
+              "relations": [
+                "ledger"
+              ]
+            },
+            {
+              "name": "other_market",
+              "writable": true
+            },
+            {
+              "name": "ledger",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      108,
+                      101,
+                      100,
+                      103,
+                      101,
+                      114,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "market"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "other_ledger",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      108,
+                      101,
+                      100,
+                      103,
+                      101,
+                      114,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "other_market"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "venue"
+                  }
+                ]
+              },
+              "relations": [
+                "venue"
+              ]
+            },
+            {
+              "name": "trader",
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      97,
+                      114,
+                      103,
+                      105,
+                      110,
+                      45,
+                      118,
+                      51
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "trader.portfolio",
+                    "account": "MarginAccountV3"
+                  },
+                  {
+                    "kind": "account",
+                    "path": "trader.subaccount_index",
+                    "account": "MarginAccountV3"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.market",
+                "account": "AccountRouteIdentityV3"
+              }
+            ]
+          }
+        },
+        {
+          "name": "first_capital",
+          "writable": true
+        },
+        {
+          "name": "first_registration",
+          "writable": true
+        },
+        {
+          "name": "first_program"
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config"
+        },
+        {
+          "name": "first_price"
+        },
+        {
+          "name": "second_capital",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_registration",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_program",
+          "optional": true
+        },
+        {
+          "name": "second_program_data",
+          "optional": true
+        },
+        {
+          "name": "second_config",
+          "optional": true
+        },
+        {
+          "name": "second_price",
+          "optional": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "LiquidityRouteIntentV4"
             }
           }
         }
@@ -22806,6 +23619,19 @@
       ]
     },
     {
+      "name": "LiquidityRouteExecutedV4",
+      "discriminator": [
+        56,
+        145,
+        24,
+        73,
+        218,
+        166,
+        221,
+        174
+      ]
+    },
+    {
       "name": "MakerChanged",
       "discriminator": [
         208,
@@ -25579,6 +26405,62 @@
       }
     },
     {
+      "name": "ExecutedLegV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registration",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital",
+            "type": "pubkey"
+          },
+          {
+            "name": "instance",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross",
+            "type": "u64"
+          },
+          {
+            "name": "price_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "control_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "shape_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "depth_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "consumed_before",
+            "type": "u64"
+          },
+          {
+            "name": "consumed_after",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "ExitGuard",
       "type": {
         "kind": "struct",
@@ -27457,6 +28339,56 @@
       }
     },
     {
+      "name": "LiquidityOrderExecutionV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "guard",
+            "type": {
+              "defined": {
+                "name": "AccountGuardV3"
+              }
+            }
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "version",
+            "type": "u64"
+          },
+          {
+            "name": "filled",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "LiquidityRouteLegV4"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "LiquidityRegistryChangedV4",
       "type": {
         "kind": "struct",
@@ -27569,6 +28501,249 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityRouteExecutedV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_state",
+            "type": {
+              "defined": {
+                "name": "MarketSnapshotV3"
+              }
+            }
+          },
+          {
+            "name": "other_market_state",
+            "type": {
+              "defined": {
+                "name": "MarketSnapshotV3"
+              }
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross_quote",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "insurance_credit",
+            "type": "u64"
+          },
+          {
+            "name": "retained_fee",
+            "type": "u64"
+          },
+          {
+            "name": "carry_before",
+            "type": "u8"
+          },
+          {
+            "name": "carry_after",
+            "type": "u8"
+          },
+          {
+            "name": "ledger",
+            "type": {
+              "defined": {
+                "name": "MarketLedgerSnapshotV3"
+              }
+            }
+          },
+          {
+            "name": "order_id",
+            "type": "u64"
+          },
+          {
+            "name": "order_version",
+            "type": "u64"
+          },
+          {
+            "name": "root_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarginAccountSnapshotV3"
+                }
+              }
+            }
+          },
+          {
+            "name": "maker_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MakerRegistrationPayloadV4"
+                }
+              }
+            }
+          },
+          {
+            "name": "total_cash",
+            "type": "u64"
+          },
+          {
+            "name": "liability_versions",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ExecutedLegV4"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityRouteIntentV4",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "guard",
+            "type": {
+              "defined": {
+                "name": "AccountGuardV3"
+              }
+            }
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "start_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "all_in_limit",
+            "type": "u64"
+          },
+          {
+            "name": "max_fee",
+            "type": "u64"
+          },
+          {
+            "name": "reduce_only",
+            "type": "bool"
+          },
+          {
+            "name": "generation",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "LiquidityRouteLegV4"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityRouteLegV4",
+      "docs": [
+        "D70 signs structural authority, never a price sequence or consumption prefix."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "control_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "shape_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "depth_epoch",
+            "type": "u64"
           }
         ]
       }

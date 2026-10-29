@@ -31,6 +31,17 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 pub mod clearing {
     use super::*;
 
+    pub fn activate_liquidity_v4(ctx: Context<ActivateAccountsV3>) -> Result<()> {
+        account_trading::activation::activate_liquidity(ctx)
+    }
+
+    pub fn execute_liquidity_route_v4(ctx: Context<ExecuteLiquidityRouteV4>, args: LiquidityRouteIntentV4) -> Result<()> {
+        maker_liquidity::routes::execute(ctx, args)
+    }
+    pub fn execute_liquidity_order_v4(ctx: Context<ExecuteLiquidityRouteV4>, args: LiquidityOrderExecutionV4) -> Result<()> {
+        maker_liquidity::routes::execute_order(ctx, args)
+    }
+
     pub fn initialize_funding_publisher_v4(
         ctx: Context<InitializeFundingPublisherV4>,
         publisher: Pubkey,

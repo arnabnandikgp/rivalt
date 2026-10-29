@@ -1413,3 +1413,21 @@ the replacement build. Freeze200k submitted/160k measured CU and20 unique keys
 for publisher updates and controls before benchmarking; no measured pass exists.
 These are ordinary resolutions within D75, not new financial economics or
 permission for default/devnet activation. Phase acceptance and external gates remain.
+
+## D77 — Canonical financial adapter and candidate safety activation (P32, 29 October 2026)
+
+Implement P29B's immediate/stored-order contract using the existing whole-account
+financial engine after current canonical quote/CPI authentication. Sign structural
+epochs and user limits; read price sequence, inventory and consumed depth at landing.
+Commit roots, consumption, order prefixes and 2 bps fees/25% insurance carry atomically.
+The extended event records actual execution inputs; no maker CPI gets financial
+writes or vault authority. No loss, collateral-credit or economic rule is superseded.
+
+Reuse account financial/safety layouts and instructions for immutable profile4 only
+under `liquidity-execution-qualification`. Introduce `activate_liquidity_v4` with the
+existing storage-ready qualification context and unchanged fresh-source/recovery
+requirements; see [the precise transition](P32-LIQUIDITY-EXECUTION.md#canonical-execution-and-safety-contract-r088).
+Legacy A/B route, sampler and initial activation entrypoints remain profile3-only.
+Default/devnet/P30-only artifacts cannot activate this profile. Candidate activation
+allows actual safety testing; it does not close A37/G25 or enable P33 prematurely.
+Complete-cohort recovery, terminal exits and external/endurance gates are unchanged.

@@ -80,7 +80,7 @@ fn terminal_exit(
     require!(
         cfg!(feature = "account-safety-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
-            && identity.venue.profile_version == PROFILE_VERSION
+            && trading::financial_profile_version(&identity.venue)
             && identity.venue.market_count == 2
             && identity.venue.insurance_fee_share_bps == 2500
             && identity.custody.schema_version == SCHEMA_VERSION

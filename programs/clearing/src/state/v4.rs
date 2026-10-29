@@ -4,6 +4,22 @@ use anchor_lang::prelude::*;
 pub const VERSION: u16 = 4;
 pub const MAKER_COUNT: usize = 3;
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct ExecutedLegV4 {
+    pub registration: Pubkey,
+    pub capital: Pubkey,
+    pub instance: u8,
+    pub lots: u64,
+    pub gross: u64,
+    pub price_sequence: u64,
+    pub authority_epoch: u64,
+    pub control_epoch: u64,
+    pub shape_epoch: u64,
+    pub depth_epoch: u64,
+    pub consumed_before: u64,
+    pub consumed_after: u64,
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct FundingPublisherV4 {

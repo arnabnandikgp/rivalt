@@ -122,7 +122,7 @@ pub fn initialize(ctx: Context<InitializeAccountRetirementV3>) -> Result<()> {
         ctx.remaining_accounts.is_empty()
             && cfg!(feature = "account-safety-qualification")
             && ctx.accounts.venue.schema_version == SCHEMA_VERSION
-            && ctx.accounts.venue.profile_version == PROFILE_VERSION
+            && account_trading::financial_profile_version(&ctx.accounts.venue)
             && ctx.accounts.safety.schema_version == SCHEMA_VERSION
             && matches!(ctx.accounts.safety.mode, CUSTODY | ACTIVE | RESOLVED),
         ClearingError::Profile
@@ -289,7 +289,7 @@ pub fn withdraw(
     require!(
         cfg!(feature = "account-safety-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
-            && identity.venue.profile_version == PROFILE_VERSION
+            && account_trading::financial_profile_version(&identity.venue)
             && identity.custody.schema_version == SCHEMA_VERSION
             && identity.safety.schema_version == SCHEMA_VERSION
             && identity.safety.mode == RETIRED

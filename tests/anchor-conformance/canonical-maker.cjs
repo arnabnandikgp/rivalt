@@ -39,7 +39,9 @@ const jsonValue = value => JSON.parse(JSON.stringify(value, function (key, item)
     for (const vector of vectors.instructions) {
       const definition = idl.instructions.find(item => camel(item.name) === vector.name);
       const args = definition.args.map(arg => convert(arg.type, vector.args[camel(arg.name)]));
-      const accounts = Object.fromEntries(Object.entries(vector.accounts).map(([key, value]) => [key, value === null ? null : new PublicKey(value)]));
+      const accountTree = value => value === null ? null : typeof value === 'string' ? new PublicKey(value)
+        : Object.fromEntries(Object.entries(value).map(([key, child]) => [key, accountTree(child)]));
+      const accounts = accountTree(vector.accounts);
       const instruction = await program.methods[vector.name](...args).accountsStrict(accounts).instruction();
       instructions.push({ name: vector.name, data: instruction.data.toString('hex'),
         accounts: instruction.keys.map(key => ({ address: key.pubkey.toBase58(), signer: key.isSigner, writable: key.isWritable })) });

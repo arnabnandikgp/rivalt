@@ -47,6 +47,13 @@ this new authority path. D76 freezes a 200,000-CU submitted budget with at most
 initialization/configuration/report updates. `ops/funding-publisher-smoke.sh`
 exercises this scoped boundary separately from full P32 acceptance.
 
+`bash ops/liquidity-execution-smoke.sh` provisions fresh two-market canonical
+makers, real collateral, sources, publisher and all safety pages for a scoped
+signed route/order probe. It records original/fetched v0/v1 bytes, actual CU/keys,
+RPC/WS observations, event/legacy parity and independent cash/claim/fee totals.
+Its success alone does not close liquidation/default, full-book, PostgreSQL or
+the P32 continuation gate. Default-profile activation stays rejected.
+
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
 phase-owned, and the candidate build does not satisfy P26 safety.

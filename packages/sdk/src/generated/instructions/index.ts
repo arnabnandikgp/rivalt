@@ -9,6 +9,7 @@
 export * from "./activateAccountsV3.js";
 export * from "./activateCrossGroupV2.js";
 export * from "./activateIsolatedGroupV2.js";
+export * from "./activateLiquidityV4.js";
 export * from "./advanceAccountResolutionV3.js";
 export * from "./advanceGroupResolutionV2.js";
 export * from "./advanceResolution.js";
@@ -41,6 +42,8 @@ export * from "./executeAccountOrderV3.js";
 export * from "./executeAccountRouteV3.js";
 export * from "./executeGroupOrderV2.js";
 export * from "./executeGroupRouteV2.js";
+export * from "./executeLiquidityOrderV4.js";
+export * from "./executeLiquidityRouteV4.js";
 export * from "./executeMarginOrderV2.js";
 export * from "./executeMarginRouteV2.js";
 export * from "./executeOrder.js";

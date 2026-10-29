@@ -42,7 +42,7 @@ fn profile(identity: &ResolutionIdentityV3) -> Result<()> {
     require!(
         cfg!(feature = "account-safety-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
-            && identity.venue.profile_version == PROFILE_VERSION
+            && account_trading::financial_profile_version(&identity.venue)
             && identity.venue.market_count == 2
             && identity.venue.insurance_fee_share_bps == 2500
             && identity.custody.schema_version == SCHEMA_VERSION
@@ -145,7 +145,7 @@ pub fn initialize(ctx: Context<InitializeAccountResolutionV3>) -> Result<()> {
         ctx.remaining_accounts.is_empty() && cfg!(feature = "account-safety-qualification"),
         ClearingError::Profile
     );
-    account_trading::base_profile(
+    account_trading::financial_base_profile(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,
@@ -171,7 +171,7 @@ pub fn initialize_page(
         ctx.remaining_accounts.is_empty() && cfg!(feature = "account-safety-qualification"),
         ClearingError::Profile
     );
-    account_trading::base_profile(
+    account_trading::financial_base_profile(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,

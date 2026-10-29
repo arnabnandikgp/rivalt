@@ -32,6 +32,37 @@ and external authorization are unchanged.
    contention. Run G22's predeclared V3/control/treatment offer schedules; publish
    this phase only after A37/G25 and its prototype continuation gate pass.
 
+## Canonical execution and safety contract (R088)
+
+The new immediate/stored-order handlers use P29B's exact one/two-leg wire contract.
+They authenticate current maker code and fixed read-only dependencies, verify the
+canonical CPI result and run the existing whole-account financial candidate before
+committing any root, consumption, fee or order change. The event adds actual price
+sequences and consumption prefixes; signed intents bind structural epochs instead.
+The SDK preserves caller-supplied limits and returns an explicit 800k CU budget for
+the existing measured-size v0/v1 compiler. This is a budget, not measured route fit.
+
+Safety integration reuses schema-3 account financial instructions/layouts for
+profile4 only under `liquidity-execution-qualification`. Order authority, cash,
+liquidation, complete-cohort resolution, recovery and terminal exits share their
+existing implementation. Legacy maker registration, route execution, sampling and
+initial activation remain profile3-only. Default/devnet/P30-only artifacts cannot
+activate profile4 or execute its financial operations.
+
+`activate_liquidity_v4()` uses the existing `ActivateAccountsV3` account layout:
+venue-authorized qualification identity plus resolution header, no extra accounts.
+It requires the explicit P32 local candidate feature, immutable profile4, unpaused
+custody mode, all 32 precreated safety pages, a fresh zero-epoch resolution header,
+zero market gross/funding and settlement/collected fees/carry, reconciled collateral
+and both markets' existing fresh Normal qualification. Only D76 reports can produce
+that profile's qualification; publisher initialization required sealed three-maker
+registries, which cannot subsequently change membership. Activation clears held
+observations and increments safety/custody versions, so fresh reports are needed
+before trading. It neither bypasses the six-second recovery rule nor resets earned
+funding after a default. Shared post-default recovery/reactivation retains its
+complete-cohort and separate source/qualification requirements. Activation in the
+candidate artifact permits testing; it is not A37/G25 acceptance or public enablement.
+
 ## Historical D74 implementation checkpoint (superseded by D75/D76)
 
 `QuoteLadderV4` validates a canonical shape once, then emits exact cumulative prices

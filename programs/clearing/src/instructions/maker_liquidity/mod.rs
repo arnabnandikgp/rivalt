@@ -33,6 +33,7 @@ pub(crate) mod impact;
 pub(crate) mod funding;
 pub mod sampling;
 pub mod publisher;
+pub mod routes;
 
 #[cfg(test)]
 mod tests;

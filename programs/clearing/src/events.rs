@@ -1024,6 +1024,33 @@ pub struct AccountRouteExecutedV3 {
 }
 
 #[event]
+pub struct LiquidityRouteExecutedV4 {
+    pub venue: Pubkey,
+    pub sequence: u64,
+    pub slot: u64,
+    pub market: Pubkey,
+    pub market_state: MarketSnapshotV3,
+    pub other_market_state: MarketSnapshotV3,
+    pub nonce: u64,
+    pub side: u8,
+    pub lots: u64,
+    pub gross_quote: u64,
+    pub fee: u64,
+    pub insurance_credit: u64,
+    pub retained_fee: u64,
+    pub carry_before: u8,
+    pub carry_after: u8,
+    pub ledger: MarketLedgerSnapshotV3,
+    pub order_id: u64,
+    pub order_version: u64,
+    pub root_states: Vec<MarginAccountSnapshotV3>,
+    pub maker_states: Vec<crate::state::v4::MakerRegistrationPayloadV4>,
+    pub total_cash: u64,
+    pub liability_versions: [u64; 2],
+    pub legs: Vec<crate::state::v4::ExecutedLegV4>,
+}
+
+#[event]
 pub struct AccountQualificationV3 {
     pub venue: Pubkey,
     pub sequence: u64,
