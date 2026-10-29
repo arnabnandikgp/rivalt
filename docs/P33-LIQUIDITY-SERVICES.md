@@ -91,3 +91,10 @@ requires every original and network fee to be resolved, and preserves lifetime
 cap/spent values. It does not reset allowances. Ordinary worker startup still rejects
 a changed payer. The ten-action browser/worker/outage slice passes on `1db14f4`;
 full replay and rotation acceptance remain pending in the next recorded run.
+
+R092 corrects the production projection's interpretation of publisher control:
+report sequence is preserved, while observed slot/time are fenced at the new
+authoritative Clock. This follows D76 and does not amend it. Retained calculation
+and digest must exactly match the persisted signed report, including after JSONB
+round trips. UI provenance now distinguishes index and attested impact prices and
+marks historical reports superseded by authority control. Fresh acceptance follows.

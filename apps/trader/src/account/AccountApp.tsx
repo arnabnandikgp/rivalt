@@ -66,17 +66,23 @@ function Reserves({controller}: {controller: AccountController}) {
     </tbody></table></div>
   </section>;
 }
-function FundingReports({controller}: {controller:AccountController}) {
+export function FundingReports({controller}: {controller:AccountController}) {
   const reports=controller.venue.feed.group?.liquidity?.reports??{},publishers=controller.venue.feed.group?.liquidity?.publishers??{};
   return <section className="panel"><h2>Funding publications</h2>
     <p className="caption">Funding uses published maker depth attested by a restricted operator. A trade separately checks actual maker capital and your account’s margin. Makers are internal reference bots; no live hedging is performed.</p>
-    <div className="table-scroll"><table><thead><tr><th>Market</th><th>Latest finalized report</th><th>Report age</th><th>Publisher</th></tr></thead><tbody>
+    <div className="table-scroll"><table><thead><tr><th>Market</th><th>Index · USD/unit</th><th>Published impact mid · USD/unit</th><th>Latest finalized report</th><th>Report age</th><th>Publisher</th></tr></thead><tbody>
       {GROUP_MARKETS.map((market,index)=>{
         const key=controller.snapshot?.markets[index],entry=key?reports[key]:undefined;
         const publisher=Object.values(publishers).find((value:any)=>value.market===key) as any;
         const age=entry&&controller.snapshot?controller.snapshot.now-BigInt(entry.report.observedTime):null;
-        return <tr key={market.name}><td>{market.name}</td><td>{entry?(entry.report.outcome===0?'Depth available at publication':`Unavailable · outcome ${entry.report.outcome}`):'Awaiting reconciled history'}</td>
-          <td>{age===null?'—':`${age<0n?0n:age} seconds`}</td><td>{publisher?`${publisher.enabled?'Enabled':'Revoked'} · epoch ${publisher.authorityEpoch}`:'—'}</td></tr>;
+        const state=controller.snapshot?.marketStates[index],quantity=entry?BigInt(entry.report.quantity):0n;
+        const impact=entry?.report.outcome===0&&quantity>0n&&state?
+          (BigInt(entry.report.bid)+BigInt(entry.report.ask))*state.lotsPerUnit/(2n*quantity):undefined;
+        const outcomes=['Depth available at publication','Independent sources unavailable','Maker coverage unavailable','Insufficient published depth'];
+        const status=entry?publisher&&String(entry.report.authorityEpoch)!==String(publisher.authorityEpoch)?'Superseded by publisher control':
+          outcomes[entry.report.outcome]??'Unknown report outcome':'Awaiting reconciled history';
+        return <tr key={market.name}><td>{market.name}</td><td>{fixed(state?state.referencePrice*state.lotsPerUnit:undefined)}</td><td>{fixed(impact)}</td><td>{status}</td>
+          <td>{age===null?'—':`${age<0n?0n:age} seconds`}</td><td>{publisher?`${publisher.enabled?'Enabled':'Revoked'} · ${short(publisher.publisher)} · epoch ${publisher.authorityEpoch}`:'—'}</td></tr>;
       })}
     </tbody></table></div><p className="caption">This is finalized publication history, not a live execution guarantee. Current source, expiry and account checks still apply.</p>
   </section>;

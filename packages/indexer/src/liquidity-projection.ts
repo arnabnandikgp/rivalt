@@ -57,8 +57,11 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
       const value=change.state,previous=liquidity.publishers[change.configuration];
       check(value.schemaVersion===4&&value.venue===change.venue&&value.market===change.market,'publisher identity');
       check(BigInt(value.authorityEpoch)===(previous?BigInt(previous.authorityEpoch)+1n:1n),'publisher authority epoch');
-      if(previous)same(fields(previous,['lastSequence','lastObservedSlot','lastObservedTime']),
-        fields(value,['lastSequence','lastObservedSlot','lastObservedTime']),'publisher history survives rotation');
+      // D76 preserves report sequence, but initialization/rotation/revocation
+      // stamp a fresh authoritative Clock fence. That fence is not a report.
+      same(value.lastSequence,previous?.lastSequence??'0','publisher history survives rotation');
+      same(value.lastObservedSlot,change.slot,'publisher control Clock fence');
+      if(previous)check(BigInt(value.lastObservedSlot)>=BigInt(previous.lastObservedSlot),'publisher control slot regression');
       liquidity.publishers[change.configuration]=accountFields<sdk.FundingPublisherV4>(value);
       financial.market(change.marketState,change.market);break;
     }

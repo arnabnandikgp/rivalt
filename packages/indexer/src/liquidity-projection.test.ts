@@ -71,11 +71,12 @@ describe('restricted publisher reconstruction',()=>{
     if(kind==='signer')change.data.publisher='other';if(kind==='epoch')change.data.report.authorityEpoch='2';
     if(kind==='domain')change.data.report.domain='ff'.repeat(32);expect(()=>apply(state,change)).toThrow(/publisher/);
   });
-  it('preserves sequence history across rotation and rejects a reset',()=>{
+  it('preserves report sequence while rotation advances the authoritative Clock fence',()=>{
     const state=fixture();Object.assign(state.liquidity!.publishers.publisher,{lastSequence:'9',lastObservedSlot:'9',lastObservedTime:'9'});
     const change=event('FundingPublisherChangedV4',{configuration:'publisher',marketState:state.markets.btc,
-      state:{...state.liquidity!.publishers.publisher,publisher:'rotated',authorityEpoch:'2'}});
+      state:{...state.liquidity!.publishers.publisher,publisher:'rotated',authorityEpoch:'2',lastObservedSlot:'10',lastObservedTime:'10'}});
     const reset=structuredClone(change);reset.data.state.lastSequence='0';expect(()=>apply(structuredClone(state),reset)).toThrow(/history/);
-    apply(state,change);expect(state.liquidity!.publishers.publisher.lastSequence).toBe('9');
+    const stale=structuredClone(change);stale.data.state.lastObservedSlot='9';expect(()=>apply(structuredClone(state),stale)).toThrow(/Clock fence/);
+    apply(state,change);expect(state.liquidity!.publishers.publisher).toMatchObject({lastSequence:'9',lastObservedSlot:'10',lastObservedTime:'10'});
   });
 });

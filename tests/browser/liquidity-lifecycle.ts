@@ -71,10 +71,14 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Liquid
     await select('Margin account','1');await action('Review atomic trade');
     await select('Side','1');await page.getByLabel('Minimum all-in proceeds (test USD)',{exact:true}).fill('0.000001');
     await page.getByLabel('Reduce only',{exact:true}).check();await action('Review atomic trade');
+    const publication=page.locator('section').filter({has:page.getByRole('heading',{name:'Funding publications',exact:true})});
+    await wait(()=>publication.textContent(),value=>Boolean(value?.includes('Depth available at publication')),'actual finalized publisher UI');
+    await page.screenshot({path:`${directory}/liquidity-live-ui.png`,fullPage:true});
     // RPC signing/exits must survive total loss of both HTTP service surfaces.
     await page.route('**/api/**',route=>route.abort());await page.route('**/read/**',route=>route.abort());
     await page.getByLabel('Collateral amount',{exact:true}).fill('0.000005');await action('Withdraw');await action('Deposit');
     await page.reload();await wait(receipts,values=>values.length===wires.length&&values.every(value=>value.status==='finalized'),'persisted original recovery');
+    await wait(()=>page.getByTestId('account-cash').textContent(),value=>Boolean(value&&value!=='—'),'RPC balance recovery while APIs are blocked');
     assert.equal(await page.getByLabel('Margin account',{exact:true}).inputValue(),'1');
     assert.deepEqual(errors,[]);await page.screenshot({path:`${directory}/liquidity-ui.png`,fullPage:true});
     writeFileSync(`${directory}/browser-summary.json`,json({internalWallet:true,outcomes,errors,wireCount:wires.length}));return outcomes;

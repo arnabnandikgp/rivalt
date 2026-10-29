@@ -79,7 +79,7 @@ export class Queue {
         if(fee.value===null || BigInt(integer(fee.value))>RESERVATION)throw new Error('Operator fee exceeds reserved budget');
       }
       const r=(await c.query(`INSERT INTO service_intents(run_id,request_id,signature,wire,blockhash,authority,budget) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`,[this.store.runId,id,signed.signature,wire,signed.blockhash,authority?json(authority):null,budget])).rows[0];
-      if(inputs){if(this.maxVersion!==1)throw new Error('Input provenance requires the canonical queue');await persistLiquidityInputs(c,this.store.runId,id,inputs);}
+      if(inputs){if(this.maxVersion!==1)throw new Error('Input provenance requires the canonical queue');await persistLiquidityInputs(c,this.store.runId,id,inputs,wire);}
       // PostgreSQL delivers this hint only after the signed bytes are committed.
       await c.query("SELECT pg_notify('rivalt_intents',$1)",[this.store.runId]);
       await c.query('COMMIT');return r;

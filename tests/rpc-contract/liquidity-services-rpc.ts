@@ -20,7 +20,7 @@ const directory=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATAB
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert(databaseUrl,'Owned real PostgreSQL required');
 const transport=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{
-  deferFinality:true,computeUnitLimit:label=>label.startsWith('P32 publisher')?200_000:400_000,
+  deferFinality:true,computeUnitLimit:label=>label.toLowerCase().includes('publisher')?200_000:400_000,
   maxLoadedAccounts:label=>label.startsWith('refresh independent')?32:undefined,
 });
 const {h,rpc,ws,checks,flush}=transport;
