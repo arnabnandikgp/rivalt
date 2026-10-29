@@ -299,9 +299,22 @@ fn potential(shape: &ShapeV4, inventory: i128) -> QuoteResult<i128> {
     let distance = sub(inventory, i128::from(shape.target))?
         .checked_abs()
         .ok_or(QuoteError::Arithmetic)?;
+    // Validated inventory/target are each bounded by MAX_LOTS (1e8), and
+    // available() also bounds post-trade inventory. Distance therefore fits u64.
+    // Divide that bounded distance at native width; retain wide checked products
+    // because the potential itself can exceed u64 at the permitted extremes.
+    let distance = u64::try_from(distance).map_err(|_| QuoteError::Arithmetic)?;
+    let quotient = i128::from(
+        distance
+            .checked_div(shape.skew_step)
+            .ok_or(QuoteError::Arithmetic)?,
+    );
+    let remainder = i128::from(
+        distance
+            .checked_rem(shape.skew_step)
+            .ok_or(QuoteError::Arithmetic)?,
+    );
     let step = i128::from(shape.skew_step);
-    let quotient = distance.checked_div(step).ok_or(QuoteError::Arithmetic)?;
-    let remainder = distance.checked_rem(step).ok_or(QuoteError::Arithmetic)?;
     let triangles = mul(mul(step, quotient)?, sub(quotient, 1)?)? / 2;
     mul(
         i128::from(shape.skew_tick),
@@ -549,6 +562,30 @@ pub fn validate_response(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_width_division_preserves_wide_potential_and_target_turn() {
+        let mut shape = ShapeV4 {
+            target: -100_000_000,
+            skew_step: 1,
+            skew_tick: 1000,
+            ..Default::default()
+        };
+        // 1000 * sum(0..200_000_000); deliberately larger than u64::MAX.
+        assert_eq!(
+            potential(&shape, 100_000_000).unwrap(),
+            19_999_999_900_000_000_000
+        );
+        shape.target = 0;
+        shape.skew_step = 2;
+        shape.skew_tick = 2;
+        for (distance, expected) in [0, 0, 0, 2, 4, 8, 12].into_iter().enumerate() {
+            assert_eq!(potential(&shape, distance as i128).unwrap(), expected);
+            assert_eq!(potential(&shape, -(distance as i128)).unwrap(), expected);
+        }
+        shape.skew_step = 0;
+        assert_eq!(potential(&shape, 1), Err(QuoteError::Arithmetic));
+    }
 
     fn wire<T: AnchorSerialize>(value: &T) -> Vec<u8> {
         let mut bytes = Vec::new();
