@@ -23,7 +23,7 @@ export async function http(base: string, path: string, body?: unknown) {
   });
   if (!r.ok)
     throw new Error(
-      path === '/v3/quote'
+      path === '/v3/quote'||path==='/v4/quote'
         ? 'Quote unavailable at the current chain state. Request a new quote.'
         : 'Venue API unavailable or request rejected. Direct cancel and withdrawal use RPC.',
     );
@@ -44,7 +44,8 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
   const wallet = useWallet(),
     owner = wallet.publicKey ? address(wallet.publicKey.toBase58()) : null;
   const client = useMemo(() => new sdk.AccountUserClient(config), [config]);
-  const key = `rivalt:receipts:v3:${config.genesis}:${config.anchor}:${config.venue}:${owner ?? 'disconnected'}`;
+  const prefix=`/v${config.version}`;
+  const key = `rivalt:receipts:v${config.version}:${config.genesis}:${config.anchor}:${config.venue}:${owner ?? 'disconnected'}`;
   const current = useRef({ owner, key, epoch: 0, wallet, scope });
   current.current.owner = owner;
   current.current.key = key;
@@ -117,9 +118,9 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
       setOwnerPortfolio(discovery?.portfolio);
       setRpcError('');
       const results = await Promise.allSettled([
-        http(config.readBase, '/v3/trades?latest=true&limit=30'),
-        http(config.readBase, '/v3/events?latest=true&limit=50'),
-        http(config.readBase, '/v3/venue'),
+        http(config.readBase, `${prefix}/trades?latest=true&limit=30`),
+        http(config.readBase, `${prefix}/events?latest=true&limit=50`),
+        http(config.readBase, `${prefix}/venue`),
       ]);
       if (epoch !== current.current.epoch) return;
       if (results.every((result) => result.status === 'fulfilled')) {
@@ -129,7 +130,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
         if (
           [trades, events, group].some(
             (value) =>
-              value.venue !== config.venue ||
+              value.schemaVersion !== config.version || value.venue !== config.venue ||
               value.deployment?.anchor !== config.anchor ||
               value.deployment?.genesis !== config.genesis ||
               value.deployment?.domain !== config.domain ||
@@ -292,7 +293,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
       setBusy('Submitting saved transaction');
       try {
         if (prepared.via === 'api') {
-          const result = await http(config.apiBase, '/v3/submit', {
+          const result = await http(config.apiBase, `${prefix}/submit`, {
             requestId: intent.id,
             wire: intent.wire,
           });

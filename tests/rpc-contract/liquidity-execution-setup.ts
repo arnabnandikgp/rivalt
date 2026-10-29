@@ -84,9 +84,9 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
     await h.send('precreate complete safety page', [sdk.getInitializeAccountResolutionPageV3Instruction({ ...safetyCommon, page, pageIndex })]);
     pages.push(page);
   }
-  async function fresh() {
+  async function sourceInstructions() {
     const time = await now();
-    const sourceInstructions: Instruction[] = feeds.map(({ index, feed, authority }) => {
+    return feeds.map(({ index, feed, authority }):Instruction => {
       const data = Buffer.alloc(69); discriminator('publish').copy(data);
       data.set(encoder.encode(ORACLE_FIXTURE), 8); data[40] = 2;
       data.writeBigInt64LE([0, 2].includes(index) ? sourcePrices.btc : [4, 5].includes(index) ? sourcePrices.eth : 1_000_000n, 41);
@@ -94,13 +94,19 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
       return { programAddress: ORACLE_FIXTURE, accounts: [{ address: authority.address, role: AccountRole.READONLY_SIGNER },
         { address: feed, role: AccountRole.WRITABLE }], data };
     });
+  }
+  async function freshSources() {
+    await h.send('refresh independent sources only',await sourceInstructions(),[primary,guard]);
+  }
+  async function fresh() {
+    const sources=await sourceInstructions();
     const reprices = await Promise.all(instances.map(async (maker, index) => {
       const config = await maker.state(), price = maker.module.getMakerPriceV4Decoder().decode((await h.read(maker.price))!).state;
       return maker.module.getRepriceV4Instruction({ ...maker.makerCommon, actor: fixture.updater,
         expectedControl: config.controlEpoch, expectedSequence: price.sequence,
         anchor: index < 3 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n });
     }));
-    await h.send('refresh independent sources and six maker publications', [...sourceInstructions, ...reprices], [primary, guard, fixture.updater]);
+    await h.send('refresh independent sources and six maker publications', [...sources, ...reprices], [primary, guard, fixture.updater]);
   }
   async function sample() {
     const previous = await Promise.all([0, 1].map(marketState));
@@ -127,5 +133,5 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
   const identity = { venue, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
   const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readLiquidityTradeSnapshot(rpc, identity, root, marketIndex);
   return { ...fixture, primary, guard, traderOwner, traderToken, roots, feeds, configurations, resolution, work, pages,
-    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, fresh, sample, qualify, identity, snapshot };
+    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, fresh, freshSources, sample, qualify, identity, snapshot };
 }

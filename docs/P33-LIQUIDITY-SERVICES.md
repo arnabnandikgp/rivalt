@@ -62,3 +62,21 @@ check is weakened to increase availability.
 P34 owns the complete bounded comparative workload and final measured limits.
 No inherited P32/P16A run substitutes for these gates. P15B/P16B stay Open and
 24-hour endurance stays Deferred.
+
+## Implemented consumer boundary (R091; integration pending)
+
+`LiquidityUserClient` uses explicit version 4 and immutable executable pins. Shared
+financial SDK calls retain account layouts and maker-free direct exits. The service
+accepts only the selected profile's allowlisted signed actions, exact resource limits
+and zero priority fee. The reference updater supports three instances per market,
+uses scoped updater authority, and never replenishes consumed depth. Its heartbeat
+is operational information; current authenticated books determine quote admission.
+
+Funding originals and content-addressed raw input rows commit in one PostgreSQL
+transaction before broadcast. Shared executable bytes are stored once by digest.
+Append-only input references preserve every report's provenance. Replaying the SDK
+is reproducibility only; independent arithmetic checks remain an acceptance gate.
+
+Production finalized indexing passes the scoped fresh run on `3233201` recorded in
+WORKLOG. Worker processes, independent retained-input replay, browser and fresh
+operator kit acceptance are still pending; no A38 completion is implied.

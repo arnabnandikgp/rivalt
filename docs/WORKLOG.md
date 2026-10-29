@@ -96,13 +96,15 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P30 | Configurable maker curves and updates | Review | `phase/p30-canonical-maker` above P29B `b4f43a4` / #43 | [Implementation checkpoint](P30-CANONICAL-MAKERS.md): [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`;123 signed RPC/WS outcomes,104 instruction/20 account/78 event parity;3,172 vectors per evaluator. Ready PR #45 is open; new trading disabled |
 | M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
 | M10 | P32 | Clearing/funding and safe local execution | Review | [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47), `phase/p32-liquidity-execution` above P31 `28d5dd0`/#46; acceptance closeout `cdffcc8` | [A37/G25/G22 acceptance](evidence/P32.md) passes. SBF `6437f7d`; safety/PG client `5d26561`, full books `df70e7c`, canonical continuation `34b4325`. All eligible routes finalize; exact quote/accounting, safety, SQL and resource gates pass. Ready PR published; all selected CI checks pass at `6de5cea`. R091 resumes P33; integration remains separate |
-| M10 | P33 | Services, SDK, indexer, UI and maker kit | In progress | `phase/p33-liquidity-services` above P32 `6de5cea` / #47 | A38/G26 interfaces: actual durable recovery, operator/browser flow and financial reconstruction |
+| M10 | P33 | Services, SDK, indexer, UI and maker kit | In progress | `phase/p33-liquidity-services` above P32 `6de5cea` / #47 | A38/G26 in progress: production indexer on `3233201` passes 120 real signed outcomes, 72-event reconstruction and identical fresh PostgreSQL replay; SDK/workers/UI prepared, integrated worker/browser/kit acceptance remains |
 | M10 | P34 | Comparative qualification and operations | Open | P33 | A39/G26/M10: complete populations, concurrent updates/fills/exits, reconciliation/recovery and measured limits |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
 
 ## Latest checkpoint
+
+- R091/P33: fresh production-indexer acceptance passes on `3233201`; SDK, durable canonical workers, provenance storage and UI are prepared. Actual worker/browser qualification and maker kit remain. P34 follows the ready P33 phase; keep the stack open.
 
 - R083/P32: branch created through `gh stack add` above verified P31 `28d5dd0` / #46. Inspecting shared route/risk/safety integration and implementing bounded canonical funding search. A37/G25 remains pending; no new activation or deployment.
 
@@ -4964,3 +4966,29 @@ case checks queue rejection before signature verification. No production rule wa
 relaxed. The initial root-level diagnostic import lacked a workspace dependency;
 running it from the indexer workspace resolved that development-only issue.
 Fresh signed indexer acceptance is next; no runtime pass is claimed yet.
+
+R091 production indexer result: `bash ops/liquidity-indexer-smoke.sh` passes on
+clean `3233201`, using unchanged qualified SBF `6437f7d`. Local raw evidence is
+`.local/liquidity-execution/runs/20261029T174317Z-66279`. There are 120 signed
+RPC/WS outcomes (116 successes/four expected rejections), 96 journal transactions,
+72 critical events/outbox rows and zero unresolved jobs. Eight roots and 30
+financial/control accounts reconcile at custody sequence 72. Restart/backfill,
+failed-CPI exclusion, versioned API readiness and a fresh PostgreSQL replay agree.
+Literal two-fill fee/insurance expectations are 26/6 atoms, retained fees 20 and
+carry 2; vault and allocated custody both equal 8,000,000 atoms. This closes only
+the projection slice, not A38.
+
+SDK/services/UI preparation now adds explicit profile-4 clients, maker-free cash
+exits, v0/v1 wallet/ingress budgets, durable three-instance repricing and restricted
+publisher workers with content-addressed immutable input retention. Current
+reference quoting uses admitted on-chain books; daemon heartbeats are observability,
+not authority to suppress otherwise valid liquidity. The UI labels publisher trust
+and shows maker instances/provenance. Forty-four distinct scoped SDK/service/UI
+cases pass across the recorded focused invocations, including the corrected demo
+profile fixture and source-valid worker fixture. Typecheck passes; the trader build
+passes with its existing bundle-size advisory. No Rust/SBF or unrelated runtime
+suite was repeated. Integrated worker/browser acceptance remains unrun. Removed
+only rebuildable inactive Rust incremental cache files to recover disk space; all
+raw evidence, databases, keys and unrelated research remain. Exact next action:
+run fresh actual canonical workers/executor plus browser, lost acknowledgements,
+independent publisher-input replay and complete finalized accounting reconstruction.

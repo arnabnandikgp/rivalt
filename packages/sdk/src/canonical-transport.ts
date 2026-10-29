@@ -1,5 +1,6 @@
 import type { Instruction } from '@solana/kit';
-import { ComputeBudgetProgram, Connection, Keypair, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
+import { ComputeBudgetProgram, Connection, Keypair, TransactionMessage, VersionedTransaction, type PublicKey } from '@solana/web3.js';
+import type {Blockhash} from '@solana/kit';
 
 export const V0_PACKET_LIMIT = 1_232;
 export const V1_PACKET_LIMIT = 4_096;
@@ -12,12 +13,10 @@ export type CanonicalTransactionBudget = {
  * Resource limits are explicit in both versions; v1 encodes them in its header.
  * Selection happens before signing/broadcast. There is no retry with a new signature.
  */
-export async function signCanonicalInstructions(
-  connection: Pick<Connection, 'getLatestBlockhash'>,
-  payer: Keypair,
+export function compileCanonicalTransaction(
+  common:{payerKey:PublicKey;recentBlockhash:Blockhash},
   instructions: Instruction[],
   budget: CanonicalTransactionBudget,
-  additionalSigners: Keypair[] = [],
 ) {
   if (!Number.isInteger(budget.computeUnitLimit) || budget.computeUnitLimit < 1 || budget.computeUnitLimit > 1_400_000
     || !Number.isInteger(budget.loadedAccountsDataSizeLimit) || budget.loadedAccountsDataSizeLimit < 1
@@ -26,8 +25,6 @@ export async function signCanonicalInstructions(
   if (instructions.some(ix => ix.programAddress === ComputeBudgetProgram.programId.toBase58())) {
     throw new Error('Pass resource limits through the budget, not compute-budget instructions');
   }
-  const lifetime = await connection.getLatestBlockhash('confirmed');
-  const common = { payerKey: payer.publicKey, recentBlockhash: lifetime.blockhash };
   const v0 = new VersionedTransaction(new TransactionMessage({ ...common, instructions: [
     ComputeBudgetProgram.setComputeUnitLimit({ units: budget.computeUnitLimit }),
     ComputeBudgetProgram.setLoadedAccountsDataSizeLimit({ accountDataSizeLimit: budget.loadedAccountsDataSizeLimit }),
@@ -41,6 +38,18 @@ export async function signCanonicalInstructions(
   const wireBytes = transaction.serialize().length;
   const limit = transaction.version === 0 ? V0_PACKET_LIMIT : V1_PACKET_LIMIT;
   if (wireBytes > limit) throw new Error(`Canonical transaction is ${wireBytes} bytes; v${transaction.version} limit is ${limit}`);
+  return {transaction,v0Bytes,wireBytes};
+}
+
+export async function signCanonicalInstructions(
+  connection: Pick<Connection, 'getLatestBlockhash'>,
+  payer: Keypair,
+  instructions: Instruction[],
+  budget: CanonicalTransactionBudget,
+  additionalSigners: Keypair[] = [],
+) {
+  const lifetime = await connection.getLatestBlockhash('confirmed');
+  const {transaction,v0Bytes,wireBytes}=compileCanonicalTransaction({payerKey:payer.publicKey,recentBlockhash:lifetime.blockhash},instructions,budget);
   const signers = [...new Map([payer, ...additionalSigners].map(signer => [signer.address, signer])).values()];
   await transaction.sign(signers);
   return { transaction, lifetime, v0Bytes, wireBytes };

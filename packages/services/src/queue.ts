@@ -7,6 +7,7 @@ import { Rpc, integer } from '../../indexer/src/rpc.js';
 import { json } from '../../indexer/src/events.js';
 import {groupAuthorityValue, type GroupAuthority} from './group-authority.js';
 import {accountAuthorityValue, type AccountAuthority} from './account-authority.js';
+import {persistLiquidityInputs,type LiquidityInputs} from './liquidity-inputs.js';
 
 export const RESERVATION=20_000n;
 export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string} | GroupAuthority | AccountAuthority;
@@ -63,7 +64,7 @@ export class Queue {
     const r=(await this.store.pool.query('SELECT * FROM service_budgets WHERE run_id=$1 AND name=$2',[this.store.runId,name])).rows[0];
     if(r.wallet!==wallet || BigInt(r.cap)!==cap)throw new Error('Budget identity changed');
   }
-  async put(id:string,wire:string,authority:Authority|null,budget:string|null=null){
+  async put(id:string,wire:string,authority:Authority|null,budget:string|null=null,inputs?:LiquidityInputs){
     if(!/^[a-zA-Z0-9:._-]{1,160}$/.test(id))throw new Error('Invalid request identity');
     const signed=signedWire(wire,this.maxVersion),c=await this.store.pool.connect();
     try{
@@ -78,6 +79,7 @@ export class Queue {
         if(fee.value===null || BigInt(integer(fee.value))>RESERVATION)throw new Error('Operator fee exceeds reserved budget');
       }
       const r=(await c.query(`INSERT INTO service_intents(run_id,request_id,signature,wire,blockhash,authority,budget) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`,[this.store.runId,id,signed.signature,wire,signed.blockhash,authority?json(authority):null,budget])).rows[0];
+      if(inputs){if(this.maxVersion!==1)throw new Error('Input provenance requires the canonical queue');await persistLiquidityInputs(c,this.store.runId,id,inputs);}
       // PostgreSQL delivers this hint only after the signed bytes are committed.
       await c.query("SELECT pg_notify('rivalt_intents',$1)",[this.store.runId]);
       await c.query('COMMIT');return r;

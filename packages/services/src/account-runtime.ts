@@ -6,6 +6,7 @@ import {AccountExecution} from './account-execution.js';
 import {accountWorkerKeys} from './account-worker-state.js';
 import {settleAccounts} from './account-settlement-worker.js';
 import {accountRiskWork} from './account-risk-worker.js';
+import {publishLiquidityFunding,repriceLiquidity,quoteLiquidity} from './liquidity-workers.js';
 
 export type AccountWorkerOutcome={status:'idle'|'queued'|'blocked';reason:string};
 export class AccountQuoteUnavailable extends Error {
@@ -22,18 +23,21 @@ export class AccountRuntime extends AccountExecution {
   }
   async snapshot(margins?:Address[],marketIndex?:0|1) {
     const discovery=await this.discovery(),selected=margins??[address(discovery.state.members[0])];
-    const snapshot=marketIndex===undefined?await sdk.readAccountSnapshot(this.rpc,discovery.identity,selected,'confirmed'):
-      await sdk.readAccountTradeSnapshot(this.rpc,discovery.identity,selected[0],marketIndex,'confirmed');
+    const snapshot=marketIndex===undefined?await (this.profile===4?sdk.readLiquiditySnapshot:sdk.readAccountSnapshot)(this.rpc,discovery.identity,selected,'confirmed'):
+      await (this.profile===4?sdk.readLiquidityTradeSnapshot:sdk.readAccountTradeSnapshot)(this.rpc,discovery.identity,selected[0],marketIndex,'confirmed');
     return {...snapshot,...await accountWorkerKeys(snapshot.venue)};
   }
   async pendingBudget(budget:string) {
     return (await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND budget=$2 AND status IN ('pending','unresolved') LIMIT 1",[this.runId,budget])).rowCount!==0;
   }
   async heartbeats() {
+    if(this.profile===4)return (await this.store.pool.query(`SELECT *,seen_at>now()-($2::int*interval '1 millisecond') AS online
+      FROM liquidity_maker_heartbeats WHERE run_id=$1`,[this.runId,ACCOUNT_HEARTBEAT_MS])).rows;
     return (await this.store.pool.query(`SELECT *,seen_at>now()-($2::int*interval '1 millisecond') AS online
       FROM account_maker_heartbeats WHERE run_id=$1`,[this.runId,ACCOUNT_HEARTBEAT_MS])).rows;
   }
   async quote(actor:Address,trader:Address,marketIndex:0|1,side:0|1,lots:bigint,stored?:sdk.GroupStoredFill) {
+    if(this.profile===4)return quoteLiquidity(this,actor,trader,marketIndex,side,lots,stored);
     const snapshot=await this.snapshot([trader],marketIndex),heartbeats=await this.heartbeats();
     const diagnostic={snapshotCommitment:snapshot.commitment,snapshotSlot:snapshot.slot.toString(),
       marketIndex,sourceModes:snapshot.marketStates.map(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)),
@@ -89,7 +93,9 @@ export class AccountRuntime extends AccountExecution {
     }
     return {status:'idle',reason:'no-admissible-triggered-order'};
   }
-  async maker(marketIndex:0|1,makerId:0|1,key:Keypair):Promise<AccountWorkerOutcome> {
+  async maker(marketIndex:0|1,makerId:0|1|2,key:Keypair):Promise<AccountWorkerOutcome> {
+    if(this.profile===4)return repriceLiquidity(this,marketIndex,makerId,key);
+    if(makerId===2)throw new Error('Unsupported legacy maker identity');
     const {state}=await this.discovery(),registration=Object.values(state.makers).find(maker=>maker.marketIndex===marketIndex&&maker.makerId===makerId);
     if(!registration||registration.owner!==key.address)throw new Error('Market-specific maker key binding');
     const snapshot=await this.snapshot([address(registration.capital)],marketIndex);
@@ -120,6 +126,7 @@ export class AccountRuntime extends AccountExecution {
   }
   async funding(marketIndex:0|1,key:Keypair,intervalSeconds=2n):Promise<AccountWorkerOutcome> {
     if(intervalSeconds<2n||intervalSeconds>5n)throw new Error('Local funding cadence must be 2–5 seconds');
+    if(this.profile===4)return publishLiquidityFunding(this,marketIndex,key,intervalSeconds);
     const budget=await this.budget('funding',key,marketIndex);
     if(await this.pendingBudget(budget))return {status:'blocked',reason:'original-funding-intent-pending'};
     const {state}=await this.discovery(),registration=Object.values(state.makers).find(maker=>maker.marketIndex===marketIndex);

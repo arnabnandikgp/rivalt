@@ -18,6 +18,12 @@ export async function readAccountSnapshot(rpc:Pick<UserRpc,'call'>,identity:Acco
   requireValue(margins.length>=1&&margins.length<=2&&new Set(margins).size===margins.length,'Select one or two distinct margin accounts.');
   return readSnapshot(rpc,identity,margins,commitment);
 }
+/** Profile-4 funded balances/exits have no maker dependency or discovery scan. */
+export async function readLiquiditySnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,margins:Address[],
+  commitment:'confirmed'|'finalized'='finalized') {
+  requireValue(margins.length>=1&&margins.length<=2&&new Set(margins).size===margins.length,'Select one or two distinct margin accounts.');
+  return readSnapshot(rpc,identity,margins,commitment,undefined,undefined,4);
+}
 /** Trading adds only the selected market's two maker registrations/capitals and
  * immutable pricing dependencies, all in the same final financial batch. */
 export async function readAccountTradeSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,trader:Address,marketIndex:0|1,
@@ -31,10 +37,10 @@ export async function readAccountTradeSnapshot(rpc:Pick<UserRpc,'call'>,identity
 export async function readLiquidityTradeSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,trader:Address,marketIndex:0|1,
   commitment:'confirmed'|'finalized'='confirmed') {
   requireValue(marketIndex===0||marketIndex===1,'Unsupported liquidity market.');
-  return readSnapshot(rpc,identity,[trader],commitment,undefined,marketIndex);
+  return readSnapshot(rpc,identity,[trader],commitment,undefined,marketIndex,4);
 }
 async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,selectedMargins:Address[],
-  commitment:'confirmed'|'finalized',makerMarketIndex?:0|1,liquidityMarketIndex?:0|1) {
+  commitment:'confirmed'|'finalized',makerMarketIndex?:0|1,liquidityMarketIndex?:0|1,profile:3|4=3) {
   requireValue(['confirmed','finalized'].includes(commitment),'Unsupported account commitment.');
   requireValue(/^[0-9a-f]{64}$/.test(identity.domain),'Invalid venue domain.');
   const venue=identity.venue,component=(name:Parameters<typeof findVenueComponentV3Pda>[1])=>findVenueComponentV3Pda(venue,name);
@@ -87,7 +93,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   requireValue(response.value?.length===keys.length,'Incomplete account snapshot.');
   const accounts=new Map<Address,any>(keys.map((key,index)=>[key,response.value[index]]));
   const venueState=decode(accounts.get(venue),protocol.VENUE_V3_DISCRIMINATOR,protocol.getVenueV3Decoder());
-  requireValue(venueState.schemaVersion===3&&venueState.profileVersion===(liquidityDiscovery?4:3)&&venueState.marketCount===2&&venueState.bump===venueBump&&venueState.vaultBump===vaultBump&&
+  requireValue(venueState.schemaVersion===3&&venueState.profileVersion===profile&&venueState.marketCount===2&&venueState.bump===venueBump&&venueState.vaultBump===vaultBump&&
     hex(venueState.domain)===identity.domain&&venueState.quoteMint===identity.mint&&venueState.vault===vault&&venueState.insuranceFeeShareBps===2500&&
     venueState.markets.every((key,index)=>key===markets[index]),'Venue identity/profile mismatch.');
   const custodyState=decode(accounts.get(custody),protocol.CUSTODY_V3_DISCRIMINATOR,protocol.getCustodyV3Decoder());

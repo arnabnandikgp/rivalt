@@ -1,5 +1,5 @@
 import {expect,it} from 'vitest';
-import {Keypair} from '@solana/web3.js';
+import {Keypair,TransactionMessage,VersionedTransaction} from '@solana/web3.js';
 import {address,blockhash,type Instruction} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {accountUserAuthority} from './account-ingress.js';
@@ -60,4 +60,31 @@ it('requires exact measured compute limit and explicit zero price before the act
   const duplicate=await wire([sdk.routeComputeBudget(),sdk.zeroPriorityFee(),sdk.zeroPriorityFee(),withdrawal()]);expect(()=>accountUserAuthority(duplicate,venue)).toThrow(/Duplicate/);
   const price=Buffer.from(sdk.zeroPriorityFee().data!);price.writeBigUInt64LE(1n,1);
   const paid=await wire([sdk.routeComputeBudget(),{...sdk.zeroPriorityFee(),data:price},withdrawal()]);expect(()=>accountUserAuthority(paid,venue)).toThrow(/budget/);
+});
+
+it('accepts the canonical v0 cash envelope and rejects cross-profile or missing loaded limits',async()=>{
+  const {transaction}=await sdk.signCanonicalInstructions(connection,payer,[withdrawal()],{computeUnitLimit:400_000,loadedAccountsDataSizeLimit:8*1024*1024});
+  const signed=Buffer.from(transaction.serialize()).toString('base64');
+  expect(accountUserAuthority(signed,venue,4)).toMatchObject({account:margin,value:'11'});
+  expect(()=>accountUserAuthority(signed,venue)).toThrow(/budget/);
+  const old=await wire(envelope(withdrawal()));expect(()=>accountUserAuthority(old,venue,4)).toThrow(/budget/);
+});
+
+it('validates v1 header budgets, zero priority fee and the canonical action profile',async()=>{
+  const old=route(),parsed=sdk.parseExecuteAccountRouteV3Instruction(old);
+  const canonical=sdk.getExecuteLiquidityRouteV4Instruction({...common,actor:payer,market:btc,otherMarket:eth,ledger:btcLedger,otherLedger:ethLedger,trader:margin,
+    firstCapital:placeholder,firstRegistration:placeholder,firstProgram:sdk.makerA.MAKER_A_PROGRAM_ADDRESS,firstProgramData:placeholder,firstConfig:placeholder,
+    firstPrice:placeholder,registry:placeholder,...parsed.data,
+    legs:[{lots:1n,authorityEpoch:1n,controlEpoch:1n,shapeEpoch:1n,depthEpoch:1n}]});
+  const encode=async(instruction:Instruction,units=800_000,priority=0n)=>{
+    const transaction=new VersionedTransaction(new TransactionMessage({payerKey:payer.publicKey,recentBlockhash:blockhash(placeholder),instructions:[instruction]})
+      .compileToV1Message({computeUnitLimit:units,loadedAccountsDataSizeLimit:8*1024*1024,priorityFeeLamports:priority}));
+    await transaction.sign([payer]);return Buffer.from(transaction.serialize()).toString('base64');
+  };
+  const signed=await encode(canonical);
+  expect(accountUserAuthority(signed,venue,4)).toMatchObject({account:margin,value:'11'});
+  expect(()=>accountUserAuthority(signed,venue)).toThrow(/version/);
+  for(const bad of [await encode(canonical,400_000),await encode(canonical,800_000,1n)])expect(()=>accountUserAuthority(bad,venue,4)).toThrow(/header/);
+  expect(()=>accountUserAuthority('',venue,4)).toThrow();
+  const oldSigned=await encode(old);expect(()=>accountUserAuthority(oldSigned,venue,4)).toThrow(/profile/);
 });

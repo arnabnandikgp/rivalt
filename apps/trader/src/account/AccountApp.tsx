@@ -66,6 +66,21 @@ function Reserves({controller}: {controller: AccountController}) {
     </tbody></table></div>
   </section>;
 }
+function FundingReports({controller}: {controller:AccountController}) {
+  const reports=controller.venue.feed.group?.liquidity?.reports??{},publishers=controller.venue.feed.group?.liquidity?.publishers??{};
+  return <section className="panel"><h2>Funding publications</h2>
+    <p className="caption">Funding uses published maker depth attested by a restricted operator. A trade separately checks actual maker capital and your account’s margin. Makers are internal reference bots; no live hedging is performed.</p>
+    <div className="table-scroll"><table><thead><tr><th>Market</th><th>Latest finalized report</th><th>Report age</th><th>Publisher</th></tr></thead><tbody>
+      {GROUP_MARKETS.map((market,index)=>{
+        const key=controller.snapshot?.markets[index],entry=key?reports[key]:undefined;
+        const publisher=Object.values(publishers).find((value:any)=>value.market===key) as any;
+        const age=entry&&controller.snapshot?controller.snapshot.now-BigInt(entry.report.observedTime):null;
+        return <tr key={market.name}><td>{market.name}</td><td>{entry?(entry.report.outcome===0?'Depth available at publication':`Unavailable · outcome ${entry.report.outcome}`):'Awaiting reconciled history'}</td>
+          <td>{age===null?'—':`${age<0n?0n:age} seconds`}</td><td>{publisher?`${publisher.enabled?'Enabled':'Revoked'} · epoch ${publisher.authorityEpoch}`:'—'}</td></tr>;
+      })}
+    </tbody></table></div><p className="caption">This is finalized publication history, not a live execution guarantee. Current source, expiry and account checks still apply.</p>
+  </section>;
+}
 export function AccountApp({config}: {config: AccountTraderConfig}) {
   const controller=useAccountController(config),{venue,snapshot}=controller;
   const mode=snapshot?.safetyState.mode;
@@ -79,7 +94,7 @@ export function AccountApp({config}: {config: AccountTraderConfig}) {
       {config.demo&&<DemoPanel controller={controller}/>}
       <Selection controller={controller}/><GroupReview venue={venue}/>
       <div className="trading-grid"><div className="market-column"><Balances controller={controller}/><GroupPositions controller={controller}/></div><GroupTicket controller={controller}/></div>
-      <GroupOrders controller={controller}/><GroupAuthority controller={controller}/><GroupFills controller={controller}/><Reserves controller={controller}/><GroupReceipts venue={venue}/>
+      <GroupOrders controller={controller}/><GroupAuthority controller={controller}/><GroupFills controller={controller}/><Reserves controller={controller}/>{config.version===4&&<FundingReports controller={controller}/>}<GroupReceipts venue={venue}/>
       <p className="caption">{venue.records.filter(record=>!terminal(record)).length} unresolved saved transaction(s). Test venue {short(config.venue)} · one collateral mint · no funded deployment.</p>
     </main>
   </>;

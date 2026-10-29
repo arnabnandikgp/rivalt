@@ -1,5 +1,5 @@
 /** Instrumented Wallet Standard fixture. Only public accounts enter the page. */
-export function installWallet(accounts: { address: string; publicKey: number[] }[]) {
+export function installWallet(accounts: { address: string; publicKey: number[] }[], versions: (0 | 1)[] = [0]) {
   const w = window as any,
     listeners = new Set<(value: any) => void>();
   let selected = 0,
@@ -47,7 +47,7 @@ export function installWallet(accounts: { address: string; publicKey: number[] }
       },
       'solana:signTransaction': {
         version: '1.0.0',
-        supportedTransactionVersions: [0],
+        supportedTransactionVersions: versions,
         signTransaction: async (...inputs: any[]) => {
           if (rejectNext) {
             rejectNext = false;

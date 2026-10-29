@@ -15,7 +15,7 @@ import {
 const zero = address('11111111111111111111111111111111');
 const abs = (value: bigint) => (value < 0n ? -value : value);
 export function useAccountController(config: AccountTraderConfig) {
-  const selectionKey = `rivalt:selection:v3:${config.genesis}:${config.anchor}:${config.venue}`;
+  const selectionKey = `rivalt:selection:v${config.version}:${config.genesis}:${config.anchor}:${config.venue}`;
   const [initial] = useState(() => {
     try {
       const value = JSON.parse(localStorage.getItem(selectionKey) ?? '{}');
@@ -170,7 +170,14 @@ export function useAccountController(config: AccountTraderConfig) {
     prepare(`${side === 0 ? 'Buy' : 'Sell'} ${selectedMarket.name}`, async (state, owner) => {
       currentRoot(state, owner);
       const lots = groupQuantity(quantity, marketIndex);
-      const quote = await venue.client.route({snapshot: await venue.client.tradeSnapshot(margin!, marketIndex), trader: margin!, marketIndex, side, lots,
+      const pricing=await venue.client.tradeSnapshot(margin!,marketIndex);
+      if(config.version===4) {
+        const source=sdk.accountSourceMode(pricing.safetyState,pricing.marketStates[marketIndex],pricing.now,pricing.slot);
+        if(!['Normal','Degraded'].includes(source))throw new Error(`Quote unavailable: ${selectedMarket.name} source is ${source}.`);
+        if(pricing.liquidity?.adapters.every(maker=>maker.unavailable!==null))
+          throw new Error(`Quote unavailable: ${pricing.liquidity.adapters.map(maker=>`maker ${maker.registrationState.instance}: ${maker.unavailable}`).join('; ')}.`);
+      }
+      const quote = await venue.client.route({snapshot: pricing, trader: margin!, marketIndex, side, lots,
         maxFee: units(fee, 6, 'Maximum venue fee'),
         allInLimit: units(allIn, 6, 'All-in limit'),
         reduceOnly,
@@ -188,7 +195,7 @@ export function useAccountController(config: AccountTraderConfig) {
           `${side === 0 ? 'Spend' : 'Receive'} ${fixed(quote.allocation.allIn)} test USD including the venue fee.`,
           ...quote.allocation.legs.map(
             (leg) =>
-              `Maker ${leg.makerId === 0 ? 'A' : 'B'}: ${fixed(leg.lots, selectedMarket.decimals)} ${selectedMarket.name}.`,
+              `${'instance' in leg?`Maker instance ${leg.instance} (${leg.registration.slice(0,8)})`:`Maker ${leg.makerId === 0 ? 'A' : 'B'}`}: ${fixed(leg.lots, selectedMarket.decimals)} ${selectedMarket.name}.`,
           ),
           `Quote expires at slot ${quote.expirySlot}. All submitted legs execute atomically.`,
         ],

@@ -1,2 +1,2 @@
-import type { AccountUserConfig } from '@rivalt/sdk';
-export type AccountTraderConfig = AccountUserConfig & { apiBase: '/api'; readBase: '/read'; demo?: boolean };
+import type { AccountUserConfig,LiquidityUserConfig } from '@rivalt/sdk';
+export type AccountTraderConfig = (AccountUserConfig|LiquidityUserConfig) & { apiBase: '/api'; readBase: '/read'; demo?: boolean };

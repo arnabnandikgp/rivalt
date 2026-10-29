@@ -1,5 +1,5 @@
-import {getBase58Decoder, type Address, type Instruction} from '@solana/kit';
-import {MessageV0, PublicKey, TransactionMessage, VersionedTransaction} from '@solana/web3.js';
+import {getBase58Decoder, type Address, type Instruction, type Blockhash} from '@solana/kit';
+import {VersionedMessage, PublicKey, TransactionMessage, VersionedTransaction} from '@solana/web3.js';
 import * as c from './generated/index.js';
 import {walletComputeBudget} from './route-budget.js';
 
@@ -79,12 +79,13 @@ export type SignedIntent = {
 /** Public message metadata only; no signature/private key or broadcast. */
 export function walletMessageDifference(preparedMessage: string, transaction: VersionedTransaction) {
   try {
-    const expected = MessageV0.deserialize(fromBase64(preparedMessage)), actual = transaction.message;
+    const expected = VersionedMessage.deserialize(fromBase64(preparedMessage)), actual = transaction.message;
     const describe = (m: typeof expected) => m.compiledInstructions.map(ix => ({
       program: m.staticAccountKeys[ix.programIdIndex].toString(), data: hex(ix.data),
       accounts: ix.accountKeyIndexes.map(i => ({ address: m.staticAccountKeys[i].toString(), signer: m.isAccountSigner(i), writable: m.isAccountWritable(i) })),
     }));
-    if (actual.version !== 0 || actual.addressTableLookups.length) return { unsupportedReturnedMessage: true };
+    if (actual.version==='legacy'||expected.version==='legacy'||actual.version!==expected.version
+      ||actual.version===0&&actual.addressTableLookups.length) return { unsupportedReturnedMessage: true };
     const before = describe(expected), after = describe(actual);
     return { blockhashChanged: expected.recentBlockhash !== actual.recentBlockhash,
       payerChanged: expected.staticAccountKeys[0].toString() !== actual.staticAccountKeys[0].toString(),
@@ -101,6 +102,11 @@ export abstract class WalletClient {
   constructor(rpcUrl: string) { this.rpc = new UserRpc(rpcUrl); }
   abstract environment(): Promise<void>;
   protected walletInstructions(instructions: Instruction[]): Instruction[] { return walletComputeBudget(instructions); }
+  protected get maxTransactionVersion():0|1 {return 0;}
+  protected compile(owner:Address,recentBlockhash:Blockhash,instructions:Instruction[]) {
+    return new VersionedTransaction(new TransactionMessage({payerKey:new PublicKey(owner),recentBlockhash,
+      instructions:this.walletInstructions(instructions)}).compileToV0Message());
+  }
   async prepare(
     label: string,
     owner: Address,
@@ -109,14 +115,9 @@ export abstract class WalletClient {
   ): Promise<PreparedTransaction> {
     await this.environment();
     const latest = await this.rpc.call('getLatestBlockhash', [{ commitment: 'confirmed' }]);
-    const transaction = new VersionedTransaction(
-      new TransactionMessage({
-        payerKey: new PublicKey(owner),
-        recentBlockhash: latest.value.blockhash,
-        instructions: this.walletInstructions(instructions),
-      }).compileToV0Message(),
-    );
-    requireValue(transaction.serialize().length <= 1232, 'Transaction exceeds the supported message size.');
+    const transaction=this.compile(owner,latest.value.blockhash,instructions);
+    requireValue(transaction.version===0||this.maxTransactionVersion===1&&transaction.version===1,'Unsupported wallet transaction version.');
+    requireValue(transaction.serialize().length <= (transaction.version===1?4096:1232), 'Transaction exceeds the supported message size.');
     const simulation = await this.rpc.call('simulateTransaction', [
       toBase64(transaction.serialize()),
       { encoding: 'base64', sigVerify: false, commitment: 'confirmed' },
@@ -208,7 +209,7 @@ export abstract class WalletClient {
     if (status?.confirmationStatus === 'finalized') {
       const tx = await this.rpc.call('getTransaction', [
         intent.signature,
-        { commitment: 'finalized', encoding: 'base64', maxSupportedTransactionVersion: 0 },
+        { commitment: 'finalized', encoding: 'base64', maxSupportedTransactionVersion: this.maxTransactionVersion },
       ]);
       if (
         !tx?.meta ||

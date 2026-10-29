@@ -13,7 +13,7 @@ const configure = (server: any) => {
       res.end(
         JSON.stringify({
           ...Object.fromEntries(publicKeys.map((k) => [k, source[k]])),
-          ...(process.env.RIVALT_LOCAL_DEMO === '1' && source.version === 3 ? {demo: true} : {}),
+          ...(process.env.RIVALT_LOCAL_DEMO === '1' && [3, 4].includes(source.version) ? {demo: true} : {}),
           apiBase: '/api',
           readBase: '/read',
         }),

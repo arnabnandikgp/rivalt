@@ -746,8 +746,9 @@ publisher budget before measurement. R087 passes the scoped producer-to-program
 probe on clean`4f4e47d`:84 signed RPC/WS outcomes and8 accepted reports. Trading/safety/PostgreSQL and continuation acceptance
 remain independent gates; the standalone publisher probe cannot close P32.
 R090 now records [complete local A37/G25/G22 acceptance](evidence/P32.md), with
-P32 in Review pending integration. The user requests stopping after its ready PR
-is published; P33/P34 remain Open. No production or external gate is closed.
+P32 in Review pending integration. R091 records the user's subsequent resumption:
+P33 is in progress above exact P32 `6de5cea`; P34 follows its verified ready PR.
+The stack stays open. No production or external gate is closed.
 
 Retain at most two makers per route while testing discovery/selection beyond the
 fixed A/B identity pair. A price update cannot implicitly restore consumed depth.
