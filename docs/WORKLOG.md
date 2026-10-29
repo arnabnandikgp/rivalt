@@ -1,10 +1,16 @@
 # Rivalt implementation worklog
 Baseline R1 · initialized 20 October 2026
 
-**Maker-liquidity implementation (R079 / D70):** the user authorizes sequential
-[P29B–P34 implementation](P29-MAKER-LIQUIDITY-ROADMAP.md). P29A remains in Review
-as ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42). P29B's
-[contract/reference](P29B-MAKER-CONTRACT.md) passes A34B/G22 on `b0c504a` and is published in ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), stacked above #42 in Review. P30 A35/G23 acceptance passes on pinned code and ready [PR #45](https://github.com/arnabnandikgp/rivalt/pull/45) is open above #43 in Review. Local quote/control deployment is tested, with new trading disabled. R082 resumes P31–P34 under the user’s new instruction; P31 A36/G24 passes on pinned code above exact P30 head `b7e76e3`; ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46) is open in Review. P15B/P16B stay Open; 24-hour endurance stays Deferred.
+**Maker-liquidity integration (R096 / D78):** P29A, P29B and P30–P34 are Closed
+within the bounded local profile. The user authorized merging all seven ready PRs
+#42/#43/#45/#46/#47/#48/#49. GitHub's atomic stack merge completed at
+`b80bb38b6583e41413cecd0a372548422b45554a`; its complete tree exactly equals reviewed
+tip `9e6dd07014eeea9c098f3680fd428c76b72fba99`. All selected checks passed, no review
+threads remained unresolved, and the two new worklog formatting suggestions are
+fixed in this closeout. [R094](evidence/R094-STACK-REVIEW.md) and
+[R095](evidence/R095-SELF-REVIEW.md) retain their actual review/verification scope.
+M10 is Closed for its engineering scope; P15B/P16B remain Open and 24-hour endurance
+remains Deferred. Default/devnet financial activation remains gated.
 
 **Current position:** P01–P14 and M1–M5b are Closed. The original phase stack, readability maintenance and [R030 devnet closeout PR #19](https://github.com/arnabnandikgp/rivalt/pull/19) are integrated into `main`. PR #19 merged at `67059fc99ca3b48cff4d89e9f97aa9c1c51538eb`; its tree exactly matches verified head `633892c`. Actual maker upgrades/joint approvals, corrected ownership checks, independent accounting and fresh PostgreSQL/HTTP verification close the remaining engineering follow-up. P15A maker kit/tooling and P16A engineering reliability are now Closed: PRs #20/#21 merged at `74fc2963341a5a4cfacb027fed7d51c071e72265` under D44, with both review findings resolved and scoped CI passing. M6 remains In progress because external P15B/P16B remain Open. Continuous 24-hour endurance stays Deferred under D42.
 
@@ -50,7 +56,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | Review | All seven ready PRs #42/#43/#45/#46/#47/#48/#49 stay open. Original A34–A39/G22–G26 evidence retained; [R094 review fixes](evidence/R094-STACK-REVIEW.md) cover nine inline and six additional findings. Fresh expiry/retry and service/browser RPC/WS/PostgreSQL checks pass on `791fb8d`, with independent accounting; all seven restacked heads published, all nine inline threads resolved, zero remaining; selected hosted checks pass. [R095 self-review](evidence/R095-SELF-REVIEW.md) covers skipped PRs #45/#47: one wire-documentation correction, no actionable financial/authority defect; fresh compiled and 84/125-outcome RPC probes pass on `608f73c`. Integration is required to close M10; external gates Open and endurance Deferred |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | Closed | R096 atomically integrates all seven PRs at `b80bb38`, tree identical to reviewed `9e6dd07`. A34–A39/G22–G26 and [M10 exit](evidence/P34.md) retain their exact pins; [R094 remediation](evidence/R094-STACK-REVIEW.md) and [R095 self-review](evidence/R095-SELF-REVIEW.md) pass scoped verification. Final review sweep: zero unresolved threads, all selected checks passing. External gates Open; endurance Deferred |
 
 ## Phase overview
 
@@ -91,48 +97,35 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P27 | SDK, indexer/API and durable services | Closed | [PR #39](https://github.com/arnabnandikgp/rivalt/pull/39), published `b0b589c`, above #38 `fe5757a` | [A32/G21 interfaces](evidence/P27.md): finalized indexer/64-root replay, direct SDK and routing checkpoints plus final `13b558f` worker fault/default/recovery/replay acceptance; 152 finalized durable originals, one expired-unexecuted original, exact seven-root financial audit; integrated at `0916b9d` |
 | M8 | P28 | UI, operations and bounded concurrent qualification | Closed | [PR #40](https://github.com/arnabnandikgp/rivalt/pull/40), published `ac894f1`, above #39 `9498d2e` | [A33/G21/M8](evidence/P28.md): 17 browser originals, 115 submitted trades, six busy exits, four bounded history rescans, complete nine-root default/recovery and identical fresh PostgreSQL replay; tested `f595fd7` / `5491752`; R073 scoped review corrections `e6ba2cf`; integrated at `0916b9d` |
 | M9 | P28A | Interactive launcher, local test wallet and walkthrough | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41), final head `ba73bcd`, merged `350e60c` | [P28A acceptance](evidence/P28A.md): real startup/RPC/WS/PostgreSQL, 13 wallet originals, indexed fills, reload and stop/reset; R076 resolves both reviews, 16 scoped tests and hosted client/shell checks pass; user evaluation accepted and demo stopped. R077 records a separate proposal without reopening P28A |
-| M10 | P29A | Maker-liquidity roadmap and scoped gates | Review | Ready [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42), `phase/p29a-maker-roadmap`, roadmap `bb53b53` above R077 `8ca0691` / integrated `1c59592` | A34A: scoped documentation/link/fence/phase/gate/evidence-policy checks pass; no program acceptance; kept open |
-| M10 | P29B | Exact quote/update/routing/funding contract | Review | Ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), checked `b0c504a`, published `cfea519`, above P29A `d124215` / #42 | [A34B/G22](evidence/P29B.md): 26 model checks, 368 local links, layout/packet/search/transition contract and pinned numeric gates pass; no runtime acceptance; R094 skew/prose/checkpoint fixes, 26 scoped tests pass |
-| M10 | P30 | Configurable maker curves and updates | Review | `phase/p30-canonical-maker` above P29B `48abd8b` / #43 | [Implementation checkpoint](P30-CANONICAL-MAKERS.md): [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`;123 signed RPC/WS outcomes,104 instruction/20 account/78 event parity;3,172 vectors per evaluator. Ready PR #45 is open; P30 alone keeps trading disabled. [R095 self-review](evidence/R095-SELF-REVIEW.md) verifies canonical pricing/controls on unchanged final artifacts and corrects the trailing-instruction-data claim |
-| M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `fe91497` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
-| M10 | P32 | Clearing/funding and safe local execution | Review | [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47), `phase/p32-liquidity-execution` above P31 `693e5f9`/#46; acceptance closeout `cdffcc8` | [A37/G25/G22 acceptance](evidence/P32.md) passes. SBF `6437f7d`; safety/PG client `5d26561`, full books `df70e7c`, canonical continuation `34b4325`. All eligible routes finalize; exact quote/accounting, safety, SQL and resource gates pass. Ready PR published; all selected CI checks pass at `6de5cea`. R091 resumes P33; integration remains separate. [R095 self-review](evidence/R095-SELF-REVIEW.md) finds no actionable financial/authority defect; fresh publisher/execution RPC probes pass on `608f73c`; current #47 CI passes at `46be8d4` |
-| M10 | P33 | Services, SDK, indexer, UI and maker kit | Review | Ready [PR #48](https://github.com/arnabnandikgp/rivalt/pull/48), `phase/p33-liquidity-services` above P32 `46be8d4` / #47; closeout `322a4e9` | [A38/G26 interfaces](evidence/P33.md): clean runtime `fccf062`, 365 finalized + one classified failed intent, ten browser originals, three SIGKILL/lost-ack recoveries, 88 signed-input reports, 172-event fresh replay, six maker reports and independent literal financial audit pass. R094 proof/UI/audit corrections at `5941cd9`, freshly qualified on descendant `791fb8d` |
-| M10 | P34 | Comparative qualification and operations | Review | Ready [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49), `phase/p34-liquidity-qualification` above P33 `5941cd9` / #48; acceptance closeout `e545fbc` | [A39/G26](evidence/P34.md): baseline `fb082de`, control/treatment `03c4e73`, operational default/recovery/all-funded exits `aae8bb0`, fresh maximum books `875b647`. Exact financial/report replay passes; max 615,433 CU/800,000 budget. Original scoped CI passes on `3a987b6`; R094 review corrections, fresh scoped verification and selected hosted CI pass; published with all nine stack threads resolved. Narrow latency pass and missing-history maker limitation documented; stack stays open |
+| M10 | P29A | Maker-liquidity roadmap and scoped gates | Closed | Merged [PR #42](https://github.com/arnabnandikgp/rivalt/pull/42), head `d124215`; integrated `b80bb38` | A34A documentation/link/fence/phase/gate/evidence-policy checks; roadmap only. R096 verifies integration into main |
+| M10 | P29B | Exact quote/update/routing/funding contract | Closed | Merged [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), head `48abd8b`; integrated `b80bb38` | [A34B/G22](evidence/P29B.md), R094 skew/reference correction and R095 wire clarification retained; model checks are distinct from runtime acceptance |
+| M10 | P30 | Configurable maker curves and updates | Closed | Merged [PR #45](https://github.com/arnabnandikgp/rivalt/pull/45), head `fe91497`; integrated `b80bb38` | [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`, 123 signed outcomes and legacy ABI parity; [R095 self-review](evidence/R095-SELF-REVIEW.md) freshly verifies 3,172 vectors per evaluator and controls on unchanged final artifacts |
+| M10 | P31 | Generic adapters and bounded best-pair router | Closed | Merged [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), head `693e5f9`; integrated `b80bb38` | [A36/G24](evidence/P31.md): RPC `2fda67b`, search `f9a70c3`, 415 independent cases, 47 focused tests, 24 quote comparisons / 73 signed outcomes; p95 36.956 ms over 1,000 maximum-width searches |
+| M10 | P32 | Clearing/funding and safe local execution | Closed | Merged [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47), head `46be8d4`; integrated `b80bb38` | [A37/G25/G22](evidence/P32.md): SBF `6437f7d`, safety/PG `5d26561`, full books `df70e7c`, continuation `34b4325`; [R095](evidence/R095-SELF-REVIEW.md) adds self-review and fresh publisher/execution RPC checks on `608f73c`. Qualified local activation only |
+| M10 | P33 | Services, SDK, indexer, UI and maker kit | Closed | Merged [PR #48](https://github.com/arnabnandikgp/rivalt/pull/48), head `5941cd9`; integrated `b80bb38` | [A38/G26 interfaces](evidence/P33.md) on `fccf062`; [R094 corrections](evidence/R094-STACK-REVIEW.md) pass fresh expiry/retry and 370-original service/browser, 174-event PostgreSQL replay and independent accounting on `791fb8d` |
+| M10 | P34 | Comparative qualification and operations | Closed | Merged [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49), head `9e6dd07`; integrated `b80bb38` | [A39/G26/M10 exit](evidence/P34.md): baseline `fb082de`, control/treatment `03c4e73`, default/recovery/exits `aae8bb0`, maximum books `875b647`. R094/R095 review evidence retained. Narrow latency margin and missing-history fee-reserve limits remain documented |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
 
 ## Latest checkpoint
 
-- R095: personally reviewed skipped PRs #45/#47 at `fe91497`/`46be8d4`, including
-  their current-stack interactions. [The report](evidence/R095-SELF-REVIEW.md) records
-  one reproduced wire-documentation mismatch and its explicit correction; no
-  actionable financial, authority or atomicity defect was found. All 24 focused
-  client tests, 27 independent contract cases, 3,172 vectors per SDK/maker SBF,
-  123 compiled lifecycle cases, three native helper tests and fresh 84/125-outcome
-  RPC/WS probes pass on clean `608f73c`. Program sources/binaries are unchanged.
-  This is self-review, not independent P16B approval. The stack stays open.
-- R094: the user's open-stack review request is addressed in the owning PRs.
-  [The disposition report](evidence/R094-STACK-REVIEW.md) covers nine inline and
-  six additional findings. Scope: #42/#43/#45/#46/#47/#48/#49; all remain Review.
-- Fresh clean `791fb8d` verifies real finalized maker expiry, durable nonapplication
-  proof, restart, separately reserved retry and exact retained unknown-fee balance.
-  The affected service/browser run resolves 370 originals, ten browser transactions,
-  90 retained publisher reports and identical 174-event fresh PostgreSQL replay.
-  Independent per-trader financial accounting passes with zero unexplained difference.
-- Original P29–P34 acceptance and binary pins remain recorded. R094 changes service
-  recovery, wallet capability checks and validation, not financial programs or economics.
-  The narrow P34 latency result remains a one-host measurement.
-- Missing or advanced maker proof state stays unresolved. Unknown fees remain
-  reserved and block handover; repeated missing-history outcomes can exhaust the
-  bounded budget. Previously stored null-authority originals are not rewritten.
-- Exact next action: await the user’s separate integration instruction or assess
-  newly arriving feedback. All nine inline threads are resolved; all selected
-  hosted checks pass on the recorded restacked heads. Keep all PRs open.
-- Latest integration remains P28A / PR #41 at `350e60ca1de2de77b9ed2a80a16b0aa5eb5aa481`.
-  Default/devnet activation remains gated. P15B/P16B Open; 24-hour endurance Deferred.
-- Raw evidence remains local and ignored. Research, databases, keys and configuration
-  are preserved. The owned qualification servers have stopped.
+- R096: all seven maker-liquidity phase PRs are MERGED at
+  `b80bb38b6583e41413cecd0a372548422b45554a`. Local main is fast-forwarded; its tree
+  `239fd3313d4aad5500308a302aba274a61eed310` exactly matches reviewed tip `9e6dd07`.
+  Both tables close P29A/P29B/P30–P34 and M10 within their bounded engineering scope.
+- Final all-stack sweep found zero unresolved threads or requested changes. Every
+  selected hosted job passed on the exact reviewed heads; scope-skipped jobs remain
+  distinguished. Two new nonblocking worklog spacing suggestions are fixed below.
+  R095 self-review of skipped #45/#47 is not independent P16B approval.
+- Actual acceptance pins remain in the phase reports. This merge and documentation
+  closeout add no new financial test, deployment or endurance claim. The narrow P34
+  latency pass and unresolved-history fee-reserve limits remain operational limits.
+- No owned test server was restarted; raw evidence, research, databases, keys and
+  configuration are preserved. Default/devnet activation remains gated.
+  P15B/P16B remain Open; continuous 24-hour endurance remains Deferred.
+- Exact next action: use integrated main as the baseline for the user's next
+  selected work; no additional phase, outreach or funded deployment starts here.
 
 ## Blocker register
 
@@ -5295,11 +5288,11 @@ an executable-path configuration fix. Raw P33 browser originals remain pinned.
 R093 operational run `5388556`, local
 `.local/liquidity-execution/qualification/20261029T202542Z-operations-15570/operations`,
 performs a real funded liquidation and freezes/collects all ten registered roots,
-then stops at proposal stage4. The real worker returns unavailable; direct RPC
+then stops at proposal stage 4. The real worker returns unavailable; direct RPC
 reproduction records `Foreign proposal venue/profile.` in `proposal-diagnostic.json`.
-The inherited `readAccountRateProposal` hardcoded profile3. Pass the runtime's exact
-configured3/4 profile into this reader, preserving schema3, canonical PDA/owner,
-complete-cohort hash, collection and denominator checks. Default behavior remains3;
+The inherited `readAccountRateProposal` hardcoded profile 3. Pass the runtime's exact
+configured profile (3 or 4) into this reader, preserving schema 3, canonical PDA/owner,
+complete-cohort hash, collection and denominator checks. Default behavior remains profile 3;
 mismatched and unsupported profiles still reject. No payout/risk economics change.
 Fresh operational acceptance is required; the earlier default is not called complete.
 
@@ -5313,9 +5306,9 @@ new live pricing run is needed for this offline encoding fix. Preserve all raw r
 Next: scoped profile-binding tests, pin the fix, then fresh operational rerun.
 
 R093 profile correction verification: eight focused frozen-proposal/risk-worker tests
-and typecheck pass, including explicit profile4 success, profile3/profile4 mismatch
+and typecheck pass, including explicit profile 4 success, profile 3/profile 4 mismatch
 rejection and unsupported-profile rejection. Both checked-in signed-report-bound
-readers now pass all508 retained canonical reports; diff whitespace passes. The
+readers now pass all 508 retained canonical reports; diff whitespace passes. The
 pricing workload and programs are unchanged, so only the failed operational path
 needs a fresh runtime rerun. Exact next action: commit and rerun owned operations.
 
@@ -5324,19 +5317,19 @@ R093 operational acceptance on clean `aae8bb0`, local
 passes: actual whole-account liquidation; ten-root default; SIGKILL/restart during
 partial proposal upload; exact proposal/check/order/round/apply/verify continuation;
 sustained source recovery and authority resume; all remaining funded balances exit.
-All90 service originals finalize successfully (72 risk,18 publisher), with identical
+All 90 service originals finalize successfully (72 risk, 18 publisher), with identical
 fresh PostgreSQL replay and zero unexplained vault difference. The independent raw
-financial reference recreates all10 Fraction payouts and rejects5 corrupted states.
-All roots finish flat with zero cash/claims; vault452 atoms is only retained market
-insurance/protocol fees. Risk-service maximum419,737CU/1,196bytes/22keys passes its
-submitted resource ceiling/headroom. Actual18 publisher samples: read/calculate
-p95 77.786ms, build-to-persistence168.865ms, build-to-first-executor-observation1360ms;
+financial reference recreates all 10 Fraction payouts and rejects 5 corrupted states.
+All roots finish flat with zero cash/claims; vault 452 atoms is only retained market
+insurance/protocol fees. Risk-service maximum 419,737 CU / 1,196 bytes / 22 keys passes its
+submitted resource ceiling/headroom. Actual 18 publisher samples: read/calculate
+p95 77.786 ms, build-to-persistence 168.865 ms, build-to-first-executor-observation 1,360 ms;
 this is an observation latency, not a leader execution timestamp. Independent
 receipt/resource audit is retained at `.local/p34-operations-report.json`.
 
 Strengthen the final reader's one baseline MakerQuote classification: the actual
-failed offer302 lands at slot4722, exactly the selected legacy maker's recorded
-expiry4722. Do not whitelist an unexplained capacity failure merely by error code.
+failed offer 302 lands at slot 4,722, exactly the selected legacy maker's recorded
+expiry 4,722. Do not whitelist an unexplained capacity failure merely by error code.
 No pricing runtime repeat is needed for that independent evidence check. Exact next
 action: commit the accepted operational audit and run fresh protected/entry/stored
 maximum-book resource cases, then complete the P34 ready PR. Stack stays open.
@@ -5549,3 +5542,46 @@ Closeout checks: 205 local Markdown targets exist, fences balance, tracked-evide
 policy and diff whitespace pass. Both owned Surfpool listeners are stopped. The
 review correction/report is a documentation-only commit on existing stack tip #49;
 the reviewed #45/#47 code heads remain unchanged.
+
+
+## R096 — 30 October 2026 — authorized maker-liquidity stack integration
+
+The user explicitly authorizes merging the whole stack. Inspect Git state and
+current docs; preserve the three unrelated untracked research paths. Refresh all
+seven PRs' review threads, review bodies, discussion comments and hosted checks.
+Verify complete pagination, exact local/remote heads, predecessor ancestry, a clean
+tracked tree, no requested changes and no unresolved thread. #49's latest review
+adds only two nonblocking WORKLOG spacing suggestions; correct the specified
+profile/stage numbers and measured-value/unit spacing in this closeout.
+
+Premerge heads: #42 `d124215`, #43 `48abd8b`, #45 `fe91497`, #46 `693e5f9`,
+#47 `46be8d4`, #48 `5941cd9`, #49 `9e6dd07`. Selected scope/client/financial/report/
+shell checks pass. #42 has no selected workflow; #43 client/report, #48 report/shell
+and #49 financial are scope-skipped. #49 CodeRabbit succeeds; other neutral/skipped
+statuses do not become review approvals. R094 remediation and R095 self-review
+retain their exact scope and actual runtime pins.
+
+`gh stack merge --yes --merge` completes the seven-PR atomic operation. Independent
+GraphQL reads confirm every PR MERGED at common commit
+`b80bb38b6583e41413cecd0a372548422b45554a`. Fetch origin/main, switch to local main
+and fast-forward only. `git diff --exit-code 9e6dd07 HEAD` passes; both complete
+trees equal `239fd3313d4aad5500308a302aba274a61eed310`. There is no merge conflict,
+new program change or missing phase commit. Raw preflight/check/review and merge
+responses remain local in `.local/r096-{checks,reviews,merged}.json`.
+
+Close both status tables for P29A/P29B/P30/P31/P32/P33/P34 and M10: phase acceptance
+and the P34 engineering exit passed on their recorded pins, and integration is now
+verified. Update README, current product/roadmap/plan and append D78. Historical
+run entries and acceptance results remain preserved. This follow-up commit changes
+only documentation and fixes the two minor suggestions; it is not a new phase PR.
+
+Closeout validation: all six changed files are documentation; 321 local Markdown
+targets exist, code fences balance, diff whitespace and tracked-evidence policy
+pass. Commit and publish this closeout on integrated main.
+
+No application, program, SBF, RPC/WS/PostgreSQL, broad regression, load or endurance
+suite is rerun: the merged tree is exactly the reviewed tip and the closeout is
+documentation-only. Existing selected hosted results are observed, not invented.
+No outreach, external hedging, external security review or funded deployment occurs.
+P15B/P16B remain Open; 24-hour endurance Deferred. No merge/access blocker remains.
+Exact next action: use integrated main for the user's next selected work.

@@ -1506,3 +1506,21 @@ signature verification, nonce/order/publication replay checks, financial authori
 or economics. [R095](evidence/R095-SELF-REVIEW.md) records the source review and fresh
 compiled/RPC evidence for skipped-review PRs #45/#47. No independent security audit,
 new full qualification or integration follows; the ready stack remains open.
+
+## D78 — authorized M10 stack integration (30 October 2026)
+
+The user authorizes merging the complete maker-liquidity stack, superseding the
+earlier instruction to keep it open. After a final sweep with zero unresolved
+threads, no requested changes and all selected hosted checks passing, GitHub's
+atomic stack merge integrates #42/#43/#45/#46/#47/#48/#49 at
+`b80bb38b6583e41413cecd0a372548422b45554a`. Its complete tree equals reviewed tip
+`9e6dd07014eeea9c098f3680fd428c76b72fba99`; local main is fast-forwarded without
+conflicts. The two additional nonblocking worklog-spacing suggestions are fixed
+in the documentation closeout. R094/R095 evidence and earlier phase pins remain.
+
+Close P29A/P29B/P30–P34 and M10 for the qualified bounded local engineering scope.
+This integration adds no new economic rule, financial activation, runtime test or
+deployment claim. The restricted publisher trust assumption, three-maker bound,
+narrow historical latency margin and unknown-fee reserve limitation remain explicit.
+P15B/P16B remain separate Open external gates; 24-hour endurance stays Deferred.
+No independent-audit approval, production/funded deployment or outreach is implied.

@@ -24,8 +24,9 @@ pass, including full books and real PostgreSQL replay. Default/devnet stay disab
 [P34 comparative and operational qualification](docs/evidence/P34.md) also passes:
 three complete 600-offer populations, default/recovery, full funded exits and fresh
 maximum-book resource checks. The latency gate passes narrowly; the report states
-the remaining operational limits. The ready stack stays open for review;
-WORKLOG owns review/integration status.
+the remaining operational limits. R096/D78 integrates all seven phase PRs into
+`main` at `b80bb38`, closing P29A–P34 and M10 within the bounded local scope.
+WORKLOG records exact review/acceptance pins and the separate open external gates.
 
 [P22–P28's account-centric clearing redesign](docs/P22-ACCOUNT-CENTRIC-CLEARING.md)
 is integrated under R073/D67: separate account risk, market eligibility, funded

@@ -751,8 +751,10 @@ P32 in Review pending integration. R091 records the user's subsequent resumption
 P34 follows its verified ready PR. R093 now records [A39/G26 acceptance](evidence/P34.md):
 the complete comparison, independent accounting/report replay, operational default/
 recovery/exits and fresh maximum-book checks pass on their exact pins. The M10
-engineering exit checks pass; integration is still required to close the milestone.
-The stack stays open. No production or external gate is closed.
+engineering exit checks pass. R096/D78 now records the user-authorized atomic
+integration of all seven PRs at `b80bb38`, with a tree identical to reviewed
+`9e6dd07`. P29A/P29B/P30–P34 and M10 are Closed for their bounded local engineering
+scope. No production or external gate is closed.
 
 Retain at most two makers per route while testing discovery/selection beyond the
 fixed A/B identity pair. A price update cannot implicitly restore consumed depth.

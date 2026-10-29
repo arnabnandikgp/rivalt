@@ -23,8 +23,9 @@ explicit publisher trust assumptions; clearing retains bounded report validation
 independent risk prices and causal funding. Actual trading keeps full financial
 admission. [P32 local acceptance](evidence/P32.md), [P33 services/UI](evidence/P33.md)
 and [P34 comparative operations](evidence/P34.md) pass on their recorded pins.
-Review/integration and independent commercial validation remain separate. Internal
-maker results and synthetic markouts do not establish external maker profitability.
+R096/D78 integrates that bounded implementation into `main`; independent commercial
+validation remains separate. Internal maker results and synthetic markouts do not
+establish external maker profitability.
 
 D56 adds [P22–P28](P22-ACCOUNT-CENTRIC-CLEARING.md), a fresh bounded local redesign
 that separates account risk, market eligibility, funded exits and settlement/default

@@ -12,6 +12,13 @@ The user accepts this direction and subsequently authorizes sequential implement
 Later rows still require their own implementation/acceptance; deployment permission
 is limited to bounded local qualification. WORKLOG owns live status.
 
+**Integration checkpoint (R096/D78):** all seven phase PRs are merged into `main`
+at `b80bb38`, whose tree matches reviewed tip `9e6dd07`. Phase-specific acceptance,
+review remediation and the bounded M10 exit are recorded in WORKLOG and the phase
+reports. P29A/P29B/P30–P34 and M10 are Closed within that scope. The delivery
+requirements below retain their original contract; external P15B/P16B remain Open
+and continuous 24-hour endurance remains Deferred.
+
 Use the integrated schema-3 account engine. Preserve BTC/ETH, one test collateral,
 per-market isolated maker capital, account risk boundaries, funded cash versus
 unpaid claims, zero positive unpaid-profit margin credit, 2 bps taker/zero provider
