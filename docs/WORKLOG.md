@@ -50,7 +50,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | P29A–P31 remain ready Review in open #42/#43/#45/#46. P32 publisher/basic execution pass; R089 [full-book resources](evidence/P32-RESOURCES.md) pass on client `038f31a` / SBF `6437f7d`: 147 finalized outcomes, maximum pair 615,334 CU. Affected safety is running; PostgreSQL and continuation remain. Stop after P32 PR as requested; P33/P34 Open |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | P29A–P31 remain ready Review in open #42/#43/#45/#46. P32 publisher/basic execution pass; R089 [full-book resources](evidence/P32-RESOURCES.md) pass on client `038f31a` / SBF `6437f7d`: 147 finalized outcomes, maximum pair 615,334 CU. Affected safety reaches liquidation and complete default reconciliation; terminal exit/recovery rerun pending. PostgreSQL and continuation remain. Stop after P32 PR as requested; P33/P34 Open |
 
 ## Phase overview
 
@@ -95,7 +95,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P29B | Exact quote/update/routing/funding contract | Review | Ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), checked `b0c504a`, published `cfea519`, above P29A `ca14b86` / #42 | [A34B/G22](evidence/P29B.md): 26 model checks, 368 local links, layout/packet/search/transition contract and pinned numeric gates pass; no runtime acceptance |
 | M10 | P30 | Configurable maker curves and updates | Review | `phase/p30-canonical-maker` above P29B `b4f43a4` / #43 | [Implementation checkpoint](P30-CANONICAL-MAKERS.md): [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`;123 signed RPC/WS outcomes,104 instruction/20 account/78 event parity;3,172 vectors per evaluator. Ready PR #45 is open; new trading disabled |
 | M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
-| M10 | P32 | Clearing/funding and safe local execution | In progress | `phase/p32-liquidity-execution` above P31 `28d5dd0`/#46; no P32 PR yet | R087 [publisher](evidence/P32-PUBLISHER.md), R088 [basic execution](evidence/P32-EXECUTION.md) and R089 [full-book resources](evidence/P32-RESOURCES.md) pass; latest client `038f31a` / SBF `6437f7d`, 147 finalized outcomes, exact financial totals, maximum legal pair 615,334 CU. Safety fixture correction pending rerun; PostgreSQL/continuation open |
+| M10 | P32 | Clearing/funding and safe local execution | In progress | `phase/p32-liquidity-execution` above P31 `28d5dd0`/#46; no P32 PR yet | R087 [publisher](evidence/P32-PUBLISHER.md), R088 [basic execution](evidence/P32-EXECUTION.md) and R089 [full-book resources](evidence/P32-RESOURCES.md) pass; latest client `038f31a` / SBF `6437f7d`, 147 finalized outcomes, exact financial totals, maximum legal pair 615,334 CU. 267 finalized safety outcomes reach full default reconciliation; terminal exit/recovery needs timing-helper correction. PostgreSQL/continuation open |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Open | P32 gate passed | A38/G26 interfaces: actual durable recovery, operator/browser flow and financial reconstruction |
 | M10 | P34 | Comparative qualification and operations | Open | P33 | A39/G26/M10: complete populations, concurrent updates/fills/exits, reconciliation/recovery and measured limits |
 
@@ -4755,3 +4755,26 @@ P29A status row that had accidentally been replaced by the milestone summary;
 P29A remains Review, and both current status tables retain P32/M10 In progress.
 Exact next action: pin/rerun the corrected safety fixture on unchanged6437f7d;
 then real PostgreSQL journal/replay and the bounded continuation workload.
+
+R089 safety second attempt: clean client`5fa5c8f`/SBF`6437f7d`, raw
+`.local/liquidity-execution/runs/20261029T155120Z-33744`.267 finalized RPC/WS outcomes
+(247 success/20 intended rejection) cover real SL/TP generation/allowance bounds,
+withdrawal/reservation guards and funded transfer, two-market cross trades,
+full-book liquidation (101,766CU), exact complete8-member valuation/rate proof,
+insurance-floor handling, deterministic atom circulation/application and terminal
+reconciliation. The old signed pre-default exit rejects after resolution. No full
+safety pass: the next requested30-second source-staleness wait exceeded the
+helper's20-second progress watchdog. Split it into three actual10-second Clock
+waits; preserve oracle expiry, recovery and all program rules. Runtime stopped.
+Independent raw-byte audit, terminal withdrawal and recovery were not reached.
+
+Prepare the narrow P32 PostgreSQL fixture using the production generic JournalStore
+with an explicitly test-only schema4 digest/sequence projection. Real RPC history
+pagination, authenticated critical event bytes, SQL rollback on corrupt sequence,
+failed-CPI exclusion, stopped journal/backfill, append-only conflicts and a fresh
+PostgreSQL database replay are required. Public schema3 consumers continue rejecting
+schema4; production balances/read APIs remain P33. No PostgreSQL run/pass claimed.
+`pnpm typecheck`, scoped shell syntax and`git diff --check`pass. No program/ABI
+change requires SBF regeneration; unrelated suites not repeated. Both tables retain
+P32/M10 In progress. Exact next action: finish the corrected pinned safety probe,
+then run `bash ops/liquidity-journal-smoke.sh` and the predeclared continuation.

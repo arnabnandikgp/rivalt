@@ -12,13 +12,17 @@ export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/liquidity-execution/runs/$(date 
 test ! -e "$RIVALT_RUN_DIR"
 test -f .local/liquidity-execution/clearing.so
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT"
+if [[ "${RIVALT_LIQUIDITY_POSTGRES:-0}" == 1 ]]; then
+  container system status >/dev/null
+  python3 ops/check-ports.py "${RIVALT_PG_PORT:?explicit prototype PostgreSQL port required}"
+fi
 mkdir -p "$RIVALT_RUN_DIR"
 surfpool start --offline --no-deploy --no-tui --no-studio --disable-instruction-profiling \
   --port "$RIVALT_RPC_PORT" --ws-port "$RIVALT_WS_PORT" --slot-time 50 \
   --airdrop-keypair-path .local/keys/payer.json --log-path "$RIVALT_RUN_DIR/logs" \
   > "$RIVALT_RUN_DIR/surfpool.log" 2>&1 &
 RIVALT_ACCOUNT_SURFPOOL_PID=$!
-trap 'kill "$RIVALT_ACCOUNT_SURFPOOL_PID" 2>/dev/null || true; wait "$RIVALT_ACCOUNT_SURFPOOL_PID" 2>/dev/null || true' EXIT
+trap 'if [[ -n ${RIVALT_PG_CONTAINER:-} ]]; then container stop "$RIVALT_PG_CONTAINER" >/dev/null 2>&1 || true; container delete "$RIVALT_PG_CONTAINER" >/dev/null 2>&1 || true; fi; kill "$RIVALT_ACCOUNT_SURFPOOL_PID" 2>/dev/null || true; wait "$RIVALT_ACCOUNT_SURFPOOL_PID" 2>/dev/null || true' EXIT
 ready=0
 for _ in {1..100}; do
   kill -0 "$RIVALT_ACCOUNT_SURFPOOL_PID" 2>/dev/null || { echo 'Owned Surfpool exited before readiness' >&2; exit 1; }
@@ -34,12 +38,14 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
+if [[ "${RIVALT_LIQUIDITY_POSTGRES:-0}" == 1 ]]; then source ops/postgres.sh; fi
 case "${RIVALT_LIQUIDITY_PROBE:-sampling}" in
   sampling) node --import tsx tests/rpc-contract/liquidity-sampling-rpc.ts ;;
   funding-publisher) node --import tsx tests/rpc-contract/funding-publisher-rpc.ts ;;
   execution) node --import tsx tests/rpc-contract/liquidity-execution-rpc.ts ;;
   resources) node --import tsx tests/rpc-contract/liquidity-resource-rpc.ts ;;
   safety) node --import tsx tests/rpc-contract/liquidity-safety-rpc.ts ;;
+  journal) node --import tsx tests/rpc-contract/liquidity-journal-rpc.ts ;;
   *) echo 'Unknown scoped liquidity probe' >&2; exit 1 ;;
 esac
 printf 'P32 sampler probe evidence: %s\n' "$RIVALT_RUN_DIR"

@@ -157,7 +157,9 @@ try {
   const resolution = await resolveLiquidityCohort(h, setup, roots, reject);
   const completedAccounts = await raw();
   await reject('pre-default funded exit cannot replay after resolution', staleTerminalExit, sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE, [setup.owner]);
-  await setup.waitUntil(await setup.now() + 30n);
+  // The shared progress watchdog bounds each wait to20 seconds. Observe actual
+  // Clock advancement in three segments while allowing the sources to go stale.
+  for (let segment = 0; segment < 3; segment++) await setup.waitUntil(await setup.now() + 10n);
   const tokensBefore = getTokenDecoder().decode((await h.read(setup.token.address))!).amount;
   await h.send('P32 safety resolved cash exits with stale sources', [await withdraw(roots[0], 100n, setup.owner, setup.token.address)], [setup.owner]);
   assert.equal(getTokenDecoder().decode((await h.read(setup.token.address))!).amount, tokensBefore + 100n);
