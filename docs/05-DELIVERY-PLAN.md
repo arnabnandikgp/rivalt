@@ -32,6 +32,7 @@ The original six milestone families retain P01–P16, with P15/P16 split into en
 | M8 | P22–P28 | Account-centric clearing, one mint and two markets | Separate account/eligibility/settlement/default contract; qualified safety, atomic admissible funded exits during normal background activity, fresh service/UI/RPC/WS/PostgreSQL reconciliation; no funded-readiness claim |
 | M9 | P28A | Interactive local evaluation follow-up | Existing P28A local startup, wallet, replay and owned shutdown acceptance; separate from financial qualification |
 | M10 | P29A–P34 | Configurable maker liquidity and bounded best-pair routing | Exact contract, canonical curve/program parity, independent allocation optimum, safe funding/execution, usable services and fresh comparative qualification; no external-maker or funded-readiness claim |
+| M11 | P35–P37 | Repository consolidation and maintenance handoff | Current component contracts, canonical names with verified wire compatibility, justified legacy retirement and fresh affected-runtime qualification |
 
 M1–M5b are the engineering MVP. M5a completes the local end-to-end prototype. M6 engineering extensions P15A/P16A can proceed with explicitly internal makers and test assets. P15B/P16B require independent people/data/review and separate funded authorization. Completing A never closes B or establishes funded readiness.
 
@@ -766,3 +767,32 @@ Use ready stacked PRs and exact verified predecessor commits; keep them open unt
 the user authorizes integration. No new 24-hour, external-maker/review or deployment
 gate is folded into this local engineering scope. No old runtime result qualifies
 the changed implementation.
+
+
+## M11 — repository consolidation (P35–P37)
+
+D79 records the user's requested consolidation. The [inspected consolidation plan](REPOSITORY-CONSOLIDATION.md)
+owns the proposed current-name map, documentation tree, compatibility boundaries,
+legacy-disposition rules and scoped verification. Current behavior remains the
+qualified account-centric engine plus canonical maker liquidity; no financial
+redesign, deployment or new endurance target is introduced.
+
+- **P35:** inventory and consolidate current docs by clearing, liquidity, application
+  and operations; retain exact contracts, measured limits and historical pins;
+  replace AGENTS with a maintenance handoff; remove superseded docs only after
+  mapping their surviving requirements. Documentation/links/command checks only.
+- **P36:** freeze current wire compatibility, extract live shared records, rename
+  canonical definitions/contexts/entrypoints/events and regenerate IDL/SDK with
+  coupled consumers. Verify retained discriminators/encoding/PDAs/error numbers,
+  affected builds and fresh compiled route/publisher paths. Isolate collisions
+  temporarily rather than conflating incompatible old accounts.
+- **P37:** retire earlier runtimes/consumers only after the dependency/deployment
+  inventory supports it; port still-relevant independent cases. Qualify rebuilt
+  current artifacts through affected financial/safety, real RPC/WS/PostgreSQL,
+  browser and resource checks. Do not upgrade existing deployments or rewrite
+  persisted signed originals as part of cleanup.
+
+Use cohesive ready PRs and stack dependencies when publication begins. P35 is In
+progress at its planning checkpoint; P36/P37 are Open. Actual status remains in
+WORKLOG until P35 replaces that workflow with concise STATUS/history/validation.
+P15B/P16B remain Open and 24-hour endurance remains Deferred.

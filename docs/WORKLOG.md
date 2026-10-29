@@ -57,6 +57,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
 | M10 | P29A–P34 | Programmable maker liquidity and bounded routing | Closed | R096 atomically integrates all seven PRs at `b80bb38`, tree identical to reviewed `9e6dd07`. A34–A39/G22–G26 and [M10 exit](evidence/P34.md) retain their exact pins; [R094 remediation](evidence/R094-STACK-REVIEW.md) and [R095 self-review](evidence/R095-SELF-REVIEW.md) pass scoped verification. Final review sweep: zero unresolved threads, all selected checks passing. External gates Open; endurance Deferred |
+| M11 | P35–P37 | Repository naming, documentation and maintenance handoff | In progress | R097 inventory and [plan](REPOSITORY-CONSOLIDATION.md) on `1f1a5aa`; P35 documentation migration pending, no code/ABI changes or new runtime evidence |
 
 ## Phase overview
 
@@ -104,12 +105,22 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P32 | Clearing/funding and safe local execution | Closed | Merged [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47), head `46be8d4`; integrated `b80bb38` | [A37/G25/G22](evidence/P32.md): SBF `6437f7d`, safety/PG `5d26561`, full books `df70e7c`, continuation `34b4325`; [R095](evidence/R095-SELF-REVIEW.md) adds self-review and fresh publisher/execution RPC checks on `608f73c`. Qualified local activation only |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Closed | Merged [PR #48](https://github.com/arnabnandikgp/rivalt/pull/48), head `5941cd9`; integrated `b80bb38` | [A38/G26 interfaces](evidence/P33.md) on `fccf062`; [R094 corrections](evidence/R094-STACK-REVIEW.md) pass fresh expiry/retry and 370-original service/browser, 174-event PostgreSQL replay and independent accounting on `791fb8d` |
 | M10 | P34 | Comparative qualification and operations | Closed | Merged [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49), head `9e6dd07`; integrated `b80bb38` | [A39/G26/M10 exit](evidence/P34.md): baseline `fb082de`, control/treatment `03c4e73`, default/recovery/exits `aae8bb0`, maximum books `875b647`. R094/R095 review evidence retained. Narrow latency margin and missing-history fee-reserve limits remain documented |
+| M11 | P35 | Component docs and maintenance handoff | In progress | Local `maintenance/repository-consolidation` | R097 concrete inventory/plan; consolidate current contracts and history before retiring old docs; AGENTS still unchanged |
+| M11 | P36 | Current naming and ABI-preserving refactor | Open | — | Depends on P35 and frozen current wire manifest; source/IDL/SDK/consumer changes and scoped compiled checks |
+| M11 | P37 | Legacy retirement and consolidated runtime | Open | — | Depends on P36 plus concrete consumer inventory; fresh affected current-profile RPC/WS/PostgreSQL and independent financial qualification |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
 
 ## Latest checkpoint
 
+- R097: requested repository consolidation is planned in
+  [the consolidation contract](REPOSITORY-CONSOLIDATION.md). P35 starts with a
+  concrete code/doc inventory; document migration, AGENTS replacement and all
+  code renames remain unimplemented. P36/P37 are Open dependencies, not qualified
+  phases. Preserve current wire identifiers and audit legacy consumers before
+  retirement. Exact next action: complete P35’s per-document disposition/invariant
+  map, then consolidate the component guides and AGENTS together.
 - R096: all seven maker-liquidity phase PRs are MERGED at
   `b80bb38b6583e41413cecd0a372548422b45554a`. Local main is fast-forwarded; its tree
   `239fd3313d4aad5500308a302aba274a61eed310` exactly matches reviewed tip `9e6dd07`.
@@ -124,8 +135,8 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
 - No owned test server was restarted; raw evidence, research, databases, keys and
   configuration are preserved. Default/devnet activation remains gated.
   P15B/P16B remain Open; continuous 24-hour endurance remains Deferred.
-- Exact next action: use integrated main as the baseline for the user's next
-  selected work; no additional phase, outreach or funded deployment starts here.
+- R096 integration baseline is retained for the newly requested consolidation.
+  No outreach or funded deployment is authorized by this maintenance work.
 
 ## Blocker register
 
@@ -5585,3 +5596,46 @@ documentation-only. Existing selected hosted results are observed, not invented.
 No outreach, external hedging, external security review or funded deployment occurs.
 P15B/P16B remain Open; 24-hour endurance Deferred. No merge/access blocker remains.
 Exact next action: use integrated main for the user's next selected work.
+
+
+## R097 — 30 October 2026 — repository consolidation inventory and plan
+
+The user requests canonical account/struct naming, a small component-oriented
+current documentation set and a maintenance-oriented AGENTS handoff. Starting
+baseline `1f1a5aac4c47844517c1cc190e2bdcd578bc346b` is clean apart from the three
+unrelated research paths. Create local `maintenance/repository-consolidation`;
+preserve those files and all ignored evidence/databases/configuration.
+
+Read the required repository/domain/current delivery docs; inspect tracked file
+counts, current/legacy state and handlers, Cargo features, generated SDK exports,
+generator naming, operator/demo boundaries and the evidence policy. Actual inventory:
+110 docs / 19,778 lines, including 52 evidence summaries / 3,853 lines; WORKLOG
+5,587 lines and DECISIONS 1,526. Current financial state reuses V2 primitives;
+V3/V4 maker registrations differ and cannot be merged by removing suffixes.
+Inspect installed Anchor 1.2.1 account/program/event macro overrides and official
+references; custom discriminators are supported, but byte preservation is a future
+acceptance requirement, not a tested refactor.
+
+Deliver [REPOSITORY-CONSOLIDATION](REPOSITORY-CONSOLIDATION.md): current-name map,
+explicit wire/domain/seed/schema preservation, dependency-based retirement,
+four component documentation areas with about twenty current documents, historical
+Git provenance instead of an archive/evidence directory, and concise AGENTS rules.
+P35 owns docs/handoff; P36 canonical names and coupled IDL/SDK/consumers; P37 removal
+of proven-obsolete paths and fresh current-runtime qualification. Record D79 and
+update both status tables/plan. This run implements planning only; no source,
+account, runtime, stored original, old evidence or AGENTS has been changed/removed.
+
+Do not run SBF, financial, RPC/WS/PostgreSQL, browser, broad regression or load tests
+for this documentation-only planning change. Current volume has about 456 MiB
+free; establish build/runtime headroom before those later checks without deleting
+user material or active databases. This is a resource precondition, not an attempted
+runtime failure. External P15B/P16B stay Open; 24-hour endurance remains Deferred.
+
+Closeout validation: four documentation files, 254 existing local Markdown
+targets, balanced code fences, valid added status-table rows, diff whitespace and
+tracked-evidence policy pass. No executable file changed. Commit the planning
+checkpoint locally; P35 is not ready for a completion PR until its docs/handoff
+migration is implemented and checked.
+
+Exact next action: complete P35's per-document disposition and retained-invariant
+map, then replace current docs/AGENTS together with link/command validation.

@@ -1524,3 +1524,30 @@ deployment claim. The restricted publisher trust assumption, three-maker bound,
 narrow historical latency margin and unknown-fee reserve limitation remain explicit.
 P15B/P16B remain separate Open external gates; 24-hour endurance stays Deferred.
 No independent-audit approval, production/funded deployment or outreach is implied.
+
+
+## D79 — repository consolidation direction (30 October 2026)
+
+The user requests one coherent current naming scheme, consolidated component
+contracts and a maintenance-oriented agent guide. [The inspected plan](REPOSITORY-CONSOLIDATION.md)
+uses P35–P37 for this work, without restarting a product/architecture campaign.
+P35 prepares the new documentation authority map and replaces the old mandatory
+phase/run-reading process only when those replacement documents exist together.
+This supersedes retaining every old phase/evidence summary in the active tree;
+immutable Git provenance and concise current validation preserve their actual scope.
+Raw ignored evidence remains at its existing paths; no bundles or uploads.
+
+Remove development-version suffixes from current source concepts while retaining
+necessary numeric schema, replay/domain, network-format and API version checks.
+The recommended refactor preserves the current wire discriminators, layout, PDA
+seeds and authority/economic behavior; generated names and coupled consumers must
+change together. Earlier implementations must be classified through real references
+before retirement. Existing deployments, persistent history and unresolved signed
+originals are not silently migrated or discarded. No complete retirement or ABI
+parity is claimed by the inventory. A necessary incompatible change requires its
+own concrete contract and review, not a bulk rename.
+
+The current local qualification remains pinned to its original artifacts. Rebuilt
+artifacts need fresh affected verification. Fees, insurance, risk, loss ownership,
+publisher trust and activation gates are unchanged. P15B/P16B and deferred endurance
+remain separate; this planning run adds no deployment or external authorization.
