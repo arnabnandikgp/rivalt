@@ -14,6 +14,7 @@ import {eventPayloads,json} from '../../packages/indexer/src/events.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {liquidityQueueFault} from './liquidity-queue-fault.js';
+import {liquidityMakerEconomics} from '../../packages/maker-kit/src/liquidity-economics.js';
 
 const directory=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATABASE_URL!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
@@ -48,6 +49,7 @@ try {
   const config:LiquidityConfig={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,
     runId:'p33-services',venue:setup.venue,anchor,profile:'liquidity-execution-qualification',pageSize:100};
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
+  const openingState=(await indexer.store.snapshot()).state;
   const {binding}=await indexer.store.snapshot();
   const client=new sdk.LiquidityUserClient({version:4,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
     genesis:binding.genesis,anchor,anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain});
@@ -82,7 +84,13 @@ try {
     const env={...process.env,RIVALT_ACCOUNT_PROFILE:config.profile,RIVALT_RPC_URL:config.rpcUrl,RIVALT_DATABASE_URL:databaseUrl,RIVALT_RUN_ID:config.runId};
     if(key){const path=`${directory}/signer-${identity}.json`;writeFileSync(path,JSON.stringify([...key.secretKey]),{mode:0o600});
       Object.assign(env,{RIVALT_ACCOUNT_ROLE:role,RIVALT_MARKET_INDEX:String(marketIndex),RIVALT_MAKER_ID:String(instance),RIVALT_SIGNER_PATH:path});}
-    const child=spawn(process.execPath,['--import','tsx',`packages/services/src/account-${role==='executor'?'executor':'worker'}-main.ts`],
+    let args=['--import','tsx',`packages/services/src/account-${role==='executor'?'executor':'worker'}-main.ts`];
+    if(role==='maker') {
+      const path=`${directory}/operator-${identity}.json`;writeFileSync(path,json({schemaVersion:4,operatorClass:'internal-reference',deployment:client.config,
+        runId:config.runId,databaseEnv:'RIVALT_DATABASE_URL',signerPath:`${directory}/signer-${identity}.json`,role,marketIndex,instance,signer:key!.address}),{mode:0o600});
+      args=['--import','tsx','packages/maker-kit/src/liquidity-bot.ts',path];
+    }
+    const child=spawn(process.execPath,args,
       {cwd:process.cwd(),env,stdio:['ignore','pipe','pipe']});
     const output=createWriteStream(`${directory}/${identity}.log`);child.stdout!.pipe(output,{end:false});child.stderr!.pipe(output,{end:false});
     child.once('exit',()=>output.end());children.push(child);return child;
@@ -170,11 +178,32 @@ try {
   replay=new LiquidityIndexer({...config,databaseUrl:replayUrl.toString(),runId:'p33-service-replay'});await replay.open();await replay.cycle();
   assert.deepEqual((await replay.store.snapshot()).state,state);
   const intents=(await runtime.store.pool.query('SELECT request_id,signature,status,budget,result FROM service_intents WHERE run_id=$1 ORDER BY created_at',[config.runId])).rows;
+  const journal=(await indexer.store.pool.query('SELECT signature,kind,payload FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence',[config.runId,openingState.sequence])).rows;
+  const transactions=(await indexer.store.pool.query('SELECT signature,failed,payload FROM transactions WHERE run_id=$1',[config.runId])).rows;
+  // Maker reprices have no clearing events, but their actual charged network
+  // fees still belong in the operator report. Fetch every original independently.
+  for(const intent of intents)if(!transactions.some(tx=>tx.signature===intent.signature)) {
+    const payload=await rpc.call('getTransaction',[intent.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+    assert(payload);transactions.push({signature:intent.signature,failed:payload.meta.err!==null,payload});
+  }
+  const economics=setup.instances.map((instance,offset)=>{
+    const marketIndex=(offset<3?0:1) as 0|1,market=setup.markets[marketIndex],budget=`liquidity-maker-${marketIndex}-${offset%3}`;
+    const boundary=(projection:typeof state)=>({sequence:projection.sequence,root:projection.roots[instance.capital],
+      fundingIndexScaled:projection.markets[market].fundingIndexScaled,referencePrice:projection.markets[market].referencePrice});
+    const input={version:4 as const,operatorClass:'internal-reference' as const,capital:instance.capital,market,marketIndex,
+      opening:boundary(openingState),closing:boundary(state),events:journal,
+      transactions:transactions.map(tx=>({signature:tx.signature,feeLamports:String(tx.payload.meta.fee),failed:tx.failed,
+        chargeToMaker:intents.some(intent=>intent.signature===tx.signature&&intent.budget===budget)})),
+      costScope:`Only ${budget} update transactions; excludes shared publisher, setup/rent and taker costs`,pendingFeeReservationLamports:'0',
+      hedge:{kind:'not-observed' as const,assumedBps:'1',description:'Illustrative one-basis-point hedge cost on filled venue notional; no hedge was executed'}};
+    writeFileSync(`${directory}/maker-${marketIndex}-${offset%3}-economics-input.json`,json(input));return liquidityMakerEconomics(input);
+  });
+  writeFileSync(`${directory}/maker-economics.json`,json(economics));
   assert(intents.every(row=>['finalized','failed'].includes(row.status)),json(intents));
   assert(observations.every((entry:any)=>entry.stage!=='indexer-retry'||entry.expected),json(observations));
   const summary={revision,trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,faults,wallets,browser,observations,intents,
-    inputReplay:{reports:records.length,available,independentFlatPriceArithmetic:true},reconciliation,state,metrics:indexer.metrics,replayMetrics:replay.metrics,
+    inputReplay:{reports:records.length,available,independentFlatPriceArithmetic:true},economics,reconciliation,state,metrics:indexer.metrics,replayMetrics:replay.metrics,
     phaseAcceptance:false,remaining:'maker kit and full phase closeout; P34 comparative workload separate'};
   writeFileSync(`${directory}/summary.json`,json(summary));console.log(json({stage:'p33-services-pass',intents:intents.length,reports:records.length,reconciliation}));
 }finally{

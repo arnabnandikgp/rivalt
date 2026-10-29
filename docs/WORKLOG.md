@@ -4999,3 +4999,24 @@ arithmetic, source outage, indexer restart and browser signatures. Typecheck cau
 incorrect test-only generated decoder/member names; corrected to current generated
 layouts. These are harness corrections, not runtime pass evidence. Next: run this
 harness on its clean recorded revision, then finish fresh operator packaging.
+
+R091 first integrated run on clean `d35580c` used
+`.local/liquidity-execution/runs/20261029T181700Z-75235`. Both cash-exit and
+maker-reprice originals survive real executor SIGKILL after upstream acceptance;
+six maker workers and two publishers run, and six actual browser actions finalize
+(BTC/ETH opens/closes and TP/SL creation/cancellation). The run stops at the next
+quote: the browser fixture retained its one-atom minimum-sell value as the new
+maximum-buy limit. The UI correctly refuses that quote; no failed trade is sent.
+The fixture now explicitly sets its intended buy limit before the isolated trade.
+This partial run does not close A38.
+
+The operator entry point now consumes a private explicit profile-4 configuration,
+checks signer/deployment/database bindings and starts the same leased durable
+worker. The next fresh harness launches maker processes through this kit. Five
+focused kit checks and typecheck pass: exact independent funded/unpaid/fractional
+funding arithmetic, fee attribution, incomplete/failed-history rejection, exceptional
+window rejection and strict operator configuration. [Operator guide](P33-MAKER-KIT.md)
+documents provisioning, permissions, funding, quoting, reconciliation and exits.
+P33 remains In progress; P34 Open. Exact next action: rerun the corrected actual
+worker/browser/outage/replay harness on its new clean pin and address only its
+actionable failures. No unrelated build or financial suite is required.

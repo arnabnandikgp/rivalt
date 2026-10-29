@@ -80,3 +80,8 @@ is reproducibility only; independent arithmetic checks remain an acceptance gate
 Production finalized indexing passes the scoped fresh run on `3233201` recorded in
 WORKLOG. Worker processes, independent retained-input replay, browser and fresh
 operator kit acceptance are still pending; no A38 completion is implied.
+
+The [operator kit](P33-MAKER-KIT.md) now packages an explicit private-config entry
+point and an independent normal maker-economics report. The first integrated run
+passes both original-signature crash recoveries and six browser transactions, then
+stops on a corrected test input limit. The fresh full run remains required.

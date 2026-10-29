@@ -67,6 +67,7 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Liquid
     await select('Side','1');await page.getByLabel('Minimum all-in proceeds (test USD)',{exact:true}).fill('0.000001');
     await page.getByLabel('Reduce only',{exact:true}).check();await action('Review atomic trade');await select('Market','0');await action('Review atomic trade');
     await page.getByLabel('Reduce only',{exact:true}).uncheck();await select('Side','0');
+    await page.getByLabel('Maximum all-in spend (test USD)',{exact:true}).fill('1');
     await select('Margin account','1');await action('Review atomic trade');
     await select('Side','1');await page.getByLabel('Minimum all-in proceeds (test USD)',{exact:true}).fill('0.000001');
     await page.getByLabel('Reduce only',{exact:true}).check();await action('Review atomic trade');
