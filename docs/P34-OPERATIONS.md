@@ -39,7 +39,9 @@ Run `tests/load/p34_report.py` with the three summary paths for financial,
 population, fee/resource and comparative checks. Run
 `tests/load/p34-publisher-reference.ts` against each canonical directory for
 independent retained-input marginal-price integration. The operational wrapper
-runs the raw-account complete-cohort financial reference separately. Exact commands,
+runs the raw-account complete-cohort financial reference separately;
+`tests/load/p34_operations_report.py` checks its actual receipts and resource limits.
+Exact commands,
 code pins and measured values belong in `evidence/P34.md`.
 
 ## Availability and recovery boundaries

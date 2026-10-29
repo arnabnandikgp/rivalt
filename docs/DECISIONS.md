@@ -1474,3 +1474,9 @@ frozen proposal service reader: use the configured profile3/4, keeping the share
 schema3 financial contract and exact complete-cohort checks. No broader profile,
 loss allocation, payout authority or activation is introduced. The failed profile4
 operational run remains recorded until a fresh rerun qualifies the correction.
+
+R093 correction acceptance: fresh clean `aae8bb0` completes the actual profile4
+worker default, partial-upload restart, sustained recovery and all ten funded exits,
+with independent exact Fraction accounting and fresh PostgreSQL replay. This
+qualifies the configured-profile correction; final P34 maximum-book checks and
+PR integration remain separate. No external gate or default/devnet build activates.

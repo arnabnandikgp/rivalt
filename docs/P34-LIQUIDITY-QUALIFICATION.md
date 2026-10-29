@@ -4,7 +4,7 @@ In progress above P33 `964ca5f` / ready #48. A39/G26/M10 exit is not yet passed.
 Keep the stack open; M10 closes only after accepted phases integrate.
 
 The final three-profile comparison passes on recorded R093 pins. Operational
-default/recovery/all-funded exits and maximum-book supplements remain outstanding.
+default/recovery/all-funded exits now pass; maximum-book supplements remain outstanding.
 See [the operational guide](P34-OPERATIONS.md) for reproduction and explicit limits.
 
 ## Pinned workload interpretation

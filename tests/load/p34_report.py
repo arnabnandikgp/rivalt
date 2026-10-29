@@ -210,6 +210,15 @@ def summarize(run, directory):
         if offer.get('finalError'):
             code = offer['finalError'].get('InstructionError', [None, {}])[1].get('Custom')
             assert code in {6112, 6113, 6115, 6118, 6124}, 'Unexplained route failure'
+            if run['profile']=='baseline' and code==6115:
+                check_index=next(index for index,check in enumerate(checks) if check['label']==f"offered route {offer['index']}")
+                landed=json.loads((directory/f'transaction-{check_index}.json').read_text())
+                selected={leg['instance'] for leg in offer['allocation']['legs']}
+                expired=[maker for maker in services['opening']['makers'].values() if maker['marketIndex']==offer['marketIndex']
+                         and maker['makerId'] in selected and int(maker['expirySlot'])<=landed['slot']]
+                assert expired, 'Legacy MakerQuote failure must have independently observed epoch expiry'
+            else:
+                assert 59000<=offer['startedMs']<=80000 or 89000<=offer['startedMs']<=108000, 'Failure outside declared transition windows'
         reason = offer['reason'] or ('filled' if offer['attempted'] and not offer.get('finalError') else None)
         assert reason, 'Unclassified opportunity'
         categories[reason] += 1
