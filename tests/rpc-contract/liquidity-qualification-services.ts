@@ -97,7 +97,7 @@ export async function qualificationServices(setup:QualificationSetup,transport:A
     const replayUrl=new URL(base.databaseUrl);replayUrl.pathname=`/p34_${profile}_replay`;
     const replay=makeIndexer({databaseUrl:replayUrl.toString(),runId:`${runId}-replay`});
     try{await replay.open();await replay.cycle();assert.deepEqual((await replay.store.snapshot()).state,state);}finally{await replay.close();}
-    const intents=(await runtime.store.pool.query('SELECT request_id,signature,status,budget,result,created_at FROM service_intents WHERE run_id=$1 ORDER BY created_at',[runId])).rows;
+    const intents=(await runtime.store.pool.query('SELECT request_id,signature,wire,status,budget,result,created_at FROM service_intents WHERE run_id=$1 ORDER BY created_at',[runId])).rows;
     const journal=(await indexer.store.pool.query('SELECT signature,kind,payload FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence',[runId,opening.sequence])).rows;
     const transactions=[];
     for(const intent of intents){const payload=await rpc.call('getTransaction',[intent.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);assert(payload);transactions.push({requestId:intent.request_id,payload});}

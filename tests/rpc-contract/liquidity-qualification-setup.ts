@@ -18,7 +18,7 @@ export async function qualificationSetup(h:CanonicalHarness,rpc:WireRpc,profile:
   if(baseline)await deposit(cross,1_000_000n);
   // A separate account keeps order-worker and own-cash exit tests from changing
   // the timed traders' independent before/after accounting snapshots.
-  const operations=await register(3,0,255,0,1_000_000n);
+  const operations=await register(3,1,0,0,1_000_000n);
   const makerRoots=canonical?canonical.instances.map(maker=>maker.capital):baseline!.makers.flat().map(maker=>maker.capital);
   if(baseline)for(const market of [0,1])makerRoots.push(await register(4+market,1,market,1,500_000_000n));
   async function deposit(margin:Address,amount:bigint) {

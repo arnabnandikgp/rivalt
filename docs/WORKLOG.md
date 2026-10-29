@@ -5159,7 +5159,7 @@ R093 preparation: the final comparison now provisions equal 3,004,000,000-atom
 capital across six maker roots and four trader/operation roots, exercises both
 markets and margin modes, and runs actual production funding/order/executor/indexer
 services. It records two- and ten-second observed index markouts, build/sign timing,
-all offered outcomes and independent per-market fee/claim conservation. One maker
+all offered outcomes and independent per-market fee/claim conservation. One funding
 worker and the finalized indexer restart; raw funding inputs are content-addressed
 to avoid repeated executable-byte dumps. Baseline unsupported extra makers remain
 unregistered, and its legacy epoch is not artificially renewed for the benchmark.
@@ -5167,3 +5167,12 @@ unregistered, and its legacy epoch is not artificially renewed for the benchmark
 `pnpm typecheck`, shell syntax and `git diff --check` pass. No runtime result is
 claimed. Exact next action: commit this harness and execute the fresh baseline
 300-second/600-offer profile, then control and treatment with the same workload.
+
+R093 first baseline provisioning on `b8ea33b`, local
+`.local/liquidity-execution/qualification/20261029T191356Z-92730/baseline`,
+stops before the pricing window: the new operation fixture attempted a cross root
+at subaccount 3, which correctly rejects (Profile/6108; cross is index 0 only).
+Use an isolated BTC operation root at index 3; both actual cross and isolated
+timed traders remain unchanged. No program or authority rule changed. Preserve
+failed evidence; no 600-offer result claimed. Include exact service originals in
+the final report for independent packet/fee audit. Next: pin and retry baseline.
