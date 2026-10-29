@@ -1,6 +1,7 @@
 # P34 — final bounded qualification
 
-Review above P33 `964ca5f` / ready #48. [A39/G26 engineering acceptance](evidence/P34.md)
+Review in ready [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49) above P33
+`964ca5f` / ready #48. [A39/G26 engineering acceptance](evidence/P34.md)
 passes on recorded R093 pins. Keep the stack open; M10 closes only after accepted
 phases integrate.
 
