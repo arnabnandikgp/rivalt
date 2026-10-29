@@ -78,7 +78,10 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   requireValue(clockBytes.length === 40, 'Invalid funding Clock layout.');
   const clock = new DataView(clockBytes.buffer, clockBytes.byteOffset, clockBytes.byteLength);
   const slot = clock.getBigUint64(0, true), now = clock.getBigInt64(32, true);
-  requireValue(slot <= contextSlot && slot > configurationState.lastObservedSlot && now > 0n
+  // RPC context orders reads; the authenticated Clock supplies report time/slot.
+  // Surfpool 1.6.1 returns Clock.slot=context.slot+1 in the same batch. Do not
+  // replace Clock with RPC metadata. Clearing still rejects future observations.
+  requireValue(slot > configurationState.lastObservedSlot && now > 0n
     && now >= configurationState.lastObservedTime, 'Funding snapshot predates the publisher fence.');
   const report: clearing.FundingReportV4 = {
     version: 1, domain: Uint8Array.from(venueState.domain), market, authorityEpoch: configurationState.authorityEpoch,

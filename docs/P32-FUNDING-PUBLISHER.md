@@ -101,9 +101,9 @@ external hedge or funded deployment under this authorization.
 
 ## Immediate next action
 
-Freeze the exact P32 publisher configuration/report transition contract and its
-numeric resource target, then implement and test the handler plus real publisher
-client on the existing P32 branch. Do not continue optimizing the superseded
+Run the scoped actual-RPC publisher probe against the D76 candidate, then complete
+the existing P32 execution/safety/PostgreSQL and continuation acceptance. Do not
+continue optimizing the superseded
 on-chain exhaustive funding search as the chosen production path for this profile.
 
 ## Frozen publisher contract — D76
@@ -122,6 +122,11 @@ Scope remains the fresh profile4 local qualification artifact; V1–V3 are uncha
   reference_price, quantity, bid, ask u64; outcome u8; input_digest [u8;32].
   Prices/totals are collateral atoms per lot / collateral atoms respectively.
   Digest is SHA-256 over the builder's versioned ordered raw snapshot, not a proof.
+  Digest v1 encodes UTF-8 JSON `["rivalt-funding-snapshot-v1", context-slot decimal,
+  rows]`, with address-sorted `[key,[owner,executable,base64-bytes]]` rows and null
+  for absent accounts. Clock and RPC context are retained separately: the former
+  supplies report time/slot, the latter orders discovery/final-batch reads. The
+  program independently rejects future observed time/slot at landing.
 - Outcomes: 0 available, 1 invalid independent sources, 2 unavailable/invalid maker
   coverage, 3 insufficient published depth. Unavailable reports have zero reference,
   quantity, bid, ask and both validity endpoints; all require a nonzero audit digest.

@@ -4,9 +4,10 @@ In progress on `phase/p32-liquidity-execution`, above exact P31 `28d5dd0` / read
 [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46). A37/G25 is not complete.
 The governing contract is [P29B](P29B-MAKER-CONTRACT.md), explicitly amended by
 D74's published-liquidity decision and D75's subsequently accepted
-[restricted publisher replacement](P32-FUNDING-PUBLISHER.md). The report handler
-and backend publisher are not implemented yet. Execution financial checks and
-external authorization are unchanged; publisher cost targets are phase-owned.
+[restricted publisher replacement](P32-FUNDING-PUBLISHER.md). R087 implements the
+handler/backend candidate under the frozen D76 contract; its scoped RPC probe and
+the full execution/safety gates remain in progress. Execution financial checks
+and external authorization are unchanged.
 
 ## Implementation sequence within this phase
 
@@ -31,7 +32,7 @@ external authorization are unchanged; publisher cost targets are phase-owned.
    contention. Run G22's predeclared V3/control/treatment offer schedules; publish
    this phase only after A37/G25 and its prototype continuation gate pass.
 
-## Existing D74 implementation checkpoint (publisher replacement pending)
+## Historical D74 implementation checkpoint (superseded by D75/D76)
 
 `QuoteLadderV4` validates a canonical shape once, then emits exact cumulative prices
 for consecutive quantities. It walks region offsets and uses the discrete potential
