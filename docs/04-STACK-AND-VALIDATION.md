@@ -36,6 +36,14 @@ authenticated coverage, stale/disabled/index-band failures, declared capacity,
 causal accrual and unchanged resource ceilings. The pre-D74 equivalence cases
 remain historical regression coverage, not the new funding contract.
 
+D75 replaces per-update on-chain funding search with restricted publisher reports.
+Use [the revised P32–P34 acceptance](P32-FUNDING-PUBLISHER.md): independently test
+backend calculation/complete-input handling and on-chain report acceptance as
+distinct trust boundaries. Freeze the smaller resource target before benchmarking;
+measure real signed reports, authority/replay/expiry/recovery, actual financial
+effects and PostgreSQL reconstruction. Historical sampler probes cannot qualify
+this new authority path. No test or gate is closed by this planning amendment.
+
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains
 phase-owned, and the candidate build does not satisfy P26 safety.

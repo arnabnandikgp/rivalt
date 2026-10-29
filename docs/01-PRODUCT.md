@@ -17,6 +17,12 @@ execution gate. Fees, insurance, margin, funded/unpaid
 claims and external gates are preserved. This is not already implemented liquidity
 or permission to route to existing external spot pools.
 
+D75 selects a restricted backend publisher for fresh profile-4 funding, initially
+publishing every two seconds. Complete maker coverage and impact calculation are
+explicit publisher trust assumptions; clearing retains bounded report validation,
+independent risk prices and causal funding. Actual trading keeps full financial
+admission. [P32–P34 publisher delivery](P32-FUNDING-PUBLISHER.md) remains pending.
+
 D56 adds [P22–P28](P22-ACCOUNT-CENTRIC-CLEARING.md), a fresh bounded local redesign
 that separates account risk, market eligibility, funded exits and settlement/default
 rules. The intended UX removes technical group selection; BTC/ETH, one test mint,

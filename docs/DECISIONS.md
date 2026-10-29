@@ -1360,3 +1360,38 @@ published depth while execution still rejects insufficient margin; retain stale,
 missing, disabled, price-band, consumption, causal and reconstruction checks.
 Prior failed measurements remain historical evidence. Trading stays disabled
 until complete P32 acceptance; P15B/P16B and deferred endurance are unchanged.
+
+## D75 — Restricted off-chain funding publisher within P32–P34 (29 October 2026)
+
+The user accepts the recommended backend publisher approach and asks how it fits
+the active phases. Implement it within existing P32–P34, as described in
+[the publisher delivery contract](P32-FUNDING-PUBLISHER.md), with ready stacked
+PRs kept open. Do not reopen completed maker-curve/router work or silently claim
+that the existing on-chain sampler already implements this architecture.
+
+For fresh local profile4, move complete maker snapshot authentication and exact
+published-depth impact calculation to the backend. A narrowly authorized signer
+submits a sequenced, expiring report; clearing checks authority, report/domain/
+configuration/time/price bounds and independent oracle validity, then derives
+premium and causal funding accrual itself. No arbitrary cumulative-index writes.
+Observe changes/slots off-chain, but retain the two-second publication cadence
+initially, maximum six-second hold and existing shorter expiry/recovery/outage
+rules. Exact versioned layouts, authority controls, transitions and a lower
+resource target must be frozen in P32 before implementation/measurement.
+
+This deliberately supersedes D70/P29B section6 and D74 **where they require all
+maker accounts, full code hashing, quote CPIs and allocation verification on-chain
+for each funding sample**. Complete fresh maker coverage and correct calculation
+become publisher duties, checked independently by replay; a signed digest is not
+a proof. The accepted trust assumption includes possible dishonest reports within
+allowed bounds. Preserve D74's omission of hypothetical maker financial admission,
+the existing impact/premium formula, independent risk prices, full execution
+financial checks, fees/insurance and V1–V3. Publisher authority is explicitly scoped,
+rotatable/revocable and distinct from custody, risk-source and trading authority.
+
+P32 must prove a real builder/publisher-to-clearing flow, then complete its existing
+trading/safety/qualification scope; P33 adds durable operations/consumers and P34
+qualifies final comparative performance and recovery. Prior failed resource probes
+remain evidence of the old path, not acceptance of the replacement. Trading stays
+disabled until full P32 acceptance. Automatic failure-based maker exclusion,
+24-hour endurance, P15B/P16B and deployment/outreach restrictions are unchanged.

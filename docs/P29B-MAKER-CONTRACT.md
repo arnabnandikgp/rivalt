@@ -355,7 +355,21 @@ lexicographically smaller sorted instance IDs, then more quantity at the first I
 The SDK defaults to the reviewed all-in amount; any worse-price tolerance must be
 explicit. Current-price execution cannot broaden a signed order's bounds.
 
-Funding requires **all three** sealed authenticated configurations, capital states
+**D75 current delivery amendment:** the fresh profile's replacement funding path
+uses restricted backend reports; see [the publisher contract and acceptance](P32-FUNDING-PUBLISHER.md).
+Complete maker snapshot authentication and exact published-depth aggregation are
+publisher responsibilities. Clearing checks authorization/domain/configuration,
+sequence/expiry, independent source and price/Q bounds, and derives premium and
+causal accrual itself. Report signatures/digests do not prove complete coverage or
+optimality. Actual route verification above is unchanged. Exact layouts and the
+smaller publisher resource target must be frozen in P32 before implementation.
+
+The following D74 on-chain sampling requirements record the superseded path.
+Their pricing/formula/cadence/expiry rules carry forward; per-update on-chain maker
+accounts, code hashing, CPI and allocation verification do not. D75's acceptance
+requires new backend/reporter evidence rather than relabelling old sampler tests.
+
+Funding required **all three** sealed authenticated configurations, capital states
 and fresh publications, even if a maker contributes zero size. Missing, expired,
 disabled, quarantined or code-mismatched required input makes the sample unqualified;
 never substitute a keeper-selected subset. A valid one-sided or inventory-limited
@@ -395,11 +409,17 @@ loaded keys or contention. D71 supersedes the original mandatory lookup-table po
 |---|---|
 | Registry / regions / dependencies | 3 makers/market, 8 regions/side, config+price only, ≤2 distinct programs |
 | Search | ≤12,291 candidate compositions, ≤12,288 nonzero per-maker quantity quotes; exact optimum; SDK p95≤250ms and p99≤500ms over 1,000 warmed worst-width runs on recorded host |
-| Funding search | ≤3×600 per-maker quotes/side and ≤3×599+3 allocations/side; keep only one side's arrays live; ≤16 KiB quote+eligibility scratch, default32 KiB heap |
+| Historical on-chain funding search (superseded by D75) | ≤3×600 per-maker quotes/side and ≤3×599+3 allocations/side; keep only one side's arrays live; ≤16 KiB quote+eligibility scratch, default32 KiB heap |
 | Packet/accounts | v0≤1,232 / v1≤4,096 complete serialized bytes; ≤32 unique loaded accounts for route/sample, ≤18 per control gateway including a separate fee payer and up to3 signers; composed controls≤32 total keys; no automatic expansion |
 | Compute | Single reprice submitted≤100k, single control≤400k, atomic pair of controls≤800k, route≤800k, sample≤1.4m CU; measured maximum≤80% of its submitted limit, including full ProgramData verification and max books |
 | Atomic combined operations | Submit only if measured packet/compute/headroom pass; no claim all old transfer+route compositions already fit the new envelope |
 | Concurrency | Record writable keys, conflicts/retries and update-to-landing p50/p95/p99; price publication writes only its price account, not market/custody/capital |
+
+D75's restricted publisher must receive its own lower update-CU target in P32
+before measurement. Preserve 20% headroom, packet/heap limits and actual execution
+budgets; the historical sampler's 1.4m ceiling does not establish publisher cost
+acceptance. The comparison workload remains, with the funding-authority change
+explicitly labelled rather than attributed to router efficiency.
 
 **Current transport policy (D71):** measure the complete transaction including
 signatures before broadcast. Use v0 when it fits1,232 bytes; use v1 above that,

@@ -734,6 +734,14 @@ Fresh 100/600-lot resource and zero-cash-publisher evidence is required. Tempora
 failure-based maker exclusion is deferred; P33/P34 must label the resulting
 funding liquidity accordingly. No earlier failed resource gate is waived.
 
+D75 accepts [the restricted publisher replacement](P32-FUNDING-PUBLISHER.md)
+inside these same phases. P32 freezes the report/authority contract, implements a
+real backend builder plus bounded on-chain publisher handler and proves them with
+the existing trading/safety prototype before closing A37/G25. P33 integrates its
+durable worker, recovery and provenance in SDK/indexer/API/UI/operator flows. P34
+measures final costs, coverage, contention and fault recovery. Keep predecessor
+PRs and phase IDs; do not split this amendment into a new series of task PRs.
+
 Retain at most two makers per route while testing discovery/selection beyond the
 fixed A/B identity pair. A price update cannot implicitly restore consumed depth.
 Unknown/custom pricing capabilities cannot inherit canonical validation or funding

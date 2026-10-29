@@ -14,6 +14,11 @@ three-maker registry, bounded updates and qualification gates.
 profile; new financial trading remains disabled until P32. Existing integrated
 profiles retain their evidence.
 
+D75 selects [a restricted off-chain funding publisher](docs/P32-FUNDING-PUBLISHER.md)
+within the active P32–P34 sequence. The backend computes published-depth impact
+prices; clearing authorizes bounded reports and keeps funding accounting on-chain.
+This accepted replacement is not yet implemented or qualified.
+
 [P22–P28's account-centric clearing redesign](docs/P22-ACCOUNT-CENTRIC-CLEARING.md)
 is integrated under R073/D67: separate account risk, market eligibility, funded
 exits and settlement/default responsibilities. P22B defines the financial contract;

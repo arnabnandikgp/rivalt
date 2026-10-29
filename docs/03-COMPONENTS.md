@@ -22,6 +22,13 @@ inventory; full financial checks remain in execution. Consumer views must label
 funding liquidity as published, not guaranteed executable. Resource acceptance and new trading activation
 remain unfulfilled; this does not extend the legacy A/B sampler to profile4.
 
+D75 supersedes that per-sample on-chain quote/CPI path with
+[a restricted off-chain publisher](P32-FUNDING-PUBLISHER.md). P32 owns the real
+snapshot/report builder, scoped authority and on-chain bounded-report/accrual
+handler; P33 owns durable worker operation, reconciliation and consumer provenance.
+Maker financial admission remains in execution, not funding calculation. The
+publisher replacement is selected but not yet implemented.
+
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.
 The pinned candidate matrix and explicit storage-ready local activation pass

@@ -3,22 +3,25 @@
 In progress on `phase/p32-liquidity-execution`, above exact P31 `28d5dd0` / ready
 [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46). A37/G25 is not complete.
 The governing contract is [P29B](P29B-MAKER-CONTRACT.md), explicitly amended by
-the user's D74 published-liquidity funding decision. Resource gates, execution
-financial checks and external authorization are unchanged.
+D74's published-liquidity decision and D75's subsequently accepted
+[restricted publisher replacement](P32-FUNDING-PUBLISHER.md). The report handler
+and backend publisher are not implemented yet. Execution financial checks and
+external authorization are unchanged; publisher cost targets are phase-owned.
 
 ## Implementation sequence within this phase
 
-1. Prepare exact consecutive canonical quotes and a bounded single/pair funding
-   allocator. Validate against independent expectations before using it in clearing.
+1. Freeze the D75 publisher report/layout/authority transitions and smaller resource
+   target. Reuse canonical pricing/snapshots in an off-chain published-depth builder,
+   with independent expected vectors and complete input provenance.
 2. Authenticate V4 registrations/configs/publications and invoke only fixed read-only
    config/price accounts. Execute the signed one/two-leg allocation through the
    existing whole-account candidate, order and fee/insurance engine. Current price
    and consumption may change within signed limits; structural epochs may not.
-3. Sample all three sealed makers' authenticated published curves under D74,
-   without hypothetical funding/margin/reservation admission. Fill each side's
-   full reference quantity without a synthetic trader, taker fee or depth mutation.
-   Causal structural controls materialize and
-   truncate old held funding; ordinary repricing does not modify it.
+3. Implement the D75 bounded signed-report handler plus a real publisher client.
+   Compute complete configured published depth off-chain without hypothetical
+   financial admission. Keep index/source validation and causal accrual on-chain;
+   test authority, replay, expiry, unavailable reports and structural invalidation.
+   Disable competing sampling entrypoints for the replacement profile.
 4. Integrate the profile with complete account liquidation/default/recovery and
    funded exits. Preserve old profile behavior and reject old A/B sampling/routes
    on the new profile. Keep unfinished execution disabled; candidate activation
@@ -28,7 +31,7 @@ financial checks and external authorization are unchanged.
    contention. Run G22's predeclared V3/control/treatment offer schedules; publish
    this phase only after A37/G25 and its prototype continuation gate pass.
 
-## Current engineering checkpoint
+## Existing D74 implementation checkpoint (publisher replacement pending)
 
 `QuoteLadderV4` validates a canonical shape once, then emits exact cumulative prices
 for consecutive quantities. It walks region offsets and uses the discrete potential
@@ -142,5 +145,6 @@ Log boundaries attribute530,849CU before the first maker quote,237,366CU within
 eight maker quote calls, and566,114CU to the remaining quote/search/bookkeeping
 work. The first category includes setup/authentication and is not an isolated
 code-hashing measurement. No maker hypothetical financial checks remain in this
-sampler. Profile and reduce the remaining price/authentication overhead next; do
-not label the changed sampler cheap or scalable from this single successful size.
+sampler. D75 supersedes continued optimization of this on-chain sampler as the chosen
+path. Implement and separately measure the restricted publisher replacement;
+do not label either design cheap or scalable from this historical single size.

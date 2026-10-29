@@ -156,10 +156,17 @@ all-in limits. No claim of best prices outside the admitted snapshot/candidate s
 
 ### P32 — first complete trading prototype and continuation gate
 
+D75 accepts [restricted publisher funding](P32-FUNDING-PUBLISHER.md) within this
+phase. Freeze the versioned report/authority contract first, implement the real
+off-chain builder/publisher and on-chain bounded-report/accrual handler, then prove
+actual publisher-fed trading and safety. Stop optimizing the superseded on-chain
+exhaustive funding search as the chosen path. P30/P31 remain prerequisites and
+retain their unchanged scope; new report authority gets fresh acceptance.
+
 Integrate new maker registration/config validation and consumption into clearing's
 immediate routes, persistent subfills and TP/SL. Implement the frozen update-race
 policy, current whole-account funding/health and reservation checks. Rework funding
-sampling to use the same published pricing/depth and search constraints, with
+sampling via the D75 publisher to use the same published pricing/depth and search constraints, with
 complete configured coverage and no consumed depth. D74 deliberately removes
 hypothetical maker financial checks from funding only; published depth is not an
 execution guarantee, and automated economic-failure exclusion is deferred.
@@ -192,11 +199,15 @@ Escalate only a material scope/economic departure or genuine external blocker.
 ### P33 — usable operator and trader integration
 
 Deliver versioned SDK discovery/snapshots/transactions, maker daemon/configuration,
-durable updater and execution retry policy, canonical funding worker, finalized
+durable updater and execution retry policy, restricted funding publisher worker, finalized
 indexer/API reconstruction, and trader quotes showing chosen makers, actual all-in
 price, expiry and classified unavailability. Preserve direct SDK exits and explicit
 funded/unpaid balances. A displayed depth chart remains a labelled derived snapshot.
 Update the maker kit's provisioning, quoting, permissions, reconciliation and exits.
+D75 adds report provenance/age, signer rotation/revocation, durable publication and
+independent input replay. Clearly distinguish trusted published funding liquidity
+from financially feasible trader routes. P32 already proves the essential producer
+and consumer; P33 owns durable operation and user/operator integration.
 
 **A38/G26 interfaces:** fresh operator setup; real Surfpool/RPC/WS/PostgreSQL and
 browser-signed paths; interrupted/ambiguous updates and original-signature recovery,
@@ -215,6 +226,9 @@ offered, eligible, quoted, attempted, submitted and finalized populations separa
 classify every rejection/unavailability reason. Report size-sensitive execution
 quality, quote drift, update-to-landing latency, p95/p99, search cost, bytes/compute,
 account contention and maker economics including declared-horizon markouts.
+D75 additionally requires publisher report coverage, build-to-landing latency,
+actual update fees, outage/revocation/recovery and independent calculation replay;
+separate the changed funding trust model from improvements in routing performance.
 
 **A39/G26/M10:** actual signed RPC/WS/PostgreSQL/browser evidence, no unresolved
 signed financial effects, independent cash/claim/fee/default reconciliation, affected
