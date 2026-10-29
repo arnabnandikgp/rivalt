@@ -1491,3 +1491,18 @@ production margin. Recorded complete-cohort payouts, recovery and ten funded exi
 reconcile exactly. P34/M10 stay Review until integration; the ready stack stays
 open. No risk/oracle safeguard, fee/insurance rule, funding authority, external
 gate or deferred-endurance decision changes.
+
+## D70/D77 wire clarification — self-review R095 (30 October 2026)
+
+Supersede P29B section 5's blanket rejection of trailing data only for the unused
+suffix after Anchor instruction arguments. The pinned Anchor 1.2.1 dispatcher
+permits it; both actual maker artifacts accept a suffixed quote request and return
+the unchanged literal 317-atom quote. Retain this existing dispatcher behavior and
+document it explicitly. Maker-owned account bytes and quote return data still
+require exact lengths, and generated SDK instructions remain canonical.
+
+This is a wire-contract documentation correction, not a change to program code,
+signature verification, nonce/order/publication replay checks, financial authority
+or economics. [R095](evidence/R095-SELF-REVIEW.md) records the source review and fresh
+compiled/RPC evidence for skipped-review PRs #45/#47. No independent security audit,
+new full qualification or integration follows; the ready stack remains open.

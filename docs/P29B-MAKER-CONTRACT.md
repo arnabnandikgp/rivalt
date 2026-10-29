@@ -197,9 +197,20 @@ leg reject the entire route without fee, counter, root, order or vault changes.
 
 Borsh, little endian, no padding; bool one byte, public keys 32, signed values two's
 complement. Anchor discriminators are first 8 SHA256 of `account:<Type>`,
-`global:<snake_case_instruction>` or `event:<Type>` respectively. Reject trailing
-data, unsupported version/capability, noncanonical bools, unused region bytes or
-unexpected accounts. `LAYOUTS` in the reference pins field order/width/offsets.
+`global:<snake_case_instruction>` or `event:<Type>` respectively. Untrusted maker
+config/publication accounts and quote return data require exact lengths; reject
+trailing bytes there, unsupported version/capability, noncanonical bools, unused
+region bytes or unexpected accounts. `LAYOUTS` in the reference pins field
+order/width/offsets.
+
+R095 corrects the earlier blanket trailing-data claim: Anchor 1.2.1's instruction
+dispatcher decodes the declared arguments and permits an unused suffix. Generated
+clients emit the canonical encoding without a suffix. This release retains that
+dispatcher behavior; it does not use instruction bytes as a unique economic-intent
+identifier. Signatures still bind the complete wire, while account nonces, stored
+order versions, publication sequences and authority epochs enforce replay rules.
+The exact 204-byte quote response and fixed maker account lengths remain mandatory.
+See [the self-review evidence](evidence/R095-SELF-REVIEW.md).
 
 | Account / owner / seeds | Bytes including discriminator | Ordered payload fields |
 |---|---:|---|
