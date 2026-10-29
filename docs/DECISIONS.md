@@ -1439,3 +1439,10 @@ chain state at the next scheduled tick; the two-second fence and all source/
 coverage/recovery rules remain. Ambiguous-signature durable recovery remains P33.
 This records acceptance, not a new economic decision or production permission.
 Keep P32 Review until integrated and stop after its ready PR as the user requested.
+
+D77 delivery continuation (R091): the user now explicitly resumes P33 and P34.
+P32's exact ready head `6de5cea` and passing scoped CI satisfy the development
+dependency; the stack stays open. [P33](P33-LIQUIDITY-SERVICES.md) preserves the
+qualified executable pins, distinct consumer profile, financial conservation and
+immutable-original recovery. This supersedes the requested stopping point only;
+no economics, production permission or external/endurance gate changes.

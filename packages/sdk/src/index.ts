@@ -43,3 +43,4 @@ export * from "./liquidity-allocation.js";
 export * from "./liquidity-route.js";
 export * from './funding-publisher.js';
 export * from './funding-impact.js';
+export * from './liquidity-artifacts.js';

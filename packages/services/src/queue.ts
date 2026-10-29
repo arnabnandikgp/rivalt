@@ -10,11 +10,13 @@ import {accountAuthorityValue, type AccountAuthority} from './account-authority.
 
 export const RESERVATION=20_000n;
 export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string} | GroupAuthority | AccountAuthority;
-export function signedWire(wire:string) {
-  if(typeof wire!=='string' || wire.length>1644)throw new Error('Invalid transaction size');
-  const bytes=Buffer.from(wire,'base64');if(bytes.length>1232 || bytes.toString('base64')!==wire)throw new Error('Noncanonical transaction');
+export function signedWire(wire:string,maxVersion:0|1=0) {
+  const maximum=maxVersion===1?4096:1232;
+  if(typeof wire!=='string' || wire.length>4*Math.ceil(maximum/3))throw new Error('Invalid transaction size');
+  const bytes=Buffer.from(wire,'base64');if(bytes.length>maximum || bytes.toString('base64')!==wire)throw new Error('Noncanonical transaction');
   const tx=VersionedTransaction.deserialize(bytes);
-  if(tx.message.version!==0 || tx.message.addressTableLookups.length)throw new Error('Only v0 static-account messages supported');
+  if(tx.message.version!==0&&!(maxVersion===1&&tx.message.version===1))throw new Error('Unsupported transaction version');
+  if(tx.message.version===0&&(tx.message.addressTableLookups.length||bytes.length>1232))throw new Error('Only bounded static-account messages supported');
   if(!Buffer.from(tx.serialize()).equals(bytes))throw new Error('Noncanonical wire encoding');
   const message=tx.message.serialize(),keys=tx.message.staticAccountKeys.map(k=>k.toString());
   if(tx.signatures.length!==tx.message.header.numRequiredSignatures)throw new Error('Signature count');
@@ -55,7 +57,7 @@ export function userAuthority(wire:string,market:string,program:Address=sdk.CLEA
   throw new Error('Unsupported financial action');
 }
 export class Queue {
-  constructor(readonly store:Pick<Store,'pool'|'runId'>,readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS){}
+  constructor(readonly store:Pick<Store,'pool'|'runId'>,readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS,readonly maxVersion:0|1=0){}
   async budget(name:string,wallet:string,cap:bigint){
     await this.store.pool.query('INSERT INTO service_budgets(run_id,name,wallet,cap) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[this.store.runId,name,wallet,cap.toString()]);
     const r=(await this.store.pool.query('SELECT * FROM service_budgets WHERE run_id=$1 AND name=$2',[this.store.runId,name])).rows[0];
@@ -63,7 +65,7 @@ export class Queue {
   }
   async put(id:string,wire:string,authority:Authority|null,budget:string|null=null){
     if(!/^[a-zA-Z0-9:._-]{1,160}$/.test(id))throw new Error('Invalid request identity');
-    const signed=signedWire(wire),c=await this.store.pool.connect();
+    const signed=signedWire(wire,this.maxVersion),c=await this.store.pool.connect();
     try{
       await c.query('BEGIN');
       await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`${this.store.runId}/intent/${id}`]);
@@ -93,7 +95,7 @@ export class Queue {
       try{
         const s=(await this.rpc.call('getSignatureStatuses',[[r.signature],{searchTransactionHistory:true}])).value[0];
         if(s?.confirmationStatus==='finalized'){
-          const tx=await this.rpc.call('getTransaction',[r.signature,{commitment:'finalized',encoding:'json',maxSupportedTransactionVersion:0}]);
+          const tx=await this.rpc.call('getTransaction',[r.signature,{commitment:'finalized',encoding:'json',maxSupportedTransactionVersion:this.maxVersion}]);
           if(tx?.meta && tx.transaction?.signatures?.[0]===r.signature && json(tx.meta.err)===json(s.err)){
             status=tx.meta.err===null?'finalized':'failed';result={slot:integer(tx.slot).toString(),fee:integer(tx.meta.fee).toString(),error:tx.meta.err};release=true;
           }

@@ -479,3 +479,15 @@ code and isolated capital bindings are authenticated before exact quote enumerat
 The read-only 48-key discovery ceiling is separate from submitted route budgets.
 Profile-4 previews expose no financial transaction builder in P31; P32 owns actual
 execution/funding integration and its activation gate. V3 APIs remain profile-bound.
+
+### P33 profile-4 consumers (in progress)
+
+[P33](P33-LIQUIDITY-SERVICES.md) adds a distinct finalized `LiquidityIndexer` /
+`LiquidityStore` binding over the shared journal. It reconstructs canonical
+registrations, consumption, registry sealing, publisher authority and accepted
+report provenance alongside the shared financial accounting. Reconciliation
+compares those derived accounts with finalized RPC bytes and pinned P32 code.
+The `/v4` read envelope labels internal makers and restricted-publisher trust;
+V3 keeps its separate profile and endpoints. The queue accepts v1 only through
+an explicit version-capable boundary; default queues remain bounded v0. Worker,
+SDK/browser and fresh-operator acceptance remain in progress, not inherited.

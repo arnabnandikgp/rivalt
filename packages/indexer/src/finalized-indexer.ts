@@ -13,7 +13,7 @@ export const MAX_HISTORY_READ_RESTARTS=2;
 class IncompleteFinalizedHistory extends Error {}
 
 export type TransportConfig = { rpcUrl:string; wsUrl:string; databaseUrl:string; runId:string; anchor:string;
-  pageSize?:number; maxRecoveryTransactions?:number; chain?:sdk.TestChain };
+  pageSize?:number; maxRecoveryTransactions?:number; chain?:sdk.TestChain; maxTransactionVersion?:0|1 };
 
 export abstract class FinalizedIndexer<State extends {sequence:string}, Binding extends JournalBinding, Event extends JournalEvent> {
   readonly rpc: Rpc;
@@ -35,7 +35,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string}, Binding 
     if (!Number.isInteger(config.pageSize ?? 100) || (config.pageSize ?? 100) < 1 || (config.pageSize ?? 100) > 1000) throw new Error('Invalid history page size');
   }
   async transaction(signature: string) {
-    const tx = await this.rpc.call('getTransaction', [signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:0}]);
+    const tx = await this.rpc.call('getTransaction', [signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:this.config.maxTransactionVersion??0}]);
     if (!tx) throw new Error(`History gap: transaction ${signature} unavailable`); return tx;
   }
   async open() {

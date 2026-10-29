@@ -2,6 +2,7 @@ import * as sdk from '@rivalt/sdk';
 import type {Canonical} from './group-projection.js';
 import {json} from './events.js';
 import type {AccountEvent} from './account-events.js';
+import {projectLiquidity, type LiquidityState} from './liquidity-projection.js';
 
 type Fields<T> = Canonical<Omit<T, 'discriminator' | 'bump' | 'vaultBump'>>;
 export type AccountRoot = Fields<sdk.MarginAccountV3>;
@@ -23,6 +24,7 @@ export type AccountState = {
   ledgers:Record<string,Fields<sdk.MarketLedgerV3>>; makers:Record<string,Fields<sdk.MakerRegistrationV3>>;
   backing:Record<string,Fields<sdk.SettlementCertificateV3>>;
   retirement:Fields<sdk.RetirementCertificateV3>|null; resolution:AccountResolution|null;
+  liquidity?:LiquidityState;
 };
 export const emptyAccounts = ():AccountState => ({sequence:'0',venue:null,custody:null,safety:null,membershipVersion:null,
   members:[],portfolios:{},roots:{},markets:{},ledgers:{},makers:{},backing:{},retirement:null,resolution:null});
@@ -46,7 +48,9 @@ const abs=(value:bigint)=>value<0n?-value:value;
 
 /** Only event fields are authoritative here. Canonical PDAs and complete decoded
  * financial accounts are checked separately against finalized RPC bytes. */
-export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string) {
+export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:3|4=3) {
+  accountCheck((profile===4)===!!state.liquidity,'explicit projection profile');
+  accountCheck(profile!==4||!['AccountMakerChangedV3','AccountRouteExecutedV3'].includes(event.type),'foreign maker profile');
   const change=structuredClone(event.data);
   accountCheck(change.venue===venue,'event venue');
   accountCheck(BigInt(change.sequence)===BigInt(state.sequence)+1n,'critical sequence gap');
@@ -87,7 +91,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
   };
   switch(event.type) {
     case 'AccountCustodyChangedV3': {
-      accountCheck(change.schemaVersion===3&&change.profileVersion===3&&change.domain===domain,'custody version/domain');
+      accountCheck(change.schemaVersion===3&&change.profileVersion===profile&&change.domain===domain,'custody version/domain');
       accountCheck(Number.isInteger(change.kind)&&change.kind>=0&&change.kind<=10,'custody kind');
       if(change.kind===0) {
         accountCheck(!state.venue&&change.sequence==='1','duplicate initialization');
@@ -242,7 +246,9 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       Object.assign(value,{insurance:change.insurance,fees:change.fees,insuranceFeeRemainder:change.feeRemainder,version:change.ledgerVersion});
       custody().allocatedVault=change.allocatedVault;equal(custody().totalCash,change.totalCash,'reserve preserves root cash');break;
     }
-    default:throw new Error('Unsupported account projection event');
+    default:
+      accountCheck(profile===4,'unsupported account projection event');
+      projectLiquidity(state,event,{root,market,ledger});
   }
   state.sequence=change.sequence;custody().sequence=change.sequence;
   reconcileAccountLedger(state);
