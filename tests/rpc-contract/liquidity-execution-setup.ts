@@ -40,11 +40,11 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc)
   await h.send('create test trader portfolio', [await sdk.getCreatePortfolioV3InstructionAsync({
     ...common, owner: traderOwner, portfolio, index: 0 })], [traderOwner]);
   const roots: Address[] = [];
-  for (const subaccountIndex of [1, 2]) {
+  for (const subaccountIndex of [0, 1]) {
     const [margin] = await sdk.findMarginV3Pda(portfolio, subaccountIndex);
     await h.send('register cross or isolated test root', [await sdk.getRegisterMarginV3InstructionAsync({ ...common,
-      owner: traderOwner, portfolio, margin, subaccountIndex, mode: subaccountIndex === 1 ? 0 : 1,
-      isolatedMarketIndex: subaccountIndex === 1 ? 255 : 0, role: 0 })], [traderOwner]);
+      owner: traderOwner, portfolio, margin, subaccountIndex, mode: subaccountIndex === 0 ? 0 : 1,
+      isolatedMarketIndex: subaccountIndex === 0 ? 255 : 0, role: 0 })], [traderOwner]);
     await h.send('deposit actual test trader collateral', [await sdk.getDepositAccountV3InstructionAsync({ ...common,
       owner: traderOwner, margin, quoteMint: fixture.mint.address, userToken: traderToken.address, amount: 1_000_000n })], [traderOwner]);
     roots.push(margin);
