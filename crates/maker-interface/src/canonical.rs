@@ -322,6 +322,43 @@ fn potential(shape: &ShapeV4, inventory: i128) -> QuoteResult<i128> {
     )
 }
 
+/// Exact single-lot change of the convex potential. Endpoint validation needs
+/// this increment, not two complete prefix sums and their wide division.
+fn potential_marginal(shape: &ShapeV4, inventory: i128, direction: i128) -> QuoteResult<i128> {
+    let before = sub(inventory, i128::from(shape.target))?;
+    let after = add(before, direction)?;
+    let before_distance = before.checked_abs().ok_or(QuoteError::Arithmetic)?;
+    let after_distance = after.checked_abs().ok_or(QuoteError::Arithmetic)?;
+    let distance = before_distance.max(after_distance);
+    let distance = u64::try_from(sub(distance, 1)?).map_err(|_| QuoteError::Arithmetic)?;
+    let steps = distance
+        .checked_div(shape.skew_step)
+        .ok_or(QuoteError::Arithmetic)?;
+    let increment = mul(i128::from(shape.skew_tick), i128::from(steps))?;
+    if after_distance > before_distance {
+        Ok(increment)
+    } else {
+        sub(0, increment)
+    }
+}
+
+/// Direct marginal inside its region. Computing two prefixes here would visit
+/// every earlier region twice even though those terms cancel exactly.
+fn offset_marginal(regions: &[RegionV4], index: u64) -> QuoteResult<i128> {
+    let mut start = 0;
+    for region in regions {
+        if index < region.end_lots {
+            let distance = index.checked_sub(start).ok_or(QuoteError::Arithmetic)?;
+            return add(
+                i128::from(region.offset),
+                mul(i128::from(region.slope), i128::from(distance))?,
+            );
+        }
+        start = region.end_lots;
+    }
+    Err(QuoteError::Capacity)
+}
+
 /// This is only a quantity upper bound; it confers no financial admission.
 fn available(shape: &ShapeV4, side: u8, inventory: i64, consumed: u64) -> QuoteResult<u64> {
     if inventory.unsigned_abs() > MAX_LOTS as u64 || consumed > MAX_DEPTH {
@@ -387,17 +424,8 @@ pub fn quote_amount(
     for index in [0, lots - 1] {
         let current = add(before, mul(direction, i128::from(index))?)?;
         let prefix_index = consumed.checked_add(index).ok_or(QuoteError::Arithmetic)?;
-        let spread = sub(
-            offset_prefix(
-                regions,
-                prefix_index.checked_add(1).ok_or(QuoteError::Arithmetic)?,
-            )?,
-            offset_prefix(regions, prefix_index)?,
-        )?;
-        let change = sub(
-            potential(shape, add(current, direction)?)?,
-            potential(shape, current)?,
-        )?;
+        let spread = offset_marginal(regions, prefix_index)?;
+        let change = potential_marginal(shape, current, direction)?;
         let marginal = sub(i128::from(anchor), mul(direction, add(spread, change)?)?)?;
         if !(1..=i128::from(MAX_PRICE)).contains(&marginal) {
             return Err(QuoteError::Bounds);
