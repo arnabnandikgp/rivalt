@@ -7,10 +7,13 @@ limit are fixed. Every maker capital account remains isolated to one market.
 
 ## Fresh local qualification
 
-Browser qualification uses Playwright's installed Chromium by default. Set
-`RIVALT_CHROME_PATH` to an installed browser executable when using a system browser
-(for example `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` on this
-Mac). The harness does not require that platform-specific path on other hosts.
+Browser qualification requires an installed Chromium-based browser; the locked
+`playwright-core` dependency does not install one. Before running the harness,
+set `RIVALT_CHROME_PATH` to an installed executable (for example
+`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` on this Mac), or
+install the Chromium revision expected by the locked Playwright version into its
+browser cache. Omitting the variable uses that already installed cached browser.
+No macOS-specific path is required on other hosts.
 
 Use a checkout of the recorded P33 revision, the locked dependencies and the exact
 [validation stack](04-STACK-AND-VALIDATION.md). From the repository root:

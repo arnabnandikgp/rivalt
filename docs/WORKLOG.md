@@ -50,7 +50,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | Review | P29A–P33 remain ready Review in open #42/#43/#45/#46/#47/#48. [P34 A39/G26 engineering acceptance](evidence/P34.md) passes: three 600-offer populations, 508 independent publisher replays, complete ten-root default/recovery/funded exits, fresh PostgreSQL reconstruction and maximum-book resources. P34 is ready [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49) above exact P33 `964ca5f`; integration is required to close M10. External gates remain Open; endurance Deferred |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | Review | P29A–P33 remain ready Review in open #42/#43/#45/#46/#47/#48. [P34 A39/G26 engineering acceptance](evidence/P34.md) passes: three 600-offer populations, 508 independent publisher replays, complete ten-root default/recovery/funded exits, fresh PostgreSQL reconstruction and maximum-book resources. R094 review corrections are in progress, with fresh service/browser checks pending. P34 is ready [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49) above exact P33 `964ca5f`; integration is required to close M10. External gates remain Open; endurance Deferred |
 
 ## Phase overview
 
@@ -97,7 +97,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
 | M10 | P32 | Clearing/funding and safe local execution | Review | [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47), `phase/p32-liquidity-execution` above P31 `28d5dd0`/#46; acceptance closeout `cdffcc8` | [A37/G25/G22 acceptance](evidence/P32.md) passes. SBF `6437f7d`; safety/PG client `5d26561`, full books `df70e7c`, canonical continuation `34b4325`. All eligible routes finalize; exact quote/accounting, safety, SQL and resource gates pass. Ready PR published; all selected CI checks pass at `6de5cea`. R091 resumes P33; integration remains separate |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Review | Ready [PR #48](https://github.com/arnabnandikgp/rivalt/pull/48), `phase/p33-liquidity-services` above P32 `6de5cea` / #47; closeout `322a4e9` | [A38/G26 interfaces](evidence/P33.md): clean runtime `fccf062`, 365 finalized + one classified failed intent, ten browser originals, three SIGKILL/lost-ack recoveries, 88 signed-input reports, 172-event fresh replay, six maker reports and independent literal financial audit pass |
-| M10 | P34 | Comparative qualification and operations | Review | Ready [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49), `phase/p34-liquidity-qualification` above P33 `964ca5f` / #48; acceptance closeout `e545fbc` | [A39/G26](evidence/P34.md): baseline `fb082de`, control/treatment `03c4e73`, operational default/recovery/all-funded exits `aae8bb0`, fresh maximum books `875b647`. Exact financial/report replay passes; max 615,433 CU/800,000 budget. Scoped CI passes on `3a987b6`. Narrow latency pass and missing-history maker limitation documented; stack stays open |
+| M10 | P34 | Comparative qualification and operations | Review | Ready [PR #49](https://github.com/arnabnandikgp/rivalt/pull/49), `phase/p34-liquidity-qualification` above P33 `964ca5f` / #48; acceptance closeout `e545fbc` | [A39/G26](evidence/P34.md): baseline `fb082de`, control/treatment `03c4e73`, operational default/recovery/all-funded exits `aae8bb0`, fresh maximum books `875b647`. Exact financial/report replay passes; max 615,433 CU/800,000 budget. Original scoped CI passes on `3a987b6`; R094 review corrections and scoped verification are in progress. Narrow latency pass and missing-history maker limitation documented; stack stays open |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -113,8 +113,8 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
   [PR #48](https://github.com/arnabnandikgp/rivalt/pull/48). P29A–P32 remain ready
   Review in #42/#43/#45/#46/#47. Keep every phase PR open.
 - Limits: control/baseline matched p95 ratio 1.249959688 narrowly passes the 1.25
-  ceiling on this host. Missing finalized history for an expired maker original
-  can hold its budget/repricing; the guide preserves the conservative behavior.
+  ceiling on this host. R094 adds a maker-sequence expiry proof for new originals; its scoped runtime
+  qualification is in progress. Unknown network fees still remain reserved.
   Neither result establishes robust production performance or complete RPC-history recovery.
 - Latest integration remains P28A / PR #41 at `350e60ca1de2de77b9ed2a80a16b0aa5eb5aa481`
   (R076). M10 engineering checks pass, but its phase stack is not integrated.
@@ -122,9 +122,9 @@ Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration g
   local fixtures; no real hedge or independent profitability is claimed.
 - Raw evidence remains local/ignored at its original paths. Research, databases,
   keys and configuration are preserved. Owned qualification runtimes are stopped.
-- Exact next action: review P34 and the open stack after external feedback; keep
-  every PR open until separately authorized to integrate. All selected hosted
-  checks pass on published implementation `3a987b6`; no runtime work remains in P34.
+- Exact next action: qualify R094’s maker-expiry recovery and browser changes,
+  publish the restacked review fixes, and verify the remaining review threads.
+  Keep all PRs open; no merge is authorized.
 - P15B/P16B stay Open. Continuous 24-hour endurance stays Deferred.
 
 ## Blocker register
@@ -5394,3 +5394,35 @@ runtime soak is inferred. The tracked tree is clean apart from this documentatio
 record; the user's three untracked research paths remain untouched. All seven
 ready phase PRs are open. Next: review the open stack after external feedback;
 merge only under separate authorization. P15B/P16B Open; endurance Deferred.
+
+
+## R094 — 30 October 2026 — open-stack review remediation
+
+User requests review of the open stack, without merge authorization. Inspect all
+seven PRs #42/#43/#45/#46/#47/#48/#49, including inline, outside-diff and optional
+review comments. Initial local snapshot `.local/r094-reviews.json` contains nine
+unresolved inline threads and six additional findings; pagination checks pass.
+#45/#47 explicitly skipped automated review, and #46 reports no actionable finding;
+absence of comments is not independent review approval.
+
+Apply the two roadmap fixes in #42; contract prose, current P29B next action and
+optional randomized inventory-skew coverage in #43 (26 independent tests pass).
+In #48 add authenticated maker-owned sequence proof after finalized blockhash
+expiry, retaining unknown fees and bounded separately reserved retries. Correct
+profile-4 wallet format admission, condition-based browser waits and precise index
+cell assertions. Move the existing portable-browser and per-trader financial-audit
+fixes from #49 into their owning #48. Typecheck initially exposed nullable wallet
+capability and a branded bump type in the negative fixture; fix both, then typecheck
+passes. Twelve targeted service/UI tests and two independent trader cases pass;
+seven affected tests and the two trader cases pass again after the type fixes.
+No financial program, binary, price, oracle safeguard or fee policy changes.
+
+Cascading `gh stack rebase --no-trunk` preserves all phases. Resolve only a stale
+historical WORKLOG checkpoint in favor of P33's later checkpoint and retain both
+DECISIONS additions. Correct #49's prose, reversed compute-budget comparison and
+explicit browser-install prerequisite. Historical runtime pins remain evidence
+for their actual code, not proof of the new recovery path. Both status tables stay
+Review, with review verification pending. Exact next action: pin the review tip,
+run focused real Surfpool/RPC/WS/PostgreSQL expiry/retry and affected service/browser
+checks using unchanged qualified binaries and an existing stopped owned PG cluster;
+then record evidence, publish the restacked ready PRs and resolve verified threads.

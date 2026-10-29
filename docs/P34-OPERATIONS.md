@@ -64,13 +64,16 @@ Maker updates cannot restore consumed depth; an authorized replenishment is sepa
 Keep the signed original, inspect finalized status/history and reconcile before
 replacing an ambiguous intent. Authority proofs establish economic nonexecution
 only under their documented conditions; absent history never establishes zero
-network fees. A maker reprice currently has no maker-owned account expiry proof:
-an unlanded expired original with unavailable history remains unresolved and holds
-that maker's budget. This fails safely but can halt repricing and block budget
-handover. Restore historical RPC evidence; do not delete the queue row, invent a
-receipt or release its fee reservation. Automatic proof-based recovery for this
-case remains an explicit operational limitation, separate from the qualified
-lost-acknowledgement originals that were independently fetched.
+network fees. R094 adds a registered maker-price sequence proof for new reprice
+originals. After finalized blockhash expiry, the exact authenticated owner/schema/
+PDA bindings and unchanged sequence permit a new, separately reserved retry.
+Unavailable or advanced state remains unresolved. The old wire and unknown-fee
+reservation stay intact, and handover still waits for actual fee history. Repeated
+history gaps can exhaust the bounded budget. Previously persisted null-authority
+originals are not rewritten; restore historical RPC evidence for those. Never
+delete a queue row, invent a receipt or release an unknown fee reservation.
+See [the service contract](P33-LIQUIDITY-SERVICES.md#r094-review-correction--maker-expiry-proof)
+for the exact distinction; the new proof requires its own scoped qualification.
 
 Full default uses the complete registered cohort, deterministic accounting and
 bounded resumable stages. Permissionless checks do not authorize final resumption;
