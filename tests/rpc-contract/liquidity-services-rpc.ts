@@ -212,9 +212,15 @@ try {
   writeFileSync(`${directory}/maker-economics.json`,json(economics));
   assert(intents.every(row=>['finalized','failed'].includes(row.status)),json(intents.filter(row=>!['finalized','failed'].includes(row.status))));
   assert(observations.every((entry:any)=>entry.stage!=='indexer-retry'||entry.expected),json(observations));
+  const counts=(await indexer.store.pool.query(`SELECT
+    (SELECT count(*) FROM transactions WHERE run_id=$1) AS transactions,
+    (SELECT count(*) FROM events WHERE run_id=$1) AS events,
+    (SELECT count(*) FROM outbox WHERE run_id=$1) AS outbox,
+    (SELECT count(*) FROM jobs WHERE run_id=$1 AND status IN ('pending','unresolved')) AS unresolved`,[config.runId])).rows[0];
+  assert.equal(counts.events,state.sequence);assert.equal(counts.outbox,counts.events);assert.equal(counts.unresolved,'0');
   const summary={revision,trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,faults,wallets,browser,observations,intents,
-    inputReplay:{reports:records.length,available,independentFlatPriceArithmetic:true},economics,reconciliation,state,metrics:indexer.metrics,replayMetrics:replay.metrics,
+    inputReplay:{reports:records.length,available,independentFlatPriceArithmetic:true},economics,counts,reconciliation,state,metrics:indexer.metrics,replayMetrics:replay.metrics,
     phaseAcceptance:false,remaining:'maker kit and full phase closeout; P34 comparative workload separate'};
   writeFileSync(`${directory}/summary.json`,json(summary));console.log(json({stage:'p33-services-pass',intents:intents.length,reports:records.length,reconciliation}));
 }finally{

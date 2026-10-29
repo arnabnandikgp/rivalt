@@ -5088,3 +5088,15 @@ keeps the executor running until all originals resolve. No production queue beha
 or unrelated test is changed. Next: rerun this corrected final gate in the scoped
 lifecycle, record its complete counts and publish P33 only if all acceptance checks
 pass. P33 In progress and P34 Open; raw failed-run evidence is preserved.
+
+R092 run on `26944e3`, local
+`.local/liquidity-execution/runs/20261029T184717Z-84197`, reaches publisher recovery
+after another successful ten-original browser flow. A deliberately interrupted
+report expires, then its newly built retry is accepted. The next negative assertion
+races that retry's durable receipt: the worker correctly returns “original pending”
+before inspecting revoked authority, while the test expects an authorization error.
+The handover fixture now waits for the accepted original's finalized receipt before
+testing the subsequent revocation. No worker or on-chain rule changes. This run is
+not final acceptance. The next clean lifecycle includes the all-originals shutdown
+gate and a standalone literal financial audit (328 total taker-fee atoms, 81
+insurance atoms, seven net withdrawn atoms and zero aggregate flat claims).

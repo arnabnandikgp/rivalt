@@ -37,6 +37,11 @@ export async function publisherHandover(runtime:AccountRuntime,setup:Awaited<Ret
     await runtime.funding(0,setup.owner);await runtime.execute();await delay(300);await runtime.execute();
   }
   assert((await state()).lastSequence>previous.lastSequence,'new authorized report accepted');
+  // Confirmed on-chain acceptance can precede durable receipt finalization.
+  // Drain the original before testing the next authority state; the worker
+  // correctly prioritizes retaining an unresolved original over making a new one.
+  for(let attempt=0;attempt<50&&await runtime.pendingBudget(handover.name);attempt++){await runtime.execute();await delay(200);}
+  assert.equal(await runtime.pendingBudget(handover.name),false,'publisher original receipt resolved');
   await control(address('11111111111111111111111111111111'),'P33 revoke restricted publisher');
   assert.equal((await state()).enabled,false);await assert.rejects(()=>runtime.funding(0,setup.owner),/not authorized/);
   const revoked=await state();await control(setup.updater.address,'P33 restore original restricted publisher');
