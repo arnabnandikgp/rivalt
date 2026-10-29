@@ -15,12 +15,12 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
-  options: { shape?: sdk.makerA.ShapeV4Args } = {}) {
+  options: { shape?: sdk.makerA.ShapeV4Args | ((instance: number) => sdk.makerA.ShapeV4Args); makerCash?: bigint } = {}) {
   const region = (offset: bigint) => [{ endLots: 4096n, offset, slope: 0n },
     ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
   const shape = { ...goldenShape, skewTick: 0n, longCap: 4096n, shortCap: 4096n,
     bidCount: 1, askCount: 1, bids: region(2n), asks: region(3n) };
-  const fixture = await provisionCanonicalMakers(h, options.shape ?? shape);
+  const fixture = await provisionCanonicalMakers(h, options.shape ?? shape, [0, 1], options.makerCash);
   const { payer, common, markets, instances, venue } = fixture;
   const now = async () => (await h.read(sdk.ACCOUNT_CLOCK))!.readBigInt64LE(32);
   const slot = async () => (await h.read(sdk.ACCOUNT_CLOCK))!.readBigUInt64LE(0);

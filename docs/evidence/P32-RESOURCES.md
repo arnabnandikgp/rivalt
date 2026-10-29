@@ -53,5 +53,25 @@ semantics. The12 scoped native cases and3172 independent reference vectors pass.
 Stack-frame scan passes for all four artifacts. The prior4344-byte handler offset
 was resolved by non-inlined quote/root construction and removal of temporary root
 copies; contexts were already boxed. No zero-copy layout or account migration was
-needed. Full affected safety, PostgreSQL replay and continuation gates remain
-separate pending work; no CI, endurance or external qualification is implied.
+needed. [Affected safety](P32-SAFETY.md) and [PostgreSQL replay](P32-JOURNAL.md) now pass
+on their recorded pins; continuation remains pending. No CI, endurance or external
+qualification is implied.
+
+
+Ordinary-entry and stored-order full books also pass on clean client
+`df70e7c51ae6df2cc08bb041934cbf11668f46f5` / unchanged SBF `6437f7d`:
+
+| Variant / command prefix | Local run | Outcomes | Maximum pair CU / bytes | Singleton CU |
+|---|---|---:|---:|---:|
+| `RIVALT_RESOURCE_BOOK=entry` | `20261029T161757Z-40728` | 165 | 614,030 / 1,262 v1 | 342,822 |
+| `RIVALT_RESOURCE_BOOK=stored` | `20261029T161758Z-40744` | 165 | 615,433 / 1,165 v0 | 341,532 |
+
+Each invokes `bash ops/liquidity-resource-smoke.sh` on an independent empty
+Surfpool deployment; the second uses RPC/WS ports 18951/18952. Each has 159 success
+and six intended rejections, 234 instruction / two account / 237 event parity.
+Ordinary books contain four live entry reservations per root. The stored variant
+executes the complete 4,608-lot order permissionlessly with both provider books
+full; only that completed trader order leaves the active set. All independent
+price, funding, cash, fee, failed-state and consumption assertions above pass.
+The maximum across these variants and protection books is 615,433 CU, leaving
+24,567 CU below the unchanged 640k ceiling. No program or budget change was needed.

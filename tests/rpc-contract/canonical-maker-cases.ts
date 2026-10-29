@@ -19,8 +19,9 @@ export const goldenShape: sdk.makerA.ShapeV4Args = {
   asks: [{ endLots: 3n, offset: 3n, slope: 2n }, { endLots: 8n, offset: 12n, slope: 0n }, ...Array(6).fill(zero)],
 };
 
-export async function provisionCanonicalMakers(h: CanonicalHarness,shape: sdk.makerA.ShapeV4Args = goldenShape,
-  makerMarkets: readonly (0|1)[] = [0,1]) {
+export async function provisionCanonicalMakers(h: CanonicalHarness,
+  shape: sdk.makerA.ShapeV4Args | ((instance: number) => sdk.makerA.ShapeV4Args) = goldenShape,
+  makerMarkets: readonly (0|1)[] = [0,1], initialCash = 1_000_000n) {
   const payer = await payerKey(), owner = await fixtureKey('p30-owner'), updater = await fixtureKey('p30-updater');
   const mint = await fixtureKey('p30-mint'), token = await fixtureKey('p30-token');
   const deployment = await addresses();
@@ -50,7 +51,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,shape: sdk.ma
   await h.send('mint valueless operator collateral', [getCreateAccountInstruction({ payer, newAccount: token,
     lamports: await h.rent(165), space: 165n, programAddress: TOKEN_PROGRAM_ADDRESS }),
     getInitializeAccount3Instruction({ account: token.address, mint: mint.address, owner: owner.address }),
-    getMintToInstruction({ mint: mint.address, token: token.address, mintAuthority: payer, amount: 6_000_000n })], [token]);
+    getMintToInstruction({ mint: mint.address, token: token.address, mintAuthority: payer, amount: initialCash * 6n })], [token]);
   await h.send('initialize fresh profile4 custody', [await sdk.getInitializeLiquidityVenueV4InstructionAsync({ ...admin, domain })]);
   assert.equal(sdk.getVenueV3Decoder().decode((await h.read(venue))!).profileVersion, 4);
   await h.send('initialize venue registry', [await sdk.getInitializeVenueRegistryV3InstructionAsync(admin)]);
@@ -74,7 +75,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,shape: sdk.ma
       await h.send(`register isolated capital ${marketIndex}/${instance}`, [await sdk.getRegisterMarginV3InstructionAsync({ ...common, owner,
         portfolio, margin: capital, subaccountIndex: instance + 1, mode: 1, isolatedMarketIndex: marketIndex, role: 1 })], [owner]);
       await h.send(`fund isolated capital ${marketIndex}/${instance}`, [await sdk.getDepositAccountV3InstructionAsync({ ...common, owner,
-        margin: capital, quoteMint: mint.address, userToken: token.address, amount: 1_000_000n })], [owner]);
+        margin: capital, quoteMint: mint.address, userToken: token.address, amount: initialCash })], [owner]);
       const module = instance === 2 ? sdk.makerB : sdk.makerA;
       const pricingProgram = instance === 2 ? sdk.makerB.MAKER_B_PROGRAM_ADDRESS : sdk.makerA.MAKER_A_PROGRAM_ADDRESS;
       const makerPda = async (...seeds: ReadonlyUint8Array[]) => (await getProgramDerivedAddress({ programAddress: pricingProgram, seeds }))[0];
@@ -87,7 +88,8 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,shape: sdk.ma
       const capitalBinding = await accountPda('capital-v3', keyBytes.encode(capital));
       const makerCommon = { config, price, program: pricingProgram, eventAuthority: makerEventAuthority };
       await h.send(`initialize canonical curve ${marketIndex}/${instance}`, [await module.getInitializeCurveV4InstructionAsync({ ...makerCommon,
-        owner, venue, market, capital, instance, shape, updater: updater.address, expiry: 1_000_000n })], [owner]);
+        owner, venue, market, capital, instance, shape: typeof shape === 'function' ? shape(instance) : shape,
+        updater: updater.address, expiry: 1_000_000n })], [owner]);
       await h.send(`register canonical maker ${marketIndex}/${instance}`, [await sdk.getRegisterLiquidityV4InstructionAsync({ ...liquidityCommon,
         owner, capital, registration, capitalBinding, config, price, pricingProgram, programData, instance })], [owner]);
       tracked.push(capital, config, price, registration, capitalBinding);
