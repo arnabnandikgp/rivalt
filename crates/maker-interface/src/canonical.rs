@@ -277,22 +277,31 @@ fn offset_prefix(regions: &[RegionV4], quantity: u64) -> QuoteResult<i128> {
         return Err(QuoteError::Capacity);
     }
     let mut start = 0;
-    let mut total = 0;
+    let mut total = 0u64;
     for region in regions {
         if quantity <= start {
             break;
         }
-        let width = i128::from(
-            quantity
-                .min(region.end_lots)
-                .checked_sub(start)
-                .ok_or(QuoteError::Arithmetic)?,
-        );
-        let rising = mul(mul(i128::from(region.slope), width)?, sub(width, 1)?)? / 2;
-        total = add(total, add(mul(width, i128::from(region.offset))?, rising)?)?;
+        let width = quantity
+            .min(region.end_lots)
+            .checked_sub(start)
+            .ok_or(QuoteError::Arithmetic)?;
+        // Validated depth <=4096, offset <=1e6, slope <=1000. Keep every
+        // operation checked; the complete spread prefix is well within u64.
+        let rising = region
+            .slope
+            .checked_mul(width)
+            .and_then(|value| value.checked_mul(width - 1))
+            .ok_or(QuoteError::Arithmetic)?
+            / 2;
+        total = width
+            .checked_mul(region.offset)
+            .and_then(|value| value.checked_add(rising))
+            .and_then(|value| total.checked_add(value))
+            .ok_or(QuoteError::Arithmetic)?;
         start = region.end_lots;
     }
-    Ok(total)
+    Ok(i128::from(total))
 }
 
 fn potential(shape: &ShapeV4, inventory: i128) -> QuoteResult<i128> {
@@ -304,22 +313,28 @@ fn potential(shape: &ShapeV4, inventory: i128) -> QuoteResult<i128> {
     // Divide that bounded distance at native width; retain wide checked products
     // because the potential itself can exceed u64 at the permitted extremes.
     let distance = u64::try_from(distance).map_err(|_| QuoteError::Arithmetic)?;
-    let quotient = i128::from(
-        distance
-            .checked_div(shape.skew_step)
-            .ok_or(QuoteError::Arithmetic)?,
-    );
-    let remainder = i128::from(
-        distance
-            .checked_rem(shape.skew_step)
-            .ok_or(QuoteError::Arithmetic)?,
-    );
-    let step = i128::from(shape.skew_step);
-    let triangles = mul(mul(step, quotient)?, sub(quotient, 1)?)? / 2;
-    mul(
-        i128::from(shape.skew_tick),
-        add(triangles, mul(quotient, remainder)?)?,
-    )
+    let quotient = distance
+        .checked_div(shape.skew_step)
+        .ok_or(QuoteError::Arithmetic)?;
+    let remainder = distance
+        .checked_rem(shape.skew_step)
+        .ok_or(QuoteError::Arithmetic)?;
+    if quotient == 0 {
+        return Ok(0);
+    }
+    // Before applying tick, sum(floor(j/step)) <= distance*(distance-1)/2
+    // <= 19,999,999,900,000,000. Only the final tick product needs i128.
+    let triangles = shape
+        .skew_step
+        .checked_mul(quotient)
+        .and_then(|value| value.checked_mul(quotient - 1))
+        .ok_or(QuoteError::Arithmetic)?
+        / 2;
+    let prefix = quotient
+        .checked_mul(remainder)
+        .and_then(|value| triangles.checked_add(value))
+        .ok_or(QuoteError::Arithmetic)?;
+    mul(i128::from(shape.skew_tick), i128::from(prefix))
 }
 
 /// Exact single-lot change of the convex potential. Endpoint validation needs
@@ -398,6 +413,19 @@ pub fn quote_amount(
     consumed: u64,
 ) -> QuoteResult<(u64, u64)> {
     shape.validate()?;
+    quote_validated_amount(shape, anchor, side, lots, inventory, consumed)
+}
+
+/// Internal only: the public amount API or validate_publication has already
+/// validated this exact immutable shape. No account or risk check is skipped.
+fn quote_validated_amount(
+    shape: &ShapeV4,
+    anchor: u64,
+    side: u8,
+    lots: u64,
+    inventory: i64,
+    consumed: u64,
+) -> QuoteResult<(u64, u64)> {
     if shape.mode == 0 || !(1..=MAX_PRICE).contains(&anchor) {
         return Err(QuoteError::Bounds);
     }
@@ -503,7 +531,7 @@ pub fn quote(
     }
     let (valid_until_slot, valid_until_time) =
         validate_publication(config_key, config, price, slot, now)?;
-    let (gross, remaining) = quote_amount(
+    let (gross, remaining) = quote_validated_amount(
         &config.shape,
         price.anchor,
         request.side,
