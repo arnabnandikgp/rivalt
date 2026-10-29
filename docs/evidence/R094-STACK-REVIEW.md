@@ -105,3 +105,28 @@ local deployment profile remain prerequisites.
 | #47 | `46be8d4` |
 | #48 | `5941cd9` |
 | #49 | `791fb8d` (fresh scoped runtime pin) |
+
+
+## Publication, threads and hosted checks
+
+`gh stack submit --auto --open` publishes all seven restacked heads. GitHub confirms
+every PR OPEN and non-draft, with local/remote heads matching. All nine verified
+inline threads are resolved; a fresh complete sweep reports zero unresolved threads
+across all seven PRs. The six outside-diff/optional findings are recorded above.
+No review-message or external outreach was sent. The stack was not merged.
+
+| PR | Observed head | Hosted workflow | Actual selected results |
+|---|---|---|---|
+| #42 | `d124215` | Documentation-only; workflow not selected | No runtime CI claim |
+| #43 | `48abd8b` | [selected run](https://github.com/arnabnandikgp/rivalt/actions/runs/40961658873) | scope pass, client skipped, report skipped, financial pass, shell pass |
+| #45 | `fe91497` | [selected run](https://github.com/arnabnandikgp/rivalt/actions/runs/40961671891) | scope pass, client pass, report pass, financial pass, shell pass |
+| #46 | `693e5f9` | [selected run](https://github.com/arnabnandikgp/rivalt/actions/runs/40961676174) | scope pass, client pass, report pass, financial pass, shell pass |
+| #47 | `46be8d4` | [selected run](https://github.com/arnabnandikgp/rivalt/actions/runs/40961684174) | scope pass, client pass, report pass, financial pass, shell pass |
+| #48 | `5941cd9` | [selected run](https://github.com/arnabnandikgp/rivalt/actions/runs/40961692691) | scope pass, client pass, report skipped, financial pass, shell pass |
+| #49 | `8ca2072` | [selected run](https://github.com/arnabnandikgp/rivalt/actions/runs/40961699433) | scope pass, client pass, report pass, financial skipped, shell pass |
+
+CodeRabbit is neutral/skipped on this incremental push; no fresh independent review
+approval is claimed. The final report-only closeout does not change executable
+source. Initial/final review snapshots, resolution mutation results and the current
+CI capture remain under `.local/r094-*.json`. Next action: await the user's separate
+integration instruction, or assess any newly arriving finding. Keep the stack open.
