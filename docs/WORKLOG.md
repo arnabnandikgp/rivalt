@@ -50,7 +50,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | P29A–P31 remain ready Review in open #42/#43/#45/#46. [P32 A37/G25/G22](evidence/P32.md) now passes on its recorded pins: maximum full-book route 615,433 CU, 290 safety and 120 PostgreSQL outcomes, 574/574 eligible comparison routes, +13.84% matched p95 latency. P32 Review; ready publication pending. Stop after P32 PR as requested; P33/P34 Open |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | P29A–P31 remain ready Review in open #42/#43/#45/#46. [P32 A37/G25/G22](evidence/P32.md) now passes on its recorded pins: maximum full-book route 615,433 CU, 290 safety and 120 PostgreSQL outcomes, 574/574 eligible comparison routes, +13.84% matched p95 latency. P32 ready [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47) is open above #46 in Review. Stop after P32 PR as requested; P33/P34 Open |
 
 ## Phase overview
 
@@ -95,7 +95,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P29B | Exact quote/update/routing/funding contract | Review | Ready [PR #43](https://github.com/arnabnandikgp/rivalt/pull/43), checked `b0c504a`, published `cfea519`, above P29A `ca14b86` / #42 | [A34B/G22](evidence/P29B.md): 26 model checks, 368 local links, layout/packet/search/transition contract and pinned numeric gates pass; no runtime acceptance |
 | M10 | P30 | Configurable maker curves and updates | Review | `phase/p30-canonical-maker` above P29B `b4f43a4` / #43 | [Implementation checkpoint](P30-CANONICAL-MAKERS.md): [A35/G23](evidence/P30.md): build `2d6fcdd`, clean RPC `e9ee447`;123 signed RPC/WS outcomes,104 instruction/20 account/78 event parity;3,172 vectors per evaluator. Ready PR #45 is open; new trading disabled |
 | M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
-| M10 | P32 | Clearing/funding and safe local execution | Review | `phase/p32-liquidity-execution` above P31 `28d5dd0`/#46; ready publication pending | [A37/G25/G22 acceptance](evidence/P32.md) passes. SBF `6437f7d`; safety/PG client `5d26561`, full books `df70e7c`, canonical continuation `34b4325`. All eligible routes finalize; exact quote/accounting, safety, SQL and resource gates pass. Next: publish ready stacked PR, then stop before P33 |
+| M10 | P32 | Clearing/funding and safe local execution | Review | [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47), `phase/p32-liquidity-execution` above P31 `28d5dd0`/#46; acceptance closeout `cdffcc8` | [A37/G25/G22 acceptance](evidence/P32.md) passes. SBF `6437f7d`; safety/PG client `5d26561`, full books `df70e7c`, canonical continuation `34b4325`. All eligible routes finalize; exact quote/accounting, safety, SQL and resource gates pass. Ready PR published; stop before P33 as requested. Integration/CI remain separate |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Open | P32 gate passed | A38/G26 interfaces: actual durable recovery, operator/browser flow and financial reconstruction |
 | M10 | P34 | Comparative qualification and operations | Open | P33 | A39/G26/M10: complete populations, concurrent updates/fills/exits, reconciliation/recovery and measured limits |
 
@@ -4919,3 +4919,13 @@ R090 closeout verification: 305 affected local documentation links resolve; the
 comparison reader compiles, scoped shell syntax and whitespace checks pass, and
 the tracked evidence policy confirms summaries/fixtures only. No additional
 financial implementation or binary change occurred after the recorded runtime pins.
+
+R090 publication: `gh stack submit --auto --open` creates ready
+[PR #47](https://github.com/arnabnandikgp/rivalt/pull/47) above #46, at acceptance
+closeout `cdffcc8`, and updates stack #44 with five open PRs. Predecessor heads are
+unchanged. Set its title/body to the complete qualified execution/publisher scope
+and exact acceptance evidence. No merge or P33 work is performed. Both tables
+remain P32 Review / M10 In progress. Final documentation commit records this actual
+publication; no implementation changes or repeated runtime tests. Exact next
+action: await the user's direction after the requested P32 stopping point; P33
+would own durable service/indexer/UI integration, not another prototype acceptance.
