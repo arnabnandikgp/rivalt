@@ -53,6 +53,10 @@ signed route/order probe. It records original/fetched v0/v1 bytes, actual CU/key
 RPC/WS observations, event/legacy parity and independent cash/claim/fee totals.
 Its success alone does not close liquidation/default, full-book, PostgreSQL or
 the P32 continuation gate. Default-profile activation stays rejected.
+The additional [P32 acceptance matrix](evidence/P32.md) now records passing maximum
+books, safety, PostgreSQL and the three-profile continuation, each on its own pin.
+The comparison reader checks complete denominators, independent financial results,
+resource ceilings, matched latency and actual read/write lock sets.
 
 D63 records [P25 cash/claim implementation](P25-ACCOUNT-CASH.md): atomic own-account
 funded exits and separate complete market payment certificates. Acceptance remains

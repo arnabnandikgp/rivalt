@@ -5,8 +5,8 @@
 D75 records the user's acceptance of the restricted publisher proposal. D76 below
 freezes its exact contract. R087 implements the gated configuration/report handler,
 coherent off-chain builder and generated SDK. The scoped publisher probe passes;
-full P32 financial qualification remains open.
-P32 remains In progress above P31 PR #46. `sample_liquidity_v4` now rejects rather
+[integrated P32 acceptance](evidence/P32.md) now also passes in the explicit local candidate.
+P32 awaits review/integration above P31 PR #46. `sample_liquidity_v4` now rejects rather
 than offering a second authoritative funding path. Its superseded D74 100-lot
 transaction at 1,334,329 CU remains historical evidence, not a publisher result.
 
@@ -14,11 +14,12 @@ transaction at 1,334,329 CU remains historical evidence, not a publisher result.
 84 signed RPC/WS outcomes,8 accepted reports, generated/legacy ABI parity;
 100/600-lot reports30,511/30,571CU,871bytes/v0 and14 keys. The diagnosed control
 headroom failure is repaired without raising its budget; measured maximum318,874CU.
-Active/full-book control budgets and full P32 financial acceptance remain separate.
+The later [full-book](evidence/P32-RESOURCES.md) and [comparative](evidence/P32-COMPARISON.md)
+results retain their separately pinned evidence; default/devnet stay disabled.
 
 Do not restart P29–P31 or add a separate phase/PR for each internal step. Deliver
-one cohesive P32 PR after its revised acceptance passes, then stack P33 and P34
-as already authorized. Preserve V1–V3, external P15B/P16B and deferred endurance.
+one cohesive ready P32 PR. The latest user instruction requires stopping after
+P32 publication; P33/P34 remain separately planned. Preserve V1–V3, external P15B/P16B and deferred endurance.
 
 ## Selected boundary
 

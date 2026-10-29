@@ -27,6 +27,15 @@ def summarize(run):
     assert all(check['computeUnits'] * 5 <= check['computeUnitLimit'] * 4 for check in checks)
     assert all(check['bytes'] <= (1232 if check['version'] == 0 else 4096) for check in checks)
     assert all(check['loadedAccounts'] <= 32 for check in checks)
+    for offer in offers:
+        if offer.get('finalError'):
+            # Only explicit quote/source fences near injected transitions can
+            # explain an at-construction eligible route rejection. Arithmetic,
+            # financial-admission and unknown failures never become a pass merely
+            # because their percentage is small.
+            code = offer['finalError'].get('InstructionError', [None, {}])[1].get('Custom')
+            assert code in {6112, 6113, 6115, 6118, 6124}, 'Unexplained route failure'
+            assert 59000 <= offer['startedMs'] <= 80000 or 89000 <= offer['startedMs'] <= 108000
     outcomes = collections.Counter(offer['reason'] or ('filled' if offer.get('finalError') is None and offer['attempted'] else 'unclassified') for offer in offers)
     assert outcomes['unclassified'] == 0
     rows = {}
@@ -38,12 +47,41 @@ def summarize(run):
     return dict(denominators=run['denominators'], reasons=dict(outcomes), windows=rows,
                 route_cu_max=max(check['computeUnits'] for check in route_checks),
                 route_bytes_max=max(check['bytes'] for check in route_checks),
-                all_transaction_fees_lamports=str(sum(int(check['feeLamports']) for check in checks)),
+                recorded_harness_fees_lamports=str(sum(int(check['feeLamports']) for check in checks)),
                 route_fees_lamports=str(sum(int(check['feeLamports']) for check in route_checks)),
                 taker_fee_atoms=run['totalFees'], reprices_after_consumption=run['repricesAfterConsumption'],
                 structural_rejections=run['strictEpochRejections'],
                 schedule_lag_p95_ms=quantile([row['lagMs'] for row in run['schedules']], 95),
                 maximum_offer_lag_ms=max(offer['lagMs'] for offer in offers))
+
+
+def lock_sets(directory, run):
+    """Extract actual static writable keys; v0/v1 runs use no lookup tables."""
+    groups, all_keys = {}, {}
+    for index, check in enumerate(run['checks']):
+        label = check['label']
+        kind = ('route' if label.startswith('offered route ') else 'reprice' if label == 'continuation reprice batch'
+                else 'publisher' if label == 'continuation publisher reports'
+                else 'legacy-funding' if label == 'continuation legacy funding sample' else None)
+        if kind is None:
+            continue
+        transaction = json.loads((directory / f'transaction-{index}.json').read_text())
+        message = transaction['transaction']['message']
+        header, keys = message['header'], message['accountKeys']
+        signed = header['numRequiredSignatures']
+        writable = keys[:signed-header['numReadonlySignedAccounts']] + keys[signed:len(keys)-header['numReadonlyUnsignedAccounts']]
+        assert not transaction['meta'].get('loadedAddresses', {}).get('writable')
+        groups.setdefault(kind, []).append(set(writable))
+        all_keys.setdefault(kind, set()).update(keys)
+    unions = {kind: set.union(*populations) for kind, populations in groups.items()}
+    intersections = {f'route/{kind}': sorted(unions['route'] & values) for kind, values in unions.items() if kind != 'route'}
+    conflicts = {f'route/{kind}': sorted((all_keys['route'] & writable) | (unions['route'] & all_keys[kind]))
+                 for kind, writable in unions.items() if kind != 'route'}
+    return dict(unions={kind: sorted(values) for kind, values in unions.items()},
+                maximum_writable_counts={kind: max(map(len, values)) for kind, values in groups.items()},
+                write_write_intersections=intersections, potential_read_write_conflicts=conflicts,
+                observed_account_in_use=sum(check['error'] == 'AccountInUse' for check in run['checks']),
+                transport_retries=0, note='One shared test fee payer is included. Logical report/control races are classified separately.')
 
 
 def compare(runs):
@@ -78,4 +116,7 @@ def compare(runs):
 
 if __name__ == '__main__':
     assert len(sys.argv) == 4, 'baseline/summary.json control/summary.json treatment/summary.json'
-    compare([json.loads(Path(path).read_text()) for path in sys.argv[1:]])
+    runs = [json.loads(Path(path).read_text()) for path in sys.argv[1:]]
+    result = compare(runs)
+    locks = {run['profile']: lock_sets(Path(path).parent, run) for path, run in zip(sys.argv[1:], runs)}
+    print(json.dumps({'actual_writable_keys': locks}, indent=2))

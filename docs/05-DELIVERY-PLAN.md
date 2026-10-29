@@ -744,7 +744,10 @@ PRs and phase IDs; do not split this amendment into a new series of task PRs.
 D76 now fixes the report/configuration contract and smaller200,000-CU/20-key
 publisher budget before measurement. R087 passes the scoped producer-to-program
 probe on clean`4f4e47d`:84 signed RPC/WS outcomes and8 accepted reports. Trading/safety/PostgreSQL and continuation acceptance
-still gate P32; the standalone publisher probe cannot close it.
+remain independent gates; the standalone publisher probe cannot close P32.
+R090 now records [complete local A37/G25/G22 acceptance](evidence/P32.md), with
+P32 in Review pending integration. The user requests stopping after its ready PR
+is published; P33/P34 remain Open. No production or external gate is closed.
 
 Retain at most two makers per route while testing discovery/selection beyond the
 fixed A/B identity pair. A price update cannot implicitly restore consumed depth.

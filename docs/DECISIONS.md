@@ -1431,3 +1431,11 @@ Legacy A/B route, sampler and initial activation entrypoints remain profile3-onl
 Default/devnet/P30-only artifacts cannot activate this profile. Candidate activation
 allows actual safety testing; it does not close A37/G25 or enable P33 prematurely.
 Complete-cohort recovery, terminal exits and external/endurance gates are unchanged.
+
+D77 implementation checkpoint (R090): [A37/G25/G22](evidence/P32.md) passes on the
+recorded local code/artifact pins. Default/devnet remain disabled. The bounded
+publisher recovers from a confirmed timing/control rejection by reading fresh
+chain state at the next scheduled tick; the two-second fence and all source/
+coverage/recovery rules remain. Ambiguous-signature durable recovery remains P33.
+This records acceptance, not a new economic decision or production permission.
+Keep P32 Review until integrated and stop after its ready PR as the user requested.

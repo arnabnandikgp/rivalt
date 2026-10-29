@@ -14,13 +14,13 @@ and isolated legacy parity. D71 selects measured v0/v1 messages; v1 uses explici
 resource headers. Financial routing and service/indexer/wallet activation remain
 P31–P34, with P32 gating new financial execution.
 
-[P32's in-progress sampler](P32-LIQUIDITY-EXECUTION.md) has a separate local
+[P32's historical sampler](P32-LIQUIDITY-EXECUTION.md) has a separate local
 qualification feature, three fixed maker tuples and an extended oracle event.
 Under D74 it authenticates published curves and calculates their impact prices
 without hypothetical maker financial admission. Capital supplies identity and
 inventory; full financial checks remain in execution. Consumer views must label
-funding liquidity as published, not guaranteed executable. Resource acceptance and new trading activation
-remain unfulfilled; this does not extend the legacy A/B sampler to profile4.
+funding liquidity as published, not guaranteed executable. Its resource gate failed before D75 superseded that implementation; this does
+not extend the legacy A/B sampler to profile4.
 
 D75 supersedes that per-sample on-chain quote/CPI path with
 [a restricted off-chain publisher](P32-FUNDING-PUBLISHER.md). P32 owns the real
@@ -30,7 +30,8 @@ Maker financial admission remains in execution, not funding calculation. The
 R087 candidate now implements `FundingPublisherV4`, signed `FundingReportV4`,
 configuration/report events and the coherent SDK `readFundingReport` builder.
 The old sampler rejects explicitly. The scoped publisher RPC/WS/legacy-parity probe
-passes on clean`4f4e47d`; financial execution integration remains open. These events
+passes on clean`4f4e47d`; [integrated P32 acceptance](evidence/P32.md) now passes
+on its separately recorded pins. These events
 are not yet a P33 indexer/service acceptance.
 
 R088/D77 adds canonical immediate/stored-order handlers and the
@@ -39,7 +40,9 @@ structural epochs, returning a resource budget for the v0/v1 compiler. Shared
 financial/safety instructions admit profile4 only in the explicit P32 candidate;
 legacy routes, sampling and initial activation remain profile3-only. The new
 `activate_liquidity_v4` reuses the complete safety-storage qualification context.
-Scoped native/client parity is distinct from deployed financial acceptance.
+[Deployed financial acceptance](evidence/P32.md) now passes in that candidate,
+including safety, prototype PostgreSQL and bounded comparison. Public consumers
+and durable operation remain P33.
 
 D64 implements [P26 whole-account safety](P26-ACCOUNT-SAFETY.md): complete
 canonical valuation, verified exact clearing, application, recovery and retirement.

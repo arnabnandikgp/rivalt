@@ -21,7 +21,8 @@ D75 selects a restricted backend publisher for fresh profile-4 funding, initiall
 publishing every two seconds. Complete maker coverage and impact calculation are
 explicit publisher trust assumptions; clearing retains bounded report validation,
 independent risk prices and causal funding. Actual trading keeps full financial
-admission. [P32–P34 publisher delivery](P32-FUNDING-PUBLISHER.md) remains pending.
+admission. [P32 local acceptance](evidence/P32.md) passes; durable service/UI and final
+[P33/P34 delivery](P32-FUNDING-PUBLISHER.md) remain separate.
 
 D56 adds [P22–P28](P22-ACCOUNT-CENTRIC-CLEARING.md), a fresh bounded local redesign
 that separates account risk, market eligibility, funded exits and settlement/default

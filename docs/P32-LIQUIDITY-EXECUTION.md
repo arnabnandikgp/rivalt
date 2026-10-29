@@ -1,17 +1,16 @@
 # P32 — clearing, funding and safety integration
 
-In progress on `phase/p32-liquidity-execution`, above exact P31 `28d5dd0` / ready
-[PR #46](https://github.com/arnabnandikgp/rivalt/pull/46). A37/G25 is not complete.
-The governing contract is [P29B](P29B-MAKER-CONTRACT.md), explicitly amended by
-D74's published-liquidity decision and D75's subsequently accepted
-[restricted publisher replacement](P32-FUNDING-PUBLISHER.md). R087 implements the
-handler/backend under the frozen D76 contract. Its [scoped publisher probe](evidence/P32-PUBLISHER.md)
-passes on clean`4f4e47d`. [Basic execution](evidence/P32-EXECUTION.md),
-[protective full-book resources](evidence/P32-RESOURCES.md),
-[affected safety](evidence/P32-SAFETY.md) and [prototype PostgreSQL replay](evidence/P32-JOURNAL.md)
-now pass on their recorded pins. General-entry/stored full-book measurements and
-the bounded comparative continuation remain. Execution financial checks and external
-authorization are unchanged.
+A37/G25 and the G22 prototype continuation gate pass in the explicit local
+candidate; see [P32 acceptance](evidence/P32.md) and WORKLOG for publication/integration
+status. This branch is stacked above exact P31 `28d5dd0` / [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46).
+The user requests a stop after P32 publication. P33/P34 remain separate.
+
+The governing contract is [P29B](P29B-MAKER-CONTRACT.md), amended by D74 and
+D75/D76's [restricted publisher](P32-FUNDING-PUBLISHER.md). Execution financial
+checks and external authorization are unchanged. [Maximum-book resources](evidence/P32-RESOURCES.md),
+[affected safety](evidence/P32-SAFETY.md), [prototype PostgreSQL replay](evidence/P32-JOURNAL.md)
+and [bounded continuation](evidence/P32-COMPARISON.md) pass on their exact recorded pins.
+Default/devnet builds remain disabled; qualification applies only to this local profile.
 
 ## Implementation sequence within this phase
 
