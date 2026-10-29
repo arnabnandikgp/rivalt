@@ -62,8 +62,21 @@ const h: CanonicalHarness = {
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
     assert.equal(signature, expectedSignature);
     const verify = async () => {
-    await eventually(() => rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
-      response => response.value[0]?.confirmationStatus === 'finalized', label);
+    try {
+      await eventually(() => rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
+        response => response.value[0]?.confirmationStatus === 'finalized', label);
+    } catch (error) {
+      // Preserve the actual commitment/expiry state when a local runtime stalls;
+      // neither a timeout nor a successful simulation proves final execution.
+      const diagnostics = await Promise.allSettled([
+        rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
+        rpc.call('getSlot', [{ commitment: 'finalized' }]),
+        rpc.call('getBlockHeight', [{ commitment: 'finalized' }]),
+      ]);
+      writeFileSync(`${runDir}/finality-timeout-${transactionIndex}.json`, serialize({label,signature,
+        elapsedMs:performance.now()-started,error:String(error),diagnostics}));
+      throw error;
+    }
     const history = await eventually(() => rpc.call('getTransaction', [signature,
       { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]), value => Boolean(value), `fetch ${label}`);
     // Preserve a landed result even when a later resource or parity check fails.

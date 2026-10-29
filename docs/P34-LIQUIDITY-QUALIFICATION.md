@@ -41,6 +41,9 @@ source-independent funded exits during the same activity. Capture every original
 receipt, network fee, report input/digest, CPU/packet/key budget and lock set.
 
 Measure build/sign/landing p50/p95/p99, price drift and 2s/10s index markouts.
+Use monotonic wall time for fixture confirmation latency and PostgreSQL timestamps
+for durable publisher persistence-to-final-receipt latency; simulated chain
+blockTime is not synchronized closely enough to subtract from host timestamps.
 Constant synthetic indexes make those markouts a controlled spread/adverse-selection
 measurement, not real market prediction. Inventory, funding, funded versus unpaid
 P&L, provider fees, insurance contributions and hedge assumptions remain explicit.

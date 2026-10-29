@@ -50,7 +50,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M7 | P17–P21 | Bounded two-market isolated/cross successor | Closed | R053: all eight phase PRs integrated at `d07fccc`, tree identical to reviewed `1a3cc2c`. A22–A26/G13–G16 and [bounded M7 exit](evidence/P21B.md) retain their actual pins; R052 recovery/receipt regressions and scoped CI pass. Busy exits 0/3 versus quiescent exits 3/3 remain explicit; redesign now M8 under D56; endurance Deferred, P15B/P16B Open |
 | M8 | P22–P28 | Account-centric clearing redesign | Closed | R073: eight PRs integrated at `0916b9d`, tree identical to reviewed `e6ba2cf`; all findings addressed and selected CI passing. [P28 A33/G21/M8 exit](evidence/P28.md) retains browser `f595fd7` / workload-recovery `5491752`; [review corrections](evidence/R073-STACK-REVIEW.md) add scoped checks, not a new runtime run |
 | M9 | P28A | Interactive local evaluation follow-up | Closed | [PR #41](https://github.com/arnabnandikgp/rivalt/pull/41) merged at `350e60c`, identical to checked `ba73bcd`; [P28A acceptance](evidence/P28A.md) retains 13 real browser originals on `4f809d3`, plus R076’s 16 focused cases and passing scoped CI; user walkthrough accepted; demo stopped. R077 quoting assessment is discussion only; no qualification/status change |
-| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | P29A–P32 remain ready Review in open #42/#43/#45/#46/#47. [P33 A38/G26 interfaces](evidence/P33.md) passes on clean `fccf062`: 366 resolved service intents, ten browser originals, 88 retained reports, fresh PostgreSQL replay and exact independent cash/claim/fee audit. P33 Review in ready [PR #48](https://github.com/arnabnandikgp/rivalt/pull/48); P34 In progress above exact P33 `964ca5f` |
+| M10 | P29A–P34 | Programmable maker liquidity and bounded routing | In progress | P29A–P32 remain ready Review in open #42/#43/#45/#46/#47. [P33 A38/G26 interfaces](evidence/P33.md) passes on clean `fccf062`: 366 resolved service intents, ten browser originals, 88 retained reports, fresh PostgreSQL replay and exact independent cash/claim/fee audit. P33 Review in ready [PR #48](https://github.com/arnabnandikgp/rivalt/pull/48); P34 In progress above exact P33 `964ca5f`: baseline accepted; control timed accounting/report replay passes, supplemental finality retry pending |
 
 ## Phase overview
 
@@ -97,7 +97,7 @@ Under D18, verified Review phases satisfy development dependencies through a sta
 | M10 | P31 | Generic adapters and bounded best-pair router | Review | Ready [PR #46](https://github.com/arnabnandikgp/rivalt/pull/46), `phase/p31-canonical-router` above P30 `b7e76e3` / #45 | [A36/G24](evidence/P31.md): clean RPC `2fda67b`, search `f9a70c3`; 415 independent cases, 47 scoped tests, 24 actual quote comparisons / 73 finalized RPC/WS outcomes; p95 36.956ms / p99 45.960ms over 1,000 worst-width searches. Trading disabled |
 | M10 | P32 | Clearing/funding and safe local execution | Review | [PR #47](https://github.com/arnabnandikgp/rivalt/pull/47), `phase/p32-liquidity-execution` above P31 `28d5dd0`/#46; acceptance closeout `cdffcc8` | [A37/G25/G22 acceptance](evidence/P32.md) passes. SBF `6437f7d`; safety/PG client `5d26561`, full books `df70e7c`, canonical continuation `34b4325`. All eligible routes finalize; exact quote/accounting, safety, SQL and resource gates pass. Ready PR published; all selected CI checks pass at `6de5cea`. R091 resumes P33; integration remains separate |
 | M10 | P33 | Services, SDK, indexer, UI and maker kit | Review | Ready [PR #48](https://github.com/arnabnandikgp/rivalt/pull/48), `phase/p33-liquidity-services` above P32 `6de5cea` / #47; closeout `322a4e9` | [A38/G26 interfaces](evidence/P33.md): clean runtime `fccf062`, 365 finalized + one classified failed intent, ten browser originals, three SIGKILL/lost-ack recoveries, 88 signed-input reports, 172-event fresh replay, six maker reports and independent literal financial audit pass |
-| M10 | P34 | Comparative qualification and operations | In progress | `phase/p34-liquidity-qualification` above P33 `964ca5f` / #48 | A39/G26/M10: complete populations, concurrent updates/fills/exits, reconciliation/recovery and measured limits |
+| M10 | P34 | Comparative qualification and operations | In progress | `phase/p34-liquidity-qualification` above P33 `964ca5f` / #48 | R093: baseline 600/287/286 passes on `fb082de`; control 600-offer financial and 251-report replay pass, later finality timeout prevents full profile acceptance. Treatment, operational/full-book supplements and comparative closeout remain |
 
 Acceptance details live in [DELIVERY-PLAN](05-DELIVERY-PLAN.md). Configuration gates live in [DECISIONS](DECISIONS.md). Do not duplicate their full text here.
 
@@ -5210,3 +5210,27 @@ removed only rebuildable `target/debug` (95,743,047 bytes) and
 `target/deploy`, all database/evidence/configuration/keys remain. PostgreSQL's
 normal checkpointing reduces WAL without manual deletion. Next: pin the complete
 source-eligibility classifier and run fresh comparison with the same 600 offers.
+
+R093 comparison on clean `fb082de`, local
+`.local/liquidity-execution/qualification/20261029T193517Z-98596`, passes baseline:
+600 offered / 287 eligible / 287 submitted / 286 successful finalized. Expired
+legacy epochs, required-market Degraded modes and one MakerQuote/6115 rejection
+remain classified. Independent per-root cash, fractional claims, fees, insurance
+and fresh PostgreSQL replay pass. Control completes all 600 offers and identical
+replay; its per-root audit and all 251 retained publisher calculations (242 available,
+9 coverage-unavailable) pass independently. A subsequent standalone publisher
+supplement times out awaiting finality; control is not yet a complete profile pass,
+and treatment did not start. Preserve the capture and failed supplement. Add
+commitment diagnostics on timeout, without extending any transaction/source fence.
+
+The final report measures publisher persistence-to-final-receipt on PostgreSQL's
+own clock. Surfpool's simulated blockTime drifts from wall time, so subtracting it
+from a database timestamp is not a valid millisecond landing measurement. Timed
+route/reprice first-confirmation measurements retain their monotonic-clock basis.
+P33's exact published `964ca5f` selected CI succeeds in run `40936985054`.
+New independent publisher replay, per-root report checks and the separate actual
+default/recovery/all-funded-exit harness typecheck; two report tests pass. The latter
+runtime remains unrun. Unrelated SBF/full-suite checks are skipped: artifacts and
+financial program code are unchanged. Exact next action: pin the bounded readers,
+operational harness and timeout diagnostics; retry control/treatment, then execute
+the fresh operational and maximum-book resource supplements. P34 remains In progress.
