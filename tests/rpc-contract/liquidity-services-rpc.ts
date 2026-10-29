@@ -158,7 +158,10 @@ try {
   indexing=false;await indexLoop;await indexer.close();indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();beginIndex();
   await until(()=>count('liquidity-funding-%'),value=>value>=8,'publisher recovery history');
   for(const child of children.filter(child=>child!==executor))await stop(child);
-  await until(()=>runtime!.queue.pending(),values=>values.length===0,'all durable originals resolved');await stop(executor);
+  // pending() is the executor's due-work list, not an unresolved-history count.
+  // Future retry times must not authorize shutdown while receipts remain open.
+  await until(async()=>(await runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND status NOT IN ('finalized','failed')",[config.runId])).rows[0].count,
+    value=>value==='0','all durable originals resolved');await stop(executor);
   feeding=false;await feedLoop;indexing=false;await indexLoop;await flush();await indexer.cycle();
   const state=(await indexer.store.snapshot()).state,reconciliation=await indexer.reconcile();
   const records=(await runtime.store.pool.query('SELECT request_id FROM liquidity_intent_inputs WHERE run_id=$1 ORDER BY request_id',[config.runId])).rows;
@@ -207,7 +210,7 @@ try {
     writeFileSync(`${directory}/maker-${marketIndex}-${offset%3}-economics-input.json`,json(input));return liquidityMakerEconomics(input);
   });
   writeFileSync(`${directory}/maker-economics.json`,json(economics));
-  assert(intents.every(row=>['finalized','failed'].includes(row.status)),json(intents));
+  assert(intents.every(row=>['finalized','failed'].includes(row.status)),json(intents.filter(row=>!['finalized','failed'].includes(row.status))));
   assert(observations.every((entry:any)=>entry.stage!=='indexer-retry'||entry.expected),json(observations));
   const summary={revision,trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,faults,wallets,browser,observations,intents,
