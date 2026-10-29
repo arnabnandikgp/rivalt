@@ -11,6 +11,8 @@ import { openCanonicalRpcHarness } from './canonical-rpc-harness.js';
 import { liquidityExecutionSetup } from './liquidity-execution-setup.js';
 
 const runDir = process.env.RIVALT_RUN_DIR!;
+const bookVariant = process.env.RIVALT_RESOURCE_BOOK ?? 'protected';
+assert(['protected', 'entry', 'stored'].includes(bookVariant), 'Explicit full-book scenario');
 const { h, rpc, ws, checks, conformance, flush } = await openCanonicalRpcHarness(
   process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, runDir, {
     deferFinality: true,
@@ -36,9 +38,9 @@ try {
       venueTermsEpoch: sdk.getVenueV3Decoder().decode((await h.read(setup.venue))!).termsEpoch,
       nonce: root.nonce, stateVersion: root.stateVersion };
   };
-  const route = async (makers: typeof setup.instances, lots: bigint[], side: 0 | 1 = 0) => {
+  const route = async (makers: typeof setup.instances, lots: bigint[], side: 0 | 1 = 0, stored = false) => {
     const [one, two] = makers, current = await setup.marketState(0), slot = await setup.slot();
-    return sdk.getExecuteLiquidityRouteV4InstructionAsync({ ...setup.common, actor: owner,
+    const input = { ...setup.common, actor: owner,
       market: setup.markets[0], otherMarket: setup.markets[1], ledger: setup.ledgers[0], otherLedger: setup.ledgers[1], trader,
       registry: one.liquidityRegistry, firstCapital: one.capital, firstRegistration: one.registration,
       firstProgram: one.pricingProgram, firstProgramData: one.controlCommon.programData, firstConfig: one.config, firstPrice: one.price,
@@ -52,7 +54,9 @@ try {
         return { lots: lots[index], authorityEpoch: registration.authorityEpoch, controlEpoch: config.controlEpoch,
           shapeEpoch: config.shapeEpoch, depthEpoch: registration.depthEpoch };
       })),
-    });
+    };
+    return stored ? sdk.getExecuteLiquidityOrderV4InstructionAsync({ ...input, actor: setup.payer, id: 1n, version: 1n, filled: 0n })
+      : sdk.getExecuteLiquidityRouteV4InstructionAsync(input);
   };
   const watched = [...setup.tracked, ...setup.roots, ...setup.configurations];
   const bytes = () => Promise.all(watched.map(h.read));
@@ -76,22 +80,27 @@ try {
   assert.equal((await rootState(trader)).cash, 100_999_951n);
   for (const margin of [trader, first.capital, second.capital]) {
     const signer = margin === trader ? owner : setup.owner;
-    for (let group = 0; group < 2; group++) {
+    for (let group = 0; group < (bookVariant === 'protected' ? 2 : 4); group++) {
       await setup.sample();
       const root = await rootState(margin), position = root.positions[0], slot = await setup.slot();
       const isLong = position.lots > 0n;
       const terms = { side: isLong ? 1 : 0, lots: isLong ? 2n : 1n, limit: isLong ? 54_000n : 66_000n,
         feeBudget: isLong ? 40n : 20n, startSlot: slot, expirySlot: slot + 2000n,
         reduceOnly: true, generation: position.generation };
+      const operation: sdk.GroupOrderActionArgs = bookVariant === 'protected' ? { __kind: 'Protect', expectedId: root.book.lastOrderId + 1n,
+        takeProfit: { ...terms, trigger: isLong ? 1 : 2, threshold: isLong ? 70_000n : 50_000n },
+        stopLoss: { ...terms, trigger: isLong ? 2 : 1, threshold: isLong ? 50_000n : 70_000n } }
+        : { __kind: 'Place', expectedId: root.book.lastOrderId + 1n,
+          terms: { side: 0, lots: bookVariant === 'stored' && margin === trader && group === 0 ? 4608n : 1n,
+            limit: 66_000n, feeBudget: bookVariant === 'stored' && margin === trader && group === 0 ? 100_000n : 1000n,
+            startSlot: slot, expirySlot: slot + 2000n, reduceOnly: false, generation: 0n, trigger: 0, threshold: 0n } };
       await h.send('populate all live order and protection slots', [sdk.getManageAccountOrderV3Instruction({ ...setup.common,
         actor: signer, btc: setup.markets[0], eth: setup.markets[1], margin, guard: await guard(margin), marketIndex: 0,
-        operation: { __kind: 'Protect', expectedId: root.book.lastOrderId + 1n,
-          takeProfit: { ...terms, trigger: isLong ? 1 : 2, threshold: isLong ? 70_000n : 50_000n },
-          stopLoss: { ...terms, trigger: isLong ? 2 : 1, threshold: isLong ? 50_000n : 70_000n } } })], [signer]);
+        operation })], [signer]);
     }
     const root = await rootState(margin);
     assert.equal(root.book.orders.filter(entry => [1, 2].includes(entry.order.state)).length, 4);
-    assert.equal(root.book.protections.filter(entry => entry.protection.remaining > 0n).length, 2);
+    assert.equal(root.book.protections.filter(entry => entry.protection.remaining > 0n).length, bookVariant === 'protected' ? 2 : 0);
   }
   await setup.sample();
   await h.send('withdraw unused provider funded cash through actual SPL exit', [sdk.getWithdrawFundedAccountV3Instruction({
@@ -116,7 +125,8 @@ try {
   assert.equal(expectedPerLeg, 140_880_145n);
   const traderBefore = await rootState(trader);
   const makerBefore = await Promise.all([first, second].map(maker => rootState(maker.capital)));
-  await h.send('P32 route maximum quantity eight regions and three full books', [await route([first, second], [2304n, 2304n])], [owner]);
+  await h.send('P32 route maximum quantity eight regions and three full books',
+    [await route([first, second], [2304n, 2304n], 0, bookVariant === 'stored')], bookVariant === 'stored' ? [] : [owner]);
   const traderAfter = await rootState(trader);
   assert.equal(traderAfter.cash, traderBefore.cash - expectedFee);
   assert.equal(traderAfter.positions[0].lots, 4612n);
@@ -131,8 +141,8 @@ try {
   }
   for (const margin of [trader, first.capital, second.capital]) {
     const root = await rootState(margin);
-    assert.equal(root.book.orders.filter(entry => [1, 2].includes(entry.order.state)).length, 4);
-    assert.equal(root.book.protections.filter(entry => entry.protection.remaining > 0n).length, 2);
+    assert.equal(root.book.orders.filter(entry => [1, 2].includes(entry.order.state)).length, bookVariant === 'stored' && margin === trader ? 3 : 4);
+    assert.equal(root.book.protections.filter(entry => entry.protection.remaining > 0n).length, bookVariant === 'protected' ? 2 : 0);
   }
   const registrationBefore = await first.registrationState();
   await first.publish(setup.updater, 60_001n);
@@ -192,6 +202,6 @@ try {
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
     build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')), checks, parity,
     expectedPerLeg, expectedGross, expectedFee, expectedSell, sellFee, totalFees, allRoots, markets, ledgers, custody,
-    fullBooks: true, fullRegions: true, crossedReport: crossedReport.report, phaseAcceptance: false }));
+    fullBooks: true, fullRegions: true, bookVariant, crossedReport: crossedReport.report, phaseAcceptance: false }));
   console.log(`P32 full-book resource probe: ${checks.length} finalized outcomes. Full safety/PG/continuation acceptance remains open.`);
 } finally { try { await flush(); } finally { ws.close(); } }
