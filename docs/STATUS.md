@@ -114,15 +114,27 @@ venue pause previously reached a profile-3-only guard; the consolidated guard
 accepts the authorized profile 4. Signed pause/foreign-authority/epoch invalidation
 RPC regressions are added but have not yet run against rebuilt binaries.
 
-No P37 SBF, RPC/WS/PostgreSQL, browser or full-book resource acceptance is claimed.
-The local artifact allowlist still identifies the prior P36 binaries until a clean
-P37 build supplies measured hashes. P37 has no PR yet; source commits are an
-intermediate checkpoint, not phase completion. P38 remains the separate final
-README PR. P36's already-green CI does not qualify these changes.
+The first clean P37 SBF set is built at `828fe5431433f19cd562a23f44c45258ddbd61aa`;
+artifact allowlist commit `629d44aff903d1e315f9171696ea8722f5f168b8` pins actual hashes.
+Stack diagnostics and regenerated ABI parity pass. Clearing is 2,290,224 bytes;
+each maker is 260,560 bytes. Oracle fixture bytes remain unchanged. Prior P36
+binaries/manifest are preserved at `.local/p36-retained-canonical-artifacts/`.
 
-Next exact action: build P37's clean pinned current/default SBF artifacts, update
-the candidate artifact identity, then run current custody and publisher/execution
-RPC probes before the safety/PostgreSQL/browser/full-book acceptance matrix.
+At `629d44a`, fresh owned Surfpool RPC/WS custody qualification passes 57 finalized
+signed outcomes, 25 committed events, independent raw-byte/token conservation,
+eight rejected audit mutations and isolated Anchor account/event parity. Evidence:
+`.local/liquidity-execution/runs/p37-custody-629d44a/`. Current SDK and each rebuilt
+SBF maker match all 3,172 independent vectors (1,547 quotes / 1,625 rejections).
+An added compiled-default probe rejects initialization for clearing and each maker
+with complete writable-account rollback; this following test commit records it.
+
+No P37 publisher/execution/safety/PostgreSQL/browser/full-book acceptance is claimed
+yet. P37 has no PR; source and artifact commits are intermediate checkpoints.
+P38 remains the separate final README PR. P36's green CI does not qualify P37.
+
+Next exact action: run current publisher and execution RPC probes (including
+active-venue pause), then safety/PostgreSQL/browser/full-book acceptance on this
+pinned SBF set.
 
 ## Deployment and operational limits
 
