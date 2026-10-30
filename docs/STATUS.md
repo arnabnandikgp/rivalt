@@ -11,11 +11,11 @@ distinguishes historical evidence from the newly rebuilt consolidation candidate
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| M11 consolidation | In progress | P35–P37 accepted locally; publication/integration and final README remain |
+| M11 consolidation | In progress | P35–P37 in Review; final README acceptance/publication and stack integration remain |
 | P35 component docs/handoff | Review | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50); component contracts, maintenance AGENTS and historical provenance |
 | P36 canonical names/ABI | Review | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51); current API names with preserved wire contract; hosted CI green |
 | P37 legacy retirement/runtime | Review | [PR #53](https://github.com/arnabnandikgp/rivalt/pull/53); current runtime and fresh integrated acceptance complete |
-| P38 professional root README | Open | Separate final PR; concise product, architecture, qualified quick start and status |
+| P38 professional root README | In progress | Concise product/design, verified local demo quick start, repository map and current documentation links |
 | P15B independent maker validation | Open — external | Actual independent operator/economics; internal bots and assumed hedges cannot substitute |
 | P16B independent review/funded readiness | Open — external | Independent review, risk/reserve calibration and separate funded authorization |
 | Continuous 24-hour endurance | Deferred | No run scheduled or completion claimed |
@@ -80,8 +80,14 @@ Broad client/native regression is delegated to P37 CI; its result is pending.
 P37's accepted content is `1494881`; PR #53 is ready above #51. Initial GitHub push
 timed out; the retry succeeded without changing the content or stack relationships.
 
-Next exact action: create the separate P38 README branch and ready PR above #53.
-Keep all PRs in the stack open.
+P38 rewrites the root README around the current implementation and qualified local
+demo, with the component map and exact limits linked instead of duplicated phase
+history. The 85-line README and handoff pass 265 relative links/anchors, 112 immutable
+historical targets, 42 source/command paths, whitespace and evidence-policy checks.
+Its scope is Markdown only; runtime/build/financial suites are not rerun.
+
+Next exact action: publish P38's separate ready PR above #53. Keep all PRs in the
+stack open.
 
 ## Deployment and operational limits
 

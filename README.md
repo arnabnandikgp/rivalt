@@ -1,155 +1,85 @@
 # Rivalt
 
-Current component contracts and work status are in the [documentation map](docs/README.md)
-and [STATUS](docs/STATUS.md). The root README rewrite is scheduled as the final
-consolidation PR; earlier profile walkthroughs below retain their historical scope.
-Implementation baseline R1 · 20 October 2026
+**A Solana perpetual futures venue with common clearing and competing margined maker programs.**
 
-Rivalt is a new Solana perpetual venue with common clearing, isolated collateral and competing margined perpAMMs. The repository contains the implementation specification, local toolchain/SDK/RPC spine, checked financial core, clearing custody, separate A/B maker programs with funded-capital registration, and atomic routes under an explicit synthetic local risk profile. A PostgreSQL-backed indexer and read API rebuild finalized custody and route state over standard RPC/WS. Maker daemons, durable signed execution and guarded ordinary settlement/withdrawal complete the local service lifecycle. Authenticated controlled local sources, causal common funding and a separately budgeted funding worker now extend that profile. The P08 local profile adds persistent limits/stops, conservative reservations and existing-position TP/SL with a separately funded keeper. P09 adds verified local liquidation and complete-cohort resolution with crash/rebuild recovery; the default build rejects these financial paths.
+Rivalt separates pricing from clearing. Makers publish configurable liquidity
+curves and fund their own inventory; an off-chain router selects the best bounded
+allocation, and clearing executes up to two maker legs atomically. Traders share
+one account and settlement system across makers, so a position can open against
+one maker and close against another.
 
-## Start here
+The current implementation is a qualified **local engineering prototype** for
+BTC and ETH with one test collateral mint, isolated and cross-margin accounts,
+and three internal maker instances per market. Current trading remains disabled
+in default/devnet builds. Independent maker validation, independent review and
+funded-pilot readiness remain open; 24-hour endurance is deferred.
 
-[P29–P34's maker-liquidity roadmap](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P29-MAKER-LIQUIDITY-ROADMAP.md)
-defines configurable maker curves, independent quote adapters, bounded best-pair
-routing and consistent funding. D70 authorizes sequential implementation;
-[P29B's contract](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P29B-MAKER-CONTRACT.md) pins the independent reference,
-three-maker registry, bounded updates and qualification gates.
-[P30](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P30.md) qualifies canonical curves and controls in a fresh local
-profile; new financial trading remains disabled until P32. Existing integrated
-profiles retain their evidence.
+## Design
 
-D75 selects [a restricted off-chain funding publisher](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P32-FUNDING-PUBLISHER.md)
-within the active P32–P34 sequence. The backend computes published-depth impact
-prices; clearing authorizes bounded reports and keeps funding accounting on-chain.
-The scoped publisher is implemented and passes [real RPC/WS checks](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P32-PUBLISHER.md).
-[P32 local trading/safety and continuation acceptance](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P32.md) now
-pass, including full books and real PostgreSQL replay. Default/devnet stay disabled;
-[P33 services/UI and maker-kit acceptance](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P33.md) now passes.
-[P34 comparative and operational qualification](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P34.md) also passes:
-three complete 600-offer populations, default/recovery, full funded exits and fresh
-maximum-book resource checks. The latency gate passes narrowly; the report states
-the remaining operational limits. R096/D78 integrates all seven phase PRs into
-`main` at `b80bb38`, closing P29A–P34 and M10 within the bounded local scope.
-WORKLOG records exact review/acceptance pins and the separate open external gates.
+- **Common clearing:** on-chain custody, account authority, margin checks, funding,
+  orders, liquidation and complete-cohort default accounting.
+- **Competing makers:** separate pricing programs, configurable depth, restricted
+  price updaters and isolated capital per market. Every trade checks financial
+  admission, signed limits and current maker authority.
+- **Explicit accounting:** funded cash is separate from unpaid profit. Positive
+  unpaid claims supply no margin credit. Taker fees are 2 bps; provider fees are
+  zero. A quarter of collected fees funds the originating market's insurance.
+- **Independent risk:** index-derived valuations govern risk; a restricted
+  publisher supplies bounded funding reports from published maker depth.
+- **Durable applications:** wallet-signed transactions, immutable retry records,
+  finalized RPC/WS indexing and PostgreSQL reconciliation.
 
-[P22–P28's account-centric clearing redesign](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P22-ACCOUNT-CENTRIC-CLEARING.md)
-is integrated under R073/D67: separate account risk, market eligibility, funded
-exits and settlement/default responsibilities. P22B defines the financial contract;
-P23–P28 implement and qualify it in an explicit local test profile. Start with the
-[P28 operations guide](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P28-OPERATIONS.md) for local evaluation and
-[the P28 report](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P28.md) for measured limits. V1/V2 are preserved;
-default/devnet builds remain gated. WORKLOG owns live status and external gates.
+Supported orders include immediate exact-base trades, persistent limits and
+stop-limits, and existing-position reduce-only TP/SL. Rivalt is its own venue;
+it does not route trades to other perpetual exchanges.
 
-The isolated/cross successor starts at [P17's account/group contract](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P17-MARGIN-CONTRACT.md)
-and P17–P21 in the delivery plan. It targets a fresh local two-market test group;
-the existing V1 implementation is preserved. [P20](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P20.md) qualifies
-cross trading only in its explicit local profile after whole-account safety
-acceptance. P21 service/UI qualification and the bounded successor stack are now
-integrated under R053; WORKLOG records exact evidence and limitations.
+## Run locally
 
-Read [AGENTS.md](AGENTS.md), then [the live worklog](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/WORKLOG.md), [product scope](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/01-PRODUCT.md) and [the delivery plan](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/05-DELIVERY-PLAN.md). Before implementing a phase, read its domain documents and decision gates. For program code, start with the [clearing source map](programs/clearing/README.md).
-
-| File | Authority / purpose |
-|---|---|
-| [AGENTS.md](AGENTS.md) | Agent workflow, reading order, scope boundaries and completion rules |
-| [docs/01-PRODUCT.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/01-PRODUCT.md) | Product scope, customer/maker economics and desired experience |
-| [docs/02-PROTOCOL.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/02-PROTOCOL.md) | Economic state, invariants, transitions, funding, orders and risk contract |
-| [docs/03-COMPONENTS.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/03-COMPONENTS.md) | Program/service boundaries, account and interface requirements, repository layout |
-| [docs/04-STACK-AND-VALIDATION.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/04-STACK-AND-VALIDATION.md) | Stack, test layers, required scenarios, metrics and environment policy |
-| [docs/05-DELIVERY-PLAN.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/05-DELIVERY-PLAN.md) | Milestone/phase dependencies; P15/P16 engineering A and external B gates |
-| [docs/DECISIONS.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/DECISIONS.md) | Accepted choices, consolidation clarifications and phase-bound configuration gates |
-| [docs/WORKLOG.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/WORKLOG.md) | Sole live status tables, chronological run log, blockers and exact next action |
-| [docs/SOURCE-AUDIT.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/SOURCE-AUDIT.md) | Consistency audit, historical provenance and explicit supersessions |
-| [docs/P01-SPINE.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P01-SPINE.md) | Reproducible local bootstrap, smoke command and probe contract |
-| [docs/P02-ACCOUNTING-AND-CUSTODY.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P02-ACCOUNTING-AND-CUSTODY.md) | Exact financial units, fractional default rule, custody authority/ABI and checks |
-| [docs/P04-ATOMIC-ROUTES.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P04-ATOMIC-ROUTES.md) | Atomic route authority, synthetic risk boundary, allocation and measured budget contract |
-| [docs/P08-ORDERS.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P08-ORDERS.md) | Durable order authority, remaining reservations, fee prefixes and shared TP/SL allowance |
-| [docs/P09-RESOLUTION.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P09-RESOLUTION.md) | Funded liquidation, frozen cohort ledger, deterministic pages and authorized recovery |
-| [docs/P10-TRADER.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P10-TRADER.md) | Wallet UI, exact balance/order views, saved signatures and direct RPC recovery |
-| [docs/P11-MATRIX.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P11-MATRIX.md) | Explicit integrated fault report, independent reconciliation and scoped hosted CI |
-| [docs/P07-ORACLE-AND-FUNDING.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P07-ORACLE-AND-FUNDING.md) | Controlled source policy, authenticated common funding, action modes and participant fractions |
-| [docs/P06-LIFECYCLE.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P06-LIFECYCLE.md) | Ordinary settlement/exit guard, maker/executor services, explicit fee budgets and durable retries |
-| [docs/P05-INDEXER.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P05-INDEXER.md) | PostgreSQL journal/recovery, read endpoints, exact service pins and local operations |
-| [docs/P03-MAKER-CONTRACT.md](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P03-MAKER-CONTRACT.md) | Maker curves, capital binding, bounded read-only CPI, epochs and upgrade controls |
-
-## Interactive local demo
-
-[The local walkthrough](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P28A-LOCAL-DEMO.md) packages the current schema-3
-profile for hands-on evaluation. With the pinned tools/dependencies and qualified
-artifacts installed, run `bash ops/demo.sh start`, then open
-**http://127.0.0.1:18083** and choose **Rivalt Local Demo** in the wallet picker.
-Use `bash ops/demo.sh status`, `stop`, or `reset` to manage the owned session.
-Sessions use synthetic prices and valueless collateral, last up to 60 minutes,
-and start fresh after a reset. WORKLOG records this follow-up's acceptance status.
-
-## What “finalized” means
-
-The product architecture, economic contract, scope and delivery order are selected for implementation. Exact financial layouts, arithmetic bounds and synthetic risk parameters are phase deliverables with explicit deadlines in DECISIONS. The pinned P01 stack has its own executable checks; it does not validate later economic behavior.
-
-No phase may close with an unresolved gate it owns. A successful local prototype is not a production launch approval.
-
-This kit supersedes the older continuity guide as the implementation entry point. The historical research files remain reference material outside the working repository. Do not import the 52-record research inventory or every archive. Existing useful source already in the working directory may be reused after inspection; acquiring old archives is not an M1 prerequisite.
-
-## Run the local spine
-
-The verified bootstrap profile is macOS arm64, using native Surfpool and the existing Apple container runtime for PostgreSQL 18.6. Install Python 3.12+, rustup and the pinned tools as described in [P01-SPINE](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P01-SPINE.md), then:
+Install the [pinned toolchain and dependencies](docs/operations/local-development.md#pinned-toolchain)
+first. The verified environment is macOS arm64 with native Surfpool and Apple
+Containers for PostgreSQL. From the repository root:
 
 ```sh
 source ops/env.sh
-RIVALT_SLOT_TIME=50 pnpm smoke
+bash ops/build.sh
+bash ops/demo.sh start
 ```
 
-This installs frozen dependencies, builds all three SBF programs and IDLs, checks the generated client against isolated legacy Anchor, runs independent financial and compiled-program tests, then starts offline Surfpool and verifies signed deployment, probe, real token custody, maker controls and atomic routes/hostile-CPI rollback over HTTP/WS. It also verifies PostgreSQL rollback, disconnect recovery, fresh database rebuild and real chain-reset isolation, then runs separate maker/executor/settlement processes through deposit → split → cross-maker close → funded settlement → withdrawal, including acknowledgement loss, worker kills, expiry and fee reconciliation. P07 adds a separately deployed signed oracle fixture, funding worker, source/maker outage and recovery checks, exact fractional funding, and PostgreSQL reconstruction. P08 adds signed order races, a restarted order worker and competing discovery processes, plus fresh order-event reconstruction. P09 adds real funded liquidation, complete-cohort resolution, worker interruption/restart, frozen-state reconstruction and actual source-outage recovery. It shuts down only its own runtimes/containers. The consolidated report is written to `.local/matrix/<UTC-pid>/`, with unique stage environments beneath it. The matrix defaults to and requires `RIVALT_SLOT_TIME=50` milliseconds. Standalone legacy helpers retain their own explicit cadence knobs; those profiles do not replace the verified integrated 50 ms profile. Slot cadence changes local wall time, not on-chain slot lifetimes.
+Open **http://127.0.0.1:18083**, choose **Rivalt Local Demo**, and select **Get test
+funds**. Create a portfolio and margin account, deposit test collateral, then trade
+BTC or ETH. The demo uses synthetic prices, internal makers and valueless assets.
+Its wallet is local to the browser tab; never send real assets to it.
 
-`pnpm smoke` is the broad regression command, not a mandatory pre-PR step. Select affected checks and the current phase's acceptance gates; for P10 the targeted command is `RIVALT_SLOT_TIME=50 pnpm test:browser` after the affected build/client checks. P11 owns the consolidated matrix and P12 the D35 bounded qualification and large-history replay. Only WORKLOG owns live phase status. The delivery plan defines scope and acceptance, while DECISIONS owns baseline amendments.
+```sh
+bash ops/demo.sh status
+bash ops/demo.sh stop
+```
 
-All funds and actors remain explicitly synthetic/test assets through the engineering MVP.
+A stopped chain requires `bash ops/demo.sh reset` for a fresh session. Sessions
+are limited to 60 minutes. See [local development](docs/operations/local-development.md)
+for storage, shutdown, browser and setup details.
 
+## Repository
 
-P09 liquidation and complete-cohort resolution pass clean full acceptance on the stacked child of P08. The local profile includes funded receivers, exact paginated loss allocation and explicit recovery authority; [evidence](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P09.md) records the actual results and [WORKLOG](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/WORKLOG.md) owns Review/integration status. [P09's contract](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P09-RESOLUTION.md) describes the frozen ledger and service interface.
+| Path | Responsibility |
+|---|---|
+| `programs/clearing` | Account, custody, risk, execution and settlement authority |
+| `programs/maker-a`, `programs/maker-b`, shared `programs/maker-*.rs` | Maker program deployments and shared implementation |
+| `crates/financial-core`, `crates/maker-interface` | Checked financial arithmetic and bounded quote contract |
+| `packages/sdk`, `packages/services`, `packages/indexer` | Clients, durable workers, finalized projections and APIs |
+| `packages/maker-kit`, `packages/local-demo`, `apps/trader` | Operator tooling, local runtime and wallet UI |
+| `tests`, `ops` | Independent references, compiled/integration checks and pinned tooling |
 
-P10 adds the wallet trading UI, exact cash/unpaid-profit views, durable orders, existing-position TP/SL, actual-fill charts and direct RPC recovery. All 15 targeted browser checks pass against real Surfpool/WS/PostgreSQL, including cancellation and withdrawal with the venue API stopped; [P10 evidence](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P10.md) records the tested source and limits. The local instrumented wallet does not establish external wallet-provider or devnet parity.
+## Documentation and verification
 
-To explore the UI on this prepared workspace, run `source ops/env.sh` then `pnpm demo:trader`. It opens a visible Chrome session with a funded local test wallet at `http://127.0.0.1:18084` for up to 60 minutes. Close its tab or Ctrl-C to stop. This starts only the required local runtime, with no automated trading, soak or regression suites. See the [manual UI guide](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P10-TRADER.md#run-and-recover-directly).
+Start with the [documentation map](docs/README.md), then choose
+[clearing](docs/clearing/README.md), [maker liquidity](docs/liquidity/README.md),
+[application interfaces](docs/application/README.md) or [operations](docs/operations/README.md).
+[STATUS](docs/STATUS.md) tracks the integrated baseline and open work;
+[validation](docs/operations/validation.md) records exact tested revisions,
+resource measurements and limitations.
 
-P11 now records fresh A01–A16 acceptance across seven commands, 23 named faults and six independent integer reconciliations. [P11 evidence](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P11.md) retains exact identities and all outcome populations. The matrix is an explicit phase gate; ordinary PRs use affected checks and scoped hosted CI. P12 load, bounded qualification and large-history replay remain tracked in WORKLOG; D42 keeps 24-hour endurance Deferred for separately scoped future work.
-
-P12's D35 bounded qualification passes with 1,249/1,249 submitted trades, 71.19% normal offered availability, affected recovery, actual withdrawal and 12,454-transaction fresh PostgreSQL reconstruction. [P12 evidence](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P12.md) records exact source, the explicit history-stage indexer pause, resource measurements and limitations. D42 keeps continuous 24-hour endurance Deferred outside current P16A acceptance; WORKLOG owns live status.
-
-P13 verifies separate devnet deployment, actual sponsored Pyth Core consumption, a finalized one-lot trade and restrictive stale/source actions. [Evidence](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P13.md) retains the missed live WS notification and successful original-signature recovery, with intermittent feeds and operator-controlled guard clearly limited under D37. P14 owns the bounded service/wallet lifecycle; this is not a funded launch approval.
-
-P14's bounded devnet lifecycle, original-signature/PostgreSQL recovery and actual Phantom registration now pass. [P14 evidence](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P14.md) retains the exact failed attempts, successful continuation and independent wallet/account reconciliation. The [engineering MVP assessment](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/ENGINEERING-MVP.md) covers M1–M5b; the implementation stack is integrated, and [R030](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/R030-DEVNET-CLOSEOUT.md) verifies the subsequent devnet maker hardening/owner-binding follow-up. The closeout is integrated through PR #19; WORKLOG records P13/P14/M5b Closed. Independent maker/review/funded-pilot gates remain M6. The earlier devnet launcher is retired; use its pinned historical checkout for that deployment. Current setup is documented in [local development](docs/operations/local-development.md).
-
-Raw run evidence is retained locally at its existing paths and excluded from the tracked tree. See [evidence storage and reproduction](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/EVIDENCE.md); concise reports and regression fixtures remain in Git.
-
-D41 extends the completed engineering MVP with **P15A** maker integration/economics tooling and **P16A** availability analysis, focused reliability fixes and bounded operational readiness checks. Both engineering phases are integrated through PRs #20/#21 under D44's explicit merge authorization. D42 keeps the 24-hour qualification Deferred for much later; it is not a current phase gate. **P15B/P16B** remain separate independent-maker/review/funded-pilot gates; internal makers and simulated hedges cannot close them. See [the delivery plan](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/05-DELIVERY-PLAN.md) and [live worklog](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/WORKLOG.md).
-
-The [reference maker kit](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P15A-MAKER-KIT.md) packages operator configuration, SDK examples, a bot entrypoint and exact economics reporting. `pnpm maker:build` builds its four local artifacts; `pnpm maker:qualify` runs its bounded workflow on fresh Surfpool/PostgreSQL state. Both makers and all prices/collateral remain explicitly internal/synthetic. WORKLOG records the actual acceptance status.
-
-[Operational readiness](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P16A-OPERATIONS.md) explains the original 71.19% availability with explicit quote/submission/fill denominators and recorded refusal causes. `pnpm test:readiness` exercises bounded source/signature/indexer recovery and direct exit; `pnpm report:availability` analyzes retained attempt records without claiming a new load or endurance result.
-
-P21A adds the versioned group SDK, PostgreSQL/read API and durable maker/funding/
-order/settlement/risk services on P20's explicit qualified local artifacts.
-[Fresh interface evidence](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P21A.md) includes complete 64-member
-default, process recovery, independent accounting, exact program identity and
-API-independent exits. P21B qualifies the successor UI and bounded concurrent
-workload; both phases are integrated, with exact evidence in WORKLOG.
-
-[P21B](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P21B-QUALIFICATION.md) adds the portfolio-zero isolated/cross wallet UI
-and a fresh bounded two-market workload. [Its report](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P21B.md) records
-real wallet/RPC/WS/PostgreSQL checks, exact financial reconciliation and measured
-limits: continuous sampling invalidated exit certificates; explicit quiescent exits
-succeeded. This is an operator-controlled test profile, not funded readiness or
-always-live exit availability. The eight-PR successor stack is integrated at
-`d07fccc`; WORKLOG closes P17–P21B/M7 within that bounded scope. The user deferred
-exit-availability redesign at R053; D56 now resumes it within P22–P28's broader
-account-centric work. P15B/P16B and 24-hour endurance remain open/deferred.
-
-[P28's account UI](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/P28-OPERATIONS.md) exposes owner portfolios and immutable
-isolated/cross accounts without a technical group selector. [Fresh acceptance](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/P28.md)
-verifies 17 wallet originals, 115 submitted trades, six funded withdrawals during
-ordinary sampling/trading, complete default/recovery and identical fresh PostgreSQL
-replay. Funded cash stays separate from unpaid claims; profit payment still requires
-current certified market backing. The P22–P28 stack is integrated under R073/D67;
-WORKLOG records its exact integration and follow-up status. These bounded local results do not qualify
-independent makers, funded deployment or deferred 24-hour endurance.
+Use the checks appropriate to your change; the full integration matrix is not a
+routine PR prerequisite. Financial tests use independent expected values, and
+integrated acceptance uses actual signed transactions, Surfpool RPC/WS and
+PostgreSQL. See [AGENTS.md](AGENTS.md) for contribution and handoff rules.
