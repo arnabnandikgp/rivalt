@@ -265,8 +265,12 @@ locally. The hosted recheck passed the ABI tests, then exposed the report fixtur
 still embedding its cursor inside the financial payload. Moving the fixture cursor
 to its journal envelope preserves the literal cash/claim/fee expectations; all
 three report/availability reader tests now pass locally, including five financial
-corruption rejections. Hosted recheck and integration remain pending; no
-production/throughput claim.
+corruption rejections. P41 rebuild preparation also found the private borrowed footer serializer derived
+an unsupported lifetime for Anchor IDL generation. Explicit ordered serialization
+fixes that build path: seven scoped/header/wire-parity tests pass and a fresh
+Anchor-built clearing IDL equals the accepted contract. Public fields and financial
+behavior do not change; this is an IDL-source repair, not a new SBF/RPC acceptance.
+Hosted recheck and integration remain pending; no production/throughput claim.
 P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on
 `96790ef` / `f8984e0`. No external access blocker remains.
 

@@ -224,7 +224,6 @@ impl AnchorSerialize for ScopedRows<'_> {
         Ok(())
     }
 }
-#[derive(AnchorSerialize)]
 struct TransitionView<'a> {
     schema_version: u16,
     venue: Pubkey,
@@ -234,6 +233,21 @@ struct TransitionView<'a> {
     payload_count: u16,
     reads: ScopedRows<'a>,
     writes: ScopedRows<'a>,
+}
+
+// This private borrowed view is not an IDL type. Manual field-order serialization
+// also avoids Anchor's IDL derive treating the rows' lifetime as a type parameter.
+impl AnchorSerialize for TransitionView<'_> {
+    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        self.schema_version.serialize(writer)?;
+        self.venue.serialize(writer)?;
+        self.domain.serialize(writer)?;
+        self.slot.serialize(writer)?;
+        self.instruction.serialize(writer)?;
+        self.payload_count.serialize(writer)?;
+        self.reads.serialize(writer)?;
+        self.writes.serialize(writer)
+    }
 }
 
 /// Implementations live beside the context coverage table. Visits are identical
