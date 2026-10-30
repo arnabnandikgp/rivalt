@@ -51,7 +51,7 @@ try {
   assert.equal(partial.next,2);assert.equal(partial.cash,2_000_000n);
   await h.send('P40B unpause and repause invalidate the earlier proof',[pause(false),pause(true)]);
   await h.send('P40B prior page cannot continue in new epoch',[scan(2)],[],sdk.CLEARING_ERROR__RESOLUTION);
-  await h.send('P40B paused cash transfer cannot alter scanned entitlement',[transfer(1n)],[owner],sdk.CLEARING_ERROR__PROFILE);
+  await h.send('P40B paused cash transfer cannot alter scanned entitlement',[transfer(1n)],[owner],sdk.CLEARING_ERROR__PAUSED);
   for(let start=0;start<roots.length;start+=2)await h.send(`P40B fresh complete-member page ${start}`,[scan(start)]);
   const proof=sdk.getRetirementCertificateDecoder().decode((await h.read(certificate))!);
   assert.equal(proof.complete,true);assert.equal(proof.cash,6_000_000n);assert.equal(proof.next,6);

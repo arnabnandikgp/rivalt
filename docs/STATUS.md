@@ -266,7 +266,14 @@ in `.local/liquidity-execution/runs/p40b-journal-170/` and
 A final focused fixture adds real external-CPI ancestry/atomic rollback and the
 new paused terminal-proof lifecycle, including funded cash exit and fresh replay.
 It is test-only and supplies no PDA signer; devnet rejects the forwarder. Native
-fixture check and typecheck pass; its compiled signed qualification is pending.
+fixture check, typecheck and all 108 affected clearing native tests pass. Clean
+SBF `6123dc8` rebuilds the linked test oracle as well as clearing (the fixture is a
+clearing dependency); maker binaries are unchanged. The first focused run on
+`9d489ce` passed nested CPI effects/rollback and epoch invalidation, then stopped
+because its negative test expected Profile instead of the actual Paused (6101)
+error. The fixture expectation is corrected; no financial rule changed. Its
+evidence remains `.local/liquidity-execution/runs/p40b-scoped-cpi/`. Complete
+compiled acceptance remains pending.
 P40B is not yet in Review. Broader financial/default schema-reader integration and
 multichunk revision checks remain to audit before phase closeout.
 
