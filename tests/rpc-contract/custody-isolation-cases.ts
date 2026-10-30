@@ -13,9 +13,9 @@ export async function custodyIsolationCases(h:CanonicalHarness,setup:Setup) {
   const ledger=async(index:number)=>sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[index]))!);
   const omit=(instruction:Instruction,key:Address):Instruction=>({...instruction,accounts:instruction.accounts!.map(meta=>
     meta.address===key?{address:sdk.CLEARING_PROGRAM_ADDRESS,role:AccountRole.READONLY}:meta)});
-  const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner.address,21);
+  const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner.address,3);
   const [ethRoot]=await sdk.deriveMarginAccount(portfolio,1);
-  await h.send('P42 create distinct owner portfolio',[await sdk.getCreatePortfolioInstructionAsync({...setup.common,owner,portfolio,index:21})],[owner]);
+  await h.send('P42 create distinct owner portfolio',[await sdk.getCreatePortfolioInstructionAsync({...setup.common,owner,portfolio,index:3})],[owner]);
   await h.send('P42 register distinct owner isolated ETH',[await sdk.getRegisterMarginInstructionAsync({...setup.common,owner,portfolio,
     margin:ethRoot,subaccountIndex:1,mode:1,isolatedMarketIndex:1,role:0})],[owner]);
   const donor=setup.instances[4].capital;
