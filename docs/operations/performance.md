@@ -238,7 +238,7 @@ Technical feasibility does not prove maker profitability or future paid throughp
 
 | Phase | Cohesive deliverable | Acceptance |
 |---|---|---|
-| P39 | Complete access audit, executable focused baseline, financial/dependency contract and workload definitions | All current entrypoints inventoried; actual message locks verified; scoped fresh signed outcomes reconciled; limitations recorded |
+| P39 | Complete access audit, executable focused baseline, financial/dependency contract and workload definitions | All current entrypoints inventoried; actual message locks verified for the focused scenarios; scoped fresh signed outcomes reconciled; limitations recorded |
 | P40 | Scoped event history, indexer/reconciliation and bounded independent execution | Missing/reordered/duplicate/failed events, recovery and fresh PG replay; new layouts/metas frozen before activation |
 | P41 | Relevant-market funding/risk dependencies | No omitted losing market; no lost/doubled consumed funding; expected isolated dependency sets and cross coupling |
 | P42 | Token custody/internal accounting and operation-specific contexts | Exact cash/fee/insurance/default conservation; concurrency targets; certificate liveness result and any residual windows |

@@ -134,6 +134,9 @@ Disk has about 790 MiB free; preserve research, keys, databases and evidence.
 P40's eventual SBF rebuild may need additional space; this is not a current P39
 blocker. No external access/product decision is pending.
 
+P39 review clarifies that compiled-message coverage applies to the focused scenarios,
+while the 61-entrypoint inventory is static. No metric or runtime changes.
+
 P39 is published ready for review as [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55).
 Measured harness is `0ac6511`; verified summary/acceptance content is `b810b13`.
 
