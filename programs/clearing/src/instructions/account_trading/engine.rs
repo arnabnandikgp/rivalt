@@ -45,6 +45,11 @@ pub(crate) fn commit_root(root: &mut MarginAccount, candidate: &MarginAccount) -
 }
 
 pub(crate) fn market_view(market: &Market) -> Result<Market> {
+    validate_market(market)?;
+    Ok(market.clone())
+}
+
+fn validate_market(market: &Market) -> Result<()> {
     require!(
         market.schema_version == SCHEMA_VERSION
             && market.index < 2
@@ -52,7 +57,7 @@ pub(crate) fn market_view(market: &Market) -> Result<Market> {
             && market.lots_per_unit == [1_000_000, 100_000][usize::from(market.index)],
         ClearingError::Profile
     );
-    Ok(market.clone())
+    Ok(())
 }
 
 pub(crate) fn commit_market(market: &mut Market, candidate: &Market) -> Result<()> {
@@ -127,6 +132,7 @@ pub(crate) fn optional_environment<'a>(
     let mut credible = [false; 2];
     for (index, market) in markets.iter().enumerate() {
         if let Some(market) = market {
+            validate_market(market)?;
             require!(market.index as usize == index, ClearingError::Profile);
             funding[index] = shared_oracle::effective(2, market, clock)?;
             credible[index] = shared_oracle::action(market, clock, false).is_ok();

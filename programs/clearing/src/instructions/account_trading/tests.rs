@@ -333,3 +333,23 @@ fn consumed_funding_survives_hold_expiry_and_negative_new_premium() {
         -(math::SCALE / 50)
     );
 }
+
+#[test]
+fn optional_materialization_preserves_negative_consumed_prefix_after_slot_expiry() {
+    let mut pair = markets();
+    pair[0].oracle.premium_scaled = -36_000;
+    pair[0].oracle.funding_base = 100;
+    let mut time = clock();
+    time.unix_timestamp = 1_008;
+    // Two seconds at -36,000 scaled units/hour = -20; stored endpoint 80.
+    materialize_optional([Some(&mut pair[0]), None], &time).unwrap();
+    assert_eq!((pair[0].funding_index_scaled, pair[0].funding_time), (80, 1_008));
+    assert_eq!((pair[1].funding_index_scaled, pair[1].funding_time), (0, 0));
+    time.slot = pair[0].oracle.held_slot;
+    time.unix_timestamp = 1_010;
+    materialize_optional([Some(&mut pair[0]), None], &time).unwrap();
+    assert_eq!((pair[0].funding_index_scaled, pair[0].funding_time), (80, 1_008));
+    // Repeating expiry cannot reverse the consumed prefix or consume it twice.
+    materialize_optional([Some(&mut pair[0]), None], &time).unwrap();
+    assert_eq!(pair[0].funding_index_scaled, 80);
+}

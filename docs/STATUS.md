@@ -293,7 +293,11 @@ schema literal issues are fixed. No new compiled/RPC/WS/PG result is claimed.
 
 A dedicated signed dependency/rollback/cash reconciliation and fresh PostgreSQL
 replay driver is prepared. Existing P40B artifacts remain pinned pending the clean
-P41 rebuild. Broad unrelated/browser/endurance suites are omitted; P41's affected
+P41 rebuild. The first SBF build rejected the order handler at 4,336 bytes of stack
+offset (240 over the limit). Borrowing its typed market accounts removes duplicate
+market snapshots; no heap/stack limit or risk check is relaxed. A targeted negative
+funding/slot-expiry materialization case verifies the consumed prefix remains 80
+scaled units without touching ETH. Rebuilt SBF acceptance remains pending. Broad unrelated/browser/endurance suites are omitted; P41's affected
 compiled integration and P44's final qualification are still required.
 
 Next exact action: build the committed schema-6 source, pin its measured artifacts,

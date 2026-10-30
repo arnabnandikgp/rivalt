@@ -88,11 +88,12 @@ pub fn manage(
         crate::engine::account::trade_authority(&root, accounts.actor.key(), clock.slot)?
     };
     require!(market_index < 2, ClearingError::Profile);
-    let market_views = [
-        accounts.btc.as_deref().map(|market| market_view(market)).transpose()?,
-        accounts.eth.as_deref().map(|market| market_view(market)).transpose()?,
-    ];
-    let environment = optional_environment(market_views.each_ref().map(Option::as_ref), usize::from(market_index), &clock)?;
+    // Borrow the authenticated market states through candidate computation; no
+    // duplicate two-market snapshot belongs on the 4 KiB instruction stack.
+    let environment = optional_environment([
+        accounts.btc.as_deref().map(|market| &**market),
+        accounts.eth.as_deref().map(|market| &**market),
+    ], usize::from(market_index), &clock)?;
     match &operation {
         OrderAction::Place { terms, .. } | OrderAction::Replace { terms, .. } => {
             environment.admit_sources(&root, &clock, !terms.reduce_only)?
