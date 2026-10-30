@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
-import {AccountRole,type Address,type Instruction} from '@solana/kit';
+import {address,AccountRole,type Address,type Instruction} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {LiquidityIndexer} from '../../packages/indexer/src/liquidity-indexer.js';
 import {json} from '../../packages/indexer/src/events.js';
@@ -129,7 +129,7 @@ try {
   const publisher=sdk.getFundingPublisherDecoder().decode((await h.read(setup.configurations[0]))!);
   await h.send('P41 revoke after expiry preserves funding',[sdk.getConfigureFundingPublisherInstruction({...setup.common,authority:setup.payer,
     market:setup.markets[0],configuration:setup.configurations[0],expectedAuthority:publisher.authorityEpoch,
-    publisher:'11111111111111111111111111111111'})]);
+    publisher:address('11111111111111111111111111111111')})]);
   assert.equal((await setup.marketState(0)).fundingIndexScaled,persisted.fundingIndexScaled);
   await flush();
   const anchor=await initializationSignature(rpc,checks.map(check=>String(check.signature)),setup.deployment.eventAuthority);
