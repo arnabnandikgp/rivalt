@@ -321,7 +321,9 @@ Successful raw records stay in `p41-claims-revision/`, the failed attempt in
 `p41-claims-complete/`. Owned test listeners/containers are stopped.
 
 P41 acceptance content is `3415538`; [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59)
-is ready above #58. Integration and hosted CI remain pending. No broad
+is ready above #58. Integration remains pending. Hosted CI passed financial, scope, shell and report jobs;
+the client job exposed two route-builder fixtures that omitted selected maker roots.
+The fixture-only repair passes all three route-builder tests locally; the client rerun is pending. No broad
 unrelated/browser/endurance suites are rerun; CI owns broad regression and P44 owns
 full fresh qualification. Next exact action: freeze and implement P42's exact custody/accounting isolation
 contract above #59. No validator

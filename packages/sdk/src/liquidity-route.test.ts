@@ -20,7 +20,8 @@ function fixture() {
     venueState: { ...emptyState(protocol.getVenueDecoder()), schemaVersion: 6, profileVersion: 4,
       domain: financial.makers[0].snapshot.domain, markets, marketCount: 2, insuranceFeeShareBps: 2500, termsEpoch: 1n },
     safetyState: { ...emptyState(protocol.getVenueSafetyDecoder()), schemaVersion: 6, venue, mode: 1, epoch: 1n },
-    marketStates: financial.markets, roots: { [trader]: financial.root },
+    marketStates: financial.markets, roots: { [trader]: financial.root,
+      ...Object.fromEntries(financial.makers.map(maker => [maker.registrationState.capital, maker.capital])) },
     liquidity: { registry: testAddress(77), adapters: financial.makers },
   } as unknown as LiquidityRouteInput['snapshot'];
   return { financial, input: { snapshot, trader, marketIndex: 0, side: 0, lots: 1n, allInLimit: 20_000n, maxFee: 10n } as LiquidityRouteInput };
