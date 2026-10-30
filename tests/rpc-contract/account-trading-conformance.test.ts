@@ -28,22 +28,22 @@ test('account primitives preserve isolated Anchor bytes, optional accounts and a
     marketConfigEpoch:2n,side:1,lots:9n,inventory:-4n,cash:large,inventoryLimit:100n,consumed:11n,referencePrice:30_000n,slot:large};
   const cases:{program:string;name:string;args:unknown[];instruction:Instruction}[]=[];
   const add=(name:string,args:unknown[],instruction:Instruction,program='clearing')=>cases.push({program,name,args,instruction});
-  add('register_account_maker_v3',[1,100n],await sdk.getRegisterAccountMakerInstructionAsync({...common,makerId:1,inventoryLimit:100n}));
-  for(const operation of [0,1,2])add('update_account_maker_v3',[operation],sdk.getUpdateAccountMakerInstruction({...common,coSigner:operation===0?authority:undefined,operation}));
-  add('preview_account_maker_v3',[preview],sdk.getPreviewAccountMakerInstruction({...common,args:preview}));
-  add('initialize_account_oracle_v3',[key(26),key(27)],sdk.getInitializeAccountOracleInstruction({...common,primary:key(26),guard:key(27)}));
-  add('sample_account_oracle_v3',[],sdk.getSampleAccountOracleInstruction(common));
+  add('register_account_maker',[1,100n],await sdk.getRegisterAccountMakerInstructionAsync({...common,makerId:1,inventoryLimit:100n}));
+  for(const operation of [0,1,2])add('update_account_maker',[operation],sdk.getUpdateAccountMakerInstruction({...common,coSigner:operation===0?authority:undefined,operation}));
+  add('preview_account_maker',[preview],sdk.getPreviewAccountMakerInstruction({...common,args:preview}));
+  add('initialize_account_oracle',[key(26),key(27)],sdk.getInitializeAccountOracleInstruction({...common,primary:key(26),guard:key(27)}));
+  add('sample_account_oracle',[],sdk.getSampleAccountOracleInstruction(common));
   for(const operation of [
     {__kind:'Place',expectedId:large,terms}, {__kind:'Replace',id:large,version:2n,terms},
     {__kind:'Protect',expectedId:large,takeProfit:terms,stopLoss:{...terms,trigger:1}},
     {__kind:'Cancel',id:large,version:2n,protectionGroup:true}, {__kind:'Cleanup'},
-  ] satisfies sdk.GroupOrderActionArgs[])add('manage_account_order_v3',[guard,1,operation],sdk.getManageAccountOrderInstruction({...common,guard,marketIndex:1,operation}));
-  add('execute_account_route_v3',[intent],sdk.getExecuteAccountRouteInstruction({...common,...intent}));
-  add('execute_account_route_v3',[intent],sdk.getExecuteAccountRouteInstruction({...common,secondCapital:undefined,secondRegistration:undefined,
+  ] satisfies sdk.GroupOrderActionArgs[])add('manage_account_order',[guard,1,operation],sdk.getManageAccountOrderInstruction({...common,guard,marketIndex:1,operation}));
+  add('execute_account_route',[intent],sdk.getExecuteAccountRouteInstruction({...common,...intent}));
+  add('execute_account_route',[intent],sdk.getExecuteAccountRouteInstruction({...common,secondCapital:undefined,secondRegistration:undefined,
     secondProgram:undefined,secondProgramData:undefined,secondConfig:undefined,...intent}));
-  add('execute_account_order_v3',[execution],sdk.getExecuteAccountOrderInstruction({...common,...execution}));
-  add('qualify_account_trading_v3',[],sdk.getQualifyAccountTradingInstruction(common));
-  add('set_account_delegate_v3',[guard,key(31),large],sdk.getSetAccountDelegateInstruction({...common,guard,delegate:key(31),expirySlot:large}));
+  add('execute_account_order',[execution],sdk.getExecuteAccountOrderInstruction({...common,...execution}));
+  add('qualify_account_trading',[],sdk.getQualifyAccountTradingInstruction(common));
+  add('set_account_delegate',[guard,key(31),large],sdk.getSetAccountDelegateInstruction({...common,guard,delegate:key(31),expirySlot:large}));
   for(const [api,program] of [[sdk.makerA,'maker_a'],[sdk.makerB,'maker_b']] as const){
     const programAddress=program==='maker_a'?sdk.makerA.MAKER_A_PROGRAM_ADDRESS:sdk.makerB.MAKER_B_PROGRAM_ADDRESS;
     for(const [namespace,find] of [['maker',api.findConfigPda],['maker-v2',api.findInitializeGroupConfigConfigPda],
@@ -71,7 +71,7 @@ test('account primitives preserve isolated Anchor bytes, optional accounts and a
     const input=cases.map(entry=>{
       const idl=JSON.parse(readFileSync(`packages/sdk/idl/${entry.program}.json`,'utf8'));
       const definition=idl.instructions.find((instruction:{name:string})=>instruction.name===entry.name);
-      assert(definition);
+      assert(definition,`Unknown IDL fixture instruction: ${entry.name}`);
       let cursor=0;
       const accounts=(definitions:{name:string;optional?:boolean;accounts?:any[]}[]):Record<string,unknown>=>Object.fromEntries(definitions.map(account=>{
         const name=account.name.replace(/_([a-z])/g,(_,letter)=>letter.toUpperCase());
