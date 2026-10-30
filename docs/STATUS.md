@@ -138,6 +138,9 @@ P40B's SBF rebuild needs additional space. Permission is pending to remove 23
 older stopped PostgreSQL test-data copies (2.18 GiB); current P40A data and all
 interactive-demo directories are excluded. P40A verification can continue.
 
+P39 review clarifies that compiled-message coverage applies to the focused scenarios,
+while the 61-entrypoint inventory is static. No metric or runtime changes.
+
 P39 is published ready for review as [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55).
 Measured harness is `0ac6511`; verified summary/acceptance content is `b810b13`.
 
