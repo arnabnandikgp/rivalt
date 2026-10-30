@@ -6,7 +6,7 @@ export const fixtureKey=(byte:number)=>getAddressDecoder().decode(new Uint8Array
 export const fixtureVenue=fixtureKey(17),fixtureAuthority=fixtureKey(18);
 export function eventTransaction(payload:ReadonlyUint8Array,venue=fixtureVenue,authority=fixtureAuthority,program:Address=sdk.CLEARING_PROGRAM_ADDRESS,signature='signed') {
   const instruction=sdk.DEPOSIT_ACCOUNT_DISCRIMINATOR;
-  const footer=sdk.getAccountTransitionEventEncoder().encode({schemaVersion:6,venue,domain:new Uint8Array(32),slot:10n,
+  const footer=sdk.getAccountTransitionEventEncoder().encode({schemaVersion:7,venue,domain:new Uint8Array(32),slot:10n,
     instruction,payloadCount:1,reads:[],writes:[{account:venue,kind:0,before:0n,after:1n}]});
   const data=(bytes:ReadonlyUint8Array)=>getBase58Decoder().decode(bytes);
   const event=(bytes:ReadonlyUint8Array)=>({programIdIndex:2,accounts:[3],data:data(Buffer.concat([Buffer.from('e445a52e51cb9a1d','hex'),Buffer.from(bytes)])),stackHeight:2});

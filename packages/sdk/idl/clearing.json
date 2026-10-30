@@ -572,40 +572,9 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
-                "btc",
-                "eth",
-                "btc_ledger",
-                "eth_ledger"
+                "ledger"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -633,17 +602,7 @@
               }
             },
             {
-              "name": "btc",
-              "writable": true,
-              "optional": true
-            },
-            {
-              "name": "eth",
-              "writable": true,
-              "optional": true
-            },
-            {
-              "name": "btc_ledger",
+              "name": "ledger",
               "writable": true,
               "pda": {
                 "seeds": [
@@ -663,84 +622,17 @@
                   },
                   {
                     "kind": "account",
-                    "path": "venue.markets [0]",
-                    "account": "Venue"
+                    "path": "ledger.market",
+                    "account": "MarketLedger"
                   }
                 ]
               }
-            },
-            {
-              "name": "eth_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [1]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "vault",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      118,
-                      97,
-                      117,
-                      108,
-                      116,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              },
-              "relations": [
-                "venue"
-              ]
             }
           ]
         },
         {
           "name": "fee_authority",
           "signer": true
-        },
-        {
-          "name": "quote_mint"
-        },
-        {
-          "name": "user_token",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "event_authority"
@@ -780,38 +672,11 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "market",
             "registration",
             "capital"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -1586,7 +1451,6 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "registry",
             "btc",
@@ -1594,32 +1458,6 @@
             "ledger",
             "certificate"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -1767,8 +1605,7 @@
           "relations": [
             "custody",
             "safety",
-            "btc_ledger",
-            "eth_ledger"
+            "ledger"
           ]
         },
         {
@@ -1824,7 +1661,7 @@
           }
         },
         {
-          "name": "btc_ledger",
+          "name": "ledger",
           "writable": true,
           "pda": {
             "seeds": [
@@ -1844,35 +1681,8 @@
               },
               {
                 "kind": "account",
-                "path": "venue.markets [0]",
-                "account": "Venue"
-              }
-            ]
-          }
-        },
-        {
-          "name": "eth_ledger",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  101,
-                  100,
-                  103,
-                  101,
-                  114,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue.markets [1]",
-                "account": "Venue"
+                "path": "ledger.market",
+                "account": "MarketLedger"
               }
             ]
           }
@@ -1938,40 +1748,10 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
                 "btc",
-                "eth",
-                "btc_ledger",
-                "eth_ledger"
+                "eth"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -2007,90 +1787,64 @@
               "name": "eth",
               "writable": true,
               "optional": true
-            },
-            {
-              "name": "btc_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [0]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "eth_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [1]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "vault",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      118,
-                      97,
-                      117,
-                      108,
-                      116,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              },
-              "relations": [
-                "venue"
-              ]
             }
           ]
+        },
+        {
+          "name": "btc_ledger",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [0]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [1]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
         },
         {
           "name": "actor",
@@ -2207,37 +1961,10 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "market",
             "configuration"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -2346,38 +2073,11 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "market",
             "registration",
             "capital"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -2844,6 +2544,8 @@
         },
         {
           "name": "btc_ledger",
+          "writable": true,
+          "optional": true,
           "pda": {
             "seeds": [
               {
@@ -2870,6 +2572,8 @@
         },
         {
           "name": "eth_ledger",
+          "writable": true,
+          "optional": true,
           "pda": {
             "seeds": [
               {
@@ -2999,7 +2703,6 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
                 "market",
                 "other_market",
@@ -3007,33 +2710,6 @@
                 "other_ledger",
                 "trader"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -3099,34 +2775,9 @@
               }
             },
             {
-              "name": "other_ledger"
-            },
-            {
-              "name": "vault",
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      118,
-                      97,
-                      117,
-                      108,
-                      116,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              },
-              "relations": [
-                "venue"
-              ]
+              "name": "other_ledger",
+              "writable": true,
+              "optional": true
             },
             {
               "name": "trader",
@@ -3278,7 +2929,6 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
                 "market",
                 "other_market",
@@ -3286,33 +2936,6 @@
                 "other_ledger",
                 "trader"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -3378,34 +3001,9 @@
               }
             },
             {
-              "name": "other_ledger"
-            },
-            {
-              "name": "vault",
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      118,
-                      97,
-                      117,
-                      108,
-                      116,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              },
-              "relations": [
-                "venue"
-              ]
+              "name": "other_ledger",
+              "writable": true,
+              "optional": true
             },
             {
               "name": "trader",
@@ -4592,37 +4190,10 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "market",
             "registry"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -4763,36 +4334,9 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "market",
             "safety"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "market"
@@ -5303,35 +4847,8 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -5538,40 +5055,10 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
                 "btc",
-                "eth",
-                "btc_ledger",
-                "eth_ledger"
+                "eth"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -5607,90 +5094,64 @@
               "name": "eth",
               "writable": true,
               "optional": true
-            },
-            {
-              "name": "btc_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [0]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "eth_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [1]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "vault",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      118,
-                      97,
-                      117,
-                      108,
-                      116,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              },
-              "relations": [
-                "venue"
-              ]
             }
           ]
+        },
+        {
+          "name": "btc_ledger",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [0]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [1]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
         },
         {
           "name": "receiver_owner",
@@ -5818,39 +5279,11 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "btc",
             "eth",
             "margin"
           ]
-        },
-        {
-          "name": "custody",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -5968,40 +5401,10 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
                 "btc",
-                "eth",
-                "btc_ledger",
-                "eth_ledger"
+                "eth"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -6037,90 +5440,62 @@
               "name": "eth",
               "writable": true,
               "optional": true
-            },
-            {
-              "name": "btc_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [0]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "eth_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [1]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "vault",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      118,
-                      97,
-                      117,
-                      108,
-                      116,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              },
-              "relations": [
-                "venue"
-              ]
             }
           ]
+        },
+        {
+          "name": "btc_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [0]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [1]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
         },
         {
           "name": "owner",
@@ -6717,40 +6092,10 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
                 "btc",
-                "eth",
-                "btc_ledger",
-                "eth_ledger"
+                "eth"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -6786,90 +6131,64 @@
               "name": "eth",
               "writable": true,
               "optional": true
-            },
-            {
-              "name": "btc_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [0]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "eth_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [1]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "vault",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      118,
-                      97,
-                      117,
-                      108,
-                      116,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              },
-              "relations": [
-                "venue"
-              ]
             }
           ]
+        },
+        {
+          "name": "btc_ledger",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [0]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [1]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
         },
         {
           "name": "actor",
@@ -7286,37 +6605,10 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "market",
             "configuration"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -7440,38 +6732,11 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "market",
             "registration",
             "capital"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -8132,38 +7397,11 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "market",
             "registry",
             "capital"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -8566,38 +7804,11 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "market",
             "registration",
             "capital"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -9382,37 +8593,10 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "market",
             "safety",
             "registry"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "market",
@@ -9540,8 +8724,7 @@
           "relations": [
             "custody",
             "safety",
-            "btc_ledger",
-            "eth_ledger"
+            "ledger"
           ]
         },
         {
@@ -9597,7 +8780,7 @@
           }
         },
         {
-          "name": "btc_ledger",
+          "name": "ledger",
           "writable": true,
           "pda": {
             "seeds": [
@@ -9617,35 +8800,8 @@
               },
               {
                 "kind": "account",
-                "path": "venue.markets [0]",
-                "account": "Venue"
-              }
-            ]
-          }
-        },
-        {
-          "name": "eth_ledger",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  101,
-                  100,
-                  103,
-                  101,
-                  114,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue.markets [1]",
-                "account": "Venue"
+                "path": "ledger.market",
+                "account": "MarketLedger"
               }
             ]
           }
@@ -9727,37 +8883,9 @@
         {
           "name": "venue",
           "relations": [
-            "custody",
             "safety",
             "margin"
           ]
-        },
-        {
-          "name": "custody",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -9888,39 +9016,10 @@
             ]
           },
           "relations": [
-            "custody",
             "safety",
-            "btc_ledger",
-            "eth_ledger",
             "donor",
             "recipient"
           ]
-        },
-        {
-          "name": "custody",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
         },
         {
           "name": "safety",
@@ -9943,58 +9042,6 @@
               {
                 "kind": "account",
                 "path": "venue"
-              }
-            ]
-          }
-        },
-        {
-          "name": "btc_ledger",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  101,
-                  100,
-                  103,
-                  101,
-                  114,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue.markets [0]",
-                "account": "Venue"
-              }
-            ]
-          }
-        },
-        {
-          "name": "eth_ledger",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  101,
-                  100,
-                  103,
-                  101,
-                  114,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue.markets [1]",
-                "account": "Venue"
               }
             ]
           }
@@ -10064,30 +9111,6 @@
           }
         },
         {
-          "name": "vault",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ]
-          }
-        },
-        {
           "name": "event_authority"
         },
         {
@@ -10120,40 +9143,10 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
                 "btc",
-                "eth",
-                "btc_ledger",
-                "eth_ledger"
+                "eth"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -10189,90 +9182,64 @@
               "name": "eth",
               "writable": true,
               "optional": true
-            },
-            {
-              "name": "btc_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [0]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "eth_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [1]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "vault",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      118,
-                      97,
-                      117,
-                      108,
-                      116,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              },
-              "relations": [
-                "venue"
-              ]
             }
           ]
+        },
+        {
+          "name": "btc_ledger",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [0]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [1]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
         },
         {
           "name": "owner",
@@ -10740,6 +9707,8 @@
         },
         {
           "name": "btc_ledger",
+          "writable": true,
+          "optional": true,
           "pda": {
             "seeds": [
               {
@@ -10766,6 +9735,8 @@
         },
         {
           "name": "eth_ledger",
+          "writable": true,
+          "optional": true,
           "pda": {
             "seeds": [
               {
@@ -10891,40 +9862,10 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
                 "btc",
-                "eth",
-                "btc_ledger",
-                "eth_ledger"
+                "eth"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -10960,90 +9901,118 @@
               "name": "eth",
               "writable": true,
               "optional": true
-            },
-            {
-              "name": "btc_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [0]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "eth_ledger",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue.markets [1]",
-                    "account": "Venue"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "vault",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      118,
-                      97,
-                      117,
-                      108,
-                      116,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              },
-              "relations": [
-                "venue"
-              ]
             }
           ]
+        },
+        {
+          "name": "btc_ledger",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [0]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue.markets [1]",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "identity.venue",
+                "account": "AccountFinancialIdentity"
+              }
+            ]
+          }
         },
         {
           "name": "owner",
@@ -11136,40 +10105,10 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
-                "btc",
-                "eth",
-                "btc_ledger",
-                "eth_ledger"
+                "ledger",
+                "custody"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -11197,17 +10136,7 @@
               }
             },
             {
-              "name": "btc",
-              "writable": true,
-              "optional": true
-            },
-            {
-              "name": "eth",
-              "writable": true,
-              "optional": true
-            },
-            {
-              "name": "btc_ledger",
+              "name": "ledger",
               "writable": true,
               "pda": {
                 "seeds": [
@@ -11227,26 +10156,27 @@
                   },
                   {
                     "kind": "account",
-                    "path": "venue.markets [0]",
-                    "account": "Venue"
+                    "path": "ledger.market",
+                    "account": "MarketLedger"
                   }
                 ]
               }
             },
             {
-              "name": "eth_ledger",
+              "name": "custody",
               "writable": true,
               "pda": {
                 "seeds": [
                   {
                     "kind": "const",
                     "value": [
-                      108,
-                      101,
+                      99,
+                      117,
+                      115,
+                      116,
+                      111,
                       100,
-                      103,
-                      101,
-                      114,
+                      121,
                       45,
                       118,
                       51
@@ -11254,8 +10184,7 @@
                   },
                   {
                     "kind": "account",
-                    "path": "venue.markets [1]",
-                    "account": "Venue"
+                    "path": "venue"
                   }
                 ]
               }
@@ -11299,8 +10228,7 @@
         },
         {
           "name": "user_token",
-          "writable": true,
-          "optional": true
+          "writable": true
         },
         {
           "name": "token_program",
@@ -11343,40 +10271,10 @@
             {
               "name": "venue",
               "relations": [
-                "custody",
                 "safety",
-                "btc",
-                "eth",
-                "btc_ledger",
-                "eth_ledger"
+                "ledger",
+                "custody"
               ]
-            },
-            {
-              "name": "custody",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      99,
-                      117,
-                      115,
-                      116,
-                      111,
-                      100,
-                      121,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "venue"
-                  }
-                ]
-              }
             },
             {
               "name": "safety",
@@ -11404,17 +10302,7 @@
               }
             },
             {
-              "name": "btc",
-              "writable": true,
-              "optional": true
-            },
-            {
-              "name": "eth",
-              "writable": true,
-              "optional": true
-            },
-            {
-              "name": "btc_ledger",
+              "name": "ledger",
               "writable": true,
               "pda": {
                 "seeds": [
@@ -11434,26 +10322,27 @@
                   },
                   {
                     "kind": "account",
-                    "path": "venue.markets [0]",
-                    "account": "Venue"
+                    "path": "ledger.market",
+                    "account": "MarketLedger"
                   }
                 ]
               }
             },
             {
-              "name": "eth_ledger",
+              "name": "custody",
               "writable": true,
               "pda": {
                 "seeds": [
                   {
                     "kind": "const",
                     "value": [
-                      108,
-                      101,
+                      99,
+                      117,
+                      115,
+                      116,
+                      111,
                       100,
-                      103,
-                      101,
-                      114,
+                      121,
                       45,
                       118,
                       51
@@ -11461,8 +10350,7 @@
                   },
                   {
                     "kind": "account",
-                    "path": "venue.markets [1]",
-                    "account": "Venue"
+                    "path": "venue"
                   }
                 ]
               }
@@ -12312,15 +11200,6 @@
                 "name": "MarginAccountSnapshot"
               }
             }
-          },
-          {
-            "name": "liability_versions",
-            "type": {
-              "array": [
-                "u64",
-                2
-              ]
-            }
           }
         ]
       }
@@ -12540,20 +11419,9 @@
             "type": "u64"
           },
           {
-            "name": "total_cash",
-            "type": "u64"
-          },
-          {
             "name": "allocated_vault",
-            "type": "u64"
-          },
-          {
-            "name": "liability_versions",
             "type": {
-              "array": [
-                "u64",
-                2
-              ]
+              "option": "u64"
             }
           },
           {
@@ -12615,24 +11483,15 @@
             "type": "u64"
           },
           {
-            "name": "total_cash",
-            "type": "u64"
-          },
-          {
             "name": "allocated_vault",
-            "type": "u64"
+            "type": {
+              "option": "u64"
+            }
           },
           {
             "name": "actual_vault",
-            "type": "u64"
-          },
-          {
-            "name": "liability_versions",
             "type": {
-              "array": [
-                "u64",
-                2
-              ]
+              "option": "u64"
             }
           },
           {
@@ -12664,14 +11523,11 @@
           {
             "name": "ledgers",
             "type": {
-              "array": [
-                {
-                  "defined": {
-                    "name": "MarketLedgerSnapshot"
-                  }
-                },
-                2
-              ]
+              "vec": {
+                "defined": {
+                  "name": "MarketLedgerSnapshot"
+                }
+              }
             }
           }
         ]
@@ -12717,15 +11573,6 @@
           {
             "name": "safety_epoch",
             "type": "u64"
-          },
-          {
-            "name": "liability_versions",
-            "type": {
-              "array": [
-                "u64",
-                2
-              ]
-            }
           },
           {
             "name": "market_index",
@@ -12781,6 +11628,16 @@
               "vec": {
                 "defined": {
                   "name": "MarketSnapshot"
+                }
+              }
+            }
+          },
+          {
+            "name": "ledgers",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarketLedgerSnapshot"
                 }
               }
             }
@@ -12849,15 +11706,6 @@
                   "name": "MarketSnapshot"
                 }
               }
-            }
-          },
-          {
-            "name": "liability_versions",
-            "type": {
-              "array": [
-                "u64",
-                2
-              ]
             }
           }
         ]
@@ -13854,13 +12702,8 @@
             "type": "u64"
           },
           {
-            "name": "liability_versions",
-            "type": {
-              "array": [
-                "u64",
-                2
-              ]
-            }
+            "name": "liability_version",
+            "type": "u64"
           },
           {
             "name": "observations",
@@ -14032,24 +12875,8 @@
             "type": "pubkey"
           },
           {
-            "name": "total_cash",
-            "type": "u64"
-          },
-          {
             "name": "allocated_vault",
             "type": "u64"
-          },
-          {
-            "name": "liability_versions",
-            "docs": [
-              "Only market-dependent economic mutations invalidate gain certificates."
-            ],
-            "type": {
-              "array": [
-                "u64",
-                2
-              ]
-            }
           },
           {
             "name": "bump",
@@ -14689,6 +13516,16 @@
             }
           },
           {
+            "name": "other_ledger",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "MarketLedgerSnapshot"
+                }
+              }
+            }
+          },
+          {
             "name": "order_id",
             "type": "u64"
           },
@@ -14714,19 +13551,6 @@
                   "name": "MakerRegistrationPayload"
                 }
               }
-            }
-          },
-          {
-            "name": "total_cash",
-            "type": "u64"
-          },
-          {
-            "name": "liability_versions",
-            "type": {
-              "array": [
-                "u64",
-                2
-              ]
             }
           },
           {
@@ -15462,6 +14286,13 @@
             "type": "u64"
           },
           {
+            "name": "liability_version",
+            "docs": [
+              "Economic mutations of roots owing to this market invalidate its backing proof."
+            ],
+            "type": "u64"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -15503,6 +14334,10 @@
           },
           {
             "name": "version",
+            "type": "u64"
+          },
+          {
+            "name": "liability_version",
             "type": "u64"
           }
         ]
@@ -16718,10 +15553,6 @@
             "type": "u64"
           },
           {
-            "name": "total_cash",
-            "type": "u64"
-          },
-          {
             "name": "allocated_vault",
             "type": "u64"
           },
@@ -16864,13 +15695,8 @@
             "type": "u64"
           },
           {
-            "name": "liability_versions",
-            "type": {
-              "array": [
-                "u64",
-                2
-              ]
-            }
+            "name": "liability_version",
+            "type": "u64"
           },
           {
             "name": "observations",

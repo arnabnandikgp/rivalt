@@ -12,7 +12,6 @@ pub fn initialize(
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     execution_profile(
         &ctx.accounts.venue,
-        &ctx.accounts.custody,
         &ctx.accounts.safety,
         &ctx.accounts.market,
     )?;

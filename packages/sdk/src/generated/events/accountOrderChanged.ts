@@ -56,7 +56,6 @@ export type AccountOrderChangedEvent = {
   margin: Address;
   state: MarginAccountSnapshot;
   markets: Array<MarketSnapshot>;
-  liabilityVersions: Array<bigint>;
 };
 
 export type AccountOrderChangedEventArgs = {
@@ -65,7 +64,6 @@ export type AccountOrderChangedEventArgs = {
   margin: Address | HasAddress;
   state: MarginAccountSnapshotArgs;
   markets: Array<MarketSnapshotArgs>;
-  liabilityVersions: Array<number | bigint>;
 };
 
 /** Gets the encoder for {@link AccountOrderChangedEventArgs} event data. */
@@ -77,7 +75,6 @@ export function getAccountOrderChangedEventEncoder(): Encoder<AccountOrderChange
       ["margin", getAddressEncoder()],
       ["state", getMarginAccountSnapshotEncoder()],
       ["markets", getArrayEncoder(getMarketSnapshotEncoder())],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
     ]),
     [getConstantEncoder(ACCOUNT_ORDER_CHANGED_EVENT_DISCRIMINATOR)],
   );
@@ -92,7 +89,6 @@ export function getAccountOrderChangedEventDecoder(): Decoder<AccountOrderChange
       ["margin", getAddressDecoder()],
       ["state", getMarginAccountSnapshotDecoder()],
       ["markets", getArrayDecoder(getMarketSnapshotDecoder())],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ]),
     [getConstantDecoder(ACCOUNT_ORDER_CHANGED_EVENT_DISCRIMINATOR)],
   );

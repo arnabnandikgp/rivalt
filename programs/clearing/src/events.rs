@@ -46,6 +46,7 @@ pub struct MarketLedgerSnapshot {
     pub fees: u64,
     pub insurance_fee_remainder: u8,
     pub version: u64,
+    pub liability_version: u64,
 }
 
 #[event]
@@ -78,9 +79,7 @@ pub struct AccountCustodyChanged {
     pub safety_epoch: u64,
     pub terms_epoch: u64,
     pub config_epoch: u64,
-    pub total_cash: u64,
-    pub allocated_vault: u64,
-    pub liability_versions: [u64; 2],
+    pub allocated_vault: Option<u64>,
     pub membership_version: Option<u64>,
     pub member_count: Option<u16>,
     pub actual_vault: Option<u64>,
@@ -203,7 +202,6 @@ pub struct AccountOrderChanged {
     pub margin: Pubkey,
     pub state: MarginAccountSnapshot,
     pub markets: Vec<MarketSnapshot>,
-    pub liability_versions: [u64; 2],
 }
 
 #[event]
@@ -232,7 +230,6 @@ pub struct AccountAuthorityChanged {
     pub slot: u64,
     pub margin: Pubkey,
     pub state: MarginAccountSnapshot,
-    pub liability_versions: [u64; 2],
 }
 
 #[event]
@@ -252,12 +249,11 @@ pub struct LiquidityRouteExecuted {
     pub carry_before: u8,
     pub carry_after: u8,
     pub ledger: MarketLedgerSnapshot,
+    pub other_ledger: Option<MarketLedgerSnapshot>,
     pub order_id: u64,
     pub order_version: u64,
     pub root_states: Vec<MarginAccountSnapshot>,
     pub maker_states: Vec<crate::state::liquidity::MakerRegistrationPayload>,
-    pub total_cash: u64,
-    pub liability_versions: [u64; 2],
     pub legs: Vec<crate::state::liquidity::ExecutedLeg>,
 }
 
@@ -280,14 +276,12 @@ pub struct AccountFinancialChanged {
     pub market_index: u8,
     pub amount: u64,
     pub safety_epoch: u64,
-    pub total_cash: u64,
-    pub allocated_vault: u64,
-    pub actual_vault: u64,
-    pub liability_versions: [u64; 2],
+    pub allocated_vault: Option<u64>,
+    pub actual_vault: Option<u64>,
     pub roots: Vec<Pubkey>,
     pub root_states: Vec<MarginAccountSnapshot>,
     pub markets: Vec<MarketSnapshot>,
-    pub ledgers: [MarketLedgerSnapshot; 2],
+    pub ledgers: Vec<MarketLedgerSnapshot>,
 }
 
 #[event]
@@ -305,7 +299,7 @@ pub struct BackingSnapshot {
     pub market_index: u8,
     pub safety_epoch: u64,
     pub membership_version: u64,
-    pub liability_versions: [u64; 2],
+    pub liability_version: u64,
     pub observations: [u64; 2],
     pub funding_bounds: [[i128; 2]; 2],
     pub source_deadlines: [i64; 2],
@@ -327,7 +321,7 @@ impl From<&crate::state::accounts::SettlementCertificate> for BackingSnapshot {
             market_index: state.market_index,
             safety_epoch: state.safety_epoch,
             membership_version: state.membership_version,
-            liability_versions: state.liability_versions,
+            liability_version: state.liability_version,
             observations: state.observations,
             funding_bounds: state.funding_bounds,
             source_deadlines: state.source_deadlines,
@@ -348,7 +342,6 @@ pub struct AccountLiquidated {
     pub venue: Pubkey,
     pub slot: u64,
     pub safety_epoch: u64,
-    pub liability_versions: [u64; 2],
     pub market_index: u8,
     pub lots: u64,
     pub price: u64,
@@ -360,6 +353,7 @@ pub struct AccountLiquidated {
     pub target_state: MarginAccountSnapshot,
     pub receiver_state: MarginAccountSnapshot,
     pub markets: Vec<MarketSnapshot>,
+    pub ledgers: Vec<MarketLedgerSnapshot>,
 }
 
 /// The complete frozen input header; wide derived work is emitted separately.
@@ -574,7 +568,6 @@ pub struct RetiredReserveWithdrawn {
     pub fees: u64,
     pub fee_remainder: u8,
     pub ledger_version: u64,
-    pub total_cash: u64,
     pub allocated_vault: u64,
     pub actual_vault: u64,
 }

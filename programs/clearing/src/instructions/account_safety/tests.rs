@@ -5,7 +5,7 @@ use financial_core::SCALE;
 
 fn root(id: u16, cash: u64) -> MarginAccount {
     MarginAccount {
-        schema_version: 6,
+        schema_version: 7,
         id,
         cash,
         mode: MODE_CROSS,
@@ -17,7 +17,7 @@ fn root(id: u16, cash: u64) -> MarginAccount {
 }
 fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| Market {
-        schema_version: 6,
+        schema_version: 7,
         index,
         cross_eligible: true,
         terms_epoch: 1,

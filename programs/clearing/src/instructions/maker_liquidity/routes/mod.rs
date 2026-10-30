@@ -2,7 +2,9 @@
 //! No profile-4 activation path is supplied by this module.
 use super::*;
 use crate::engine::routes as candidates;
-use crate::instructions::account_trading::{self as trading, optional_environment, market_view, root_view};
+use crate::instructions::account_trading::{
+    self as trading, market_view, optional_environment, root_view,
+};
 use crate::instructions::{OrderExecution, RouteIntent, RouteLeg};
 use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
@@ -101,25 +103,21 @@ fn execute_core(
     clock: &Clock,
 ) -> Result<()> {
     let identity = &accounts.identity;
-    execution_profile(
-        &identity.venue,
-        &identity.custody,
-        &identity.safety,
-        &identity.market,
-    )?;
+    execution_profile(&identity.venue, &identity.safety, &identity.market)?;
     require!(identity.safety.mode == ACTIVE, ClearingError::Profile);
-    crate::instructions::account_custody::reconciled(
-        &identity.custody,
-        [&identity.ledger, &identity.other_ledger],
-        identity.vault.amount,
-    )?;
     let selected = usize::from(identity.market.index);
     require!(
         selected < 2
             && identity.venue.markets[selected] == identity.market.key()
-            && identity.other_market.as_ref().is_none_or(|market| identity.venue.markets[1 - selected] == market.key())
+            && identity
+                .other_market
+                .as_ref()
+                .is_none_or(|market| identity.venue.markets[1 - selected] == market.key())
             && identity.ledger.market_index == identity.market.index
-            && usize::from(identity.other_ledger.market_index) == 1 - selected,
+            && identity
+                .other_ledger
+                .as_ref()
+                .is_none_or(|ledger| usize::from(ledger.market_index) == 1 - selected),
         ClearingError::Profile
     );
     let has_second = intent.legs.len() == 2;
@@ -141,15 +139,24 @@ fn execute_core(
     let markets = if selected == 0 {
         [
             Some(market_view(&identity.market)?),
-            identity.other_market.as_deref().map(|market| market_view(market)).transpose()?,
+            identity
+                .other_market
+                .as_deref()
+                .map(|market| market_view(market))
+                .transpose()?,
         ]
     } else {
         [
-            identity.other_market.as_deref().map(|market| market_view(market)).transpose()?,
+            identity
+                .other_market
+                .as_deref()
+                .map(|market| market_view(market))
+                .transpose()?,
             Some(market_view(&identity.market)?),
         ]
     };
-    let environment = optional_environment(markets.each_ref().map(Option::as_ref), selected, clock)?;
+    let environment =
+        optional_environment(markets.each_ref().map(Option::as_ref), selected, clock)?;
     environment.validate(&identity.trader)?;
     environment.validate(&accounts.first_capital)?;
     if let Some(capital) = accounts.second_capital.as_deref() {

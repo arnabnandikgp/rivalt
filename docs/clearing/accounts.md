@@ -360,7 +360,9 @@ immediately after it. Financial and liquidation events carry ordered, bounded
 partial ledger vectors. `AccountFinancialChanged.allocated_vault/actual_vault`
 become options; internal actions emit neither. Custody payload `allocated_vault`
 also becomes optional for pure transfers. BackingSnapshot replaces its version
-array with the selected scalar. Complete-resolution payloads retain exact frozen
+array with the selected scalar. `RetiredReserveWithdrawn` also drops the unavailable
+global `total_cash`; its selected reserve, allocation and actual token fields remain.
+Complete-resolution payloads retain exact frozen
 cash and both liability stamps, now derived from ledgers. Indexer/API full cash is
 an explicitly derived complete-root value; omitted fields never zero unrelated
 state. Authenticate every changed ledger/root with its scoped footer revision.

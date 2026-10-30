@@ -83,13 +83,12 @@ pub fn initialize(
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     custody_only(
         &ctx.accounts.venue,
-        &ctx.accounts.custody,
         &ctx.accounts.safety,
         &ctx.accounts.market,
     )?;
     ctx.accounts.registry.set_inner(LiquidityRegistry {
         revision: 0,
-        schema_version: 6,
+        schema_version: 7,
         venue: ctx.accounts.venue.key(),
         market: ctx.accounts.market.key(),
         count: 0,
@@ -108,14 +107,9 @@ pub fn initialize(
 // Keep the full decoded curve out of the registration/event frame on SBF.
 #[inline(never)]
 fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<()> {
-    custody_only(
-        &accounts.venue,
-        &accounts.custody,
-        &accounts.safety,
-        &accounts.market,
-    )?;
+    custody_only(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
-        accounts.registry.schema_version == 6
+        accounts.registry.schema_version == 7
             && !accounts.registry.sealed
             && instance < 3
             && instance == accounts.registry.count,
@@ -150,7 +144,7 @@ pub fn register(
     validate_registration(accounts, instance)?;
     accounts.registration.set_inner(MakerRegistration {
         revision: 0,
-        schema_version: 6,
+        schema_version: 7,
         venue: accounts.venue.key(),
         market: accounts.market.key(),
         capital: accounts.capital.key(),
@@ -205,14 +199,9 @@ pub fn seal(
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
-    custody_only(
-        &accounts.venue,
-        &accounts.custody,
-        &accounts.safety,
-        &accounts.market,
-    )?;
+    custody_only(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
-        accounts.registry.schema_version == 6
+        accounts.registry.schema_version == 7
             && accounts.registry.count == 3
             && !accounts.registry.sealed,
         ClearingError::MakerBinding
@@ -220,7 +209,7 @@ pub fn seal(
     let makers = [&accounts.first, &accounts.second, &accounts.third];
     for (index, registration) in makers.iter().enumerate() {
         require!(
-            registration.schema_version == 6
+            registration.schema_version == 7
                 && usize::from(registration.instance) == index
                 && registration.venue == accounts.venue.key()
                 && registration.market == accounts.market.key(),
@@ -385,15 +374,10 @@ pub fn quarantine(
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
-    control_base(
-        &accounts.venue,
-        &accounts.custody,
-        &accounts.safety,
-        &accounts.market,
-    )?;
+    control_base(&accounts.venue, &accounts.safety, &accounts.market)?;
     capital_identity(&accounts.capital, &accounts.market)?;
     require!(
-        accounts.registration.schema_version == 6
+        accounts.registration.schema_version == 7
             && accounts.registration.authority_epoch == authority
             && authority > 0
             && accounts.registration.owner == accounts.capital.owner,

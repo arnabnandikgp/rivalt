@@ -43,7 +43,6 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import {
-  findCustodyPda,
   findLiquidityControllerPda,
   findMakerEventAuthorityPda,
   findVenueSafetyPda,
@@ -63,7 +62,6 @@ export type ApproveLiquidityInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountActor extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountMarket extends string | AccountMeta<string> = string,
   TAccountRegistration extends string | AccountMeta<string> = string,
@@ -89,9 +87,6 @@ export type ApproveLiquidityInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? ReadonlyAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -175,7 +170,6 @@ export function getApproveLiquidityInstructionDataCodec(): FixedSizeCodec<
 export type ApproveLiquidityAsyncInput<
   TAccountActor extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput =
@@ -196,7 +190,6 @@ export type ApproveLiquidityAsyncInput<
 > = {
   actor: TAccountActor;
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   market: TAccountMarket;
   registration: TAccountRegistration;
@@ -217,7 +210,6 @@ export type ApproveLiquidityAsyncInput<
 export async function getApproveLiquidityInstructionAsync<
   TAccountActor extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput,
@@ -236,7 +228,6 @@ export async function getApproveLiquidityInstructionAsync<
   input: ApproveLiquidityAsyncInput<
     TAccountActor,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountRegistration,
@@ -264,10 +255,6 @@ export async function getApproveLiquidityInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -338,11 +325,6 @@ export async function getApproveLiquidityInstructionAsync<
   const originalAccounts = {
     actor: { value: input.actor ?? null, isSigner: true, isWritable: false },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
     registration: {
@@ -402,17 +384,6 @@ export async function getApproveLiquidityInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -452,7 +423,6 @@ export async function getApproveLiquidityInstructionAsync<
     accounts: [
       getAccountMeta("actor", accounts.actor),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("registration", accounts.registration),
@@ -480,10 +450,6 @@ export async function getApproveLiquidityInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -543,7 +509,6 @@ export async function getApproveLiquidityInstructionAsync<
 export type ApproveLiquidityInput<
   TAccountActor extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput =
@@ -564,7 +529,6 @@ export type ApproveLiquidityInput<
 > = {
   actor: TAccountActor;
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   market: TAccountMarket;
   registration: TAccountRegistration;
@@ -585,7 +549,6 @@ export type ApproveLiquidityInput<
 export function getApproveLiquidityInstruction<
   TAccountActor extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput,
@@ -604,7 +567,6 @@ export function getApproveLiquidityInstruction<
   input: ApproveLiquidityInput<
     TAccountActor,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountRegistration,
@@ -631,10 +593,6 @@ export function getApproveLiquidityInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -704,11 +662,6 @@ export function getApproveLiquidityInstruction<
   const originalAccounts = {
     actor: { value: input.actor ?? null, isSigner: true, isWritable: false },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
     registration: {
@@ -771,7 +724,6 @@ export function getApproveLiquidityInstruction<
     accounts: [
       getAccountMeta("actor", accounts.actor),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("registration", accounts.registration),
@@ -799,10 +751,6 @@ export function getApproveLiquidityInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -867,21 +815,20 @@ export type ParsedApproveLiquidityInstruction<
   accounts: {
     actor: TAccountMetas[0];
     venue: TAccountMetas[1];
-    custody: TAccountMetas[2];
-    safety: TAccountMetas[3];
-    market: TAccountMetas[4];
-    registration: TAccountMetas[5];
-    capital: TAccountMetas[6];
-    config: TAccountMetas[7];
-    price: TAccountMetas[8];
-    pricingProgram: TAccountMetas[9];
-    programData: TAccountMetas[10];
-    controller: TAccountMetas[11];
-    makerEventAuthority: TAccountMetas[12];
+    safety: TAccountMetas[2];
+    market: TAccountMetas[3];
+    registration: TAccountMetas[4];
+    capital: TAccountMetas[5];
+    config: TAccountMetas[6];
+    price: TAccountMetas[7];
+    pricingProgram: TAccountMetas[8];
+    programData: TAccountMetas[9];
+    controller: TAccountMetas[10];
+    makerEventAuthority: TAccountMetas[11];
     /** Required only for joint code approval. Never passed to maker CPI. */
-    coSigner?: TAccountMetas[13] | undefined;
-    eventAuthority: TAccountMetas[14];
-    program: TAccountMetas[15];
+    coSigner?: TAccountMetas[12] | undefined;
+    eventAuthority: TAccountMetas[13];
+    program: TAccountMetas[14];
   };
   data: ApproveLiquidityInstructionData;
 };
@@ -894,12 +841,12 @@ export function parseApproveLiquidityInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedApproveLiquidityInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 16) {
+  if (instruction.accounts.length < 15) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 16,
+        expectedAccountMetas: 15,
       },
     );
   }
@@ -920,7 +867,6 @@ export function parseApproveLiquidityInstruction<
     accounts: {
       actor: getNextAccount(),
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       market: getNextAccount(),
       registration: getNextAccount(),

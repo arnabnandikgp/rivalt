@@ -13,7 +13,7 @@ fn clock() -> Clock {
 }
 fn root() -> MarginAccount {
     MarginAccount {
-        schema_version: 6,
+        schema_version: 7,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         owner: Pubkey::new_from_array([1; 32]),
@@ -26,7 +26,7 @@ fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
         Market {
-            schema_version: 6,
+            schema_version: 7,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
             cross_eligible: true,
@@ -197,13 +197,9 @@ fn positive_unpaid_claims_never_fund_risk_or_fee() {
 
 #[test]
 fn fee_carry_is_exact_per_market_and_never_an_asset() {
-    let mut custody = Custody {
-        schema_version: 6,
-        total_cash: 100_000,
-        ..Default::default()
-    };
+    let mut account_cash = 100_000;
     let mut ledgers = [0u8, 1].map(|market_index| MarketLedger {
-        schema_version: 6,
+        schema_version: 7,
         market_index,
         ..Default::default()
     });
@@ -213,8 +209,8 @@ fn fee_carry_is_exact_per_market_and_never_an_asset() {
         let fee = (index as u64 * 17) % 19;
         let before = paid[market];
         paid[market] += fee;
-        let (insurance, retained, carry) =
-            split_fee(&mut custody, &mut ledgers[market], fee).unwrap();
+        account_cash -= fee;
+        let (insurance, retained, carry) = split_fee(&mut ledgers[market], fee).unwrap();
         assert_eq!(insurance, paid[market] / 4 - before / 4);
         assert_eq!(retained, fee - insurance);
         assert_eq!(u64::from(carry), before % 4);
@@ -225,7 +221,7 @@ fn fee_carry_is_exact_per_market_and_never_an_asset() {
             paid[market] % 4
         );
         assert_eq!(
-            custody.total_cash
+            account_cash
                 + ledgers
                     .iter()
                     .map(|ledger| ledger.insurance + ledger.fees)
@@ -236,7 +232,7 @@ fn fee_carry_is_exact_per_market_and_never_an_asset() {
     // Consuming a reserve or adding a seed never resets its fee-count remainder.
     let carry = ledgers[0].insurance_fee_remainder;
     ledgers[0].insurance = 7;
-    let result = split_fee(&mut custody, &mut ledgers[0], 1).unwrap();
+    let result = split_fee(&mut ledgers[0], 1).unwrap();
     assert_eq!(result.0, u64::from(carry + 1) / 4);
     assert_eq!(ledgers[0].insurance, 7 + result.0);
 }
@@ -276,18 +272,55 @@ fn source_relevance_and_account_guard_ignore_unrelated_history() {
 
 #[test]
 fn dependency_stamps_follow_both_claims_but_not_cash_only_siblings() {
-    let mut custody = Custody::default();
+    let mut ledgers = [0, 1].map(|market_index| MarketLedger {
+        schema_version: SCHEMA_VERSION,
+        market_index,
+        ..Default::default()
+    });
     let mut account = root();
-    invalidate(&mut custody, account.positions, account.positions).unwrap();
-    assert_eq!(custody.liability_versions, [0, 0]);
+    invalidate([None, None], account.positions, account.positions).unwrap();
+    assert_eq!(
+        ledgers.each_ref().map(|ledger| ledger.liability_version),
+        [0, 0]
+    );
     account.positions[0].virtual_scaled = 1;
     account.positions[1].virtual_scaled = -1;
-    invalidate(&mut custody, account.positions, account.positions).unwrap();
-    assert_eq!(custody.liability_versions, [1, 1]);
+    assert!(invalidate([None, None], account.positions, account.positions).is_err());
+    // Missing either side cannot leave a one-scaled-unit obligation unstamped.
+    assert!(invalidate(
+        [None, Some(&mut ledgers[1])],
+        account.positions,
+        account.positions
+    )
+    .is_err());
+    invalidate(
+        ledgers.each_mut().map(Some),
+        account.positions,
+        account.positions,
+    )
+    .unwrap();
+    assert_eq!(
+        ledgers.each_ref().map(|ledger| ledger.liability_version),
+        [1, 1]
+    );
     let before = account.positions;
     account.positions[0].virtual_scaled = 0;
-    invalidate(&mut custody, before, account.positions).unwrap();
-    assert_eq!(custody.liability_versions, [2, 2]);
+    invalidate(ledgers.each_mut().map(Some), before, account.positions).unwrap();
+    assert_eq!(
+        ledgers.each_ref().map(|ledger| ledger.liability_version),
+        [2, 2]
+    );
+    // The now-empty sibling can be omitted; its stamp stays unchanged.
+    invalidate(
+        [None, Some(&mut ledgers[1])],
+        account.positions,
+        account.positions,
+    )
+    .unwrap();
+    assert_eq!(
+        ledgers.each_ref().map(|ledger| ledger.liability_version),
+        [2, 3]
+    );
 }
 
 #[test]
@@ -343,12 +376,18 @@ fn optional_materialization_preserves_negative_consumed_prefix_after_slot_expiry
     time.unix_timestamp = 1_008;
     // Two seconds at -36,000 scaled units/hour = -20; stored endpoint 80.
     materialize_optional([Some(&mut pair[0]), None], &time).unwrap();
-    assert_eq!((pair[0].funding_index_scaled, pair[0].funding_time), (80, 1_008));
+    assert_eq!(
+        (pair[0].funding_index_scaled, pair[0].funding_time),
+        (80, 1_008)
+    );
     assert_eq!((pair[1].funding_index_scaled, pair[1].funding_time), (0, 0));
     time.slot = pair[0].oracle.held_slot;
     time.unix_timestamp = 1_010;
     materialize_optional([Some(&mut pair[0]), None], &time).unwrap();
-    assert_eq!((pair[0].funding_index_scaled, pair[0].funding_time), (80, 1_008));
+    assert_eq!(
+        (pair[0].funding_index_scaled, pair[0].funding_time),
+        (80, 1_008)
+    );
     // Repeating expiry cannot reverse the consumed prefix or consume it twice.
     materialize_optional([Some(&mut pair[0]), None], &time).unwrap();
     assert_eq!(pair[0].funding_index_scaled, 80);

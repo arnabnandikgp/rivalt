@@ -61,7 +61,7 @@ export function decodeAccountInvocations(signature:string,transaction:any,transa
       if(end!==payload.length)throw new Error('Trailing account event bytes');
       const data=JSON.parse(json(value));
       if(BigInt(data.slot)!==invocation.slot||data.venue!==binding.venue)throw new Error('Account event slot/venue mismatch');
-      if(type==='AccountCustodyChangedV3'&&(data.schemaVersion!==6||data.profileVersion!==4||data.domain!==binding.domain))
+      if(type==='AccountCustodyChangedV3'&&(data.schemaVersion!==7||data.profileVersion!==4||data.domain!==binding.domain))
         throw new Error('Unsupported account event version/domain');
       return {signature,outer:invocation.outer,inner,ordinal,slot:transaction.slot,
         blockTime:transaction.blockTime===null?null:integer(transaction.blockTime),type,data,bytes};

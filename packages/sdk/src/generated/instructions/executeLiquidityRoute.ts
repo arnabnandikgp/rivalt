@@ -52,12 +52,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import {
-  findCustodyPda,
-  findMarketLedgerPda,
-  findVenueSafetyPda,
-  findVenueVaultPda,
-} from "../pdas/index.js";
+import { findMarketLedgerPda, findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -83,13 +78,11 @@ export type ExecuteLiquidityRouteInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountActor extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountMarket extends string | AccountMeta<string> = string,
   TAccountOtherMarket extends string | AccountMeta<string> = string,
   TAccountLedger extends string | AccountMeta<string> = string,
   TAccountOtherLedger extends string | AccountMeta<string> = string,
-  TAccountVault extends string | AccountMeta<string> = string,
   TAccountTrader extends string | AccountMeta<string> = string,
   TAccountRegistry extends string | AccountMeta<string> = string,
   TAccountFirstCapital extends string | AccountMeta<string> = string,
@@ -118,9 +111,6 @@ export type ExecuteLiquidityRouteInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -134,11 +124,8 @@ export type ExecuteLiquidityRouteInstruction<
         ? WritableAccount<TAccountLedger>
         : TAccountLedger,
       TAccountOtherLedger extends string
-        ? ReadonlyAccount<TAccountOtherLedger>
+        ? WritableAccount<TAccountOtherLedger>
         : TAccountOtherLedger,
-      TAccountVault extends string
-        ? ReadonlyAccount<TAccountVault>
-        : TAccountVault,
       TAccountTrader extends string
         ? WritableAccount<TAccountTrader>
         : TAccountTrader,
@@ -281,13 +268,11 @@ export function getExecuteLiquidityRouteInstructionDataCodec(): Codec<
 export type ExecuteLiquidityRouteAsyncInput<
   TAccountActor extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountOtherMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountOtherLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountTrader extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
   TAccountFirstCapital extends InstructionAccountInput =
@@ -317,13 +302,11 @@ export type ExecuteLiquidityRouteAsyncInput<
 > = {
   actor: TAccountActor;
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   market: TAccountMarket;
   otherMarket?: TAccountOtherMarket;
   ledger?: TAccountLedger;
-  otherLedger: TAccountOtherLedger;
-  vault?: TAccountVault;
+  otherLedger?: TAccountOtherLedger;
   trader: TAccountTrader;
   registry: TAccountRegistry;
   firstCapital: TAccountFirstCapital;
@@ -358,13 +341,11 @@ export type ExecuteLiquidityRouteAsyncInput<
 export async function getExecuteLiquidityRouteInstructionAsync<
   TAccountActor extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountOtherMarket extends InstructionAccountInput,
   TAccountLedger extends InstructionAccountInput,
   TAccountOtherLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
   TAccountTrader extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
   TAccountFirstCapital extends InstructionAccountInput,
@@ -386,13 +367,11 @@ export async function getExecuteLiquidityRouteInstructionAsync<
   input: ExecuteLiquidityRouteAsyncInput<
     TAccountActor,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountOtherMarket,
     TAccountLedger,
     TAccountOtherLedger,
-    TAccountVault,
     TAccountTrader,
     TAccountRegistry,
     TAccountFirstCapital,
@@ -425,10 +404,6 @@ export async function getExecuteLiquidityRouteInstructionAsync<
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
@@ -447,10 +422,6 @@ export async function getExecuteLiquidityRouteInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountOtherLedger,
       InstructionAccountInputAddress<TAccountOtherLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountTrader,
@@ -533,11 +504,6 @@ export async function getExecuteLiquidityRouteInstructionAsync<
   const originalAccounts = {
     actor: { value: input.actor ?? null, isSigner: true, isWritable: false },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
     otherMarket: {
@@ -549,9 +515,8 @@ export async function getExecuteLiquidityRouteInstructionAsync<
     otherLedger: {
       value: input.otherLedger ?? null,
       isSigner: false,
-      isWritable: false,
+      isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: false },
     trader: { value: input.trader ?? null, isSigner: false, isWritable: true },
     registry: {
       value: input.registry ?? null,
@@ -638,17 +603,6 @@ export async function getExecuteLiquidityRouteInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -671,29 +625,16 @@ export async function getExecuteLiquidityRouteInstructionAsync<
       { programAddress },
     );
   }
-  if (!accounts.vault.value) {
-    accounts.vault.value = await findVenueVaultPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
 
   return Object.freeze({
     accounts: [
       getAccountMeta("actor", accounts.actor),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("otherMarket", accounts.otherMarket),
       getAccountMeta("ledger", accounts.ledger),
       getAccountMeta("otherLedger", accounts.otherLedger),
-      getAccountMeta("vault", accounts.vault),
       getAccountMeta("trader", accounts.trader),
       getAccountMeta("registry", accounts.registry),
       getAccountMeta("firstCapital", accounts.firstCapital),
@@ -726,10 +667,6 @@ export async function getExecuteLiquidityRouteInstructionAsync<
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
@@ -748,10 +685,6 @@ export async function getExecuteLiquidityRouteInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountOtherLedger,
       InstructionAccountInputAddress<TAccountOtherLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountTrader,
@@ -823,13 +756,11 @@ export async function getExecuteLiquidityRouteInstructionAsync<
 export type ExecuteLiquidityRouteInput<
   TAccountActor extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountOtherMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountOtherLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountTrader extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
   TAccountFirstCapital extends InstructionAccountInput =
@@ -859,13 +790,11 @@ export type ExecuteLiquidityRouteInput<
 > = {
   actor: TAccountActor;
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   market: TAccountMarket;
   otherMarket?: TAccountOtherMarket;
   ledger: TAccountLedger;
-  otherLedger: TAccountOtherLedger;
-  vault: TAccountVault;
+  otherLedger?: TAccountOtherLedger;
   trader: TAccountTrader;
   registry: TAccountRegistry;
   firstCapital: TAccountFirstCapital;
@@ -900,13 +829,11 @@ export type ExecuteLiquidityRouteInput<
 export function getExecuteLiquidityRouteInstruction<
   TAccountActor extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountOtherMarket extends InstructionAccountInput,
   TAccountLedger extends InstructionAccountInput,
   TAccountOtherLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
   TAccountTrader extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
   TAccountFirstCapital extends InstructionAccountInput,
@@ -928,13 +855,11 @@ export function getExecuteLiquidityRouteInstruction<
   input: ExecuteLiquidityRouteInput<
     TAccountActor,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountOtherMarket,
     TAccountLedger,
     TAccountOtherLedger,
-    TAccountVault,
     TAccountTrader,
     TAccountRegistry,
     TAccountFirstCapital,
@@ -966,10 +891,6 @@ export function getExecuteLiquidityRouteInstruction<
     InstructionAccountInputAddress<TAccountVenue>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
-  >,
-  ResolvedInstructionAccountMeta<
     TAccountSafety,
     InstructionAccountInputAddress<TAccountSafety>
   >,
@@ -988,10 +909,6 @@ export function getExecuteLiquidityRouteInstruction<
   ResolvedInstructionAccountMeta<
     TAccountOtherLedger,
     InstructionAccountInputAddress<TAccountOtherLedger>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountVault,
-    InstructionAccountInputAddress<TAccountVault>
   >,
   ResolvedInstructionAccountMeta<
     TAccountTrader,
@@ -1073,11 +990,6 @@ export function getExecuteLiquidityRouteInstruction<
   const originalAccounts = {
     actor: { value: input.actor ?? null, isSigner: true, isWritable: false },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
     otherMarket: {
@@ -1089,9 +1001,8 @@ export function getExecuteLiquidityRouteInstruction<
     otherLedger: {
       value: input.otherLedger ?? null,
       isSigner: false,
-      isWritable: false,
+      isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: false },
     trader: { value: input.trader ?? null, isSigner: false, isWritable: true },
     registry: {
       value: input.registry ?? null,
@@ -1181,13 +1092,11 @@ export function getExecuteLiquidityRouteInstruction<
     accounts: [
       getAccountMeta("actor", accounts.actor),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("otherMarket", accounts.otherMarket),
       getAccountMeta("ledger", accounts.ledger),
       getAccountMeta("otherLedger", accounts.otherLedger),
-      getAccountMeta("vault", accounts.vault),
       getAccountMeta("trader", accounts.trader),
       getAccountMeta("registry", accounts.registry),
       getAccountMeta("firstCapital", accounts.firstCapital),
@@ -1220,10 +1129,6 @@ export function getExecuteLiquidityRouteInstruction<
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
@@ -1242,10 +1147,6 @@ export function getExecuteLiquidityRouteInstruction<
     ResolvedInstructionAccountMeta<
       TAccountOtherLedger,
       InstructionAccountInputAddress<TAccountOtherLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountTrader,
@@ -1322,29 +1223,27 @@ export type ParsedExecuteLiquidityRouteInstruction<
   accounts: {
     actor: TAccountMetas[0];
     venue: TAccountMetas[1];
-    custody: TAccountMetas[2];
-    safety: TAccountMetas[3];
-    market: TAccountMetas[4];
-    otherMarket?: TAccountMetas[5] | undefined;
-    ledger: TAccountMetas[6];
-    otherLedger: TAccountMetas[7];
-    vault: TAccountMetas[8];
-    trader: TAccountMetas[9];
-    registry: TAccountMetas[10];
-    firstCapital: TAccountMetas[11];
-    firstRegistration: TAccountMetas[12];
-    firstProgram: TAccountMetas[13];
-    firstProgramData: TAccountMetas[14];
-    firstConfig: TAccountMetas[15];
-    firstPrice: TAccountMetas[16];
-    secondCapital?: TAccountMetas[17] | undefined;
-    secondRegistration?: TAccountMetas[18] | undefined;
-    secondProgram?: TAccountMetas[19] | undefined;
-    secondProgramData?: TAccountMetas[20] | undefined;
-    secondConfig?: TAccountMetas[21] | undefined;
-    secondPrice?: TAccountMetas[22] | undefined;
-    eventAuthority: TAccountMetas[23];
-    program: TAccountMetas[24];
+    safety: TAccountMetas[2];
+    market: TAccountMetas[3];
+    otherMarket?: TAccountMetas[4] | undefined;
+    ledger: TAccountMetas[5];
+    otherLedger?: TAccountMetas[6] | undefined;
+    trader: TAccountMetas[7];
+    registry: TAccountMetas[8];
+    firstCapital: TAccountMetas[9];
+    firstRegistration: TAccountMetas[10];
+    firstProgram: TAccountMetas[11];
+    firstProgramData: TAccountMetas[12];
+    firstConfig: TAccountMetas[13];
+    firstPrice: TAccountMetas[14];
+    secondCapital?: TAccountMetas[15] | undefined;
+    secondRegistration?: TAccountMetas[16] | undefined;
+    secondProgram?: TAccountMetas[17] | undefined;
+    secondProgramData?: TAccountMetas[18] | undefined;
+    secondConfig?: TAccountMetas[19] | undefined;
+    secondPrice?: TAccountMetas[20] | undefined;
+    eventAuthority: TAccountMetas[21];
+    program: TAccountMetas[22];
   };
   data: ExecuteLiquidityRouteInstructionData;
 };
@@ -1357,12 +1256,12 @@ export function parseExecuteLiquidityRouteInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedExecuteLiquidityRouteInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 25) {
+  if (instruction.accounts.length < 23) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 25,
+        expectedAccountMetas: 23,
       },
     );
   }
@@ -1383,13 +1282,11 @@ export function parseExecuteLiquidityRouteInstruction<
     accounts: {
       actor: getNextAccount(),
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       market: getNextAccount(),
       otherMarket: getNextOptionalAccount(),
       ledger: getNextAccount(),
-      otherLedger: getNextAccount(),
-      vault: getNextAccount(),
+      otherLedger: getNextOptionalAccount(),
       trader: getNextAccount(),
       registry: getNextAccount(),
       firstCapital: getNextAccount(),

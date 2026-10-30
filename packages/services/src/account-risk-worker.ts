@@ -103,6 +103,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
       for(let lots=absolute<64n?absolute:64n;lots>0n;lots/=2n) {
         const instruction=sdk.getLiquidateAccountInstruction({...current,receiverOwner:key,target,receiver,
           ...sdk.accountMarketMetas(current.markets,[root,capital],1<<marketIndex),
+          ...sdk.accountLiabilityMetas(current.ledgers,[root,capital]),
           targetGuard:sdk.accountGuard(current,target),receiverGuard:sdk.accountGuard(current,receiver),marketIndex,lots,price:current.marketStates[marketIndex].referencePrice});
         // Execution checks and advances this consenting receiver's version. At
         // finalized expiry an unchanged canonical version proves no economic

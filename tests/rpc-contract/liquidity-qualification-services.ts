@@ -55,7 +55,7 @@ export async function qualificationServices(setup: QualificationSetup, transport
     await indexer.cycle();
     const opening = (await indexer.store.snapshot()).state, { binding } = await indexer.store.snapshot();
     const publicConfig = { chain: 'solana:localnet' as const, rpcUrl: base.rpcUrl, wsUrl: base.wsUrl, genesis: binding.genesis, anchor, anchorHash: binding.anchorHash, venue: setup.venue, mint: setup.mint.address, domain: binding.domain };
-    const client = new sdk.AccountUserClient({ ...publicConfig, version: 4, accountSchema: 6, profile: 'liquidity-execution-qualification' });
+    const client = new sdk.AccountUserClient({ ...publicConfig, version: 4, accountSchema: 7, profile: 'liquidity-execution-qualification' });
     writeFileSync(`${directory}/public-deployment.json`, json(client.config));
     const runtime = new AccountRuntime(base.databaseUrl, runId, base.rpcUrl, 4);
     await runtime.open();

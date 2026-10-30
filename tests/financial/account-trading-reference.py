@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent schema-6 wire audit. No SDK, program, or production math imports."""
+"""Independent schema-7 wire audit. No SDK, program, or production math imports."""
 import base64
 import copy
 import json
@@ -13,7 +13,7 @@ def integer(data, offset, width=8, signed=False):
 
 def checked(data, name, size):
     assert len(data) == size and data[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
-    assert integer(data,8,2) == 6 and integer(data,10) > 0
+    assert integer(data,8,2) == 7 and integer(data,10) > 0
     return data
 
 def root(data):
@@ -34,15 +34,14 @@ def decode(report, raw):
     markets=[{'funding':integer(checked(data[key], 'Market', 455),84,16,True),'gross':integer(data[key],108)} for key in report['markets']]
     ledgers=[]
     for index,key in enumerate(report['ledgers']):
-        ledger=checked(data[key], 'MarketLedger', 117)
+        ledger=checked(data[key], 'MarketLedger', 125)
         assert ledger[82]==index
         ledgers.append({'pool':integer(ledger,83),'insurance':integer(ledger,91),'fees':integer(ledger,99),'carry':ledger[107]})
         assert ledger[107]<4
-    custody=checked(data[report['custody']], 'Custody', 83)
+    custody=checked(data[report['custody']], 'Custody', 59)
     cash=sum(account['cash'] for account in roots.values())
-    assert cash==integer(custody,50), 'root cash versus custody'
     allocated=cash+sum(ledger['pool']+ledger['insurance']+ledger['fees'] for ledger in ledgers)
-    assert allocated==integer(custody,58)==integer(data[report['vault']],64), 'exact allocated vault'
+    assert allocated==integer(custody,50)==integer(data[report['vault']],64), 'exact allocated vault'
     for index,market in enumerate(markets):
         assert sum(account['positions'][index][0] for account in roots.values())==0, 'paired quantity'
         assert sum(abs(account['positions'][index][0]) for account in roots.values())==market['gross'], 'gross exposure'
@@ -98,7 +97,7 @@ def audit(report):
 def mutations(report):
     rejected=0
     targets=[(report['roots'][0],121),(report['roots'][0],137),(report['roots'][0],129),
-        (report['ledgers'][0],83),(report['ledgers'][0],91),(report['ledgers'][0],99),(report['custody'],58)]
+        (report['ledgers'][0],83),(report['ledgers'][0],91),(report['ledgers'][0],99),(report['custody'],50)]
     for key,offset in targets:
         broken=copy.deepcopy(report);data=bytearray(base64.b64decode(broken['rawAccounts'][key]));data[offset]^=1
         broken['rawAccounts'][key]=base64.b64encode(data).decode()

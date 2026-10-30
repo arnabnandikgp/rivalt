@@ -89,16 +89,23 @@ pub(crate) fn commit_market(market: &mut Market, candidate: &Market) -> Result<(
 /// Event order does not authorize actions. Only economic dependencies invalidate
 /// payment certificates, including cross-market cash changes with an existing debt.
 pub(crate) fn invalidate(
-    custody: &mut Custody,
+    ledgers: [Option<&mut MarketLedger>; 2],
     before: [crate::state::Position; 2],
     after: [crate::state::Position; 2],
 ) -> Result<()> {
-    for index in 0..2 {
-        if [before[index], after[index]]
+    // Canonical identity is authenticated by the context, including omitted
+    // ledgers. The complete before/after union cannot be selected by the caller.
+    for (index, ledger) in ledgers.into_iter().enumerate() {
+        let required = [before[index], after[index]]
             .iter()
-            .any(|position| position.lots != 0 || position.virtual_scaled != 0)
-        {
-            increment(&mut custody.liability_versions[index])?;
+            .any(|position| position.lots != 0 || position.virtual_scaled != 0);
+        if required {
+            let ledger = ledger.ok_or(ClearingError::OrderState)?;
+            require!(
+                ledger.schema_version == SCHEMA_VERSION && ledger.market_index as usize == index,
+                ClearingError::Profile
+            );
+            increment(&mut ledger.liability_version)?;
         }
     }
     Ok(())
@@ -163,11 +170,7 @@ pub(crate) fn materialize_optional(markets: [Option<&mut Market>; 2], clock: &Cl
     Ok(())
 }
 
-pub(crate) fn split_fee(
-    custody: &mut Custody,
-    ledger: &mut MarketLedger,
-    fee: u64,
-) -> Result<(u64, u64, u8)> {
+pub(crate) fn split_fee(ledger: &mut MarketLedger, fee: u64) -> Result<(u64, u64, u8)> {
     require!(
         ledger.schema_version == SCHEMA_VERSION && ledger.insurance_fee_remainder < 4,
         ClearingError::Profile
@@ -178,11 +181,10 @@ pub(crate) fn split_fee(
     let retained = fee
         .checked_sub(insurance)
         .ok_or(ClearingError::Arithmetic)?;
-    custody.total_cash = checked(math::cash_sub(custody.total_cash, fee))?;
     ledger.insurance = checked(math::cash_add(ledger.insurance, insurance))?;
     ledger.fees = checked(math::cash_add(ledger.fees, retained))?;
     ledger.insurance_fee_remainder = (numerator % 4) as u8;
     increment(&mut ledger.version)?;
-    increment(&mut custody.liability_versions[usize::from(ledger.market_index)])?;
+    increment(&mut ledger.liability_version)?;
     Ok((insurance, retained, before))
 }

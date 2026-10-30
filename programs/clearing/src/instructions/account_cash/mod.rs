@@ -28,42 +28,27 @@ fn subtract(left: i128, right: i128) -> Result<i128> {
         .ok_or_else(|| error!(ClearingError::Arithmetic))
 }
 
-pub(crate) fn profile(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> Result<()> {
-    require!(
-        cfg!(feature = "liquidity-execution-qualification"),
-        ClearingError::Profile
-    );
-    trading::activated(venue, custody, safety)
+pub(crate) fn profile(venue: &Venue, safety: &VenueSafety) -> Result<()> {
+    trading::activated_identity(venue, safety)
 }
 
 fn begin(identity: &AccountFinancialIdentity) -> Result<Snapshot> {
-    profile(&identity.venue, &identity.custody, &identity.safety)?;
-    super::account_custody::reconciled(
-        &identity.custody,
-        [&identity.btc_ledger, &identity.eth_ledger],
-        identity.vault.amount,
-    )?;
+    profile(&identity.venue, &identity.safety)?;
     Snapshot::optional(identity.markets(), &Clock::get()?)
 }
 
 fn commit(
-    identity: &mut AccountFinancialIdentity,
     root: &mut Account<MarginAccount>,
     candidate: &MarginAccount,
+    ledgers: [Option<&mut MarketLedger>; 2],
 ) -> Result<()> {
     let previous = root.positions;
-    trading::commit_root(root, candidate)?;
-    trading::invalidate(&mut identity.custody, previous, root.positions)
+    trading::invalidate(ledgers, previous, candidate.positions)?;
+    trading::commit_root(root, candidate)
 }
 
 fn finish(identity: &mut AccountFinancialIdentity, clock: &Clock) -> Result<()> {
-    identity.materialize(clock)?;
-
-    super::account_custody::reconciled(
-        &identity.custody,
-        [&identity.btc_ledger, &identity.eth_ledger],
-        identity.vault.amount,
-    )
+    identity.materialize(clock)
 }
 
 #[inline(never)]
@@ -76,39 +61,35 @@ fn emit<'info>(
     market_index: u8,
     amount: u64,
     roots: &[&Account<'info, MarginAccount>],
+    ledgers: &[&Account<'info, MarketLedger>],
+    tokens: Option<(u64, u64)>,
     slot: u64,
 ) -> Result<()> {
     let event = Box::new(crate::events::AccountFinancialChanged {
         venue: identity.venue.key(),
-
         slot,
         actor,
         kind,
         market_index,
         amount,
         safety_epoch: identity.safety.epoch,
-        total_cash: identity.custody.total_cash,
-        allocated_vault: identity.custody.allocated_vault,
-        actual_vault: identity.vault.amount,
-        liability_versions: identity.custody.liability_versions,
+        allocated_vault: tokens.map(|value| value.0),
+        actual_vault: tokens.map(|value| value.1),
         roots: roots.iter().map(|root| root.key()).collect(),
         root_states: roots
             .iter()
             .map(|root| crate::events::MarginAccountSnapshot::from(&***root))
             .collect(),
-        markets: identity.markets().into_iter().flatten().map(crate::events::MarketSnapshot::from).collect(),
-        ledgers: [&identity.btc_ledger, &identity.eth_ledger].map(|ledger| {
-            crate::events::MarketLedgerSnapshot {
-                ledger: ledger.key(),
-                market: ledger.market,
-                market_index: ledger.market_index,
-                settlement: ledger.settlement,
-                insurance: ledger.insurance,
-                fees: ledger.fees,
-                insurance_fee_remainder: ledger.insurance_fee_remainder,
-                version: ledger.version,
-            }
-        }),
+        markets: identity
+            .markets()
+            .into_iter()
+            .flatten()
+            .map(crate::events::MarketSnapshot::from)
+            .collect(),
+        ledgers: ledgers
+            .iter()
+            .map(|ledger| super::account_custody::ledger_snapshot(ledger))
+            .collect(),
     });
     events.emit(&*event, authority)
 }

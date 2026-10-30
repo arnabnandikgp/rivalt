@@ -19,12 +19,7 @@ pub fn initialize(
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
-    execution_profile(
-        &accounts.venue,
-        &accounts.custody,
-        &accounts.safety,
-        &accounts.market,
-    )?;
+    execution_profile(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
         accounts.safety.mode == CUSTODY
             && publisher != Pubkey::default()
@@ -44,7 +39,7 @@ pub fn initialize(
     let clock = Clock::get()?;
     accounts.configuration.set_inner(FundingPublisher {
         revision: 0,
-        schema_version: 6,
+        schema_version: 7,
         venue: accounts.venue.key(),
         market: accounts.market.key(),
         publisher,
@@ -80,14 +75,13 @@ pub fn configure(
     let accounts = &mut *ctx.accounts;
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && accounts.venue.schema_version == 6
+            && accounts.venue.schema_version == 7
             && accounts.venue.profile_version == 4
             && accounts.venue.market_count == 2
             && accounts.venue.insurance_fee_share_bps == 2500
-            && accounts.custody.schema_version == 6
-            && accounts.safety.schema_version == 6
-            && accounts.market.schema_version == 6
-            && accounts.configuration.schema_version == 6
+            && accounts.safety.schema_version == 7
+            && accounts.market.schema_version == 7
+            && accounts.configuration.schema_version == 7
             && accounts.configuration.authority_epoch == expected_authority
             && expected_authority > 0
             && matches!(
@@ -134,12 +128,7 @@ pub fn publish(
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
-    execution_profile(
-        &accounts.venue,
-        &accounts.custody,
-        &accounts.safety,
-        &accounts.market,
-    )?;
+    execution_profile(&accounts.venue, &accounts.safety, &accounts.market)?;
     let clock = Clock::get()?;
     validate_report(
         &accounts.venue,

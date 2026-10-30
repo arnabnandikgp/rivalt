@@ -65,14 +65,18 @@ try {
   const result = await accountCustodyCases(h);
   await ws.notification(subscription);
   const ledgerState = new Map<number, {settlement: bigint; insurance: bigint; fees: bigint}>();
-  for (const [index, event] of committed.entries()) {
+  const rootCash = new Map<number, bigint>();
+  let allocated = 0n;
+  for (const event of committed) {
     assert.equal(event.venue, result.venue);
-    assert.equal(event.schemaVersion, 6);
+    assert.equal(event.schemaVersion, 7);
     for (const ledger of event.ledgers) ledgerState.set(ledger.marketIndex, ledger);
-    assert.equal(event.allocatedVault, event.totalCash + [...ledgerState.values()].reduce((sum, ledger) =>
+    for (const root of event.members) rootCash.set(root.id, root.cash);
+    if (event.allocatedVault.__option === 'Some') allocated = event.allocatedVault.value;
+    assert.equal(allocated, [...rootCash.values()].reduce((sum, cash) => sum + cash, 0n) + [...ledgerState.values()].reduce((sum, ledger) =>
       sum + ledger.settlement + ledger.insurance + ledger.fees, 0n));
   }
-  assert.equal(committed.at(-1)!.totalCash, 0n);
+  assert.equal([...rootCash.values()].reduce((sum, cash) => sum + cash, 0n), 0n);
   const accountKeys = { venue: result.venue, venueRegistry: result.registry, custody: result.custody,
     venueSafety: result.safety, marginAccount: result.roots[0], portfolio: result.portfolios[0],
     market: result.markets[1], marketLedger: result.ledgers[1] };

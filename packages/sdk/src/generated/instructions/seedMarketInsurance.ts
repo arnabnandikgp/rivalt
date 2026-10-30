@@ -67,8 +67,7 @@ export type SeedMarketInsuranceInstruction<
   TAccountVenue extends string | AccountMeta<string> = string,
   TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
-  TAccountBtcLedger extends string | AccountMeta<string> = string,
-  TAccountEthLedger extends string | AccountMeta<string> = string,
+  TAccountLedger extends string | AccountMeta<string> = string,
   TAccountQuoteMint extends string | AccountMeta<string> = string,
   TAccountVault extends string | AccountMeta<string> = string,
   TAccountDonorToken extends string | AccountMeta<string> = string,
@@ -98,12 +97,9 @@ export type SeedMarketInsuranceInstruction<
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
-      TAccountBtcLedger extends string
-        ? WritableAccount<TAccountBtcLedger>
-        : TAccountBtcLedger,
-      TAccountEthLedger extends string
-        ? WritableAccount<TAccountEthLedger>
-        : TAccountEthLedger,
+      TAccountLedger extends string
+        ? WritableAccount<TAccountLedger>
+        : TAccountLedger,
       TAccountQuoteMint extends string
         ? ReadonlyAccount<TAccountQuoteMint>
         : TAccountQuoteMint,
@@ -176,8 +172,7 @@ export type SeedMarketInsuranceAsyncInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountQuoteMint extends InstructionAccountInput = InstructionAccountInput,
   TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountDonorToken extends InstructionAccountInput = InstructionAccountInput,
@@ -192,8 +187,7 @@ export type SeedMarketInsuranceAsyncInput<
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
+  ledger: TAccountLedger;
   quoteMint: TAccountQuoteMint;
   vault?: TAccountVault;
   donorToken: TAccountDonorToken;
@@ -210,8 +204,7 @@ export async function getSeedMarketInsuranceInstructionAsync<
   TAccountVenue extends InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput,
   TAccountQuoteMint extends InstructionAccountInput,
   TAccountVault extends InstructionAccountInput,
   TAccountDonorToken extends InstructionAccountInput,
@@ -226,8 +219,7 @@ export async function getSeedMarketInsuranceInstructionAsync<
     TAccountVenue,
     TAccountCustody,
     TAccountSafety,
-    TAccountBtcLedger,
-    TAccountEthLedger,
+    TAccountLedger,
     TAccountQuoteMint,
     TAccountVault,
     TAccountDonorToken,
@@ -262,12 +254,8 @@ export async function getSeedMarketInsuranceInstructionAsync<
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountQuoteMint,
@@ -321,16 +309,7 @@ export async function getSeedMarketInsuranceInstructionAsync<
       isWritable: true,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
-    btcLedger: {
-      value: input.btcLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    ethLedger: {
-      value: input.ethLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     quoteMint: {
       value: input.quoteMint ?? null,
       isSigner: false,
@@ -412,8 +391,7 @@ export async function getSeedMarketInsuranceInstructionAsync<
       getAccountMeta("venue", accounts.venue),
       getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
-      getAccountMeta("btcLedger", accounts.btcLedger),
-      getAccountMeta("ethLedger", accounts.ethLedger),
+      getAccountMeta("ledger", accounts.ledger),
       getAccountMeta("quoteMint", accounts.quoteMint),
       getAccountMeta("vault", accounts.vault),
       getAccountMeta("donorToken", accounts.donorToken),
@@ -448,12 +426,8 @@ export async function getSeedMarketInsuranceInstructionAsync<
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountQuoteMint,
@@ -489,8 +463,7 @@ export type SeedMarketInsuranceInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountQuoteMint extends InstructionAccountInput = InstructionAccountInput,
   TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountDonorToken extends InstructionAccountInput = InstructionAccountInput,
@@ -505,8 +478,7 @@ export type SeedMarketInsuranceInput<
   venue: TAccountVenue;
   custody: TAccountCustody;
   safety: TAccountSafety;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
+  ledger: TAccountLedger;
   quoteMint: TAccountQuoteMint;
   vault: TAccountVault;
   donorToken: TAccountDonorToken;
@@ -523,8 +495,7 @@ export function getSeedMarketInsuranceInstruction<
   TAccountVenue extends InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput,
   TAccountQuoteMint extends InstructionAccountInput,
   TAccountVault extends InstructionAccountInput,
   TAccountDonorToken extends InstructionAccountInput,
@@ -539,8 +510,7 @@ export function getSeedMarketInsuranceInstruction<
     TAccountVenue,
     TAccountCustody,
     TAccountSafety,
-    TAccountBtcLedger,
-    TAccountEthLedger,
+    TAccountLedger,
     TAccountQuoteMint,
     TAccountVault,
     TAccountDonorToken,
@@ -574,12 +544,8 @@ export function getSeedMarketInsuranceInstruction<
     InstructionAccountInputAddress<TAccountSafety>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountBtcLedger,
-    InstructionAccountInputAddress<TAccountBtcLedger>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountEthLedger,
-    InstructionAccountInputAddress<TAccountEthLedger>
+    TAccountLedger,
+    InstructionAccountInputAddress<TAccountLedger>
   >,
   ResolvedInstructionAccountMeta<
     TAccountQuoteMint,
@@ -632,16 +598,7 @@ export function getSeedMarketInsuranceInstruction<
       isWritable: true,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
-    btcLedger: {
-      value: input.btcLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    ethLedger: {
-      value: input.ethLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     quoteMint: {
       value: input.quoteMint ?? null,
       isSigner: false,
@@ -690,8 +647,7 @@ export function getSeedMarketInsuranceInstruction<
       getAccountMeta("venue", accounts.venue),
       getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
-      getAccountMeta("btcLedger", accounts.btcLedger),
-      getAccountMeta("ethLedger", accounts.ethLedger),
+      getAccountMeta("ledger", accounts.ledger),
       getAccountMeta("quoteMint", accounts.quoteMint),
       getAccountMeta("vault", accounts.vault),
       getAccountMeta("donorToken", accounts.donorToken),
@@ -726,12 +682,8 @@ export function getSeedMarketInsuranceInstruction<
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountQuoteMint,
@@ -771,14 +723,13 @@ export type ParsedSeedMarketInsuranceInstruction<
     venue: TAccountMetas[2];
     custody: TAccountMetas[3];
     safety: TAccountMetas[4];
-    btcLedger: TAccountMetas[5];
-    ethLedger: TAccountMetas[6];
-    quoteMint: TAccountMetas[7];
-    vault: TAccountMetas[8];
-    donorToken: TAccountMetas[9];
-    tokenProgram: TAccountMetas[10];
-    eventAuthority: TAccountMetas[11];
-    program: TAccountMetas[12];
+    ledger: TAccountMetas[5];
+    quoteMint: TAccountMetas[6];
+    vault: TAccountMetas[7];
+    donorToken: TAccountMetas[8];
+    tokenProgram: TAccountMetas[9];
+    eventAuthority: TAccountMetas[10];
+    program: TAccountMetas[11];
   };
   data: SeedMarketInsuranceInstructionData;
 };
@@ -791,12 +742,12 @@ export function parseSeedMarketInsuranceInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedSeedMarketInsuranceInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 13) {
+  if (instruction.accounts.length < 12) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 13,
+        expectedAccountMetas: 12,
       },
     );
   }
@@ -814,8 +765,7 @@ export function parseSeedMarketInsuranceInstruction<
       venue: getNextAccount(),
       custody: getNextAccount(),
       safety: getNextAccount(),
-      btcLedger: getNextAccount(),
-      ethLedger: getNextAccount(),
+      ledger: getNextAccount(),
       quoteMint: getNextAccount(),
       vault: getNextAccount(),
       donorToken: getNextAccount(),

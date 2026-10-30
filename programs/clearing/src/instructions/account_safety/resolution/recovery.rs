@@ -213,7 +213,10 @@ fn emit(
         stage: header.stage,
         recovery_since: identity.safety.recovery_since,
         recovery_last: identity.safety.recovery_last,
-        total_cash: identity.custody.total_cash,
+        total_cash: account_custody::accounted_cash(
+            &identity.custody,
+            [&identity.btc_ledger, &identity.eth_ledger],
+        )?,
         allocated_vault: identity.custody.allocated_vault,
         actual_vault: identity.vault.amount,
         markets: [

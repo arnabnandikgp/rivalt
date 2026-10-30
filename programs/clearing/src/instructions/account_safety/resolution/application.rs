@@ -235,7 +235,6 @@ pub fn advance(
     if accounts.resolution.cursor == accounts.resolution.count {
         if stage == APPLY {
             check_complete_plan(&accounts.resolution)?;
-            accounts.identity.custody.total_cash = accounts.resolution.cash_applied;
             for (index, ledger) in [
                 &mut accounts.identity.btc_ledger,
                 &mut accounts.identity.eth_ledger,
@@ -249,7 +248,7 @@ pub fn advance(
                     accounts.resolution.insurance_spent[index],
                 ))?;
                 increment(&mut ledger.version)?;
-                increment(&mut accounts.identity.custody.liability_versions[index])?;
+                increment(&mut ledger.liability_version)?;
             }
             accounts.resolution.stage = RECONCILE;
             accounts.resolution.cursor = 0;
@@ -350,19 +349,44 @@ fn emit_applied(
 #[cfg(test)]
 #[test]
 fn borrowed_applied_event_matches_owned_payload() {
-    let root = MarginAccount { schema_version: SCHEMA_VERSION, revision: 19,
-        cash: 37, ..Default::default() };
-    let view = AppliedView { venue: Pubkey::new_unique(), slot: 3, epoch: 7, id: 5,
-        member: Pubkey::new_unique(), flows: [11, 13], cash_before: 43, cash_after: 37,
-        remaining_cash: 101, applied_cash: 71, remaining_lots: [-2, 3],
-        remaining_gross: [4, 5], remaining_claims: [-7, 8], state: &root };
-    let owned = crate::events::AccountResolutionApplied { venue: view.venue,
-        slot: view.slot, epoch: view.epoch, id: view.id, member: view.member,
-        flows: view.flows, cash_before: view.cash_before, cash_after: view.cash_after,
-        remaining_cash: view.remaining_cash, applied_cash: view.applied_cash,
-        remaining_lots: view.remaining_lots, remaining_gross: view.remaining_gross,
+    let root = MarginAccount {
+        schema_version: SCHEMA_VERSION,
+        revision: 19,
+        cash: 37,
+        ..Default::default()
+    };
+    let view = AppliedView {
+        venue: Pubkey::new_unique(),
+        slot: 3,
+        epoch: 7,
+        id: 5,
+        member: Pubkey::new_unique(),
+        flows: [11, 13],
+        cash_before: 43,
+        cash_after: 37,
+        remaining_cash: 101,
+        applied_cash: 71,
+        remaining_lots: [-2, 3],
+        remaining_gross: [4, 5],
+        remaining_claims: [-7, 8],
+        state: &root,
+    };
+    let owned = crate::events::AccountResolutionApplied {
+        venue: view.venue,
+        slot: view.slot,
+        epoch: view.epoch,
+        id: view.id,
+        member: view.member,
+        flows: view.flows,
+        cash_before: view.cash_before,
+        cash_after: view.cash_after,
+        remaining_cash: view.remaining_cash,
+        applied_cash: view.applied_cash,
+        remaining_lots: view.remaining_lots,
+        remaining_gross: view.remaining_gross,
         remaining_claims: view.remaining_claims,
-        state: crate::events::MarginAccountSnapshot::from(&root) };
+        state: crate::events::MarginAccountSnapshot::from(&root),
+    };
     let mut actual = Vec::new();
     let mut expected = Vec::new();
     view.serialize(&mut actual).unwrap();
@@ -386,7 +410,10 @@ fn emit_complete(
             stage: header.stage,
             mode: identity.safety.mode,
             safety_epoch: identity.safety.epoch,
-            cash: identity.custody.total_cash,
+            cash: account_custody::accounted_cash(
+                &identity.custody,
+                [&identity.btc_ledger, &identity.eth_ledger],
+            )?,
             pools: [
                 identity.btc_ledger.settlement,
                 identity.eth_ledger.settlement,
@@ -396,7 +423,10 @@ fn emit_complete(
             insurance_spent: header.insurance_spent,
             allocated: identity.custody.allocated_vault,
             actual_vault: identity.vault.amount,
-            liability_versions: identity.custody.liability_versions,
+            liability_versions: [
+                identity.btc_ledger.liability_version,
+                identity.eth_ledger.liability_version,
+            ],
             ledger_versions: [identity.btc_ledger.version, identity.eth_ledger.version],
             insurance_fee_remainders: [
                 identity.btc_ledger.insurance_fee_remainder,

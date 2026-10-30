@@ -19,7 +19,7 @@ const u16 = (value: number) => {const bytes = Buffer.alloc(2); bytes.writeUInt16
 const u32 = (value: number) => {const bytes = Buffer.alloc(4); bytes.writeUInt32LE(value); return bytes;};
 const u64 = (value: bigint) => {const bytes = Buffer.alloc(8); bytes.writeBigUInt64LE(value); return bytes;};
 const footer = (payloadCount = 1, before = 7n) => Buffer.concat([
-  transitionTag, u16(6), Buffer.alloc(32, 3), Buffer.alloc(32, 9), u64(42n), instruction, u16(payloadCount),
+  transitionTag, u16(7), Buffer.alloc(32, 3), Buffer.alloc(32, 9), u64(42n), instruction, u16(payloadCount),
   u32(1), Buffer.alloc(32, 3), Buffer.from([0]), u64(1n),
   u32(1), Buffer.alloc(32, 2), Buffer.from([5]), u64(before), u64(before + 1n),
 ]);
@@ -124,10 +124,10 @@ it('checks literal envelope widths, revisions, bounded counts, aliases and compl
   expect(() => decodeTransition(Buffer.concat([footer(), Buffer.from([0])]))).toThrow(/Trailing/);
 });
 
-it('matches the rebuilt generated SDK against the literal schema-6 envelope', () => {
+it('matches the rebuilt generated SDK against the literal schema-7 envelope', () => {
   const bytes = footer(), [value, end] = getAccountTransitionEventDecoder().read(bytes, 0);
   expect(end).toBe(190);
-  expect(value.schemaVersion).toBe(6);
+  expect(value.schemaVersion).toBe(7);
   expect(value.venue).toBe(venue);
   expect(value.reads).toEqual([{account: venue, kind: 0, revision: 1n}]);
   expect(value.writes).toEqual([{account: root, kind: 5, before: 7n, after: 8n}]);

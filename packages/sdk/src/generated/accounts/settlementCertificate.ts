@@ -71,7 +71,7 @@ export type SettlementCertificate = {
   marketIndex: number;
   safetyEpoch: bigint;
   membershipVersion: bigint;
-  liabilityVersions: Array<bigint>;
+  liabilityVersion: bigint;
   observations: Array<bigint>;
   fundingBounds: Array<Array<bigint>>;
   sourceDeadlines: Array<bigint>;
@@ -93,7 +93,7 @@ export type SettlementCertificateArgs = {
   marketIndex: number;
   safetyEpoch: number | bigint;
   membershipVersion: number | bigint;
-  liabilityVersions: Array<number | bigint>;
+  liabilityVersion: number | bigint;
   observations: Array<number | bigint>;
   fundingBounds: Array<Array<number | bigint>>;
   sourceDeadlines: Array<number | bigint>;
@@ -118,7 +118,7 @@ export function getSettlementCertificateEncoder(): FixedSizeEncoder<SettlementCe
       ["marketIndex", getU8Encoder()],
       ["safetyEpoch", getU64Encoder()],
       ["membershipVersion", getU64Encoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
+      ["liabilityVersion", getU64Encoder()],
       ["observations", getArrayEncoder(getU64Encoder(), { size: 2 })],
       [
         "fundingBounds",
@@ -153,7 +153,7 @@ export function getSettlementCertificateDecoder(): FixedSizeDecoder<SettlementCe
     ["marketIndex", getU8Decoder()],
     ["safetyEpoch", getU64Decoder()],
     ["membershipVersion", getU64Decoder()],
-    ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
+    ["liabilityVersion", getU64Decoder()],
     ["observations", getArrayDecoder(getU64Decoder(), { size: 2 })],
     [
       "fundingBounds",
@@ -270,5 +270,5 @@ export async function fetchAllMaybeSettlementCertificate(
 }
 
 export function getSettlementCertificateSize(): number {
-  return 242;
+  return 234;
 }

@@ -11,13 +11,13 @@ import {WalletClient,hex,requireValue,fromBase64} from './wallet-client.js';
 import {walletComputeBudget} from './route-budget.js';
 import {readAccountSnapshot,readAccountTradeSnapshot,accountGuard,type AccountSnapshot} from './account-snapshot.js';
 import {accountBalanceView} from './account-balance.js';
-import {accountMarketMetas} from './account-markets.js';
+import {accountMarketMetas,accountLiabilityMetas} from './account-markets.js';
 import type {LiquidityRouteInput} from './liquidity-route.js';
 
-export type AccountUserConfig={version:4;accountSchema:6;chain:'solana:localnet';profile:'liquidity-execution-qualification';rpcUrl:string;wsUrl:string;
+export type AccountUserConfig={version:4;accountSchema:7;chain:'solana:localnet';profile:'liquidity-execution-qualification';rpcUrl:string;wsUrl:string;
   genesis:string;anchor:string;anchorHash:string;venue:Address;mint:Address;domain:string};
 export function accountUserConfig(value:AccountUserConfig):AccountUserConfig {
-  requireValue(value?.version===4&&value.accountSchema===6&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
+  requireValue(value?.version===4&&value.accountSchema===7&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
   return validateAccountConfig(value);
 }
 function validateAccountConfig<Config extends AccountUserConfig>(value:Config):Config {
@@ -74,7 +74,7 @@ export class AccountUserClient extends WalletClient {
     const bytes=fromBase64(observed.value.data[0]);
     requireValue(bytes.length===protocol.getVenueSize()&&hex(bytes.slice(0,8))===hex(protocol.VENUE_DISCRIMINATOR),'Wrong venue schema.');
     const venue=protocol.getVenueDecoder().decode(bytes);
-    requireValue(venue.schemaVersion===6&&venue.profileVersion===this.config.version&&hex(venue.domain)===this.config.domain&&venue.quoteMint===this.config.mint,'Venue deployment identity mismatch.');
+    requireValue(venue.schemaVersion===7&&venue.profileVersion===this.config.version&&hex(venue.domain)===this.config.domain&&venue.quoteMint===this.config.mint,'Venue deployment identity mismatch.');
     await this.artifacts.verify(venue.authority);
   }
   async snapshot(margins:Address[],commitment:'confirmed'|'finalized'='finalized') {
@@ -117,7 +117,7 @@ export class AccountUserClient extends WalletClient {
     requireValue(response.value?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&response.value.data?.[1]==='base64','Foreign portfolio.');
     const bytes=fromBase64(response.value.data[0]);requireValue(bytes.length===protocol.getPortfolioSize()&&hex(bytes.slice(0,8))===hex(protocol.PORTFOLIO_DISCRIMINATOR),'Wrong portfolio schema.');
     const account=protocol.getPortfolioDecoder().decode(bytes);
-    requireValue(account.schemaVersion===6&&account.venue===this.config.venue&&account.owner===owner&&account.index===index&&account.bump===bump,'Portfolio identity mismatch.');
+    requireValue(account.schemaVersion===7&&account.venue===this.config.venue&&account.owner===owner&&account.index===index&&account.bump===bump,'Portfolio identity mismatch.');
     return {address:portfolio,account};
   }
   async createPortfolio(owner:Address,index=0) {
@@ -139,7 +139,7 @@ export class AccountUserClient extends WalletClient {
       const raw=response.value[offset];requireValue(raw?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&raw.data?.[1]==='base64','Foreign owner account.');
       const bytes=fromBase64(raw.data[0]);requireValue(bytes.length===protocol.getMarginAccountSize()&&hex(bytes.slice(0,8))===hex(protocol.MARGIN_ACCOUNT_DISCRIMINATOR),'Wrong owner account schema.');
       const root=protocol.getMarginAccountDecoder().decode(bytes);
-      requireValue(root.schemaVersion===6&&root.venue===this.config.venue&&root.portfolio===portfolio.address&&root.owner===owner&&root.subaccountIndex===indexes[offset]&&root.bump===bump,'Owner account identity mismatch.');
+      requireValue(root.schemaVersion===7&&root.venue===this.config.venue&&root.portfolio===portfolio.address&&root.owner===owner&&root.subaccountIndex===indexes[offset]&&root.bump===bump,'Owner account identity mismatch.');
       requireValue([0,1,2].includes(root.role)&&(root.subaccountIndex===0?root.mode===0&&root.isolatedMarketIndex===255&&root.role!==1:root.mode===1&&[0,1].includes(root.isolatedMarketIndex)),'Owner account mode mismatch.');
       return [key,root];
     });
@@ -153,13 +153,13 @@ export class AccountUserClient extends WalletClient {
   }
   async deposit(snapshot:AccountSnapshot,owner:Address,margin:Address,userToken:Address,amount:bigint) {
     this.owned(snapshot,owner,margin);requireValue(amount>0n&&[0,1].includes(snapshot.safetyState.mode)&&!snapshot.safetyState.paused,'Deposit unavailable.');
-    return protocol.getDepositAccountInstructionAsync({...snapshot,...await this.common(),owner:createNoopSigner(owner),margin,
+    return protocol.getDepositAccountInstructionAsync({...snapshot,...await this.common(),...accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]]),owner:createNoopSigner(owner),margin,
       quoteMint:this.config.mint,userToken,amount});
   }
   async exit(snapshot:AccountSnapshot,owner:Address,margin:Address,userToken:Address,amount:bigint) {
     const root=this.owned(snapshot,owner,margin),safety=snapshot.safetyState;
     requireValue(amount>0n&&amount<=root.cash&&!safety.paused&&safety.mode!==2,'Funded exit unavailable.');
-    const accounts={...snapshot,...await this.common(),owner:createNoopSigner(owner),margin,quoteMint:this.config.mint,userToken,amount};
+    const accounts={...snapshot,...await this.common(),...accountLiabilityMetas(snapshot.ledgers,[root]),owner:createNoopSigner(owner),margin,quoteMint:this.config.mint,userToken,amount};
     const instruction=safety.mode===0&&safety.resolutionEpoch===0n?
       await protocol.getWithdrawAccountCustodyInstructionAsync(accounts):
       protocol.getWithdrawFundedAccountInstruction({...accounts,...accountMarketMetas(snapshot.markets,[root]),guard:accountGuard(snapshot,margin)});
@@ -171,7 +171,7 @@ export class AccountUserClient extends WalletClient {
     requireValue(donor!==recipient&&amount>0n&&amount<=source.cash&&!snapshot.safetyState.paused&&[0,1].includes(snapshot.safetyState.mode),'Funded transfer unavailable.');
     const accounts={...snapshot,...await this.common(),owner:createNoopSigner(owner),donor,recipient,amount};
     return snapshot.safetyState.mode===0?protocol.getTransferAccountCustodyInstructionAsync(accounts):
-      protocol.getTransferFundedAccountInstruction({...accounts,...accountMarketMetas(snapshot.markets,[source,snapshot.roots[recipient]]),guard:accountGuard(snapshot,donor)});
+      protocol.getTransferFundedAccountInstruction({...accounts,...accountMarketMetas(snapshot.markets,[source,snapshot.roots[recipient]]),...accountLiabilityMetas(snapshot.ledgers,[source,snapshot.roots[recipient]]),guard:accountGuard(snapshot,donor)});
   }
   async manageOrder(snapshot:AccountSnapshot,actor:Address,margin:Address,marketIndex:0|1,operation:protocol.OrderActionArgs) {
     this.bound(snapshot);const root=snapshot.roots[margin];

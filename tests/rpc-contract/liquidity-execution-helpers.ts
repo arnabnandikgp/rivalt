@@ -21,8 +21,9 @@ export function executionTestHelpers(h: CanonicalHarness, setup: Setup) {
     const { trader, actor, marketIndex, side, makers, lots } = input;
     const [first, second] = makers, state = await setup.marketState(marketIndex), slot = await setup.slot();
     const required = input.minimalMarkets ? sdk.requiredAccountMarkets(await Promise.all([trader,...makers.map(maker=>maker.capital)].map(root)),1<<marketIndex) : 3;
+    const liabilities = input.minimalMarkets ? sdk.requiredAccountLiabilities(await Promise.all([trader,...makers.map(maker=>maker.capital)].map(root)),1<<marketIndex) : 3;
     const accounts = { ...setup.common, actor, market: setup.markets[marketIndex], otherMarket: required&(1<<(1-marketIndex)) ? setup.markets[1 - marketIndex] : undefined,
-      ledger: setup.ledgers[marketIndex], otherLedger: setup.ledgers[1 - marketIndex], trader,
+      ledger: setup.ledgers[marketIndex], otherLedger: liabilities&(1<<(1-marketIndex)) ? setup.ledgers[1 - marketIndex] : undefined, trader,
       registry: first.liquidityRegistry, firstCapital: first.capital, firstRegistration: first.registration,
       firstProgram: first.pricingProgram, firstProgramData: first.controlCommon.programData, firstConfig: first.config, firstPrice: first.price,
       secondCapital: second?.capital ?? null, secondRegistration: second?.registration ?? null, secondProgram: second?.pricingProgram ?? null,

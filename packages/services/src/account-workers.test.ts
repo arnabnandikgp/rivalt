@@ -26,14 +26,14 @@ it('pays only the selected funded pool, respects full-account health and preserv
 });
 it('backing stamps follow the selected liability and only required source dependencies',async()=>{
   const {snapshot,empty,margins}=await fixture();
-  const registry:sdk.VenueRegistry={discriminator:sdk.VENUE_REGISTRY_DISCRIMINATOR,schemaVersion:6,revision:1n,venue:snapshot.venue,bump:0,members:margins,count:2,membershipVersion:4n};
+  const registry:sdk.VenueRegistry={discriminator:sdk.VENUE_REGISTRY_DISCRIMINATOR,schemaVersion:7,revision:1n,venue:snapshot.venue,bump:0,members:margins,count:2,membershipVersion:4n};
   const proof={...empty(sdk.getSettlementCertificateDecoder()),marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2,
-    liabilityVersions:[1n,1n],requiredMarketMask:0};
+    liabilityVersion:1n,requiredMarketMask:0};
   expect(accountBackingCurrent(snapshot,registry,proof)).toBe(true);
-  snapshot.custodyState.liabilityVersions[1]++;snapshot.marketStates[1].observationSequence++;
+  snapshot.ledgerStates[1].liabilityVersion++;snapshot.marketStates[1].observationSequence++;
   expect(accountBackingCurrent(snapshot,registry,proof)).toBe(true);
-  snapshot.custodyState.liabilityVersions[0]++;expect(accountBackingCurrent(snapshot,registry,proof)).toBe(false);
-  snapshot.custodyState.liabilityVersions[0]--;proof.requiredMarketMask=1;
+  snapshot.ledgerStates[0].liabilityVersion++;expect(accountBackingCurrent(snapshot,registry,proof)).toBe(false);
+  snapshot.ledgerStates[0].liabilityVersion--;proof.requiredMarketMask=1;
   expect(accountBackingCurrent(snapshot,registry,proof)).toBe(false);
 });
 it('orders creditor remainders exactly with stable registry ties, including values beyond Number precision',async()=>{

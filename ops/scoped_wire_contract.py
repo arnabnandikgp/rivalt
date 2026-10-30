@@ -99,7 +99,7 @@ def scoped_idl(program):
     return expected
 
 
-def expected_idl(program):
+def market_idl(program):
     # Freeze P41 against accepted P40B, itself checked against the original D84
     # delta. Never derive expected fields from newly generated output.
     expected = json.loads(subprocess.check_output([
@@ -144,6 +144,11 @@ def expected_idl(program):
     return expected
 
 
+def expected_idl(program):
+    from custody_wire_contract import expected_idl as custody_idl
+    return custody_idl(program, market_idl)
+
+
 def check(directory):
     frozen = json.loads(Path('tests/fixtures/wire-contract.json').read_text())
     assert source_domains() == frozen['contract']['domains'], 'Seeds/hash domains changed outside D84'
@@ -151,7 +156,7 @@ def check(directory):
         expected = program_contract(expected_idl(program))
         current = program_contract(json.loads((directory / f'{program}.json').read_text()))
         assert current == expected, (program, current, expected)
-    print(f'ABI matches explicit D84 then D86 deltas: P40A {PREDECESSOR}, P40B {MARKET_PREDECESSOR}; P41 optional market metas and four partial-market payloads; account layouts/maker ABIs unchanged')
+    print(f'ABI matches explicit D84 then D86 deltas: P40A {PREDECESSOR}, P40B {MARKET_PREDECESSOR}; D87 custody-isolated schema-7 delta against P41 49b95a4; maker-owned ABIs unchanged')
 
 
 if __name__ == '__main__':

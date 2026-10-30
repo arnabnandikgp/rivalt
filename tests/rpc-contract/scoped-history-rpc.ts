@@ -98,7 +98,7 @@ try {
   const anchor=await initializationSignature(rpc,checks.map(check=>String(check.signature)),common.eventAuthority);
   const config={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,runId:'p40b-scoped-history',venue,anchor,profile:'liquidity-execution-qualification' as const};
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();const snapshot=await indexer.store.snapshot(),reconciliation=await indexer.reconcile();
-  assert.equal(snapshot.state.custody!.totalCash,'5999999');assert.equal(snapshot.state.safety!.mode,4);
+  assert.equal(Object.values(snapshot.state.roots).reduce((sum, root) => sum + BigInt(root.cash), 0n),5999999n);assert.equal(snapshot.state.safety!.mode,4);
   assert.equal(snapshot.state.revisions[certificate].revision,proof.revision.toString());
   const sql=await indexer.store.pool.query(`SELECT count(*) FILTER (WHERE jsonb_array_length(payload->'events')=0) AS empty,
     count(*) FILTER (WHERE invocation=1) AS nested_second FROM envelopes WHERE run_id=$1`,[config.runId]);

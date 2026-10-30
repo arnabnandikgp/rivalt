@@ -44,11 +44,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import {
-  findCustodyPda,
-  findVenueSafetyPda,
-  findVenueVaultPda,
-} from "../pdas/index.js";
+import { findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const PAY_ACCOUNT_GAIN_DISCRIMINATOR: ReadonlyUint8Array =
@@ -63,13 +59,11 @@ export function getPayAccountGainDiscriminatorBytes(): ReadonlyUint8Array {
 export type PayAccountGainInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountBtc extends string | AccountMeta<string> = string,
   TAccountEth extends string | AccountMeta<string> = string,
   TAccountBtcLedger extends string | AccountMeta<string> = string,
   TAccountEthLedger extends string | AccountMeta<string> = string,
-  TAccountVault extends string | AccountMeta<string> = string,
   TAccountActor extends string | AccountMeta<string> = string,
   TAccountMargin extends string | AccountMeta<string> = string,
   TAccountRegistry extends string | AccountMeta<string> = string,
@@ -84,9 +78,6 @@ export type PayAccountGainInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -98,9 +89,6 @@ export type PayAccountGainInstruction<
       TAccountEthLedger extends string
         ? WritableAccount<TAccountEthLedger>
         : TAccountEthLedger,
-      TAccountVault extends string
-        ? WritableAccount<TAccountVault>
-        : TAccountVault,
       TAccountActor extends string
         ? ReadonlySignerAccount<TAccountActor> &
             AccountSignerMeta<TAccountActor>
@@ -166,13 +154,11 @@ export function getPayAccountGainInstructionDataCodec(): FixedSizeCodec<
 
 export type PayAccountGainAsyncInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountActor extends InstructionSignerInput = InstructionSignerInput,
   TAccountMargin extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
@@ -182,13 +168,11 @@ export type PayAccountGainAsyncInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   btc?: TAccountBtc;
   eth?: TAccountEth;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
-  vault?: TAccountVault;
+  btcLedger?: TAccountBtcLedger;
+  ethLedger?: TAccountEthLedger;
   /** Any payer can perform an admissible collection/payment; no cash destination choice. */
   actor: TAccountActor;
   margin: TAccountMargin;
@@ -203,13 +187,11 @@ export type PayAccountGainAsyncInput<
 
 export async function getPayAccountGainInstructionAsync<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
   TAccountActor extends InstructionSignerInput,
   TAccountMargin extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
@@ -220,13 +202,11 @@ export async function getPayAccountGainInstructionAsync<
 >(
   input: PayAccountGainAsyncInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountBtc,
     TAccountEth,
     TAccountBtcLedger,
     TAccountEthLedger,
-    TAccountVault,
     TAccountActor,
     TAccountMargin,
     TAccountRegistry,
@@ -243,10 +223,6 @@ export async function getPayAccountGainInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -267,10 +243,6 @@ export async function getPayAccountGainInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountActor,
@@ -312,11 +284,6 @@ export async function getPayAccountGainInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
@@ -330,7 +297,6 @@ export async function getPayAccountGainInstructionAsync<
       isSigner: false,
       isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
     actor: { value: input.actor ?? null, isSigner: true, isWritable: false },
     margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
     registry: {
@@ -363,30 +329,8 @@ export async function getPayAccountGainInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.vault.value) {
-    accounts.vault.value = await findVenueVaultPda(
       {
         venue: getAddressFromResolvedInstructionAccount(
           "venue",
@@ -400,13 +344,11 @@ export async function getPayAccountGainInstructionAsync<
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
       getAccountMeta("btcLedger", accounts.btcLedger),
       getAccountMeta("ethLedger", accounts.ethLedger),
-      getAccountMeta("vault", accounts.vault),
       getAccountMeta("actor", accounts.actor),
       getAccountMeta("margin", accounts.margin),
       getAccountMeta("registry", accounts.registry),
@@ -423,10 +365,6 @@ export async function getPayAccountGainInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -447,10 +385,6 @@ export async function getPayAccountGainInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountActor,
@@ -481,13 +415,11 @@ export async function getPayAccountGainInstructionAsync<
 
 export type PayAccountGainInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountActor extends InstructionSignerInput = InstructionSignerInput,
   TAccountMargin extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
@@ -497,13 +429,11 @@ export type PayAccountGainInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   btc?: TAccountBtc;
   eth?: TAccountEth;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
-  vault: TAccountVault;
+  btcLedger?: TAccountBtcLedger;
+  ethLedger?: TAccountEthLedger;
   /** Any payer can perform an admissible collection/payment; no cash destination choice. */
   actor: TAccountActor;
   margin: TAccountMargin;
@@ -518,13 +448,11 @@ export type PayAccountGainInput<
 
 export function getPayAccountGainInstruction<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
   TAccountActor extends InstructionSignerInput,
   TAccountMargin extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
@@ -535,13 +463,11 @@ export function getPayAccountGainInstruction<
 >(
   input: PayAccountGainInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountBtc,
     TAccountEth,
     TAccountBtcLedger,
     TAccountEthLedger,
-    TAccountVault,
     TAccountActor,
     TAccountMargin,
     TAccountRegistry,
@@ -557,10 +483,6 @@ export function getPayAccountGainInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -581,10 +503,6 @@ export function getPayAccountGainInstruction<
   ResolvedInstructionAccountMeta<
     TAccountEthLedger,
     InstructionAccountInputAddress<TAccountEthLedger>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountVault,
-    InstructionAccountInputAddress<TAccountVault>
   >,
   ResolvedInstructionAccountMeta<
     TAccountActor,
@@ -625,11 +543,6 @@ export function getPayAccountGainInstruction<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
@@ -643,7 +556,6 @@ export function getPayAccountGainInstruction<
       isSigner: false,
       isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
     actor: { value: input.actor ?? null, isSigner: true, isWritable: false },
     margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
     registry: {
@@ -678,13 +590,11 @@ export function getPayAccountGainInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
       getAccountMeta("btcLedger", accounts.btcLedger),
       getAccountMeta("ethLedger", accounts.ethLedger),
-      getAccountMeta("vault", accounts.vault),
       getAccountMeta("actor", accounts.actor),
       getAccountMeta("margin", accounts.margin),
       getAccountMeta("registry", accounts.registry),
@@ -701,10 +611,6 @@ export function getPayAccountGainInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -725,10 +631,6 @@ export function getPayAccountGainInstruction<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountActor,
@@ -764,21 +666,19 @@ export type ParsedPayAccountGainInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     venue: TAccountMetas[0];
-    custody: TAccountMetas[1];
-    safety: TAccountMetas[2];
-    btc?: TAccountMetas[3] | undefined;
-    eth?: TAccountMetas[4] | undefined;
-    btcLedger: TAccountMetas[5];
-    ethLedger: TAccountMetas[6];
-    vault: TAccountMetas[7];
+    safety: TAccountMetas[1];
+    btc?: TAccountMetas[2] | undefined;
+    eth?: TAccountMetas[3] | undefined;
+    btcLedger?: TAccountMetas[4] | undefined;
+    ethLedger?: TAccountMetas[5] | undefined;
     /** Any payer can perform an admissible collection/payment; no cash destination choice. */
-    actor: TAccountMetas[8];
-    margin: TAccountMetas[9];
-    registry: TAccountMetas[10];
+    actor: TAccountMetas[6];
+    margin: TAccountMetas[7];
+    registry: TAccountMetas[8];
     /** Absent for collection; validated completely before gain payment. */
-    certificate?: TAccountMetas[11] | undefined;
-    eventAuthority: TAccountMetas[12];
-    program: TAccountMetas[13];
+    certificate?: TAccountMetas[9] | undefined;
+    eventAuthority: TAccountMetas[10];
+    program: TAccountMetas[11];
   };
   data: PayAccountGainInstructionData;
 };
@@ -791,12 +691,12 @@ export function parsePayAccountGainInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedPayAccountGainInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 14) {
+  if (instruction.accounts.length < 12) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 14,
+        expectedAccountMetas: 12,
       },
     );
   }
@@ -816,13 +716,11 @@ export function parsePayAccountGainInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       btc: getNextOptionalAccount(),
       eth: getNextOptionalAccount(),
-      btcLedger: getNextAccount(),
-      ethLedger: getNextAccount(),
-      vault: getNextAccount(),
+      btcLedger: getNextOptionalAccount(),
+      ethLedger: getNextOptionalAccount(),
       actor: getNextAccount(),
       margin: getNextAccount(),
       registry: getNextAccount(),

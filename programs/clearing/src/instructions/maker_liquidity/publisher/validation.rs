@@ -9,7 +9,7 @@ pub(super) fn validate_report(
     clock: &Clock,
 ) -> Result<()> {
     require!(
-        configuration.schema_version == 6
+        configuration.schema_version == 7
             && configuration.enabled
             && configuration.publisher != Pubkey::default()
             && configuration.authority_epoch > 0

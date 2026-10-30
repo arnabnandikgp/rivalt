@@ -20,7 +20,7 @@ export async function accountCustodyCases(h: Harness) {
   const mint = await fixtureKey('p23-mint'), badMint = await fixtureKey('p23-bad-mint');
   const token = await fixtureKey('p23-token'), wrongOwnerToken = await fixtureKey('p23-wrong-owner-token');
   const deployment = await addresses();
-  const domain = createHash('sha256').update('rivalt/p41/schema6/fresh-two-market-custody').digest();
+  const domain = createHash('sha256').update('rivalt/p42/schema7/fresh-two-market-custody').digest();
   const venue = await accountPda('venue-v3', domain);
   const registry = await accountPda('registry-v3', keyBytes.encode(venue));
   const vault = await accountPda('vault-v3', keyBytes.encode(venue));
@@ -33,7 +33,8 @@ export async function accountCustodyCases(h: Harness) {
     feeAuthority: owner.address, reserveAuthority: attacker.address, reserveDestinationOwner: attacker.address };
   const venueState = async () => {
     const ledgersNow = await Promise.all(ledgers.map(async key => sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
-    return { ...sdk.getVenueDecoder().decode((await h.read(venue))!),
+    const totalCash = (await Promise.all(roots.map(rootState))).reduce((sum, root) => sum + root.cash, 0n);
+    return { totalCash, ...sdk.getVenueDecoder().decode((await h.read(venue))!),
       ...sdk.getCustodyDecoder().decode((await h.read(custody))!),
       ...sdk.getVenueSafetyDecoder().decode((await h.read(safety))!),
       insurance: ledgersNow.reduce((sum, ledger) => sum + ledger.insurance, 0n),
@@ -136,18 +137,18 @@ export async function accountCustodyCases(h: Harness) {
     destination: vault, authority: owner, amount: 7n, decimals: 6 })], [owner]);
   assert.equal((await venueState()).allocatedVault, 900_000n);
   await rejected('reject venue authority taking reserve authority', [await sdk.getClassifyMarketSurplusInstructionAsync({
-    ...common, reserveAuthority: payer, marketIndex: 0, amount: 7n })], [], 6102);
+    ...common, reserveAuthority: payer, ledger: ledgers[0], marketIndex: 0, amount: 7n })], [], 6102);
   await h.send('classify BTC surplus as insurance only', [await sdk.getClassifyMarketSurplusInstructionAsync({
-    ...common, reserveAuthority: attacker, marketIndex: 0, amount: 7n })], [attacker]);
+    ...common, reserveAuthority: attacker, ledger: ledgers[0], marketIndex: 0, amount: 7n })], [attacker]);
   await rejected('reject duplicate surplus classification', [await sdk.getClassifyMarketSurplusInstructionAsync({
-    ...common, reserveAuthority: attacker, marketIndex: 1, amount: 1n })], [attacker], 6106);
+    ...common, reserveAuthority: attacker, ledger: ledgers[1], marketIndex: 1, amount: 1n })], [attacker], 6106);
   await rejected('reject foreign ledger alias', [await sdk.getDepositAccountInstructionAsync({
     ...cash, ethLedger: ledgers[0], margin: btc, amount: 1n })], [owner], 2006);
   await rejected('reject unapproved insurance donor attribution', [await sdk.getSeedMarketInsuranceInstructionAsync({
-    ...common, reserveAuthority: payer, donor: owner, donorToken: token.address, quoteMint: mint.address,
+    ...common, reserveAuthority: payer, ledger: ledgers[1], donor: owner, donorToken: token.address, quoteMint: mint.address,
     marketIndex: 1, amount: 11n })], [owner], 6102);
   await h.send('seed ETH insurance with actual donor tokens', [await sdk.getSeedMarketInsuranceInstructionAsync({
-    ...common, reserveAuthority: attacker, donor: owner, donorToken: token.address, quoteMint: mint.address,
+    ...common, reserveAuthority: attacker, ledger: ledgers[1], donor: owner, donorToken: token.address, quoteMint: mint.address,
     marketIndex: 1, amount: 11n })], [owner, attacker]);
   const reserveStates = await Promise.all(ledgers.map(async key => sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
   assert.deepEqual(reserveStates.map(ledger => ledger.insurance), [7n, 11n]);

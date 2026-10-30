@@ -27,7 +27,7 @@ fn with_margin(
 fn declared_read_stays_read_when_message_promotes_key_to_writable() {
     with_margin(
         MarginAccount {
-            schema_version: 6,
+            schema_version: 7,
             revision: 19,
             cash: 100,
             ..Default::default()
@@ -54,7 +54,7 @@ fn creation_and_noop_writer_advance_once_after_the_handler() {
         let mut scope = Scope::new();
         scope.account(account, Access::Create).unwrap();
         assert_eq!(account.revision, 0);
-        account.schema_version = 6;
+        account.schema_version = 7;
         account.cash = 17; // initializer's effect
         scope.cursor = Some(0);
         scope.account(account, Access::Create).unwrap();
@@ -84,12 +84,20 @@ fn creation_and_noop_writer_advance_once_after_the_handler() {
 fn duplicate_missing_reset_wrong_schema_and_exhaustion_fail_closed() {
     let key = Pubkey::new_unique();
     let mut scope = Scope::new();
-    scope.visit(key, 5, SCHEMA_VERSION, 8, Access::Write).unwrap();
-    assert!(scope.visit(key, 5, SCHEMA_VERSION, 8, Access::Read).is_err());
+    scope
+        .visit(key, 5, SCHEMA_VERSION, 8, Access::Write)
+        .unwrap();
+    assert!(scope
+        .visit(key, 5, SCHEMA_VERSION, 8, Access::Read)
+        .is_err());
     scope.cursor = Some(0);
-    assert!(scope.visit(key, 5, SCHEMA_VERSION, 0, Access::Write).is_err());
+    assert!(scope
+        .visit(key, 5, SCHEMA_VERSION, 0, Access::Write)
+        .is_err());
     assert!(scope.visit(key, 5, 3, 8, Access::Write).is_err());
-    assert!(scope.visit(key, 5, SCHEMA_VERSION, 8, Access::Read).is_err());
+    assert!(scope
+        .visit(key, 5, SCHEMA_VERSION, 8, Access::Read)
+        .is_err());
     assert!(scope
         .finish(Pubkey::default(), [0; 32], [0; 8], 1, 42)
         .is_err());
@@ -114,7 +122,7 @@ fn remaining_root_preserves_manual_financial_write_then_advances_header() {
     let key = Pubkey::new_unique();
     let mut lamports = 1;
     let mut root = MarginAccount {
-        schema_version: 6,
+        schema_version: 7,
         revision: 11,
         cash: 100,
         ..Default::default()
@@ -149,7 +157,9 @@ fn remaining_root_preserves_manual_financial_write_then_advances_header() {
     assert_eq!(owned(&event).writes[0].before, 11);
     assert_eq!(owned(&event).writes[0].after, 12);
     let mut duplicate = Scope::new();
-    duplicate.visit(key, 5, SCHEMA_VERSION, 12, Access::Read).unwrap();
+    duplicate
+        .visit(key, 5, SCHEMA_VERSION, 12, Access::Read)
+        .unwrap();
     assert!(duplicate
         .remaining(std::slice::from_ref(&info), false)
         .is_err());
@@ -168,7 +178,7 @@ fn remaining_root_preserves_manual_financial_write_then_advances_header() {
 #[test]
 fn envelope_has_literal_field_offsets_and_bounded_entity_count() {
     let event = AccountTransition {
-        schema_version: 6,
+        schema_version: 7,
         venue: Pubkey::new_from_array([7; 32]),
         domain: [9; 32],
         slot: 42,
@@ -188,7 +198,7 @@ fn envelope_has_literal_field_offsets_and_bounded_entity_count() {
     };
     let bytes = event.data();
     assert_eq!(bytes.len(), 190); // 100 + one 41-byte read + one 49-byte write
-    assert_eq!(&bytes[8..10], &[6, 0]);
+    assert_eq!(&bytes[8..10], &[7, 0]);
     assert_eq!(&bytes[10..42], &[7; 32]);
     assert_eq!(&bytes[42..74], &[9; 32]);
     assert_eq!(&bytes[74..82], &42u64.to_le_bytes());
@@ -203,11 +213,23 @@ fn envelope_has_literal_field_offsets_and_bounded_entity_count() {
     let mut scope = Scope::new();
     for byte in 0..32 {
         scope
-            .visit(Pubkey::new_from_array([byte; 32]), 5, SCHEMA_VERSION, 1, Access::Write)
+            .visit(
+                Pubkey::new_from_array([byte; 32]),
+                5,
+                SCHEMA_VERSION,
+                1,
+                Access::Write,
+            )
             .unwrap();
     }
     assert!(scope
-        .visit(Pubkey::new_from_array([32; 32]), 5, SCHEMA_VERSION, 1, Access::Write)
+        .visit(
+            Pubkey::new_from_array([32; 32]),
+            5,
+            SCHEMA_VERSION,
+            1,
+            Access::Write
+        )
         .is_err());
 }
 
@@ -232,20 +254,20 @@ fn all_seventeen_account_headers_bind_kind_schema_revision_and_canonical_discrim
         assert_eq!(value.revision(), 0x0807_0605_0403_0201);
         let mut actual = Vec::new();
         value.try_serialize(&mut actual).unwrap();
-        assert_eq!(&actual[8..18], &[6, 0, 1, 2, 3, 4, 5, 6, 7, 8]);
+        assert_eq!(&actual[8..18], &[7, 0, 1, 2, 3, 4, 5, 6, 7, 8]);
         bytes[..8].copy_from_slice(&[0; 8]);
         assert!(T::try_deserialize(&mut bytes.as_slice()).is_err());
     }
     check::<Venue>("Venue", 0, 329);
-    check::<Custody>("Custody", 1, 83);
+    check::<Custody>("Custody", 1, 59);
     check::<VenueSafety>("VenueSafety", 2, 85);
     check::<VenueRegistry>("VenueRegistry", 3, 2113);
     check::<Portfolio>("Portfolio", 4, 87);
     check::<MarginAccount>("MarginAccount", 5, 978);
     check::<Market>("Market", 6, 455);
-    check::<MarketLedger>("MarketLedger", 7, 117);
+    check::<MarketLedger>("MarketLedger", 7, 125);
     check::<CapitalBinding>("CapitalBinding", 8, 114);
-    check::<SettlementCertificate>("SettlementCertificate", 9, 242);
+    check::<SettlementCertificate>("SettlementCertificate", 9, 234);
     check::<Resolution>("Resolution", 10, 3652);
     check::<ResolutionPage>("ResolutionPage", 11, 3408);
     check::<ResolutionWork>("ResolutionWork", 12, 7926);
@@ -254,7 +276,6 @@ fn all_seventeen_account_headers_bind_kind_schema_revision_and_canonical_discrim
     check::<MakerRegistration>("MakerRegistration", 15, 341);
     check::<FundingPublisher>("FundingPublisher", 16, 148);
 }
-
 
 fn owned(view: &TransitionView<'_>) -> AccountTransition {
     AccountTransition::deserialize(&mut bytes(view).as_slice()).unwrap()
@@ -270,16 +291,42 @@ fn borrowed_footer_matches_owned_vectors_at_all_supported_sizes() {
             let account = Pubkey::new_from_array([index as u8; 32]);
             let kind = (index % 17) as u8;
             let revision = index as u64 + 1;
-            let access = if index % 3 == 0 { Access::Write } else { Access::Read };
-            scope.visit(account, kind, SCHEMA_VERSION, revision, access).unwrap();
-            if access == Access::Read { reads.push(ScopedRead { account, kind, revision }); }
-            else { writes.push(ScopedWrite { account, kind, before: revision, after: revision + 1 }); }
+            let access = if index % 3 == 0 {
+                Access::Write
+            } else {
+                Access::Read
+            };
+            scope
+                .visit(account, kind, SCHEMA_VERSION, revision, access)
+                .unwrap();
+            if access == Access::Read {
+                reads.push(ScopedRead {
+                    account,
+                    kind,
+                    revision,
+                });
+            } else {
+                writes.push(ScopedWrite {
+                    account,
+                    kind,
+                    before: revision,
+                    after: revision + 1,
+                });
+            }
         }
         scope.cursor = Some(count);
         let venue = Pubkey::new_from_array([77; 32]);
         let view = scope.finish(venue, [9; 32], [11; 8], 2, 42).unwrap();
-        let expected = AccountTransition { schema_version: SCHEMA_VERSION, venue,
-            domain: [9; 32], slot: 42, instruction: [11; 8], payload_count: 2, reads, writes };
+        let expected = AccountTransition {
+            schema_version: SCHEMA_VERSION,
+            venue,
+            domain: [9; 32],
+            slot: 42,
+            instruction: [11; 8],
+            payload_count: 2,
+            reads,
+            writes,
+        };
         assert_eq!(bytes(&view), bytes(&expected));
     }
 }

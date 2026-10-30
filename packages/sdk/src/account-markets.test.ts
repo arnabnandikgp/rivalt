@@ -38,6 +38,20 @@ it('builds a BTC-only route without ETH while preserving selected financial admi
   const plan=await sdk.buildLiquidityRoute({snapshot,trader:fixture.margins[0],marketIndex:0,side:0,lots:1n,
     allInLimit:11_000n,maxFee:10n},fixture.owner);
   expect(plan).not.toBeNull();
+  for (const omitted of [snapshot.custody, snapshot.vault, snapshot.ledgers[1]])
+    expect(plan!.instructions[0].accounts!.some(meta => meta.address === omitted)).toBe(false);
   expect(plan!.instructions[0].accounts!.some(meta=>meta.address===snapshot.markets[1])).toBe(false);
   expect(plan!.instructions[0].accounts!.find(meta=>meta.address===snapshot.markets[0])?.role).toBe(AccountRole.WRITABLE);
+});
+
+it('liability dependencies include even fractional claims but exclude inert order-only state', async () => {
+  const fixture=await accountFixture(), snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,fixture.margins);
+  const root=snapshot.roots[fixture.margins[0]];
+  Object.assign(root.book.orders[0], {marketIndex:1});root.book.orders[0].order.state=1;
+  expect(sdk.requiredAccountMarkets([root])).toBe(2);
+  expect(sdk.requiredAccountLiabilities([root])).toBe(0);
+  root.positions[0].virtualScaled=-1n;
+  expect(sdk.requiredAccountLiabilities([root])).toBe(1);
+  root.positions[1].virtualScaled=1n;
+  expect(sdk.requiredAccountLiabilities([root])).toBe(3);
 });

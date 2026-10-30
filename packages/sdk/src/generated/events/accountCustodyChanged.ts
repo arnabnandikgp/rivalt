@@ -93,9 +93,7 @@ export type AccountCustodyChangedEvent = {
   safetyEpoch: bigint;
   termsEpoch: bigint;
   configEpoch: bigint;
-  totalCash: bigint;
-  allocatedVault: bigint;
-  liabilityVersions: Array<bigint>;
+  allocatedVault: Option<bigint>;
   membershipVersion: Option<bigint>;
   memberCount: Option<number>;
   actualVault: Option<bigint>;
@@ -132,9 +130,7 @@ export type AccountCustodyChangedEventArgs = {
   safetyEpoch: number | bigint;
   termsEpoch: number | bigint;
   configEpoch: number | bigint;
-  totalCash: number | bigint;
-  allocatedVault: number | bigint;
-  liabilityVersions: Array<number | bigint>;
+  allocatedVault: OptionOrNullable<number | bigint>;
   membershipVersion: OptionOrNullable<number | bigint>;
   memberCount: OptionOrNullable<number>;
   actualVault: OptionOrNullable<number | bigint>;
@@ -170,9 +166,7 @@ export function getAccountCustodyChangedEventEncoder(): Encoder<AccountCustodyCh
       ["safetyEpoch", getU64Encoder()],
       ["termsEpoch", getU64Encoder()],
       ["configEpoch", getU64Encoder()],
-      ["totalCash", getU64Encoder()],
-      ["allocatedVault", getU64Encoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
+      ["allocatedVault", getOptionEncoder(getU64Encoder())],
       ["membershipVersion", getOptionEncoder(getU64Encoder())],
       ["memberCount", getOptionEncoder(getU16Encoder())],
       ["actualVault", getOptionEncoder(getU64Encoder())],
@@ -211,9 +205,7 @@ export function getAccountCustodyChangedEventDecoder(): Decoder<AccountCustodyCh
       ["safetyEpoch", getU64Decoder()],
       ["termsEpoch", getU64Decoder()],
       ["configEpoch", getU64Decoder()],
-      ["totalCash", getU64Decoder()],
-      ["allocatedVault", getU64Decoder()],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
+      ["allocatedVault", getOptionDecoder(getU64Decoder())],
       ["membershipVersion", getOptionDecoder(getU64Decoder())],
       ["memberCount", getOptionDecoder(getU16Decoder())],
       ["actualVault", getOptionDecoder(getU64Decoder())],

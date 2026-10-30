@@ -45,7 +45,6 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import {
-  findCustodyPda,
   findLiquidityControllerPda,
   findMakerEventAuthorityPda,
   findVenueSafetyPda,
@@ -65,7 +64,6 @@ export type ReplenishLiquidityInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountActor extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountMarket extends string | AccountMeta<string> = string,
   TAccountRegistration extends string | AccountMeta<string> = string,
@@ -91,9 +89,6 @@ export type ReplenishLiquidityInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? ReadonlyAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -185,7 +180,6 @@ export function getReplenishLiquidityInstructionDataCodec(): FixedSizeCodec<
 export type ReplenishLiquidityAsyncInput<
   TAccountActor extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput =
@@ -206,7 +200,6 @@ export type ReplenishLiquidityAsyncInput<
 > = {
   actor: TAccountActor;
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   market: TAccountMarket;
   registration: TAccountRegistration;
@@ -229,7 +222,6 @@ export type ReplenishLiquidityAsyncInput<
 export async function getReplenishLiquidityInstructionAsync<
   TAccountActor extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput,
@@ -248,7 +240,6 @@ export async function getReplenishLiquidityInstructionAsync<
   input: ReplenishLiquidityAsyncInput<
     TAccountActor,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountRegistration,
@@ -276,10 +267,6 @@ export async function getReplenishLiquidityInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -350,11 +337,6 @@ export async function getReplenishLiquidityInstructionAsync<
   const originalAccounts = {
     actor: { value: input.actor ?? null, isSigner: true, isWritable: false },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
     registration: {
@@ -414,17 +396,6 @@ export async function getReplenishLiquidityInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -464,7 +435,6 @@ export async function getReplenishLiquidityInstructionAsync<
     accounts: [
       getAccountMeta("actor", accounts.actor),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("registration", accounts.registration),
@@ -492,10 +462,6 @@ export async function getReplenishLiquidityInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -555,7 +521,6 @@ export async function getReplenishLiquidityInstructionAsync<
 export type ReplenishLiquidityInput<
   TAccountActor extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput =
@@ -576,7 +541,6 @@ export type ReplenishLiquidityInput<
 > = {
   actor: TAccountActor;
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   market: TAccountMarket;
   registration: TAccountRegistration;
@@ -599,7 +563,6 @@ export type ReplenishLiquidityInput<
 export function getReplenishLiquidityInstruction<
   TAccountActor extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput,
@@ -618,7 +581,6 @@ export function getReplenishLiquidityInstruction<
   input: ReplenishLiquidityInput<
     TAccountActor,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountRegistration,
@@ -645,10 +607,6 @@ export function getReplenishLiquidityInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -718,11 +676,6 @@ export function getReplenishLiquidityInstruction<
   const originalAccounts = {
     actor: { value: input.actor ?? null, isSigner: true, isWritable: false },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
     registration: {
@@ -785,7 +738,6 @@ export function getReplenishLiquidityInstruction<
     accounts: [
       getAccountMeta("actor", accounts.actor),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("registration", accounts.registration),
@@ -813,10 +765,6 @@ export function getReplenishLiquidityInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -881,21 +829,20 @@ export type ParsedReplenishLiquidityInstruction<
   accounts: {
     actor: TAccountMetas[0];
     venue: TAccountMetas[1];
-    custody: TAccountMetas[2];
-    safety: TAccountMetas[3];
-    market: TAccountMetas[4];
-    registration: TAccountMetas[5];
-    capital: TAccountMetas[6];
-    config: TAccountMetas[7];
-    price: TAccountMetas[8];
-    pricingProgram: TAccountMetas[9];
-    programData: TAccountMetas[10];
-    controller: TAccountMetas[11];
-    makerEventAuthority: TAccountMetas[12];
+    safety: TAccountMetas[2];
+    market: TAccountMetas[3];
+    registration: TAccountMetas[4];
+    capital: TAccountMetas[5];
+    config: TAccountMetas[6];
+    price: TAccountMetas[7];
+    pricingProgram: TAccountMetas[8];
+    programData: TAccountMetas[9];
+    controller: TAccountMetas[10];
+    makerEventAuthority: TAccountMetas[11];
     /** Required only for joint code approval. Never passed to maker CPI. */
-    coSigner?: TAccountMetas[13] | undefined;
-    eventAuthority: TAccountMetas[14];
-    program: TAccountMetas[15];
+    coSigner?: TAccountMetas[12] | undefined;
+    eventAuthority: TAccountMetas[13];
+    program: TAccountMetas[14];
   };
   data: ReplenishLiquidityInstructionData;
 };
@@ -908,12 +855,12 @@ export function parseReplenishLiquidityInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedReplenishLiquidityInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 16) {
+  if (instruction.accounts.length < 15) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 16,
+        expectedAccountMetas: 15,
       },
     );
   }
@@ -934,7 +881,6 @@ export function parseReplenishLiquidityInstruction<
     accounts: {
       actor: getNextAccount(),
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       market: getNextAccount(),
       registration: getNextAccount(),

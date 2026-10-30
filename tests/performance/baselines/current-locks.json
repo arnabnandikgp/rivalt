@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "41b12e4bfa225421001c33c067fa8a9c9efc603abb25284dcad65698c0ff1e19",
+    "clearing": "690042fc54510ee316e70f2fe7096f3a97802eca734ce8d7f8dca18d2bbd79c2",
     "maker_a": "e1ff26a02f22416ed33bd545f4ddb1dc1140fe495d6963a8b8a39332e4e80679",
     "maker_b": "b2c70b3958835ebe428496efc4eb915ee2b4964165c610af3f1aa96a239ad126"
   },
@@ -59,31 +59,19 @@
       "program": "clearing",
       "name": "allocate_market_fees",
       "write": [
-        "identity.custody",
-        "identity.btc",
-        "identity.eth",
-        "identity.btc_ledger",
-        "identity.eth_ledger",
-        "identity.vault",
-        "user_token"
+        "identity.ledger"
       ],
       "read": [
         "identity.venue",
         "identity.safety",
         "fee_authority",
-        "quote_mint",
-        "token_program",
         "event_authority",
         "program"
       ],
       "signers": [
         "fee_authority"
       ],
-      "optional": [
-        "identity.btc",
-        "identity.eth",
-        "user_token"
-      ]
+      "optional": []
     },
     {
       "program": "clearing",
@@ -96,7 +84,6 @@
       "read": [
         "actor",
         "venue",
-        "custody",
         "safety",
         "capital",
         "price",
@@ -170,7 +157,6 @@
       ],
       "read": [
         "venue",
-        "custody",
         "safety",
         "registry",
         "btc",
@@ -187,8 +173,7 @@
       "name": "classify_market_surplus",
       "write": [
         "custody",
-        "btc_ledger",
-        "eth_ledger"
+        "ledger"
       ],
       "read": [
         "reserve_authority",
@@ -207,12 +192,10 @@
       "program": "clearing",
       "name": "collect_account_loss",
       "write": [
-        "identity.custody",
         "identity.btc",
         "identity.eth",
-        "identity.btc_ledger",
-        "identity.eth_ledger",
-        "identity.vault",
+        "btc_ledger",
+        "eth_ledger",
         "margin"
       ],
       "read": [
@@ -230,6 +213,8 @@
       "optional": [
         "identity.btc",
         "identity.eth",
+        "btc_ledger",
+        "eth_ledger",
         "certificate"
       ]
     },
@@ -243,7 +228,6 @@
       "read": [
         "authority",
         "venue",
-        "custody",
         "safety",
         "event_authority",
         "program"
@@ -264,7 +248,6 @@
       "read": [
         "actor",
         "venue",
-        "custody",
         "safety",
         "capital",
         "price",
@@ -309,6 +292,8 @@
       "name": "deposit_account",
       "write": [
         "custody",
+        "btc_ledger",
+        "eth_ledger",
         "margin",
         "vault",
         "user_token"
@@ -317,8 +302,6 @@
         "owner",
         "venue",
         "safety",
-        "btc_ledger",
-        "eth_ledger",
         "quote_mint",
         "token_program",
         "event_authority",
@@ -327,16 +310,19 @@
       "signers": [
         "owner"
       ],
-      "optional": []
+      "optional": [
+        "btc_ledger",
+        "eth_ledger"
+      ]
     },
     {
       "program": "clearing",
       "name": "execute_liquidity_order",
       "write": [
-        "identity.custody",
         "identity.market",
         "identity.other_market",
         "identity.ledger",
+        "identity.other_ledger",
         "identity.trader",
         "first_capital",
         "first_registration",
@@ -347,8 +333,6 @@
         "identity.actor",
         "identity.venue",
         "identity.safety",
-        "identity.other_ledger",
-        "identity.vault",
         "registry",
         "first_program",
         "first_program_data",
@@ -366,6 +350,7 @@
       ],
       "optional": [
         "identity.other_market",
+        "identity.other_ledger",
         "second_capital",
         "second_registration",
         "second_program",
@@ -378,10 +363,10 @@
       "program": "clearing",
       "name": "execute_liquidity_route",
       "write": [
-        "identity.custody",
         "identity.market",
         "identity.other_market",
         "identity.ledger",
+        "identity.other_ledger",
         "identity.trader",
         "first_capital",
         "first_registration",
@@ -392,8 +377,6 @@
         "identity.actor",
         "identity.venue",
         "identity.safety",
-        "identity.other_ledger",
-        "identity.vault",
         "registry",
         "first_program",
         "first_program_data",
@@ -411,6 +394,7 @@
       ],
       "optional": [
         "identity.other_market",
+        "identity.other_ledger",
         "second_capital",
         "second_registration",
         "second_program",
@@ -546,7 +530,6 @@
       ],
       "read": [
         "venue",
-        "custody",
         "safety",
         "registry",
         "system_program",
@@ -567,7 +550,6 @@
       ],
       "read": [
         "venue",
-        "custody",
         "market",
         "safety",
         "system_program",
@@ -652,7 +634,6 @@
       ],
       "read": [
         "venue",
-        "custody",
         "safety",
         "system_program",
         "event_authority",
@@ -687,12 +668,10 @@
       "program": "clearing",
       "name": "liquidate_account",
       "write": [
-        "identity.custody",
         "identity.btc",
         "identity.eth",
-        "identity.btc_ledger",
-        "identity.eth_ledger",
-        "identity.vault",
+        "btc_ledger",
+        "eth_ledger",
         "target",
         "receiver"
       ],
@@ -708,14 +687,15 @@
       ],
       "optional": [
         "identity.btc",
-        "identity.eth"
+        "identity.eth",
+        "btc_ledger",
+        "eth_ledger"
       ]
     },
     {
       "program": "clearing",
       "name": "manage_account_order",
       "write": [
-        "custody",
         "btc",
         "eth",
         "margin"
@@ -739,12 +719,10 @@
       "program": "clearing",
       "name": "net_account_claims",
       "write": [
-        "identity.custody",
         "identity.btc",
         "identity.eth",
-        "identity.btc_ledger",
-        "identity.eth_ledger",
-        "identity.vault",
+        "btc_ledger",
+        "eth_ledger",
         "margin"
       ],
       "read": [
@@ -812,12 +790,10 @@
       "program": "clearing",
       "name": "pay_account_gain",
       "write": [
-        "identity.custody",
         "identity.btc",
         "identity.eth",
-        "identity.btc_ledger",
-        "identity.eth_ledger",
-        "identity.vault",
+        "btc_ledger",
+        "eth_ledger",
         "margin"
       ],
       "read": [
@@ -835,6 +811,8 @@
       "optional": [
         "identity.btc",
         "identity.eth",
+        "btc_ledger",
+        "eth_ledger",
         "certificate"
       ]
     },
@@ -871,7 +849,6 @@
       "read": [
         "publisher",
         "venue",
-        "custody",
         "safety",
         "primary_asset",
         "primary_collateral",
@@ -895,7 +872,6 @@
       "read": [
         "authority",
         "venue",
-        "custody",
         "safety",
         "capital",
         "event_authority",
@@ -980,7 +956,6 @@
       "read": [
         "authority",
         "venue",
-        "custody",
         "safety",
         "market",
         "capital",
@@ -1031,7 +1006,6 @@
       "read": [
         "actor",
         "venue",
-        "custody",
         "safety",
         "capital",
         "price",
@@ -1112,7 +1086,6 @@
       "read": [
         "authority",
         "venue",
-        "custody",
         "market",
         "safety",
         "first",
@@ -1131,8 +1104,7 @@
       "name": "seed_market_insurance",
       "write": [
         "custody",
-        "btc_ledger",
-        "eth_ledger",
+        "ledger",
         "vault",
         "donor_token"
       ],
@@ -1156,7 +1128,6 @@
       "program": "clearing",
       "name": "set_account_delegate",
       "write": [
-        "custody",
         "margin"
       ],
       "read": [
@@ -1181,11 +1152,7 @@
       "read": [
         "owner",
         "venue",
-        "custody",
         "safety",
-        "btc_ledger",
-        "eth_ledger",
-        "vault",
         "event_authority",
         "program"
       ],
@@ -1198,12 +1165,10 @@
       "program": "clearing",
       "name": "transfer_funded_account",
       "write": [
-        "identity.custody",
         "identity.btc",
         "identity.eth",
-        "identity.btc_ledger",
-        "identity.eth_ledger",
-        "identity.vault",
+        "btc_ledger",
+        "eth_ledger",
         "donor",
         "recipient"
       ],
@@ -1219,7 +1184,9 @@
       ],
       "optional": [
         "identity.btc",
-        "identity.eth"
+        "identity.eth",
+        "btc_ledger",
+        "eth_ledger"
       ]
     },
     {
@@ -1255,6 +1222,8 @@
       "name": "withdraw_account_custody",
       "write": [
         "custody",
+        "btc_ledger",
+        "eth_ledger",
         "margin",
         "vault",
         "user_token"
@@ -1263,8 +1232,6 @@
         "owner",
         "venue",
         "safety",
-        "btc_ledger",
-        "eth_ledger",
         "quote_mint",
         "token_program",
         "event_authority",
@@ -1273,18 +1240,21 @@
       "signers": [
         "owner"
       ],
-      "optional": []
+      "optional": [
+        "btc_ledger",
+        "eth_ledger"
+      ]
     },
     {
       "program": "clearing",
       "name": "withdraw_funded_account",
       "write": [
-        "identity.custody",
         "identity.btc",
         "identity.eth",
-        "identity.btc_ledger",
-        "identity.eth_ledger",
-        "identity.vault",
+        "btc_ledger",
+        "eth_ledger",
+        "custody",
+        "vault",
         "margin",
         "user_token"
       ],
@@ -1302,18 +1272,17 @@
       ],
       "optional": [
         "identity.btc",
-        "identity.eth"
+        "identity.eth",
+        "btc_ledger",
+        "eth_ledger"
       ]
     },
     {
       "program": "clearing",
       "name": "withdraw_market_fees",
       "write": [
+        "identity.ledger",
         "identity.custody",
-        "identity.btc",
-        "identity.eth",
-        "identity.btc_ledger",
-        "identity.eth_ledger",
         "identity.vault",
         "user_token"
       ],
@@ -1329,21 +1298,14 @@
       "signers": [
         "fee_authority"
       ],
-      "optional": [
-        "identity.btc",
-        "identity.eth",
-        "user_token"
-      ]
+      "optional": []
     },
     {
       "program": "clearing",
       "name": "withdraw_retired_reserve",
       "write": [
+        "identity.ledger",
         "identity.custody",
-        "identity.btc",
-        "identity.eth",
-        "identity.btc_ledger",
-        "identity.eth_ledger",
         "identity.vault",
         "destination"
       ],
@@ -1359,10 +1321,7 @@
       "signers": [
         "reserve_authority"
       ],
-      "optional": [
-        "identity.btc",
-        "identity.eth"
-      ]
+      "optional": []
     },
     {
       "program": "maker_a",

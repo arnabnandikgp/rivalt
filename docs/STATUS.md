@@ -19,7 +19,7 @@ the integration and preceding baselines.
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
-| P42 custody/accounting isolation | In progress | D87 schema-7 contract frozen; exact local conservation, narrower contexts and certificate progress require implementation/acceptance |
+| P42 custody/accounting isolation | In progress | D87 schema-7 source/SDK/indexer implemented; 114 native and 71 scoped client cases pass; rebuilt RPC/WS/PG, certificate progress and contention acceptance pending |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
@@ -321,13 +321,25 @@ Successful raw records stay in `p41-claims-revision/`, the failed attempt in
 `p41-claims-complete/`. Owned test listeners/containers are stopped.
 
 P41 acceptance content is `3415538`; [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59)
-is ready above #58. Integration and hosted CI remain pending. No broad
+is ready above #58. Integration remains pending. All five hosted CI jobs pass on P41 repair `1b0887f`
+([run 41131181214](https://github.com/arnabnandikgp/rivalt/actions/runs/41131181214));
+three route fixture tests also pass locally. The repair supplies omitted maker roots
+without changing runtime admission. No broad
 unrelated/browser/endurance suites are rerun; CI owns broad regression and P44 owns
 full fresh qualification. P42 is on `performance/p42-custody-isolation` above #59. D87 freezes exact
 account layouts, dependency/authority rules, partial payloads and complete acceptance
-criteria before runtime edits. Current executable artifacts remain the accepted
-schema-6 P41 set. Next exact action: implement schema-7 custody/ledger transitions
-and operation-specific contexts, then regenerate and check the explicit ABI delta. No validator
+criteria. The current unqualified schema-7 source removes shared custody from internal
+financial actions, moves liability stamps to selected ledgers, and derives complete
+cash from roots/allocated pools. Atomic final-page/payment is implemented in the worker;
+it is not yet signed-RPC evidence. Custody is 59 bytes, ledger 125 and certificate 234.
+All 114 native clearing cases pass. Typecheck, generated parity, exact D87 ABI delta
+against immutable P41, 53-entrypoint/43-context scope coverage and 71 affected client/
+projection/Anchor checks pass. Earlier fixture/manual-decoder failures were repaired;
+raw logs remain `.local/p42-*`. No unrelated suites or endurance are rerun.
+Current executable artifacts remain the accepted schema-6 P41 set; no P42 deployment
+or resource acceptance is claimed. Next exact action: build clean schema-7 SBF/default
+artifacts, pin their actual hashes, then run the custody/dependency RPC/WS/PostgreSQL
+probe with atomic certificate/payment and distinct-owner/payer contention checks. No validator
 throughput, endurance or funded qualification is claimed.
 
 ## Deployment and operational limits

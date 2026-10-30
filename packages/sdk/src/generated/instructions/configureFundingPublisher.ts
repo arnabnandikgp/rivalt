@@ -45,11 +45,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import {
-  findCustodyPda,
-  findFundingPublisherPda,
-  findVenueSafetyPda,
-} from "../pdas/index.js";
+import { findFundingPublisherPda, findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const CONFIGURE_FUNDING_PUBLISHER_DISCRIMINATOR: ReadonlyUint8Array =
@@ -65,7 +61,6 @@ export type ConfigureFundingPublisherInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountMarket extends string | AccountMeta<string> = string,
   TAccountConfiguration extends string | AccountMeta<string> = string,
@@ -83,9 +78,6 @@ export type ConfigureFundingPublisherInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? ReadonlyAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -151,7 +143,6 @@ export function getConfigureFundingPublisherInstructionDataCodec(): FixedSizeCod
 export type ConfigureFundingPublisherAsyncInput<
   TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountConfiguration extends InstructionAccountInput =
@@ -162,7 +153,6 @@ export type ConfigureFundingPublisherAsyncInput<
 > = {
   authority: TAccountAuthority;
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   market: TAccountMarket;
   configuration?: TAccountConfiguration;
@@ -175,7 +165,6 @@ export type ConfigureFundingPublisherAsyncInput<
 export async function getConfigureFundingPublisherInstructionAsync<
   TAccountAuthority extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountConfiguration extends InstructionAccountInput,
@@ -186,7 +175,6 @@ export async function getConfigureFundingPublisherInstructionAsync<
   input: ConfigureFundingPublisherAsyncInput<
     TAccountAuthority,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountConfiguration,
@@ -206,10 +194,6 @@ export async function getConfigureFundingPublisherInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -252,11 +236,6 @@ export async function getConfigureFundingPublisherInstructionAsync<
       isWritable: false,
     },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
     configuration: {
@@ -284,17 +263,6 @@ export async function getConfigureFundingPublisherInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -322,7 +290,6 @@ export async function getConfigureFundingPublisherInstructionAsync<
     accounts: [
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("configuration", accounts.configuration),
@@ -342,10 +309,6 @@ export async function getConfigureFundingPublisherInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -373,7 +336,6 @@ export async function getConfigureFundingPublisherInstructionAsync<
 export type ConfigureFundingPublisherInput<
   TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountConfiguration extends InstructionAccountInput =
@@ -384,7 +346,6 @@ export type ConfigureFundingPublisherInput<
 > = {
   authority: TAccountAuthority;
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   market: TAccountMarket;
   configuration: TAccountConfiguration;
@@ -397,7 +358,6 @@ export type ConfigureFundingPublisherInput<
 export function getConfigureFundingPublisherInstruction<
   TAccountAuthority extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountConfiguration extends InstructionAccountInput,
@@ -408,7 +368,6 @@ export function getConfigureFundingPublisherInstruction<
   input: ConfigureFundingPublisherInput<
     TAccountAuthority,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountConfiguration,
@@ -427,10 +386,6 @@ export function getConfigureFundingPublisherInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -472,11 +427,6 @@ export function getConfigureFundingPublisherInstruction<
       isWritable: false,
     },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
     configuration: {
@@ -507,7 +457,6 @@ export function getConfigureFundingPublisherInstruction<
     accounts: [
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("configuration", accounts.configuration),
@@ -527,10 +476,6 @@ export function getConfigureFundingPublisherInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -563,12 +508,11 @@ export type ParsedConfigureFundingPublisherInstruction<
   accounts: {
     authority: TAccountMetas[0];
     venue: TAccountMetas[1];
-    custody: TAccountMetas[2];
-    safety: TAccountMetas[3];
-    market: TAccountMetas[4];
-    configuration: TAccountMetas[5];
-    eventAuthority: TAccountMetas[6];
-    program: TAccountMetas[7];
+    safety: TAccountMetas[2];
+    market: TAccountMetas[3];
+    configuration: TAccountMetas[4];
+    eventAuthority: TAccountMetas[5];
+    program: TAccountMetas[6];
   };
   data: ConfigureFundingPublisherInstructionData;
 };
@@ -581,12 +525,12 @@ export function parseConfigureFundingPublisherInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedConfigureFundingPublisherInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 8) {
+  if (instruction.accounts.length < 7) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 8,
+        expectedAccountMetas: 7,
       },
     );
   }
@@ -601,7 +545,6 @@ export function parseConfigureFundingPublisherInstruction<
     accounts: {
       authority: getNextAccount(),
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       market: getNextAccount(),
       configuration: getNextAccount(),

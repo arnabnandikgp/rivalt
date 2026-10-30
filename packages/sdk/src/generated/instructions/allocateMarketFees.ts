@@ -44,11 +44,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import {
-  findCustodyPda,
-  findVenueSafetyPda,
-  findVenueVaultPda,
-} from "../pdas/index.js";
+import { findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const ALLOCATE_MARKET_FEES_DISCRIMINATOR: ReadonlyUint8Array =
@@ -63,18 +59,9 @@ export function getAllocateMarketFeesDiscriminatorBytes(): ReadonlyUint8Array {
 export type AllocateMarketFeesInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
-  TAccountBtc extends string | AccountMeta<string> = string,
-  TAccountEth extends string | AccountMeta<string> = string,
-  TAccountBtcLedger extends string | AccountMeta<string> = string,
-  TAccountEthLedger extends string | AccountMeta<string> = string,
-  TAccountVault extends string | AccountMeta<string> = string,
+  TAccountLedger extends string | AccountMeta<string> = string,
   TAccountFeeAuthority extends string | AccountMeta<string> = string,
-  TAccountQuoteMint extends string | AccountMeta<string> = string,
-  TAccountUserToken extends string | AccountMeta<string> = string,
-  TAccountTokenProgram extends string | AccountMeta<string> =
-    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TAccountEventAuthority extends string | AccountMeta<string> = string,
   TAccountProgram extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -85,36 +72,16 @@ export type AllocateMarketFeesInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
-      TAccountBtc extends string ? WritableAccount<TAccountBtc> : TAccountBtc,
-      TAccountEth extends string ? WritableAccount<TAccountEth> : TAccountEth,
-      TAccountBtcLedger extends string
-        ? WritableAccount<TAccountBtcLedger>
-        : TAccountBtcLedger,
-      TAccountEthLedger extends string
-        ? WritableAccount<TAccountEthLedger>
-        : TAccountEthLedger,
-      TAccountVault extends string
-        ? WritableAccount<TAccountVault>
-        : TAccountVault,
+      TAccountLedger extends string
+        ? WritableAccount<TAccountLedger>
+        : TAccountLedger,
       TAccountFeeAuthority extends string
         ? ReadonlySignerAccount<TAccountFeeAuthority> &
             AccountSignerMeta<TAccountFeeAuthority>
         : TAccountFeeAuthority,
-      TAccountQuoteMint extends string
-        ? ReadonlyAccount<TAccountQuoteMint>
-        : TAccountQuoteMint,
-      TAccountUserToken extends string
-        ? WritableAccount<TAccountUserToken>
-        : TAccountUserToken,
-      TAccountTokenProgram extends string
-        ? ReadonlyAccount<TAccountTokenProgram>
-        : TAccountTokenProgram,
       TAccountEventAuthority extends string
         ? ReadonlyAccount<TAccountEventAuthority>
         : TAccountEventAuthority,
@@ -170,34 +137,17 @@ export function getAllocateMarketFeesInstructionDataCodec(): FixedSizeCodec<
 
 export type AllocateMarketFeesAsyncInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEth extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountFeeAuthority extends InstructionSignerInput = InstructionSignerInput,
-  TAccountQuoteMint extends InstructionAccountInput = InstructionAccountInput,
-  TAccountUserToken extends InstructionAccountInput = InstructionAccountInput,
-  TAccountTokenProgram extends InstructionAccountInput =
-    InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
     InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btc?: TAccountBtc;
-  eth?: TAccountEth;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
-  vault?: TAccountVault;
+  ledger: TAccountLedger;
   feeAuthority: TAccountFeeAuthority;
-  quoteMint: TAccountQuoteMint;
-  userToken?: TAccountUserToken;
-  tokenProgram?: TAccountTokenProgram;
   eventAuthority: TAccountEventAuthority;
   program: TAccountProgram;
   marketIndex: AllocateMarketFeesInstructionDataArgs["marketIndex"];
@@ -206,34 +156,18 @@ export type AllocateMarketFeesAsyncInput<
 
 export async function getAllocateMarketFeesInstructionAsync<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
-  TAccountBtc extends InstructionAccountInput,
-  TAccountEth extends InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput,
   TAccountFeeAuthority extends InstructionSignerInput,
-  TAccountQuoteMint extends InstructionAccountInput,
-  TAccountUserToken extends InstructionAccountInput,
-  TAccountTokenProgram extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
   input: AllocateMarketFeesAsyncInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
-    TAccountBtc,
-    TAccountEth,
-    TAccountBtcLedger,
-    TAccountEthLedger,
-    TAccountVault,
+    TAccountLedger,
     TAccountFeeAuthority,
-    TAccountQuoteMint,
-    TAccountUserToken,
-    TAccountTokenProgram,
     TAccountEventAuthority,
     TAccountProgram
   >,
@@ -248,48 +182,16 @@ export async function getAllocateMarketFeesInstructionAsync<
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtc,
-      InstructionAccountInputAddress<TAccountBtc>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEth,
-      InstructionAccountInputAddress<TAccountEth>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountFeeAuthority,
       InstructionAccountInputAddress<TAccountFeeAuthority>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountQuoteMint,
-      InstructionAccountInputAddress<TAccountQuoteMint>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountUserToken,
-      InstructionAccountInputAddress<TAccountUserToken>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountTokenProgram,
-      InstructionAccountInputAddress<TAccountTokenProgram>
     >,
     ResolvedInstructionAccountMeta<
       TAccountEventAuthority,
@@ -315,43 +217,11 @@ export async function getAllocateMarketFeesInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
-    btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
-    eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
-    btcLedger: {
-      value: input.btcLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    ethLedger: {
-      value: input.ethLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     feeAuthority: {
       value: input.feeAuthority ?? null,
       isSigner: true,
-      isWritable: false,
-    },
-    quoteMint: {
-      value: input.quoteMint ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    userToken: {
-      value: input.userToken ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    tokenProgram: {
-      value: input.tokenProgram ?? null,
-      isSigner: false,
       isWritable: false,
     },
     eventAuthority: {
@@ -374,17 +244,6 @@ export async function getAllocateMarketFeesInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -396,36 +255,13 @@ export async function getAllocateMarketFeesInstructionAsync<
       { programAddress },
     );
   }
-  if (!accounts.vault.value) {
-    accounts.vault.value = await findVenueVaultPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.tokenProgram.value) {
-    accounts.tokenProgram.value =
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
-  }
 
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
-      getAccountMeta("btc", accounts.btc),
-      getAccountMeta("eth", accounts.eth),
-      getAccountMeta("btcLedger", accounts.btcLedger),
-      getAccountMeta("ethLedger", accounts.ethLedger),
-      getAccountMeta("vault", accounts.vault),
+      getAccountMeta("ledger", accounts.ledger),
       getAccountMeta("feeAuthority", accounts.feeAuthority),
-      getAccountMeta("quoteMint", accounts.quoteMint),
-      getAccountMeta("userToken", accounts.userToken),
-      getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
     ],
@@ -440,48 +276,16 @@ export async function getAllocateMarketFeesInstructionAsync<
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtc,
-      InstructionAccountInputAddress<TAccountBtc>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEth,
-      InstructionAccountInputAddress<TAccountEth>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountFeeAuthority,
       InstructionAccountInputAddress<TAccountFeeAuthority>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountQuoteMint,
-      InstructionAccountInputAddress<TAccountQuoteMint>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountUserToken,
-      InstructionAccountInputAddress<TAccountUserToken>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountTokenProgram,
-      InstructionAccountInputAddress<TAccountTokenProgram>
     >,
     ResolvedInstructionAccountMeta<
       TAccountEventAuthority,
@@ -496,34 +300,17 @@ export async function getAllocateMarketFeesInstructionAsync<
 
 export type AllocateMarketFeesInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEth extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountFeeAuthority extends InstructionSignerInput = InstructionSignerInput,
-  TAccountQuoteMint extends InstructionAccountInput = InstructionAccountInput,
-  TAccountUserToken extends InstructionAccountInput = InstructionAccountInput,
-  TAccountTokenProgram extends InstructionAccountInput =
-    InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
     InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
-  btc?: TAccountBtc;
-  eth?: TAccountEth;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
-  vault: TAccountVault;
+  ledger: TAccountLedger;
   feeAuthority: TAccountFeeAuthority;
-  quoteMint: TAccountQuoteMint;
-  userToken?: TAccountUserToken;
-  tokenProgram?: TAccountTokenProgram;
   eventAuthority: TAccountEventAuthority;
   program: TAccountProgram;
   marketIndex: AllocateMarketFeesInstructionDataArgs["marketIndex"];
@@ -532,34 +319,18 @@ export type AllocateMarketFeesInput<
 
 export function getAllocateMarketFeesInstruction<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
-  TAccountBtc extends InstructionAccountInput,
-  TAccountEth extends InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput,
   TAccountFeeAuthority extends InstructionSignerInput,
-  TAccountQuoteMint extends InstructionAccountInput,
-  TAccountUserToken extends InstructionAccountInput,
-  TAccountTokenProgram extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
   input: AllocateMarketFeesInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
-    TAccountBtc,
-    TAccountEth,
-    TAccountBtcLedger,
-    TAccountEthLedger,
-    TAccountVault,
+    TAccountLedger,
     TAccountFeeAuthority,
-    TAccountQuoteMint,
-    TAccountUserToken,
-    TAccountTokenProgram,
     TAccountEventAuthority,
     TAccountProgram
   >,
@@ -573,48 +344,16 @@ export function getAllocateMarketFeesInstruction<
     InstructionAccountInputAddress<TAccountVenue>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
-  >,
-  ResolvedInstructionAccountMeta<
     TAccountSafety,
     InstructionAccountInputAddress<TAccountSafety>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountBtc,
-    InstructionAccountInputAddress<TAccountBtc>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountEth,
-    InstructionAccountInputAddress<TAccountEth>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountBtcLedger,
-    InstructionAccountInputAddress<TAccountBtcLedger>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountEthLedger,
-    InstructionAccountInputAddress<TAccountEthLedger>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountVault,
-    InstructionAccountInputAddress<TAccountVault>
+    TAccountLedger,
+    InstructionAccountInputAddress<TAccountLedger>
   >,
   ResolvedInstructionAccountMeta<
     TAccountFeeAuthority,
     InstructionAccountInputAddress<TAccountFeeAuthority>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountQuoteMint,
-    InstructionAccountInputAddress<TAccountQuoteMint>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountUserToken,
-    InstructionAccountInputAddress<TAccountUserToken>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountTokenProgram,
-    InstructionAccountInputAddress<TAccountTokenProgram>
   >,
   ResolvedInstructionAccountMeta<
     TAccountEventAuthority,
@@ -639,43 +378,11 @@ export function getAllocateMarketFeesInstruction<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
-    btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
-    eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
-    btcLedger: {
-      value: input.btcLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    ethLedger: {
-      value: input.ethLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     feeAuthority: {
       value: input.feeAuthority ?? null,
       isSigner: true,
-      isWritable: false,
-    },
-    quoteMint: {
-      value: input.quoteMint ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    userToken: {
-      value: input.userToken ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    tokenProgram: {
-      value: input.tokenProgram ?? null,
-      isSigner: false,
       isWritable: false,
     },
     eventAuthority: {
@@ -697,26 +404,12 @@ export function getAllocateMarketFeesInstruction<
   // Original args.
   const args = { ...input };
 
-  // Resolve default values.
-  if (!accounts.tokenProgram.value) {
-    accounts.tokenProgram.value =
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
-  }
-
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
-      getAccountMeta("btc", accounts.btc),
-      getAccountMeta("eth", accounts.eth),
-      getAccountMeta("btcLedger", accounts.btcLedger),
-      getAccountMeta("ethLedger", accounts.ethLedger),
-      getAccountMeta("vault", accounts.vault),
+      getAccountMeta("ledger", accounts.ledger),
       getAccountMeta("feeAuthority", accounts.feeAuthority),
-      getAccountMeta("quoteMint", accounts.quoteMint),
-      getAccountMeta("userToken", accounts.userToken),
-      getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
     ],
@@ -731,48 +424,16 @@ export function getAllocateMarketFeesInstruction<
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtc,
-      InstructionAccountInputAddress<TAccountBtc>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEth,
-      InstructionAccountInputAddress<TAccountEth>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountFeeAuthority,
       InstructionAccountInputAddress<TAccountFeeAuthority>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountQuoteMint,
-      InstructionAccountInputAddress<TAccountQuoteMint>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountUserToken,
-      InstructionAccountInputAddress<TAccountUserToken>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountTokenProgram,
-      InstructionAccountInputAddress<TAccountTokenProgram>
     >,
     ResolvedInstructionAccountMeta<
       TAccountEventAuthority,
@@ -792,19 +453,11 @@ export type ParsedAllocateMarketFeesInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     venue: TAccountMetas[0];
-    custody: TAccountMetas[1];
-    safety: TAccountMetas[2];
-    btc?: TAccountMetas[3] | undefined;
-    eth?: TAccountMetas[4] | undefined;
-    btcLedger: TAccountMetas[5];
-    ethLedger: TAccountMetas[6];
-    vault: TAccountMetas[7];
-    feeAuthority: TAccountMetas[8];
-    quoteMint: TAccountMetas[9];
-    userToken?: TAccountMetas[10] | undefined;
-    tokenProgram: TAccountMetas[11];
-    eventAuthority: TAccountMetas[12];
-    program: TAccountMetas[13];
+    safety: TAccountMetas[1];
+    ledger: TAccountMetas[2];
+    feeAuthority: TAccountMetas[3];
+    eventAuthority: TAccountMetas[4];
+    program: TAccountMetas[5];
   };
   data: AllocateMarketFeesInstructionData;
 };
@@ -817,12 +470,12 @@ export function parseAllocateMarketFeesInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedAllocateMarketFeesInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 14) {
+  if (instruction.accounts.length < 6) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 14,
+        expectedAccountMetas: 6,
       },
     );
   }
@@ -832,27 +485,13 @@ export function parseAllocateMarketFeesInstruction<
     accountIndex += 1;
     return accountMeta;
   };
-  const getNextOptionalAccount = () => {
-    const accountMeta = getNextAccount();
-    return accountMeta.address === CLEARING_PROGRAM_ADDRESS
-      ? undefined
-      : accountMeta;
-  };
   return {
     programAddress: instruction.programAddress,
     accounts: {
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
-      btc: getNextOptionalAccount(),
-      eth: getNextOptionalAccount(),
-      btcLedger: getNextAccount(),
-      ethLedger: getNextAccount(),
-      vault: getNextAccount(),
+      ledger: getNextAccount(),
       feeAuthority: getNextAccount(),
-      quoteMint: getNextAccount(),
-      userToken: getNextOptionalAccount(),
-      tokenProgram: getNextAccount(),
       eventAuthority: getNextAccount(),
       program: getNextAccount(),
     },

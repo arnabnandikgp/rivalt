@@ -66,8 +66,7 @@ export type ClassifyMarketSurplusInstruction<
   TAccountVenue extends string | AccountMeta<string> = string,
   TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
-  TAccountBtcLedger extends string | AccountMeta<string> = string,
-  TAccountEthLedger extends string | AccountMeta<string> = string,
+  TAccountLedger extends string | AccountMeta<string> = string,
   TAccountVault extends string | AccountMeta<string> = string,
   TAccountEventAuthority extends string | AccountMeta<string> = string,
   TAccountProgram extends string | AccountMeta<string> = string,
@@ -89,12 +88,9 @@ export type ClassifyMarketSurplusInstruction<
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
-      TAccountBtcLedger extends string
-        ? WritableAccount<TAccountBtcLedger>
-        : TAccountBtcLedger,
-      TAccountEthLedger extends string
-        ? WritableAccount<TAccountEthLedger>
-        : TAccountEthLedger,
+      TAccountLedger extends string
+        ? WritableAccount<TAccountLedger>
+        : TAccountLedger,
       TAccountVault extends string
         ? ReadonlyAccount<TAccountVault>
         : TAccountVault,
@@ -157,8 +153,7 @@ export type ClassifyMarketSurplusAsyncInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
     InstructionAccountInput,
@@ -168,8 +163,7 @@ export type ClassifyMarketSurplusAsyncInput<
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
+  ledger: TAccountLedger;
   vault?: TAccountVault;
   eventAuthority: TAccountEventAuthority;
   program: TAccountProgram;
@@ -182,8 +176,7 @@ export async function getClassifyMarketSurplusInstructionAsync<
   TAccountVenue extends InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput,
   TAccountVault extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
@@ -194,8 +187,7 @@ export async function getClassifyMarketSurplusInstructionAsync<
     TAccountVenue,
     TAccountCustody,
     TAccountSafety,
-    TAccountBtcLedger,
-    TAccountEthLedger,
+    TAccountLedger,
     TAccountVault,
     TAccountEventAuthority,
     TAccountProgram
@@ -223,12 +215,8 @@ export async function getClassifyMarketSurplusInstructionAsync<
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountVault,
@@ -269,16 +257,7 @@ export async function getClassifyMarketSurplusInstructionAsync<
       isWritable: true,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
-    btcLedger: {
-      value: input.btcLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    ethLedger: {
-      value: input.ethLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     vault: { value: input.vault ?? null, isSigner: false, isWritable: false },
     eventAuthority: {
       value: input.eventAuthority ?? null,
@@ -340,8 +319,7 @@ export async function getClassifyMarketSurplusInstructionAsync<
       getAccountMeta("venue", accounts.venue),
       getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
-      getAccountMeta("btcLedger", accounts.btcLedger),
-      getAccountMeta("ethLedger", accounts.ethLedger),
+      getAccountMeta("ledger", accounts.ledger),
       getAccountMeta("vault", accounts.vault),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
@@ -369,12 +347,8 @@ export async function getClassifyMarketSurplusInstructionAsync<
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountVault,
@@ -397,8 +371,7 @@ export type ClassifyMarketSurplusInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
     InstructionAccountInput,
@@ -408,8 +381,7 @@ export type ClassifyMarketSurplusInput<
   venue: TAccountVenue;
   custody: TAccountCustody;
   safety: TAccountSafety;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
+  ledger: TAccountLedger;
   vault: TAccountVault;
   eventAuthority: TAccountEventAuthority;
   program: TAccountProgram;
@@ -422,8 +394,7 @@ export function getClassifyMarketSurplusInstruction<
   TAccountVenue extends InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput,
   TAccountVault extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
@@ -434,8 +405,7 @@ export function getClassifyMarketSurplusInstruction<
     TAccountVenue,
     TAccountCustody,
     TAccountSafety,
-    TAccountBtcLedger,
-    TAccountEthLedger,
+    TAccountLedger,
     TAccountVault,
     TAccountEventAuthority,
     TAccountProgram
@@ -462,12 +432,8 @@ export function getClassifyMarketSurplusInstruction<
     InstructionAccountInputAddress<TAccountSafety>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountBtcLedger,
-    InstructionAccountInputAddress<TAccountBtcLedger>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountEthLedger,
-    InstructionAccountInputAddress<TAccountEthLedger>
+    TAccountLedger,
+    InstructionAccountInputAddress<TAccountLedger>
   >,
   ResolvedInstructionAccountMeta<
     TAccountVault,
@@ -507,16 +473,7 @@ export function getClassifyMarketSurplusInstruction<
       isWritable: true,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
-    btcLedger: {
-      value: input.btcLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    ethLedger: {
-      value: input.ethLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     vault: { value: input.vault ?? null, isSigner: false, isWritable: false },
     eventAuthority: {
       value: input.eventAuthority ?? null,
@@ -543,8 +500,7 @@ export function getClassifyMarketSurplusInstruction<
       getAccountMeta("venue", accounts.venue),
       getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
-      getAccountMeta("btcLedger", accounts.btcLedger),
-      getAccountMeta("ethLedger", accounts.ethLedger),
+      getAccountMeta("ledger", accounts.ledger),
       getAccountMeta("vault", accounts.vault),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
@@ -572,12 +528,8 @@ export function getClassifyMarketSurplusInstruction<
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountVault,
@@ -604,11 +556,10 @@ export type ParsedClassifyMarketSurplusInstruction<
     venue: TAccountMetas[1];
     custody: TAccountMetas[2];
     safety: TAccountMetas[3];
-    btcLedger: TAccountMetas[4];
-    ethLedger: TAccountMetas[5];
-    vault: TAccountMetas[6];
-    eventAuthority: TAccountMetas[7];
-    program: TAccountMetas[8];
+    ledger: TAccountMetas[4];
+    vault: TAccountMetas[5];
+    eventAuthority: TAccountMetas[6];
+    program: TAccountMetas[7];
   };
   data: ClassifyMarketSurplusInstructionData;
 };
@@ -621,12 +572,12 @@ export function parseClassifyMarketSurplusInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClassifyMarketSurplusInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+  if (instruction.accounts.length < 8) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 8,
       },
     );
   }
@@ -643,8 +594,7 @@ export function parseClassifyMarketSurplusInstruction<
       venue: getNextAccount(),
       custody: getNextAccount(),
       safety: getNextAccount(),
-      btcLedger: getNextAccount(),
-      ethLedger: getNextAccount(),
+      ledger: getNextAccount(),
       vault: getNextAccount(),
       eventAuthority: getNextAccount(),
       program: getNextAccount(),

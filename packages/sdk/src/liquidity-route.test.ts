@@ -17,10 +17,11 @@ function fixture() {
   const snapshot = {
     commitment: 'confirmed', venue, markets, slot: 100n, now: 100n, contextSlot: 100n,
     custody: testAddress(72), safety: testAddress(73), vault: testAddress(74), ledgers: [testAddress(75), testAddress(76)],
-    venueState: { ...emptyState(protocol.getVenueDecoder()), schemaVersion: 6, profileVersion: 4,
+    venueState: { ...emptyState(protocol.getVenueDecoder()), schemaVersion: 7, profileVersion: 4,
       domain: financial.makers[0].snapshot.domain, markets, marketCount: 2, insuranceFeeShareBps: 2500, termsEpoch: 1n },
-    safetyState: { ...emptyState(protocol.getVenueSafetyDecoder()), schemaVersion: 6, venue, mode: 1, epoch: 1n },
-    marketStates: financial.markets, roots: { [trader]: financial.root },
+    safetyState: { ...emptyState(protocol.getVenueSafetyDecoder()), schemaVersion: 7, venue, mode: 1, epoch: 1n },
+    marketStates: financial.markets, roots: { [trader]: financial.root,
+      ...Object.fromEntries(financial.makers.map(maker => [maker.registrationState.capital, maker.capital])) },
     liquidity: { registry: testAddress(77), adapters: financial.makers },
   } as unknown as LiquidityRouteInput['snapshot'];
   return { financial, input: { snapshot, trader, marketIndex: 0, side: 0, lots: 1n, allInLimit: 20_000n, maxFee: 10n } as LiquidityRouteInput };

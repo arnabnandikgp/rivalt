@@ -84,7 +84,7 @@ export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venu
   for (const [instance,key] of registrations.entries()) {
     const state = decode(bytes(accounts,key,clearing.CLEARING_PROGRAM_ADDRESS),clearing.MAKER_REGISTRATION_DISCRIMINATOR,
       clearing.getMakerRegistrationDecoder());
-    requireValue(state.schemaVersion === 6 && state.venue === venue && state.market === market && state.instance === instance,
+    requireValue(state.schemaVersion === 7 && state.venue === venue && state.market === market && state.instance === instance,
       'Foreign liquidity discovery.');
     const [binding] = await getProgramDerivedAddress({ programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
       seeds: [new TextEncoder().encode('capital-v3'), KEY.encode(state.capital)] });
@@ -104,7 +104,7 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
   const [registryKey, registryBump] = await clearing.findLiquidityRegistryPda({ market: snapshot.market });
   const registry = decode(bytes(accounts,registryKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.LIQUIDITY_REGISTRY_DISCRIMINATOR,
     clearing.getLiquidityRegistryDecoder());
-  requireValue(registry.schemaVersion === 6 && registry.venue === snapshot.venue && registry.market === snapshot.market
+  requireValue(registry.schemaVersion === 7 && registry.venue === snapshot.venue && registry.market === snapshot.market
     && registry.bump === registryBump && registry.sealed && registry.count === LIQUIDITY_MAKER_COUNT,
     'Liquidity registry is not complete and sealed.');
   requireValue(new Set(registry.registrations).size === LIQUIDITY_MAKER_COUNT, 'Aliased maker registration.');
@@ -117,7 +117,7 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
       seeds: [new TextEncoder().encode('maker-v4'), KEY.encode(snapshot.market), Uint8Array.of(instance)] });
     const registration = decode(bytes(accounts,registrationKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.MAKER_REGISTRATION_DISCRIMINATOR,
       clearing.getMakerRegistrationDecoder());
-    requireValue(registrationKey === expectedRegistration && registration.bump === registrationBump && registration.schemaVersion === 6
+    requireValue(registrationKey === expectedRegistration && registration.bump === registrationBump && registration.schemaVersion === 7
       && registration.venue === snapshot.venue && registration.market === snapshot.market && registration.instance === instance
       && registration.authorityEpoch > 0n && registration.depthEpoch > 0n && registration.buyConsumed <= 4096n && registration.sellConsumed <= 4096n,
       'Invalid maker registration binding.');
@@ -125,7 +125,7 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
     const capital = decode(bytes(accounts,registration.capital,clearing.CLEARING_PROGRAM_ADDRESS), clearing.MARGIN_ACCOUNT_DISCRIMINATOR,
       clearing.getMarginAccountDecoder());
     const [capitalKey, capitalBump] = await deriveMarginAccount(capital.portfolio,capital.subaccountIndex);
-    requireValue(capitalKey === registration.capital && capital.bump === capitalBump && capital.schemaVersion === 6
+    requireValue(capitalKey === registration.capital && capital.bump === capitalBump && capital.schemaVersion === 7
       && capital.venue === snapshot.venue && capital.owner === registration.owner && capital.role === 1 && capital.mode === 1
       && capital.isolatedMarketIndex === snapshot.marketIndex && capital.subaccountIndex >= 1 && capital.subaccountIndex <= 8
       && capital.id < 64 && !seenRootIds.has(capital.id), 'Invalid isolated maker capital.');
@@ -137,7 +137,7 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
       seeds: [new TextEncoder().encode('capital-v3'), KEY.encode(registration.capital)] });
     const binding = decode(bytes(accounts,bindingKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.CAPITAL_BINDING_DISCRIMINATOR,
       clearing.getCapitalBindingDecoder());
-    requireValue(binding.schemaVersion === 6 && binding.venue === snapshot.venue && binding.capital === registration.capital
+    requireValue(binding.schemaVersion === 7 && binding.venue === snapshot.venue && binding.capital === registration.capital
       && binding.registration === registrationKey, 'Maker capital is not uniquely bound.');
     const program = registration.pricingProgram;
     requireValue(program === canonical.MAKER_A_PROGRAM_ADDRESS || program === MAKER_B_PROGRAM_ADDRESS, 'Unsupported maker program.');

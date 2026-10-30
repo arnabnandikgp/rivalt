@@ -30,10 +30,7 @@ pub struct Custody {
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
     pub venue: Pubkey,
-    pub total_cash: u64,
     pub allocated_vault: u64,
-    /// Only market-dependent economic mutations invalidate gain certificates.
-    pub liability_versions: [u64; MARKET_COUNT],
     pub bump: u8,
 }
 
@@ -168,6 +165,8 @@ pub struct MarketLedger {
     /// Modulo-four fee-count carry, never collateral or a participant claim.
     pub insurance_fee_remainder: u8,
     pub version: u64,
+    /// Economic mutations of roots owing to this market invalidate its backing proof.
+    pub liability_version: u64,
     pub bump: u8,
 }
 
@@ -192,7 +191,7 @@ pub struct SettlementCertificate {
     pub market_index: u8,
     pub safety_epoch: u64,
     pub membership_version: u64,
-    pub liability_versions: [u64; MARKET_COUNT],
+    pub liability_version: u64,
     pub observations: [u64; MARKET_COUNT],
     pub funding_bounds: [[i128; 2]; MARKET_COUNT],
     pub source_deadlines: [i64; MARKET_COUNT],

@@ -42,7 +42,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findCustodyPda, findVenueSafetyPda } from "../pdas/index.js";
+import { findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const INITIALIZE_MARKET_BACKING_DISCRIMINATOR: ReadonlyUint8Array =
@@ -58,7 +58,6 @@ export type InitializeMarketBackingInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountPayer extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountCertificate extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
@@ -77,9 +76,6 @@ export type InitializeMarketBackingInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? ReadonlyAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -141,7 +137,6 @@ export function getInitializeMarketBackingInstructionDataCodec(): FixedSizeCodec
 export type InitializeMarketBackingAsyncInput<
   TAccountPayer extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountCertificate extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
@@ -152,7 +147,6 @@ export type InitializeMarketBackingAsyncInput<
 > = {
   payer: TAccountPayer;
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   certificate: TAccountCertificate;
   systemProgram?: TAccountSystemProgram;
@@ -164,7 +158,6 @@ export type InitializeMarketBackingAsyncInput<
 export async function getInitializeMarketBackingInstructionAsync<
   TAccountPayer extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountCertificate extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
@@ -175,7 +168,6 @@ export async function getInitializeMarketBackingInstructionAsync<
   input: InitializeMarketBackingAsyncInput<
     TAccountPayer,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountCertificate,
     TAccountSystemProgram,
@@ -195,10 +187,6 @@ export async function getInitializeMarketBackingInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -237,11 +225,6 @@ export async function getInitializeMarketBackingInstructionAsync<
   const originalAccounts = {
     payer: { value: input.payer ?? null, isSigner: true, isWritable: true },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     certificate: {
       value: input.certificate ?? null,
@@ -273,17 +256,6 @@ export async function getInitializeMarketBackingInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -304,7 +276,6 @@ export async function getInitializeMarketBackingInstructionAsync<
     accounts: [
       getAccountMeta("payer", accounts.payer),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("certificate", accounts.certificate),
       getAccountMeta("systemProgram", accounts.systemProgram),
@@ -324,10 +295,6 @@ export async function getInitializeMarketBackingInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -355,7 +322,6 @@ export async function getInitializeMarketBackingInstructionAsync<
 export type InitializeMarketBackingInput<
   TAccountPayer extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountCertificate extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
@@ -366,7 +332,6 @@ export type InitializeMarketBackingInput<
 > = {
   payer: TAccountPayer;
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   certificate: TAccountCertificate;
   systemProgram?: TAccountSystemProgram;
@@ -378,7 +343,6 @@ export type InitializeMarketBackingInput<
 export function getInitializeMarketBackingInstruction<
   TAccountPayer extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountCertificate extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
@@ -389,7 +353,6 @@ export function getInitializeMarketBackingInstruction<
   input: InitializeMarketBackingInput<
     TAccountPayer,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountCertificate,
     TAccountSystemProgram,
@@ -408,10 +371,6 @@ export function getInitializeMarketBackingInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -449,11 +408,6 @@ export function getInitializeMarketBackingInstruction<
   const originalAccounts = {
     payer: { value: input.payer ?? null, isSigner: true, isWritable: true },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     certificate: {
       value: input.certificate ?? null,
@@ -494,7 +448,6 @@ export function getInitializeMarketBackingInstruction<
     accounts: [
       getAccountMeta("payer", accounts.payer),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("certificate", accounts.certificate),
       getAccountMeta("systemProgram", accounts.systemProgram),
@@ -514,10 +467,6 @@ export function getInitializeMarketBackingInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -550,12 +499,11 @@ export type ParsedInitializeMarketBackingInstruction<
   accounts: {
     payer: TAccountMetas[0];
     venue: TAccountMetas[1];
-    custody: TAccountMetas[2];
-    safety: TAccountMetas[3];
-    certificate: TAccountMetas[4];
-    systemProgram: TAccountMetas[5];
-    eventAuthority: TAccountMetas[6];
-    program: TAccountMetas[7];
+    safety: TAccountMetas[2];
+    certificate: TAccountMetas[3];
+    systemProgram: TAccountMetas[4];
+    eventAuthority: TAccountMetas[5];
+    program: TAccountMetas[6];
   };
   data: InitializeMarketBackingInstructionData;
 };
@@ -568,12 +516,12 @@ export function parseInitializeMarketBackingInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedInitializeMarketBackingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 8) {
+  if (instruction.accounts.length < 7) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 8,
+        expectedAccountMetas: 7,
       },
     );
   }
@@ -588,7 +536,6 @@ export function parseInitializeMarketBackingInstruction<
     accounts: {
       payer: getNextAccount(),
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       certificate: getNextAccount(),
       systemProgram: getNextAccount(),
