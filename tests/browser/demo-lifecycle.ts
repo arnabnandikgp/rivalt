@@ -19,7 +19,7 @@ const context=await browser.newContext({viewport:{width:1440,height:1000}}),page
 page.setDefaultTimeout(25000);page.on('pageerror',error=>errors.push(error.message));
 let decline=false;page.on('dialog',dialog=>{if(decline){decline=false;void dialog.dismiss();}else void dialog.accept();});
 const button=(name:string)=>page.getByRole('button',{name,exact:true});
-const receipts=()=>page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('rivalt:receipts:v3:')).flatMap(([,value])=>JSON.parse(value))) as Promise<sdk.SignedIntent[]>;
+const receipts=()=>page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('rivalt:receipts:v4:')).flatMap(([,value])=>JSON.parse(value))) as Promise<sdk.SignedIntent[]>;
 async function wait<Value>(read:()=>Promise<Value>,accept:(value:Value)=>boolean,label:string){
   for(let attempt=0;attempt<160;attempt++){const value=await read();if(accept(value))return value;await delay(200);}throw new Error(label);
 }
