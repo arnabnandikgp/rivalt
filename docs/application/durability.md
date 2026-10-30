@@ -281,6 +281,10 @@ blocks are checked against retained bytes without applying their effects again.
 `state.sequence` / the SQL event `sequence` column now mean a **local payload
 cursor** only; no such field is injected into canonical event data. Zero-payload
 storage transitions advance revisions without creating a financial payload.
+The footer serializes borrowed captured rows without allocating separate read/write
+vectors. Two-row default Apply likewise borrows its full root payload. Their bytes
+must match the owned IDL types exactly; this preserves the 32 KiB default heap and
+does not change revision, event ordering or financial validation rules.
 The public API labels this `asOf.cursor` and `cursorScope: local-payload-stream`,
 and exposes the finalized `blockhash`; it does not label a block hash a signature.
 Maker economics inputs use version 5 with `opening.cursor`, `closing.cursor` and

@@ -62,7 +62,7 @@ fn creation_and_noop_writer_advance_once_after_the_handler() {
             .finish(Pubkey::default(), [0; 32], [1; 8], 0, 42)
             .unwrap();
         assert_eq!(
-            event.writes,
+            owned(&event).writes,
             vec![ScopedWrite {
                 account: account.key(),
                 kind: 5,
@@ -146,8 +146,8 @@ fn remaining_root_preserves_manual_financial_write_then_advances_header() {
     let event = scope
         .finish(Pubkey::default(), [0; 32], [0; 8], 1, 42)
         .unwrap();
-    assert_eq!(event.writes[0].before, 11);
-    assert_eq!(event.writes[0].after, 12);
+    assert_eq!(owned(&event).writes[0].before, 11);
+    assert_eq!(owned(&event).writes[0].after, 12);
     let mut duplicate = Scope::new();
     duplicate.visit(key, 5, 5, 12, Access::Read).unwrap();
     assert!(duplicate
@@ -253,4 +253,39 @@ fn all_seventeen_account_headers_bind_kind_schema_revision_and_canonical_discrim
     check::<LiquidityRegistry>("LiquidityRegistry", 14, 181);
     check::<MakerRegistration>("MakerRegistration", 15, 341);
     check::<FundingPublisher>("FundingPublisher", 16, 148);
+}
+
+
+fn owned(view: &TransitionView<'_>) -> AccountTransition {
+    AccountTransition::deserialize(&mut bytes(view).as_slice()).unwrap()
+}
+
+#[test]
+fn borrowed_footer_matches_owned_vectors_at_all_supported_sizes() {
+    for count in 1..=MAX_ENTITIES {
+        let mut scope = Scope::new();
+        let mut reads = Vec::new();
+        let mut writes = Vec::new();
+        for index in 0..count {
+            let account = Pubkey::new_from_array([index as u8; 32]);
+            let kind = (index % 17) as u8;
+            let revision = index as u64 + 1;
+            let access = if index % 3 == 0 { Access::Write } else { Access::Read };
+            scope.visit(account, kind, SCHEMA_VERSION, revision, access).unwrap();
+            if access == Access::Read { reads.push(ScopedRead { account, kind, revision }); }
+            else { writes.push(ScopedWrite { account, kind, before: revision, after: revision + 1 }); }
+        }
+        scope.cursor = Some(count);
+        let venue = Pubkey::new_from_array([77; 32]);
+        let view = scope.finish(venue, [9; 32], [11; 8], 2, 42).unwrap();
+        let expected = AccountTransition { schema_version: SCHEMA_VERSION, venue,
+            domain: [9; 32], slot: 42, instruction: [11; 8], payload_count: 2, reads, writes };
+        assert_eq!(bytes(&view), bytes(&expected));
+    }
+}
+
+fn bytes(value: &impl AnchorSerialize) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    value.serialize(&mut bytes).unwrap();
+    bytes
 }

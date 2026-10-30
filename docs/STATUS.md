@@ -217,11 +217,21 @@ The preceding attempts exposed a negative-test error-code mismatch, then a real
 projection bug initializing retirement revision after zero-payload storage; both
 are fixed with retained failed evidence and a targeted regression.
 
-Remaining acceptance migrates the independent raw financial readers to schema 5,
-checks actual liquidation/default and same-slot transaction ordering, and verifies
-multichunk snapshot races. Default artifacts reject all three valid initialization
-attempts with full rollback. Broad unrelated/browser/endurance suites are omitted;
-P44 owns the fresh full integrated performance baseline. P40B is not yet Review.
+Clean verifier `a44b26b` passes the same-slot extension: 57 signed outcomes, two
+three-transaction same-slot batches recorded at distinct canonical block positions,
+51-event fresh PostgreSQL replay, and unchanged exact terminal cash. The independent
+custody run also passes 57 signed outcomes and eight deliberate raw-state corruption
+rejections. Seven targeted snapshot/API/economics tests, 17 affected SDK/conformance
+cases, typecheck, generated parity and all three compiled default gates pass.
+
+The affected liquidation/default run reaches the exact Apply plan but exposes a
+real 32 KiB heap exhaustion after two row payloads and before the scoped footer.
+It is not a CU or financial-admission failure. The candidate now borrows the
+resolution root snapshot and footer rows instead of allocating duplicate vectors;
+exact wire parity is checked before rebuilding. No heap/CU limit or financial rule
+is relaxed. Evidence is retained in `p40b-safety-a44b26b/`. Complete rebuilt safety
+and journal acceptance is still pending, so P40B is not yet Review. Broad unrelated,
+browser and endurance suites are omitted; P44 owns fresh full qualification.
 P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on
 `96790ef` / `f8984e0`. No external access blocker remains.
 

@@ -66,14 +66,10 @@ fn payload<T: AnchorSerialize>(event: &T, discriminator: &[u8]) -> Result<Vec<u8
     Ok(bytes)
 }
 
-/// Same program, event tag, discriminator, read-only authority signer and PDA
-/// seeds as Anchor 1.2.1's emit_cpi!. The payload moves into the CPI instruction.
-pub(crate) fn emit<T: Event>(event: &T, authority: AccountInfo) -> Result<()> {
-    emit_borrowed::<T, T>(event, authority)
-}
-
 /// Borrowed views avoid duplicating large fixed account snapshots on the SBF
 /// bump heap. The caller must prove exact serialization parity with the IDL event.
+/// Same program, tag, readonly authority signer and seeds as emit_cpi!; the
+/// bounded payload moves directly into the CPI instruction.
 pub(crate) fn emit_borrowed<T: Event, S: AnchorSerialize>(
     event: &S,
     authority: AccountInfo,

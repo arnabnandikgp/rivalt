@@ -296,6 +296,26 @@ pub fn advance(
     )
 }
 
+/// Wire-identical borrowed payload: the SBF bump allocator cannot reclaim a
+/// boxed full root snapshot between the two supported Apply rows.
+#[derive(AnchorSerialize)]
+struct AppliedView<'a> {
+    venue: Pubkey,
+    slot: u64,
+    epoch: u64,
+    id: u16,
+    member: Pubkey,
+    flows: [u64; 2],
+    cash_before: u64,
+    cash_after: u64,
+    remaining_cash: u64,
+    applied_cash: u64,
+    remaining_lots: [i128; 2],
+    remaining_gross: [u64; 2],
+    remaining_claims: [i128; 2],
+    state: &'a MarginAccount,
+}
+
 #[inline(never)]
 fn emit_applied(
     identity: &ResolutionIdentity,
@@ -307,7 +327,7 @@ fn emit_applied(
     events: &mut crate::event_cpi::Payloads,
     authority: AccountInfo,
 ) -> Result<()> {
-    let event = Box::new(crate::events::AccountResolutionApplied {
+    let event = AppliedView {
         venue: identity.venue.key(),
 
         slot: clock.slot,
@@ -322,9 +342,32 @@ fn emit_applied(
         remaining_lots: header.remaining_lots,
         remaining_gross: header.remaining_gross,
         remaining_claims: header.remaining_claims,
-        state: crate::events::MarginAccountSnapshot::from(root),
-    });
-    events.emit(&*event, authority)
+        state: root,
+    };
+    events.emit_borrowed::<crate::events::AccountResolutionApplied, _>(&event, authority)
+}
+
+#[cfg(test)]
+#[test]
+fn borrowed_applied_event_matches_owned_payload() {
+    let root = MarginAccount { schema_version: SCHEMA_VERSION, revision: 19,
+        cash: 37, ..Default::default() };
+    let view = AppliedView { venue: Pubkey::new_unique(), slot: 3, epoch: 7, id: 5,
+        member: Pubkey::new_unique(), flows: [11, 13], cash_before: 43, cash_after: 37,
+        remaining_cash: 101, applied_cash: 71, remaining_lots: [-2, 3],
+        remaining_gross: [4, 5], remaining_claims: [-7, 8], state: &root };
+    let owned = crate::events::AccountResolutionApplied { venue: view.venue,
+        slot: view.slot, epoch: view.epoch, id: view.id, member: view.member,
+        flows: view.flows, cash_before: view.cash_before, cash_after: view.cash_after,
+        remaining_cash: view.remaining_cash, applied_cash: view.applied_cash,
+        remaining_lots: view.remaining_lots, remaining_gross: view.remaining_gross,
+        remaining_claims: view.remaining_claims,
+        state: crate::events::MarginAccountSnapshot::from(&root) };
+    let mut actual = Vec::new();
+    let mut expected = Vec::new();
+    view.serialize(&mut actual).unwrap();
+    owned.serialize(&mut expected).unwrap();
+    assert_eq!(actual, expected);
 }
 
 fn emit_complete(

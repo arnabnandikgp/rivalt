@@ -180,55 +180,60 @@ impl Scope {
     }
 
     fn finish(
-        self,
+        &self,
         venue: Pubkey,
         domain: [u8; 32],
         instruction: [u8; 8],
         payload_count: u16,
         slot: u64,
-    ) -> Result<AccountTransition> {
+    ) -> Result<TransitionView<'_>> {
         require!(
             self.cursor == Some(self.entries.len()) && payload_count <= 4,
             ClearingError::Profile
         );
-        let write_count = self
-            .entries
-            .iter()
-            .filter(|entry| entry.access != Access::Read)
-            .count();
-        require!(write_count > 0, ClearingError::Profile);
-        let mut reads = Vec::with_capacity(self.entries.len() - write_count);
-        let mut writes = Vec::with_capacity(write_count);
-        for entry in self.entries {
-            if entry.access == Access::Read {
-                reads.push(ScopedRead {
-                    account: entry.account,
-                    kind: entry.kind,
-                    revision: entry.revision,
-                });
-            } else {
-                writes.push(ScopedWrite {
-                    account: entry.account,
-                    kind: entry.kind,
-                    before: entry.revision,
-                    after: entry
-                        .revision
-                        .checked_add(1)
-                        .ok_or(ClearingError::Arithmetic)?,
-                });
-            }
-        }
-        Ok(AccountTransition {
+        require!(self.entries.iter().any(|entry| entry.access != Access::Read), ClearingError::Profile);
+        Ok(TransitionView {
             schema_version: SCHEMA_VERSION,
-            venue,
-            domain,
-            slot,
-            instruction,
-            payload_count,
-            reads,
-            writes,
+            venue, domain, slot, instruction, payload_count,
+            reads: ScopedRows { entries: &self.entries, writes: false },
+            writes: ScopedRows { entries: &self.entries, writes: true },
         })
     }
+}
+
+/// Serialize the frozen rows directly. Allocating two new vectors here consumes
+/// unreclaimable SBF heap after the handler's financial payloads have been emitted.
+struct ScopedRows<'a> {
+    entries: &'a [Entry],
+    writes: bool,
+}
+impl AnchorSerialize for ScopedRows<'_> {
+    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        let included = |entry: &&Entry| (entry.access != Access::Read) == self.writes;
+        let count = self.entries.iter().filter(included).count() as u32;
+        count.serialize(writer)?;
+        for entry in self.entries.iter().filter(included) {
+            entry.account.serialize(writer)?;
+            entry.kind.serialize(writer)?;
+            entry.revision.serialize(writer)?;
+            if self.writes {
+                entry.revision.checked_add(1).ok_or_else(|| std::io::Error::new(
+                    std::io::ErrorKind::InvalidData, "scoped revision exhausted"))?.serialize(writer)?;
+            }
+        }
+        Ok(())
+    }
+}
+#[derive(AnchorSerialize)]
+struct TransitionView<'a> {
+    schema_version: u16,
+    venue: Pubkey,
+    domain: [u8; 32],
+    slot: u64,
+    instruction: [u8; 8],
+    payload_count: u16,
+    reads: ScopedRows<'a>,
+    writes: ScopedRows<'a>,
 }
 
 /// Implementations live beside the context coverage table. Visits are identical
@@ -262,7 +267,7 @@ pub(crate) fn run<'context, 'info, T: ScopedContext<'info>>(
         payloads.count(),
         Clock::get()?.slot,
     )?;
-    event_cpi::emit(&event, context.accounts.event_authority())
+    event_cpi::emit_borrowed::<AccountTransition, _>(&event, context.accounts.event_authority())
 }
 
 #[cfg(test)]
