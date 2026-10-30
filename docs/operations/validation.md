@@ -33,6 +33,17 @@ failed/omitted attempts and why checks were skipped. Do not relabel simulation a
 landing or a historical capture as a fresh run. Scoped hosted CI supplements these
 checks; current workflow selection lives in `ops/ci-scope.py`.
 
+## Performance redesign checkpoint
+
+P39's [focused baseline](performance.md#current-results) uses clean harness
+`0ac6511` and unchanged hash-verified SBF `828fe543` on actual Surfpool RPC/WS.
+Twelve measured signed outcomes include one expected stale-account rejection;
+all actual receipts/wires agree. Eight-root cash/claims, 83 fee atoms and the
+25% insurance carry reconcile independently. The complete static inventory covers
+61 entrypoints; only the named twelve cases have new CU measurements. Separate
+payer versus protocol locks are recorded. No PostgreSQL, throughput, full
+instruction-profile or Anchor v2 claim follows from this focused audit.
+
 ## Qualified baseline and provenance
 
 | Scope | Actual tested pin(s) | Evidence boundary |

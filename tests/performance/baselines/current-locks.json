@@ -1,0 +1,1466 @@
+{
+  "schema": 1,
+  "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
+  "idlHashes": {
+    "clearing": "651cc29ad7038d614f83b572932b349bb9d8a4c4c739593233518f189f81d31c",
+    "maker_a": "a410248febd8332bdcb7842ddbdda33ef8cba9e0a0f31dc3a0a06c14195077ce",
+    "maker_b": "6cc466d349027ed6a89571d172e0779dd15eed576f2c5844103ebda8653a8ea3"
+  },
+  "instructions": [
+    {
+      "program": "clearing",
+      "name": "activate_liquidity",
+      "write": [
+        "qualification.custody",
+        "qualification.safety",
+        "qualification.btc",
+        "qualification.eth"
+      ],
+      "read": [
+        "qualification.authority",
+        "qualification.venue",
+        "qualification.btc_ledger",
+        "qualification.eth_ledger",
+        "qualification.vault",
+        "qualification.event_authority",
+        "qualification.program",
+        "resolution"
+      ],
+      "signers": [
+        "qualification.authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "advance_account_resolution",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution",
+        "work",
+        "page"
+      ],
+      "read": [
+        "identity.vault",
+        "registry",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "allocate_market_fees",
+      "write": [
+        "identity.custody",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "identity.vault",
+        "user_token"
+      ],
+      "read": [
+        "identity.venue",
+        "identity.safety",
+        "fee_authority",
+        "quote_mint",
+        "token_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "fee_authority"
+      ],
+      "optional": [
+        "user_token"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "approve_liquidity",
+      "write": [
+        "custody",
+        "market",
+        "registration",
+        "config"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "capital",
+        "price",
+        "pricing_program",
+        "program_data",
+        "controller",
+        "maker_event_authority",
+        "co_signer",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor",
+        "co_signer"
+      ],
+      "optional": [
+        "co_signer"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "check_account_resolution_order",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution",
+        "work",
+        "page"
+      ],
+      "read": [
+        "identity.vault",
+        "registry",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "check_account_retirement",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "certificate"
+      ],
+      "read": [
+        "identity.vault",
+        "registry",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "check_market_backing",
+      "write": [
+        "custody",
+        "certificate"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "registry",
+        "btc",
+        "eth",
+        "ledger",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "classify_market_surplus",
+      "write": [
+        "custody",
+        "btc_ledger",
+        "eth_ledger"
+      ],
+      "read": [
+        "reserve_authority",
+        "venue",
+        "safety",
+        "vault",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "reserve_authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "collect_account_loss",
+      "write": [
+        "identity.custody",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "identity.vault",
+        "margin"
+      ],
+      "read": [
+        "identity.venue",
+        "identity.safety",
+        "actor",
+        "registry",
+        "certificate",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": [
+        "certificate"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "configure_funding_publisher",
+      "write": [
+        "custody",
+        "market",
+        "configuration"
+      ],
+      "read": [
+        "authority",
+        "venue",
+        "safety",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "control_liquidity",
+      "write": [
+        "custody",
+        "market",
+        "registration",
+        "config"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "capital",
+        "price",
+        "pricing_program",
+        "program_data",
+        "controller",
+        "maker_event_authority",
+        "co_signer",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor",
+        "co_signer"
+      ],
+      "optional": [
+        "co_signer"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "create_portfolio",
+      "write": [
+        "owner",
+        "custody",
+        "portfolio"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "deposit_account",
+      "write": [
+        "custody",
+        "margin",
+        "vault",
+        "user_token"
+      ],
+      "read": [
+        "owner",
+        "venue",
+        "safety",
+        "btc_ledger",
+        "eth_ledger",
+        "quote_mint",
+        "token_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "execute_liquidity_order",
+      "write": [
+        "identity.custody",
+        "identity.market",
+        "identity.other_market",
+        "identity.ledger",
+        "identity.trader",
+        "first_capital",
+        "first_registration",
+        "second_capital",
+        "second_registration"
+      ],
+      "read": [
+        "identity.actor",
+        "identity.venue",
+        "identity.safety",
+        "identity.other_ledger",
+        "identity.vault",
+        "registry",
+        "first_program",
+        "first_program_data",
+        "first_config",
+        "first_price",
+        "second_program",
+        "second_program_data",
+        "second_config",
+        "second_price",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "identity.actor"
+      ],
+      "optional": [
+        "second_capital",
+        "second_registration",
+        "second_program",
+        "second_program_data",
+        "second_config",
+        "second_price"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "execute_liquidity_route",
+      "write": [
+        "identity.custody",
+        "identity.market",
+        "identity.other_market",
+        "identity.ledger",
+        "identity.trader",
+        "first_capital",
+        "first_registration",
+        "second_capital",
+        "second_registration"
+      ],
+      "read": [
+        "identity.actor",
+        "identity.venue",
+        "identity.safety",
+        "identity.other_ledger",
+        "identity.vault",
+        "registry",
+        "first_program",
+        "first_program_data",
+        "first_config",
+        "first_price",
+        "second_program",
+        "second_program_data",
+        "second_config",
+        "second_price",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "identity.actor"
+      ],
+      "optional": [
+        "second_capital",
+        "second_registration",
+        "second_program",
+        "second_program_data",
+        "second_config",
+        "second_price"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "finalize_account_resolution_rates",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution",
+        "work"
+      ],
+      "read": [
+        "identity.vault",
+        "registry",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "freeze_accounts",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution",
+        "work"
+      ],
+      "read": [
+        "identity.vault",
+        "caller",
+        "registry",
+        "target",
+        "sources.primary_btc",
+        "sources.primary_collateral",
+        "sources.guard_btc",
+        "sources.guard_collateral",
+        "sources.primary_eth",
+        "sources.guard_eth",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "caller"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_account_resolution",
+      "write": [
+        "payer",
+        "resolution",
+        "work"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_account_resolution_page",
+      "write": [
+        "payer",
+        "resolution",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_account_retirement",
+      "write": [
+        "payer",
+        "certificate"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_funding_publisher",
+      "write": [
+        "authority",
+        "custody",
+        "market",
+        "configuration"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "registry",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_liquidity",
+      "write": [
+        "authority",
+        "custody",
+        "registry"
+      ],
+      "read": [
+        "venue",
+        "market",
+        "safety",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_liquidity_oracle",
+      "write": [
+        "custody",
+        "market"
+      ],
+      "read": [
+        "authority",
+        "venue",
+        "safety",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_liquidity_venue",
+      "write": [
+        "authority",
+        "venue",
+        "custody",
+        "safety",
+        "vault"
+      ],
+      "read": [
+        "clearing_program",
+        "program_data",
+        "quote_mint",
+        "token_program",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_market",
+      "write": [
+        "authority",
+        "venue",
+        "custody",
+        "market",
+        "ledger"
+      ],
+      "read": [
+        "safety",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_market_backing",
+      "write": [
+        "payer",
+        "custody",
+        "certificate"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_venue_registry",
+      "write": [
+        "authority",
+        "custody",
+        "registry"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "liquidate_account",
+      "write": [
+        "identity.custody",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "identity.vault",
+        "target",
+        "receiver"
+      ],
+      "read": [
+        "identity.venue",
+        "identity.safety",
+        "receiver_owner",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "receiver_owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "manage_account_order",
+      "write": [
+        "custody",
+        "btc",
+        "eth",
+        "margin"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "net_account_claims",
+      "write": [
+        "identity.custody",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "identity.vault",
+        "margin"
+      ],
+      "read": [
+        "identity.venue",
+        "identity.safety",
+        "owner",
+        "registry",
+        "certificate",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "order_account_resolution",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution",
+        "work"
+      ],
+      "read": [
+        "identity.vault",
+        "registry",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "pause_venue",
+      "write": [
+        "custody",
+        "safety"
+      ],
+      "read": [
+        "authority",
+        "venue",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "pay_account_gain",
+      "write": [
+        "identity.custody",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "identity.vault",
+        "margin"
+      ],
+      "read": [
+        "identity.venue",
+        "identity.safety",
+        "actor",
+        "registry",
+        "certificate",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": [
+        "certificate"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "propose_account_resolution",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution",
+        "work"
+      ],
+      "read": [
+        "identity.vault",
+        "registry",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "publish_funding_report",
+      "write": [
+        "custody",
+        "market",
+        "configuration"
+      ],
+      "read": [
+        "publisher",
+        "venue",
+        "safety",
+        "primary_asset",
+        "primary_collateral",
+        "guard_asset",
+        "guard_collateral",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "publisher"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "quarantine_liquidity",
+      "write": [
+        "custody",
+        "market",
+        "registration"
+      ],
+      "read": [
+        "authority",
+        "venue",
+        "safety",
+        "capital",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "reactivate_accounts",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution"
+      ],
+      "read": [
+        "identity.vault",
+        "caller",
+        "registry",
+        "sources.primary_btc",
+        "sources.primary_collateral",
+        "sources.guard_btc",
+        "sources.guard_collateral",
+        "sources.primary_eth",
+        "sources.guard_eth",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "caller"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "recover_accounts",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution"
+      ],
+      "read": [
+        "identity.vault",
+        "caller",
+        "registry",
+        "sources.primary_btc",
+        "sources.primary_collateral",
+        "sources.guard_btc",
+        "sources.guard_collateral",
+        "sources.primary_eth",
+        "sources.guard_eth",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "caller"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "register_liquidity",
+      "write": [
+        "owner",
+        "custody",
+        "registry",
+        "registration",
+        "capital_binding"
+      ],
+      "read": [
+        "authority",
+        "venue",
+        "safety",
+        "market",
+        "capital",
+        "config",
+        "price",
+        "pricing_program",
+        "program_data",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner",
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "register_margin",
+      "write": [
+        "owner",
+        "custody",
+        "registry",
+        "portfolio",
+        "margin"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "replenish_liquidity",
+      "write": [
+        "custody",
+        "market",
+        "registration",
+        "config"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "capital",
+        "price",
+        "pricing_program",
+        "program_data",
+        "controller",
+        "maker_event_authority",
+        "co_signer",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor",
+        "co_signer"
+      ],
+      "optional": [
+        "co_signer"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "retire_accounts",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution"
+      ],
+      "read": [
+        "identity.vault",
+        "authority",
+        "registry",
+        "certificate",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": [
+        "certificate",
+        "resolution"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "round_account_resolution",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution",
+        "work"
+      ],
+      "read": [
+        "identity.vault",
+        "registry",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "seal_liquidity",
+      "write": [
+        "custody",
+        "registry"
+      ],
+      "read": [
+        "authority",
+        "venue",
+        "market",
+        "safety",
+        "first",
+        "second",
+        "third",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "seed_market_insurance",
+      "write": [
+        "custody",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "donor_token"
+      ],
+      "read": [
+        "reserve_authority",
+        "donor",
+        "venue",
+        "safety",
+        "quote_mint",
+        "token_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "reserve_authority",
+        "donor"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "set_account_delegate",
+      "write": [
+        "custody",
+        "margin"
+      ],
+      "read": [
+        "owner",
+        "venue",
+        "safety",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "transfer_account_custody",
+      "write": [
+        "custody",
+        "donor",
+        "recipient"
+      ],
+      "read": [
+        "owner",
+        "venue",
+        "safety",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "transfer_funded_account",
+      "write": [
+        "identity.custody",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "identity.vault",
+        "donor",
+        "recipient"
+      ],
+      "read": [
+        "identity.venue",
+        "identity.safety",
+        "owner",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "value_account_resolution",
+      "write": [
+        "identity.venue",
+        "identity.custody",
+        "identity.safety",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "resolution"
+      ],
+      "read": [
+        "identity.vault",
+        "registry",
+        "sources.primary_btc",
+        "sources.primary_collateral",
+        "sources.guard_btc",
+        "sources.guard_collateral",
+        "sources.primary_eth",
+        "sources.guard_eth",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "withdraw_account_custody",
+      "write": [
+        "custody",
+        "margin",
+        "vault",
+        "user_token"
+      ],
+      "read": [
+        "owner",
+        "venue",
+        "safety",
+        "btc_ledger",
+        "eth_ledger",
+        "quote_mint",
+        "token_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "withdraw_funded_account",
+      "write": [
+        "identity.custody",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "identity.vault",
+        "margin",
+        "user_token"
+      ],
+      "read": [
+        "identity.venue",
+        "identity.safety",
+        "owner",
+        "quote_mint",
+        "token_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "withdraw_market_fees",
+      "write": [
+        "identity.custody",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "identity.vault",
+        "user_token"
+      ],
+      "read": [
+        "identity.venue",
+        "identity.safety",
+        "fee_authority",
+        "quote_mint",
+        "token_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "fee_authority"
+      ],
+      "optional": [
+        "user_token"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "withdraw_retired_reserve",
+      "write": [
+        "identity.custody",
+        "identity.btc",
+        "identity.eth",
+        "identity.btc_ledger",
+        "identity.eth_ledger",
+        "identity.vault",
+        "destination"
+      ],
+      "read": [
+        "identity.venue",
+        "identity.safety",
+        "reserve_authority",
+        "quote_mint",
+        "token_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "reserve_authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "maker_a",
+      "name": "control_curve",
+      "write": [
+        "config"
+      ],
+      "read": [
+        "controller",
+        "price",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "controller"
+      ],
+      "optional": []
+    },
+    {
+      "program": "maker_a",
+      "name": "initialize_curve",
+      "write": [
+        "owner",
+        "config",
+        "price"
+      ],
+      "read": [
+        "venue",
+        "market",
+        "capital",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "maker_a",
+      "name": "quote_curve",
+      "write": [],
+      "read": [
+        "config",
+        "price"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "maker_a",
+      "name": "reprice",
+      "write": [
+        "price"
+      ],
+      "read": [
+        "actor",
+        "config",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": []
+    },
+    {
+      "program": "maker_b",
+      "name": "control_curve",
+      "write": [
+        "config"
+      ],
+      "read": [
+        "controller",
+        "price",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "controller"
+      ],
+      "optional": []
+    },
+    {
+      "program": "maker_b",
+      "name": "initialize_curve",
+      "write": [
+        "owner",
+        "config",
+        "price"
+      ],
+      "read": [
+        "venue",
+        "market",
+        "capital",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "maker_b",
+      "name": "quote_curve",
+      "write": [],
+      "read": [
+        "config",
+        "price"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "maker_b",
+      "name": "reprice",
+      "write": [
+        "price"
+      ],
+      "read": [
+        "actor",
+        "config",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": []
+    }
+  ]
+}

@@ -13,6 +13,13 @@ the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
+| P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
+| P40 scoped events/services | Planned | Verified P39 parent; atomic per-entity event reconstruction, PG replay and independent execution |
+| P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
+| P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
+| P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
+| P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
 | P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
 | P36 canonical names/ABI | Closed | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51) merged; canonical API names, preserved wire contract and passing CI |
@@ -23,7 +30,8 @@ the integration and preceding baselines.
 | Continuous 24-hour endurance | Deferred | No run scheduled or completion claimed |
 
 Review means accepted work awaiting integration; Closed requires acceptance plus
-integration. The user authorized this stack's merge on 30 October 2026.
+integration. The user authorized the consolidation stack's merge on 30 October 2026; the new
+P39–P44 stack remains open for review.
 
 ## Consolidation checkpoint
 
@@ -99,9 +107,41 @@ local `main` fast-forwarded without touching unrelated research or local evidenc
 Only documentation/whitespace/evidence checks apply to this closeout. No financial,
 RPC/WS/PostgreSQL, browser, load or endurance suite is rerun for merge metadata.
 
-Next exact action: select the next product/engineering objective with the user.
-No further implementation phase, external activity or endurance run is authorized
-by this closeout.
+## Performance checkpoint
+
+The user authorized P39–P44 under D82. P39 is on `performance/p39-contract`, based
+on `4f84f2b`; no runtime layout or program binary changed. Clean harness `0ac6511`
+passes the focused signed probe against hash-verified SBF `828fe543`: 117 setup
+outcomes and 12 measured scenarios, including one expected stale-account rejection.
+Every outcome is fetched over RPC with WS confirmation and original-wire equality.
+Independent cash/claim/fee/insurance checks reconcile all eight roots. Isolated
+legacy Anchor conformance checks 207 instruction encodings and 185 event decodes.
+See [measurements](operations/performance.md#current-results) and the bounded
+[baseline](../tests/performance/baselines/p39-before-redesign.json) for exact values,
+binary pins, conflict comparisons and limitations. Raw receipts remain at
+`.local/liquidity-execution/runs/p39-baseline-0ac6511/`; owned ports are released.
+
+The complete static access inventory covers 61 deployed entrypoints, 50 clearing
+custody writers. Six scoped lock-model tests, typecheck, inventory and evidence
+policy pass. The receipt summarizer verifies twelve retained transactions and seven
+access comparisons. Offline dependency installation initially failed due to missing
+cache tarballs; pinned normal installation succeeded without dependency upgrades.
+No SBF rebuild, broad financial suite or PostgreSQL run is warranted for these
+harness/docs changes. No full CU coverage, scheduler throughput, endurance or
+migration result is claimed. P40/P44 must supply their own integrated acceptance.
+
+Disk has about 790 MiB free; preserve research, keys, databases and evidence.
+P40's eventual SBF rebuild may need additional space; this is not a current P39
+blocker. No external access/product decision is pending.
+
+P39 review clarifies that compiled-message coverage applies to the focused scenarios,
+while the 61-entrypoint inventory is static. No metric or runtime changes.
+
+P39 is published ready for review as [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55).
+Measured harness is `0ac6511`; verified summary/acceptance content is `b810b13`.
+
+Next exact action: stack P40's scoped event/indexer and bounded execution work on
+P39's accepted exact parent; keep the stack open.
 
 ## Deployment and operational limits
 

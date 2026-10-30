@@ -84,3 +84,24 @@ pause/unpause path for profile 4; the preceding helper admitted only profile 3.
 Venue authority, reconciled custody and safety-epoch invalidation remain required.
 Fresh regression coverage must prove foreign-authority rejection, paused trading
 rejection and invalidation of pre-pause signed routes before runtime acceptance.
+
+## D82 — authorized contention redesign and pre-migration performance baseline
+
+On 30 October 2026 the user authorized P39–P44 in the
+[performance contract](operations/performance.md): complete dependency audit,
+account/transaction redesign, targeted CU optimization and fresh full profiling
+before considering Anchor v2. This supersedes treating current shared coordination
+as a fixed implementation boundary, not the financial safety/economic rules.
+
+P39 records targets and transitions; no runtime layout or wire identity changes
+merely because the plan is approved. Financial successor changes use a fresh local
+domain with explicit schemas and frozen migration dispositions. Every implementation
+updates its owning component contract. Keep exact fees/carry, loss ownership,
+funded-cash rights, causal funding, risk/source checks and complete default.
+Selected-market fee/exposure ordering remains a measured residual unless a safe
+exact replacement is proved; no asynchronous risk or reserve approximation.
+
+Keep concise bounded metric fixtures and reproducible harnesses in source, raw
+receipts/traces local and ignored. P44 freezes the pre-v2 comparison revision;
+framework migration is separate. Ready PRs are stacked and remain open. P15B/P16B,
+deferred endurance and authorization requirements for external/funded work persist.

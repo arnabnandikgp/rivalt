@@ -196,6 +196,18 @@ importers:
         specifier: 1.64.1
         version: 1.64.1
 
+  tests/performance:
+    dependencies:
+      '@rivalt/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@solana/kit':
+        specifier: 8.5.0
+        version: 8.5.0(typescript@5.9.3)
+      '@solana/web3.js':
+        specifier: 3.1.1
+        version: 3.1.1(typescript@5.9.3)
+
   tests/rpc-contract:
     dependencies:
       '@rivalt/sdk':
