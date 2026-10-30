@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {setTimeout as delay} from 'node:timers/promises';
 import {AccountRole,type Address,type Instruction} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {LiquidityIndexer} from '../../packages/indexer/src/liquidity-indexer.js';
@@ -78,6 +79,58 @@ try {
   assert.deepEqual(await root(cross),claimRoot);
   await h.send('P41 complete claim-aware funded withdrawal',[claimWithdrawal],[owner]);
   assert.equal((await root(cross)).cash,999_971n);
+  const portfolio=(await root(cross)).portfolio;
+  const [ethOnly]=await sdk.deriveMarginAccount(portfolio,2);
+  await h.send('P41 register isolated ETH root',[await sdk.getRegisterMarginInstructionAsync({...setup.common,owner,portfolio,
+    margin:ethOnly,subaccountIndex:2,mode:1,isolatedMarketIndex:1,role:0})],[owner]);
+  await h.send('P41 fund isolated ETH internally',[sdk.getTransferFundedAccountInstruction({...financial,donor:cross,recipient:ethOnly,
+    btc:setup.markets[0],eth:setup.markets[1],guard:await guard(cross),amount:100_000n})],[owner]);
+  await setup.sample();
+  await sendIsolated('P41 isolated ETH fill',await route(ethOnly,1),[setup.markets[0]]);
+  assert.equal((await root(ethOnly)).cash,99_993n);
+
+  // A negative attested premium is derived from real maker reprices. The source
+  // index stays independent; no clearing financial state or Clock is injected.
+  await setup.waitUntil((await setup.marketState(0)).oracle.sampledAt+2n);
+  await setup.freshSources();
+  const reprices=await Promise.all(setup.instances.slice(0,3).map(async maker=>{
+    const shape=await maker.state(),price=maker.module.getMakerPriceDecoder().decode((await h.read(maker.price))!).state;
+    return maker.module.getRepriceInstruction({...maker.makerCommon,actor:setup.updater,
+      expectedControl:shape.controlEpoch,expectedSequence:price.sequence,anchor:59_990n});
+  }));
+  await h.send('P41 negative-premium maker publications',reprices,[setup.updater]);
+  const report=await sdk.readFundingReport(rpc,setup.venue,0);assert.equal(report.report.outcome,0);
+  await h.send('P41 publish negative premium',[sdk.getPublishFundingReportInstruction({...setup.common,
+    ...report.instructionAccounts,publisher:setup.updater,report:report.report})],[setup.updater]);
+  const observation=(await setup.marketState(0)).oracle;assert(observation.premiumScaled<0n);
+  await setup.waitUntil(observation.sampledAt+2n);
+  const beforeFunding=await root(btcOnly);
+  await sendIsolated('P41 persist negative consumed funding',sdk.getWithdrawFundedAccountInstruction({...financial,margin:btcOnly,
+    btc:setup.markets[0],guard:await guard(btcOnly),amount:1n}),[setup.markets[1]]);
+  const consumed=await setup.marketState(0),afterFunding=await root(btcOnly);
+  const expectedFunding=observation.fundingBase+observation.premiumScaled*(consumed.fundingTime-observation.sampledAt)/3_600n;
+  assert.equal(consumed.fundingIndexScaled,expectedFunding);
+  assert.equal(afterFunding.positions[0].fundingCheckpointScaled,expectedFunding);
+  assert.equal(afterFunding.positions[0].virtualScaled,beforeFunding.positions[0].virtualScaled
+    -beforeFunding.positions[0].lots*(expectedFunding-beforeFunding.positions[0].fundingCheckpointScaled));
+  assert.equal(afterFunding.cash,beforeFunding.cash-1n);
+  const protectionSlot=await setup.slot(),generation=afterFunding.positions[0].generation;
+  const terms={side:1,lots:1n,limit:54_000n,feeBudget:100n,startSlot:protectionSlot,expirySlot:protectionSlot+300n,
+    reduceOnly:true,generation};
+  await sendIsolated('P41 BTC protection without ETH',sdk.getManageAccountOrderInstruction({...setup.common,actor:owner,margin:btcOnly,
+    btc:setup.markets[0],guard:await guard(btcOnly),marketIndex:0,operation:{__kind:'Protect',expectedId:1n,
+      takeProfit:{...terms,trigger:1,threshold:60_500n},stopLoss:{...terms,trigger:2,threshold:59_500n}}}),[setup.markets[1]]);
+  const persisted=await setup.marketState(0),deadline=Date.now()+20_000;
+  while(await setup.slot()<observation.heldSlot){assert(Date.now()<deadline,'Bounded actual Clock expiry');await delay(100);}
+  await sendIsolated('P41 expired hold cancellation preserves consumed prefix',sdk.getManageAccountOrderInstruction({...setup.common,
+    actor:owner,margin:btcOnly,btc:setup.markets[0],guard:await guard(btcOnly),marketIndex:0,
+    operation:{__kind:'Cancel',id:1n,version:1n,protectionGroup:true}}),[setup.markets[1]]);
+  assert.equal((await setup.marketState(0)).fundingIndexScaled,persisted.fundingIndexScaled);
+  const publisher=sdk.getFundingPublisherDecoder().decode((await h.read(setup.configurations[0]))!);
+  await h.send('P41 revoke after expiry preserves funding',[sdk.getConfigureFundingPublisherInstruction({...setup.common,authority:setup.payer,
+    market:setup.markets[0],configuration:setup.configurations[0],expectedAuthority:publisher.authorityEpoch,
+    publisher:'11111111111111111111111111111111'})]);
+  assert.equal((await setup.marketState(0)).fundingIndexScaled,persisted.fundingIndexScaled);
   await flush();
   const anchor=await initializationSignature(rpc,checks.map(check=>String(check.signature)),setup.deployment.eventAuthority);
   const config={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,runId:'p41-markets',venue:setup.venue,
@@ -102,21 +155,21 @@ try {
         assert(![...invocation.reads,...invocation.writes].some(entity=>entity.account===key),'Omitted footer dependency');
     }
   }
-  const roots=await Promise.all([...setup.roots,...setup.instances.map(maker=>maker.capital)].map(root));
+  const roots=await Promise.all([...setup.roots,ethOnly,...setup.instances.map(maker=>maker.capital)].map(root));
   const ledgers=await Promise.all(setup.ledgers.map(async key=>sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
   const markets=await Promise.all([0,1].map(setup.marketState));
-  assert.equal(roots.reduce((sum,account)=>sum+account.cash,0n),7_999_959n);
-  assert.deepEqual(ledgers.map(ledger=>[ledger.insurance,ledger.fees,ledger.insuranceFeeRemainder]),[[6n,20n,2],[3n,10n,1]]);
+  assert.equal(roots.reduce((sum,account)=>sum+account.cash,0n),7_999_951n);
+  assert.deepEqual(ledgers.map(ledger=>[ledger.insurance,ledger.fees,ledger.insuranceFeeRemainder]),[[6n,20n,2],[5n,15n,0]]);
   for(const index of [0,1]) {
     assert.equal(roots.reduce((sum,account)=>sum+account.positions[index].lots,0n),0n);
     assert.equal(roots.reduce((sum,account)=>{const position=account.positions[index];return sum+position.virtualScaled
       -position.lots*(markets[index].fundingIndexScaled-position.fundingCheckpointScaled);},0n),0n);
   }
-  assert.equal(BigInt(reconciliation.actualVault),7_999_998n);
+  assert.equal(BigInt(reconciliation.actualVault),7_999_997n);
   const parity=await conformance.finish(directory,[],h.read);
   writeFileSync(`${directory}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
-    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,isolated,reconciliation,parity,roots,markets,ledgers,
+    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,isolated,reconciliation,parity,roots,markets,ledgers,negativeFunding:{observation,consumed,persisted},
     state:snapshot.state,phaseAcceptance:false}));
   console.log(json({stage:'p41-dependency-rpc-pg-pass',outcomes:checks.length,isolatedCases:isolated.length,events:snapshot.state.sequence,reconciliation}));
 } finally {await replay?.close();await indexer?.close();try{await flush();}finally{ws.close();}}

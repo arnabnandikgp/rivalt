@@ -291,8 +291,14 @@ the explicit D86 delta against immutable P40B pass. Failed first native/transpor
 attempts are retained in `.local/p41-*.log`; their reserve-refresh ordering and
 schema literal issues are fixed. No new compiled/RPC/WS/PG result is claimed.
 
-A dedicated signed dependency/rollback/cash reconciliation and fresh PostgreSQL
-replay driver is prepared. Existing P40B artifacts remain pinned pending the clean
+The first dedicated dependency run passes at clean verifier `c4e7aa1`: 125
+signed outcomes, six actual omission cases, complete 77-event PostgreSQL replay,
+70-account reconciliation and exact 7,999,998-atom vault backing. Missing receiver,
+active-order, open-loss and flat-claim markets reject atomically. The same
+compiled artifact passes all three default gates. Raw evidence remains in
+`.local/liquidity-execution/runs/p41-dependencies-first/`. Explicit isolated ETH,
+negative held funding/expiry/revocation and protection coverage extend the next
+run; complete safety/default qualification is still pending. Existing P40B artifacts remain pinned pending the clean
 P41 rebuild. The first SBF build rejected the order handler at 4,336 bytes of stack
 offset (240 over the limit). Borrowing its typed market accounts removes duplicate
 market snapshots; no heap/stack limit or risk check is relaxed. A targeted negative
@@ -303,9 +309,9 @@ The hash-measured candidate is pinned for fresh integrated qualification, still
 pending. Broad unrelated/browser/endurance suites are omitted; P41's affected
 compiled integration and P44's final qualification are still required.
 
-Next exact action: build the committed schema-6 source, pin its measured artifacts,
-then run the dedicated market-dependency RPC/WS/PostgreSQL probe and affected
-liquidation/default/funding acceptance before opening P41 above #58.
+Next exact action: run the extended market-dependency RPC/WS/PostgreSQL probe
+and rebuilt liquidation/default acceptance, then open P41 above #58 and continue
+P42. No full-phase, throughput, endurance or funded qualification is claimed.
 
 ## Deployment and operational limits
 
