@@ -202,7 +202,7 @@ pub struct AccountOrderChanged {
     pub slot: u64,
     pub margin: Pubkey,
     pub state: MarginAccountSnapshot,
-    pub markets: [MarketSnapshot; 2],
+    pub markets: Vec<MarketSnapshot>,
     pub liability_versions: [u64; 2],
 }
 
@@ -241,7 +241,7 @@ pub struct LiquidityRouteExecuted {
     pub slot: u64,
     pub market: Pubkey,
     pub market_state: MarketSnapshot,
-    pub other_market_state: MarketSnapshot,
+    pub other_market_state: Option<MarketSnapshot>,
     pub nonce: u64,
     pub side: u8,
     pub lots: u64,
@@ -286,7 +286,7 @@ pub struct AccountFinancialChanged {
     pub liability_versions: [u64; 2],
     pub roots: Vec<Pubkey>,
     pub root_states: Vec<MarginAccountSnapshot>,
-    pub markets: [MarketSnapshot; 2],
+    pub markets: Vec<MarketSnapshot>,
     pub ledgers: [MarketLedgerSnapshot; 2],
 }
 
@@ -359,7 +359,7 @@ pub struct AccountLiquidated {
     pub receiver: Pubkey,
     pub target_state: MarginAccountSnapshot,
     pub receiver_state: MarginAccountSnapshot,
-    pub markets: [MarketSnapshot; 2],
+    pub markets: Vec<MarketSnapshot>,
 }
 
 /// The complete frozen input header; wide derived work is emitted separately.

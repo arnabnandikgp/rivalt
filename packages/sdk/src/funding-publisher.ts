@@ -60,15 +60,15 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   const configurationState = decode(accounts.get(configuration) ?? null, clearing.FUNDING_PUBLISHER_DISCRIMINATOR,
     clearing.getFundingPublisherDecoder());
   const [venueKey, venueBump] = await deriveAccountVenue(Uint8Array.from(venueState.domain));
-  requireValue(venueKey === venue && venueState.bump === venueBump && venueState.schemaVersion === 5
+  requireValue(venueKey === venue && venueState.bump === venueBump && venueState.schemaVersion === 6
     && venueState.profileVersion === 4 && venueState.marketCount === 2 && venueState.insuranceFeeShareBps === 2500
-    && venueState.markets[marketIndex] === market && marketState.schemaVersion === 5 && marketState.venue === venue
+    && venueState.markets[marketIndex] === market && marketState.schemaVersion === 6 && marketState.venue === venue
     && marketState.index === marketIndex && marketState.bump === marketBump && marketState.crossEligible
     && marketState.lotsPerUnit === [1_000_000n, 100_000n][marketIndex], 'Invalid funding venue/market identity.');
   requireValue(marketState.oracle.sources.every((key, index) => key === discoveredMarket.oracle.sources[index]), 'Source bindings changed during discovery.');
-  requireValue(safetyState.schemaVersion === 5 && safetyState.venue === venue && safetyState.bump === safetyBump
+  requireValue(safetyState.schemaVersion === 6 && safetyState.venue === venue && safetyState.bump === safetyBump
     && !safetyState.paused && [0, 1].includes(safetyState.mode), 'Funding publication is suspended.');
-  requireValue(configurationState.schemaVersion === 5 && configurationState.venue === venue && configurationState.market === market
+  requireValue(configurationState.schemaVersion === 6 && configurationState.venue === venue && configurationState.market === market
     && configurationState.bump === configurationBump && configurationState.enabled && configurationState.authorityEpoch > 0n,
     'Funding publisher is not authorized.');
   const rawClock = accounts.get(ACCOUNT_CLOCK);

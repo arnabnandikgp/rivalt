@@ -5,11 +5,11 @@ import {effectiveAccountFunding, accountBalanceView, accountOrderRemaining} from
 const scale = 1_000_000_000n;
 function fixture() {
   const marketDecoder = getMarketDecoder(), rootDecoder = getMarginAccountDecoder();
-  const markets = [0,1].map(index => ({...marketDecoder.decode(new Uint8Array(marketDecoder.fixedSize)),schemaVersion:5,index,termsEpoch:1n,configEpoch:1n,
+  const markets = [0,1].map(index => ({...marketDecoder.decode(new Uint8Array(marketDecoder.fixedSize)),schemaVersion:6,index,termsEpoch:1n,configEpoch:1n,
     referencePrice:100n,lower:100n,upper:100n,validFrom:1n,validUntil:100n}));
   for (const market of markets) Object.assign(market.oracle,{status:2,sampledAt:100n,sourceDeadline:120n,lastQualified:100n,
     heldEpoch:1n,heldUntil:106n,heldSlot:100n,fundingBase:0n,premiumScaled:0n});
-  const root = {...rootDecoder.decode(new Uint8Array(rootDecoder.fixedSize)),schemaVersion:5,mode:0,isolatedMarketIndex:255,cash:1000n,delegateEpoch:1n};
+  const root = {...rootDecoder.decode(new Uint8Array(rootDecoder.fixedSize)),schemaVersion:6,mode:0,isolatedMarketIndex:255,cash:1000n,delegateEpoch:1n};
   root.positions[0].lots=1n; root.positions[0].virtualScaled=200n*scale;
   root.positions[1].lots=2n; root.positions[1].virtualScaled=-400n*scale;
   return {root,markets,group:{venue:root.venue,mode:1,paused:false}};

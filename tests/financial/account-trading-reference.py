@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent schema-5 wire audit. No SDK, program, or production math imports."""
+"""Independent schema-6 wire audit. No SDK, program, or production math imports."""
 import base64
 import copy
 import json
@@ -13,7 +13,7 @@ def integer(data, offset, width=8, signed=False):
 
 def checked(data, name, size):
     assert len(data) == size and data[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
-    assert integer(data,8,2) == 5 and integer(data,10) > 0
+    assert integer(data,8,2) == 6 and integer(data,10) > 0
     return data
 
 def root(data):

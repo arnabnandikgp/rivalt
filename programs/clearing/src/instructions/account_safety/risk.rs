@@ -29,18 +29,31 @@ pub(crate) fn candidate(
     price: u64,
     clock: &Clock,
 ) -> Result<crate::engine::risk::Candidate> {
+    candidate_optional(target, receiver, markets.map(Some), market_index, lots, price, clock)
+}
+
+#[inline(never)]
+pub(crate) fn candidate_optional(
+    target: &MarginAccount,
+    receiver: &MarginAccount,
+    markets: [Option<&Market>; 2],
+    market_index: usize,
+    lots: u64,
+    price: u64,
+    clock: &Clock,
+) -> Result<crate::engine::risk::Candidate> {
     let target = account_trading::root_view(target)?;
     let receiver = account_trading::root_view(receiver)?;
     let markets = [
-        account_trading::market_view(markets[0])?,
-        account_trading::market_view(markets[1])?,
+        markets[0].map(account_trading::market_view).transpose()?,
+        markets[1].map(account_trading::market_view).transpose()?,
     ];
     // The shared oracle adapter uses 2 for active two-market funding. V3's
     // persisted ACTIVE mode is authenticated separately by candidate_profile.
-    crate::engine::risk::candidate(
+    crate::engine::risk::candidate_optional(
         &target,
         &receiver,
-        [&markets[0], &markets[1]],
+        markets.each_ref().map(Option::as_ref),
         2,
         market_index,
         lots,
@@ -75,10 +88,10 @@ pub fn liquidate(
         &accounts.receiver,
     )?;
     let clock = Clock::get()?;
-    let candidate = candidate(
+    let candidate = candidate_optional(
         &accounts.target,
         &accounts.receiver,
-        [&accounts.identity.btc, &accounts.identity.eth],
+        accounts.identity.markets(),
         usize::from(market_index),
         lots,
         price,
@@ -103,11 +116,8 @@ pub fn liquidate(
     } else {
         &mut accounts.identity.eth
     };
-    selected.gross_lots = candidate.gross_lots;
-    account_trading::materialize(
-        [&mut accounts.identity.btc, &mut accounts.identity.eth],
-        &clock,
-    )?;
+    selected.as_deref_mut().ok_or(ClearingError::OrderState)?.gross_lots = candidate.gross_lots;
+    accounts.identity.materialize(&clock)?;
     account_custody::reconciled(
         &accounts.identity.custody,
         [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
@@ -144,7 +154,7 @@ struct LiquidationEventView<'a> {
     receiver: Pubkey,
     target_state: &'a MarginAccount,
     receiver_state: &'a MarginAccount,
-    markets: [&'a Market; 2],
+    markets: Vec<&'a Market>,
 }
 
 #[inline(never)]
@@ -175,7 +185,7 @@ fn emit(
         receiver: accounts.receiver.key(),
         target_state: &accounts.target,
         receiver_state: &accounts.receiver,
-        markets: [&accounts.identity.btc, &accounts.identity.eth],
+        markets: accounts.identity.markets().into_iter().flatten().collect(),
     };
     events.emit_borrowed::<crate::events::AccountLiquidated, _>(
         &event,
@@ -189,7 +199,7 @@ mod event_tests {
     #[test]
     fn borrowed_liquidation_is_exactly_the_owned_event_wire() {
         let target = MarginAccount {
-            schema_version: 5,
+            schema_version: 6,
             cash: 17,
             nonce: 9,
             positions: [
@@ -204,13 +214,13 @@ mod event_tests {
             ..Default::default()
         };
         let receiver = MarginAccount {
-            schema_version: 5,
+            schema_version: 6,
             cash: 21,
             id: 1,
             ..Default::default()
         };
         let market = Market {
-            schema_version: 5,
+            schema_version: 6,
             reference_price: 20_000,
             funding_index_scaled: -17,
             ..Default::default()
@@ -230,7 +240,7 @@ mod event_tests {
             receiver: Pubkey::new_unique(),
             target_state: crate::events::MarginAccountSnapshot::from(&target),
             receiver_state: crate::events::MarginAccountSnapshot::from(&receiver),
-            markets: [
+            markets: vec![
                 crate::events::MarketSnapshot::from(&market),
                 crate::events::MarketSnapshot::from(&market),
             ],
@@ -250,7 +260,7 @@ mod event_tests {
             receiver: owned.receiver,
             target_state: &target,
             receiver_state: &receiver,
-            markets: [&market, &market],
+            markets: vec![&market, &market],
         };
         let mut expected = Vec::new();
         owned.serialize(&mut expected).unwrap();

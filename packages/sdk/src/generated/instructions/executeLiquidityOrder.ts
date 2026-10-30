@@ -47,7 +47,6 @@ import {
 import {
   findCustodyPda,
   findMarketLedgerPda,
-  findOtherMarketLedgerPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
@@ -293,9 +292,9 @@ export type ExecuteLiquidityOrderAsyncInput<
   custody?: TAccountCustody;
   safety?: TAccountSafety;
   market: TAccountMarket;
-  otherMarket: TAccountOtherMarket;
+  otherMarket?: TAccountOtherMarket;
   ledger?: TAccountLedger;
-  otherLedger?: TAccountOtherLedger;
+  otherLedger: TAccountOtherLedger;
   vault?: TAccountVault;
   trader: TAccountTrader;
   registry: TAccountRegistry;
@@ -639,17 +638,6 @@ export async function getExecuteLiquidityOrderInstructionAsync<
       { programAddress },
     );
   }
-  if (!accounts.otherLedger.value) {
-    accounts.otherLedger.value = await findOtherMarketLedgerPda(
-      {
-        otherMarket: getAddressFromResolvedInstructionAccount(
-          "otherMarket",
-          accounts.otherMarket.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.vault.value) {
     accounts.vault.value = await findVenueVaultPda(
       {
@@ -841,7 +829,7 @@ export type ExecuteLiquidityOrderInput<
   custody: TAccountCustody;
   safety: TAccountSafety;
   market: TAccountMarket;
-  otherMarket: TAccountOtherMarket;
+  otherMarket?: TAccountOtherMarket;
   ledger: TAccountLedger;
   otherLedger: TAccountOtherLedger;
   vault: TAccountVault;
@@ -1299,7 +1287,7 @@ export type ParsedExecuteLiquidityOrderInstruction<
     custody: TAccountMetas[2];
     safety: TAccountMetas[3];
     market: TAccountMetas[4];
-    otherMarket: TAccountMetas[5];
+    otherMarket?: TAccountMetas[5] | undefined;
     ledger: TAccountMetas[6];
     otherLedger: TAccountMetas[7];
     vault: TAccountMetas[8];
@@ -1360,7 +1348,7 @@ export function parseExecuteLiquidityOrderInstruction<
       custody: getNextAccount(),
       safety: getNextAccount(),
       market: getNextAccount(),
-      otherMarket: getNextAccount(),
+      otherMarket: getNextOptionalAccount(),
       ledger: getNextAccount(),
       otherLedger: getNextAccount(),
       vault: getNextAccount(),

@@ -28,7 +28,7 @@ export class LiquidityIndexer extends FinalizedIndexer<AccountState,LiquidityBin
     const init=initialization?.events.find(event=>event.type==='AccountCustodyChangedV3'&&event.data.kind===0);
     if(!init)throw new Error('Invalid liquidity initialization anchor');
     await this.artifacts.verify(address(init.data.authority));
-    return {schema:5,venue:this.config.venue,profile:this.config.profile,artifactSet:LIQUIDITY_ARTIFACT_SET,genesis,domain:init.data.domain,
+    return {schema:6,venue:this.config.venue,profile:this.config.profile,artifactSet:LIQUIDITY_ARTIFACT_SET,genesis,domain:init.data.domain,
       anchor:this.config.anchor,anchorHash:hash(anchor.transaction),program:this.deployment.clearing};
   }
   async reconcile(snapshot?:{state:AccountState;binding:LiquidityBinding}) {

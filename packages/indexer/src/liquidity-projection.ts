@@ -24,7 +24,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
   const marketIndex=venue.markets.indexOf(change.market??change.state?.market);
   check(marketIndex>=0&&marketIndex<venue.marketCount,'liquidity market');
   const maker=(value:any,key?:string) => {
-    check(value.schemaVersion===5&&value.venue===change.venue&&value.market===venue.markets[marketIndex]
+    check(value.schemaVersion===6&&value.venue===change.venue&&value.market===venue.markets[marketIndex]
       &&Number.isInteger(value.instance)&&value.instance>=0&&value.instance<3,'canonical maker identity');
     const capital=present(state.roots[value.capital],'canonical maker capital');
     check(capital.role===1&&capital.mode===1&&capital.isolatedMarketIndex===marketIndex&&capital.owner===value.owner,'isolated canonical capital');
@@ -38,7 +38,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
   switch(event.type) {
     case 'LiquidityRegistryChangedV4': {
       const value=change.state;
-      check(value.schemaVersion===5&&value.venue===change.venue&&Number.isInteger(value.count)&&value.count>=0&&value.count<=3
+      check(value.schemaVersion===6&&value.venue===change.venue&&Number.isInteger(value.count)&&value.count>=0&&value.count<=3
         &&(!value.sealed||value.count===3),'canonical registry shape');
       const previous=liquidity.registries[change.registry];
       if(previous) {
@@ -55,7 +55,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
       maker(change.state,change.registration);financial.market(change.marketState,change.market);break;
     case 'FundingPublisherChangedV4': {
       const value=change.state,previous=liquidity.publishers[change.configuration];
-      check(value.schemaVersion===5&&value.venue===change.venue&&value.market===change.market,'publisher identity');
+      check(value.schemaVersion===6&&value.venue===change.venue&&value.market===change.market,'publisher identity');
       check(BigInt(value.authorityEpoch)===(previous?BigInt(previous.authorityEpoch)+1n:1n),'publisher authority epoch');
       // D76 preserves report sequence, but initialization/rotation/revocation
       // stamp a fresh authoritative Clock fence. That fence is not a report.
@@ -97,7 +97,12 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
       }
       same(lots,BigInt(change.lots),'route lots sum');same(gross,BigInt(change.grossQuote),'route notional sum');
       change.rootStates.forEach((value:any)=>financial.root(value));
-      financial.market(change.marketState,change.market);financial.market(change.otherMarketState);financial.ledger(change.ledger);
+      financial.market(change.marketState,change.market);
+      if(change.otherMarketState.__option==='Some') {
+        check(change.otherMarketState.value.index!==change.marketState.index,'distinct route market snapshots');
+        financial.market(change.otherMarketState.value);
+      } else check(change.otherMarketState.__option==='None','optional route market snapshot');
+      financial.ledger(change.ledger);
       const custody=present(state.custody,'custody');custody.totalCash=change.totalCash;custody.liabilityVersions=change.liabilityVersions;break;
     }
     default:throw new Error('Unsupported liquidity projection event');

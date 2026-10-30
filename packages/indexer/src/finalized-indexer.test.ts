@@ -8,7 +8,7 @@ import {CLEARING_PROGRAM_ADDRESS} from '@rivalt/sdk';
 
 type State={sequence:string;cash:number;revisions:RevisionVector};
 function fixture(limit=20) {
-  const binding:JournalBinding={schema:5,venue:'test',genesis:'local',domain:'test',anchor:'tx1',anchorHash:hash({signatures:['tx1']}),program:'test'};
+  const binding:JournalBinding={schema:6,venue:'test',genesis:'local',domain:'test',anchor:'tx1',anchorHash:hash({signatures:['tx1']}),program:'test'};
   const state:State={sequence:'1',cash:7,revisions:{root:{kind:5,revision:'1'}}};
   const store={snapshot:vi.fn(async()=>({binding,state,checkpoint:'block1',checkpoint_slot:'1'})),observe:vi.fn(async()=>{}),health:vi.fn(async()=>{}),
     commit:vi.fn(async(..._args:Parameters<JournalStore<State,JournalBinding,JournalEvent>['commit']>)=>{}),

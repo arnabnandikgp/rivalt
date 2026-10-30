@@ -44,7 +44,7 @@ pub fn initialize(
     let clock = Clock::get()?;
     accounts.configuration.set_inner(FundingPublisher {
         revision: 0,
-        schema_version: 5,
+        schema_version: 6,
         venue: accounts.venue.key(),
         market: accounts.market.key(),
         publisher,
@@ -80,14 +80,14 @@ pub fn configure(
     let accounts = &mut *ctx.accounts;
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && accounts.venue.schema_version == 5
+            && accounts.venue.schema_version == 6
             && accounts.venue.profile_version == 4
             && accounts.venue.market_count == 2
             && accounts.venue.insurance_fee_share_bps == 2500
-            && accounts.custody.schema_version == 5
-            && accounts.safety.schema_version == 5
-            && accounts.market.schema_version == 5
-            && accounts.configuration.schema_version == 5
+            && accounts.custody.schema_version == 6
+            && accounts.safety.schema_version == 6
+            && accounts.market.schema_version == 6
+            && accounts.configuration.schema_version == 6
             && accounts.configuration.authority_epoch == expected_authority
             && expected_authority > 0
             && matches!(

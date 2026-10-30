@@ -27,7 +27,7 @@ def account(raw, key, name, size):
     assert name in {'Resolution','ResolutionPage','ResolutionWork','MarginAccount','Market','MarketLedger','Custody','VenueSafety'}
     data = base64.b64decode(raw[key])
     assert len(data) == size and data[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
-    assert integer(data, 8, 2) == 5 and integer(data, 10) > 0
+    assert integer(data, 8, 2) == 6 and integer(data, 10) > 0
     return data
 
 

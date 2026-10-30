@@ -28,9 +28,9 @@ import {
   getU8Decoder,
   getU8Encoder,
   type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
+  type Codec,
+  type Decoder,
+  type Encoder,
   type HasAddress,
   type ReadonlyUint8Array,
 } from "@solana/kit";
@@ -91,7 +91,7 @@ export type AccountLiquidatedEventArgs = {
 };
 
 /** Gets the encoder for {@link AccountLiquidatedEventArgs} event data. */
-export function getAccountLiquidatedEventEncoder(): FixedSizeEncoder<AccountLiquidatedEventArgs> {
+export function getAccountLiquidatedEventEncoder(): Encoder<AccountLiquidatedEventArgs> {
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
@@ -108,14 +108,14 @@ export function getAccountLiquidatedEventEncoder(): FixedSizeEncoder<AccountLiqu
       ["receiver", getAddressEncoder()],
       ["targetState", getMarginAccountSnapshotEncoder()],
       ["receiverState", getMarginAccountSnapshotEncoder()],
-      ["markets", getArrayEncoder(getMarketSnapshotEncoder(), { size: 2 })],
+      ["markets", getArrayEncoder(getMarketSnapshotEncoder())],
     ]),
     [getConstantEncoder(ACCOUNT_LIQUIDATED_EVENT_DISCRIMINATOR)],
   );
 }
 
 /** Gets the decoder for {@link AccountLiquidatedEvent} event data. */
-export function getAccountLiquidatedEventDecoder(): FixedSizeDecoder<AccountLiquidatedEvent> {
+export function getAccountLiquidatedEventDecoder(): Decoder<AccountLiquidatedEvent> {
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
@@ -132,14 +132,14 @@ export function getAccountLiquidatedEventDecoder(): FixedSizeDecoder<AccountLiqu
       ["receiver", getAddressDecoder()],
       ["targetState", getMarginAccountSnapshotDecoder()],
       ["receiverState", getMarginAccountSnapshotDecoder()],
-      ["markets", getArrayDecoder(getMarketSnapshotDecoder(), { size: 2 })],
+      ["markets", getArrayDecoder(getMarketSnapshotDecoder())],
     ]),
     [getConstantDecoder(ACCOUNT_LIQUIDATED_EVENT_DISCRIMINATOR)],
   );
 }
 
 /** Gets the codec for {@link AccountLiquidatedEvent} event data. */
-export function getAccountLiquidatedEventCodec(): FixedSizeCodec<
+export function getAccountLiquidatedEventCodec(): Codec<
   AccountLiquidatedEventArgs,
   AccountLiquidatedEvent
 > {

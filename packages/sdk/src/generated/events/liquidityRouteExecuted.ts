@@ -19,6 +19,8 @@ import {
   getConstantEncoder,
   getHiddenPrefixDecoder,
   getHiddenPrefixEncoder,
+  getOptionDecoder,
+  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -30,6 +32,8 @@ import {
   type Decoder,
   type Encoder,
   type HasAddress,
+  type Option,
+  type OptionOrNullable,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
@@ -69,7 +73,7 @@ export type LiquidityRouteExecutedEvent = {
   slot: bigint;
   market: Address;
   marketState: MarketSnapshot;
-  otherMarketState: MarketSnapshot;
+  otherMarketState: Option<MarketSnapshot>;
   nonce: bigint;
   side: number;
   lots: bigint;
@@ -94,7 +98,7 @@ export type LiquidityRouteExecutedEventArgs = {
   slot: number | bigint;
   market: Address | HasAddress;
   marketState: MarketSnapshotArgs;
-  otherMarketState: MarketSnapshotArgs;
+  otherMarketState: OptionOrNullable<MarketSnapshotArgs>;
   nonce: number | bigint;
   side: number;
   lots: number | bigint;
@@ -122,7 +126,7 @@ export function getLiquidityRouteExecutedEventEncoder(): Encoder<LiquidityRouteE
       ["slot", getU64Encoder()],
       ["market", getAddressEncoder()],
       ["marketState", getMarketSnapshotEncoder()],
-      ["otherMarketState", getMarketSnapshotEncoder()],
+      ["otherMarketState", getOptionEncoder(getMarketSnapshotEncoder())],
       ["nonce", getU64Encoder()],
       ["side", getU8Encoder()],
       ["lots", getU64Encoder()],
@@ -153,7 +157,7 @@ export function getLiquidityRouteExecutedEventDecoder(): Decoder<LiquidityRouteE
       ["slot", getU64Decoder()],
       ["market", getAddressDecoder()],
       ["marketState", getMarketSnapshotDecoder()],
-      ["otherMarketState", getMarketSnapshotDecoder()],
+      ["otherMarketState", getOptionDecoder(getMarketSnapshotDecoder())],
       ["nonce", getU64Decoder()],
       ["side", getU8Decoder()],
       ["lots", getU64Decoder()],

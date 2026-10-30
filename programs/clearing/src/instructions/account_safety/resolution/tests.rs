@@ -6,7 +6,7 @@ use math::{oracle::Bounds, SCALE};
 
 fn root(id: u16, cash: u64, claims: [i128; 2]) -> MarginAccount {
     MarginAccount {
-        schema_version: 5,
+        schema_version: 6,
         id,
         cash,
         mode: MODE_CROSS,
@@ -252,7 +252,7 @@ fn page_range_authenticates_every_legal_count_and_cursor() {
                     ..Default::default()
                 };
                 let page = ResolutionPage {
-                    schema_version: 5,
+                    schema_version: 6,
                     page_index: start / 2,
                     ..Default::default()
                 };
@@ -278,7 +278,7 @@ fn registry_hash_binds_version_order_count_and_uniqueness() {
     let first = Pubkey::new_unique();
     let second = Pubkey::new_unique();
     let mut registry = VenueRegistry {
-        schema_version: 5,
+        schema_version: 6,
         count: 2,
         membership_version: 1,
         members: vec![first, second],

@@ -265,14 +265,31 @@ locally. Hosted recheck and integration remain pending; no production/throughput
 P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on
 `96790ef` / `f8984e0`. No external access blocker remains.
 
-P41 is on `performance/p41-market-dependencies`, above ready P40B `d55ab82`.
-D86 freezes optional ordinary-action market contexts, complete root/certificate
-unions and schema-6 partial-market payloads before edits. No financial path or new
-artifact has changed yet. P40B hosted checks are pending; no hosted pass is claimed.
+P41 is on `performance/p41-market-dependencies`, above ready P40B. D86's
+required-market union, optional route/order/cash/liquidation contexts, neutral
+empty-slot arithmetic and checkpoint preservation are implemented in source.
+Schema-6 SDK builders derive minimum dependencies; partial event projections
+preserve omitted markets. Treasury paths may also omit unused market inputs.
+Default/devnet gates and complete default/retirement contexts remain unchanged.
 
-Next exact action: implement the shared required-market validation and optional
-market environment, then wire it through every affected ordinary instruction/SDK
-builder before the scoped compiled and RPC/WS/PostgreSQL qualification.
+All 112 affected native clearing cases pass on the current candidate, including
+independent fractional-claim, cash-exit and receiver-dependency checks. Eight
+affected SDK/service/projection files passed 49 cases; the schema literal fixture
+repair passes all seven transport cases, three maker economics cases, and the new
+market SDK/partial-projection checks pass 19 cases (overlapping prior coverage).
+Typecheck, source coverage, generated parity, eleven ABI guard regressions and
+the explicit D86 delta against immutable P40B pass. Failed first native/transport
+attempts are retained in `.local/p41-*.log`; their reserve-refresh ordering and
+schema literal issues are fixed. No new compiled/RPC/WS/PG result is claimed.
+
+A dedicated signed dependency/rollback/cash reconciliation and fresh PostgreSQL
+replay driver is prepared. Existing P40B artifacts remain pinned pending the clean
+P41 rebuild. Broad unrelated/browser/endurance suites are omitted; P41's affected
+compiled integration and P44's final qualification are still required.
+
+Next exact action: build the committed schema-6 source, pin its measured artifacts,
+then run the dedicated market-dependency RPC/WS/PostgreSQL probe and affected
+liquidation/default/funding acceptance before opening P41 above #58.
 
 ## Deployment and operational limits
 

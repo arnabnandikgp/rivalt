@@ -128,7 +128,7 @@ try {
   const config={rpcUrl,wsUrl,databaseUrl,runId:'interactive-'+session,venue:setup.venue,anchor,profile:'liquidity-execution-qualification' as const};
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   const {binding}=await indexer.store.snapshot();
-  publicConfig={version:4,accountSchema:5 as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,genesis:binding.genesis,anchor,
+  publicConfig={version:4,accountSchema:6 as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,genesis:binding.genesis,anchor,
     anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain};
   writeFileSync(RUNTIME+'/deployment.json',json(publicConfig),{mode:0o600});
   writeFileSync(RUNTIME+'/private-config.json',json(config),{mode:0o600});

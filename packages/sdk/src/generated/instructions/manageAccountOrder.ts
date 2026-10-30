@@ -171,8 +171,8 @@ export type ManageAccountOrderAsyncInput<
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
   margin: TAccountMargin;
   eventAuthority: TAccountEventAuthority;
   program: TAccountProgram;
@@ -388,8 +388,8 @@ export type ManageAccountOrderInput<
   venue: TAccountVenue;
   custody: TAccountCustody;
   safety: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
   margin: TAccountMargin;
   eventAuthority: TAccountEventAuthority;
   program: TAccountProgram;
@@ -573,8 +573,8 @@ export type ParsedManageAccountOrderInstruction<
     venue: TAccountMetas[1];
     custody: TAccountMetas[2];
     safety: TAccountMetas[3];
-    btc: TAccountMetas[4];
-    eth: TAccountMetas[5];
+    btc?: TAccountMetas[4] | undefined;
+    eth?: TAccountMetas[5] | undefined;
     margin: TAccountMetas[6];
     eventAuthority: TAccountMetas[7];
     program: TAccountMetas[8];
@@ -605,6 +605,12 @@ export function parseManageAccountOrderInstruction<
     accountIndex += 1;
     return accountMeta;
   };
+  const getNextOptionalAccount = () => {
+    const accountMeta = getNextAccount();
+    return accountMeta.address === CLEARING_PROGRAM_ADDRESS
+      ? undefined
+      : accountMeta;
+  };
   return {
     programAddress: instruction.programAddress,
     accounts: {
@@ -612,8 +618,8 @@ export function parseManageAccountOrderInstruction<
       venue: getNextAccount(),
       custody: getNextAccount(),
       safety: getNextAccount(),
-      btc: getNextAccount(),
-      eth: getNextAccount(),
+      btc: getNextOptionalAccount(),
+      eth: getNextOptionalAccount(),
       margin: getNextAccount(),
       eventAuthority: getNextAccount(),
       program: getNextAccount(),

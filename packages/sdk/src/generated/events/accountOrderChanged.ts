@@ -24,9 +24,9 @@ import {
   getU64Decoder,
   getU64Encoder,
   type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
+  type Codec,
+  type Decoder,
+  type Encoder,
   type HasAddress,
   type ReadonlyUint8Array,
 } from "@solana/kit";
@@ -69,14 +69,14 @@ export type AccountOrderChangedEventArgs = {
 };
 
 /** Gets the encoder for {@link AccountOrderChangedEventArgs} event data. */
-export function getAccountOrderChangedEventEncoder(): FixedSizeEncoder<AccountOrderChangedEventArgs> {
+export function getAccountOrderChangedEventEncoder(): Encoder<AccountOrderChangedEventArgs> {
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
       ["slot", getU64Encoder()],
       ["margin", getAddressEncoder()],
       ["state", getMarginAccountSnapshotEncoder()],
-      ["markets", getArrayEncoder(getMarketSnapshotEncoder(), { size: 2 })],
+      ["markets", getArrayEncoder(getMarketSnapshotEncoder())],
       ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
     ]),
     [getConstantEncoder(ACCOUNT_ORDER_CHANGED_EVENT_DISCRIMINATOR)],
@@ -84,14 +84,14 @@ export function getAccountOrderChangedEventEncoder(): FixedSizeEncoder<AccountOr
 }
 
 /** Gets the decoder for {@link AccountOrderChangedEvent} event data. */
-export function getAccountOrderChangedEventDecoder(): FixedSizeDecoder<AccountOrderChangedEvent> {
+export function getAccountOrderChangedEventDecoder(): Decoder<AccountOrderChangedEvent> {
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
       ["slot", getU64Decoder()],
       ["margin", getAddressDecoder()],
       ["state", getMarginAccountSnapshotDecoder()],
-      ["markets", getArrayDecoder(getMarketSnapshotDecoder(), { size: 2 })],
+      ["markets", getArrayDecoder(getMarketSnapshotDecoder())],
       ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ]),
     [getConstantDecoder(ACCOUNT_ORDER_CHANGED_EVENT_DISCRIMINATOR)],
@@ -99,7 +99,7 @@ export function getAccountOrderChangedEventDecoder(): FixedSizeDecoder<AccountOr
 }
 
 /** Gets the codec for {@link AccountOrderChangedEvent} event data. */
-export function getAccountOrderChangedEventCodec(): FixedSizeCodec<
+export function getAccountOrderChangedEventCodec(): Codec<
   AccountOrderChangedEventArgs,
   AccountOrderChangedEvent
 > {

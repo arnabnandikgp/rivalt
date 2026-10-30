@@ -25,7 +25,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
   const payer = await payerKey(), owner = await fixtureKey('p30-owner'), updater = await fixtureKey('p30-updater');
   const mint = await fixtureKey('p30-mint'), token = await fixtureKey('p30-token');
   const deployment = await addresses();
-  const domain = createHash('sha256').update('rivalt/p40b/schema5/canonical-makers/profile4').digest();
+  const domain = createHash('sha256').update('rivalt/p41/schema6/canonical-makers/profile4').digest();
   const venue = await accountPda('venue-v3', domain);
   const registry = await accountPda('registry-v3', keyBytes.encode(venue));
   const vault = await accountPda('vault-v3', keyBytes.encode(venue));

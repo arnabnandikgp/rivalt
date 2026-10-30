@@ -8,14 +8,14 @@ pub(crate) fn execution_base(
 ) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && venue.schema_version == 5
+            && venue.schema_version == 6
             && venue.profile_version == 4
             && venue.market_count == 2
             && venue.insurance_fee_share_bps == 2500
-            && custody.schema_version == 5
-            && safety.schema_version == 5
+            && custody.schema_version == 6
+            && safety.schema_version == 6
             && matches!(safety.mode, CUSTODY | ACTIVE)
-            && market.schema_version == 5
+            && market.schema_version == 6
             && market.index < 2,
         ClearingError::Profile
     );
@@ -67,14 +67,14 @@ pub(crate) fn custody_base(
 ) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && venue.schema_version == 5
+            && venue.schema_version == 6
             && venue.profile_version == 4
             && venue.market_count == 2
             && venue.insurance_fee_share_bps == 2500
-            && custody.schema_version == 5
-            && safety.schema_version == 5
+            && custody.schema_version == 6
+            && safety.schema_version == 6
             && safety.mode == CUSTODY
-            && market.schema_version == 5
+            && market.schema_version == 6
             && market.index < 2
             && market.funding_index_scaled == 0
             && market.gross_lots == 0
@@ -86,7 +86,7 @@ pub(crate) fn custody_base(
 
 pub(crate) fn capital_identity(capital: &MarginAccount, market: &Market) -> Result<()> {
     require!(
-        capital.schema_version == 5
+        capital.schema_version == 6
             && capital.venue == market.venue
             && capital.mode == MODE_ISOLATED
             && capital.role == ROLE_MAKER
@@ -198,7 +198,7 @@ pub(crate) fn authenticated_control(
     require!(!accounts.safety.paused, ClearingError::Paused);
     capital_identity(&accounts.capital, &accounts.market)?;
     require!(
-        accounts.registration.schema_version == 5
+        accounts.registration.schema_version == 6
             && accounts.registration.authority_epoch == authority
             && authority > 0
             && accounts.registration.depth_epoch > 0

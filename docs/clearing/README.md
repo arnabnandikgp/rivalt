@@ -32,8 +32,8 @@ complete default. Maker execution pricing belongs to [liquidity](../liquidity/RE
   [financial core](../../crates/financial-core/src/) and
   [independent expectations](../../tests/financial/).
 
-The supported fresh local runtime uses schema-5 clearing accounts under immutable
-profile 4. Shared records live in `state/records.rs`; the `engine/` candidates use
+The P41 source candidate uses schema-6 clearing accounts under immutable
+profile 4; rebuilt qualification is pending in STATUS. Shared records live in `state/records.rs`; the `engine/` candidates use
 current account records directly for both isolated and cross accounts. The earlier
 standalone/group/fixed-maker runtimes are retired, with historical reproduction
 pinned in [HISTORY](../HISTORY.md). This is source retirement, not a deployed-account

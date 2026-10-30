@@ -52,7 +52,7 @@ writes remain hot accounts; P24/P28 measure them rather than claim parallelism.
 
 Ordered Borsh fields in [state/accounts](../../programs/clearing/src/state/accounts) are normative.
 Clearing accounts use canonical discriminator bytes, SHA-256(`account:<name>`)[0..8].
-Each begins with schema u16=5 and a scoped revision u64. D84 deliberately supersedes
+Each begins with schema u16=6 and a scoped revision u64. D84 deliberately supersedes
 P36's preserved historical discriminators for this fresh local domain. Integer seeds are little endian. Reused Position and
 OrderBook scalar records preserve 48-/680-byte encoding only, not V2 account
 identity, handlers or common-loss semantics. All public JSON integers are decimal
@@ -85,7 +85,7 @@ contract's size tests do not establish SBF stack/CU safety.
 
 ## Current-profile additions and activation
 
-Canonical maker registrations and funding publishers are clearing-owned schema 5.
+Canonical maker registrations and funding publishers are clearing-owned schema 6.
 Maker-owned curve and price accounts retain schema 4. Their exact layouts are in
 [quoting](../liquidity/quoting.md) and [funding](../liquidity/funding.md).
 The older fixed-maker registration is retired, not reinterpreted as the current
@@ -222,7 +222,8 @@ checks; default/devnet builds continue to reject financial activation.
 
 ## Relevant-market successor contract (P41, implementation pending)
 
-D86 freezes the next fresh local boundary before changing contexts. Clearing-owned
+D86 freezes the fresh local boundary before changing contexts. Source implementation
+is underway; rebuilt artifact and integrated acceptance remain pending. Clearing-owned
 accounts and scoped envelopes select **schema 6**; field order, sizes, kinds,
 canonical discriminators and PDA seeds stay as schema 5. A new domain/genesis,
 explicit `accountSchema: 6`, new artifact pins and fresh journal are required.
@@ -249,6 +250,9 @@ including a flat claim in the dependency set does not add positive margin credit
   every market required by its complete-backing certificate; flat netting requires
   both. Liquidation includes target/receiver sets and the selected market, even
   though target risk orders are cancelled by the transition.
+- Treasury fee allocation/withdrawal and resolved reserve withdrawal consume no
+  funding and may omit both markets through the same optional financial context.
+  Their ledger/custody/vault conservation and authority checks remain intact.
 - Complete default, recovery, activation and retirement retain their complete
   two-market contexts. P42 owns ledger/vault/custody isolation and certificate
   liveness; P41 does not remove those remaining shared dependencies.

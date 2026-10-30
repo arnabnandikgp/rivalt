@@ -113,13 +113,13 @@ fn stamps(
     for index in 0..2 {
         if certificate.required_market_mask & (1 << index) != 0 {
             require!(
-                certificate.observations[index] == snapshot.markets[index].observation_sequence
+                certificate.observations[index] == snapshot.market(index)?.observation_sequence
                     && snapshot.clock.unix_timestamp < certificate.source_deadlines[index]
                     && certificate.funding_bounds[index][0] <= snapshot.risks[index].funding
                     && snapshot.risks[index].funding <= certificate.funding_bounds[index][1],
                 ClearingError::ExitCohort
             );
-            crate::engine::oracle::action(&snapshot.markets[index], &snapshot.clock, false)?;
+            crate::engine::oracle::action(snapshot.market(index)?, &snapshot.clock, false)?;
         }
     }
     Ok(())
@@ -233,7 +233,7 @@ pub(crate) fn debtor_mask(
     }
     for index in 0..2 {
         if mask & (1 << index) != 0 {
-            crate::engine::oracle::action(&snapshot.markets[index], &snapshot.clock, false)?;
+            crate::engine::oracle::action(snapshot.market(index)?, &snapshot.clock, false)?;
         }
     }
     Ok(mask)
@@ -277,23 +277,17 @@ pub fn check(
                 )
                 .is_err()
                 || certificate.observations
-                    != snapshot
-                        .markets
-                        .each_ref()
+                    != [snapshot.market(0)?, snapshot.market(1)?]
                         .map(|market| market.observation_sequence),
             ClearingError::ExitCohort
         );
         certificate.safety_epoch = accounts.safety.epoch;
         certificate.membership_version = accounts.registry.membership_version;
         certificate.liability_versions = accounts.custody.liability_versions;
-        certificate.observations = snapshot
-            .markets
-            .each_ref()
+        certificate.observations = [snapshot.market(0)?, snapshot.market(1)?]
             .map(|market| market.observation_sequence);
         certificate.funding_bounds = snapshot.bounds;
-        certificate.source_deadlines = snapshot
-            .markets
-            .each_ref()
+        certificate.source_deadlines = [snapshot.market(0)?, snapshot.market(1)?]
             .map(|market| market.oracle.source_deadline);
         certificate.required_market_mask = 0;
         certificate.count = accounts.registry.count;

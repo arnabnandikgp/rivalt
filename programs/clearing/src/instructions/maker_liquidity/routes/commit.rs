@@ -63,10 +63,10 @@ pub(super) fn apply(
         accounts.identity.trader.positions,
     )?;
     accounts.identity.market.gross_lots = next.gross_lots;
-    trading::materialize(
+    trading::materialize_optional(
         [
-            &mut accounts.identity.market,
-            &mut accounts.identity.other_market,
+            Some(&mut accounts.identity.market),
+            accounts.identity.other_market.as_deref_mut().map(|market| &mut **market),
         ],
         clock,
     )?;
@@ -104,7 +104,7 @@ pub(super) struct RouteEventView<'a> {
     pub slot: u64,
     pub market: Pubkey,
     pub market_state: &'a Market,
-    pub other_market_state: &'a Market,
+    pub other_market_state: Option<&'a Market>,
     pub nonce: u64,
     pub side: u8,
     pub lots: u64,
@@ -151,7 +151,7 @@ fn emit(
         slot,
         market: identity.market.key(),
         market_state: &identity.market,
-        other_market_state: &identity.other_market,
+        other_market_state: identity.other_market.as_deref().map(|market| &**market),
         nonce: intent.nonce,
         side: intent.side,
         lots: intent.lots,

@@ -1,4 +1,4 @@
-/** Active schema-5 causal ordering for the finalized journal.
+/** Active schema-6 causal ordering for the finalized journal.
  * Input must come from authenticated, complete finalized transaction envelopes.
  * A SQL commit still owns deduplication, payload projection and checkpointing. */
 export type EntityRevision={kind:number;revision:string};

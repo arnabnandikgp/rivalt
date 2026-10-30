@@ -394,7 +394,7 @@ The fresh P23 custody profile and active P25 risk checks remain distinct.
 
 Retirement is irreversible and requires either complete current-epoch resolution
 reconciliation or a canonical complete flat/no-orders/no-claims scan. The latter
-uses `RetirementCertificate`, schema 5, 80 bytes including discriminator,
+uses `RetirementCertificate`, schema 6, 80 bytes including discriminator,
 at `retirement-v3, venue`. Ordered fields are schema u16, revision u64, venue,
 safety epoch/membership version/scanned cash (three u64s), count/next (two u16s),
 complete/bump (two bytes). One/two read-only canonical roots are checked per

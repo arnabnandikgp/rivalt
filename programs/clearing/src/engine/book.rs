@@ -1,5 +1,5 @@
 //! Four orders and two protections belong to one root, with explicit market/generation binding.
-use super::account::{commit_model, live_order_authority, model};
+use super::account::{live_order_authority, model};
 use super::*;
 mod environment;
 use crate::{
@@ -270,7 +270,7 @@ fn add(
 
 fn finish(mut next: MarginAccount, environment: &Environment) -> Result<MarginAccount> {
     let accrued = checked(model(&next)?.accrued(environment.funding))?;
-    commit_model(&mut next, accrued)?;
+    super::markets::commit_model(&mut next, accrued, environment.markets)?;
     refresh_with_environment(&mut next, environment)?;
     model(&next)?
         .admissible(environment.risks())

@@ -117,7 +117,7 @@ export function getAccountFinancialChangedEventEncoder(): Encoder<AccountFinanci
       ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["roots", getArrayEncoder(getAddressEncoder())],
       ["rootStates", getArrayEncoder(getMarginAccountSnapshotEncoder())],
-      ["markets", getArrayEncoder(getMarketSnapshotEncoder(), { size: 2 })],
+      ["markets", getArrayEncoder(getMarketSnapshotEncoder())],
       [
         "ledgers",
         getArrayEncoder(getMarketLedgerSnapshotEncoder(), { size: 2 }),
@@ -144,7 +144,7 @@ export function getAccountFinancialChangedEventDecoder(): Decoder<AccountFinanci
       ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
       ["roots", getArrayDecoder(getAddressDecoder())],
       ["rootStates", getArrayDecoder(getMarginAccountSnapshotDecoder())],
-      ["markets", getArrayDecoder(getMarketSnapshotDecoder(), { size: 2 })],
+      ["markets", getArrayDecoder(getMarketSnapshotDecoder())],
       [
         "ledgers",
         getArrayDecoder(getMarketLedgerSnapshotDecoder(), { size: 2 }),

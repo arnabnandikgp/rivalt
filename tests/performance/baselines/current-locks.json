@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "8e00e3d05e20e94a58c5c6c591625a08bda7a5953f1f6f8bf635c937eca1a868",
+    "clearing": "41b12e4bfa225421001c33c067fa8a9c9efc603abb25284dcad65698c0ff1e19",
     "maker_a": "e1ff26a02f22416ed33bd545f4ddb1dc1140fe495d6963a8b8a39332e4e80679",
     "maker_b": "b2c70b3958835ebe428496efc4eb915ee2b4964165c610af3f1aa96a239ad126"
   },
@@ -80,6 +80,8 @@
         "fee_authority"
       ],
       "optional": [
+        "identity.btc",
+        "identity.eth",
         "user_token"
       ]
     },
@@ -226,6 +228,8 @@
         "actor"
       ],
       "optional": [
+        "identity.btc",
+        "identity.eth",
         "certificate"
       ]
     },
@@ -361,6 +365,7 @@
         "identity.actor"
       ],
       "optional": [
+        "identity.other_market",
         "second_capital",
         "second_registration",
         "second_program",
@@ -405,6 +410,7 @@
         "identity.actor"
       ],
       "optional": [
+        "identity.other_market",
         "second_capital",
         "second_registration",
         "second_program",
@@ -700,7 +706,10 @@
       "signers": [
         "receiver_owner"
       ],
-      "optional": []
+      "optional": [
+        "identity.btc",
+        "identity.eth"
+      ]
     },
     {
       "program": "clearing",
@@ -721,7 +730,10 @@
       "signers": [
         "actor"
       ],
-      "optional": []
+      "optional": [
+        "btc",
+        "eth"
+      ]
     },
     {
       "program": "clearing",
@@ -747,7 +759,10 @@
       "signers": [
         "owner"
       ],
-      "optional": []
+      "optional": [
+        "identity.btc",
+        "identity.eth"
+      ]
     },
     {
       "program": "clearing",
@@ -818,6 +833,8 @@
         "actor"
       ],
       "optional": [
+        "identity.btc",
+        "identity.eth",
         "certificate"
       ]
     },
@@ -1200,7 +1217,10 @@
       "signers": [
         "owner"
       ],
-      "optional": []
+      "optional": [
+        "identity.btc",
+        "identity.eth"
+      ]
     },
     {
       "program": "clearing",
@@ -1280,7 +1300,10 @@
       "signers": [
         "owner"
       ],
-      "optional": []
+      "optional": [
+        "identity.btc",
+        "identity.eth"
+      ]
     },
     {
       "program": "clearing",
@@ -1307,6 +1330,8 @@
         "fee_authority"
       ],
       "optional": [
+        "identity.btc",
+        "identity.eth",
         "user_token"
       ]
     },
@@ -1334,7 +1359,10 @@
       "signers": [
         "reserve_authority"
       ],
-      "optional": []
+      "optional": [
+        "identity.btc",
+        "identity.eth"
+      ]
     },
     {
       "program": "maker_a",

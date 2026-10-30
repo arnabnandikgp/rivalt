@@ -12,19 +12,31 @@ pub struct AccountFinancialIdentity<'info> {
     pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[0]], bump = btc.bump, has_one = venue,
         constraint = venue.markets[0] == btc.key() @ ClearingError::Profile)]
-    pub btc: Box<Account<'info, Market>>,
+    pub btc: Option<Box<Account<'info, Market>>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[1]], bump = eth.bump, has_one = venue,
         constraint = venue.markets[1] == eth.key() @ ClearingError::Profile)]
-    pub eth: Box<Account<'info, Market>>,
-    #[account(mut, seeds = [b"ledger-v3", btc.key().as_ref()], bump = btc_ledger.bump, has_one = venue,
-        constraint = btc_ledger.market == btc.key() && btc_ledger.market_index == 0 @ ClearingError::Profile)]
+    pub eth: Option<Box<Account<'info, Market>>>,
+    #[account(mut, seeds = [b"ledger-v3", venue.markets[0].as_ref()], bump = btc_ledger.bump, has_one = venue,
+        constraint = btc_ledger.market == venue.markets[0] && btc_ledger.market_index == 0 @ ClearingError::Profile)]
     pub btc_ledger: Box<Account<'info, MarketLedger>>,
-    #[account(mut, seeds = [b"ledger-v3", eth.key().as_ref()], bump = eth_ledger.bump, has_one = venue,
-        constraint = eth_ledger.market == eth.key() && eth_ledger.market_index == 1 @ ClearingError::Profile)]
+    #[account(mut, seeds = [b"ledger-v3", venue.markets[1].as_ref()], bump = eth_ledger.bump, has_one = venue,
+        constraint = eth_ledger.market == venue.markets[1] && eth_ledger.market_index == 1 @ ClearingError::Profile)]
     pub eth_ledger: Box<Account<'info, MarketLedger>>,
     #[account(mut, seeds = [b"vault-v3", venue.key().as_ref()], bump = venue.vault_bump,
         constraint = vault.owner == venue.key() && vault.mint == venue.quote_mint @ ClearingError::Mint)]
     pub vault: Box<Account<'info, TokenAccount>>,
+}
+
+impl AccountFinancialIdentity<'_> {
+    pub(crate) fn markets(&self) -> [Option<&Market>; 2] {
+        [self.btc.as_deref().map(|market| &**market), self.eth.as_deref().map(|market| &**market)]
+    }
+    pub(crate) fn materialize(&mut self, clock: &Clock) -> Result<()> {
+        trading::materialize_optional([
+            self.btc.as_deref_mut().map(|market| &mut **market),
+            self.eth.as_deref_mut().map(|market| &mut **market),
+        ], clock)
+    }
 }
 
 #[event_cpi]
