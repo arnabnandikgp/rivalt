@@ -16,7 +16,7 @@ planning checkpoint `84c46d4`, and separately requested a final README PR after 
 |---|---|---|
 | M11 consolidation | In progress | Component docs, canonical names, justified retirement and final README |
 | P35 component docs/handoff | Review | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50); 20 maintained docs, 93-line handoff, scoped checks pass |
-| P36 canonical names/ABI | In progress | Extract live records, rename current definitions and coupled IDL/SDK/consumers; preserve wire contract, rebuild/verify affected paths |
+| P36 canonical names/ABI | In progress | Canonical names/clients and unchanged wire contract verified; ready publication pending |
 | P37 legacy retirement/runtime | Open | Consumer audit, current launcher/API consolidation, retained independent cases and fresh financial/RPC/WS/PG/browser/resources |
 | P38 professional root README | Open | Separate final PR after P35–P37; concise product/architecture/quick-start/status entrypoint |
 | P15B independent maker validation | Open — external | Actual independent operator and economics; internal bots/assumed hedges cannot substitute |
@@ -43,36 +43,46 @@ ready and remains open. This following status update does not alter those contra
 No application, financial, SBF, RPC/WS/PostgreSQL, browser, load or endurance suite
 was rerun because this phase changes Markdown only.
 
-P36 has renamed current records, accounts, contexts, events, entrypoints and
-coupled generated/handwritten consumers. Shared identity/position/order records
-now live outside historical state modules. Current names pin the original
-account/event/instruction discriminator bytes; numeric schemas and seeds remain.
-Colliding older definitions have explicit compatibility names until P37 retirement.
-Persisted journal/API event tags remain unchanged.
+P36 current records/accounts/contexts/events/entrypoints and generated/handwritten
+consumers use canonical names, with shared identity/order/position records outside
+historical state modules. Explicit discriminator overrides preserve old wire bytes;
+numeric schemas, seeds, fees and authority remain. Persisted journal/API event tags
+retain their schema identities. P37 still owns live group-engine extraction and
+justified retirement; a suffix alone never established dead code.
 
-On the renamed working tree: all three Anchor IDLs build; the frozen 4 KiB ABI
-manifest matches parent `72187bc`; 11 mutation/compatibility guard checks, 9 native
-state/layout checks, 66 targeted SDK/indexer/UI tests and workspace typecheck pass.
-Generated-output parity and documentation link/path checks pass. Initial name/PDA
-collisions were corrected before these results. No financial arithmetic changed.
-Fresh SBF builds passed on clean source `cff1cf9` with no oversized stack frame.
-Clearing is 4,511,952 bytes; each maker is 382,864 bytes; the oracle hash is unchanged.
-Prior binaries/manifest remain under `.local/p36-pre-rename-artifacts`. The SDK pins
-the exact new candidate hashes. At `0e7851b`, independent SDK and both actual SBF
-makers each matched 3,172 pricing vectors (1,547 quotes / 1,625 expected rejects).
-The first publisher probe completed 84 signed RPC/WS outcomes and 8 reports, but
-its old `_v4` instruction selector captured zero instructions after renaming. Account/
-event parity passed; instruction parity was not accepted. The recorder now matches
-stable discriminators, rejects empty instruction coverage and has two focused checks.
-A corrected scoped publisher/route run remains required before Review. Broad inherited
-regression is assigned to scoped CI, not claimed as run locally.
+Renamed content/SBF source: `cff1cf946f4507c7df61797fbe016bef0a51453b`.
+Final scoped RPC/Anchor verifier: `53beba54dedbc588546b1373775620d3c2250be2`, clean.
+All three IDLs match the original wire manifest at `72187bc`; generator parity,
+typecheck, 11 ABI-guard checks, 9 native layout checks, 66 affected consumer tests
+and 2 recorder regressions pass. Independent pricing matches 3,172 vectors for
+each of SDK/SBF A/SBF B (1,547 quotes / 1,625 expected rejections). Source review
+found only identifier/module/discriminator changes, with no financial arithmetic edit.
+
+Actual corrected Surfpool probes: 84 publisher outcomes / 8 reports, then 125
+execution outcomes; 283 isolated Anchor instruction comparisons, 4 account and
+258 event comparisons in total. Publisher cases max 30,585 CU / 871 bytes / 14
+keys; route cases max 589,748 CU / 1,262 bytes v1 / 26 keys. Fee/cash/claim and
+consumption assertions pass. Raw evidence is at
+`.local/liquidity-execution/runs/p36-{publisher,execution}-53beba5/`.
+
+The first publisher run at `0e7851b` retained 84 actual outcomes but selected zero
+instructions for parity because of a stale name-suffix filter. It was not accepted
+as instruction evidence. The fixed recorder selects by discriminator, rejects empty
+coverage and passed a fresh run. Prior binaries/manifest remain at
+`.local/p36-pre-rename-artifacts`; the oracle binary is unchanged.
+
+No new full safety/default/PG/browser/full-book/endurance qualification is claimed.
+P37 owns the fresh integrated matrix after retirement. Broad inherited regression
+is delegated to scoped CI. PR #50's observed CI passed scope/financial; other jobs
+were skipped. Its automated review was skipped for the file-count limit; no external
+review approval is claimed for the consolidation stack.
 
 With explicit user approval, only the five older shared Solana compiler caches
 v1.41/v1.43/v1.48/v1.50/v1.51 were deleted; pinned v1.52 and all Rust installations,
 project data and evidence remain. Free space afterwards: 6.4 GiB.
 
-Next exact action: commit the renamed source/clients, rebuild the explicit local
-artifacts and qualify raw codecs plus actual route/publisher RPC resource bounds.
+Next exact action: publish the verified P36 ready PR above #50, then audit live
+legacy consumers and extract the shared engine before P37 retirement.
 
 ## Deployment and operational limits
 

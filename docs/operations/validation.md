@@ -3,7 +3,8 @@
 A pass applies to its exact code, binaries, environment and population. The
 consolidation baseline integrates P29–P34 at `b80bb38`, with complete tree equal to
 reviewed `9e6dd07`; documentation closeout is `1f1a5aa`. P35 changes documentation,
-not these program artifacts. P36/P37 must qualify rebuilt code separately.
+not these program artifacts. P36 adds the separately scoped rebuilt-code evidence
+below; P37 still requires fresh integrated qualification after retirement.
 [Original reports](../HISTORY.md) retain complete commands, failed attempts and pins.
 
 ## Checks by change
@@ -42,8 +43,9 @@ checks; current workflow selection lives in `ops/ci-scope.py`.
 | Stack review remediation | `791fb8d` | Real expiry/nonapplication/retry, 370 service originals, 174-event fresh PG replay and per-trader audit |
 | Self-review of skipped large PRs | `608f73c` | Unchanged final SBF artifacts; independent price vectors, compiled lifecycle and fresh publisher/execution RPC probes; not independent security approval |
 
-The recorded canonical SBF set is built at `6437f7d`; SDK artifact definitions and
-local manifests contain full hashes. P35 adds no build/deployment/soak claim.
+The historical canonical SBF set was built at `6437f7d`. The current P36 candidate
+is rebuilt from clean `cff1cf9`; SDK artifact definitions and local manifests pin
+its actual hashes. P35 adds no build/deployment/soak claim.
 Original P13/P14 devnet evidence is earlier behavior; neither the current profile
 nor v1 external-wallet compatibility inherits it.
 
@@ -124,3 +126,27 @@ These historical results remain pinned, not repeated by document consolidation.
   are not claimed by the recorded local results.
 - P15B/P16B remain Open; 24-hour endurance stays Deferred. Reserve sizing, real risk
   calibration and any funded pilot require their independent gates/authorization.
+
+## Canonical-name refactor qualification
+
+P36 preserves the three-program wire manifest captured at `72187bc`, including
+layouts, field/variant order, discriminator bytes, metas, seeds, errors and domains.
+Current source names are different; numeric schema and journal/API tags remain.
+SBF source `cff1cf9` builds without oversized stack diagnostics: clearing 4,511,952
+bytes, each maker 382,864, oracle fixture unchanged. This is a scoped refactor pass,
+not a rerun of the earlier full operating qualification.
+
+At clean `53beba5`, the corrected publisher and execution probes submit/fetch/decode
+84 and 125 actual RPC/WS outcomes. Isolated Anchor comparison covers 283 instruction
+payload/meta pairs, 4 accounts and 258 events. Publisher control/report cases peak
+at 30,585 CU, 871 bytes, 14 keys; routes at 589,748 CU, 1,262 bytes v1, 26 keys.
+These are scenario maxima; full-book/default/service contention is P37's gate.
+Independent Python/per-lot pricing agrees on 3,172 inputs for the current SDK and
+each actual rebuilt maker SBF, including 1,625 expected rejections per implementation.
+
+The first publisher run's zero-instruction name-filter selection was rejected as
+instruction-parity evidence. The harness now uses discriminator identity and fails
+empty coverage. Both runs remain local. P36 additionally checks native wire sizes,
+PDA/schema negatives, generated parity, typecheck and affected consumer projections.
+No PostgreSQL replay, new external wallet, endurance or external approval follows
+from these scoped tests. P37 must qualify its changed integrated implementation.

@@ -49,3 +49,10 @@ There is no changed fee, risk, loss ownership, insurance, publisher trust or act
 policy. Earlier keep-every-prototype source rules are superseded only for justified
 retirement under this plan. Existing remote deployments stay untouched. P15B/P16B
 remain Open and endurance Deferred; no external/funded activity is authorized.
+
+P36 implements this with explicit original discriminator attributes and a small
+name-independent wire manifest, not aliases over old current definitions. Shared
+records have one definition. Older colliding runtimes remain explicitly named until
+P37 audits their live consumers; the current adapter still uses the group engine.
+Stored journal/API event tags remain versioned schema identities, so a source
+rename does not rewrite historical rows or weaken profile checks.
