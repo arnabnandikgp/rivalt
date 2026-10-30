@@ -121,3 +121,64 @@ because the latter spans 27 event decoders and all 53 clearing entrypoints. A's
 acceptance cannot close B, and P41 depends on B. This is an implementation split
 within the authorized sequence, not new product scope. Both PRs remain stacked and
 open; current global on-chain coordination persists until its dependent changes.
+
+## D84 — scoped revisions and a fresh journal domain
+
+On 30 October 2026, P40B freezes the D82 successor's exact
+[account](clearing/accounts.md#scoped-history-contract-p40b)
+and [event/journal](application/durability.md#scoped-history-successor-contract-p40b)
+contracts before layout edits. Clearing-owned accounts move to schema 5 with local
+revisions and canonical discriminators; old state is not reinterpreted. The existing
+bounded profile/quote economics remain. Maker-owned quote accounts retain schema 4.
+Fresh local domain/genesis, explicit schema-bound clients and a fresh journal are
+required. Historical binaries, databases, signed originals and source remain intact.
+
+This supersedes custody-global event sequencing and its reconciliation fence, not
+cash/fee/liability/source/funding authority. Transaction-atomic read/write revision
+dependencies and complete finalized block fences replace it. No new globally
+writable discovery account is permitted. Pure sequence writers can become readonly;
+economic custody/market writers remain until their later accepted redesign.
+
+The terminal retirement scan currently depends on that global sequence. Replace
+this incidental dependency with an explicit existing-authority pause window bound
+to safety epoch and complete membership, preserving every liability/cash/reserve
+check. Permissionless scan calls cannot pause the venue. Ordinary own-cash exits
+acquire no new certificate. Audit all allowed paused mutations before acceptance.
+The complete resolved-header retirement branch remains separate.
+
+The P40B contract and isolated ordering tests do not activate new accounts/events.
+Require rebuilt ABI/SDK/SBF and actual RPC/WS/PostgreSQL acceptance; P40A, P16A and
+historical results cannot qualify the changed journal. External gates and deferred
+endurance are unchanged.
+
+P40B implementation detail: full account-body payloads retain the predecessor
+revision so the borrowed route/liquidation serializers remain byte-identical to
+owned IDL payloads without duplicating large account objects. A separate final
+footer advances the revision. The explicit ABI delta fixes 20 sequence-only custody
+meta reductions and the three zero-payload footer additions; imported financial
+types in maker IDLs advance with clearing, while maker-owned layouts stay unchanged.
+The successor remains restricted to its explicit local qualification artifact;
+[validation](operations/validation.md) records SDK/journal and compiled acceptance.
+Default/devnet financial gates remain unchanged.
+
+
+## D85 — qualify scoped history on Surfpool 1.7.0
+
+On 31 October 2026, the first P40B signed run reached a fill but correctly rejected
+its finalized block fence. A minimal independent RPC reproduction and the pinned
+1.6.1 source identify a runtime defect: stored blocks use relative synthetic hash
+indices, while reconstructed empty blocks use absolute slots. Adjacent finalized
+blocks therefore disagree on the previous hash. This is not a Rivalt revision gap.
+
+Use the official checksum-pinned **Surfpool 1.7.0** release for the remaining M12
+qualification. Its corrected reconstruction passes the mixed-block RPC probe;
+keep strict parent/hash checks and compare the separately requested signature
+manifest with each full block body so an omitted transaction cannot disappear
+silently. Preserve the 1.6.1 tool and historical evidence. No source-price, financial,
+fee, execution-authority or journal-completeness safeguard is relaxed. Framework,
+SBF compiler, dependency and database pins otherwise remain unchanged. P39's old
+runtime measurements remain historical inputs, not same-runtime performance proof.
+
+Primary source: [1.7.0 block reconstruction](https://github.com/solana-foundation/surfpool/blob/v1.7.0/crates/core/src/surfnet/svm.rs).
+The local reproduction is `.local/p40b-block-probe-170/blocks.json`; full P40B
+RPC/WS/PostgreSQL acceptance on this runtime is still required.

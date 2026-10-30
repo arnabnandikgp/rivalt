@@ -48,7 +48,7 @@ import {
 } from "@solana/kit";
 
 export const RETIREMENT_CERTIFICATE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([98, 43, 199, 95, 72, 186, 80, 231]);
+  new Uint8Array([219, 215, 122, 131, 244, 149, 119, 95]);
 
 export function getRetirementCertificateDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -59,10 +59,11 @@ export function getRetirementCertificateDiscriminatorBytes(): ReadonlyUint8Array
 export type RetirementCertificate = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   safetyEpoch: bigint;
   membershipVersion: bigint;
-  custodySequence: bigint;
   cash: bigint;
   count: number;
   next: number;
@@ -72,10 +73,11 @@ export type RetirementCertificate = {
 
 export type RetirementCertificateArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   safetyEpoch: number | bigint;
   membershipVersion: number | bigint;
-  custodySequence: number | bigint;
   cash: number | bigint;
   count: number;
   next: number;
@@ -89,10 +91,10 @@ export function getRetirementCertificateEncoder(): FixedSizeEncoder<RetirementCe
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["safetyEpoch", getU64Encoder()],
       ["membershipVersion", getU64Encoder()],
-      ["custodySequence", getU64Encoder()],
       ["cash", getU64Encoder()],
       ["count", getU16Encoder()],
       ["next", getU16Encoder()],
@@ -111,10 +113,10 @@ export function getRetirementCertificateDecoder(): FixedSizeDecoder<RetirementCe
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["safetyEpoch", getU64Decoder()],
     ["membershipVersion", getU64Decoder()],
-    ["custodySequence", getU64Decoder()],
     ["cash", getU64Decoder()],
     ["count", getU16Decoder()],
     ["next", getU16Decoder()],

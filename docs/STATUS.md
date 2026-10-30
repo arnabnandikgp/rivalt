@@ -1,6 +1,6 @@
 # Current status
 
-Updated 30 October 2026. This is the live handoff, not a cumulative run diary.
+Updated 31 October 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -15,9 +15,9 @@ the integration and preceding baselines.
 |---|---|---|
 | M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
 | P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
-| P40 scoped events/services | In progress | Split into two cohesive PRs under D83; umbrella acceptance requires A and B |
+| P40 scoped events/services | Review | A and B acceptance passed; awaiting stack integration |
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
-| P40B scoped event history | Planned | Atomic per-entity events, versioned ABI and finalized PG replay/reconciliation |
+| P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
@@ -175,8 +175,107 @@ part; no prior evidence is presented as a new pass.
 P40A is ready for review in [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56),
 stacked on #55. Accepted content is `0d124c1`; service runtime remains `9134fd6`.
 
-Next exact action: freeze P40B's scoped event/account revision contract on a new
-stack branch above #56 before program/indexer changes.
+P40B is on `performance/p40-scoped-history`, based on accepted P40A `f8984e0`.
+D84's schema-5 account revisions, bounded authenticated envelopes and canonical
+account/event discriminators now cover all 53 clearing entrypoints and 42 contexts.
+Twenty sequence-only custody metas become readonly. Explicit ABI delta checks
+against immutable P40A, generated SDK parity and the affected native/layout tests
+pass. SDK/SQL bindings reject old state; fresh domain/genesis/database are required.
+
+The active journal reconstructs whole transactions from scoped read/write revision
+dependencies and complete finalized block manifests. SQL format 2 atomically stores
+original blocks/transactions, envelopes, projection, revisions and local outbox
+cursor. Two account passes fence multichunk reconciliation; only relevant advances
+request bounded tail catch-up. Old global event sequence is removed from payloads.
+The maker economics consumer now uses explicitly labelled local stream cursors.
+
+Clean verifier **`02bbdec15a04b8cfea64ea63b4f8a098bfca7f56`** passes both journal
+and live indexer RPC/WS/PostgreSQL probes using SBF `ba2f15f`. Each fresh run verifies
+120 signed outcomes and identical 72-event replay, including four failed originals
+without financial effects. SQL rollback, byte-checked duplicates and restart pass.
+Live reconciliation checks 70 accounts/eight roots, 8,000,000 vault atoms and the
+independently checked 26-atom fee partition. Raw records remain in
+`.local/liquidity-execution/runs/p40b-journal-170/` and `p40b-indexer-02bbdec/`.
+
+D85 pins Surfpool 1.7.0 (core 4.3.2, feature 3383571666) after an independently
+reproduced 1.6.1 empty/stored-block parent-hash bug. Strict parent/hash checks remain;
+full blocks must also match separately requested signature manifests. The old
+runtime and P39 receipts remain intact; no same-runtime performance comparison is
+claimed. The failed first probe remains in `p40b-journal-first/`.
+
+The test-only external-CPI fixture rebuilds clearing through its oracle dependency;
+current clean SBF is **`6123dc8fc590e498ae98e8371f496f67424a32ad`**, allowlisted at
+`9d489ce`. All 108 affected native clearing tests pass; no oversized stack frame.
+Clean verifier **`7ac00b2925dc2d1dee85b139cb855e794d49aba4`** then passes 51 actual
+signed outcomes: two financial calls below one external CPI, later-call rollback,
+zero-payload storage, paused complete-member retirement, unpause/repause proof
+invalidation and a token-reconciled retired cash exit. PostgreSQL reconciles 32
+accounts/six members to 5,999,999 atoms and fresh replay is identical. Isolated
+Anchor checks 43 clearing instruction encodings, three accounts and 85 events,
+plus maker encoding/event parity. Evidence: `p40b-scoped-cpi-revision/`.
+The preceding attempts exposed a negative-test error-code mismatch, then a real
+projection bug initializing retirement revision after zero-payload storage; both
+are fixed with retained failed evidence and a targeted regression.
+
+Clean verifier `a44b26b` passes the same-slot extension: 57 signed outcomes, two
+three-transaction same-slot batches recorded at distinct canonical block positions,
+51-event fresh PostgreSQL replay, and unchanged exact terminal cash. The independent
+custody run also passes 57 signed outcomes and eight deliberate raw-state corruption
+rejections. Seven targeted snapshot/API/economics tests, 17 affected SDK/conformance
+cases, typecheck, generated parity and all three compiled default gates pass.
+
+The first affected liquidation/default run reached Apply but exhausted the 32 KiB
+heap after two row payloads and before the footer. Borrowing the resolution root
+snapshot and captured footer rows removes duplicate allocations; four borrowed
+payload parity tests and seven footer/header cases pass. Clean SBF **`304da5c`**
+builds default/qualified clearing without oversized frames (qualified 2,452,824
+bytes); it retains the default heap and unchanged CU ceilings/financial checks.
+Failed evidence remains in `p40b-safety-a44b26b/`.
+
+Clean verifier **`b495b386f069d55aac89e093f75f97bff078a370`** passes the rebuilt
+safety run: 290 signed outcomes (267 successes, 23 expected rejections), live
+TP/SL/reservations, strict post-fee liquidation, complete eight-root default,
+resolved cash exit and sustained recovery/reactivation. Independent raw-byte
+Fraction audit checks every exact payout and rejects ten corruptions. Maximum
+observed CU is 477,424; two-row Apply remains within the default heap and records
+at most 268,620 CU. Isolated Anchor checks 266 clearing encodings, two accounts and
+487 events plus both makers. This is scoped coverage, not P44's full resource bound.
+
+The same rebuilt artifact passes 57 actual same-slot/CPI/retirement outcomes,
+51-event PostgreSQL fresh replay and exact 5,999,999-atom exit reconciliation.
+All three compiled default gates still reject. Evidence stays in
+`.local/liquidity-execution/runs/p40b-safety-heap/` and `p40b-scoped-heap/`.
+A separate retained-receipt projection check compares the safety lifecycle at five
+boundaries; it is not a new live SQL/block-fence run. The capture omits only the
+trader portfolio, explicitly reported rather than fabricated. Current static
+inventory covers 61 entrypoints and 30 custody writers, down from 50 declared in
+P39; complete financial write contention remains for P41/P42.
+
+Typecheck, generated/ABI/source coverage and affected consumer tests pass. Broad
+unrelated/browser/endurance suites are omitted; CI owns broad regression and P44
+owns full fresh integrated qualification. P40B acceptance content is `df042ce`; [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58)
+is ready for review above #56. The retained safety projection verifier passes at
+that same clean commit. Owned RPC/WS/PG listeners and containers are confirmed
+stopped. Initial hosted client/financial/scope/shell jobs passed; report failed
+because its regression still compared schema-5 output directly with the immutable
+pre-change fixture. The regression now verifies both the original predecessor and
+the enumerated D84 delta, without refreshing the fixture; its CI checkout includes
+that predecessor. All 11 ABI regression cases and the explicit wire guard pass
+locally. The hosted recheck passed the ABI tests, then exposed the report fixture
+still embedding its cursor inside the financial payload. Moving the fixture cursor
+to its journal envelope preserves the literal cash/claim/fee expectations; all
+three report/availability reader tests now pass locally, including five financial
+corruption rejections. P41 rebuild preparation also found the private borrowed footer serializer derived
+an unsupported lifetime for Anchor IDL generation. Explicit ordered serialization
+fixes that build path: seven scoped/header/wire-parity tests pass and a fresh
+Anchor-built clearing IDL equals the accepted contract. Public fields and financial
+behavior do not change; this is an IDL-source repair, not a new SBF/RPC acceptance.
+Hosted recheck and integration remain pending; no production/throughput claim.
+P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on
+`96790ef` / `f8984e0`. No external access blocker remains.
+
+Next exact action: create P41 above #58 and implement its complete relevant-market
+dependency contract without waiting for the stack to merge.
 
 ## Deployment and operational limits
 

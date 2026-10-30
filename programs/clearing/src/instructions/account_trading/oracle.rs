@@ -7,7 +7,7 @@ pub struct InitializeAccountOracle<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
+    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
@@ -25,14 +25,12 @@ pub(crate) fn feed_indexes(market: u8) -> Result<[usize; 4]> {
 
 fn event(
     venue: &Account<Venue>,
-    custody: &mut Account<Custody>,
     market: &mut Account<Market>,
 ) -> Result<crate::events::AccountOracleChanged> {
-    increment(&mut custody.sequence)?;
     increment(&mut market.observation_sequence)?;
     Ok(crate::events::AccountOracleChanged {
         venue: venue.key(),
-        sequence: custody.sequence,
+
         slot: Clock::get()?.slot,
         market: market.key(),
         state: crate::events::MarketSnapshot::from(&**market),
@@ -42,7 +40,8 @@ fn event(
 /// Same source authority/state contract; profile-specific callers own activation
 /// gates. This does not admit profile4 to the legacy two-maker sampler.
 pub(crate) fn initialize_accounts(
-    ctx: Context<InitializeAccountOracle>,
+    ctx: &mut Context<InitializeAccountOracle>,
+    events: &mut crate::event_cpi::Payloads,
     primary: Pubkey,
     guard: Pubkey,
 ) -> Result<()> {
@@ -67,11 +66,10 @@ pub(crate) fn initialize_accounts(
         .config_epoch
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
-    emit_cpi!(event(
-        &ctx.accounts.venue,
-        &mut ctx.accounts.custody,
-        market
-    )?);
+    events.emit(
+        &(event(&ctx.accounts.venue, market)?),
+        ctx.accounts.event_authority.to_account_info(),
+    )?;
     Ok(())
 }
 

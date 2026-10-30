@@ -33,10 +33,12 @@ pub struct ResolutionRow {
     pub applied: bool,
 }
 
-#[account(discriminator = [184, 104, 232, 110, 0, 196, 59, 104])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct ResolutionPage {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub epoch: u64,
     pub page_index: u16,
@@ -45,10 +47,12 @@ pub struct ResolutionPage {
     pub bump: u8,
 }
 
-#[account(discriminator = [26, 10, 63, 147, 4, 145, 63, 14])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct Resolution {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub epoch: u64,
     pub stage: u8,
@@ -93,10 +97,12 @@ pub struct Resolution {
 
 /// Bounded continuation registers for arithmetic, proof scans and circulation.
 /// P26 verifies every opcode/cursor; caller data is not a trusted payout plan.
-#[account(discriminator = [128, 138, 12, 12, 59, 172, 62, 201])]
+#[account]
 #[derive(InitSpace)]
 pub struct ResolutionWork {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub epoch: u64,
     pub opcode: u8,
@@ -119,6 +125,7 @@ impl Default for ResolutionWork {
     fn default() -> Self {
         Self {
             schema_version: 0,
+            revision: 0,
             venue: Pubkey::default(),
             epoch: 0,
             opcode: 0,

@@ -25,7 +25,7 @@ export async function liquidityPriceSequence(rpc:Pick<Rpc,'call'>,authority:Liqu
   };
   const registration=decode(0,sdk.CLEARING_PROGRAM_ADDRESS,sdk.MAKER_REGISTRATION_DISCRIMINATOR,sdk.getMakerRegistrationDecoder());
   const key=getAddressEncoder();
-  if(registration.schemaVersion!==4||registration.venue!==authority.venue||registration.pricingProgram!==program
+  if(registration.schemaVersion!==5||registration.venue!==authority.venue||registration.pricingProgram!==program
     ||registration.instance>2)throw new Error('Foreign liquidity authority registration');
   const [registered,bump]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,
     seeds:[Buffer.from('maker-v4'),key.encode(registration.market),Uint8Array.of(registration.instance)]});

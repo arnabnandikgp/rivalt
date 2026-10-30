@@ -34,6 +34,8 @@ import {
 
 export type Venue = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   profileVersion: number;
   domain: ReadonlyUint8Array;
   authority: Address;
@@ -53,6 +55,8 @@ export type Venue = {
 
 export type VenueArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   profileVersion: number;
   domain: ReadonlyUint8Array;
   authority: Address | HasAddress;
@@ -73,6 +77,7 @@ export type VenueArgs = {
 export function getVenueEncoder(): FixedSizeEncoder<VenueArgs> {
   return getStructEncoder([
     ["schemaVersion", getU16Encoder()],
+    ["revision", getU64Encoder()],
     ["profileVersion", getU16Encoder()],
     ["domain", fixEncoderSize(getBytesEncoder(), 32)],
     ["authority", getAddressEncoder()],
@@ -94,6 +99,7 @@ export function getVenueEncoder(): FixedSizeEncoder<VenueArgs> {
 export function getVenueDecoder(): FixedSizeDecoder<Venue> {
   return getStructDecoder([
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["profileVersion", getU16Decoder()],
     ["domain", fixDecoderSize(getBytesDecoder(), 32)],
     ["authority", getAddressDecoder()],

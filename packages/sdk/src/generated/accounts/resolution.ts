@@ -60,7 +60,7 @@ import {
 } from "../types/index.js";
 
 export const RESOLUTION_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  26, 10, 63, 147, 4, 145, 63, 14,
+  31, 13, 235, 201, 17, 66, 5, 138,
 ]);
 
 export function getResolutionDiscriminatorBytes(): ReadonlyUint8Array {
@@ -70,6 +70,8 @@ export function getResolutionDiscriminatorBytes(): ReadonlyUint8Array {
 export type Resolution = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   epoch: bigint;
   stage: number;
@@ -114,6 +116,8 @@ export type Resolution = {
 
 export type ResolutionArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   epoch: number | bigint;
   stage: number;
@@ -162,6 +166,7 @@ export function getResolutionEncoder(): FixedSizeEncoder<ResolutionArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["epoch", getU64Encoder()],
       ["stage", getU8Encoder()],
@@ -211,6 +216,7 @@ export function getResolutionDecoder(): FixedSizeDecoder<Resolution> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["epoch", getU64Decoder()],
     ["stage", getU8Decoder()],
@@ -331,5 +337,5 @@ export async function fetchAllMaybeResolution(
 }
 
 export function getResolutionSize(): number {
-  return 3644;
+  return 3652;
 }

@@ -45,9 +45,11 @@ in the compiled result even when it is absent from the declared economic writes.
 No account is removed merely because it is also the payer. Future CPI privileges
 cannot exceed the outer message; returned events are not separate transactions.
 
-The current generated inventory finds 50 clearing entrypoints writing the same
-venue custody PDA. The remaining three are storage precreation (two read custody,
-one has no custody). This count includes setup, not 50 frequent runtime actions.
+P39's original generated inventory found 50 clearing entrypoints writing custody.
+P40B reduces that to 30 by removing twenty sequence-only write privileges. The
+current JSON inventory reflects the new IDL. Both counts include setup/rare actions;
+they are not counts of frequent runtime operations. The audit below records the
+pre-redesign findings and planned dispositions; validation tracks completed work.
 
 | Dependency | Evidence in current code | Classification / disposition |
 |---|---|---|

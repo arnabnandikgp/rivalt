@@ -3,7 +3,8 @@ use anchor_spl::token::{self, TransferChecked};
 use trading::authority::AccountGuard;
 
 pub fn withdraw(
-    ctx: Context<WithdrawFundedAccount>,
+    ctx: &mut Context<WithdrawFundedAccount>,
+    events: &mut crate::event_cpi::Payloads,
     guard: AccountGuard,
     amount: u64,
 ) -> Result<()> {
@@ -51,7 +52,7 @@ pub fn withdraw(
     if terminal {
         // A resolved/retired exit consumes no new funding interval and has no
         // artificial source dependency. Resolution has zeroed every claim.
-        increment(&mut accounts.identity.custody.sequence)?;
+
         super::super::account_custody::reconciled(
             &accounts.identity.custody,
             [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
@@ -62,6 +63,7 @@ pub fn withdraw(
     }
     emit(
         &accounts.identity,
+        events,
         accounts.event_authority.to_account_info(),
         accounts.owner.key(),
         0,
@@ -103,7 +105,8 @@ fn terminal_exit(
 }
 
 pub fn transfer(
-    ctx: Context<TransferFundedAccount>,
+    ctx: &mut Context<TransferFundedAccount>,
+    events: &mut crate::event_cpi::Payloads,
     guard: AccountGuard,
     amount: u64,
 ) -> Result<()> {
@@ -122,6 +125,7 @@ pub fn transfer(
     finish(&mut accounts.identity, &snapshot.clock)?;
     emit(
         &accounts.identity,
+        events,
         accounts.event_authority.to_account_info(),
         accounts.owner.key(),
         1,

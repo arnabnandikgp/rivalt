@@ -34,7 +34,7 @@ import {
 } from "@solana/kit";
 
 export const ACCOUNT_RESOLUTION_PROGRESS_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([95, 79, 7, 241, 6, 199, 46, 157]);
+  new Uint8Array([51, 194, 74, 72, 32, 172, 214, 90]);
 
 export function getAccountResolutionProgressEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -44,7 +44,6 @@ export function getAccountResolutionProgressEventDiscriminatorBytes(): ReadonlyU
 
 export type AccountResolutionProgressEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   epoch: bigint;
   processedStage: number;
@@ -58,7 +57,6 @@ export type AccountResolutionProgressEvent = {
 
 export type AccountResolutionProgressEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   epoch: number | bigint;
   processedStage: number;
@@ -75,7 +73,6 @@ export function getAccountResolutionProgressEventEncoder(): FixedSizeEncoder<Acc
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["epoch", getU64Encoder()],
       ["processedStage", getU8Encoder()],
@@ -95,7 +92,6 @@ export function getAccountResolutionProgressEventDecoder(): FixedSizeDecoder<Acc
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["epoch", getU64Decoder()],
       ["processedStage", getU8Decoder()],

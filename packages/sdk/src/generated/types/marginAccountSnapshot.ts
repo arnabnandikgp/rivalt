@@ -39,6 +39,7 @@ import {
 
 export type MarginAccountSnapshot = {
   schemaVersion: number;
+  revision: bigint;
   venue: Address;
   portfolio: Address;
   owner: Address;
@@ -61,6 +62,7 @@ export type MarginAccountSnapshot = {
 
 export type MarginAccountSnapshotArgs = {
   schemaVersion: number;
+  revision: number | bigint;
   venue: Address | HasAddress;
   portfolio: Address | HasAddress;
   owner: Address | HasAddress;
@@ -84,6 +86,7 @@ export type MarginAccountSnapshotArgs = {
 export function getMarginAccountSnapshotEncoder(): FixedSizeEncoder<MarginAccountSnapshotArgs> {
   return getStructEncoder([
     ["schemaVersion", getU16Encoder()],
+    ["revision", getU64Encoder()],
     ["venue", getAddressEncoder()],
     ["portfolio", getAddressEncoder()],
     ["owner", getAddressEncoder()],
@@ -108,6 +111,7 @@ export function getMarginAccountSnapshotEncoder(): FixedSizeEncoder<MarginAccoun
 export function getMarginAccountSnapshotDecoder(): FixedSizeDecoder<MarginAccountSnapshot> {
   return getStructDecoder([
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["portfolio", getAddressDecoder()],
     ["owner", getAddressDecoder()],

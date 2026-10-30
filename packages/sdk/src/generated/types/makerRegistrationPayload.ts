@@ -35,6 +35,7 @@ import {
 /** Event payload: identical field bytes without an account discriminator. */
 export type MakerRegistrationPayload = {
   schemaVersion: number;
+  revision: bigint;
   venue: Address;
   market: Address;
   capital: Address;
@@ -55,6 +56,7 @@ export type MakerRegistrationPayload = {
 
 export type MakerRegistrationPayloadArgs = {
   schemaVersion: number;
+  revision: number | bigint;
   venue: Address | HasAddress;
   market: Address | HasAddress;
   capital: Address | HasAddress;
@@ -76,6 +78,7 @@ export type MakerRegistrationPayloadArgs = {
 export function getMakerRegistrationPayloadEncoder(): FixedSizeEncoder<MakerRegistrationPayloadArgs> {
   return getStructEncoder([
     ["schemaVersion", getU16Encoder()],
+    ["revision", getU64Encoder()],
     ["venue", getAddressEncoder()],
     ["market", getAddressEncoder()],
     ["capital", getAddressEncoder()],
@@ -98,6 +101,7 @@ export function getMakerRegistrationPayloadEncoder(): FixedSizeEncoder<MakerRegi
 export function getMakerRegistrationPayloadDecoder(): FixedSizeDecoder<MakerRegistrationPayload> {
   return getStructDecoder([
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["market", getAddressDecoder()],
     ["capital", getAddressDecoder()],

@@ -18,6 +18,8 @@ import {
   getStructEncoder,
   getU16Decoder,
   getU16Encoder,
+  getU64Decoder,
+  getU64Encoder,
   getU8Decoder,
   getU8Encoder,
   type Address,
@@ -30,6 +32,7 @@ import {
 /** Event payload: identical field bytes without an account discriminator. */
 export type LiquidityRegistryPayload = {
   schemaVersion: number;
+  revision: bigint;
   venue: Address;
   market: Address;
   count: number;
@@ -40,6 +43,7 @@ export type LiquidityRegistryPayload = {
 
 export type LiquidityRegistryPayloadArgs = {
   schemaVersion: number;
+  revision: number | bigint;
   venue: Address | HasAddress;
   market: Address | HasAddress;
   count: number;
@@ -51,6 +55,7 @@ export type LiquidityRegistryPayloadArgs = {
 export function getLiquidityRegistryPayloadEncoder(): FixedSizeEncoder<LiquidityRegistryPayloadArgs> {
   return getStructEncoder([
     ["schemaVersion", getU16Encoder()],
+    ["revision", getU64Encoder()],
     ["venue", getAddressEncoder()],
     ["market", getAddressEncoder()],
     ["count", getU8Encoder()],
@@ -63,6 +68,7 @@ export function getLiquidityRegistryPayloadEncoder(): FixedSizeEncoder<Liquidity
 export function getLiquidityRegistryPayloadDecoder(): FixedSizeDecoder<LiquidityRegistryPayload> {
   return getStructDecoder([
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["market", getAddressDecoder()],
     ["count", getU8Decoder()],

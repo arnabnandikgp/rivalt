@@ -62,9 +62,9 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
       {status:'queued',reason:'awaited-complete-cohort-valuation'}:{status:'blocked',reason:'closeout-sources-unavailable'};
     if(header.stage>=2&&header.stage<=10) {
       const instruction=await accountResolutionInstruction(runtime,snapshot,continuation);
-      // Discovery sequence distinguishes a valid stage reset after a competing
+      // The resolution header revision distinguishes a stage reset after a competing
       // invalid proposal. It is a job identity only, never a signed cash guard.
-      const id=`page:${header.epoch}:${header.stage}:${header.cursor}:${header.evaluation}:${header.proposalUploaded}:${continuation.workState.limbCursor}:${snapshot.custodyState.sequence}`;
+      const id=`page:${header.epoch}:${header.stage}:${header.cursor}:${header.evaluation}:${header.proposalUploaded}:${continuation.workState.limbCursor}:${header.revision}`;
       return await submit(id,instruction,true)?{status:'queued',reason:'complete-account-resolution-step'}:
         {status:'blocked',reason:'resolution-step-simulation-rejected'};
     }
@@ -87,7 +87,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   for(const target of probes) {
     const instruction=sdk.getFreezeAccountsInstruction({...common,caller:key,target,safetyEpoch:snapshot.safetyState.epoch,
       resolutionEpoch:header.epoch,emergency:false});
-    if(await submit(`freeze:${header.epoch}:${target}:${snapshot.custodyState.sequence}`,instruction))return {status:'queued',reason:'authenticated-net-insolvency'};
+    if(await submit(`freeze:${header.epoch}:${target}:${snapshot.custodyState.revision}`,instruction))return {status:'queued',reason:'authenticated-net-insolvency'};
   }
   if(snapshot.safetyState.paused)return {status:'blocked',reason:'venue-paused-after-default-probes'};
   if(!receiver)return {status:'blocked',reason:'no-configured-funded-receiver'};

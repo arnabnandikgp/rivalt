@@ -6,14 +6,15 @@ fn fixture() -> (Venue, Market, FundingPublisher, FundingReport, Clock) {
         ..Venue::default()
     };
     let market = Market {
-        schema_version: 3,
+        schema_version: 5,
         config_epoch: 4,
         terms_epoch: 2,
         observation_sequence: 9,
         ..Market::default()
     };
     let configuration = FundingPublisher {
-        schema_version: 4,
+        schema_version: 5,
+        revision: 0,
         venue: Pubkey::new_unique(),
         market: Pubkey::new_unique(),
         publisher: Pubkey::new_unique(),
@@ -67,8 +68,8 @@ fn frozen_wire_widths_and_account_event_parity() {
     let (_, _, configuration, report, _) = fixture();
     let mut account_bytes = Vec::new();
     configuration.try_serialize(&mut account_bytes).unwrap();
-    assert_eq!(account_bytes.len(), 140);
-    assert_eq!(FundingPublisher::INIT_SPACE, 132);
+    assert_eq!(account_bytes.len(), 148);
+    assert_eq!(FundingPublisher::INIT_SPACE, 140);
     let mut payload_bytes = Vec::new();
     FundingPublisherPayload::from(&configuration)
         .serialize(&mut payload_bytes)

@@ -44,7 +44,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_SAFETY_RECOVERY_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([171, 93, 161, 145, 184, 243, 209, 202]);
+  new Uint8Array([108, 8, 13, 214, 186, 14, 93, 225]);
 
 export function getAccountSafetyRecoveryEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -54,7 +54,6 @@ export function getAccountSafetyRecoveryEventDiscriminatorBytes(): ReadonlyUint8
 
 export type AccountSafetyRecoveryEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   epoch: bigint;
   /** 0 observe, 1 resolved->custody, 2 explicit candidate reactivation. */
@@ -75,7 +74,6 @@ export type AccountSafetyRecoveryEvent = {
 
 export type AccountSafetyRecoveryEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   epoch: number | bigint;
   /** 0 observe, 1 resolved->custody, 2 explicit candidate reactivation. */
@@ -99,7 +97,6 @@ export function getAccountSafetyRecoveryEventEncoder(): FixedSizeEncoder<Account
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["epoch", getU64Encoder()],
       ["kind", getU8Encoder()],
@@ -125,7 +122,6 @@ export function getAccountSafetyRecoveryEventDecoder(): FixedSizeDecoder<Account
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["epoch", getU64Decoder()],
       ["kind", getU8Decoder()],

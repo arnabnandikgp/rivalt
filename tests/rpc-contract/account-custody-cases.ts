@@ -20,7 +20,7 @@ export async function accountCustodyCases(h: Harness) {
   const mint = await fixtureKey('p23-mint'), badMint = await fixtureKey('p23-bad-mint');
   const token = await fixtureKey('p23-token'), wrongOwnerToken = await fixtureKey('p23-wrong-owner-token');
   const deployment = await addresses();
-  const domain = createHash('sha256').update('rivalt/p23/fresh-two-market-custody').digest();
+  const domain = createHash('sha256').update('rivalt/p40b/schema5/fresh-two-market-custody').digest();
   const venue = await accountPda('venue-v3', domain);
   const registry = await accountPda('registry-v3', keyBytes.encode(venue));
   const vault = await accountPda('vault-v3', keyBytes.encode(venue));

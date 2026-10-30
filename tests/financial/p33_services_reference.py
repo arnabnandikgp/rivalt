@@ -15,9 +15,9 @@ def check_traders(state, openings, events):
     assert len(traders)==2
     identities={root['id']:key for key,root in state['roots'].items()}
     indexes=[int(opening['fundingIndexScaled']) for opening in openings]
-    sequence=int(openings[0]['sequence']);assert sequence==int(openings[1]['sequence'])
+    sequence=int(openings[0]['cursor']);assert sequence==int(openings[1]['cursor'])
     for event in events:
-        change=event['payload'];sequence+=1;assert int(change['sequence'])==sequence
+        change=event['payload'];sequence+=1;assert int(event['cursor'])==sequence
         for value in [change.get('marketState'),change.get('otherMarketState'),change.get('state'),*change.get('markets',[])]:
             if isinstance(value,dict) and 'fundingIndexScaled' in value:
                 market=value['index'];updated=int(value['fundingIndexScaled'])

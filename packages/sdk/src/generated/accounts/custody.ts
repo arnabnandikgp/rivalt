@@ -48,7 +48,7 @@ import {
 } from "@solana/kit";
 
 export const CUSTODY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  10, 141, 69, 218, 220, 92, 189, 65,
+  1, 184, 48, 81, 93, 131, 63, 145,
 ]);
 
 export function getCustodyDiscriminatorBytes(): ReadonlyUint8Array {
@@ -58,11 +58,11 @@ export function getCustodyDiscriminatorBytes(): ReadonlyUint8Array {
 export type Custody = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   totalCash: bigint;
   allocatedVault: bigint;
-  /** Event discovery order only; never an ordinary signed-intent prerequisite. */
-  sequence: bigint;
   /** Only market-dependent economic mutations invalidate gain certificates. */
   liabilityVersions: Array<bigint>;
   bump: number;
@@ -70,11 +70,11 @@ export type Custody = {
 
 export type CustodyArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   totalCash: number | bigint;
   allocatedVault: number | bigint;
-  /** Event discovery order only; never an ordinary signed-intent prerequisite. */
-  sequence: number | bigint;
   /** Only market-dependent economic mutations invalidate gain certificates. */
   liabilityVersions: Array<number | bigint>;
   bump: number;
@@ -86,10 +86,10 @@ export function getCustodyEncoder(): FixedSizeEncoder<CustodyArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["totalCash", getU64Encoder()],
       ["allocatedVault", getU64Encoder()],
-      ["sequence", getU64Encoder()],
       ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["bump", getU8Encoder()],
     ]),
@@ -102,10 +102,10 @@ export function getCustodyDecoder(): FixedSizeDecoder<Custody> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["totalCash", getU64Decoder()],
     ["allocatedVault", getU64Decoder()],
-    ["sequence", getU64Decoder()],
     ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["bump", getU8Decoder()],
   ]);

@@ -55,7 +55,7 @@ export async function qualificationServices(setup: QualificationSetup, transport
     await indexer.cycle();
     const opening = (await indexer.store.snapshot()).state, { binding } = await indexer.store.snapshot();
     const publicConfig = { chain: 'solana:localnet' as const, rpcUrl: base.rpcUrl, wsUrl: base.wsUrl, genesis: binding.genesis, anchor, anchorHash: binding.anchorHash, venue: setup.venue, mint: setup.mint.address, domain: binding.domain };
-    const client = new sdk.AccountUserClient({ ...publicConfig, version: 4, profile: 'liquidity-execution-qualification' });
+    const client = new sdk.AccountUserClient({ ...publicConfig, version: 4, accountSchema: 5, profile: 'liquidity-execution-qualification' });
     writeFileSync(`${directory}/public-deployment.json`, json(client.config));
     const runtime = new AccountRuntime(base.databaseUrl, runId, base.rpcUrl, 4);
     await runtime.open();
@@ -147,7 +147,7 @@ export async function qualificationServices(setup: QualificationSetup, transport
             await replay.close();
         }
         const intents = (await runtime.store.pool.query('SELECT request_id,signature,wire,status,budget,result,created_at,updated_at FROM service_intents WHERE run_id=$1 ORDER BY created_at', [runId])).rows;
-        const journal = (await indexer.store.pool.query('SELECT signature,kind,payload FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence', [runId, opening.sequence])).rows;
+        const journal = (await indexer.store.pool.query('SELECT sequence::text AS cursor,signature,kind,payload FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence', [runId, opening.sequence])).rows;
         const transactions = [];
         for (const intent of intents) {
             const payload = await rpc.call('getTransaction', [intent.signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]);

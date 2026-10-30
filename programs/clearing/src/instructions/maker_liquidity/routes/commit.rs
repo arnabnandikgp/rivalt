@@ -4,6 +4,7 @@ use crate::state::liquidity::ExecutedLeg;
 #[inline(never)]
 pub(super) fn apply(
     accounts: &mut ExecuteLiquidityRoute,
+    events: &mut crate::event_cpi::Payloads,
     intent: &RouteIntent,
     order_index: Option<usize>,
     clock: &Clock,
@@ -74,13 +75,14 @@ pub(super) fn apply(
         &mut accounts.identity.ledger,
         next.fee,
     )?;
-    increment(&mut accounts.identity.custody.sequence)?;
+
     crate::instructions::account_custody::reconciled(
         &accounts.identity.custody,
         [&accounts.identity.ledger, &accounts.identity.other_ledger],
         accounts.identity.vault.amount,
     )?;
     emit(
+        events,
         accounts,
         intent,
         order,
@@ -99,7 +101,6 @@ pub(super) fn apply(
 #[derive(AnchorSerialize)]
 pub(super) struct RouteEventView<'a> {
     pub venue: Pubkey,
-    pub sequence: u64,
     pub slot: u64,
     pub market: Pubkey,
     pub market_state: &'a Market,
@@ -125,6 +126,7 @@ pub(super) struct RouteEventView<'a> {
 
 #[inline(never)]
 fn emit(
+    events: &mut crate::event_cpi::Payloads,
     accounts: &ExecuteLiquidityRoute,
     intent: &RouteIntent,
     order: Option<crate::state::OrderRecord>,
@@ -145,7 +147,7 @@ fn emit(
     }
     let event = RouteEventView {
         venue: identity.venue.key(),
-        sequence: identity.custody.sequence,
+
         slot,
         market: identity.market.key(),
         market_state: &identity.market,
@@ -177,7 +179,7 @@ fn emit(
         liability_versions: identity.custody.liability_versions,
         legs,
     };
-    crate::event_cpi::emit_borrowed::<crate::events::LiquidityRouteExecuted, _>(
+    events.emit_borrowed::<crate::events::LiquidityRouteExecuted, _>(
         &event,
         accounts.event_authority.to_account_info(),
     )

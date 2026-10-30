@@ -1,5 +1,6 @@
 import * as sdk from '@rivalt/sdk';
 import {eventPayloads, json, PROGRAM, type JournalEvent} from './events.js';
+import {scopedInvocations, decodeTransition, type ScopedInvocation} from './scoped-events.js';
 import {integer} from './rpc.js';
 
 // Stable persisted journal/API tags retain their schema suffix; generated source
@@ -35,22 +36,51 @@ const decoders = [
  ] as const;
 export type AccountEvent = JournalEvent & {type: typeof decoders[number][0]};
 
-/** Shared financial schemas do not imply interchangeable deployment profiles. */
-export function decodeAccounts(signature: string, transaction: any, authority: string,
-  venue: string, program: string = PROGRAM, profile: 4 = 4): AccountEvent[] {
-  if (profile !== 4) throw new Error('Unsupported account event profile');
-  return eventPayloads(signature, transaction, authority, program).flatMap(({outer, inner, payload}) => {
-    const entry = decoders.find(([, discriminator]) => payload.subarray(0,8).equals(Buffer.from(discriminator)));
-    if (!entry) throw new Error('Unknown critical account event schema');
-    const [type, , decoder] = entry;
-    const [value, end] = decoder.read(payload, 0);
-    if (end !== payload.length) throw new Error('Trailing account event bytes');
-    const data = JSON.parse(json(value));
-    if (BigInt(data.slot) !== BigInt(transaction.slot)) throw new Error('Account event slot mismatch');
-    if (type === 'AccountCustodyChangedV3' && (data.schemaVersion !== 3 || data.profileVersion !== profile))
-      throw new Error('Unsupported account event version');
-    if (data.venue !== venue) return [];
-    return [{signature, outer, inner, ordinal:0, slot:transaction.slot,
-      blockTime:transaction.blockTime === null ? null : integer(transaction.blockTime), type, data, bytes:payload.toString('base64')}];
-  });
+export type AccountInvocation = ScopedInvocation & {events:AccountEvent[]};
+
+/** Inspection can derive a candidate domain from an emitted footer, but the
+ * complete ancestry/privileges are authenticated again before returning it.
+ * The persistent journal always supplies its immutable deployment binding. */
+export function eventDomain(signature:string,transaction:any,authority:string,venue:string,program:string=PROGRAM) {
+  const domains=new Set<string>();
+  for(const {payload} of eventPayloads(signature,transaction,authority,program)) {
+    if(!payload.subarray(0,8).equals(Buffer.from(sdk.ACCOUNT_TRANSITION_EVENT_DISCRIMINATOR)))continue;
+    const footer=decodeTransition(payload);if(footer.venue===venue)domains.add(footer.domain);
+  }
+  if(domains.size!==1)throw new Error('Missing or conflicting deployment domain');
+  return [...domains][0];
+}
+export function decodeAccountInvocations(signature:string,transaction:any,transactionIndex:number,
+  binding:{program:string;eventAuthority:string;venue:string;domain:string}):AccountInvocation[] {
+  return scopedInvocations(signature,transaction,transactionIndex,binding).map(invocation=>({
+    ...invocation,events:invocation.payloads.map(({inner,bytes},ordinal)=>{
+      const payload=Buffer.from(bytes,'base64');
+      const entry=decoders.find(([,tag])=>payload.subarray(0,8).equals(Buffer.from(tag)));
+      if(!entry)throw new Error('Unknown critical account event schema');
+      const [type,,decoder]=entry,[value,end]=decoder.read(payload,0);
+      if(end!==payload.length)throw new Error('Trailing account event bytes');
+      const data=JSON.parse(json(value));
+      if(BigInt(data.slot)!==invocation.slot||data.venue!==binding.venue)throw new Error('Account event slot/venue mismatch');
+      if(type==='AccountCustodyChangedV3'&&(data.schemaVersion!==5||data.profileVersion!==4||data.domain!==binding.domain))
+        throw new Error('Unsupported account event version/domain');
+      return {signature,outer:invocation.outer,inner,ordinal,slot:transaction.slot,
+        blockTime:transaction.blockTime===null?null:integer(transaction.blockTime),type,data,bytes};
+    })
+  }));
+}
+export function decodeAccounts(signature:string,transaction:any,authority:string,venue:string,
+  program:string=PROGRAM,profile:4=4):AccountEvent[] {
+  if(profile!==4)throw new Error('Unsupported account event profile');
+  if(transaction?.meta?.err!==null) {
+    if(!transaction?.meta||transaction.transaction?.signatures?.[0]!==signature||!Object.hasOwn(transaction.meta,'err'))
+      throw new Error('Missing transaction metadata/identity');
+    return [];
+  }
+  // Other venues have no effects in this view. Authentication remains mandatory
+  // when any footer claims the requested deployment.
+  const payloads=eventPayloads(signature,transaction,authority,program);
+  if(!payloads.some(({payload})=>payload.subarray(0,8).equals(Buffer.from(sdk.ACCOUNT_TRANSITION_EVENT_DISCRIMINATOR))
+    &&decodeTransition(payload).venue===venue))throw new Error('Missing scoped footer for deployment');
+  return decodeAccountInvocations(signature,transaction,0,{program,eventAuthority:authority,venue,
+    domain:eventDomain(signature,transaction,authority,venue,program)}).flatMap(invocation=>invocation.events);
 }

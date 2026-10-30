@@ -83,7 +83,7 @@ export type SealLiquidityInstruction<
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
       TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
+        ? ReadonlyAccount<TAccountCustody>
         : TAccountCustody,
       TAccountMarket extends string
         ? ReadonlyAccount<TAccountMarket>
@@ -270,7 +270,7 @@ export async function getSealLiquidityInstructionAsync<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     market: { value: input.market ?? null, isSigner: false, isWritable: false },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
@@ -524,7 +524,7 @@ export function getSealLiquidityInstruction<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     market: { value: input.market ?? null, isSigner: false, isWritable: false },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },

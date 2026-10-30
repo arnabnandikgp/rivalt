@@ -9,6 +9,13 @@ manifest. Public configuration cannot replace the SDK's executable allowlist.
 Qualify fresh build hashes before promoting them; preserve previous deployment
 manifests and unresolved original transactions.
 
+P40B uses clearing account schema 5 and SQL journal format 2 under a fresh local
+domain and genesis. Public configuration must specify `accountSchema: 5`. Canonical
+account/event discriminators and scoped revisions intentionally differ from P40A;
+use historical clients for retained old deployments and databases. There is no
+in-place account/journal conversion or automatic recovery of their signed originals
+through the new decoder. Maker-owned curve/price schemas remain 4.
+
 Earlier custody-only, successor, account-trading/cash/safety and devnet
 profiles use their original clients at the historical baseline, not this active
 source tree. Never combine local and

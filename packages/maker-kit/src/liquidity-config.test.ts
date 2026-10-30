@@ -4,7 +4,7 @@ import {address} from '@solana/kit';
 const key=address('11111111111111111111111111111111');
 const config=()=>({schemaVersion:4 as const,operatorClass:'internal-reference' as const,runId:'operator',databaseEnv:'RIVALT_DATABASE_URL',
   signerPath:'/private/operator.json',role:'maker' as const,marketIndex:0 as const,instance:2 as const,signer:key,
-  deployment:{version:4 as const,chain:'solana:localnet' as const,profile:'liquidity-execution-qualification' as const,
+  deployment:{version:4 as const,accountSchema:5 as const,chain:'solana:localnet' as const,profile:'liquidity-execution-qualification' as const,
     rpcUrl:'http://127.0.0.1:18941',wsUrl:'ws://127.0.0.1:18942',genesis:key,anchor:'1'.repeat(88),anchorHash:'a'.repeat(64),venue:key,mint:key,domain:'b'.repeat(64)}});
 describe('canonical operator configuration',()=>{
   it('binds three-instance internal workers to explicit qualified local deployment',()=>expect(liquidityOperatorConfig(config()).instance).toBe(2));

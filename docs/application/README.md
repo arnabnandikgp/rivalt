@@ -23,7 +23,7 @@ recovery. [Operator setup](../operations/deployment.md) gives actual entrypoints
 | Wallet, review, positions and receipts | [Trader application](../../apps/trader/src/) |
 | Local demo supervisor | [Local demo](../../packages/local-demo/src/) |
 
-The deployment uses `/v4` interfaces and profile 4 with schema-3 financial accounts.
+The fresh deployment uses `/v4` interfaces and profile 4 with schema-5 clearing accounts.
 The SDK, services, indexer, app and demo now select this one runtime explicitly;
 unknown or historical profiles reject. API/schema and persisted journal tags retain
 their existing identities. Historical clients remain at the immutable pre-retirement

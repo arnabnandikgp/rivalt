@@ -42,7 +42,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_ORDER_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([138, 63, 159, 244, 107, 190, 119, 30]);
+  new Uint8Array([31, 234, 218, 110, 227, 34, 21, 117]);
 
 export function getAccountOrderChangedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -52,7 +52,6 @@ export function getAccountOrderChangedEventDiscriminatorBytes(): ReadonlyUint8Ar
 
 export type AccountOrderChangedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   margin: Address;
   state: MarginAccountSnapshot;
@@ -62,7 +61,6 @@ export type AccountOrderChangedEvent = {
 
 export type AccountOrderChangedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   margin: Address | HasAddress;
   state: MarginAccountSnapshotArgs;
@@ -75,7 +73,6 @@ export function getAccountOrderChangedEventEncoder(): FixedSizeEncoder<AccountOr
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["margin", getAddressEncoder()],
       ["state", getMarginAccountSnapshotEncoder()],
@@ -91,7 +88,6 @@ export function getAccountOrderChangedEventDecoder(): FixedSizeDecoder<AccountOr
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["margin", getAddressDecoder()],
       ["state", getMarginAccountSnapshotDecoder()],

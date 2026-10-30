@@ -54,7 +54,7 @@ import {
 } from "../types/index.js";
 
 export const RESOLUTION_PAGE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [184, 104, 232, 110, 0, 196, 59, 104],
+  [57, 63, 171, 238, 101, 11, 188, 123],
 );
 
 export function getResolutionPageDiscriminatorBytes(): ReadonlyUint8Array {
@@ -66,6 +66,8 @@ export function getResolutionPageDiscriminatorBytes(): ReadonlyUint8Array {
 export type ResolutionPage = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   epoch: bigint;
   pageIndex: number;
@@ -76,6 +78,8 @@ export type ResolutionPage = {
 
 export type ResolutionPageArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   epoch: number | bigint;
   pageIndex: number;
@@ -90,6 +94,7 @@ export function getResolutionPageEncoder(): FixedSizeEncoder<ResolutionPageArgs>
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["epoch", getU64Encoder()],
       ["pageIndex", getU16Encoder()],
@@ -106,6 +111,7 @@ export function getResolutionPageDecoder(): FixedSizeDecoder<ResolutionPage> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["epoch", getU64Decoder()],
     ["pageIndex", getU16Decoder()],
@@ -201,5 +207,5 @@ export async function fetchAllMaybeResolutionPage(
 }
 
 export function getResolutionPageSize(): number {
-  return 3400;
+  return 3408;
 }

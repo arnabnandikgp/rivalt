@@ -196,3 +196,5 @@ pub use maker_liquidity::InitializeLiquidity;
 pub use maker_liquidity::QuarantineLiquidity;
 pub use maker_liquidity::RegisterLiquidity;
 pub use maker_liquidity::SealLiquidity;
+
+mod scopes;

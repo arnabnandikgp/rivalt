@@ -78,7 +78,7 @@ export type QuarantineLiquidityInstruction<
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
       TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
+        ? ReadonlyAccount<TAccountCustody>
         : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
@@ -255,7 +255,7 @@ export async function getQuarantineLiquidityInstructionAsync<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
@@ -481,7 +481,7 @@ export function getQuarantineLiquidityInstruction<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },

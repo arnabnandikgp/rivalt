@@ -5,8 +5,11 @@
 `AccountUserClient` validates version-4 local configuration, immutable artifact
 pins, genesis and the actual initialization signature/hash. Configuration includes
 RPC/WS URLs, venue, mint and domain. Never infer a deployment from a port or retained
-acceptance dump. Schema-3 financial layouts coexist with profile-4 maker/publisher
-state; unknown profiles reject. [Deployment](../operations/deployment.md) owns
+acceptance dump. The fresh P40B deployment requires explicit
+`accountSchema: 5` in addition to transport `version: 4` and the local profile;
+missing/old schema selection rejects. All clearing-owned decoders use schema 5,
+while maker-owned curve/price schemas stay 4. This is a fresh-domain/client change,
+not permission to upgrade retained state or replay old signed originals. [Deployment](../operations/deployment.md) owns
 artifact and key configuration; [routing](../liquidity/routing.md) owns snapshots.
 
 Public amounts are integer decimal strings with units; internal arithmetic uses
@@ -74,3 +77,9 @@ books are snapshots, and a daemon heartbeat does not refresh on-chain prices.
 Never describe insurance as guaranteed profit backing, reference makers as
 independent operators, or assumed hedges as observed costs. Instrumented local
 Wallet Standard browser evidence is distinct from external-provider compatibility.
+
+P40B's fresh account-schema-5 candidate retains API version 4 but requires
+`accountSchema: 5` in deployment configuration and API envelopes. `asOf.cursor`
+is the journal-local financial-payload cursor, `asOf.cursorScope` identifies that
+scope, and `asOf.blockhash`/`slot` identify its complete finalized block fence.
+Scoped revisions authenticate protocol history; UI pagination cursors do not.

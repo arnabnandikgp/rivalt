@@ -50,7 +50,7 @@ import {
 } from "@solana/kit";
 
 export const FUNDING_PUBLISHER_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([44, 251, 162, 245, 60, 52, 128, 8]);
+  new Uint8Array([111, 5, 110, 52, 241, 227, 75, 245]);
 
 export function getFundingPublisherDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -61,6 +61,8 @@ export function getFundingPublisherDiscriminatorBytes(): ReadonlyUint8Array {
 export type FundingPublisher = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   market: Address;
   publisher: Address;
@@ -74,6 +76,8 @@ export type FundingPublisher = {
 
 export type FundingPublisherArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   market: Address | HasAddress;
   publisher: Address | HasAddress;
@@ -91,6 +95,7 @@ export function getFundingPublisherEncoder(): FixedSizeEncoder<FundingPublisherA
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["market", getAddressEncoder()],
       ["publisher", getAddressEncoder()],
@@ -110,6 +115,7 @@ export function getFundingPublisherDecoder(): FixedSizeDecoder<FundingPublisher>
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["market", getAddressDecoder()],
     ["publisher", getAddressDecoder()],
@@ -213,5 +219,5 @@ export async function fetchAllMaybeFundingPublisher(
 }
 
 export function getFundingPublisherSize(): number {
-  return 140;
+  return 148;
 }

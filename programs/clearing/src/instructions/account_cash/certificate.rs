@@ -9,7 +9,7 @@ pub struct InitializeMarketBacking<'info> {
     pub payer: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
+    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
@@ -24,7 +24,7 @@ pub struct InitializeMarketBacking<'info> {
 pub struct CheckMarketBacking<'info> {
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
+    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
@@ -45,7 +45,11 @@ pub struct CheckMarketBacking<'info> {
     pub certificate: Box<Account<'info, SettlementCertificate>>,
 }
 
-pub fn initialize(ctx: Context<InitializeMarketBacking>, market_index: u8) -> Result<()> {
+pub fn initialize(
+    ctx: &mut Context<InitializeMarketBacking>,
+    events: &mut crate::event_cpi::Payloads,
+    market_index: u8,
+) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty() && market_index < 2,
         ClearingError::Profile
@@ -62,10 +66,10 @@ pub fn initialize(ctx: Context<InitializeMarketBacking>, market_index: u8) -> Re
         bump: ctx.bumps.certificate,
         ..Default::default()
     });
-    increment(&mut ctx.accounts.custody.sequence)?;
+
     emit_certificate(
         &ctx.accounts.certificate,
-        ctx.accounts.custody.sequence,
+        events,
         ctx.accounts.event_authority.to_account_info(),
     )
 }
@@ -235,7 +239,11 @@ pub(crate) fn debtor_mask(
     Ok(mask)
 }
 
-pub fn check(ctx: Context<CheckMarketBacking>, start: u16) -> Result<()> {
+pub fn check(
+    ctx: &mut Context<CheckMarketBacking>,
+    events: &mut crate::event_cpi::Payloads,
+    start: u16,
+) -> Result<()> {
     let accounts = &mut *ctx.accounts;
     profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
     registry_valid(&accounts.registry)?;
@@ -356,10 +364,10 @@ pub fn check(ctx: Context<CheckMarketBacking>, start: u16) -> Result<()> {
         );
         certificate.complete = true;
     }
-    increment(&mut accounts.custody.sequence)?;
+
     emit_certificate(
         certificate,
-        accounts.custody.sequence,
+        events,
         accounts.event_authority.to_account_info(),
     )
 }
@@ -367,13 +375,12 @@ pub fn check(ctx: Context<CheckMarketBacking>, start: u16) -> Result<()> {
 #[inline(never)]
 fn emit_certificate<'info>(
     certificate: &Account<SettlementCertificate>,
-    sequence: u64,
+    events: &mut crate::event_cpi::Payloads,
     authority: AccountInfo<'info>,
 ) -> Result<()> {
-    crate::event_cpi::emit(
+    events.emit(
         &crate::events::AccountBackingChanged {
             venue: certificate.venue,
-            sequence,
             slot: Clock::get()?.slot,
             certificate: certificate.key(),
             state: crate::events::BackingSnapshot::from(&**certificate),

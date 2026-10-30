@@ -394,16 +394,18 @@ The fresh P23 custody profile and active P25 risk checks remain distinct.
 
 Retirement is irreversible and requires either complete current-epoch resolution
 reconciliation or a canonical complete flat/no-orders/no-claims scan. The latter
-uses additive `RetirementCertificate`, schema 3, 80 bytes including discriminator,
-at `retirement-v3, venue`. Ordered fields after schema/venue are safety epoch,
-membership version, custody sequence, scanned cash (four u64s), count/next (two
-u16s), complete/bump (two bytes). One/two read-only canonical roots are checked per
-call; an empty venue has an explicit zero-row completion. Any intervening ordinary
-mutation invalidates the administrative proof. A valid completed or in-progress
+uses `RetirementCertificate`, schema 5, 80 bytes including discriminator,
+at `retirement-v3, venue`. Ordered fields are schema u16, revision u64, venue,
+safety epoch/membership version/scanned cash (three u64s), count/next (two u16s),
+complete/bump (two bytes). One/two read-only canonical roots are checked per
+call; an empty venue has an explicit zero-row completion. The venue authority must pause
+before scanning; every page and retirement bind the same paused safety epoch and
+membership version. Cash mutations reject during the window; unpause invalidates
+the proof. A valid completed or in-progress
 scan cannot be gratuitously replaced; a stale scan restarts from zero. Complete
 cash must match custody and both market gross exposures/pools must be zero.
 This global proof is exclusively for irreversible retirement; normal owner exits
-never depend on it. Operators can pause activity for this administrative action.
+never depend on it. The pause window is required for the flat-scan branch of this administrative action.
 
 Only venue authority may retire. Retired identities cannot resume, activate,
 register or accept deposits. Then only the distinct stored reserve authority may

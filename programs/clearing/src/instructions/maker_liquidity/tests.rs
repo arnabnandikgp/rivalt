@@ -3,23 +3,23 @@ use super::*;
 fn state() -> (Venue, Custody, VenueSafety, Market) {
     (
         Venue {
-            schema_version: 3,
+            schema_version: 5,
             profile_version: 4,
             market_count: 2,
             insurance_fee_share_bps: 2500,
             ..Default::default()
         },
         Custody {
-            schema_version: 3,
+            schema_version: 5,
             ..Default::default()
         },
         VenueSafety {
-            schema_version: 3,
+            schema_version: 5,
             mode: CUSTODY,
             ..Default::default()
         },
         Market {
-            schema_version: 3,
+            schema_version: 5,
             ..Default::default()
         },
     )
@@ -107,10 +107,11 @@ fn liquidity_sampling_controls_require_the_separate_candidate_and_refuse_frozen_
 
 #[test]
 fn liquidity_registry_layouts_match_the_frozen_contract() {
-    assert_eq!(LiquidityRegistry::INIT_SPACE + 8, 173);
-    assert_eq!(MakerRegistration::INIT_SPACE + 8, 333);
+    assert_eq!(LiquidityRegistry::INIT_SPACE + 8, 181);
+    assert_eq!(MakerRegistration::INIT_SPACE + 8, 341);
     let registration = MakerRegistration {
-        schema_version: 4,
+        schema_version: 5,
+        revision: 0,
         venue: Pubkey::default(),
         market: Pubkey::default(),
         capital: Pubkey::default(),
@@ -130,16 +131,17 @@ fn liquidity_registry_layouts_match_the_frozen_contract() {
     };
     let mut raw = Vec::new();
     registration.try_serialize(&mut raw).unwrap();
-    assert_eq!(raw.len(), 333);
-    assert_eq!(raw[298], 2);
-    assert_eq!(&raw[315..323], &5u64.to_le_bytes());
-    assert_eq!(&raw[331..333], &[1, 7]);
+    assert_eq!(raw.len(), 341);
+    assert_eq!(raw[306], 2);
+    assert_eq!(&raw[323..331], &5u64.to_le_bytes());
+    assert_eq!(&raw[339..341], &[1, 7]);
 }
 
 #[test]
 fn liquidity_event_payloads_preserve_account_field_bytes_without_discriminators() {
     let registry = LiquidityRegistry {
-        schema_version: 4,
+        schema_version: 5,
+        revision: 0,
         venue: Pubkey::new_unique(),
         market: Pubkey::new_unique(),
         count: 3,
@@ -148,7 +150,8 @@ fn liquidity_event_payloads_preserve_account_field_bytes_without_discriminators(
         bump: 254,
     };
     let registration = MakerRegistration {
-        schema_version: 4,
+        schema_version: 5,
+        revision: 0,
         venue: registry.venue,
         market: registry.market,
         capital: Pubkey::new_unique(),
@@ -172,12 +175,12 @@ fn liquidity_event_payloads_preserve_account_field_bytes_without_discriminators(
     LiquidityRegistryPayload::from(&registry)
         .serialize(&mut payload_bytes)
         .unwrap();
-    assert_eq!(&account_bytes[8..], payload_bytes);
+    assert_eq!(account_bytes[8..], payload_bytes);
     account_bytes.clear();
     payload_bytes.clear();
     registration.try_serialize(&mut account_bytes).unwrap();
     MakerRegistrationPayload::from(&registration)
         .serialize(&mut payload_bytes)
         .unwrap();
-    assert_eq!(&account_bytes[8..], payload_bytes);
+    assert_eq!(account_bytes[8..], payload_bytes);
 }

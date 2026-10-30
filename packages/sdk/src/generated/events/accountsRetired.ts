@@ -32,7 +32,7 @@ import {
 } from "@solana/kit";
 
 export const ACCOUNTS_RETIRED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([146, 20, 112, 36, 111, 171, 202, 245]);
+  new Uint8Array([115, 72, 22, 90, 30, 65, 4, 12]);
 
 export function getAccountsRetiredEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -42,7 +42,6 @@ export function getAccountsRetiredEventDiscriminatorBytes(): ReadonlyUint8Array 
 
 export type AccountsRetiredEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   safetyEpoch: bigint;
   termsEpoch: bigint;
@@ -54,7 +53,6 @@ export type AccountsRetiredEvent = {
 
 export type AccountsRetiredEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   safetyEpoch: number | bigint;
   termsEpoch: number | bigint;
@@ -69,7 +67,6 @@ export function getAccountsRetiredEventEncoder(): FixedSizeEncoder<AccountsRetir
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["safetyEpoch", getU64Encoder()],
       ["termsEpoch", getU64Encoder()],
@@ -87,7 +84,6 @@ export function getAccountsRetiredEventDecoder(): FixedSizeDecoder<AccountsRetir
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["safetyEpoch", getU64Decoder()],
       ["termsEpoch", getU64Decoder()],

@@ -21,10 +21,10 @@ async function fixture(freezeAccepted=false) {
   const keys=await accountWorkerKeys(venue);
   const [,resolutionBump]=await sdk.deriveVenueComponent(venue,'resolution');
   const [,workBump]=await sdk.deriveVenueComponent(venue,'resolution-work');
-  test.put(keys.resolution,sdk.getResolutionEncoder().encode({...test.empty(sdk.getResolutionDecoder()),schemaVersion:3,venue,bump:resolutionBump}));
-  test.put(keys.work,sdk.getResolutionWorkEncoder().encode({...test.empty(sdk.getResolutionWorkDecoder()),schemaVersion:3,venue,bump:workBump}));
+  test.put(keys.resolution,sdk.getResolutionEncoder().encode({...test.empty(sdk.getResolutionDecoder()),schemaVersion:5,revision:1n,venue,bump:resolutionBump}));
+  test.put(keys.work,sdk.getResolutionWorkEncoder().encode({...test.empty(sdk.getResolutionWorkDecoder()),schemaVersion:5,revision:1n,venue,bump:workBump}));
   const [,registryBump]=await sdk.deriveVenueComponent(venue,'registry');
-  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:3,venue,count:2,membershipVersion:1n,members:[target,receiver],bump:registryBump}));
+  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:5,revision:1n,venue,count:2,membershipVersion:1n,members:[target,receiver],bump:registryBump}));
   const submissions:{instructions:Instruction[];authority:AccountAuthority|null}[]=[];
   const runtime={rpc:test.rpc,riskProbeCursor:0,budget:async()=> 'risk-budget',pendingBudget:async()=>false,
     discovery:async()=>({state:{members:[target,receiver],roots:{[target]:distressed,[receiver]:capital}}}),

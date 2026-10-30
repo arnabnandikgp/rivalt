@@ -52,7 +52,7 @@ try {
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   const openingState=(await indexer.store.snapshot()).state;
   const {binding}=await indexer.store.snapshot();
-  const client=new sdk.AccountUserClient({version:4,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
+  const client=new sdk.AccountUserClient({version:4,accountSchema:5 as const,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
     genesis:binding.genesis,anchor,anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain});
   writeFileSync(`${directory}/public-deployment.json`,json(client.config));
   runtime=new AccountRuntime(databaseUrl,config.runId,config.rpcUrl,4);await runtime.open();
@@ -189,7 +189,7 @@ try {
   replay=new LiquidityIndexer({...config,databaseUrl:replayUrl.toString(),runId:'p33-service-replay'});await replay.open();await replay.cycle();
   assert.deepEqual((await replay.store.snapshot()).state,state);
   const intents=(await runtime.store.pool.query('SELECT request_id,signature,status,budget,result FROM service_intents WHERE run_id=$1 ORDER BY created_at',[config.runId])).rows;
-  const journal=(await indexer.store.pool.query('SELECT signature,kind,payload FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence',[config.runId,openingState.sequence])).rows;
+  const journal=(await indexer.store.pool.query('SELECT sequence::text AS cursor,signature,kind,payload FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence',[config.runId,openingState.sequence])).rows;
   const transactions=(await indexer.store.pool.query('SELECT signature,failed,payload FROM transactions WHERE run_id=$1',[config.runId])).rows;
   // Maker reprices have no clearing events, but their actual charged network
   // fees still belong in the operator report. Fetch every original independently.
@@ -199,9 +199,9 @@ try {
   }
   const economics=setup.instances.map((instance,offset)=>{
     const marketIndex=(offset<3?0:1) as 0|1,market=setup.markets[marketIndex],budget=`liquidity-maker-${marketIndex}-${offset%3}`;
-    const boundary=(projection:typeof state)=>({sequence:projection.sequence,root:projection.roots[instance.capital],
+    const boundary=(projection:typeof state)=>({cursor:projection.sequence,root:projection.roots[instance.capital],
       fundingIndexScaled:projection.markets[market].fundingIndexScaled,referencePrice:projection.markets[market].referencePrice});
-    const input={version:4 as const,operatorClass:'internal-reference' as const,capital:instance.capital,market,marketIndex,
+    const input={version:5 as const,operatorClass:'internal-reference' as const,capital:instance.capital,market,marketIndex,
       opening:boundary(openingState),closing:boundary(state),events:journal,
       transactions:transactions.map(tx=>({signature:tx.signature,feeLamports:String(tx.payload.meta.fee),failed:tx.failed,
         chargeToMaker:intents.some(intent=>intent.signature===tx.signature&&intent.budget===budget)})),

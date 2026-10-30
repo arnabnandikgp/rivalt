@@ -149,7 +149,7 @@ try {
   // Real process death after upstream acceptance tests committed reservations and
   // immutable-byte recovery, followed by independent token/cash reconciliation.
   const {binding}=await indexer.store.snapshot();
-  const client=new sdk.AccountUserClient({version:4,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,
+  const client=new sdk.AccountUserClient({version:4,accountSchema:5 as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,
     genesis:binding.genesis,anchor,anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain});
   const margin=setup.roots[0],owner=setup.traderOwner;
   const exit=await client.exit(await client.snapshot([margin]),owner.address,margin,setup.traderToken.address,7n);

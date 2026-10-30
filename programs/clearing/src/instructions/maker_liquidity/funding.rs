@@ -135,7 +135,7 @@ mod tests {
 
     fn market() -> Market {
         Market {
-            schema_version: 3,
+            schema_version: 5,
             venue: Pubkey::new_unique(),
             cross_eligible: true,
             lots_per_unit: 1_000_000,

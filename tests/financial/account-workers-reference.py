@@ -46,8 +46,8 @@ def audit(report):
         assert ledgers[market]['carry']==initial_ledgers[market]['carry'],'default preserves market fee carry'
     for index,key in enumerate(report['roots']):
         root=actual[key];assert all(lots==virtual==0 for lots,virtual,_ in root['positions'])
-        data=base64.b64decode(completed[key]);assert data[233:273]==bytes(40) and wire.integer(data,281)==0 and data[297:969]==bytes(672)
-        page=wire.account(completed,report['pages'][index//2],'ResolutionPage',3400);offset=53+(index%2)*1673
+        data=base64.b64decode(completed[key]);assert data[241:281]==bytes(40) and wire.integer(data,289)==0 and data[305:977]==bytes(672)
+        page=wire.account(completed,report['pages'][index//2],'ResolutionPage',3408);offset=61+(index%2)*1673
         assert wire.integer(page,offset+1664)==expected.cash[index] and page[offset+1672]==1
         for market in range(2):
             claim=wire.integer(page,offset+72+market*16,16,True)
@@ -70,15 +70,15 @@ def audit(report):
         equity=root['cash']*SCALE;requirement=0
         for index,(lots,virtual,checkpoint) in enumerate(root['positions']):
             market=base64.b64decode(raw[report['markets'][index]])
-            funding=wire.integer(market,76,16,True)
-            lower=wire.integer(market,124);upper=wire.integer(market,132)
+            funding=wire.integer(market,84,16,True)
+            lower=wire.integer(market,132);upper=wire.integer(market,140)
             claim=virtual-lots*(funding-checkpoint)+lots*(upper if lots<0 else lower)*SCALE
             equity+=min(claim,0);requirement+=(abs(lots)*upper+19)//20
         return max(requirement*SCALE-equity,0)
     assert deficit(step['after'],after[target])<deficit(step['before'],before[target]),'strict post-fee whole-account progress'
     assert before[target]['cash']+before[receiver]['cash']==after[target]['cash']+after[receiver]['cash']
     lots=before[target]['positions'][0][0]-after[target]['positions'][0][0]
-    price=wire.integer(base64.b64decode(step['after'][report['markets'][0]]),116)
+    price=wire.integer(base64.b64decode(step['after'][report['markets'][0]]),124)
     fee=min((lots*price+1999)//2000,10_000,before[target]['cash'])
     assert after[target]['cash']==before[target]['cash']-fee and after[receiver]['cash']==before[receiver]['cash']+fee
     for key,direction in [(target,-1),(receiver,1)]:
@@ -91,7 +91,7 @@ def audit(report):
 if __name__=='__main__':
     report=json.loads(Path(sys.argv[1]).read_text());count,augmentations=audit(report)
     rejected=0
-    for key,offset in [(report['roots'][0],113),(report['ledgers'][0],91),(report['ledgers'][0],99),(report['ledgers'][1],83),(report['vault'],64)]:
+    for key,offset in [(report['roots'][0],121),(report['ledgers'][0],99),(report['ledgers'][0],107),(report['ledgers'][1],91),(report['vault'],64)]:
         corrupt=copy.deepcopy(report);data=bytearray(base64.b64decode(corrupt['completedAccounts'][key]));data[offset]^=1
         corrupt['completedAccounts'][key]=base64.b64encode(data).decode()
         try:audit(corrupt)

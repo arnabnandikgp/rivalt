@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-test "$(surfpool --version)" = 'surfpool 1.6.1'
+test "$(surfpool --version)" = 'surfpool 1.7.0'
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18941}"
 export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18942}"
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
@@ -59,6 +59,7 @@ case "${RIVALT_LIQUIDITY_PROBE:?explicit probe required}" in
   performance) node --import tsx tests/performance/profile-rpc.ts ;;
   dispatch) node --import tsx tests/rpc-contract/dispatch-rpc.ts ;;
   safety) node --import tsx tests/rpc-contract/liquidity-safety-rpc.ts ;;
+  scoped-history) node --import tsx tests/rpc-contract/scoped-history-rpc.ts ;;
   journal) node --import tsx tests/rpc-contract/liquidity-journal-rpc.ts ;;
   indexer) node --import tsx tests/rpc-contract/liquidity-indexer-rpc.ts ;;
   services) node --import tsx tests/rpc-contract/liquidity-services-rpc.ts ;;
