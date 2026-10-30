@@ -209,7 +209,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       Object.assign(currentVenue(),pick(change,['termsEpoch','configEpoch']));
       Object.assign(custody(),pick(change,['totalCash','allocatedVault']));change.markets.forEach((value:any)=>market(value));break;
     case 'AccountRetirementProgressV3':
-      state.retirement={schemaVersion:5,revision:state.retirement?.revision??'0',venue,safetyEpoch:change.safetyEpoch,membershipVersion:change.membershipVersion,
+      state.retirement={schemaVersion:5,revision:state.retirement?.revision??Object.values(state.revisions).find(value=>value.kind===13)?.revision??'0',venue,safetyEpoch:change.safetyEpoch,membershipVersion:change.membershipVersion,
         cash:change.cash,count:change.count,next:change.next,complete:change.complete};break;
     case 'AccountsRetiredV3':
       if(safety().mode===3)present(state.resolution,'terminal resolution').stage=13;

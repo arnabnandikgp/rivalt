@@ -272,8 +272,12 @@ clearing dependency); maker binaries are unchanged. The first focused run on
 `9d489ce` passed nested CPI effects/rollback and epoch invalidation, then stopped
 because its negative test expected Profile instead of the actual Paused (6101)
 error. The fixture expectation is corrected; no financial rule changed. Its
-evidence remains `.local/liquidity-execution/runs/p40b-scoped-cpi/`. Complete
-compiled acceptance remains pending.
+evidence remains `.local/liquidity-execution/runs/p40b-scoped-cpi/`. The retry completed every signed retirement and cash-exit action but exposed a
+projection initialization bug: the first retirement payload incorrectly used
+revision zero after an earlier zero-payload storage creation. The projection now
+uses that account's authenticated predecessor; a focused regression covers the
+transition. Evidence remains in `p40b-scoped-cpi-retry/`. Complete compiled and
+replay acceptance of this fix remains pending.
 P40B is not yet in Review. Broader financial/default schema-reader integration and
 multichunk revision checks remain to audit before phase closeout.
 

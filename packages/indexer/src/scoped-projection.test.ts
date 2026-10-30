@@ -42,3 +42,15 @@ it('rolls back an earlier valid invocation when a later payload in the same tran
   const initial=emptyLiquidity();expect(()=>projectScopedBatch(initial,[second,first],binding)).toThrow(/duplicate initialization/);
   expect(initial).toEqual(emptyLiquidity());
 });
+
+it('uses the authenticated predecessor when a zero-payload storage account first emits financial progress',()=>{
+  const storage={...initialization(),signature:'storage',slot:2n,reads:[{account:venue,kind:0,revision:'1'}],
+    writes:[{account:'retirement',kind:13,before:'0',after:'1'}],events:[]};
+  const initial=projectScopedBatch(prepared(),[storage],binding).state;
+  expect(initial.retirement).toBeNull();expect(initial.revisions.retirement.revision).toBe('1');
+  const progress={...storage,signature:'progress',slot:3n,writes:[{account:'retirement',kind:13,before:'1',after:'2'}],
+    events:[{...initialization().events[0],type:'AccountRetirementProgressV3' as const,data:{venue,slot:'3',safetyEpoch:'2',membershipVersion:'1',cash:'0',count:0,next:0,complete:true}}]};
+  const result=projectScopedBatch(initial,[progress],binding).state;
+  expect(result.retirement).toEqual({schemaVersion:5,revision:'2',venue,safetyEpoch:'2',membershipVersion:'1',cash:'0',count:0,next:0,complete:true});
+  expect(result.sequence).toBe('2');expect(initial.retirement).toBeNull();
+});
