@@ -131,6 +131,48 @@ try {
     market:setup.markets[0],configuration:setup.configurations[0],expectedAuthority:publisher.authorityEpoch,
     publisher:address('11111111111111111111111111111111')})]);
   assert.equal((await setup.marketState(0)).fundingIndexScaled,persisted.fundingIndexScaled);
+  // Normal settlement uses the same optional context. The recipient is isolated
+  // ETH, but the complete-debtor certificate still needs a cross debtor's BTC.
+  const revoked=sdk.getFundingPublisherDecoder().decode((await h.read(setup.configurations[0]))!);
+  await h.send('P41 reauthorize for normal settlement',[sdk.getConfigureFundingPublisherInstruction({...setup.common,authority:setup.payer,
+    market:setup.markets[0],configuration:setup.configurations[0],expectedAuthority:revoked.authorityEpoch,publisher:setup.updater.address})]);
+  setup.sourcePrices.btc=61_000_000_000n;await setup.qualify();
+  const claimIdentity={...setup.common,btc:setup.markets[0],eth:setup.markets[1],actor:owner};
+  await h.send('P41 collect four whole ETH loss atoms',[sdk.getCollectAccountLossInstruction({...claimIdentity,margin:cross,marketIndex:1,amount:4n})],[owner]);
+  const backing=async(marketIndex:0|1)=>{
+    const [certificate]=await sdk.deriveSettlementCertificate(setup.venue,marketIndex);
+    await h.send('P41 initialize backing certificate',[sdk.getInitializeMarketBackingInstruction({...setup.common,payer:setup.payer,certificate,marketIndex})]);
+    const members=sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!).members;
+    for(let start=0;start<members.length;start+=2) {
+      const instruction=sdk.getCheckMarketBackingInstruction({...claimIdentity,certificate,ledger:setup.ledgers[marketIndex],start});
+      await h.send(`P41 complete backing ${marketIndex}/${start}`,[{...instruction,accounts:[...instruction.accounts,
+        ...members.slice(start,start+2).map(address=>({address,role:AccountRole.READONLY}))]}]);
+    }
+    const proof=sdk.getSettlementCertificateDecoder().decode((await h.read(certificate))!);assert(proof.complete);return {certificate,proof};
+  };
+  const ethProof=await backing(1);assert.equal(ethProof.proof.requiredMarketMask,3);
+  const gain=sdk.getPayAccountGainInstruction({...claimIdentity,margin:setup.instances[3].capital,
+    certificate:ethProof.certificate,marketIndex:1,amount:1n});
+  const beforePay=await root(setup.instances[3].capital);
+  await h.send('P41 gain cannot omit certificate BTC dependency',[omit(gain,setup.markets[0])],[owner],sdk.CLEARING_ERROR__ORDER_STATE);
+  assert.deepEqual(await root(setup.instances[3].capital),beforePay);
+  await h.send('P41 pay ETH gain with complete certificate union',[gain],[owner]);
+  assert.equal((await root(setup.instances[3].capital)).cash,beforePay.cash+1n);
+  await setup.sample();
+  await h.send('P41 close BTC into explicit positive unpaid claim',[await route(cross,0,1)],[owner]);
+  const closed=await root(cross);assert(closed.positions.every(position=>position.lots===0n));
+  assert(closed.positions[0].virtualScaled>994_000_000_000n&&closed.positions[1].virtualScaled<-1_000_000_000n);
+  await h.send('P41 collect funded BTC maker loss',[sdk.getCollectAccountLossInstruction({...claimIdentity,eth:undefined,
+    margin:setup.instances[0].capital,marketIndex:0,amount:1_000n})],[owner]);
+  const btcProof=await backing(0);
+  const net=sdk.getNetAccountClaimsInstruction({...claimIdentity,owner,margin:cross,certificate:btcProof.certificate,
+    guard:await guard(cross),sourceMarket:0,amount:1n});
+  await h.send('P41 flat netting requires both markets',[omit(net,setup.markets[1])],[owner],sdk.CLEARING_ERROR__ORDER_STATE);
+  assert.deepEqual(await root(cross),closed);
+  await h.send('P41 explicit one-atom flat closed-claim net',[net],[owner]);
+  const netted=await root(cross);assert.equal(netted.cash,closed.cash);
+  assert.equal(netted.positions[0].virtualScaled,closed.positions[0].virtualScaled-1_000_000_000n);
+  assert.equal(netted.positions[1].virtualScaled,closed.positions[1].virtualScaled+1_000_000_000n);
   await flush();
   const anchor=await initializationSignature(rpc,checks.map(check=>String(check.signature)),setup.deployment.eventAuthority);
   const config={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,runId:'p41-markets',venue:setup.venue,
@@ -158,13 +200,14 @@ try {
   const roots=await Promise.all([...setup.roots,ethOnly,...setup.instances.map(maker=>maker.capital)].map(root));
   const ledgers=await Promise.all(setup.ledgers.map(async key=>sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
   const markets=await Promise.all([0,1].map(setup.marketState));
-  assert.equal(roots.reduce((sum,account)=>sum+account.cash,0n),7_999_951n);
-  assert.deepEqual(ledgers.map(ledger=>[ledger.insurance,ledger.fees,ledger.insuranceFeeRemainder]),[[6n,20n,2],[5n,15n,0]]);
+  assert.equal(roots.reduce((sum,account)=>sum+account.cash,0n),7_998_935n);
+  assert.deepEqual(ledgers.map(ledger=>[ledger.insurance,ledger.fees,ledger.insuranceFeeRemainder]),[[9n,30n,3],[5n,15n,0]]);
   for(const index of [0,1]) {
     assert.equal(roots.reduce((sum,account)=>sum+account.positions[index].lots,0n),0n);
     assert.equal(roots.reduce((sum,account)=>{const position=account.positions[index];return sum+position.virtualScaled
-      -position.lots*(markets[index].fundingIndexScaled-position.fundingCheckpointScaled);},0n),0n);
+      -position.lots*(markets[index].fundingIndexScaled-position.fundingCheckpointScaled);},0n),ledgers[index].settlement*1_000_000_000n);
   }
+  assert.deepEqual(ledgers.map(ledger=>ledger.settlement),[999n,4n]);
   assert.equal(BigInt(reconciliation.actualVault),7_999_997n);
   const parity=await conformance.finish(directory,[],h.read);
   writeFileSync(`${directory}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),

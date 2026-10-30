@@ -18,7 +18,7 @@ the integration and preceding baselines.
 | P40 scoped events/services | Review | A and B acceptance passed; awaiting stack integration |
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
-| P41 relevant market dependencies | In progress | D86 freezes complete on-chain dependency unions and optional market contexts; no schema-6 activation/acceptance yet |
+| P41 relevant market dependencies | In progress | D86 implemented; signed market-dependency and full safety runs pass; normal claim/certificate/net acceptance pending |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
@@ -270,7 +270,7 @@ an unsupported lifetime for Anchor IDL generation. Explicit ordered serializatio
 fixes that build path: seven scoped/header/wire-parity tests pass and a fresh
 Anchor-built clearing IDL equals the accepted contract. Public fields and financial
 behavior do not change; this is an IDL-source repair, not a new SBF/RPC acceptance.
-Hosted recheck and integration remain pending; no production/throughput claim.
+All five applicable hosted jobs pass on `c0f0348` in [run 41125296305](https://github.com/arnabnandikgp/rivalt/actions/runs/41125296305). Integration remains pending; no production/throughput claim.
 P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on
 `96790ef` / `f8984e0`. No external access blocker remains.
 
@@ -281,37 +281,39 @@ Schema-6 SDK builders derive minimum dependencies; partial event projections
 preserve omitted markets. Treasury paths may also omit unused market inputs.
 Default/devnet gates and complete default/retirement contexts remain unchanged.
 
-All 112 affected native clearing cases pass on the current candidate, including
-independent fractional-claim, cash-exit and receiver-dependency checks. Eight
-affected SDK/service/projection files passed 49 cases; the schema literal fixture
-repair passes all seven transport cases, three maker economics cases, and the new
-market SDK/partial-projection checks pass 19 cases (overlapping prior coverage).
-Typecheck, source coverage, generated parity, eleven ABI guard regressions and
-the explicit D86 delta against immutable P40B pass. Failed first native/transport
-attempts are retained in `.local/p41-*.log`; their reserve-refresh ordering and
-schema literal issues are fixed. No new compiled/RPC/WS/PG result is claimed.
+All 112 affected native clearing cases passed before the added funding-expiry
+case; eight affected trading cases then passed including that independent case.
+Affected SDK/service/projection checks, typecheck, source coverage, generated parity,
+eleven ABI guard regressions and the explicit D86 delta against immutable P40B pass.
+The first SBF build rejected an order-handler stack offset of 4,336 bytes; borrowing
+typed market accounts removes duplicate snapshots. Clean SBF source `b0c5675` builds
+all qualified/default programs and IDLs without oversized frames. No heap/stack
+limit or financial check is relaxed. All three compiled default gates pass.
 
-The first dedicated dependency run passes at clean verifier `c4e7aa1`: 125
-signed outcomes, six actual omission cases, complete 77-event PostgreSQL replay,
-70-account reconciliation and exact 7,999,998-atom vault backing. Missing receiver,
-active-order, open-loss and flat-claim markets reject atomically. The same
-compiled artifact passes all three default gates. Raw evidence remains in
-`.local/liquidity-execution/runs/p41-dependencies-first/`. Explicit isolated ETH,
-negative held funding/expiry/revocation and protection coverage extend the next
-run; complete safety/default qualification is still pending. Existing P40B artifacts remain pinned pending the clean
-P41 rebuild. The first SBF build rejected the order handler at 4,336 bytes of stack
-offset (240 over the limit). Borrowing its typed market accounts removes duplicate
-market snapshots; no heap/stack limit or risk check is relaxed. A targeted negative
-funding/slot-expiry materialization case verifies the consumed prefix remains 80
-scaled units without touching ETH. Clean SBF source `b0c5675` now builds all qualified/default programs and IDLs
-without oversized frames; the explicit ABI delta and regenerated SDK match.
-The hash-measured candidate is pinned for fresh integrated qualification, still
-pending. Broad unrelated/browser/endurance suites are omitted; P41's affected
-compiled integration and P44's final qualification are still required.
+Clean verifier `078057a` passes the extended dependency RPC/WS/PostgreSQL run:
+137 signed outcomes, ten actual market omission cases, both isolated markets,
+complete 87-event fresh replay and 71-account/nine-member reconciliation. Exact
+vault backing is 7,999,997 atoms. Negative premium, consumed funding, actual hold
+expiry, cancellation and publisher revocation retain the independently calculated
+prefix. Missing receiver, active-order, open-loss and flat-claim markets reject
+atomically. Raw records are in `p41-dependencies-complete/` below the existing
+`.local/liquidity-execution/runs/` directory. The earlier 125-outcome run remains
+in `p41-dependencies-first/`.
 
-Next exact action: run the extended market-dependency RPC/WS/PostgreSQL probe
-and rebuilt liquidation/default acceptance, then open P41 above #58 and continue
-P42. No full-phase, throughput, endurance or funded qualification is claimed.
+The same clean verifier and compiled source pass full safety: 290 signed outcomes,
+23 expected rejections, TP/SL/reservations, strict post-fee liquidation, complete
+eight-root default, resolved cash exit and recovery/reactivation. Independent
+raw-byte Fraction audit verifies eight exact payouts and rejects ten corruptions.
+Retained-receipt projection matches five lifecycle boundaries (68 entities, one
+explicitly uncaptured portfolio); this is not a new SQL/block-fence run. Evidence:
+`p41-safety/`, `.local/p41-safety-financial.log` and `.local/p41-safety-projection.log`.
+Owned test listeners/containers have stopped. P41's ordinary claim/certificate/net
+extension typechecks but has not run yet. Broad unrelated/browser/endurance suites
+are omitted; P44 owns fresh full qualification.
+
+Next exact action: run the affected normal claim/certificate/net extension with
+actual RPC/WS/PostgreSQL, publish accepted P41 above #58, then continue P42. No
+full-phase, throughput, endurance or funded qualification is claimed.
 
 ## Deployment and operational limits
 

@@ -2,7 +2,7 @@
 
 ## Identity, deployment and authority
 
-- Fresh local venue/domain with `Venue.schema_version=5`, immutable
+- Fresh local venue/domain with `Venue.schema_version=6`, immutable
   `profile_version=4`; clearing accounts use schema 6 with scoped revisions.
   Maker-owned accounts/quote ABI retain version 4. No in-place profile-3 upgrade or account rewrite.
   The default/devnet build rejects profile-4 financial activation. An explicit local qualification build gates execution.
