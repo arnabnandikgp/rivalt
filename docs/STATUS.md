@@ -11,11 +11,11 @@ distinguishes historical evidence from the newly rebuilt consolidation candidate
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| M11 consolidation | In progress | P35–P37 in Review; final README acceptance/publication and stack integration remain |
+| M11 consolidation | Review | P35–P38 accepted and published; stack review/integration remain |
 | P35 component docs/handoff | Review | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50); component contracts, maintenance AGENTS and historical provenance |
 | P36 canonical names/ABI | Review | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51); current API names with preserved wire contract; hosted CI green |
 | P37 legacy retirement/runtime | Review | [PR #53](https://github.com/arnabnandikgp/rivalt/pull/53); current runtime and fresh integrated acceptance complete |
-| P38 professional root README | In progress | Concise product/design, verified local demo quick start, repository map and current documentation links |
+| P38 professional root README | Review | [PR #54](https://github.com/arnabnandikgp/rivalt/pull/54); 85-line professional entrypoint with scoped docs acceptance |
 | P15B independent maker validation | Open — external | Actual independent operator/economics; internal bots and assumed hedges cannot substitute |
 | P16B independent review/funded readiness | Open — external | Independent review, risk/reserve calibration and separate funded authorization |
 | Continuous 24-hour endurance | Deferred | No run scheduled or completion claimed |
@@ -75,19 +75,27 @@ No new load/latency comparison, endurance, external wallet, independent-maker,
 external review or current devnet/funded qualification is claimed. Dedicated indexer
 smoke was omitted because the broader services/operations runs exercise its current
 projection/rebuild and the journal run adds real SQL rollback/reverted-event checks.
-Broad client/native regression is delegated to P37 CI; its result is pending.
+P37's scope, client, financial, report and shell jobs all pass on `159ea27` in
+[run 41016415771](https://github.com/arnabnandikgp/rivalt/actions/runs/41016415771).
+Its automated reviewer skipped the large diff; no independent review is claimed.
 
 P37's accepted content is `1494881`; PR #53 is ready above #51. Initial GitHub push
 timed out; the retry succeeded without changing the content or stack relationships.
 
 P38 rewrites the root README around the current implementation and qualified local
 demo, with the component map and exact limits linked instead of duplicated phase
-history. The 85-line README and handoff pass 265 relative links/anchors, 112 immutable
+history. Clean content `9a59ca8` passes 265 relative links/anchors, 112 immutable
 historical targets, 42 source/command paths, whitespace and evidence-policy checks.
-Its scope is Markdown only; runtime/build/financial suites are not rerun.
+Its scope is Markdown only; runtime/build/financial suites are not rerun. PR #54 is
+ready above #53. The executable CI workflow's path filter does not run for this
+Markdown-only PR; its local checks are recorded, not described as a hosted pass.
 
-Next exact action: publish P38's separate ready PR above #53. Keep all PRs in the
-stack open.
+The ready stack is **#50 → #51 → #53 → #54**. All approved consolidation deliverables
+are complete within their recorded acceptance scopes. No merge has been requested
+for this stack.
+
+Next exact action: address actionable stack review feedback while keeping every
+PR open until a separate merge instruction. No new implementation phase is started.
 
 ## Deployment and operational limits
 
