@@ -16,6 +16,16 @@ CREATE TABLE IF NOT EXISTS service_budgets (
   spent bigint NOT NULL DEFAULT 0 CHECK(spent>=0),
   PRIMARY KEY(run_id,name), CHECK(committed+spent<=cap)
 );
+CREATE TABLE IF NOT EXISTS service_dispatch_contract (
+  run_id text PRIMARY KEY REFERENCES runs, version integer NOT NULL CHECK(version=1)
+);
+CREATE TABLE IF NOT EXISTS service_dispatch_access (
+  run_id text NOT NULL, request_id text NOT NULL, address text NOT NULL,
+  writable boolean NOT NULL,
+  PRIMARY KEY(run_id,request_id,address),
+  FOREIGN KEY(run_id,request_id) REFERENCES service_intents(run_id,request_id)
+);
+CREATE INDEX IF NOT EXISTS service_dispatch_resource ON service_dispatch_access(run_id,address);
 CREATE TABLE IF NOT EXISTS maker_heartbeats (
   run_id text NOT NULL REFERENCES runs, maker_id integer NOT NULL CHECK(maker_id IN (0,1)),
   owner text NOT NULL, process_id integer NOT NULL, seen_at timestamptz NOT NULL DEFAULT now(),

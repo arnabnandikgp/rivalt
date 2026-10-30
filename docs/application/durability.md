@@ -46,6 +46,42 @@ lamport budgets and heartbeat records are market/maker-specific; actual process/
 
 
 
+## Bounded dispatch and persistent account reservations
+
+P40A gives each executor two concurrent RPC lanes, retaining a 32-original due-work
+scan and spare capacity in its four-connection pool. Admission uses the complete
+static v0/v1 signed-message read/write set, including fee payer, program accounts
+and promoted writable aliases. ALT messages remain rejected. Read/read sharing is
+allowed; W/W and both W/R directions conflict. Authority metadata is not a substitute
+for the signed message's resource set. This is service scheduling, not a validator
+throughput or on-chain financial admission change.
+
+`service_dispatch_contract` binds each run to dispatcher version 1.
+`service_dispatch_access` stores `(run_id, request_id, address, writable)` with a
+foreign key to its immutable original. The same request cannot have two workers:
+a per-original PostgreSQL session advisory lock spans the pre-send commit and RPC
+step. Short shared/exclusive transaction advisory locks make conflict checking and
+resource reservation atomic across executors. Resource rows commit **before** any
+broadcast and survive process/connection death. Unrelated originals can progress.
+Conflicting attempts defer their due time without spending an attempt or changing
+the original's economic status; transport failures never cancel independent work.
+
+A send acknowledgement does not release access. Finalized success/failure releases
+resource reservations in the same transaction as its receipt and actual fee.
+Authenticated nonexecution after finalized expiry also releases resource access,
+but keeps the unknown fee reservation. Such an original is never broadcast again,
+even if a later RPC claims its blockhash valid. Absent proof retains access and can
+block that resource indefinitely; another independent resource can still progress.
+Direct wallet submissions outside this queue remain governed by on-chain locks and
+checks. Two executor processes do not each get to send the same active original.
+
+Deployment is additive SQL, with no account/event/financial wire change. Stop old
+executors first. An existing run without dispatcher version 1 is admitted only if
+it has no pending/unresolved originals; drain those with its previous pinned
+executor. Never manufacture leases or assume old ambiguous originals were not sent.
+Expired-proven originals retain their unknown fees. Existing journal identities and
+original wires are preserved; P40B owns the separate fresh event-domain migration.
+
 ## Maker expiry proof
 
 New profile-4 reprice originals retain the registered maker program, registration,

@@ -12,6 +12,7 @@ import type {LiquidityPriceAuthority} from './liquidity-authority.js';
 import {enqueueOperator} from './operator-enqueue.js';
 import {publicRequestId} from './quote-window.js';
 import type {LiquidityInputs} from './liquidity-inputs.js';
+import {boundedDispatch} from './dispatch.js';
 
 type OperatorRole='maker'|'funding'|'orders'|'settlement'|'risk';
 /** Local operator lamports only; never collateral, fees or market insurance. */
@@ -48,6 +49,7 @@ export class AccountExecution {
   async open() {
     await this.store.migrate();await this.store.pool.query(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));
     await this.store.pool.query(readFileSync(new URL('./liquidity-schema.sql',import.meta.url),'utf8'));await this.environment();
+    await this.queue.prepare();
   }
   async environment() {
     const {binding,state}=await this.store.snapshot();
@@ -77,6 +79,6 @@ export class AccountExecution {
     const computeUnitLimit=route?800_000:explicit?Buffer.from(explicit.data!).readUInt32LE(1):200_000;
     return enqueueOperator(this,id,economic,payer,budget,authority,preflight,{computeUnitLimit,loadedAccountsDataSizeLimit:8*1024*1024},inputs);
   }
-  async execute() {await this.environment();for(const id of await this.queue.pending())await this.queue.step(id);}
+  async execute() {await this.environment();await boundedDispatch(await this.queue.pending(),id=>this.queue.step(id));}
   async close() {await this.store.close();}
 }

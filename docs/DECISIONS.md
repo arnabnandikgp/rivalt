@@ -105,3 +105,19 @@ Keep concise bounded metric fixtures and reproducible harnesses in source, raw
 receipts/traces local and ignored. P44 freezes the pre-v2 comparison revision;
 framework migration is separate. Ready PRs are stacked and remain open. P15B/P16B,
 deferred endurance and authorization requirements for external/funded work persist.
+
+## D83 — durable service conflict admission before scoped history
+
+P40A implements D82's independent execution with two bounded RPC lanes and durable
+signed-message account reservations. Acknowledgements and process death cannot
+release an ambiguous original's resource or fee rights. Finalized receipts release
+both as applicable; authenticated expired nonexecution releases resources only.
+The PostgreSQL admission contract is version 1 and old pending originals must be
+drained by their previous executor before enabling it. No financial/on-chain ABI,
+fee, custody entitlement or maker authority changes.
+
+P40 is split into A (service transport) and B (scoped on-chain events and journal)
+because the latter spans 27 event decoders and all 53 clearing entrypoints. A's
+acceptance cannot close B, and P41 depends on B. This is an implementation split
+within the authorized sequence, not new product scope. Both PRs remain stacked and
+open; current global on-chain coordination persists until its dependent changes.

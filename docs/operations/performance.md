@@ -239,11 +239,18 @@ Technical feasibility does not prove maker profitability or future paid throughp
 | Phase | Cohesive deliverable | Acceptance |
 |---|---|---|
 | P39 | Complete access audit, executable focused baseline, financial/dependency contract and workload definitions | All current entrypoints inventoried; actual message locks verified; scoped fresh signed outcomes reconciled; limitations recorded |
-| P40 | Scoped event history, indexer/reconciliation and bounded independent execution | Missing/reordered/duplicate/failed events, recovery and fresh PG replay; new layouts/metas frozen before activation |
+| P40A | Bounded independent service execution and durable conflict admission | Actual concurrent RPC/PG dispatch, duplicate executors, unknown outcomes, expiry and crash recovery; no journal/ABI change |
+| P40B | Scoped event history and indexer/reconciliation | Missing/reordered/duplicate/failed events, recovery and fresh PG replay; new layouts/metas frozen before activation |
 | P41 | Relevant-market funding/risk dependencies | No omitted losing market; no lost/doubled consumed funding; expected isolated dependency sets and cross coupling |
 | P42 | Token custody/internal accounting and operation-specific contexts | Exact cash/fee/insurance/default conservation; concurrency targets; certificate liveness result and any residual windows |
 | P43 | Profile-driven CU optimizations | Affected cases improve or have explained tradeoffs; full financial admission and rollback remain |
 | P44 | Full integrated qualification, economic model and frozen B baseline | All supported cases measured on pinned code; actual RPC/WS/PG reconciliation and restart; reproducible resource/latency envelope and residual constraints |
+
+P40 is split into two cohesive PRs: service transport can be verified without a
+program rebuild, while scoped history changes 27 event decoders, 53 instruction
+contracts and the projection/reconciliation boundary. P40A does not satisfy P40B
+or remove global custody writes. This avoids coupling a transport failure to a
+financial ABI migration; P41 requires the completed P40B parent.
 
 Dependent phases use verified exact parents in ready stacked PRs; keep open until
 merge authorization. Split only a genuinely unreviewable phase using its suffix,

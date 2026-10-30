@@ -8,6 +8,7 @@ import {accountWorkerKeys} from './account-worker-state.js';
 import type {AccountRuntime} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
 import {Queue} from './queue.js';
+import {dispatchWire,dispatchMockRows} from '../test-support/dispatch-fixture.js';
 
 /** Encoded RPC consumer fixture: no claim of simulated financial acceptance. */
 async function fixture(freezeAccepted=false) {
@@ -47,8 +48,8 @@ it('attaches the signed receiver version to liquidation and proves only finalize
   // reimplementation of its decision. No unseen fee can be released.
   for(const state of ['unchanged','advanced','missing'] as const) {
     const calls:{sql:string;params:any[]}[]=[];
-    const intent={request_id:'liquidation',status:'pending',signature:'lost-original',wire:'saved-original',blockhash:'expired',budget:'risk-budget',authority:liquidation.authority};
-    const query=async(sql:string,params:any[]=[])=>{calls.push({sql,params});return {rows:sql.includes('FOR UPDATE SKIP LOCKED')?[intent]:[]};};
+    const intent={request_id:'liquidation',status:'pending',signature:'lost-original',wire:dispatchWire(),blockhash:'expired',budget:'risk-budget',authority:liquidation.authority};
+    const query=async(sql:string,params:any[]=[])=>{calls.push({sql,params});return {rows:dispatchMockRows(sql,intent)};};
     const root=sdk.getMarginAccountDecoder().decode(Buffer.from(test.accounts.get(test.receiver).data[0],'base64'));
     const bytes=sdk.getMarginAccountEncoder().encode({...root,stateVersion:state==='advanced'?28n:27n});
     const rpc={call:async(method:string,params:any[])=>{

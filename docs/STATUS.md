@@ -15,7 +15,9 @@ the integration and preceding baselines.
 |---|---|---|
 | M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
 | P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
-| P40 scoped events/services | Planned | Verified P39 parent; atomic per-entity event reconstruction, PG replay and independent execution |
+| P40 scoped events/services | In progress | Split into two cohesive PRs under D83; umbrella acceptance requires A and B |
+| P40A bounded service execution | In progress | Two RPC lanes and durable account reservations implemented; actual RPC/PG fault acceptance pending |
+| P40B scoped event history | Planned | Atomic per-entity events, versioned ABI and finalized PG replay/reconciliation |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
@@ -130,15 +132,25 @@ No SBF rebuild, broad financial suite or PostgreSQL run is warranted for these
 harness/docs changes. No full CU coverage, scheduler throughput, endurance or
 migration result is claimed. P40/P44 must supply their own integrated acceptance.
 
-Disk has about 790 MiB free; preserve research, keys, databases and evidence.
+Disk has fallen to about 270 MiB free; preserve research, keys, databases and evidence.
 P40's eventual SBF rebuild may need additional space; this is not a current P39
 blocker. No external access/product decision is pending.
 
 P39 is published ready for review as [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55).
 Measured harness is `0ac6511`; verified summary/acceptance content is `b810b13`.
 
-Next exact action: stack P40's scoped event/indexer and bounded execution work on
-P39's accepted exact parent; keep the stack open.
+P39 CI passes all five applicable hosted jobs on `2df1c30` in
+[run 41031665229](https://github.com/arnabnandikgp/rivalt/actions/runs/41031665229).
+P40A is based on that exact parent. It adds two bounded execution lanes and durable
+signed-message conflict reservations, with an explicit drain-before-upgrade gate.
+Fourteen targeted dispatch/expiry/liquidation-authority consumer cases and typecheck
+pass. The new actual RPC/WS/PostgreSQL driver is prepared but not yet run; no P40
+acceptance, throughput gain or event-schema migration is claimed. Program artifacts
+remain unchanged. Broad financial/build/browser tests are not relevant to this
+service-only part; the scoped integration must verify actual cash exit and replay.
+
+Next exact action: commit the P40A candidate and run `bash ops/dispatch-smoke.sh`
+on its recorded revision, subject to sufficient local disk for the owned database.
 
 ## Deployment and operational limits
 
