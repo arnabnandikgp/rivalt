@@ -27,7 +27,7 @@ def account(raw, key, name, size):
     assert name in {'Resolution','ResolutionPage','ResolutionWork','MarginAccount','Market','MarketLedger','Custody','VenueSafety'}
     data = base64.b64decode(raw[key])
     assert len(data) == size and data[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
-    assert integer(data, 8, 2) == 6 and integer(data, 10) > 0
+    assert integer(data, 8, 2) == 7 and integer(data, 10) > 0
     return data
 
 
@@ -61,13 +61,13 @@ def balanced(report, raw):
     for key in report['markets']:
         account(raw, key, 'Market', 455)
     for key in report['ledgers']:
-        account(raw, key, 'MarketLedger', 117)
-    custody = account(raw, report['custody'], 'Custody', 83)
+        account(raw, key, 'MarketLedger', 125)
+    custody = account(raw, report['custody'], 'Custody', 59)
     token_total = integer(base64.b64decode(raw[report['vault']]),64)
     for key in report['userTokens'] + [report['reserveDestination']]:
         token_total += integer(base64.b64decode(raw[key]),64)
     assert token_total == integer(base64.b64decode(raw[report['mint']]),36), 'actual tokens versus mint supply'
-    return integer(custody,50)
+    return sum(root(base64.b64decode(raw[key]))['cash'] for key in report['roots'])
 
 
 def audit(report):
@@ -121,8 +121,8 @@ def audit(report):
         assert integer(page,offset+1664) == expected.cash[index] and page[offset+1672] == 1
     assert balanced(report,completed) == sum(expected.cash) == finished['cash_applied']
     for index,key in enumerate(report['ledgers']):
-        before = account(frozen,key,'MarketLedger',117)
-        after = account(completed,key,'MarketLedger',117)
+        before = account(frozen,key,'MarketLedger',125)
+        after = account(completed,key,'MarketLedger',125)
         assert integer(after,83) == 0
         assert integer(after,91) == original['insurance'][index]-expected.insurance_spent[index]
         assert integer(after,99) == original['fees'][index] and after[107] == before[107]
@@ -191,10 +191,10 @@ def audit_liquidation(report,step):
     receiver_reserved=integer(base64.b64decode(after[receiver]),289)
     assert health(actual[receiver],1000)>=receiver_reserved*SCALE, 'receiver covers conservative IM and live reservations'
     for key in report['ledgers']:
-        old = account(before,key,'MarketLedger',117)
-        new = account(after,key,'MarketLedger',117)
-        # Declared writable ledger revisions advance even for no financial change.
-        assert old[:10] == new[:10] and old[18:] == new[18:], 'liquidation protocol fee/reserve mutation'
+        old = account(before,key,'MarketLedger',125)
+        new = account(after,key,'MarketLedger',125)
+        # Revision/liability stamps can advance; protocol fees/reserves cannot.
+        assert old[:10] == new[:10] and old[18:116] == new[18:116] and old[124:] == new[124:], 'liquidation protocol fee/reserve mutation'
     for key in [report['vault']]+report['userTokens']:
         assert before[key]==after[key], 'liquidation must not move SPL cash'
 

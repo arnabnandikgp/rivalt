@@ -1,6 +1,7 @@
 // Canonical implementation shared by both maker deployments. Instance != strategy.
 use maker_interface::canonical::{
-    self, CurveControl, CurveState, PriceState, MakerQuoteRequest, MakerQuoteResponse, LiquidityShape,
+    self, CurveControl, CurveState, LiquidityShape, MakerQuoteRequest, MakerQuoteResponse,
+    PriceState,
 };
 
 #[account(discriminator = [193, 186, 219, 30, 59, 114, 63, 19])]
@@ -111,13 +112,13 @@ fn initialize_curve(
     let capital = &ctx.accounts.capital;
     let clock = Clock::get()?;
     require!(
-        venue.schema_version == 6
+        venue.schema_version == 7
             && venue.profile_version == 4
             && venue.market_count == 2
-            && market.schema_version == 6
+            && market.schema_version == 7
             && market.index < 2
             && venue.markets[usize::from(market.index)] == market.key()
-            && capital.schema_version == 6
+            && capital.schema_version == 7
             && capital.mode == MODE_ISOLATED
             && capital.role == ROLE_MAKER
             && capital.isolated_market_index == market.index

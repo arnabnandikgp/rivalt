@@ -164,6 +164,61 @@ full-cohort resources and endurance are not rerun for this phase; P44 owns final
 integration and full profiling. Custody/ledger coupling and continuous-activity
 certificate progress remain P42. External/funded gates are unchanged.
 
+## Custody isolation acceptance (P42)
+
+D87's schema-7 implementation is qualified for its scoped local acceptance only.
+Clean SBF source **`6aeb7d0cf645fca889a9e3154ac01a129a72a6a8`** builds qualified and
+still-disabled default programs without oversized frames. Qualified clearing is
+2,482,344 bytes, SHA-256
+`d9c83864f5d3b0c5e7dcfa0100486335b1c96c583b62f9c68054318cf3169bcb`.
+The explicit D87 ABI delta against immutable P41, generated SDK, eleven ABI guard
+regressions, 53-entrypoint/43-context scope coverage and all three compiled default
+gates pass. Current static inventory covers 61 entrypoints and 20 custody writers.
+All 114 native clearing cases pass on final source. Seventy-one affected client,
+projection and Anchor cases pass; four dependency-builder cases overlap three of
+those, and one additional worker case verifies atomic final-page/payment enqueue.
+The separate custody conformance case passes eleven current instruction/meta
+comparisons against isolated Anchor; its obsolete context-name fixture is updated.
+
+| Clean verifier / local run | Actual acceptance |
+|---|---|
+| `569ed3e` / `p42-custody-distinct/` | 207 RPC/WS outcomes: 196 successes, 11 expected rejections; ten market omission cases, cross funding/claims, exact fractions/netting and atomic certificate/payment with later-instruction rollback. Fresh PostgreSQL replay matches 149 events; 75 accounts/ten members reconcile allocated/actual V=8,099,997 atoms |
+| `569ed3e` / `p42-safety/` | 290 outcomes: 267 successes, 23 expected rejections; TP/SL, reservations, strict post-fee liquidation, complete eight-root default, stale-source resolved cash exit and recovery/reactivation. Independent raw-byte Fraction audit verifies eight payouts and rejects ten corruptions |
+| `6fbc5d6` / `p42-journal-treasury/` | 124 signed outcomes, five expected rejections; selected-market T→I allocation and actual fee exit retain authority and exact carry. Real SQL write rollback, shutdown/RPC backfill, failed-effect exclusion and identical 74-event fresh replay; 121 clearing-discovered transactions, zero unresolved |
+| `6fbc5d6` / `p42-retirement/` | 63 outcomes, seven expected rejections; nested CPI/second-call rollback, two same-slot batches, pause-bound complete-member retirement, cash exit, wrong reserve authority/destination rejection and actual 11-atom selected reserve exit. Fresh 53-event SQL replay; 32 accounts/six members, actual/allocated V=5,999,999 |
+| `72e2d18` / `p42-custody-alias/` | 57 signed gateway outcomes, 25 committed custody events, independent SPL/root/pool identities and eight rejected raw-state corruptions. Isolated legacy Anchor account/event parity passes |
+
+All run directories above are under `.local/liquidity-execution/runs/`; logs remain
+`.local/p42-*`. Each run uses the same hash-verified SBF source. Safety's separate
+retained-receipt projection matches five lifecycle boundaries/68 entities with one
+explicitly uncaptured portfolio; this is not additional live SQL/block-fence evidence.
+
+Actual distinct-owner/payer BTC/ETH trades have no protocol **or complete-message**
+W/W or W/R overlap. Same-market exact fee/exposure ordering and genuinely cross
+roots still couple dependencies. Internal routes preserve custody/vault bytes.
+Atomic final-page/payment is **118,337 CU, 604 bytes**, including a beneficiary
+promoted writable by the later instruction. A later failed instruction rolls back
+both proof and payout. The worker queues both as one immutable original.
+
+Certificate progress has an explicit residual: **four constructed attempts** include
+three deliberately interleaved new source observations, all correctly rejected,
+and one coordinated-window completion. This is not normal offered availability,
+a trading load rate or proof of progress under unbounded sampling. Earlier scan
+pages still require stable relevant observations/liabilities; no stale payment or
+oracle relaxation is introduced. Funded own-cash withdrawal needs no certificate.
+
+Maximum observed CU is 274,817 in the dependency run and 479,015 in safety; treasury
+allocation/fee exit are 17,282/30,465 CU, retired reserve exit 33,493 CU. These are
+scoped observations, not P44 full-path bounds or validator TPS. The first dependency
+fixture correctly hit self-trade prohibition; a third independently funded owner
+fixes that fixture. The gateway's old seed-error expectation was corrected to
+Anchor's earlier duplicate-writable rejection (2040). Failed receipts remain local;
+no admission rule changed to obtain a pass.
+
+No broad unrelated, browser, full-cohort resource or endurance suite is rerun for
+P42. CI owns broad regression; P43/P44 own targeted optimization and fresh complete
+qualification. Default/devnet and external/funded gates remain unchanged.
+
 ## Qualified baseline and provenance
 
 | Scope | Actual tested pin(s) | Evidence boundary |

@@ -111,7 +111,10 @@ fn frozen(
     if header.stage <= APPLY {
         let ledgers = [&identity.btc_ledger, &identity.eth_ledger];
         require!(
-            identity.custody.total_cash == header.cash_before
+            account_custody::accounted_cash(
+                &identity.custody,
+                [&identity.btc_ledger, &identity.eth_ledger]
+            )? == header.cash_before
                 && identity.custody.allocated_vault == header.allocated_before
                 && ledgers.map(|ledger| ledger.settlement) == header.pools_before
                 && ledgers.map(|ledger| ledger.insurance) == header.insurance_before
@@ -121,7 +124,10 @@ fn frozen(
     } else {
         let ledgers = [&identity.btc_ledger, &identity.eth_ledger];
         require!(
-            identity.custody.total_cash == header.cash_applied
+            account_custody::accounted_cash(
+                &identity.custody,
+                [&identity.btc_ledger, &identity.eth_ledger]
+            )? == header.cash_applied
                 && identity.custody.allocated_vault == header.allocated_before
                 && ledgers.map(|ledger| ledger.settlement) == [0; 2]
                 && ledgers.map(|ledger| ledger.fees) == header.fees_before

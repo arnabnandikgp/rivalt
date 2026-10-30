@@ -1,21 +1,15 @@
 use super::*;
 
-pub(crate) fn execution_base(
-    venue: &Venue,
-    custody: &Custody,
-    safety: &VenueSafety,
-    market: &Market,
-) -> Result<()> {
+pub(crate) fn execution_base(venue: &Venue, safety: &VenueSafety, market: &Market) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && venue.schema_version == 6
+            && venue.schema_version == 7
             && venue.profile_version == 4
             && venue.market_count == 2
             && venue.insurance_fee_share_bps == 2500
-            && custody.schema_version == 6
-            && safety.schema_version == 6
+            && safety.schema_version == 7
             && matches!(safety.mode, CUSTODY | ACTIVE)
-            && market.schema_version == 6
+            && market.schema_version == 7
             && market.index < 2,
         ClearingError::Profile
     );
@@ -24,57 +18,40 @@ pub(crate) fn execution_base(
 
 pub(crate) fn execution_profile(
     venue: &Venue,
-    custody: &Custody,
     safety: &VenueSafety,
     market: &Market,
 ) -> Result<()> {
-    execution_base(venue, custody, safety, market)?;
+    execution_base(venue, safety, market)?;
     require!(!safety.paused, ClearingError::Paused);
     Ok(())
 }
 
 /// P30 binaries remain custody-only. P32's separate candidate can coordinate
 /// controls with held funding, but frozen/default resolution still rejects them.
-pub(crate) fn control_base(
-    venue: &Venue,
-    custody: &Custody,
-    safety: &VenueSafety,
-    market: &Market,
-) -> Result<()> {
+pub(crate) fn control_base(venue: &Venue, safety: &VenueSafety, market: &Market) -> Result<()> {
     if cfg!(feature = "liquidity-execution-qualification") {
-        execution_base(venue, custody, safety, market)
+        execution_base(venue, safety, market)
     } else {
-        custody_base(venue, custody, safety, market)
+        custody_base(venue, safety, market)
     }
 }
 
-pub(crate) fn custody_only(
-    venue: &Venue,
-    custody: &Custody,
-    safety: &VenueSafety,
-    market: &Market,
-) -> Result<()> {
-    custody_base(venue, custody, safety, market)?;
+pub(crate) fn custody_only(venue: &Venue, safety: &VenueSafety, market: &Market) -> Result<()> {
+    custody_base(venue, safety, market)?;
     require!(!safety.paused, ClearingError::Paused);
     Ok(())
 }
 
-pub(crate) fn custody_base(
-    venue: &Venue,
-    custody: &Custody,
-    safety: &VenueSafety,
-    market: &Market,
-) -> Result<()> {
+pub(crate) fn custody_base(venue: &Venue, safety: &VenueSafety, market: &Market) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && venue.schema_version == 6
+            && venue.schema_version == 7
             && venue.profile_version == 4
             && venue.market_count == 2
             && venue.insurance_fee_share_bps == 2500
-            && custody.schema_version == 6
-            && safety.schema_version == 6
+            && safety.schema_version == 7
             && safety.mode == CUSTODY
-            && market.schema_version == 6
+            && market.schema_version == 7
             && market.index < 2
             && market.funding_index_scaled == 0
             && market.gross_lots == 0
@@ -86,7 +63,7 @@ pub(crate) fn custody_base(
 
 pub(crate) fn capital_identity(capital: &MarginAccount, market: &Market) -> Result<()> {
     require!(
-        capital.schema_version == 6
+        capital.schema_version == 7
             && capital.venue == market.venue
             && capital.mode == MODE_ISOLATED
             && capital.role == ROLE_MAKER
@@ -189,16 +166,11 @@ pub(crate) fn authenticated_control(
     authority: u64,
     check_hash: bool,
 ) -> Result<CurveState> {
-    control_base(
-        &accounts.venue,
-        &accounts.custody,
-        &accounts.safety,
-        &accounts.market,
-    )?;
+    control_base(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(!accounts.safety.paused, ClearingError::Paused);
     capital_identity(&accounts.capital, &accounts.market)?;
     require!(
-        accounts.registration.schema_version == 6
+        accounts.registration.schema_version == 7
             && accounts.registration.authority_epoch == authority
             && authority > 0
             && accounts.registration.depth_epoch > 0

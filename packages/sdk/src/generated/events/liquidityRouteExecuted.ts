@@ -84,12 +84,11 @@ export type LiquidityRouteExecutedEvent = {
   carryBefore: number;
   carryAfter: number;
   ledger: MarketLedgerSnapshot;
+  otherLedger: Option<MarketLedgerSnapshot>;
   orderId: bigint;
   orderVersion: bigint;
   rootStates: Array<MarginAccountSnapshot>;
   makerStates: Array<MakerRegistrationPayload>;
-  totalCash: bigint;
-  liabilityVersions: Array<bigint>;
   legs: Array<ExecutedLeg>;
 };
 
@@ -109,12 +108,11 @@ export type LiquidityRouteExecutedEventArgs = {
   carryBefore: number;
   carryAfter: number;
   ledger: MarketLedgerSnapshotArgs;
+  otherLedger: OptionOrNullable<MarketLedgerSnapshotArgs>;
   orderId: number | bigint;
   orderVersion: number | bigint;
   rootStates: Array<MarginAccountSnapshotArgs>;
   makerStates: Array<MakerRegistrationPayloadArgs>;
-  totalCash: number | bigint;
-  liabilityVersions: Array<number | bigint>;
   legs: Array<ExecutedLegArgs>;
 };
 
@@ -137,12 +135,11 @@ export function getLiquidityRouteExecutedEventEncoder(): Encoder<LiquidityRouteE
       ["carryBefore", getU8Encoder()],
       ["carryAfter", getU8Encoder()],
       ["ledger", getMarketLedgerSnapshotEncoder()],
+      ["otherLedger", getOptionEncoder(getMarketLedgerSnapshotEncoder())],
       ["orderId", getU64Encoder()],
       ["orderVersion", getU64Encoder()],
       ["rootStates", getArrayEncoder(getMarginAccountSnapshotEncoder())],
       ["makerStates", getArrayEncoder(getMakerRegistrationPayloadEncoder())],
-      ["totalCash", getU64Encoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["legs", getArrayEncoder(getExecutedLegEncoder())],
     ]),
     [getConstantEncoder(LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR)],
@@ -168,12 +165,11 @@ export function getLiquidityRouteExecutedEventDecoder(): Decoder<LiquidityRouteE
       ["carryBefore", getU8Decoder()],
       ["carryAfter", getU8Decoder()],
       ["ledger", getMarketLedgerSnapshotDecoder()],
+      ["otherLedger", getOptionDecoder(getMarketLedgerSnapshotDecoder())],
       ["orderId", getU64Decoder()],
       ["orderVersion", getU64Decoder()],
       ["rootStates", getArrayDecoder(getMarginAccountSnapshotDecoder())],
       ["makerStates", getArrayDecoder(getMakerRegistrationPayloadDecoder())],
-      ["totalCash", getU64Decoder()],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
       ["legs", getArrayDecoder(getExecutedLegDecoder())],
     ]),
     [getConstantDecoder(LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR)],

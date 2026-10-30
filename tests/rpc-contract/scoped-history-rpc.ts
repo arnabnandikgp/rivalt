@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {AccountRole,type Instruction} from '@solana/kit';
-import {getTokenDecoder} from '@solana-program/token';
+import {findAssociatedTokenPda,getCreateAssociatedTokenInstruction,getMintToInstruction,TOKEN_PROGRAM_ADDRESS,getTokenDecoder} from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import {LiquidityIndexer} from '../../packages/indexer/src/liquidity-indexer.js';
 import {decodeAccountInvocations} from '../../packages/indexer/src/account-events.js';
@@ -32,6 +32,16 @@ try {
   const safetyState=async()=>sdk.getVenueSafetyDecoder().decode((await h.read(safety))!);
   const state=async()=>Promise.all([...roots,venue,custody,safety,certificate].map(async key=>(await h.read(key))?.toString('base64')??null));
   const transfer=(amount:bigint)=>sdk.getTransferAccountCustodyInstruction({...common,owner,donor:roots[0],recipient:roots[1],amount});
+  await h.send('P42 seed selected ETH reserve with actual donor tokens',[
+    getMintToInstruction({mint:setup.mint.address,token:setup.token.address,mintAuthority:payer,amount:11n}),
+    sdk.getSeedMarketInsuranceInstruction({...common,ledger:setup.ledgers[1],reserveAuthority:payer,donor:owner,
+      donorToken:setup.token.address,quoteMint:setup.mint.address,marketIndex:1,amount:11n})],[owner]);
+  const [reserveDestination]=await findAssociatedTokenPda({owner:payer.address,mint:setup.mint.address,tokenProgram:TOKEN_PROGRAM_ADDRESS});
+  await h.send('P42 create immutable reserve destination',[getCreateAssociatedTokenInstruction({payer,ata:reserveDestination,
+    owner:payer.address,mint:setup.mint.address})]);
+  const reserveExit=(authority=payer,destination=reserveDestination)=>sdk.getWithdrawRetiredReserveInstruction({...common,
+    ledger:setup.ledgers[1],reserveAuthority:authority,destination,quoteMint:setup.mint.address,marketIndex:1,amount:11n});
+  await h.send('P42 live insurance cannot be redeemed',[reserveExit()],[],sdk.CLEARING_ERROR__PROFILE);
   await flush();
   const sameSlot:{slot:number;signatures:string[]}[]=[];
   // A bounded broadcast barrier is a journal ordering probe, not scheduler TPS.
@@ -89,7 +99,17 @@ try {
     quoteMint:setup.mint.address,userToken:setup.token.address,amount:1n,guard:{safetyEpoch:(await safetyState()).epoch,
       venueTermsEpoch:venueState.termsEpoch,nonce:current.nonce,stateVersion:current.stateVersion}})],[owner]);
   assert.equal((await root()).cash,999_997n);assert.equal(getTokenDecoder().decode((await h.read(setup.token.address))!).amount,1n);
+  assert.equal(getTokenDecoder().decode((await h.read(setup.vault))!).amount,6_000_010n);
+  const reserveBefore=await Promise.all([custody,...setup.ledgers,setup.vault,reserveDestination].map(h.read));
+  await h.send('P42 reserve exit rejects unrelated owner',[reserveExit(owner)],[owner],sdk.CLEARING_ERROR__AUTHORITY);
+  await h.send('P42 reserve exit rejects foreign destination',[reserveExit(payer,setup.token.address)],[],sdk.CLEARING_ERROR__AUTHORITY);
+  assert.deepEqual(await Promise.all([custody,...setup.ledgers,setup.vault,reserveDestination].map(h.read)),reserveBefore);
+  const btcLedger=await h.read(setup.ledgers[0]);
+  await h.send('P42 terminal reserve exits through selected ledger only',[reserveExit()]);
+  assert.deepEqual(await h.read(setup.ledgers[0]),btcLedger);
+  assert.equal(getTokenDecoder().decode((await h.read(reserveDestination))!).amount,11n);
   assert.equal(getTokenDecoder().decode((await h.read(setup.vault))!).amount,5_999_999n);
+  assert.equal(sdk.getCustodyDecoder().decode((await h.read(custody))!).allocatedVault,5_999_999n);
   await flush();
   const wrapped=checks.find(value=>value.label==='P40B two financial calls beneath one external frame')!;
   const wrappedTx=await rpc.call('getTransaction',[wrapped.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
@@ -98,7 +118,7 @@ try {
   const anchor=await initializationSignature(rpc,checks.map(check=>String(check.signature)),common.eventAuthority);
   const config={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,runId:'p40b-scoped-history',venue,anchor,profile:'liquidity-execution-qualification' as const};
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();const snapshot=await indexer.store.snapshot(),reconciliation=await indexer.reconcile();
-  assert.equal(snapshot.state.custody!.totalCash,'5999999');assert.equal(snapshot.state.safety!.mode,4);
+  assert.equal(Object.values(snapshot.state.roots).reduce((sum, root) => sum + BigInt(root.cash), 0n),5999999n);assert.equal(snapshot.state.safety!.mode,4);
   assert.equal(snapshot.state.revisions[certificate].revision,proof.revision.toString());
   const sql=await indexer.store.pool.query(`SELECT count(*) FILTER (WHERE jsonb_array_length(payload->'events')=0) AS empty,
     count(*) FILTER (WHERE invocation=1) AS nested_second FROM envelopes WHERE run_id=$1`,[config.runId]);

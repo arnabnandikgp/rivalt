@@ -9,8 +9,6 @@ pub struct InitializeMarketBacking<'info> {
     pub payer: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
     #[account(init, payer = payer, space = 8 + SettlementCertificate::INIT_SPACE,
@@ -24,8 +22,6 @@ pub struct InitializeMarketBacking<'info> {
 pub struct CheckMarketBacking<'info> {
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
     #[account(seeds = [b"registry-v3", venue.key().as_ref()], bump = registry.bump, has_one = venue)]
@@ -54,11 +50,7 @@ pub fn initialize(
         ctx.remaining_accounts.is_empty() && market_index < 2,
         ClearingError::Profile
     );
-    profile(
-        &ctx.accounts.venue,
-        &ctx.accounts.custody,
-        &ctx.accounts.safety,
-    )?;
+    profile(&ctx.accounts.venue, &ctx.accounts.safety)?;
     ctx.accounts.certificate.set_inner(SettlementCertificate {
         schema_version: SCHEMA_VERSION,
         venue: ctx.accounts.venue.key(),
@@ -93,7 +85,7 @@ fn registry_valid(registry: &VenueRegistry) -> Result<()> {
 
 fn stamps(
     certificate: &SettlementCertificate,
-    custody: &Custody,
+    ledger: &MarketLedger,
     safety: &VenueSafety,
     registry: &VenueRegistry,
     snapshot: &Snapshot,
@@ -103,10 +95,13 @@ fn stamps(
     require!(
         certificate.schema_version == SCHEMA_VERSION
             && selected < 2
+            && ledger.schema_version == SCHEMA_VERSION
+            && ledger.venue == certificate.venue
+            && ledger.market_index as usize == selected
             && certificate.safety_epoch == safety.epoch
             && certificate.membership_version == registry.membership_version
             && certificate.count == registry.count
-            && certificate.liability_versions[selected] == custody.liability_versions[selected]
+            && certificate.liability_version == ledger.liability_version
             && certificate.required_market_mask < 4,
         ClearingError::ExitCohort
     );
@@ -130,6 +125,7 @@ pub(crate) fn certified(
     identity: &AccountFinancialIdentity,
     registry: &VenueRegistry,
     snapshot: &Snapshot,
+    ledger: &MarketLedger,
     selected: usize,
 ) -> Result<()> {
     require!(
@@ -151,13 +147,7 @@ pub(crate) fn certified(
     )
     .map_err(|_| error!(ClearingError::ExitCohort))?;
     require_keys_eq!(certificate.key(), expected, ClearingError::ExitCohort);
-    stamps(
-        certificate,
-        &identity.custody,
-        &identity.safety,
-        registry,
-        snapshot,
-    )
+    stamps(certificate, ledger, &identity.safety, registry, snapshot)
 }
 
 #[inline(never)]
@@ -168,7 +158,6 @@ fn member(
 ) -> Result<Box<MarginAccount>> {
     require!(
         info.owner == &crate::ID
-            && !info.is_writable
             && !info.is_signer
             && registry.members.get(index) == Some(info.key)
             && info.data_len() == 8 + MarginAccount::INIT_SPACE,
@@ -245,7 +234,7 @@ pub fn check(
     start: u16,
 ) -> Result<()> {
     let accounts = &mut *ctx.accounts;
-    profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
+    profile(&accounts.venue, &accounts.safety)?;
     registry_valid(&accounts.registry)?;
     let snapshot = Snapshot::new([&accounts.btc, &accounts.eth], &Clock::get()?)?;
     let certificate = &mut accounts.certificate;
@@ -257,7 +246,7 @@ pub fn check(
             !certificate.complete
                 || stamps(
                     certificate,
-                    &accounts.custody,
+                    &accounts.ledger,
                     &accounts.safety,
                     &accounts.registry,
                     &snapshot
@@ -270,7 +259,7 @@ pub fn check(
                 || certificate.complete
                 || stamps(
                     certificate,
-                    &accounts.custody,
+                    &accounts.ledger,
                     &accounts.safety,
                     &accounts.registry,
                     &snapshot
@@ -283,12 +272,12 @@ pub fn check(
         );
         certificate.safety_epoch = accounts.safety.epoch;
         certificate.membership_version = accounts.registry.membership_version;
-        certificate.liability_versions = accounts.custody.liability_versions;
-        certificate.observations = [snapshot.market(0)?, snapshot.market(1)?]
-            .map(|market| market.observation_sequence);
+        certificate.liability_version = accounts.ledger.liability_version;
+        certificate.observations =
+            [snapshot.market(0)?, snapshot.market(1)?].map(|market| market.observation_sequence);
         certificate.funding_bounds = snapshot.bounds;
-        certificate.source_deadlines = [snapshot.market(0)?, snapshot.market(1)?]
-            .map(|market| market.oracle.source_deadline);
+        certificate.source_deadlines =
+            [snapshot.market(0)?, snapshot.market(1)?].map(|market| market.oracle.source_deadline);
         certificate.required_market_mask = 0;
         certificate.count = accounts.registry.count;
         certificate.next = 0;
@@ -299,7 +288,7 @@ pub fn check(
     }
     stamps(
         certificate,
-        &accounts.custody,
+        &accounts.ledger,
         &accounts.safety,
         &accounts.registry,
         &snapshot,
@@ -323,7 +312,7 @@ pub fn check(
         certificate.required_market_mask |= debtor_mask(&root, &bounded, selected)?;
         stamps(
             certificate,
-            &accounts.custody,
+            &accounts.ledger,
             &accounts.safety,
             &accounts.registry,
             &bounded,

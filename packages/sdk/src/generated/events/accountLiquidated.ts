@@ -37,10 +37,14 @@ import {
 import {
   getMarginAccountSnapshotDecoder,
   getMarginAccountSnapshotEncoder,
+  getMarketLedgerSnapshotDecoder,
+  getMarketLedgerSnapshotEncoder,
   getMarketSnapshotDecoder,
   getMarketSnapshotEncoder,
   type MarginAccountSnapshot,
   type MarginAccountSnapshotArgs,
+  type MarketLedgerSnapshot,
+  type MarketLedgerSnapshotArgs,
   type MarketSnapshot,
   type MarketSnapshotArgs,
 } from "../types/index.js";
@@ -58,7 +62,6 @@ export type AccountLiquidatedEvent = {
   venue: Address;
   slot: bigint;
   safetyEpoch: bigint;
-  liabilityVersions: Array<bigint>;
   marketIndex: number;
   lots: bigint;
   price: bigint;
@@ -70,13 +73,13 @@ export type AccountLiquidatedEvent = {
   targetState: MarginAccountSnapshot;
   receiverState: MarginAccountSnapshot;
   markets: Array<MarketSnapshot>;
+  ledgers: Array<MarketLedgerSnapshot>;
 };
 
 export type AccountLiquidatedEventArgs = {
   venue: Address | HasAddress;
   slot: number | bigint;
   safetyEpoch: number | bigint;
-  liabilityVersions: Array<number | bigint>;
   marketIndex: number;
   lots: number | bigint;
   price: number | bigint;
@@ -88,6 +91,7 @@ export type AccountLiquidatedEventArgs = {
   targetState: MarginAccountSnapshotArgs;
   receiverState: MarginAccountSnapshotArgs;
   markets: Array<MarketSnapshotArgs>;
+  ledgers: Array<MarketLedgerSnapshotArgs>;
 };
 
 /** Gets the encoder for {@link AccountLiquidatedEventArgs} event data. */
@@ -97,7 +101,6 @@ export function getAccountLiquidatedEventEncoder(): Encoder<AccountLiquidatedEve
       ["venue", getAddressEncoder()],
       ["slot", getU64Encoder()],
       ["safetyEpoch", getU64Encoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["marketIndex", getU8Encoder()],
       ["lots", getU64Encoder()],
       ["price", getU64Encoder()],
@@ -109,6 +112,7 @@ export function getAccountLiquidatedEventEncoder(): Encoder<AccountLiquidatedEve
       ["targetState", getMarginAccountSnapshotEncoder()],
       ["receiverState", getMarginAccountSnapshotEncoder()],
       ["markets", getArrayEncoder(getMarketSnapshotEncoder())],
+      ["ledgers", getArrayEncoder(getMarketLedgerSnapshotEncoder())],
     ]),
     [getConstantEncoder(ACCOUNT_LIQUIDATED_EVENT_DISCRIMINATOR)],
   );
@@ -121,7 +125,6 @@ export function getAccountLiquidatedEventDecoder(): Decoder<AccountLiquidatedEve
       ["venue", getAddressDecoder()],
       ["slot", getU64Decoder()],
       ["safetyEpoch", getU64Decoder()],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
       ["marketIndex", getU8Decoder()],
       ["lots", getU64Decoder()],
       ["price", getU64Decoder()],
@@ -133,6 +136,7 @@ export function getAccountLiquidatedEventDecoder(): Decoder<AccountLiquidatedEve
       ["targetState", getMarginAccountSnapshotDecoder()],
       ["receiverState", getMarginAccountSnapshotDecoder()],
       ["markets", getArrayDecoder(getMarketSnapshotDecoder())],
+      ["ledgers", getArrayDecoder(getMarketLedgerSnapshotDecoder())],
     ]),
     [getConstantDecoder(ACCOUNT_LIQUIDATED_EVENT_DISCRIMINATOR)],
   );

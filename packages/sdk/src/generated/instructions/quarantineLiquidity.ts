@@ -42,7 +42,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findCustodyPda, findVenueSafetyPda } from "../pdas/index.js";
+import { findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const QUARANTINE_LIQUIDITY_DISCRIMINATOR: ReadonlyUint8Array =
@@ -58,7 +58,6 @@ export type QuarantineLiquidityInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountMarket extends string | AccountMeta<string> = string,
   TAccountRegistration extends string | AccountMeta<string> = string,
@@ -77,9 +76,6 @@ export type QuarantineLiquidityInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? ReadonlyAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -144,7 +140,6 @@ export function getQuarantineLiquidityInstructionDataCodec(): FixedSizeCodec<
 export type QuarantineLiquidityAsyncInput<
   TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput =
@@ -156,7 +151,6 @@ export type QuarantineLiquidityAsyncInput<
 > = {
   authority: TAccountAuthority;
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   market: TAccountMarket;
   registration: TAccountRegistration;
@@ -169,7 +163,6 @@ export type QuarantineLiquidityAsyncInput<
 export async function getQuarantineLiquidityInstructionAsync<
   TAccountAuthority extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput,
@@ -181,7 +174,6 @@ export async function getQuarantineLiquidityInstructionAsync<
   input: QuarantineLiquidityAsyncInput<
     TAccountAuthority,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountRegistration,
@@ -202,10 +194,6 @@ export async function getQuarantineLiquidityInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -252,11 +240,6 @@ export async function getQuarantineLiquidityInstructionAsync<
       isWritable: false,
     },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
     registration: {
@@ -289,17 +272,6 @@ export async function getQuarantineLiquidityInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -316,7 +288,6 @@ export async function getQuarantineLiquidityInstructionAsync<
     accounts: [
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("registration", accounts.registration),
@@ -337,10 +308,6 @@ export async function getQuarantineLiquidityInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -372,7 +339,6 @@ export async function getQuarantineLiquidityInstructionAsync<
 export type QuarantineLiquidityInput<
   TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput =
@@ -384,7 +350,6 @@ export type QuarantineLiquidityInput<
 > = {
   authority: TAccountAuthority;
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   market: TAccountMarket;
   registration: TAccountRegistration;
@@ -397,7 +362,6 @@ export type QuarantineLiquidityInput<
 export function getQuarantineLiquidityInstruction<
   TAccountAuthority extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountRegistration extends InstructionAccountInput,
@@ -409,7 +373,6 @@ export function getQuarantineLiquidityInstruction<
   input: QuarantineLiquidityInput<
     TAccountAuthority,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountRegistration,
@@ -429,10 +392,6 @@ export function getQuarantineLiquidityInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -478,11 +437,6 @@ export function getQuarantineLiquidityInstruction<
       isWritable: false,
     },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
     registration: {
@@ -518,7 +472,6 @@ export function getQuarantineLiquidityInstruction<
     accounts: [
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("registration", accounts.registration),
@@ -539,10 +492,6 @@ export function getQuarantineLiquidityInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -579,13 +528,12 @@ export type ParsedQuarantineLiquidityInstruction<
   accounts: {
     authority: TAccountMetas[0];
     venue: TAccountMetas[1];
-    custody: TAccountMetas[2];
-    safety: TAccountMetas[3];
-    market: TAccountMetas[4];
-    registration: TAccountMetas[5];
-    capital: TAccountMetas[6];
-    eventAuthority: TAccountMetas[7];
-    program: TAccountMetas[8];
+    safety: TAccountMetas[2];
+    market: TAccountMetas[3];
+    registration: TAccountMetas[4];
+    capital: TAccountMetas[5];
+    eventAuthority: TAccountMetas[6];
+    program: TAccountMetas[7];
   };
   data: QuarantineLiquidityInstructionData;
 };
@@ -598,12 +546,12 @@ export function parseQuarantineLiquidityInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedQuarantineLiquidityInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+  if (instruction.accounts.length < 8) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 8,
       },
     );
   }
@@ -618,7 +566,6 @@ export function parseQuarantineLiquidityInstruction<
     accounts: {
       authority: getNextAccount(),
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       market: getNextAccount(),
       registration: getNextAccount(),

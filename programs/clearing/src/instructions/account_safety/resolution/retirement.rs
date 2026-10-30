@@ -1,9 +1,9 @@
 //! Irreversible venue retirement. The scan is an administrative proof, never a
 //! prerequisite for a funded owner exit. No reserve can leave a live identity.
 use super::*;
-use account_cash::{
-    __client_accounts_account_financial_identity, __cpi_client_accounts_account_financial_identity,
-    AccountFinancialIdentity, AccountFinancialIdentityBumps,
+use account_cash::fees::{
+    __client_accounts_treasury_token_identity, __cpi_client_accounts_treasury_token_identity,
+    TreasuryTokenIdentity, TreasuryTokenIdentityBumps,
 };
 use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
@@ -54,7 +54,7 @@ pub struct RetireAccounts<'info> {
 #[event_cpi]
 #[derive(Accounts)]
 pub struct WithdrawRetiredReserve<'info> {
-    pub identity: AccountFinancialIdentity<'info>,
+    pub identity: TreasuryTokenIdentity<'info>,
     #[account(address = identity.venue.reserve_authority @ ClearingError::Authority)]
     pub reserve_authority: Signer<'info>,
     #[account(address = identity.venue.quote_mint @ ClearingError::Mint)]
@@ -186,7 +186,11 @@ pub fn check(
         .ok_or(ClearingError::Arithmetic)?;
     if certificate.next == certificate.count {
         require!(
-            certificate.cash == accounts.identity.custody.total_cash,
+            certificate.cash
+                == account_custody::accounted_cash(
+                    &accounts.identity.custody,
+                    [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger]
+                )?,
             ClearingError::Reconciliation
         );
         certificate.complete = true;
@@ -251,7 +255,11 @@ pub fn retire(
             matches(certificate, &accounts.identity.safety, &accounts.registry)
                 && certificate.complete
                 && certificate.next == certificate.count
-                && certificate.cash == accounts.identity.custody.total_cash,
+                && certificate.cash
+                    == account_custody::accounted_cash(
+                        &accounts.identity.custody,
+                        [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger]
+                    )?,
             ClearingError::Resolution
         );
     }
@@ -268,7 +276,10 @@ pub fn retire(
             safety_epoch: accounts.identity.safety.epoch,
             terms_epoch: accounts.identity.venue.terms_epoch,
             count: accounts.registry.count,
-            total_cash: accounts.identity.custody.total_cash,
+            total_cash: account_custody::accounted_cash(
+                &accounts.identity.custody,
+                [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
+            )?,
             allocated_vault: accounts.identity.custody.allocated_vault,
             actual_vault: accounts.identity.vault.amount,
         },
@@ -298,16 +309,14 @@ pub fn withdraw(
             && !identity.safety.paused,
         ClearingError::Profile
     );
-    account_custody::reconciled(
-        &identity.custody,
-        [&identity.btc_ledger, &identity.eth_ledger],
-        identity.vault.amount,
+    account_custody::vault_backed(&identity.custody, identity.vault.amount)?;
+    account_cash::fees::treasury_profile(
+        &identity.venue,
+        &identity.safety,
+        &identity.ledger,
+        market_index,
     )?;
-    let ledger = if market_index == 0 {
-        &mut identity.btc_ledger
-    } else {
-        &mut identity.eth_ledger
-    };
+    let ledger = &mut identity.ledger;
     ledger.insurance = checked(math::cash_sub(ledger.insurance, amount))?;
     increment(&mut ledger.version)?;
     identity.custody.allocated_vault =
@@ -330,16 +339,8 @@ pub fn withdraw(
     )?;
     identity.vault.reload()?;
 
-    account_custody::reconciled(
-        &identity.custody,
-        [&identity.btc_ledger, &identity.eth_ledger],
-        identity.vault.amount,
-    )?;
-    let ledger = if market_index == 0 {
-        &identity.btc_ledger
-    } else {
-        &identity.eth_ledger
-    };
+    account_custody::vault_backed(&identity.custody, identity.vault.amount)?;
+    let ledger = &identity.ledger;
     events.emit(
         &crate::events::RetiredReserveWithdrawn {
             venue: identity.venue.key(),
@@ -353,7 +354,6 @@ pub fn withdraw(
             fees: ledger.fees,
             fee_remainder: ledger.insurance_fee_remainder,
             ledger_version: ledger.version,
-            total_cash: identity.custody.total_cash,
             allocated_vault: identity.custody.allocated_vault,
             actual_vault: identity.vault.amount,
         },

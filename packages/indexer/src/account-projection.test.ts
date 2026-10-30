@@ -11,29 +11,29 @@ const zero=address('11111111111111111111111111111111'),venue=fixtureVenue,domain
 const blank=(decoder:{fixedSize:number;decode(bytes:Uint8Array):unknown})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize))) as any;
 function state():AccountState {
   const value=emptyLiquidity();
-  value.venue={...blank(sdk.getVenueDecoder()),schemaVersion:6,revision:'1',profileVersion:4,domain,markets:['btc','eth'],marketCount:2};
-  value.custody={schemaVersion:6,revision:'1',venue,totalCash:'200',allocatedVault:'210',liabilityVersions:['0','0']};
-  value.safety={schemaVersion:6,revision:'1',venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
+  value.venue={...blank(sdk.getVenueDecoder()),schemaVersion:7,revision:'1',profileVersion:4,domain,markets:['btc','eth'],marketCount:2};
+  value.custody={schemaVersion:7,revision:'1',venue,allocatedVault:'210',};
+  value.safety={schemaVersion:7,revision:'1',venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
   value.members=['debtor','winner'];value.membershipVersion='3';
   for(const [index,key] of ['btc','eth'].entries()) {
-    value.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:6,revision:'1',venue,index,lotsPerUnit:index===0?'1000000':'100000'};
-    value.ledgers[`${key}-ledger`]={schemaVersion:6,revision:'1',venue,market:key,marketIndex:index,settlement:'0',insurance:index===0?'10':'0',fees:'0',insuranceFeeRemainder:0,version:'1'};
+    value.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:7,revision:'1',venue,index,lotsPerUnit:index===0?'1000000':'100000'};
+    value.ledgers[`${key}-ledger`]={schemaVersion:7,revision:'1',venue,market:key,marketIndex:index,settlement:'0',insurance:index===0?'10':'0',fees:'0',insuranceFeeRemainder:0,version:'1',liabilityVersion:'0'};
   }
-  for(const [id,key] of value.members.entries())value.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:6,revision:'1',venue,
+  for(const [id,key] of value.members.entries())value.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:7,revision:'1',venue,
     id,mode:0,subaccountIndex:0,isolatedMarketIndex:255,cash:'100',delegateEpoch:'1'};
   return value;
 }
 const event=(type:AccountEvent['type'],data:any):AccountEvent=>({type,data:{venue,sequence:'1',slot:'10',...data},
   signature:'signed',outer:0,inner:0,ordinal:0,slot:10,blockTime:10,bytes:'bounded-test-vector'});
-const init=()=>sdk.getAccountCustodyChangedEventEncoder().encode({schemaVersion:6,profileVersion:4,
+const init=()=>sdk.getAccountCustodyChangedEventEncoder().encode({schemaVersion:7,profileVersion:4,
   domain:new Uint8Array(32),venue,slot:10n,kind:0,actor:zero,subject:venue,index:0,amount:0n,
   members:[],ledgers:[],authority:zero,feeAuthority:zero,reserveAuthority:zero,reserveDestinationOwner:zero,
   quoteMint:zero,vault:zero,markets:[zero,zero],marketCount:0,insuranceFeeShareBps:2500,mode:0,paused:false,
-  safetyEpoch:1n,termsEpoch:1n,configEpoch:1n,totalCash:0n,allocatedVault:0n,liabilityVersions:[0n,0n],
+  safetyEpoch:1n,termsEpoch:1n,configEpoch:1n,allocatedVault:0n,
   membershipVersion:null,memberCount:null,actualVault:0n});
 const transaction=(payload=init())=>eventTransaction(payload,venue,zero);
 
-describe('schema-6 authenticated stream',()=>{
+describe('schema-7 authenticated stream',()=>{
   it('authenticates original signature, CPI authority, slot and exact bytes',()=>{
     const tx=transaction();expect(decodeAccounts('signed',tx,zero,venue)).toHaveLength(1);
     expect(()=>decodeAccounts('signed',tx,zero,zero)).toThrow(/footer/);
@@ -61,13 +61,13 @@ describe('per-market fractional accounting',()=>{
     expect(()=>reconcileAccountLedger(current)).toThrow(/market claims/);
     current.roots.winner.positions[1].virtualScaled='0';current.roots.winner.positions[0].virtualScaled='-1';
     expect(()=>reconcileAccountLedger(current)).not.toThrow();
-    current.custody!.totalCash='400';current.custody!.allocatedVault='410';expect(()=>reconcileAccountLedger(current)).toThrow(/root cash/);
+    current.custody!.allocatedVault='410';expect(()=>reconcileAccountLedger(current)).toThrow(/cash conservation|root cash/);
   });
   it('separates insurance, fees and modulo-four carries',()=>{
     const current=state();current.ledgers['btc-ledger'].insuranceFeeRemainder=3;expect(()=>reconcileAccountLedger(current)).not.toThrow();
     current.ledgers['btc-ledger'].insuranceFeeRemainder=4;expect(()=>reconcileAccountLedger(current)).toThrow(/carry/);
     current.ledgers['btc-ledger'].insuranceFeeRemainder=0;current.ledgers['btc-ledger'].insurance='11';
-    expect(()=>reconcileAccountLedger(current)).toThrow(/cash conservation/);
+    expect(()=>reconcileAccountLedger(current)).toThrow(/root cash sum/);
   });
   it('preserves each nonzero fee carry from the actual completion-event byte encoding',()=>{
     for(const stage of [10,11])for(const carries of [[3,1],[0,0],[2,3]]) {
@@ -99,8 +99,8 @@ describe('per-market fractional accounting',()=>{
       cashBefore:'200',poolsBefore:['0','0'],insuranceBefore:['10','0'],feesBefore:['0','0'],allocatedBefore:'210',budgets:['10','0'],insuranceSpent:['10','0'],
       evaluation:0,clippedMask:0,rows:{},remainingCash:'100',appliedCash:'0',remainingLots:['0','0'],remainingGross:['0','0'],remainingClaims:['120000000000','0']};
     expect(()=>reconcileAccountLedger(current)).not.toThrow();
-    current.custody!.totalCash='100';current.custody!.allocatedVault='110';expect(()=>reconcileAccountLedger(current)).toThrow(/frozen cash/);
-    current.custody!.totalCash='200';current.custody!.allocatedVault='210';current.roots.winner.cash='210';
-    expect(()=>reconcileAccountLedger(current)).toThrow(/root cash/);
+    current.custody!.allocatedVault='110';expect(()=>reconcileAccountLedger(current)).toThrow(/frozen cash|cash conservation/);
+    current.custody!.allocatedVault='210';current.roots.winner.cash='210';
+    expect(()=>reconcileAccountLedger(current)).toThrow(/cash conservation|root cash/);
   });
 });

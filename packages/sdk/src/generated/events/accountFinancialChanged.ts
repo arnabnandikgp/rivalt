@@ -19,6 +19,8 @@ import {
   getConstantEncoder,
   getHiddenPrefixDecoder,
   getHiddenPrefixEncoder,
+  getOptionDecoder,
+  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -30,6 +32,8 @@ import {
   type Decoder,
   type Encoder,
   type HasAddress,
+  type Option,
+  type OptionOrNullable,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
@@ -68,10 +72,8 @@ export type AccountFinancialChangedEvent = {
   marketIndex: number;
   amount: bigint;
   safetyEpoch: bigint;
-  totalCash: bigint;
-  allocatedVault: bigint;
-  actualVault: bigint;
-  liabilityVersions: Array<bigint>;
+  allocatedVault: Option<bigint>;
+  actualVault: Option<bigint>;
   roots: Array<Address>;
   rootStates: Array<MarginAccountSnapshot>;
   markets: Array<MarketSnapshot>;
@@ -90,10 +92,8 @@ export type AccountFinancialChangedEventArgs = {
   marketIndex: number;
   amount: number | bigint;
   safetyEpoch: number | bigint;
-  totalCash: number | bigint;
-  allocatedVault: number | bigint;
-  actualVault: number | bigint;
-  liabilityVersions: Array<number | bigint>;
+  allocatedVault: OptionOrNullable<number | bigint>;
+  actualVault: OptionOrNullable<number | bigint>;
   roots: Array<Address | HasAddress>;
   rootStates: Array<MarginAccountSnapshotArgs>;
   markets: Array<MarketSnapshotArgs>;
@@ -111,17 +111,12 @@ export function getAccountFinancialChangedEventEncoder(): Encoder<AccountFinanci
       ["marketIndex", getU8Encoder()],
       ["amount", getU64Encoder()],
       ["safetyEpoch", getU64Encoder()],
-      ["totalCash", getU64Encoder()],
-      ["allocatedVault", getU64Encoder()],
-      ["actualVault", getU64Encoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
+      ["allocatedVault", getOptionEncoder(getU64Encoder())],
+      ["actualVault", getOptionEncoder(getU64Encoder())],
       ["roots", getArrayEncoder(getAddressEncoder())],
       ["rootStates", getArrayEncoder(getMarginAccountSnapshotEncoder())],
       ["markets", getArrayEncoder(getMarketSnapshotEncoder())],
-      [
-        "ledgers",
-        getArrayEncoder(getMarketLedgerSnapshotEncoder(), { size: 2 }),
-      ],
+      ["ledgers", getArrayEncoder(getMarketLedgerSnapshotEncoder())],
     ]),
     [getConstantEncoder(ACCOUNT_FINANCIAL_CHANGED_EVENT_DISCRIMINATOR)],
   );
@@ -138,17 +133,12 @@ export function getAccountFinancialChangedEventDecoder(): Decoder<AccountFinanci
       ["marketIndex", getU8Decoder()],
       ["amount", getU64Decoder()],
       ["safetyEpoch", getU64Decoder()],
-      ["totalCash", getU64Decoder()],
-      ["allocatedVault", getU64Decoder()],
-      ["actualVault", getU64Decoder()],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
+      ["allocatedVault", getOptionDecoder(getU64Decoder())],
+      ["actualVault", getOptionDecoder(getU64Decoder())],
       ["roots", getArrayDecoder(getAddressDecoder())],
       ["rootStates", getArrayDecoder(getMarginAccountSnapshotDecoder())],
       ["markets", getArrayDecoder(getMarketSnapshotDecoder())],
-      [
-        "ledgers",
-        getArrayDecoder(getMarketLedgerSnapshotDecoder(), { size: 2 }),
-      ],
+      ["ledgers", getArrayDecoder(getMarketLedgerSnapshotDecoder())],
     ]),
     [getConstantDecoder(ACCOUNT_FINANCIAL_CHANGED_EVENT_DISCRIMINATOR)],
   );

@@ -45,7 +45,6 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCapitalBindingPda,
-  findCustodyPda,
   findLiquidityRegistryPda,
   findVenueSafetyPda,
 } from "../pdas/index.js";
@@ -65,7 +64,6 @@ export type RegisterLiquidityInstruction<
   TAccountOwner extends string | AccountMeta<string> = string,
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountMarket extends string | AccountMeta<string> = string,
   TAccountRegistry extends string | AccountMeta<string> = string,
@@ -96,9 +94,6 @@ export type RegisterLiquidityInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? ReadonlyAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -180,7 +175,6 @@ export type RegisterLiquidityAsyncInput<
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
@@ -203,7 +197,6 @@ export type RegisterLiquidityAsyncInput<
   owner: TAccountOwner;
   authority: TAccountAuthority;
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   market: TAccountMarket;
   registry?: TAccountRegistry;
@@ -224,7 +217,6 @@ export async function getRegisterLiquidityInstructionAsync<
   TAccountOwner extends InstructionSignerInput,
   TAccountAuthority extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
@@ -244,7 +236,6 @@ export async function getRegisterLiquidityInstructionAsync<
     TAccountOwner,
     TAccountAuthority,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountRegistry,
@@ -276,10 +267,6 @@ export async function getRegisterLiquidityInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -355,11 +342,6 @@ export async function getRegisterLiquidityInstructionAsync<
       isWritable: false,
     },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: false },
     registry: {
@@ -419,17 +401,6 @@ export async function getRegisterLiquidityInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -473,7 +444,6 @@ export async function getRegisterLiquidityInstructionAsync<
       getAccountMeta("owner", accounts.owner),
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("registry", accounts.registry),
@@ -505,10 +475,6 @@ export async function getRegisterLiquidityInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -569,7 +535,6 @@ export type RegisterLiquidityInput<
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
@@ -592,7 +557,6 @@ export type RegisterLiquidityInput<
   owner: TAccountOwner;
   authority: TAccountAuthority;
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   market: TAccountMarket;
   registry: TAccountRegistry;
@@ -613,7 +577,6 @@ export function getRegisterLiquidityInstruction<
   TAccountOwner extends InstructionSignerInput,
   TAccountAuthority extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
@@ -633,7 +596,6 @@ export function getRegisterLiquidityInstruction<
     TAccountOwner,
     TAccountAuthority,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMarket,
     TAccountRegistry,
@@ -664,10 +626,6 @@ export function getRegisterLiquidityInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -742,11 +700,6 @@ export function getRegisterLiquidityInstruction<
       isWritable: false,
     },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: false },
     registry: {
@@ -816,7 +769,6 @@ export function getRegisterLiquidityInstruction<
       getAccountMeta("owner", accounts.owner),
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
       getAccountMeta("registry", accounts.registry),
@@ -848,10 +800,6 @@ export function getRegisterLiquidityInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -917,20 +865,19 @@ export type ParsedRegisterLiquidityInstruction<
     owner: TAccountMetas[0];
     authority: TAccountMetas[1];
     venue: TAccountMetas[2];
-    custody: TAccountMetas[3];
-    safety: TAccountMetas[4];
-    market: TAccountMetas[5];
-    registry: TAccountMetas[6];
-    capital: TAccountMetas[7];
-    registration: TAccountMetas[8];
-    capitalBinding: TAccountMetas[9];
-    config: TAccountMetas[10];
-    price: TAccountMetas[11];
-    pricingProgram: TAccountMetas[12];
-    programData: TAccountMetas[13];
-    systemProgram: TAccountMetas[14];
-    eventAuthority: TAccountMetas[15];
-    program: TAccountMetas[16];
+    safety: TAccountMetas[3];
+    market: TAccountMetas[4];
+    registry: TAccountMetas[5];
+    capital: TAccountMetas[6];
+    registration: TAccountMetas[7];
+    capitalBinding: TAccountMetas[8];
+    config: TAccountMetas[9];
+    price: TAccountMetas[10];
+    pricingProgram: TAccountMetas[11];
+    programData: TAccountMetas[12];
+    systemProgram: TAccountMetas[13];
+    eventAuthority: TAccountMetas[14];
+    program: TAccountMetas[15];
   };
   data: RegisterLiquidityInstructionData;
 };
@@ -943,12 +890,12 @@ export function parseRegisterLiquidityInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedRegisterLiquidityInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 17) {
+  if (instruction.accounts.length < 16) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 17,
+        expectedAccountMetas: 16,
       },
     );
   }
@@ -964,7 +911,6 @@ export function parseRegisterLiquidityInstruction<
       owner: getNextAccount(),
       authority: getNextAccount(),
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       market: getNextAccount(),
       registry: getNextAccount(),

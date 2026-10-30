@@ -25,7 +25,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
   const payer = await payerKey(), owner = await fixtureKey('p30-owner'), updater = await fixtureKey('p30-updater');
   const mint = await fixtureKey('p30-mint'), token = await fixtureKey('p30-token');
   const deployment = await addresses();
-  const domain = createHash('sha256').update('rivalt/p41/schema6/canonical-makers/profile4').digest();
+  const domain = createHash('sha256').update('rivalt/p42/schema7/canonical-makers/profile4').digest();
   const venue = await accountPda('venue-v3', domain);
   const registry = await accountPda('registry-v3', keyBytes.encode(venue));
   const vault = await accountPda('vault-v3', keyBytes.encode(venue));
@@ -229,7 +229,8 @@ export async function canonicalMakerCases(h: CanonicalHarness) {
   await rejected('expired publication cannot quote', [await maker.request(0, 1n)], [], 6003);
   const balances = await Promise.all(instances.map(async item => sdk.getMarginAccountDecoder().decode((await h.read(item.capital))!)));
   assert(balances.every(root => root.cash === 1_000_000n && root.positions.every(position => position.lots === 0n)));
-  assert.equal(sdk.getCustodyDecoder().decode((await h.read(custody))!).totalCash, 6_000_000n);
+  assert.equal(balances.reduce((sum, root) => sum + root.cash, 0n), 6_000_000n);
+  assert.equal(sdk.getCustodyDecoder().decode((await h.read(custody))!).allocatedVault, 6_000_000n);
   assert.equal(getTokenDecoder().decode((await h.read(vault))!).amount, 6_000_000n);
   return { venue, custody, safety, vault, tracked, markets, registrations: instances.map(item => item.registration),
     makerAccounts: instances.map(item => ({ program: item.pricingProgram, config: item.config, price: item.price })),

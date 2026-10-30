@@ -9,7 +9,7 @@ import { CanonicalConformance } from './canonical-maker-conformance.js';
 it('records the canonical name by discriminator without a generation suffix', () => {
   const key = sdk.CLEARING_PROGRAM_ADDRESS;
   const instruction = sdk.getInitializeLiquidityInstruction({ authority: createNoopSigner(key), venue: key,
-    custody: key, market: key, safety: key, registry: key, eventAuthority: key, program: key });
+    market: key, safety: key, registry: key, eventAuthority: key, program: key });
   const conformance = new CanonicalConformance();
   conformance.record([instruction]);
   expect(conformance.modules[0].instructions).toHaveLength(1);

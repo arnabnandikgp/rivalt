@@ -43,10 +43,46 @@ pub(crate) fn active(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> 
 /// they do not authorize trading or consume a price-dependent financial path.
 fn available_identity(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> Result<()> {
     if safety.mode == ACTIVE {
-        super::account_cash::profile(venue, custody, safety)
+        super::account_cash::profile(venue, safety)
     } else {
         active(venue, custody, safety)
     }
+}
+
+/// Actual token backing, independent of unrelated internal root transitions.
+pub(crate) fn vault_backed(custody: &Custody, actual: u64) -> Result<()> {
+    require!(
+        custody.schema_version == SCHEMA_VERSION
+            && custody.allocated_vault <= financial_core::MAX_CASH
+            && actual >= custody.allocated_vault,
+        ClearingError::Reconciliation
+    );
+    Ok(())
+}
+
+/// Complete checkpoint expectation, independently compared with the full root
+/// scan at resolution/retirement. Never a cached balance authorizing an exit.
+pub(crate) fn accounted_cash(custody: &Custody, ledgers: [&MarketLedger; 2]) -> Result<u64> {
+    require!(
+        custody.schema_version == SCHEMA_VERSION
+            && ledgers[0].market_index < 2
+            && ledgers[1].market_index < 2
+            && ledgers[0].market_index != ledgers[1].market_index,
+        ClearingError::Profile
+    );
+    let mut pools = 0u128;
+    for ledger in ledgers {
+        require!(
+            ledger.schema_version == SCHEMA_VERSION && ledger.insurance_fee_remainder < 4,
+            ClearingError::Profile
+        );
+        pools +=
+            u128::from(ledger.settlement) + u128::from(ledger.insurance) + u128::from(ledger.fees);
+    }
+    let cash = u128::from(custody.allocated_vault)
+        .checked_sub(pools)
+        .ok_or(ClearingError::Reconciliation)?;
+    u64::try_from(cash).map_err(|_| error!(ClearingError::Arithmetic))
 }
 
 pub(crate) fn reconciled(
@@ -54,21 +90,8 @@ pub(crate) fn reconciled(
     ledgers: [&MarketLedger; 2],
     actual: u64,
 ) -> Result<()> {
-    let mut allocated = u128::from(custody.total_cash);
-    for ledger in ledgers {
-        require!(
-            ledger.schema_version == SCHEMA_VERSION && ledger.insurance_fee_remainder < 4,
-            ClearingError::Profile
-        );
-        allocated +=
-            u128::from(ledger.settlement) + u128::from(ledger.insurance) + u128::from(ledger.fees);
-    }
-    require!(
-        allocated == u128::from(custody.allocated_vault)
-            && custody.allocated_vault <= financial_core::MAX_CASH
-            && actual >= custody.allocated_vault,
-        ClearingError::Reconciliation
-    );
+    vault_backed(custody, actual)?;
+    accounted_cash(custody, ledgers)?;
     Ok(())
 }
 
@@ -140,7 +163,7 @@ fn member(account: &Account<MarginAccount>) -> AccountCashSnapshot {
     }
 }
 
-fn ledger_snapshot(account: &Account<MarketLedger>) -> MarketLedgerSnapshot {
+pub(crate) fn ledger_snapshot(account: &Account<MarketLedger>) -> MarketLedgerSnapshot {
     MarketLedgerSnapshot {
         ledger: account.key(),
         market: account.market,
@@ -150,12 +173,13 @@ fn ledger_snapshot(account: &Account<MarketLedger>) -> MarketLedgerSnapshot {
         fees: account.fees,
         insurance_fee_remainder: account.insurance_fee_remainder,
         version: account.version,
+        liability_version: account.liability_version,
     }
 }
 
 fn event(
     venue: &Account<Venue>,
-    custody: &Account<Custody>,
+    custody: Option<&Account<Custody>>,
     safety: &Account<VenueSafety>,
     kind: u8,
     actor: Pubkey,
@@ -195,9 +219,7 @@ fn event(
         safety_epoch: safety.epoch,
         terms_epoch: venue.terms_epoch,
         config_epoch: venue.config_epoch,
-        total_cash: custody.total_cash,
-        allocated_vault: custody.allocated_vault,
-        liability_versions: custody.liability_versions,
+        allocated_vault: custody.map(|value| value.allocated_vault),
         membership_version: registry.map(|value| value.membership_version),
         member_count: registry.map(|value| value.count),
         actual_vault,
@@ -281,7 +303,7 @@ fn initialize_profile(
     events.emit(
         &(event(
             venue,
-            &ctx.accounts.custody,
+            Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             0,
             ctx.accounts.authority.key(),
@@ -323,7 +345,7 @@ pub fn initialize_registry(
     events.emit(
         &(event(
             &ctx.accounts.venue,
-            &ctx.accounts.custody,
+            Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             10,
             ctx.accounts.authority.key(),
@@ -389,7 +411,7 @@ pub fn initialize_market(
     events.emit(
         &(event(
             &ctx.accounts.venue,
-            &ctx.accounts.custody,
+            Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             1,
             ctx.accounts.authority.key(),
@@ -433,7 +455,7 @@ pub fn create_portfolio(
     events.emit(
         &(event(
             &ctx.accounts.venue,
-            &ctx.accounts.custody,
+            Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             2,
             ctx.accounts.owner.key(),
@@ -514,7 +536,7 @@ pub fn register(
     events.emit(
         &(event(
             &ctx.accounts.venue,
-            &ctx.accounts.custody,
+            Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             3,
             ctx.accounts.owner.key(),
@@ -539,14 +561,23 @@ pub fn cash(
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     if !withdraw && ctx.accounts.safety.mode == ACTIVE {
-        super::account_cash::profile(
-            &ctx.accounts.venue,
-            &ctx.accounts.custody,
-            &ctx.accounts.safety,
-        )?;
+        super::account_cash::profile(&ctx.accounts.venue, &ctx.accounts.safety)?;
         super::account_trading::model(&ctx.accounts.margin)?;
         let positions = ctx.accounts.margin.positions;
-        super::account_trading::invalidate(&mut ctx.accounts.custody, positions, positions)?;
+        super::account_trading::invalidate(
+            [
+                ctx.accounts
+                    .btc_ledger
+                    .as_deref_mut()
+                    .map(|ledger| &mut **ledger),
+                ctx.accounts
+                    .eth_ledger
+                    .as_deref_mut()
+                    .map(|ledger| &mut **ledger),
+            ],
+            positions,
+            positions,
+        )?;
     } else {
         active(
             &ctx.accounts.venue,
@@ -560,15 +591,9 @@ pub fn cash(
         }
     }
     require!(amount > 0, ClearingError::Amount);
-    reconciled(
-        &ctx.accounts.custody,
-        [&ctx.accounts.btc_ledger, &ctx.accounts.eth_ledger],
-        ctx.accounts.vault.amount,
-    )?;
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
     let operation = if withdraw { cash_sub } else { cash_add };
     ctx.accounts.margin.cash = arithmetic(operation(ctx.accounts.margin.cash, amount))?;
-    ctx.accounts.custody.total_cash =
-        arithmetic(operation(ctx.accounts.custody.total_cash, amount))?;
     ctx.accounts.custody.allocated_vault =
         arithmetic(operation(ctx.accounts.custody.allocated_vault, amount))?;
     increment(&mut ctx.accounts.margin.state_version)?;
@@ -605,15 +630,11 @@ pub fn cash(
         )?;
     }
     ctx.accounts.vault.reload()?;
-    reconciled(
-        &ctx.accounts.custody,
-        [&ctx.accounts.btc_ledger, &ctx.accounts.eth_ledger],
-        ctx.accounts.vault.amount,
-    )?;
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
     events.emit(
         &(event(
             &ctx.accounts.venue,
-            &ctx.accounts.custody,
+            Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             if withdraw { 5 } else { 4 },
             ctx.accounts.owner.key(),
@@ -622,10 +643,14 @@ pub fn cash(
             amount,
             Some(ctx.accounts.vault.amount),
             vec![member(&ctx.accounts.margin)],
-            vec![
-                ledger_snapshot(&ctx.accounts.btc_ledger),
-                ledger_snapshot(&ctx.accounts.eth_ledger),
-            ],
+            [
+                ctx.accounts.btc_ledger.as_deref(),
+                ctx.accounts.eth_ledger.as_deref(),
+            ]
+            .into_iter()
+            .flatten()
+            .map(ledger_snapshot)
+            .collect(),
             None,
         )?),
         ctx.accounts.event_authority.to_account_info(),
@@ -639,11 +664,9 @@ pub fn transfer(
     amount: u64,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    active(
-        &ctx.accounts.venue,
-        &ctx.accounts.custody,
-        &ctx.accounts.safety,
-    )?;
+    super::account_trading::base_identity(&ctx.accounts.venue, &ctx.accounts.safety)?;
+    require!(ctx.accounts.safety.mode == CUSTODY, ClearingError::Profile);
+    require!(!ctx.accounts.safety.paused, ClearingError::Paused);
     if recovered_custody(&ctx.accounts.safety) {
         liability_free(&ctx.accounts.donor)?;
         liability_free(&ctx.accounts.recipient)?;
@@ -652,11 +675,6 @@ pub fn transfer(
         empty_financial_state(&ctx.accounts.recipient)?;
     }
     require!(amount > 0, ClearingError::Amount);
-    reconciled(
-        &ctx.accounts.custody,
-        [&ctx.accounts.btc_ledger, &ctx.accounts.eth_ledger],
-        ctx.accounts.vault.amount,
-    )?;
     ctx.accounts.donor.cash = arithmetic(cash_sub(ctx.accounts.donor.cash, amount))?;
     ctx.accounts.recipient.cash = arithmetic(cash_add(ctx.accounts.recipient.cash, amount))?;
     increment(&mut ctx.accounts.donor.state_version)?;
@@ -664,19 +682,16 @@ pub fn transfer(
     events.emit(
         &(event(
             &ctx.accounts.venue,
-            &ctx.accounts.custody,
+            None,
             &ctx.accounts.safety,
             6,
             ctx.accounts.owner.key(),
             ctx.accounts.donor.key(),
             0,
             amount,
-            Some(ctx.accounts.vault.amount),
+            None,
             vec![member(&ctx.accounts.donor), member(&ctx.accounts.recipient)],
-            vec![
-                ledger_snapshot(&ctx.accounts.btc_ledger),
-                ledger_snapshot(&ctx.accounts.eth_ledger),
-            ],
+            vec![],
             None,
         )?),
         ctx.accounts.event_authority.to_account_info(),
@@ -718,7 +733,7 @@ pub fn pause(
     events.emit(
         &(event(
             &ctx.accounts.venue,
-            &ctx.accounts.custody,
+            Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             7,
             ctx.accounts.authority.key(),
@@ -755,34 +770,28 @@ pub fn classify_surplus(
         ctx.accounts.venue.reserve_authority,
         ClearingError::Authority
     );
-    require!(market_index < 2 && amount > 0, ClearingError::Amount);
-    reconciled(
-        &ctx.accounts.custody,
-        [&ctx.accounts.btc_ledger, &ctx.accounts.eth_ledger],
-        ctx.accounts.vault.amount,
-    )?;
+    require!(
+        market_index < 2
+            && amount > 0
+            && ctx.accounts.ledger.market_index == market_index
+            && ctx.accounts.ledger.schema_version == SCHEMA_VERSION,
+        ClearingError::Amount
+    );
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
     require!(
         amount <= ctx.accounts.vault.amount - ctx.accounts.custody.allocated_vault,
         ClearingError::Amount
     );
-    let ledger = if market_index == 0 {
-        &mut ctx.accounts.btc_ledger
-    } else {
-        &mut ctx.accounts.eth_ledger
-    };
+    let ledger = &mut ctx.accounts.ledger;
     ledger.insurance = arithmetic(cash_add(ledger.insurance, amount))?;
     increment(&mut ledger.version)?;
     ctx.accounts.custody.allocated_vault =
         arithmetic(cash_add(ctx.accounts.custody.allocated_vault, amount))?;
-    reconciled(
-        &ctx.accounts.custody,
-        [&ctx.accounts.btc_ledger, &ctx.accounts.eth_ledger],
-        ctx.accounts.vault.amount,
-    )?;
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
     events.emit(
         &(event(
             &ctx.accounts.venue,
-            &ctx.accounts.custody,
+            Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             8,
             ctx.accounts.reserve_authority.key(),
@@ -791,10 +800,7 @@ pub fn classify_surplus(
             amount,
             Some(ctx.accounts.vault.amount),
             vec![],
-            vec![
-                ledger_snapshot(&ctx.accounts.btc_ledger),
-                ledger_snapshot(&ctx.accounts.eth_ledger),
-            ],
+            vec![ledger_snapshot(&ctx.accounts.ledger)],
             None,
         )?),
         ctx.accounts.event_authority.to_account_info(),
@@ -819,17 +825,15 @@ pub fn seed_insurance(
         ctx.accounts.venue.reserve_authority,
         ClearingError::Authority
     );
-    require!(market_index < 2 && amount > 0, ClearingError::Amount);
-    reconciled(
-        &ctx.accounts.custody,
-        [&ctx.accounts.btc_ledger, &ctx.accounts.eth_ledger],
-        ctx.accounts.vault.amount,
-    )?;
-    let ledger = if market_index == 0 {
-        &mut ctx.accounts.btc_ledger
-    } else {
-        &mut ctx.accounts.eth_ledger
-    };
+    require!(
+        market_index < 2
+            && amount > 0
+            && ctx.accounts.ledger.market_index == market_index
+            && ctx.accounts.ledger.schema_version == SCHEMA_VERSION,
+        ClearingError::Amount
+    );
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
+    let ledger = &mut ctx.accounts.ledger;
     ledger.insurance = arithmetic(cash_add(ledger.insurance, amount))?;
     increment(&mut ledger.version)?;
     ctx.accounts.custody.allocated_vault =
@@ -848,15 +852,11 @@ pub fn seed_insurance(
         6,
     )?;
     ctx.accounts.vault.reload()?;
-    reconciled(
-        &ctx.accounts.custody,
-        [&ctx.accounts.btc_ledger, &ctx.accounts.eth_ledger],
-        ctx.accounts.vault.amount,
-    )?;
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
     events.emit(
         &(event(
             &ctx.accounts.venue,
-            &ctx.accounts.custody,
+            Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             9,
             ctx.accounts.donor.key(),
@@ -865,13 +865,43 @@ pub fn seed_insurance(
             amount,
             Some(ctx.accounts.vault.amount),
             vec![],
-            vec![
-                ledger_snapshot(&ctx.accounts.btc_ledger),
-                ledger_snapshot(&ctx.accounts.eth_ledger),
-            ],
+            vec![ledger_snapshot(&ctx.accounts.ledger)],
             None,
         )?),
         ctx.accounts.event_authority.to_account_info(),
     )?;
     Ok(())
+}
+
+#[cfg(test)]
+mod accounting_tests {
+    use super::*;
+    #[test]
+    fn complete_cash_expectation_separates_pools_fees_insurance_and_donations() {
+        let custody = Custody {
+            schema_version: SCHEMA_VERSION,
+            allocated_vault: 1000,
+            ..Default::default()
+        };
+        let mut ledgers = [0, 1].map(|market_index| MarketLedger {
+            schema_version: SCHEMA_VERSION,
+            market_index,
+            ..Default::default()
+        });
+        ledgers[0].settlement = 17;
+        ledgers[0].insurance = 3;
+        ledgers[0].fees = 9;
+        ledgers[0].insurance_fee_remainder = 3;
+        ledgers[1].settlement = 11;
+        ledgers[1].insurance = 2;
+        ledgers[1].fees = 5;
+        // 1000 allocated - 47 designated pool atoms = 953 root cash. Carry and
+        // the 23 donated tokens are neither owned cash nor available insurance.
+        assert_eq!(accounted_cash(&custody, ledgers.each_ref()).unwrap(), 953);
+        assert!(vault_backed(&custody, 1023).is_ok());
+        assert!(vault_backed(&custody, 999).is_err());
+        assert!(accounted_cash(&custody, [&ledgers[0], &ledgers[0]]).is_err());
+        ledgers[0].settlement = 1000;
+        assert!(accounted_cash(&custody, ledgers.each_ref()).is_err());
+    }
 }

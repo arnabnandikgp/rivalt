@@ -69,6 +69,8 @@ export type MarketLedger = {
   /** Modulo-four fee-count carry, never collateral or a participant claim. */
   insuranceFeeRemainder: number;
   version: bigint;
+  /** Economic mutations of roots owing to this market invalidate its backing proof. */
+  liabilityVersion: bigint;
   bump: number;
 };
 
@@ -85,6 +87,8 @@ export type MarketLedgerArgs = {
   /** Modulo-four fee-count carry, never collateral or a participant claim. */
   insuranceFeeRemainder: number;
   version: number | bigint;
+  /** Economic mutations of roots owing to this market invalidate its backing proof. */
+  liabilityVersion: number | bigint;
   bump: number;
 };
 
@@ -103,6 +107,7 @@ export function getMarketLedgerEncoder(): FixedSizeEncoder<MarketLedgerArgs> {
       ["fees", getU64Encoder()],
       ["insuranceFeeRemainder", getU8Encoder()],
       ["version", getU64Encoder()],
+      ["liabilityVersion", getU64Encoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: MARKET_LEDGER_DISCRIMINATOR }),
@@ -123,6 +128,7 @@ export function getMarketLedgerDecoder(): FixedSizeDecoder<MarketLedger> {
     ["fees", getU64Decoder()],
     ["insuranceFeeRemainder", getU8Decoder()],
     ["version", getU64Decoder()],
+    ["liabilityVersion", getU64Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -205,5 +211,5 @@ export async function fetchAllMaybeMarketLedger(
 }
 
 export function getMarketLedgerSize(): number {
-  return 117;
+  return 125;
 }

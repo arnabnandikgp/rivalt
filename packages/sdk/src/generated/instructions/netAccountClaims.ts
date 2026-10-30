@@ -44,11 +44,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import {
-  findCustodyPda,
-  findVenueSafetyPda,
-  findVenueVaultPda,
-} from "../pdas/index.js";
+import { findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -69,13 +65,11 @@ export function getNetAccountClaimsDiscriminatorBytes(): ReadonlyUint8Array {
 export type NetAccountClaimsInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountBtc extends string | AccountMeta<string> = string,
   TAccountEth extends string | AccountMeta<string> = string,
   TAccountBtcLedger extends string | AccountMeta<string> = string,
   TAccountEthLedger extends string | AccountMeta<string> = string,
-  TAccountVault extends string | AccountMeta<string> = string,
   TAccountOwner extends string | AccountMeta<string> = string,
   TAccountMargin extends string | AccountMeta<string> = string,
   TAccountRegistry extends string | AccountMeta<string> = string,
@@ -90,9 +84,6 @@ export type NetAccountClaimsInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -104,9 +95,6 @@ export type NetAccountClaimsInstruction<
       TAccountEthLedger extends string
         ? WritableAccount<TAccountEthLedger>
         : TAccountEthLedger,
-      TAccountVault extends string
-        ? WritableAccount<TAccountVault>
-        : TAccountVault,
       TAccountOwner extends string
         ? ReadonlySignerAccount<TAccountOwner> &
             AccountSignerMeta<TAccountOwner>
@@ -176,13 +164,11 @@ export function getNetAccountClaimsInstructionDataCodec(): FixedSizeCodec<
 
 export type NetAccountClaimsAsyncInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountMargin extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
@@ -192,13 +178,11 @@ export type NetAccountClaimsAsyncInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   btc?: TAccountBtc;
   eth?: TAccountEth;
   btcLedger: TAccountBtcLedger;
   ethLedger: TAccountEthLedger;
-  vault?: TAccountVault;
   owner: TAccountOwner;
   margin: TAccountMargin;
   registry: TAccountRegistry;
@@ -212,13 +196,11 @@ export type NetAccountClaimsAsyncInput<
 
 export async function getNetAccountClaimsInstructionAsync<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
   TAccountOwner extends InstructionSignerInput,
   TAccountMargin extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
@@ -229,13 +211,11 @@ export async function getNetAccountClaimsInstructionAsync<
 >(
   input: NetAccountClaimsAsyncInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountBtc,
     TAccountEth,
     TAccountBtcLedger,
     TAccountEthLedger,
-    TAccountVault,
     TAccountOwner,
     TAccountMargin,
     TAccountRegistry,
@@ -252,10 +232,6 @@ export async function getNetAccountClaimsInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -276,10 +252,6 @@ export async function getNetAccountClaimsInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountOwner,
@@ -321,11 +293,6 @@ export async function getNetAccountClaimsInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
@@ -339,7 +306,6 @@ export async function getNetAccountClaimsInstructionAsync<
       isSigner: false,
       isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
     owner: { value: input.owner ?? null, isSigner: true, isWritable: false },
     margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
     registry: {
@@ -372,30 +338,8 @@ export async function getNetAccountClaimsInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.vault.value) {
-    accounts.vault.value = await findVenueVaultPda(
       {
         venue: getAddressFromResolvedInstructionAccount(
           "venue",
@@ -409,13 +353,11 @@ export async function getNetAccountClaimsInstructionAsync<
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
       getAccountMeta("btcLedger", accounts.btcLedger),
       getAccountMeta("ethLedger", accounts.ethLedger),
-      getAccountMeta("vault", accounts.vault),
       getAccountMeta("owner", accounts.owner),
       getAccountMeta("margin", accounts.margin),
       getAccountMeta("registry", accounts.registry),
@@ -432,10 +374,6 @@ export async function getNetAccountClaimsInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -456,10 +394,6 @@ export async function getNetAccountClaimsInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountOwner,
@@ -490,13 +424,11 @@ export async function getNetAccountClaimsInstructionAsync<
 
 export type NetAccountClaimsInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountMargin extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
@@ -506,13 +438,11 @@ export type NetAccountClaimsInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   btc?: TAccountBtc;
   eth?: TAccountEth;
   btcLedger: TAccountBtcLedger;
   ethLedger: TAccountEthLedger;
-  vault: TAccountVault;
   owner: TAccountOwner;
   margin: TAccountMargin;
   registry: TAccountRegistry;
@@ -526,13 +456,11 @@ export type NetAccountClaimsInput<
 
 export function getNetAccountClaimsInstruction<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
   TAccountOwner extends InstructionSignerInput,
   TAccountMargin extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
@@ -543,13 +471,11 @@ export function getNetAccountClaimsInstruction<
 >(
   input: NetAccountClaimsInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountBtc,
     TAccountEth,
     TAccountBtcLedger,
     TAccountEthLedger,
-    TAccountVault,
     TAccountOwner,
     TAccountMargin,
     TAccountRegistry,
@@ -565,10 +491,6 @@ export function getNetAccountClaimsInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -589,10 +511,6 @@ export function getNetAccountClaimsInstruction<
   ResolvedInstructionAccountMeta<
     TAccountEthLedger,
     InstructionAccountInputAddress<TAccountEthLedger>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountVault,
-    InstructionAccountInputAddress<TAccountVault>
   >,
   ResolvedInstructionAccountMeta<
     TAccountOwner,
@@ -633,11 +551,6 @@ export function getNetAccountClaimsInstruction<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
@@ -651,7 +564,6 @@ export function getNetAccountClaimsInstruction<
       isSigner: false,
       isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
     owner: { value: input.owner ?? null, isSigner: true, isWritable: false },
     margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
     registry: {
@@ -686,13 +598,11 @@ export function getNetAccountClaimsInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
       getAccountMeta("btcLedger", accounts.btcLedger),
       getAccountMeta("ethLedger", accounts.ethLedger),
-      getAccountMeta("vault", accounts.vault),
       getAccountMeta("owner", accounts.owner),
       getAccountMeta("margin", accounts.margin),
       getAccountMeta("registry", accounts.registry),
@@ -709,10 +619,6 @@ export function getNetAccountClaimsInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -733,10 +639,6 @@ export function getNetAccountClaimsInstruction<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountOwner,
@@ -772,19 +674,17 @@ export type ParsedNetAccountClaimsInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     venue: TAccountMetas[0];
-    custody: TAccountMetas[1];
-    safety: TAccountMetas[2];
-    btc?: TAccountMetas[3] | undefined;
-    eth?: TAccountMetas[4] | undefined;
-    btcLedger: TAccountMetas[5];
-    ethLedger: TAccountMetas[6];
-    vault: TAccountMetas[7];
-    owner: TAccountMetas[8];
-    margin: TAccountMetas[9];
-    registry: TAccountMetas[10];
-    certificate: TAccountMetas[11];
-    eventAuthority: TAccountMetas[12];
-    program: TAccountMetas[13];
+    safety: TAccountMetas[1];
+    btc?: TAccountMetas[2] | undefined;
+    eth?: TAccountMetas[3] | undefined;
+    btcLedger: TAccountMetas[4];
+    ethLedger: TAccountMetas[5];
+    owner: TAccountMetas[6];
+    margin: TAccountMetas[7];
+    registry: TAccountMetas[8];
+    certificate: TAccountMetas[9];
+    eventAuthority: TAccountMetas[10];
+    program: TAccountMetas[11];
   };
   data: NetAccountClaimsInstructionData;
 };
@@ -797,12 +697,12 @@ export function parseNetAccountClaimsInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedNetAccountClaimsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 14) {
+  if (instruction.accounts.length < 12) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 14,
+        expectedAccountMetas: 12,
       },
     );
   }
@@ -822,13 +722,11 @@ export function parseNetAccountClaimsInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       btc: getNextOptionalAccount(),
       eth: getNextOptionalAccount(),
       btcLedger: getNextAccount(),
       ethLedger: getNextAccount(),
-      vault: getNextAccount(),
       owner: getNextAccount(),
       margin: getNextAccount(),
       registry: getNextAccount(),

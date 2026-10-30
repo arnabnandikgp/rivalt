@@ -34,10 +34,10 @@ export async function readAccountResolution(rpc:Pick<Rpc,'call'>,venue:Address) 
   const registry=decodeAccountWorker(response.value[0],sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder());
   const header=decodeAccountWorker(response.value[1],sdk.RESOLUTION_DISCRIMINATOR,sdk.getResolutionDecoder());
   const work=decodeAccountWorker(response.value[2],sdk.RESOLUTION_WORK_DISCRIMINATOR,sdk.getResolutionWorkDecoder());
-  assert(registry.schemaVersion===6&&registry.venue===venue&&registry.bump===registryBump&&registry.count>0&&registry.count<=64&&
+  assert(registry.schemaVersion===7&&registry.venue===venue&&registry.bump===registryBump&&registry.count>0&&registry.count<=64&&
     registry.members.length===registry.count&&new Set(registry.members).size===registry.count,'Invalid complete resolution registry');
-  assert(header.schemaVersion===6&&header.venue===venue&&header.bump===resolutionBump&&
-    work.schemaVersion===6&&work.venue===venue&&work.bump===workBump,'Foreign resolution continuation');
+  assert(header.schemaVersion===7&&header.venue===venue&&header.bump===resolutionBump&&
+    work.schemaVersion===7&&work.venue===venue&&work.bump===workBump,'Foreign resolution continuation');
   const rows:sdk.ResolutionRow[]=[];
   if(header.stage>=2&&header.stage<=11) {
     assert(header.count===registry.count&&work.epoch===header.epoch,'Resolution epoch/count mismatch');
@@ -45,7 +45,7 @@ export async function readAccountResolution(rpc:Pick<Rpc,'call'>,venue:Address) 
     assert(sdk.hex(hash)===sdk.hex(header.registryHash),'Frozen membership hash mismatch');
     for(let index=0;index<Math.ceil(header.count/2);index++) {
       const page=decodeAccountWorker(response.value[3+index],sdk.RESOLUTION_PAGE_DISCRIMINATOR,sdk.getResolutionPageDecoder());
-      assert(page.schemaVersion===6&&page.venue===venue&&page.bump===pages[index][1]&&page.pageIndex===index,'Foreign resolution page');
+      assert(page.schemaVersion===7&&page.venue===venue&&page.bump===pages[index][1]&&page.pageIndex===index,'Foreign resolution page');
       // Future pages in Value still contain the previous/precreated epoch.
       if(header.stage>2)assert(page.epoch===header.epoch&&page.rowCount===Math.min(2,header.count-2*index),'Incomplete frozen page');
       rows.push(...page.rows.slice(0,Math.min(2,header.count-2*index)));

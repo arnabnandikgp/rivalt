@@ -6,7 +6,7 @@ import { allocateLiquidityRoute } from './liquidity-allocation.js';
 import { requireValue } from './wallet-client.js';
 import * as protocol from './generated/index.js';
 import { accountGuard } from './account-snapshot.js';
-import {requiredAccountMarkets} from './account-markets.js';
+import {requiredAccountMarkets,requiredAccountLiabilities} from './account-markets.js';
 
 export type LiquidityRouteInput = MarginRouteIntent & {
   snapshot: Awaited<ReturnType<typeof readAccountTradeSnapshot>>; trader: Address;
@@ -16,7 +16,7 @@ export type LiquidityRouteInput = MarginRouteIntent & {
 export function previewLiquidityRoute(input: LiquidityRouteInput) {
   const { snapshot,trader,marketIndex } = input;
   const root = snapshot.roots[trader];
-  requireValue(snapshot.venueState.profileVersion === 4 && snapshot.liquidity && root?.schemaVersion === 6
+  requireValue(snapshot.venueState.profileVersion === 4 && snapshot.liquidity && root?.schemaVersion === 7
     && root.venue === snapshot.venue && root.role === 0 && !snapshot.safetyState.paused
     && ![2,3,4].includes(snapshot.safetyState.mode), 'Liquidity preview unavailable.');
   requireValue(root.mode !== 0 || snapshot.marketStates[marketIndex].crossEligible, 'Market is not cross eligible.');
@@ -49,10 +49,11 @@ export async function buildLiquidityRoute(input: LiquidityRouteInput, actor: Add
     seeds: [new TextEncoder().encode('__event_authority')] });
   const [first, second] = selected, firstState = first.registrationState, secondState = second?.registrationState;
   const required = requiredAccountMarkets([root, ...selected.map(maker => snapshot.roots[maker.registrationState.capital])], 1 << marketIndex);
+  const liabilityRequired = requiredAccountLiabilities([root, ...selected.map(maker => snapshot.roots[maker.registrationState.capital])], 1 << marketIndex);
   const common = {
-    actor: createNoopSigner(actor), venue: snapshot.venue, custody: snapshot.custody, safety: snapshot.safety,
+    actor: createNoopSigner(actor), venue: snapshot.venue, safety: snapshot.safety,
     market: snapshot.markets[marketIndex], otherMarket: required & (1 << (1 - marketIndex)) ? snapshot.markets[1 - marketIndex] : undefined,
-    ledger: snapshot.ledgers[marketIndex], otherLedger: snapshot.ledgers[1 - marketIndex], vault: snapshot.vault, trader,
+    ledger: snapshot.ledgers[marketIndex], otherLedger: liabilityRequired & (1 << (1 - marketIndex)) ? snapshot.ledgers[1 - marketIndex] : undefined, trader,
     registry: snapshot.liquidity!.registry, eventAuthority, program: protocol.CLEARING_PROGRAM_ADDRESS,
     firstCapital: firstState.capital, firstRegistration: first.registration, firstProgram: firstState.pricingProgram,
     firstProgramData: firstState.programData, firstConfig: firstState.config, firstPrice: firstState.price,

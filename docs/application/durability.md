@@ -10,9 +10,9 @@ Unknown critical schemas, revision gaps or immutable identity changes fail close
 
 Default has a compact event-derived financial view, not a fabricated copy of the
 wide arithmetic work account. Frozen rows retain original cash and claims. Partial
-Apply changes individual roots while the custody total and pools retain their
-frozen values. Reconcile that mixed root sum against remaining original cash plus
-applied cash; only the completion event adopts the new aggregate buckets. Inspect
+Apply changes individual roots while allocated custody and pools retain their
+frozen values; there is no cached custody cash sum. Reconcile that mixed root sum
+against remaining original cash plus applied cash; only the completion event adopts the new aggregate buckets. Inspect
 the canonical resolution header/pages against the event-derived fields. Wide
 registers and DFS scratch are solver continuation state, not spendable balances.
 
@@ -20,6 +20,12 @@ RPC reconciliation reads the complete entity revision vector and financial bodie
 twice across bounded chunks. A relevant advance requests tail catch-up; it never
 silently combines incompatible states. Storage precreation has a zero-payload
 scoped transition, so its creation remains part of authenticated history.
+The settlement worker combines final backing page and gain payment in one durable
+original. The receiver pre-state guard remains the payment nonexecution proof;
+later-instruction failure rolls back the scan and payment together. Earlier pages
+retain observation/liability invalidation, so relevant continuous sampling can
+still require coordination.
+
 Market payout certificates and terminal retirement proof remain distinct; neither
 is an ordinary own-cash withdrawal prerequisite.
 
@@ -294,7 +300,7 @@ a substitute for the journal's complete-block and entity-revision authentication
 These are implemented local contracts; [validation](../operations/validation.md)
 records the separate compiled, signed and database evidence.
 
-## Relevant-market payloads (P41 candidate)
+## Relevant-market payloads (P41)
 
 Schema-6 accounts/envelopes and projection binding 6 use a new deployment and
 fresh database. Four event shapes explicitly omit unconsumed markets: routes use
@@ -307,4 +313,22 @@ is synthesized to fill an absent slot. Full-cohort payloads remain complete.
 The numeric binding prevents replaying schema-5 events through the new codecs.
 Maker economics and independent report readers unwrap optional snapshots before
 accruing their recorded funding; local payload cursors remain separate from wire
-authority. The rebuilt RPC/WS/PostgreSQL acceptance is pending in STATUS.
+authority. Rebuilt acceptance is recorded in validation. P42 retains these partial
+market rules and supersedes the numeric binding and custody payloads below.
+
+## Custody isolation payloads (P42)
+
+Current account/envelope schema and projection binding are 7; SQL journal format
+remains 2 but the domain/genesis/database are fresh. Ledger snapshots carry their
+selected liability version. Route/cash/liquidation events contain only supplied
+ledgers; omitted values preserve the authenticated predecessor. Internal cash
+operations emit no allocated/actual vault value. Full cash is derived from the
+complete projected root set, never trusted as a withdrawal balance or filled from
+an incomplete account preview. Certificate payloads bind their predecessor revision
+from the authenticated footer before its successor revision is applied.
+
+Complete default keeps frozen C/P/I/T and exact applied-row stage accounting.
+Only complete Apply updates the ledger buckets; actual allocated custody stays
+constant. RPC reconstruction checks complete roots, pools and the actual SPL vault.
+The signed treasury/retirement/journal tests verify omitted-state preservation,
+real token exits, SQL rollback, disconnect/backfill and identical fresh replay.

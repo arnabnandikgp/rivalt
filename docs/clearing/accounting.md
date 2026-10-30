@@ -19,7 +19,10 @@ risk equity = C_a*S + sum_m(min(U_risk_a,m, 0))
 
 Neither a positive claim nor a reserve is account cash. Portfolio metadata has no
 balance. Each operation checks the canonical complete position/order dependency
-set, checked counters/bounds, final required reservations and actual custody.
+set, checked counters/bounds and final required reservations. Token gateways also
+authenticate actual custody; internal transitions conserve root/ledger entitlements
+without loading the shared token vault. Complete checkpoints independently reconcile
+all root cash and market pools against allocated and actual tokens.
 
 | Transition | Exact changes / eligibility |
 |---|---|
@@ -186,10 +189,15 @@ exposure or claims, including cash effects caused by another market. Unrelated
 ETH-only activity does not become a BTC payment dependency. Required source and
 held-funding stamps are checked again on consumption.
 
-The 242-byte certificate's cash accumulator is cash in selected-exposed/claim roots,
+The 234-byte certificate's cash accumulator is cash in selected-exposed/claim roots,
 not a common fungible backing pool. Its lots contain both sampled sums; only the
 selected sum is certified. Each debtor independently covers all gross debt.
-Missing/reordered/duplicate roots or changed required stamps restart/reject.
+Missing/reordered/duplicate roots or changed required stamps restart/reject. The
+worker submits the final page and gain payment in one atomic original. Earlier
+pages still need a stable required-observation/liability window: P42 measured three
+deliberately observation-interleaved failures and one coordinated-window completion,
+not a normal-traffic availability estimate. The scan only reads roots even when
+the later payment promotes its beneficiary writable in the complete message.
 Payment remains limited by actual selected P; an unpaid-profit certificate may
 need coordination with concurrent relevant activity. Funded withdrawal needs none.
 

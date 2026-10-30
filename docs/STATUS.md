@@ -19,7 +19,7 @@ the integration and preceding baselines.
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
-| P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
+| P42 custody/accounting isolation | Review | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60), stacked on #59; D87 schema-7 financial/lock/settlement/gateway/default and fresh SQL replay acceptance passes |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
@@ -321,13 +321,57 @@ Successful raw records stay in `p41-claims-revision/`, the failed attempt in
 `p41-claims-complete/`. Owned test listeners/containers are stopped.
 
 P41 acceptance content is `3415538`; [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59)
-is ready above #58. Integration remains pending. Hosted CI passed financial, scope, shell and report jobs;
-the client job exposed two route-builder fixtures that omitted selected maker roots.
-The fixture-only repair passes all three route-builder tests locally; the client rerun is pending. No broad
+is ready above #58. Integration remains pending. All five hosted CI jobs pass on P41 repair `1b0887f`
+([run 41131181214](https://github.com/arnabnandikgp/rivalt/actions/runs/41131181214));
+three route fixture tests also pass locally. The repair supplies omitted maker roots
+without changing runtime admission. No broad
 unrelated/browser/endurance suites are rerun; CI owns broad regression and P44 owns
-full fresh qualification. Next exact action: freeze and implement P42's exact custody/accounting isolation
-contract above #59. No validator
-throughput, endurance or funded qualification is claimed.
+full fresh qualification. P42 is on `performance/p42-custody-isolation` above #59. D87's schema-7 layouts,
+SDK, indexer and worker are implemented and scoped acceptance passes. Custody is
+59 bytes and owns only allocated tokens; selected ledgers carry liability stamps.
+Pure internal operations omit custody/vault. Full cash is derived and independently
+reconciled at complete checkpoints; economics and authority remain unchanged.
+
+Clean compiled source **`6aeb7d0cf645fca889a9e3154ac01a129a72a6a8`** builds all
+qualified/default programs and generated IDLs without oversized frames. All 114
+native clearing cases, 71 affected client/projection/Anchor cases, four overlapping
+dependency-builder cases, one additional atomic-worker case, eleven ABI guard
+regressions and three compiled default gates pass. Current inventory covers 61
+entrypoints and 20 custody writers. No unrelated suites/endurance are rerun.
+
+Clean verifier `569ed3e` passes 207 dependency/custody outcomes (11 expected
+rejections), 149-event fresh PostgreSQL replay and exact 8,099,997-atom backing.
+Distinct-owner/payer BTC/ETH trades have zero protocol and full-message write
+conflicts. Atomic final-page/payment costs 118,337 CU/604 bytes and later failure
+rolls back both effects. Three deliberately observation-interleaved scan attempts
+reject; one coordinated-window attempt completes. These four constructed attempts
+do not estimate normal availability: stable relevant observations remain necessary
+for earlier pages, with no source/risk relaxation.
+
+The same verifier/SBF passes 290 safety outcomes, including 23 expected rejections,
+TP/SL, liquidation, complete default, stale-source resolved exit and recovery.
+Independent Fraction audit verifies eight exact payouts and rejects ten corruptions.
+Clean `6fbc5d6` passes 124 treasury/journal outcomes (five rejections), actual SQL
+rollback/shutdown/backfill and identical 74-event replay. It also passes 63 terminal
+retirement/reserve outcomes (seven rejections), same-slot/nested-CPI ordering and
+53-event fresh replay, with actual/allocated vault 5,999,999 atoms.
+
+Clean `72e2d18` passes all 57 signed custody gateway scenarios, independent raw-byte
+accounting/eight corruptions and legacy Anchor account/event parity. Its earlier
+failure was an obsolete negative-test error expectation: duplicated writable
+ledgers correctly reject with 2040 before a seed check. The separate dependency
+fixture's self-trade rejection was fixed with a third independently funded owner.
+Failed evidence remains; neither correction changes financial rules. One additional
+custody codec case now passes all eleven exact current instruction/meta comparisons
+against isolated Anchor, after updating its obsolete context-name fixture.
+
+[Validation](operations/validation.md#custody-isolation-acceptance-p42) records exact
+pins, counts, limits and local run paths. Prior P41 binaries remain preserved.
+Acceptance content is `5c9a81d`; [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60)
+is ready above #59. Integration and newly triggered hosted CI remain pending.
+Next exact action: begin P43 profiling on this accepted parent without waiting for merge. P44 still owns full-path measurement,
+integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
+endurance, browser or funded qualification is claimed for P42.
 
 ## Deployment and operational limits
 

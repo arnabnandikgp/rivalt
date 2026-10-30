@@ -1,6 +1,6 @@
-use crate::instructions::account_trading::environment;
 use super::*;
 use crate::instructions::account_trading::authority::AccountGuard;
+use crate::instructions::account_trading::environment;
 use financial_core::SCALE;
 
 fn clock() -> Clock {
@@ -14,7 +14,7 @@ fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
         Market {
-            schema_version: 6,
+            schema_version: 7,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
             cross_eligible: true,
@@ -42,7 +42,7 @@ fn markets() -> [Market; 2] {
 }
 fn trader(cash: u64) -> MarginAccount {
     MarginAccount {
-        schema_version: 6,
+        schema_version: 7,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         owner: Pubkey::new_from_array([1; 32]),
@@ -253,7 +253,7 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
     order.serialize(&mut bytes).unwrap();
     assert_eq!(bytes.len() + 8, 172);
     let mut registration = MakerRegistration {
-        schema_version: 6,
+        schema_version: 7,
         revision: 0,
         venue: Pubkey::default(),
         market: Pubkey::default(),
@@ -403,17 +403,12 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
     assert_eq!(root.reserved, 0);
     assert_eq!(root.book.orders[0].order.notional, 120_008);
     assert_eq!(root.book.orders[0].order.fee_charged, 25);
-    let mut custody = Custody {
-        schema_version: 6,
-        total_cash: 2_100_000,
-        ..Default::default()
-    };
     let mut ledger = MarketLedger {
-        schema_version: 6,
+        schema_version: 7,
         ..Default::default()
     };
-    trading::split_fee(&mut custody, &mut ledger, 13).unwrap();
-    trading::split_fee(&mut custody, &mut ledger, 12).unwrap();
+    trading::split_fee(&mut ledger, 13).unwrap();
+    trading::split_fee(&mut ledger, 12).unwrap();
     assert_eq!(
         (
             ledger.insurance,
@@ -434,7 +429,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
     let roots = [trader(100_000), makers()[0].clone(), makers()[1].clone()];
     let makers = [0u8, 1].map(|instance| {
         let mut value = MakerRegistration::try_from_slice(&[0; 333]).unwrap();
-        value.schema_version = 6;
+        value.schema_version = 7;
         value.instance = instance;
         value.capital = Pubkey::new_from_array([instance + 21; 32]);
         value.buy_consumed = 11 + u64::from(instance);
@@ -466,6 +461,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         fees: 103,
         insurance_fee_remainder: 3,
         version: 105,
+        liability_version: 107,
     };
     let owned = LiquidityRouteExecuted {
         venue: roots[0].venue,
@@ -483,12 +479,11 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         carry_before: 2,
         carry_after: 3,
         ledger: ledger.clone(),
+        other_ledger: Some(ledger.clone()),
         order_id: 113,
         order_version: 114,
         root_states: roots.iter().map(MarginAccountSnapshot::from).collect(),
         maker_states: makers.iter().map(MakerRegistrationPayload::from).collect(),
-        total_cash: 115,
-        liability_versions: [116, 117],
         legs: legs.to_vec(),
     };
     let view = commit::RouteEventView {
@@ -506,13 +501,12 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         retained_fee: owned.retained_fee,
         carry_before: owned.carry_before,
         carry_after: owned.carry_after,
+        other_ledger: Some(ledger.clone()),
         ledger,
         order_id: owned.order_id,
         order_version: owned.order_version,
         root_states: roots.iter().collect(),
         maker_states: makers.iter().collect(),
-        total_cash: owned.total_cash,
-        liability_versions: owned.liability_versions,
         legs: legs.to_vec(),
     };
     fn bytes<T: AnchorSerialize>(value: &T) -> Vec<u8> {

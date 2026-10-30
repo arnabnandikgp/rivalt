@@ -15,7 +15,7 @@ fn wire<T: AccountSerialize + AccountDeserialize + Space>(account: T, size: usiz
 #[test]
 fn exact_contract_sizes_and_roundtrips() {
     wire(Venue::default(), 329);
-    wire(Custody::default(), 83);
+    wire(Custody::default(), 59);
     wire(VenueSafety::default(), 85);
     wire(RetirementCertificate::default(), 80);
     assert_ne!(
@@ -32,9 +32,9 @@ fn exact_contract_sizes_and_roundtrips() {
     wire(Portfolio::default(), 87);
     wire(MarginAccount::default(), 978);
     wire(Market::default(), 455);
-    wire(MarketLedger::default(), 117);
+    wire(MarketLedger::default(), 125);
     wire(CapitalBinding::default(), 114);
-    wire(SettlementCertificate::default(), 242);
+    wire(SettlementCertificate::default(), 234);
     wire(ResolutionPage::default(), 3408);
     wire(Resolution::default(), 3652);
     wire(ResolutionWork::default(), 7926);

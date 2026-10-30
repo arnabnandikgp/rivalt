@@ -51,7 +51,6 @@ export type RetiredReserveWithdrawnEvent = {
   fees: bigint;
   feeRemainder: number;
   ledgerVersion: bigint;
-  totalCash: bigint;
   allocatedVault: bigint;
   actualVault: bigint;
 };
@@ -67,7 +66,6 @@ export type RetiredReserveWithdrawnEventArgs = {
   fees: number | bigint;
   feeRemainder: number;
   ledgerVersion: number | bigint;
-  totalCash: number | bigint;
   allocatedVault: number | bigint;
   actualVault: number | bigint;
 };
@@ -86,7 +84,6 @@ export function getRetiredReserveWithdrawnEventEncoder(): FixedSizeEncoder<Retir
       ["fees", getU64Encoder()],
       ["feeRemainder", getU8Encoder()],
       ["ledgerVersion", getU64Encoder()],
-      ["totalCash", getU64Encoder()],
       ["allocatedVault", getU64Encoder()],
       ["actualVault", getU64Encoder()],
     ]),
@@ -108,7 +105,6 @@ export function getRetiredReserveWithdrawnEventDecoder(): FixedSizeDecoder<Retir
       ["fees", getU64Decoder()],
       ["feeRemainder", getU8Decoder()],
       ["ledgerVersion", getU64Decoder()],
-      ["totalCash", getU64Decoder()],
       ["allocatedVault", getU64Decoder()],
       ["actualVault", getU64Decoder()],
     ]),

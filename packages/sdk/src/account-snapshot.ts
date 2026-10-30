@@ -62,34 +62,35 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   requireValue(response.value?.length===keys.length,'Incomplete account snapshot.');
   const accounts=new Map<Address,any>(keys.map((key,index)=>[key,response.value[index]]));
   const venueState=decode(accounts.get(venue),protocol.VENUE_DISCRIMINATOR,protocol.getVenueDecoder());
-  requireValue(venueState.schemaVersion===6&&venueState.profileVersion===4&&venueState.marketCount===2&&venueState.bump===venueBump&&venueState.vaultBump===vaultBump&&
+  requireValue(venueState.schemaVersion===7&&venueState.profileVersion===4&&venueState.marketCount===2&&venueState.bump===venueBump&&venueState.vaultBump===vaultBump&&
     hex(venueState.domain)===identity.domain&&venueState.quoteMint===identity.mint&&venueState.vault===vault&&venueState.insuranceFeeShareBps===2500&&
     venueState.markets.every((key,index)=>key===markets[index]),'Venue identity/profile mismatch.');
   const custodyState=decode(accounts.get(custody),protocol.CUSTODY_DISCRIMINATOR,protocol.getCustodyDecoder());
   const safetyState=decode(accounts.get(safety),protocol.VENUE_SAFETY_DISCRIMINATOR,protocol.getVenueSafetyDecoder());
-  requireValue(custodyState.schemaVersion===6&&custodyState.venue===venue&&custodyState.bump===custodyBump&&
-    safetyState.schemaVersion===6&&safetyState.venue===venue&&safetyState.bump===safetyBump&&[0,1,2,3,4].includes(safetyState.mode),'Account custody/safety identity.');
+  requireValue(custodyState.schemaVersion===7&&custodyState.venue===venue&&custodyState.bump===custodyBump&&
+    safetyState.schemaVersion===7&&safetyState.venue===venue&&safetyState.bump===safetyBump&&[0,1,2,3,4].includes(safetyState.mode),'Account custody/safety identity.');
   const marketStates=markets.map((key,index)=>{
     const value=decode(accounts.get(key),protocol.MARKET_DISCRIMINATOR,protocol.getMarketDecoder());
-    requireValue(value.schemaVersion===6&&value.venue===venue&&value.index===index&&value.bump===marketPdas[index][1]&&
+    requireValue(value.schemaVersion===7&&value.venue===venue&&value.index===index&&value.bump===marketPdas[index][1]&&
       value.lotsPerUnit===(index===0?1_000_000n:100_000n),'Market identity/units mismatch.');return value;
   });
   const ledgerStates=ledgers.map((key,index)=>{
     const value=decode(accounts.get(key),protocol.MARKET_LEDGER_DISCRIMINATOR,protocol.getMarketLedgerDecoder());
-    requireValue(value.schemaVersion===6&&value.venue===venue&&value.market===markets[index]&&value.marketIndex===index&&value.bump===ledgerPdas[index][1]&&
+    requireValue(value.schemaVersion===7&&value.venue===venue&&value.market===markets[index]&&value.marketIndex===index&&value.bump===ledgerPdas[index][1]&&
       value.insuranceFeeRemainder<4,'Market ledger identity/carry mismatch.');return value;
   });
-  requireValue(custodyState.allocatedVault===custodyState.totalCash+ledgerStates.reduce((sum,value)=>sum+value.settlement+value.insurance+value.fees,0n),'Venue cash conservation.');
+  requireValue(custodyState.allocatedVault>=ledgerStates.reduce((sum,value)=>sum+value.settlement+value.insurance+value.fees,0n),'Invalid allocated pool backing.');
+  // This is a requested-root snapshot, not a complete-cohort cash audit.
   const portfolios:Record<string,protocol.Portfolio>={},roots:Record<string,protocol.MarginAccount>={};
   for(const key of portfolioKeys) {
     const value=decode(accounts.get(key),protocol.PORTFOLIO_DISCRIMINATOR,protocol.getPortfolioDecoder());
     const [canonical,bump]=await deriveAccountPortfolio(venue,value.owner,value.index);
-    requireValue(value.schemaVersion===6&&value.venue===venue&&key===canonical&&value.bump===bump,'Portfolio identity mismatch.');portfolios[key]=value;
+    requireValue(value.schemaVersion===7&&value.venue===venue&&key===canonical&&value.bump===bump,'Portfolio identity mismatch.');portfolios[key]=value;
   }
   for(const [index,key] of margins.entries()) {
     const value=decode(accounts.get(key),protocol.MARGIN_ACCOUNT_DISCRIMINATOR,protocol.getMarginAccountDecoder());
     const [canonical,bump]=await deriveMarginAccount(value.portfolio,value.subaccountIndex),portfolio=portfolios[value.portfolio];
-    requireValue(value.schemaVersion===6&&value.venue===venue&&value.id<64&&value.portfolio===discovered[index].portfolio&&key===canonical&&value.bump===bump&&
+    requireValue(value.schemaVersion===7&&value.venue===venue&&value.id<64&&value.portfolio===discovered[index].portfolio&&key===canonical&&value.bump===bump&&
       portfolio?.owner===value.owner&&(portfolio.children&(1<<value.subaccountIndex))!==0&&[0,1,2].includes(value.role)&&
       (value.mode===0?value.subaccountIndex===0&&value.isolatedMarketIndex===255&&value.role!==1:
         value.mode===1&&value.subaccountIndex>=1&&[0,1].includes(value.isolatedMarketIndex)),'Margin identity/mode mismatch.');

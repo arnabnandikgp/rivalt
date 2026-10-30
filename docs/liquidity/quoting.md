@@ -2,8 +2,8 @@
 
 ## Identity, deployment and authority
 
-- Fresh local venue/domain with `Venue.schema_version=6`, immutable
-  `profile_version=4`; clearing accounts use schema 6 with scoped revisions.
+- Fresh local venue/domain with `Venue.schema_version=7`, immutable
+  `profile_version=4`; clearing accounts use schema 7 with scoped revisions.
   Maker-owned accounts/quote ABI retain version 4. No in-place profile-3 upgrade or account rewrite.
   The default/devnet build rejects profile-4 financial activation. An explicit local qualification build gates execution.
 - Exactly three registry slots per market, IDs 0,1,2. All must be provisioned and
@@ -16,7 +16,7 @@
   bounded release. Maker capital cannot be a trader's selected root in its route.
 - Reuse clearing's `[capital-v3, capital]` unique binding: one capital, one
   registration across programs and instance aliases. Capital must be the owner's
-  schema-6 isolated maker root for the exact venue/market. Config replicas cannot
+  schema-7 isolated maker root for the exact venue/market. Config replicas cannot
   supply additional collateral or depth. The same owner may fund distinct roots.
 - Owner + venue authority jointly admit/renew the program, ProgramData and complete
   SHA-256 code hash. Validate the actual loader/program-data relationship and full

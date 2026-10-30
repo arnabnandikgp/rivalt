@@ -17,8 +17,6 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
@@ -61,10 +59,7 @@ export type Custody = {
   /** Scoped journal revision; never a financial signing or risk parameter. */
   revision: bigint;
   venue: Address;
-  totalCash: bigint;
   allocatedVault: bigint;
-  /** Only market-dependent economic mutations invalidate gain certificates. */
-  liabilityVersions: Array<bigint>;
   bump: number;
 };
 
@@ -73,10 +68,7 @@ export type CustodyArgs = {
   /** Scoped journal revision; never a financial signing or risk parameter. */
   revision: number | bigint;
   venue: Address | HasAddress;
-  totalCash: number | bigint;
   allocatedVault: number | bigint;
-  /** Only market-dependent economic mutations invalidate gain certificates. */
-  liabilityVersions: Array<number | bigint>;
   bump: number;
 };
 
@@ -88,9 +80,7 @@ export function getCustodyEncoder(): FixedSizeEncoder<CustodyArgs> {
       ["schemaVersion", getU16Encoder()],
       ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
-      ["totalCash", getU64Encoder()],
       ["allocatedVault", getU64Encoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: CUSTODY_DISCRIMINATOR }),
@@ -104,9 +94,7 @@ export function getCustodyDecoder(): FixedSizeDecoder<Custody> {
     ["schemaVersion", getU16Decoder()],
     ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
-    ["totalCash", getU64Decoder()],
     ["allocatedVault", getU64Decoder()],
-    ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -186,5 +174,5 @@ export async function fetchAllMaybeCustody(
 }
 
 export function getCustodySize(): number {
-  return 83;
+  return 59;
 }

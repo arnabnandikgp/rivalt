@@ -77,8 +77,7 @@ def check(path):
     # Initial deposits: six makers + two traders, each one million atoms.
     # Lost-ack withdrawal removes seven; browser withdrawal/deposit cancel.
     assert int(state['custody']['allocatedVault']) == 8_000_000-7
-    assert int(state['custody']['totalCash']) == 8_000_000-7-btc_fees-eth_fees
-    assert sum(int(root['cash']) for root in state['roots'].values()) == int(state['custody']['totalCash'])
+    assert sum(int(root['cash']) for root in state['roots'].values()) == 8_000_000-7-btc_fees-eth_fees
     assert len(state['roots']) == 8
     for root in state['roots'].values():
         assert all(int(position['lots']) == 0 for position in root['positions'])

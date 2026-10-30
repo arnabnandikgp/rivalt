@@ -139,8 +139,9 @@ try {
   const ledgers = await Promise.all(setup.ledgers.map(async key => sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
   assert.deepEqual(ledgers.map(ledger => [ledger.insurance, ledger.fees, ledger.insuranceFeeRemainder]), [[19n, 57n, 0], [1n, 6n, 3]]);
   const custody = sdk.getCustodyDecoder().decode((await h.read(setup.custody))!);
-  assert.equal(allRoots.reduce((total, margin) => total + margin.cash, 0n), custody.totalCash);
-  assert.equal(custody.totalCash + 83n, 8_000_000n);
+  const totalCash = allRoots.reduce((sum, root) => sum + root.cash, 0n);
+  assert.equal(custody.allocatedVault, totalCash + ledgers.reduce((sum, ledger) => sum + ledger.settlement + ledger.insurance + ledger.fees, 0n));
+  assert.equal(totalCash + 83n, 8_000_000n);
   const parity = await conformance.finish(runDir, [
     { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'marginAccount', key: root },
     { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'makerRegistration', key: first.registration },

@@ -12,8 +12,6 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getBytesEncoder,
   getConstantDecoder,
   getConstantEncoder,
@@ -51,7 +49,6 @@ export type AccountAuthorityChangedEvent = {
   slot: bigint;
   margin: Address;
   state: MarginAccountSnapshot;
-  liabilityVersions: Array<bigint>;
 };
 
 export type AccountAuthorityChangedEventArgs = {
@@ -59,7 +56,6 @@ export type AccountAuthorityChangedEventArgs = {
   slot: number | bigint;
   margin: Address | HasAddress;
   state: MarginAccountSnapshotArgs;
-  liabilityVersions: Array<number | bigint>;
 };
 
 /** Gets the encoder for {@link AccountAuthorityChangedEventArgs} event data. */
@@ -70,7 +66,6 @@ export function getAccountAuthorityChangedEventEncoder(): FixedSizeEncoder<Accou
       ["slot", getU64Encoder()],
       ["margin", getAddressEncoder()],
       ["state", getMarginAccountSnapshotEncoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
     ]),
     [getConstantEncoder(ACCOUNT_AUTHORITY_CHANGED_EVENT_DISCRIMINATOR)],
   );
@@ -84,7 +79,6 @@ export function getAccountAuthorityChangedEventDecoder(): FixedSizeDecoder<Accou
       ["slot", getU64Decoder()],
       ["margin", getAddressDecoder()],
       ["state", getMarginAccountSnapshotDecoder()],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ]),
     [getConstantDecoder(ACCOUNT_AUTHORITY_CHANGED_EVENT_DISCRIMINATOR)],
   );

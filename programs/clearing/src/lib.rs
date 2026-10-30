@@ -64,7 +64,7 @@ pub mod clearing {
 
     #[instruction(discriminator = [73, 100, 212, 184, 126, 4, 162, 29])]
     pub fn allocate_market_fees(
-        ctx: Context<ManageMarketFees>,
+        ctx: Context<AllocateMarketFees>,
         market_index: u8,
         amount: u64,
     ) -> Result<()> {
@@ -72,7 +72,7 @@ pub mod clearing {
             ctx,
             [73, 100, 212, 184, 126, 4, 162, 29],
             false,
-            |ctx, events| account_cash::fees::manage(ctx, events, market_index, amount, false),
+            |ctx, events| account_cash::fees::allocate(ctx, events, market_index, amount),
         )
     }
 
@@ -758,7 +758,7 @@ pub mod clearing {
 
     #[instruction(discriminator = [236, 141, 236, 121, 133, 175, 96, 152])]
     pub fn withdraw_market_fees(
-        ctx: Context<ManageMarketFees>,
+        ctx: Context<WithdrawMarketFees>,
         market_index: u8,
         amount: u64,
     ) -> Result<()> {
@@ -766,7 +766,7 @@ pub mod clearing {
             ctx,
             [236, 141, 236, 121, 133, 175, 96, 152],
             false,
-            |ctx, events| account_cash::fees::manage(ctx, events, market_index, amount, true),
+            |ctx, events| account_cash::fees::withdraw(ctx, events, market_index, amount),
         )
     }
 

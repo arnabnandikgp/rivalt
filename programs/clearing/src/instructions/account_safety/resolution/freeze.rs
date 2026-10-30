@@ -175,7 +175,10 @@ pub fn freeze(
     header.prices = prices;
     header.funding = funding;
     header.frozen_at = clock.unix_timestamp;
-    header.cash_before = accounts.identity.custody.total_cash;
+    header.cash_before = account_custody::accounted_cash(
+        &accounts.identity.custody,
+        [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
+    )?;
     let ledgers = [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger];
     header.pools_before = ledgers.map(|ledger| ledger.settlement);
     header.insurance_before = ledgers.map(|ledger| ledger.insurance);

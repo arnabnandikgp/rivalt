@@ -17,7 +17,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   const identities=new Map<string,{bump:number;decoder:{decode(bytes:Uint8Array):unknown};discriminator:ReadonlyUint8Array;expected:unknown}>();
   const expect=async (key:string,derive:Promise<readonly [string,number]>,decoder:{decode(bytes:Uint8Array):unknown},
     discriminator:ReadonlyUint8Array,expected:unknown)=>{
-    const [canonical,bump]=await derive;assert.equal(key,canonical,'Canonical schema-6 PDA');
+    const [canonical,bump]=await derive;assert.equal(key,canonical,'Canonical schema-7 PDA');
     identities.set(key,{bump,decoder,discriminator,expected});
   };
   const component=(name:Parameters<typeof sdk.deriveVenueComponent>[1])=>sdk.deriveVenueComponent(venue,name,program);
@@ -27,7 +27,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   await expect(venue,sdk.deriveAccountVenue(Buffer.from(binding.domain,'hex'),program),sdk.getVenueDecoder(),sdk.VENUE_DISCRIMINATOR,state.venue);
   await expect(safety,component('safety'),sdk.getVenueSafetyDecoder(),sdk.VENUE_SAFETY_DISCRIMINATOR,state.safety);
   if(state.membershipVersion!==null)await expect(registry,component('registry'),sdk.getVenueRegistryDecoder(),sdk.VENUE_REGISTRY_DISCRIMINATOR,
-    {schemaVersion:6,revision:state.revisions[registry]?.revision,venue,membershipVersion:state.membershipVersion,count:state.members.length,members:state.members});
+    {schemaVersion:7,revision:state.revisions[registry]?.revision,venue,membershipVersion:state.membershipVersion,count:state.members.length,members:state.members});
   for(const [key,value] of Object.entries(state.markets))await expect(key,sdk.deriveAccountMarket(venue,value.index,program),sdk.getMarketDecoder(),sdk.MARKET_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.ledgers))await expect(key,sdk.deriveMarketLedger(address(value.market),program),sdk.getMarketLedgerDecoder(),sdk.MARKET_LEDGER_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.portfolios))await expect(key,sdk.deriveAccountPortfolio(venue,address(value.owner),value.index,program),sdk.getPortfolioDecoder(),sdk.PORTFOLIO_DISCRIMINATOR,value);
@@ -47,10 +47,10 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     for(let page=0;page<Math.ceil(state.resolution.count/2);page++)resolutionKeys.push((await sdk.findResolutionPagePda(venue,page,program))[0]);
   }
   const descriptors=[
-    [sdk.VENUE_DISCRIMINATOR,329],[sdk.CUSTODY_DISCRIMINATOR,83],[sdk.VENUE_SAFETY_DISCRIMINATOR,85],
+    [sdk.VENUE_DISCRIMINATOR,329],[sdk.CUSTODY_DISCRIMINATOR,59],[sdk.VENUE_SAFETY_DISCRIMINATOR,85],
     [sdk.VENUE_REGISTRY_DISCRIMINATOR,2113],[sdk.PORTFOLIO_DISCRIMINATOR,87],[sdk.MARGIN_ACCOUNT_DISCRIMINATOR,978],
-    [sdk.MARKET_DISCRIMINATOR,455],[sdk.MARKET_LEDGER_DISCRIMINATOR,117],[sdk.CAPITAL_BINDING_DISCRIMINATOR,114],
-    [sdk.SETTLEMENT_CERTIFICATE_DISCRIMINATOR,242],[sdk.RESOLUTION_DISCRIMINATOR,3652],
+    [sdk.MARKET_DISCRIMINATOR,455],[sdk.MARKET_LEDGER_DISCRIMINATOR,125],[sdk.CAPITAL_BINDING_DISCRIMINATOR,114],
+    [sdk.SETTLEMENT_CERTIFICATE_DISCRIMINATOR,234],[sdk.RESOLUTION_DISCRIMINATOR,3652],
     [sdk.RESOLUTION_PAGE_DISCRIMINATOR,3408],[sdk.RESOLUTION_WORK_DISCRIMINATOR,7926],
     [sdk.RETIREMENT_CERTIFICATE_DISCRIMINATOR,80],[sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,181],
     [sdk.MAKER_REGISTRATION_DISCRIMINATOR,341],[sdk.FUNDING_PUBLISHER_DISCRIMINATOR,148]
@@ -68,7 +68,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         assert(current?.owner===program&&current.data[1]==='base64',`Scoped owner/encoding ${key}`);
         const bytes=Buffer.from(current.data[0],'base64'),descriptor=descriptors[entity.kind];
         assert(descriptor&&bytes.length===descriptor[1]&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
-        assert.equal(bytes.readUInt16LE(8),6);
+        assert.equal(bytes.readUInt16LE(8),7);
         compareReconciliationRevision(bytes.readBigUInt64LE(10),BigInt(entity.revision));
         if(pass)assert.equal(current.data[0],observed.get(key)?.data[0],`Account changed without revision ${key}`);
       }
@@ -103,7 +103,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   if(state.resolution) {
     const expected=state.resolution;
     const header=JSON.parse(json(sdk.getResolutionDecoder().decode(raw(resolutionKeys[0],sdk.RESOLUTION_DISCRIMINATOR))));
-    assert.equal(header.bump,(await component('resolution'))[1]);assert.equal(header.schemaVersion,6);assert.equal(header.venue,venue);
+    assert.equal(header.bump,(await component('resolution'))[1]);assert.equal(header.schemaVersion,7);assert.equal(header.venue,venue);
     for(const field of ['epoch','stage','cursor','count','registryHash','termsEpoch','configEpochs','sourceObservations','sourceDeadlines','prices','funding','frozenAt',
       'cashBefore','poolsBefore','insuranceBefore','feesBefore','allocatedBefore','budgets','insuranceSpent','evaluation','clippedMask'] as const)
       assert.deepEqual(header[field],expected[field],`Resolution ${field}`);
@@ -111,7 +111,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       remainingLots:expected.remainingLots,remainingGross:expected.remainingGross,remainingClaims:expected.remainingClaims}))assert.deepEqual(header[field],value,`Partial Apply ${field}`);
     for(let index=1;index<resolutionKeys.length;index++) {
       const page=JSON.parse(json(sdk.getResolutionPageDecoder().decode(raw(resolutionKeys[index],sdk.RESOLUTION_PAGE_DISCRIMINATOR))));
-      assert.equal(page.bump,(await sdk.findResolutionPagePda(venue,index-1,program))[1]);assert.equal(page.schemaVersion,6);assert.equal(page.venue,venue);assert.equal(page.pageIndex,index-1);
+      assert.equal(page.bump,(await sdk.findResolutionPagePda(venue,index-1,program))[1]);assert.equal(page.schemaVersion,7);assert.equal(page.venue,venue);assert.equal(page.pageIndex,index-1);
       for(let within=0;within<2;within++) {
         const row=expected.rows[2*(index-1)+within];if(!row)continue;
         assert.equal(page.epoch,expected.epoch);assert(page.rowCount>within);

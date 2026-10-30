@@ -7,6 +7,14 @@ use account_trading::authority::AccountGuard;
 #[derive(Accounts)]
 pub struct LiquidateAccount<'info> {
     pub identity: AccountFinancialIdentity<'info>,
+    #[account(mut, seeds = [b"ledger-v3", identity.venue.markets[0].as_ref()], bump = btc_ledger.bump,
+        constraint = btc_ledger.venue == identity.venue.key() && btc_ledger.market == identity.venue.markets[0]
+            && btc_ledger.market_index == 0 @ ClearingError::Profile)]
+    pub btc_ledger: Option<Box<Account<'info, MarketLedger>>>,
+    #[account(mut, seeds = [b"ledger-v3", identity.venue.markets[1].as_ref()], bump = eth_ledger.bump,
+        constraint = eth_ledger.venue == identity.venue.key() && eth_ledger.market == identity.venue.markets[1]
+            && eth_ledger.market_index == 1 @ ClearingError::Profile)]
+    pub eth_ledger: Option<Box<Account<'info, MarketLedger>>>,
     pub receiver_owner: Signer<'info>,
     #[account(mut, seeds = [b"margin-v3", target.portfolio.as_ref(), &target.subaccount_index.to_le_bytes()],
         bump = target.bump, constraint = target.venue == identity.venue.key() @ ClearingError::Profile)]
@@ -29,7 +37,15 @@ pub(crate) fn candidate(
     price: u64,
     clock: &Clock,
 ) -> Result<crate::engine::risk::Candidate> {
-    candidate_optional(target, receiver, markets.map(Some), market_index, lots, price, clock)
+    candidate_optional(
+        target,
+        receiver,
+        markets.map(Some),
+        market_index,
+        lots,
+        price,
+        clock,
+    )
 }
 
 #[inline(never)]
@@ -97,17 +113,40 @@ pub fn liquidate(
         price,
         &clock,
     )?;
+    require!(
+        u128::from(accounts.target.cash) + u128::from(accounts.receiver.cash)
+            == u128::from(candidate.target.cash) + u128::from(candidate.receiver.cash),
+        ClearingError::Reconciliation
+    );
     let target_positions = accounts.target.positions;
     let receiver_positions = accounts.receiver.positions;
     account_trading::commit_root(&mut accounts.target, &candidate.target)?;
     account_trading::commit_root(&mut accounts.receiver, &candidate.receiver)?;
     account_trading::invalidate(
-        &mut accounts.identity.custody,
+        [
+            accounts
+                .btc_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+            accounts
+                .eth_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+        ],
         target_positions,
         accounts.target.positions,
     )?;
     account_trading::invalidate(
-        &mut accounts.identity.custody,
+        [
+            accounts
+                .btc_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+            accounts
+                .eth_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+        ],
         receiver_positions,
         accounts.receiver.positions,
     )?;
@@ -116,13 +155,11 @@ pub fn liquidate(
     } else {
         &mut accounts.identity.eth
     };
-    selected.as_deref_mut().ok_or(ClearingError::OrderState)?.gross_lots = candidate.gross_lots;
+    selected
+        .as_deref_mut()
+        .ok_or(ClearingError::OrderState)?
+        .gross_lots = candidate.gross_lots;
     accounts.identity.materialize(&clock)?;
-    account_custody::reconciled(
-        &accounts.identity.custody,
-        [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
-        accounts.identity.vault.amount,
-    )?;
     emit(
         events,
         accounts,
@@ -143,7 +180,6 @@ struct LiquidationEventView<'a> {
     venue: Pubkey,
     slot: u64,
     safety_epoch: u64,
-    liability_versions: [u64; 2],
     market_index: u8,
     lots: u64,
     price: u64,
@@ -155,6 +191,7 @@ struct LiquidationEventView<'a> {
     target_state: &'a MarginAccount,
     receiver_state: &'a MarginAccount,
     markets: Vec<&'a Market>,
+    ledgers: Vec<crate::events::MarketLedgerSnapshot>,
 }
 
 #[inline(never)]
@@ -174,7 +211,6 @@ fn emit(
 
         slot,
         safety_epoch: accounts.identity.safety.epoch,
-        liability_versions: accounts.identity.custody.liability_versions,
         market_index,
         lots,
         price,
@@ -186,6 +222,14 @@ fn emit(
         target_state: &accounts.target,
         receiver_state: &accounts.receiver,
         markets: accounts.identity.markets().into_iter().flatten().collect(),
+        ledgers: [
+            accounts.btc_ledger.as_deref(),
+            accounts.eth_ledger.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .map(account_custody::ledger_snapshot)
+        .collect(),
     };
     events.emit_borrowed::<crate::events::AccountLiquidated, _>(
         &event,
@@ -199,7 +243,7 @@ mod event_tests {
     #[test]
     fn borrowed_liquidation_is_exactly_the_owned_event_wire() {
         let target = MarginAccount {
-            schema_version: 6,
+            schema_version: 7,
             cash: 17,
             nonce: 9,
             positions: [
@@ -214,13 +258,13 @@ mod event_tests {
             ..Default::default()
         };
         let receiver = MarginAccount {
-            schema_version: 6,
+            schema_version: 7,
             cash: 21,
             id: 1,
             ..Default::default()
         };
         let market = Market {
-            schema_version: 6,
+            schema_version: 7,
             reference_price: 20_000,
             funding_index_scaled: -17,
             ..Default::default()
@@ -229,7 +273,6 @@ mod event_tests {
             venue: Pubkey::new_unique(),
             slot: 42,
             safety_epoch: 4,
-            liability_versions: [5, 6],
             market_index: 1,
             lots: 7,
             price: 20_000,
@@ -240,6 +283,7 @@ mod event_tests {
             receiver: Pubkey::new_unique(),
             target_state: crate::events::MarginAccountSnapshot::from(&target),
             receiver_state: crate::events::MarginAccountSnapshot::from(&receiver),
+            ledgers: vec![],
             markets: vec![
                 crate::events::MarketSnapshot::from(&market),
                 crate::events::MarketSnapshot::from(&market),
@@ -249,7 +293,6 @@ mod event_tests {
             venue: owned.venue,
             slot: owned.slot,
             safety_epoch: owned.safety_epoch,
-            liability_versions: owned.liability_versions,
             market_index: owned.market_index,
             lots: owned.lots,
             price: owned.price,
@@ -261,6 +304,7 @@ mod event_tests {
             target_state: &target,
             receiver_state: &receiver,
             markets: vec![&market, &market],
+            ledgers: vec![],
         };
         let mut expected = Vec::new();
         owned.serialize(&mut expected).unwrap();

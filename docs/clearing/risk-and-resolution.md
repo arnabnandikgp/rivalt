@@ -350,15 +350,15 @@ protection are removed while the last order ID remains monotonic; delegate expir
 identity are cleared and root nonce/version/delegate epoch advance.
 
 During partial Apply, participant bytes contain a mixture of old/new rows. The
-custody aggregate and P/I/T remain the original frozen ledger; `scanned_cash` is
+allocated vault and P/I/T remain the original frozen ledger; `scanned_cash` is
 remaining original C and `cash_applied` is final C of applied rows. These are the
 stage-accounting representations, never two spendable balances. Remaining q/gross/
 claims track the unapplied cohort. In this stage `claim_sums` accumulates signed
 whole market flows at scale S. No ordinary deposit/trade/exit can consume a partial
 plan. The complete application proves both market whole-flow totals equal P plus
 that market's planned insurance use, and final C equals original C+P+spent I.
-Only then does custody adopt final C, set both P to zero and debit each I exactly
-once; fee amounts/carries and allocated vault remain unchanged.
+Only then does complete resolution record final C, set both P to zero and debit
+each I exactly once; fee amounts/carries and allocated vault remain unchanged.
 
 Reconcile scans every applied root again, checking final cash, zero claims/q,
 funding checkpoints, generations and absence of revived order/delegate authority.
@@ -394,7 +394,7 @@ The fresh P23 custody profile and active P25 risk checks remain distinct.
 
 Retirement is irreversible and requires either complete current-epoch resolution
 reconciliation or a canonical complete flat/no-orders/no-claims scan. The latter
-uses `RetirementCertificate`, schema 6, 80 bytes including discriminator,
+uses `RetirementCertificate`, schema 7, 80 bytes including discriminator,
 at `retirement-v3, venue`. Ordered fields are schema u16, revision u64, venue,
 safety epoch/membership version/scanned cash (three u64s), count/next (two u16s),
 complete/bump (two bytes). One/two read-only canonical roots are checked per
@@ -403,7 +403,8 @@ before scanning; every page and retirement bind the same paused safety epoch and
 membership version. Cash mutations reject during the window; unpause invalidates
 the proof. A valid completed or in-progress
 scan cannot be gratuitously replaced; a stale scan restarts from zero. Complete
-cash must match custody and both market gross exposures/pools must be zero.
+cash must match allocated custody minus both markets’ insurance/fees, and both
+market gross exposures/settlement pools must be zero.
 This global proof is exclusively for irreversible retirement; normal owner exits
 never depend on it. The pause window is required for the flat-scan branch of this administrative action.
 

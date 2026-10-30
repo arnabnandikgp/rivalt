@@ -1,4 +1,4 @@
-// P41: real signed optional-market transitions and a fresh PostgreSQL replay.
+// P41/P42: real signed market/custody dependencies and fresh PostgreSQL replay.
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
@@ -11,12 +11,16 @@ import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {initializationSignature,fetchScopedHistory} from './liquidity-journal.js';
-import {transactionLocks} from '../performance/lock-model.js';
+import {fixtureKey} from './harness.js';
+import {custodyIsolationCases} from './custody-isolation-cases.js';
+import type {Keypair} from '@solana/web3.js';
+import {transactionLocks,conflicts} from '../performance/lock-model.js';
 
 const directory=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATABASE_URL!;
 assert(databaseUrl,'Actual PostgreSQL required');
+let independentPayer:Keypair|undefined;
 const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
-  {deferFinality:true,computeUnitLimit:()=>800_000});
+  {deferFinality:true,computeUnitLimit:()=>800_000,payerFor:label=>label==='P42 distinct-payer isolated ETH fill'?independentPayer:undefined});
 let indexer:LiquidityIndexer|undefined,replay:LiquidityIndexer|undefined;
 const isolated:{label:string;omitted:Address[]}[]=[];
 try {
@@ -173,18 +177,20 @@ try {
   const netted=await root(cross);assert.equal(netted.cash,closed.cash);
   assert.equal(netted.positions[0].virtualScaled,closed.positions[0].virtualScaled-1_000_000_000n);
   assert.equal(netted.positions[1].virtualScaled,closed.positions[1].virtualScaled+1_000_000_000n);
+  independentPayer=await fixtureKey('p42-independent-trader');
+  const custodyIsolation=await custodyIsolationCases(h,setup);
   await flush();
   const anchor=await initializationSignature(rpc,checks.map(check=>String(check.signature)),setup.deployment.eventAuthority);
-  const config={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,runId:'p41-markets',venue:setup.venue,
+  const config={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,runId:'p42-custody',venue:setup.venue,
     anchor,profile:'liquidity-execution-qualification' as const,pageSize:37};
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   const snapshot=await indexer.store.snapshot(),reconciliation=await indexer.reconcile();
   await indexer.close();indexer=undefined;
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   assert.deepEqual((await indexer.store.snapshot()).state,snapshot.state,'Actual SQL close/restart is idempotent');
-  await indexer.store.pool.query('CREATE DATABASE rivalt_p41_replay');
-  const replayUrl=new URL(databaseUrl);replayUrl.pathname='/rivalt_p41_replay';
-  replay=new LiquidityIndexer({...config,databaseUrl:replayUrl.toString(),runId:'p41-fresh-replay'});await replay.open();await replay.cycle();
+  await indexer.store.pool.query('CREATE DATABASE rivalt_p42_replay');
+  const replayUrl=new URL(databaseUrl);replayUrl.pathname='/rivalt_p42_replay';
+  replay=new LiquidityIndexer({...config,databaseUrl:replayUrl.toString(),runId:'p42-fresh-replay'});await replay.open();await replay.cycle();
   assert.deepEqual((await replay.store.snapshot()).state,snapshot.state,'Fresh complete RPC/SQL replay');
   const history=await fetchScopedHistory(rpc,anchor,setup.deployment.eventAuthority,setup.venue,setup.domain.toString('hex'));
   for(const test of isolated) {
@@ -197,22 +203,28 @@ try {
         assert(![...invocation.reads,...invocation.writes].some(entity=>entity.account===key),'Omitted footer dependency');
     }
   }
-  const roots=await Promise.all([...setup.roots,ethOnly,...setup.instances.map(maker=>maker.capital)].map(root));
+  const roots=await Promise.all([...setup.roots,ethOnly,custodyIsolation.ethRoot,...setup.instances.map(maker=>maker.capital)].map(root));
   const ledgers=await Promise.all(setup.ledgers.map(async key=>sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
   const markets=await Promise.all([0,1].map(setup.marketState));
-  assert.equal(roots.reduce((sum,account)=>sum+account.cash,0n),7_998_935n);
-  assert.deepEqual(ledgers.map(ledger=>[ledger.insurance,ledger.fees,ledger.insuranceFeeRemainder]),[[9n,30n,3],[5n,15n,0]]);
+  assert.equal(roots.reduce((sum,account)=>sum+account.cash,0n),8_098_916n);
+  assert.deepEqual(ledgers.map(ledger=>[ledger.insurance,ledger.fees,ledger.insuranceFeeRemainder]),[[13n,39n,0],[6n,21n,3]]);
   for(const index of [0,1]) {
     assert.equal(roots.reduce((sum,account)=>sum+account.positions[index].lots,0n),0n);
     assert.equal(roots.reduce((sum,account)=>{const position=account.positions[index];return sum+position.virtualScaled
       -position.lots*(markets[index].fundingIndexScaled-position.fundingCheckpointScaled);},0n),ledgers[index].settlement*1_000_000_000n);
   }
-  assert.deepEqual(ledgers.map(ledger=>ledger.settlement),[999n,4n]);
-  assert.equal(BigInt(reconciliation.actualVault),7_999_997n);
+  assert.deepEqual(ledgers.map(ledger=>ledger.settlement),[999n,3n]);
+  assert.equal(BigInt(reconciliation.actualVault),8_099_997n);
+  const message=(label:string)=>{
+    const index=checks.findIndex(check=>check.label===label);assert(index>=0);
+    return transactionLocks(Buffer.from(JSON.parse(readFileSync(`${directory}/wire-${index}.json`,'utf8')).wireBase64,'base64'));
+  };
+  const independentMessages={btc:message('P42 distinct-payer isolated BTC fill'),eth:message('P42 distinct-payer isolated ETH fill')};
+  assert.deepEqual(conflicts(independentMessages.btc,independentMessages.eth),[],'Actual distinct-payer signed messages must remain independent');
   const parity=await conformance.finish(directory,[],h.read);
   writeFileSync(`${directory}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
-    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,isolated,reconciliation,parity,roots,markets,ledgers,negativeFunding:{observation,consumed,persisted},
+    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,isolated,reconciliation,parity,roots,markets,ledgers,custodyIsolation,independentMessages,negativeFunding:{observation,consumed,persisted},
     state:snapshot.state,phaseAcceptance:false}));
-  console.log(json({stage:'p41-dependency-rpc-pg-pass',outcomes:checks.length,isolatedCases:isolated.length,events:snapshot.state.sequence,reconciliation}));
+  console.log(json({stage:'p42-custody-rpc-pg-pass',outcomes:checks.length,isolatedCases:isolated.length,events:snapshot.state.sequence,reconciliation}));
 } finally {await replay?.close();await indexer?.close();try{await flush();}finally{ws.close();}}

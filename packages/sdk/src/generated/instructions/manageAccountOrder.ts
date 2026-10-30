@@ -42,7 +42,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findCustodyPda, findVenueSafetyPda } from "../pdas/index.js";
+import { findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -68,7 +68,6 @@ export type ManageAccountOrderInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountActor extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountBtc extends string | AccountMeta<string> = string,
   TAccountEth extends string | AccountMeta<string> = string,
@@ -87,9 +86,6 @@ export type ManageAccountOrderInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -158,7 +154,6 @@ export function getManageAccountOrderInstructionDataCodec(): Codec<
 export type ManageAccountOrderAsyncInput<
   TAccountActor extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
@@ -169,7 +164,6 @@ export type ManageAccountOrderAsyncInput<
 > = {
   actor: TAccountActor;
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   btc?: TAccountBtc;
   eth?: TAccountEth;
@@ -184,7 +178,6 @@ export type ManageAccountOrderAsyncInput<
 export async function getManageAccountOrderInstructionAsync<
   TAccountActor extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
@@ -196,7 +189,6 @@ export async function getManageAccountOrderInstructionAsync<
   input: ManageAccountOrderAsyncInput<
     TAccountActor,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountBtc,
     TAccountEth,
@@ -217,10 +209,6 @@ export async function getManageAccountOrderInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -263,11 +251,6 @@ export async function getManageAccountOrderInstructionAsync<
   const originalAccounts = {
     actor: { value: input.actor ?? null, isSigner: true, isWritable: false },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
@@ -292,17 +275,6 @@ export async function getManageAccountOrderInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -319,7 +291,6 @@ export async function getManageAccountOrderInstructionAsync<
     accounts: [
       getAccountMeta("actor", accounts.actor),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
@@ -340,10 +311,6 @@ export async function getManageAccountOrderInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -375,7 +342,6 @@ export async function getManageAccountOrderInstructionAsync<
 export type ManageAccountOrderInput<
   TAccountActor extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
@@ -386,7 +352,6 @@ export type ManageAccountOrderInput<
 > = {
   actor: TAccountActor;
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   btc?: TAccountBtc;
   eth?: TAccountEth;
@@ -401,7 +366,6 @@ export type ManageAccountOrderInput<
 export function getManageAccountOrderInstruction<
   TAccountActor extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
@@ -413,7 +377,6 @@ export function getManageAccountOrderInstruction<
   input: ManageAccountOrderInput<
     TAccountActor,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountBtc,
     TAccountEth,
@@ -433,10 +396,6 @@ export function getManageAccountOrderInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -478,11 +437,6 @@ export function getManageAccountOrderInstruction<
   const originalAccounts = {
     actor: { value: input.actor ?? null, isSigner: true, isWritable: false },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
@@ -510,7 +464,6 @@ export function getManageAccountOrderInstruction<
     accounts: [
       getAccountMeta("actor", accounts.actor),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
@@ -531,10 +484,6 @@ export function getManageAccountOrderInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -571,13 +520,12 @@ export type ParsedManageAccountOrderInstruction<
   accounts: {
     actor: TAccountMetas[0];
     venue: TAccountMetas[1];
-    custody: TAccountMetas[2];
-    safety: TAccountMetas[3];
-    btc?: TAccountMetas[4] | undefined;
-    eth?: TAccountMetas[5] | undefined;
-    margin: TAccountMetas[6];
-    eventAuthority: TAccountMetas[7];
-    program: TAccountMetas[8];
+    safety: TAccountMetas[2];
+    btc?: TAccountMetas[3] | undefined;
+    eth?: TAccountMetas[4] | undefined;
+    margin: TAccountMetas[5];
+    eventAuthority: TAccountMetas[6];
+    program: TAccountMetas[7];
   };
   data: ManageAccountOrderInstructionData;
 };
@@ -590,12 +538,12 @@ export function parseManageAccountOrderInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedManageAccountOrderInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+  if (instruction.accounts.length < 8) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 8,
       },
     );
   }
@@ -616,7 +564,6 @@ export function parseManageAccountOrderInstruction<
     accounts: {
       actor: getNextAccount(),
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       btc: getNextOptionalAccount(),
       eth: getNextOptionalAccount(),

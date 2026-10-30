@@ -116,12 +116,12 @@ pub struct AccountCash<'info> {
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
-    #[account(seeds = [b"ledger-v3", venue.markets[0].as_ref()], bump = btc_ledger.bump, has_one = venue,
+    #[account(mut, seeds = [b"ledger-v3", venue.markets[0].as_ref()], bump = btc_ledger.bump, has_one = venue,
         constraint = btc_ledger.market == venue.markets[0] && btc_ledger.market_index == 0 @ ClearingError::Domain)]
-    pub btc_ledger: Box<Account<'info, MarketLedger>>,
-    #[account(seeds = [b"ledger-v3", venue.markets[1].as_ref()], bump = eth_ledger.bump, has_one = venue,
+    pub btc_ledger: Option<Box<Account<'info, MarketLedger>>>,
+    #[account(mut, seeds = [b"ledger-v3", venue.markets[1].as_ref()], bump = eth_ledger.bump, has_one = venue,
         constraint = eth_ledger.market == venue.markets[1] && eth_ledger.market_index == 1 @ ClearingError::Domain)]
-    pub eth_ledger: Box<Account<'info, MarketLedger>>,
+    pub eth_ledger: Option<Box<Account<'info, MarketLedger>>>,
     #[account(mut, seeds = [b"margin-v3", margin.portfolio.as_ref(), &margin.subaccount_index.to_le_bytes()],
         bump = margin.bump, has_one = owner, has_one = venue)]
     pub margin: Box<Account<'info, MarginAccount>>,
@@ -142,16 +142,8 @@ pub struct TransferAccountCustody<'info> {
     pub owner: Signer<'info>,
     #[account(seeds = [b"venue-v3", venue.domain.as_ref()], bump = venue.bump)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
-    #[account(seeds = [b"ledger-v3", venue.markets[0].as_ref()], bump = btc_ledger.bump, has_one = venue,
-        constraint = btc_ledger.market == venue.markets[0] && btc_ledger.market_index == 0 @ ClearingError::Domain)]
-    pub btc_ledger: Box<Account<'info, MarketLedger>>,
-    #[account(seeds = [b"ledger-v3", venue.markets[1].as_ref()], bump = eth_ledger.bump, has_one = venue,
-        constraint = eth_ledger.market == venue.markets[1] && eth_ledger.market_index == 1 @ ClearingError::Domain)]
-    pub eth_ledger: Box<Account<'info, MarketLedger>>,
     #[account(mut, seeds = [b"margin-v3", donor.portfolio.as_ref(), &donor.subaccount_index.to_le_bytes()],
         bump = donor.bump, has_one = owner, has_one = venue)]
     pub donor: Box<Account<'info, MarginAccount>>,
@@ -159,9 +151,6 @@ pub struct TransferAccountCustody<'info> {
         bump = recipient.bump, has_one = owner, has_one = venue,
         constraint = recipient.key() != donor.key() @ ClearingError::Alias)]
     pub recipient: Box<Account<'info, MarginAccount>>,
-    #[account(seeds = [b"vault-v3", venue.key().as_ref()], bump = venue.vault_bump,
-        constraint = vault.key() == venue.vault && vault.mint == venue.quote_mint && vault.owner == venue.key() @ ClearingError::Mint)]
-    pub vault: Box<Account<'info, TokenAccount>>,
 }
 
 #[event_cpi]
@@ -195,12 +184,9 @@ pub struct ClassifyMarketSurplus<'info> {
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
-    #[account(mut, seeds = [b"ledger-v3", venue.markets[0].as_ref()], bump = btc_ledger.bump, has_one = venue,
-        constraint = btc_ledger.market == venue.markets[0] && btc_ledger.market_index == 0 @ ClearingError::Domain)]
-    pub btc_ledger: Box<Account<'info, MarketLedger>>,
-    #[account(mut, seeds = [b"ledger-v3", venue.markets[1].as_ref()], bump = eth_ledger.bump, has_one = venue,
-        constraint = eth_ledger.market == venue.markets[1] && eth_ledger.market_index == 1 @ ClearingError::Domain)]
-    pub eth_ledger: Box<Account<'info, MarketLedger>>,
+    #[account(mut, seeds = [b"ledger-v3", ledger.market.as_ref()], bump = ledger.bump, has_one = venue,
+        constraint = ledger.market_index < 2 && ledger.market == venue.markets[ledger.market_index as usize] @ ClearingError::Profile)]
+    pub ledger: Box<Account<'info, MarketLedger>>,
     #[account(seeds = [b"vault-v3", venue.key().as_ref()], bump = venue.vault_bump,
         constraint = vault.key() == venue.vault && vault.mint == venue.quote_mint && vault.owner == venue.key() @ ClearingError::Mint)]
     pub vault: Box<Account<'info, TokenAccount>>,
@@ -217,12 +203,9 @@ pub struct SeedMarketInsurance<'info> {
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
-    #[account(mut, seeds = [b"ledger-v3", venue.markets[0].as_ref()], bump = btc_ledger.bump, has_one = venue,
-        constraint = btc_ledger.market == venue.markets[0] && btc_ledger.market_index == 0 @ ClearingError::Domain)]
-    pub btc_ledger: Box<Account<'info, MarketLedger>>,
-    #[account(mut, seeds = [b"ledger-v3", venue.markets[1].as_ref()], bump = eth_ledger.bump, has_one = venue,
-        constraint = eth_ledger.market == venue.markets[1] && eth_ledger.market_index == 1 @ ClearingError::Domain)]
-    pub eth_ledger: Box<Account<'info, MarketLedger>>,
+    #[account(mut, seeds = [b"ledger-v3", ledger.market.as_ref()], bump = ledger.bump, has_one = venue,
+        constraint = ledger.market_index < 2 && ledger.market == venue.markets[ledger.market_index as usize] @ ClearingError::Profile)]
+    pub ledger: Box<Account<'info, MarketLedger>>,
     #[account(address = venue.quote_mint @ ClearingError::Mint)]
     pub quote_mint: Box<Account<'info, Mint>>,
     #[account(mut, seeds = [b"vault-v3", venue.key().as_ref()], bump = venue.vault_bump,

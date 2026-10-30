@@ -31,7 +31,7 @@ export function accountClaimAmount(snapshot:sdk.AccountSnapshot,margin:Address,m
 export function accountBackingCurrent(snapshot:sdk.AccountSnapshot,registry:sdk.VenueRegistry,proof:sdk.SettlementCertificate) {
   const selected=proof.marketIndex;
   if(proof.safetyEpoch!==snapshot.safetyState.epoch||proof.membershipVersion!==registry.membershipVersion||proof.count!==registry.count||
-    proof.liabilityVersions[selected]!==snapshot.custodyState.liabilityVersions[selected])return false;
+    proof.liabilityVersion!==snapshot.ledgerStates[selected].liabilityVersion)return false;
   return snapshot.marketStates.every((market,index)=>{
     if(!(proof.requiredMarketMask&(1<<index)))return true;
     const funding=sdk.effectiveAccountFunding(snapshot.safetyState,market,snapshot.now,snapshot.slot);
@@ -55,7 +55,8 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
         try {
           await runtime.enqueue(`keeper:loss:${snapshot.roots[margin].id}:${marketIndex}:${snapshot.roots[margin].stateVersion}`,
             [sdk.routeComputeBudget(),sdk.getCollectAccountLossInstruction({...snapshot,
-              ...sdk.accountMarketMetas(snapshot.markets,[snapshot.roots[margin]],1<<marketIndex),actor:key,margin,marketIndex,amount})],key,budget,
+              ...sdk.accountMarketMetas(snapshot.markets,[snapshot.roots[margin]],1<<marketIndex),
+              ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex),actor:key,margin,marketIndex,amount})],key,budget,
             {kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()},true);
           return {status:'queued',reason:'funded-account-loss'};
         } catch(error) {if(!(error instanceof Error&&error.message==='Risk action presently unavailable'))throw error;}
@@ -68,7 +69,7 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
     const response=await runtime.rpc.call('getMultipleAccounts',[[snapshot.registry,certificate],{encoding:'base64',commitment:'confirmed'}]);
     const registry=decodeAccountWorker(response.value[0],sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder());
     const [,registryBump]=await sdk.deriveVenueComponent(snapshot.venue,'registry');
-    assert(registry.schemaVersion===6&&registry.venue===snapshot.venue&&registry.bump===registryBump&&registry.count>0&&registry.count<=64&&
+    assert(registry.schemaVersion===7&&registry.venue===snapshot.venue&&registry.bump===registryBump&&registry.count>0&&registry.count<=64&&
       registry.members.length===registry.count&&new Set(registry.members).size===registry.count,'Invalid backing registry');
     if(!response.value[1]) {
       await runtime.enqueue(`keeper:certificate:${marketIndex}`,[sdk.routeComputeBudget(),
@@ -76,7 +77,7 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
       return {status:'queued',reason:'initialize-market-backing'};
     }
     const proof=decodeAccountWorker(response.value[1],sdk.SETTLEMENT_CERTIFICATE_DISCRIMINATOR,sdk.getSettlementCertificateDecoder());
-    assert(proof.schemaVersion===6&&proof.venue===snapshot.venue&&proof.marketIndex===marketIndex&&proof.bump===bump,'Foreign backing certificate');
+    assert(proof.schemaVersion===7&&proof.venue===snapshot.venue&&proof.marketIndex===marketIndex&&proof.bump===bump,'Foreign backing certificate');
     const current=accountBackingCurrent(snapshot,registry,proof);
     const complete=current&&proof.complete&&proof.next===proof.count;
     try {
@@ -84,14 +85,23 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
         const start=current&&!proof.complete?proof.next:0,members=registry.members.slice(start,start+2);
         assert(members.length>0,'Empty backing page');
         const instruction=sdk.getCheckMarketBackingInstruction({...snapshot,certificate,ledger:snapshot.ledgers[marketIndex],start});
-        await runtime.enqueue(`keeper:proof:${marketIndex}:${snapshot.custodyState.liabilityVersions[marketIndex]}:${registry.membershipVersion}:${snapshot.marketStates.map(market=>market.observationSequence).join(':')}:${start}`,
-          [sdk.resolutionComputeBudget(),{...instruction,accounts:[...instruction.accounts,...members.map(address=>({address,role:AccountRole.READONLY}))]}],key,budget,null,true);
-        return {status:'queued',reason:'complete-market-backing-page'};
+        const page={...instruction,accounts:[...instruction.accounts,...members.map(address=>({address,role:AccountRole.READONLY}))]};
+        const amount=accountClaimAmount(snapshot,margin,marketIndex,true);
+        const payOnCompletion=start+members.length===registry.count&&amount>0n;
+        // The final page can discover a new debtor-source dependency. Supply both
+        // bounded markets and let clearing authenticate the completed certificate.
+        const payment=payOnCompletion?sdk.getPayAccountGainInstruction({...snapshot,actor:key,margin,certificate,marketIndex,amount,
+          ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex)}):undefined;
+        await runtime.enqueue(`keeper:proof:${marketIndex}:${snapshot.ledgerStates[marketIndex].liabilityVersion}:${registry.membershipVersion}:${snapshot.marketStates.map(market=>market.observationSequence).join(':')}:${start}`,
+          [sdk.resolutionComputeBudget(),page,...(payment?[payment]:[])],key,budget,
+          payment?{kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()}:null,true);
+        return {status:'queued',reason:payment?'atomic-backing-page-and-gain':'complete-market-backing-page'};
       }
       const amount=accountClaimAmount(snapshot,margin,marketIndex,true);if(!amount)continue;
       await runtime.enqueue(`keeper:gain:${snapshot.roots[margin].id}:${marketIndex}:${snapshot.roots[margin].stateVersion}`,
         [sdk.routeComputeBudget(),sdk.getPayAccountGainInstruction({...snapshot,
-          ...sdk.accountMarketMetas(snapshot.markets,[snapshot.roots[margin]],(1<<marketIndex)|proof.requiredMarketMask),actor:key,margin,certificate,marketIndex,amount})],key,budget,
+          ...sdk.accountMarketMetas(snapshot.markets,[snapshot.roots[margin]],(1<<marketIndex)|proof.requiredMarketMask),
+          ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex),actor:key,margin,certificate,marketIndex,amount})],key,budget,
         {kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()},true);
       return {status:'queued',reason:'certified-market-gain'};
     } catch(error) {if(!(error instanceof Error&&error.message==='Risk action presently unavailable'))throw error;}

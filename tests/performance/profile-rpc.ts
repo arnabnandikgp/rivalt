@@ -94,8 +94,9 @@ try {
     assert.equal(ledgers[marketIndex].insuranceFeeRemainder, Number(feeTotals[marketIndex] % 4n));
   }
   const custody = sdk.getCustodyDecoder().decode((await h.read(setup.custody))!);
-  assert.equal(roots.reduce((sum, root) => sum + root.cash, 0n), custody.totalCash);
-  assert.equal(custody.totalCash + feeTotals[0] + feeTotals[1], 8_000_000n);
+  const totalCash = roots.reduce((sum, root) => sum + root.cash, 0n);
+  assert.equal(custody.allocatedVault, totalCash + ledgers.reduce((sum, ledger) => sum + ledger.settlement + ledger.insurance + ledger.fees, 0n));
+  assert.equal(totalCash + feeTotals[0] + feeTotals[1], 8_000_000n);
 
   const samples = checks.flatMap((check, index) => {
     const label = String(check.label), protocol = declared.get(label);
@@ -129,7 +130,7 @@ try {
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
     build, runtime: await rpc.call('getVersion'), genesis: await rpc.call('getGenesisHash'),
     scope: 'Focused fresh RPC/WS resources and access conflicts; no throughput, PG, full instruction or phase-44 claim',
-    samples, accessChecks, parity, independentFinancialCheck: { feeTotals, custodyCash: custody.totalCash, roots: roots.length },
+    samples, accessChecks, parity, independentFinancialCheck: { feeTotals, custodyCash: totalCash, roots: roots.length },
     setupOutcomes: checks.length - samples.length, checks };
   writeFileSync(`${runDir}/performance.json`, json(summary));
   console.log(`P39: ${samples.length} focused signed outcomes; ${accessChecks.length} actual access-set comparisons; complete fee/cash/claim reconciliation.`);

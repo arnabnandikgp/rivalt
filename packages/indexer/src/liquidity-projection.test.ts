@@ -8,19 +8,19 @@ const venue=sdk.CLEARING_PROGRAM_ADDRESS,domain='00'.repeat(32);
 const blank=(decoder:{fixedSize:number;decode(bytes:Uint8Array):unknown})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize))) as any;
 function fixture() {
   const state=emptyLiquidity();
-  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:6,revision:'1',profileVersion:4,domain,markets:['btc','eth'],marketCount:2};
-  state.custody={schemaVersion:6,revision:'1',venue,totalCash:'200000',allocatedVault:'200000',liabilityVersions:['0','0']};
-  state.safety={schemaVersion:6,revision:'1',venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
+  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:7,revision:'1',profileVersion:4,domain,markets:['btc','eth'],marketCount:2};
+  state.custody={schemaVersion:7,revision:'1',venue,allocatedVault:'200000',};
+  state.safety={schemaVersion:7,revision:'1',venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
   state.members=['trader','capital'];state.membershipVersion='3';
   for(const [index,key] of ['btc','eth'].entries()) {
-    state.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:6,revision:'1',venue,index,lotsPerUnit:index===0?'1000000':'100000'};
-    state.ledgers[`${key}-ledger`]={schemaVersion:6,revision:'1',venue,market:key,marketIndex:index,settlement:'0',insurance:'0',fees:'0',insuranceFeeRemainder:0,version:'1'};
+    state.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:7,revision:'1',venue,index,lotsPerUnit:index===0?'1000000':'100000'};
+    state.ledgers[`${key}-ledger`]={schemaVersion:7,revision:'1',venue,market:key,marketIndex:index,settlement:'0',insurance:'0',fees:'0',insuranceFeeRemainder:0,version:'1',liabilityVersion:'0'};
   }
-  for(const [id,key] of state.members.entries())state.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:6,revision:'1',venue,
+  for(const [id,key] of state.members.entries())state.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:7,revision:'1',venue,
     id,mode:1,role:id,owner:'owner',subaccountIndex:1,isolatedMarketIndex:0,cash:'100000',delegateEpoch:'1'};
-  state.liquidity!.makers.maker={...blank(sdk.getMakerRegistrationDecoder()),schemaVersion:6,revision:'1',venue,market:'btc',owner:'owner',
+  state.liquidity!.makers.maker={...blank(sdk.getMakerRegistrationDecoder()),schemaVersion:7,revision:'1',venue,market:'btc',owner:'owner',
     capital:'capital',instance:0,authorityEpoch:'1',depthEpoch:'1'};
-  state.liquidity!.publishers.publisher={schemaVersion:6,revision:'1',venue,market:'btc',publisher:'signer',authorityEpoch:'1',lastSequence:'0',lastObservedSlot:'0',lastObservedTime:'0',enabled:true};
+  state.liquidity!.publishers.publisher={schemaVersion:7,revision:'1',venue,market:'btc',publisher:'signer',authorityEpoch:'1',lastSequence:'0',lastObservedSlot:'0',lastObservedTime:'0',enabled:true};
   return state;
 }
 function event(type:AccountEvent['type'],data:any):AccountEvent {
@@ -33,7 +33,7 @@ function trade(state=fixture()) {
   const change=event('LiquidityRouteExecutedV4',{side:0,lots:'1',grossQuote:'1000',fee:'1',insuranceCredit:'0',retainedFee:'1',carryBefore:0,carryAfter:1,
     rootStates:roots,makerStates:[{...state.liquidity!.makers.maker,buyConsumed:'1'}],
     marketState:{...state.markets.btc,grossLots:'2'},otherMarketState:{__option:'Some',value:state.markets.eth},
-    ledger:{ledger:'btc-ledger',...state.ledgers['btc-ledger'],fees:'1',insuranceFeeRemainder:1},totalCash:'199999',liabilityVersions:['1','0'],
+    ledger:{ledger:'btc-ledger',...state.ledgers['btc-ledger'],fees:'1',insuranceFeeRemainder:1},otherLedger:{__option:'None'},
     legs:[{registration:'maker',capital:'capital',instance:0,lots:'1',gross:'1000',priceSequence:'9',authorityEpoch:'1',controlEpoch:'1',shapeEpoch:'1',depthEpoch:'1',consumedBefore:'0',consumedAfter:'1'}]});
   return {state,change};
 }

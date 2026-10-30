@@ -44,11 +44,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import {
-  findCustodyPda,
-  findVenueSafetyPda,
-  findVenueVaultPda,
-} from "../pdas/index.js";
+import { findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -69,13 +65,11 @@ export function getLiquidateAccountDiscriminatorBytes(): ReadonlyUint8Array {
 export type LiquidateAccountInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountBtc extends string | AccountMeta<string> = string,
   TAccountEth extends string | AccountMeta<string> = string,
   TAccountBtcLedger extends string | AccountMeta<string> = string,
   TAccountEthLedger extends string | AccountMeta<string> = string,
-  TAccountVault extends string | AccountMeta<string> = string,
   TAccountReceiverOwner extends string | AccountMeta<string> = string,
   TAccountTarget extends string | AccountMeta<string> = string,
   TAccountReceiver extends string | AccountMeta<string> = string,
@@ -89,9 +83,6 @@ export type LiquidateAccountInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -103,9 +94,6 @@ export type LiquidateAccountInstruction<
       TAccountEthLedger extends string
         ? WritableAccount<TAccountEthLedger>
         : TAccountEthLedger,
-      TAccountVault extends string
-        ? WritableAccount<TAccountVault>
-        : TAccountVault,
       TAccountReceiverOwner extends string
         ? ReadonlySignerAccount<TAccountReceiverOwner> &
             AccountSignerMeta<TAccountReceiverOwner>
@@ -180,13 +168,11 @@ export function getLiquidateAccountInstructionDataCodec(): FixedSizeCodec<
 
 export type LiquidateAccountAsyncInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountReceiverOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountTarget extends InstructionAccountInput = InstructionAccountInput,
   TAccountReceiver extends InstructionAccountInput = InstructionAccountInput,
@@ -195,13 +181,11 @@ export type LiquidateAccountAsyncInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   btc?: TAccountBtc;
   eth?: TAccountEth;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
-  vault?: TAccountVault;
+  btcLedger?: TAccountBtcLedger;
+  ethLedger?: TAccountEthLedger;
   receiverOwner: TAccountReceiverOwner;
   target: TAccountTarget;
   receiver: TAccountReceiver;
@@ -216,13 +200,11 @@ export type LiquidateAccountAsyncInput<
 
 export async function getLiquidateAccountInstructionAsync<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
   TAccountReceiverOwner extends InstructionSignerInput,
   TAccountTarget extends InstructionAccountInput,
   TAccountReceiver extends InstructionAccountInput,
@@ -232,13 +214,11 @@ export async function getLiquidateAccountInstructionAsync<
 >(
   input: LiquidateAccountAsyncInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountBtc,
     TAccountEth,
     TAccountBtcLedger,
     TAccountEthLedger,
-    TAccountVault,
     TAccountReceiverOwner,
     TAccountTarget,
     TAccountReceiver,
@@ -254,10 +234,6 @@ export async function getLiquidateAccountInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -278,10 +254,6 @@ export async function getLiquidateAccountInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountReceiverOwner,
@@ -319,11 +291,6 @@ export async function getLiquidateAccountInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
@@ -337,7 +304,6 @@ export async function getLiquidateAccountInstructionAsync<
       isSigner: false,
       isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
     receiverOwner: {
       value: input.receiverOwner ?? null,
       isSigner: true,
@@ -369,30 +335,8 @@ export async function getLiquidateAccountInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.vault.value) {
-    accounts.vault.value = await findVenueVaultPda(
       {
         venue: getAddressFromResolvedInstructionAccount(
           "venue",
@@ -406,13 +350,11 @@ export async function getLiquidateAccountInstructionAsync<
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
       getAccountMeta("btcLedger", accounts.btcLedger),
       getAccountMeta("ethLedger", accounts.ethLedger),
-      getAccountMeta("vault", accounts.vault),
       getAccountMeta("receiverOwner", accounts.receiverOwner),
       getAccountMeta("target", accounts.target),
       getAccountMeta("receiver", accounts.receiver),
@@ -428,10 +370,6 @@ export async function getLiquidateAccountInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -452,10 +390,6 @@ export async function getLiquidateAccountInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountReceiverOwner,
@@ -482,13 +416,11 @@ export async function getLiquidateAccountInstructionAsync<
 
 export type LiquidateAccountInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountReceiverOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountTarget extends InstructionAccountInput = InstructionAccountInput,
   TAccountReceiver extends InstructionAccountInput = InstructionAccountInput,
@@ -497,13 +429,11 @@ export type LiquidateAccountInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   btc?: TAccountBtc;
   eth?: TAccountEth;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
-  vault: TAccountVault;
+  btcLedger?: TAccountBtcLedger;
+  ethLedger?: TAccountEthLedger;
   receiverOwner: TAccountReceiverOwner;
   target: TAccountTarget;
   receiver: TAccountReceiver;
@@ -518,13 +448,11 @@ export type LiquidateAccountInput<
 
 export function getLiquidateAccountInstruction<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
   TAccountReceiverOwner extends InstructionSignerInput,
   TAccountTarget extends InstructionAccountInput,
   TAccountReceiver extends InstructionAccountInput,
@@ -534,13 +462,11 @@ export function getLiquidateAccountInstruction<
 >(
   input: LiquidateAccountInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountBtc,
     TAccountEth,
     TAccountBtcLedger,
     TAccountEthLedger,
-    TAccountVault,
     TAccountReceiverOwner,
     TAccountTarget,
     TAccountReceiver,
@@ -555,10 +481,6 @@ export function getLiquidateAccountInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -579,10 +501,6 @@ export function getLiquidateAccountInstruction<
   ResolvedInstructionAccountMeta<
     TAccountEthLedger,
     InstructionAccountInputAddress<TAccountEthLedger>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountVault,
-    InstructionAccountInputAddress<TAccountVault>
   >,
   ResolvedInstructionAccountMeta<
     TAccountReceiverOwner,
@@ -619,11 +537,6 @@ export function getLiquidateAccountInstruction<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
@@ -637,7 +550,6 @@ export function getLiquidateAccountInstruction<
       isSigner: false,
       isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
     receiverOwner: {
       value: input.receiverOwner ?? null,
       isSigner: true,
@@ -671,13 +583,11 @@ export function getLiquidateAccountInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
       getAccountMeta("btcLedger", accounts.btcLedger),
       getAccountMeta("ethLedger", accounts.ethLedger),
-      getAccountMeta("vault", accounts.vault),
       getAccountMeta("receiverOwner", accounts.receiverOwner),
       getAccountMeta("target", accounts.target),
       getAccountMeta("receiver", accounts.receiver),
@@ -693,10 +603,6 @@ export function getLiquidateAccountInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -717,10 +623,6 @@ export function getLiquidateAccountInstruction<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountReceiverOwner,
@@ -752,18 +654,16 @@ export type ParsedLiquidateAccountInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     venue: TAccountMetas[0];
-    custody: TAccountMetas[1];
-    safety: TAccountMetas[2];
-    btc?: TAccountMetas[3] | undefined;
-    eth?: TAccountMetas[4] | undefined;
-    btcLedger: TAccountMetas[5];
-    ethLedger: TAccountMetas[6];
-    vault: TAccountMetas[7];
-    receiverOwner: TAccountMetas[8];
-    target: TAccountMetas[9];
-    receiver: TAccountMetas[10];
-    eventAuthority: TAccountMetas[11];
-    program: TAccountMetas[12];
+    safety: TAccountMetas[1];
+    btc?: TAccountMetas[2] | undefined;
+    eth?: TAccountMetas[3] | undefined;
+    btcLedger?: TAccountMetas[4] | undefined;
+    ethLedger?: TAccountMetas[5] | undefined;
+    receiverOwner: TAccountMetas[6];
+    target: TAccountMetas[7];
+    receiver: TAccountMetas[8];
+    eventAuthority: TAccountMetas[9];
+    program: TAccountMetas[10];
   };
   data: LiquidateAccountInstructionData;
 };
@@ -776,12 +676,12 @@ export function parseLiquidateAccountInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedLiquidateAccountInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 13) {
+  if (instruction.accounts.length < 11) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 13,
+        expectedAccountMetas: 11,
       },
     );
   }
@@ -801,13 +701,11 @@ export function parseLiquidateAccountInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       btc: getNextOptionalAccount(),
       eth: getNextOptionalAccount(),
-      btcLedger: getNextAccount(),
-      ethLedger: getNextAccount(),
-      vault: getNextAccount(),
+      btcLedger: getNextOptionalAccount(),
+      ethLedger: getNextOptionalAccount(),
       receiverOwner: getNextAccount(),
       target: getNextAccount(),
       receiver: getNextAccount(),
