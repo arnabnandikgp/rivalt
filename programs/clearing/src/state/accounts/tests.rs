@@ -14,9 +14,9 @@ fn wire<T: AccountSerialize + AccountDeserialize + Space>(account: T, size: usiz
 
 #[test]
 fn exact_contract_sizes_and_roundtrips() {
-    wire(Venue::default(), 321);
+    wire(Venue::default(), 329);
     wire(Custody::default(), 83);
-    wire(VenueSafety::default(), 77);
+    wire(VenueSafety::default(), 85);
     wire(RetirementCertificate::default(), 80);
     assert_ne!(
         RetirementCertificate::DISCRIMINATOR,
@@ -27,28 +27,28 @@ fn exact_contract_sizes_and_roundtrips() {
             members: vec![Pubkey::default(); 64],
             ..Default::default()
         },
-        2105,
+        2113,
     );
-    wire(Portfolio::default(), 79);
-    wire(MarginAccount::default(), 970);
-    wire(Market::default(), 447);
-    wire(MarketLedger::default(), 109);
-    wire(CapitalBinding::default(), 106);
-    wire(SettlementCertificate::default(), 234);
-    wire(ResolutionPage::default(), 3400);
-    wire(Resolution::default(), 3644);
-    wire(ResolutionWork::default(), 7918);
+    wire(Portfolio::default(), 87);
+    wire(MarginAccount::default(), 978);
+    wire(Market::default(), 455);
+    wire(MarketLedger::default(), 117);
+    wire(CapitalBinding::default(), 114);
+    wire(SettlementCertificate::default(), 242);
+    wire(ResolutionPage::default(), 3408);
+    wire(Resolution::default(), 3652);
+    wire(ResolutionWork::default(), 7926);
 }
 
 #[test]
 fn no_old_account_discriminator_or_seed_is_reinterpreted() {
     assert_ne!(
         MarginAccount::DISCRIMINATOR,
-        &[143, 109, 33, 76, 190, 108, 140, 149]
+        &[143, 117, 33, 76, 190, 108, 140, 149]
     );
     assert_ne!(
         MarginAccount::DISCRIMINATOR,
-        &[32, 142, 108, 79, 247, 179, 54, 6]
+        &[32, 142, 108, 87, 247, 179, 54, 6]
     );
     let owner = Pubkey::new_unique();
     let mut keys = std::collections::HashSet::new();
@@ -101,17 +101,17 @@ fn fractional_positions_and_wide_numerators_preserve_every_byte() {
     let mut bytes = Vec::new();
     margin.try_serialize(&mut bytes).unwrap();
     assert_eq!(
-        i128::from_le_bytes(bytes[129..145].try_into().unwrap()),
+        i128::from_le_bytes(bytes[137..153].try_into().unwrap()),
         -300_000_001
     );
     assert_eq!(
-        i128::from_le_bytes(bytes[177..193].try_into().unwrap()),
+        i128::from_le_bytes(bytes[185..201].try_into().unwrap()),
         400_000_001
     );
-    bytes[..8].copy_from_slice(&[143, 109, 33, 76, 190, 108, 140, 149]);
+    bytes[..8].copy_from_slice(&[143, 117, 33, 76, 190, 108, 140, 149]);
     assert!(MarginAccount::try_deserialize(&mut bytes.as_slice()).is_err());
     let mut page = ResolutionPage::default();
     page.rows[1].exact_flow_numerators[1].limbs[95] = u64::MAX;
     page.rows[1].exact_flow_numerators[1].limbs[0] = 1;
-    wire(page, 3400);
+    wire(page, 3408);
 }

@@ -62,7 +62,8 @@ pub struct SetAccountDelegate<'info> {
 }
 
 pub fn manage(
-    ctx: Context<ManageAccountOrder>,
+    ctx: &mut Context<ManageAccountOrder>,
+    events: &mut crate::event_cpi::Payloads,
     guard: AccountGuard,
     market_index: u8,
     operation: OrderAction,
@@ -100,15 +101,19 @@ pub fn manage(
     commit_root(&mut accounts.margin, &next)?;
     invalidate(&mut accounts.custody, previous, accounts.margin.positions)?;
     materialize([&mut accounts.btc, &mut accounts.eth], &clock)?;
-    increment(&mut accounts.custody.sequence)?;
-    emit_order(accounts, clock.slot)
+
+    emit_order(events, accounts, clock.slot)
 }
 
 #[inline(never)]
-fn emit_order(accounts: &ManageAccountOrder, slot: u64) -> Result<()> {
+fn emit_order(
+    events: &mut crate::event_cpi::Payloads,
+    accounts: &ManageAccountOrder,
+    slot: u64,
+) -> Result<()> {
     let emitted = Box::new(crate::events::AccountOrderChanged {
         venue: accounts.venue.key(),
-        sequence: accounts.custody.sequence,
+
         slot,
         margin: accounts.margin.key(),
         state: crate::events::MarginAccountSnapshot::from(&**accounts.margin),
@@ -118,11 +123,12 @@ fn emit_order(accounts: &ManageAccountOrder, slot: u64) -> Result<()> {
         ],
         liability_versions: accounts.custody.liability_versions,
     });
-    crate::event_cpi::emit(&*emitted, accounts.event_authority.to_account_info())
+    events.emit(&*emitted, accounts.event_authority.to_account_info())
 }
 
 pub fn delegate(
-    ctx: Context<SetAccountDelegate>,
+    ctx: &mut Context<SetAccountDelegate>,
+    events: &mut crate::event_cpi::Payloads,
     guard: AccountGuard,
     delegate: Pubkey,
     expiry_slot: u64,
@@ -150,14 +156,14 @@ pub fn delegate(
     let previous = accounts.margin.positions;
     commit_root(&mut accounts.margin, &next)?;
     invalidate(&mut accounts.custody, previous, accounts.margin.positions)?;
-    increment(&mut accounts.custody.sequence)?;
+
     let emitted = crate::events::AccountAuthorityChanged {
         venue: accounts.venue.key(),
-        sequence: accounts.custody.sequence,
+
         slot: Clock::get()?.slot,
         margin: accounts.margin.key(),
         state: crate::events::MarginAccountSnapshot::from(&**accounts.margin),
         liability_versions: accounts.custody.liability_versions,
     };
-    crate::event_cpi::emit(&emitted, accounts.event_authority.to_account_info())
+    events.emit(&emitted, accounts.event_authority.to_account_info())
 }

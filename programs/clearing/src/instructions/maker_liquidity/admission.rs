@@ -128,7 +128,7 @@ mod tests {
     fn environment() -> (MarginAccount, Market) {
         let venue = Pubkey::new_unique();
         let capital = MarginAccount {
-            schema_version: 3,
+            schema_version: 5,
             venue,
             owner: Pubkey::new_unique(),
             subaccount_index: 1,

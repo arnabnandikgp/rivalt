@@ -7,7 +7,7 @@ pub struct InitializeLiquidity<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
+    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
     pub market: Box<Account<'info, Market>>,
@@ -28,7 +28,7 @@ pub struct RegisterLiquidity<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
+    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
@@ -61,7 +61,7 @@ pub struct SealLiquidity<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
+    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
     pub market: Box<Account<'info, Market>>,
@@ -83,7 +83,7 @@ pub struct ControlLiquidity<'info> {
     pub actor: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
+    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
@@ -122,7 +122,7 @@ pub struct QuarantineLiquidity<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
+    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
     pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,

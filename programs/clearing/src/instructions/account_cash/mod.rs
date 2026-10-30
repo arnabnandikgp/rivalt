@@ -58,7 +58,7 @@ fn commit(
 
 fn finish(identity: &mut AccountFinancialIdentity, clock: &Clock) -> Result<()> {
     trading::materialize([&mut identity.btc, &mut identity.eth], clock)?;
-    increment(&mut identity.custody.sequence)?;
+
     super::account_custody::reconciled(
         &identity.custody,
         [&identity.btc_ledger, &identity.eth_ledger],
@@ -69,6 +69,7 @@ fn finish(identity: &mut AccountFinancialIdentity, clock: &Clock) -> Result<()> 
 #[inline(never)]
 fn emit<'info>(
     identity: &AccountFinancialIdentity<'info>,
+    events: &mut crate::event_cpi::Payloads,
     authority: AccountInfo<'info>,
     actor: Pubkey,
     kind: u8,
@@ -79,7 +80,7 @@ fn emit<'info>(
 ) -> Result<()> {
     let event = Box::new(crate::events::AccountFinancialChanged {
         venue: identity.venue.key(),
-        sequence: identity.custody.sequence,
+
         slot,
         actor,
         kind,
@@ -112,5 +113,5 @@ fn emit<'info>(
             }
         }),
     });
-    crate::event_cpi::emit(&*event, authority)
+    events.emit(&*event, authority)
 }

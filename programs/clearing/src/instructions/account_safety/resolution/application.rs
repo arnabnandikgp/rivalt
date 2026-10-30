@@ -170,7 +170,8 @@ pub(super) fn reconcile_row(
 }
 
 pub fn advance(
-    ctx: Context<AdvanceAccountResolution>,
+    ctx: &mut Context<AdvanceAccountResolution>,
+    events: &mut crate::event_cpi::Payloads,
     epoch: u64,
     stage: u8,
     start: u16,
@@ -215,7 +216,7 @@ pub fn advance(
             root.try_serialize(&mut &mut info.try_borrow_mut_data()?[..])?;
             accounts.identity.btc.gross_lots = accounts.resolution.remaining_gross[0];
             accounts.identity.eth.gross_lots = accounts.resolution.remaining_gross[1];
-            increment(&mut accounts.identity.custody.sequence)?;
+
             emit_applied(
                 &accounts.identity,
                 &accounts.resolution,
@@ -223,6 +224,7 @@ pub fn advance(
                 &root,
                 id as u16,
                 &clock,
+                events,
                 accounts.event_authority.to_account_info(),
             )?;
         } else {
@@ -264,21 +266,22 @@ pub fn advance(
             accounts.resolution.safety_epoch = accounts.identity.safety.epoch;
         }
         profile(&accounts.identity)?;
-        increment(&mut accounts.identity.custody.sequence)?;
+
         emit_complete(
             &accounts.identity,
             &accounts.resolution,
             &clock,
+            events,
             accounts.event_authority.to_account_info(),
         )?;
     }
     accounts.work.opcode = accounts.resolution.stage;
     accounts.work.row = accounts.resolution.cursor;
-    increment(&mut accounts.identity.custody.sequence)?;
-    crate::event_cpi::emit(
+
+    events.emit(
         &crate::events::AccountResolutionProgress {
             venue: accounts.identity.venue.key(),
-            sequence: accounts.identity.custody.sequence,
+
             slot: clock.slot,
             epoch,
             processed_stage: stage,
@@ -301,11 +304,12 @@ fn emit_applied(
     root: &MarginAccount,
     id: u16,
     clock: &Clock,
+    events: &mut crate::event_cpi::Payloads,
     authority: AccountInfo,
 ) -> Result<()> {
     let event = Box::new(crate::events::AccountResolutionApplied {
         venue: identity.venue.key(),
-        sequence: identity.custody.sequence,
+
         slot: clock.slot,
         epoch: header.epoch,
         id,
@@ -320,19 +324,20 @@ fn emit_applied(
         remaining_claims: header.remaining_claims,
         state: crate::events::MarginAccountSnapshot::from(root),
     });
-    crate::event_cpi::emit(&*event, authority)
+    events.emit(&*event, authority)
 }
 
 fn emit_complete(
     identity: &ResolutionIdentity,
     header: &Resolution,
     clock: &Clock,
+    events: &mut crate::event_cpi::Payloads,
     authority: AccountInfo,
 ) -> Result<()> {
-    crate::event_cpi::emit(
+    events.emit(
         &crate::events::AccountResolutionCompleted {
             venue: identity.venue.key(),
-            sequence: identity.custody.sequence,
+
             slot: clock.slot,
             epoch: header.epoch,
             stage: header.stage,

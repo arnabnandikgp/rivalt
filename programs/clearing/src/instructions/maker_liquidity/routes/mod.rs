@@ -15,7 +15,11 @@ mod commit;
 #[cfg(test)]
 mod tests;
 
-pub fn execute(ctx: Context<ExecuteLiquidityRoute>, args: LiquidityRouteIntent) -> Result<()> {
+pub fn execute(
+    ctx: &mut Context<ExecuteLiquidityRoute>,
+    events: &mut crate::event_cpi::Payloads,
+    args: LiquidityRouteIntent,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     args.guard.check(
         &ctx.accounts.identity.venue,
@@ -44,11 +48,12 @@ pub fn execute(ctx: Context<ExecuteLiquidityRoute>, args: LiquidityRouteIntent) 
         generation: args.generation,
         legs: shared_legs(&args.legs),
     };
-    execute_core(ctx.accounts, intent, None, &args.legs, &clock)
+    execute_core(ctx.accounts, events, intent, None, &args.legs, &clock)
 }
 
 pub fn execute_order(
-    ctx: Context<ExecuteLiquidityRoute>,
+    ctx: &mut Context<ExecuteLiquidityRoute>,
+    events: &mut crate::event_cpi::Payloads,
     args: LiquidityOrderExecution,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
@@ -76,12 +81,20 @@ pub fn execute_order(
         },
         &clock,
     )?;
-    execute_core(ctx.accounts, intent, Some(index), &args.legs, &clock)
+    execute_core(
+        ctx.accounts,
+        events,
+        intent,
+        Some(index),
+        &args.legs,
+        &clock,
+    )
 }
 
 #[inline(never)]
 fn execute_core(
     accounts: &mut ExecuteLiquidityRoute,
+    events: &mut crate::event_cpi::Payloads,
     intent: RouteIntent,
     order_index: Option<usize>,
     signed_legs: &[LiquidityRouteLeg],
@@ -183,7 +196,15 @@ fn execute_core(
         4,
     )?;
     drop(views);
-    commit::apply(accounts, &intent, order_index, clock, &next, &actual_quotes)
+    commit::apply(
+        accounts,
+        events,
+        &intent,
+        order_index,
+        clock,
+        &next,
+        &actual_quotes,
+    )
 }
 
 /// Construct large root values in their own frame and place them directly in the

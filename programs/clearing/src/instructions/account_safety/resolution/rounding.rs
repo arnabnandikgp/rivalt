@@ -112,7 +112,8 @@ fn graph(work: &mut ResolutionWork, count: usize) -> Graph<'_> {
 }
 
 pub fn order(
-    ctx: Context<ProposeAccountResolution>,
+    ctx: &mut Context<ProposeAccountResolution>,
+    events: &mut crate::event_cpi::Payloads,
     epoch: u64,
     orders: [Vec<u16>; 2],
 ) -> Result<()> {
@@ -153,11 +154,11 @@ pub fn order(
     header.cursor = 0;
     work.limb_cursor = 1;
     work.registers[3].limbs.fill(0);
-    increment(&mut accounts.identity.custody.sequence)?;
-    crate::event_cpi::emit(
+
+    events.emit(
         &crate::events::AccountResolutionOrder {
             venue: accounts.identity.venue.key(),
-            sequence: accounts.identity.custody.sequence,
+
             slot: Clock::get()?.slot,
             epoch,
             orders,
@@ -166,7 +167,12 @@ pub fn order(
     )
 }
 
-pub fn check_order(ctx: Context<AdvanceAccountResolution>, epoch: u64, start: u16) -> Result<()> {
+pub fn check_order(
+    ctx: &mut Context<AdvanceAccountResolution>,
+    events: &mut crate::event_cpi::Payloads,
+    epoch: u64,
+    start: u16,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     frozen(
@@ -245,11 +251,11 @@ pub fn check_order(ctx: Context<AdvanceAccountResolution>, epoch: u64, start: u1
         header.cursor = 0;
         work.opcode = ROUND;
     }
-    increment(&mut accounts.identity.custody.sequence)?;
-    crate::event_cpi::emit(
+
+    events.emit(
         &crate::events::AccountResolutionProgress {
             venue: accounts.identity.venue.key(),
-            sequence: accounts.identity.custody.sequence,
+
             slot: Clock::get()?.slot,
             epoch,
             processed_stage: EDGE_ORDER,
@@ -264,7 +270,12 @@ pub fn check_order(ctx: Context<AdvanceAccountResolution>, epoch: u64, start: u1
     )
 }
 
-pub fn round(ctx: Context<ProposeAccountResolution>, epoch: u64, start: u16) -> Result<()> {
+pub fn round(
+    ctx: &mut Context<ProposeAccountResolution>,
+    events: &mut crate::event_cpi::Payloads,
+    epoch: u64,
+    start: u16,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     frozen(
@@ -296,11 +307,11 @@ pub fn round(ctx: Context<ProposeAccountResolution>, epoch: u64, start: u16) -> 
         header.claim_sums = [0; 2];
         work.opcode = APPLY;
     }
-    increment(&mut accounts.identity.custody.sequence)?;
-    crate::event_cpi::emit(
+
+    events.emit(
         &crate::events::AccountResolutionRounded {
             venue: accounts.identity.venue.key(),
-            sequence: accounts.identity.custody.sequence,
+
             slot: Clock::get()?.slot,
             epoch,
             start,

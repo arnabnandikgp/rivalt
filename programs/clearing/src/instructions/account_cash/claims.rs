@@ -2,7 +2,8 @@ use super::*;
 use trading::authority::AccountGuard;
 
 pub fn change(
-    ctx: Context<ChangeAccountClaim>,
+    ctx: &mut Context<ChangeAccountClaim>,
+    events: &mut crate::event_cpi::Payloads,
     market_index: u8,
     amount: u64,
     gain: bool,
@@ -53,6 +54,7 @@ pub fn change(
     finish(&mut accounts.identity, &snapshot.clock)?;
     emit(
         &accounts.identity,
+        events,
         accounts.event_authority.to_account_info(),
         accounts.actor.key(),
         if gain { 3 } else { 2 },
@@ -64,7 +66,8 @@ pub fn change(
 }
 
 pub fn net(
-    ctx: Context<NetAccountClaims>,
+    ctx: &mut Context<NetAccountClaims>,
+    events: &mut crate::event_cpi::Payloads,
     guard: AccountGuard,
     source_market: u8,
     amount: u64,
@@ -108,6 +111,7 @@ pub fn net(
     finish(&mut accounts.identity, &snapshot.clock)?;
     emit(
         &accounts.identity,
+        events,
         accounts.event_authority.to_account_info(),
         accounts.owner.key(),
         4,

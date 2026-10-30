@@ -1,9 +1,11 @@
 use super::*;
 
-#[account(discriminator = [219, 72, 214, 104, 74, 226, 68, 202])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct Venue {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub profile_version: u16,
     pub domain: [u8; 32],
     pub authority: Pubkey,
@@ -21,24 +23,26 @@ pub struct Venue {
     pub vault_bump: u8,
 }
 
-#[account(discriminator = [10, 141, 69, 218, 220, 92, 189, 65])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct Custody {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub total_cash: u64,
     pub allocated_vault: u64,
-    /// Event discovery order only; never an ordinary signed-intent prerequisite.
-    pub sequence: u64,
     /// Only market-dependent economic mutations invalidate gain certificates.
     pub liability_versions: [u64; MARKET_COUNT],
     pub bump: u8,
 }
 
-#[account(discriminator = [42, 190, 232, 3, 147, 213, 42, 157])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct VenueSafety {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub mode: u8,
     pub paused: bool,
@@ -51,14 +55,15 @@ pub struct VenueSafety {
 
 /// Terminal administrative proof only. Ordinary owner exits never depend on
 /// this complete-cohort scan or its global discovery-sequence stamp.
-#[account(discriminator = [98, 43, 199, 95, 72, 186, 80, 231])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct RetirementCertificate {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub safety_epoch: u64,
     pub membership_version: u64,
-    pub custody_sequence: u64,
     pub cash: u64,
     pub count: u16,
     pub next: u16,
@@ -66,10 +71,12 @@ pub struct RetirementCertificate {
     pub bump: u8,
 }
 
-#[account(discriminator = [127, 21, 158, 27, 21, 26, 190, 55])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct VenueRegistry {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub membership_version: u64,
     pub count: u16,
@@ -79,10 +86,12 @@ pub struct VenueRegistry {
     pub bump: u8,
 }
 
-#[account(discriminator = [179, 160, 245, 234, 80, 218, 219, 211])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct Portfolio {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub owner: Pubkey,
     pub index: u16,
@@ -90,10 +99,12 @@ pub struct Portfolio {
     pub bump: u8,
 }
 
-#[account(discriminator = [200, 111, 5, 168, 138, 82, 246, 229])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct MarginAccount {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub portfolio: Pubkey,
     pub owner: Pubkey,
@@ -116,10 +127,12 @@ pub struct MarginAccount {
     pub bump: u8,
 }
 
-#[account(discriminator = [247, 134, 112, 200, 45, 95, 27, 136])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct Market {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub index: u8,
     pub symbol: [u8; 8],
@@ -140,10 +153,12 @@ pub struct Market {
     pub bump: u8,
 }
 
-#[account(discriminator = [34, 52, 130, 15, 133, 166, 1, 144])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct MarketLedger {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub market: Pubkey,
     pub market_index: u8,
@@ -156,19 +171,23 @@ pub struct MarketLedger {
     pub bump: u8,
 }
 
-#[account(discriminator = [73, 122, 190, 75, 85, 174, 37, 138])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct CapitalBinding {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub capital: Pubkey,
     pub registration: Pubkey,
 }
 
-#[account(discriminator = [72, 164, 54, 74, 42, 141, 146, 101])]
+#[account]
 #[derive(InitSpace, Default)]
 pub struct SettlementCertificate {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub market_index: u8,
     pub safety_epoch: u64,

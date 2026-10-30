@@ -140,7 +140,10 @@ fn frozen(
     Ok(())
 }
 
-pub fn initialize(ctx: Context<InitializeAccountResolution>) -> Result<()> {
+pub fn initialize(
+    ctx: &mut Context<InitializeAccountResolution>,
+    _events: &mut crate::event_cpi::Payloads,
+) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty() && cfg!(feature = "liquidity-execution-qualification"),
         ClearingError::Profile
@@ -164,7 +167,8 @@ pub fn initialize(ctx: Context<InitializeAccountResolution>) -> Result<()> {
 }
 
 pub fn initialize_page(
-    ctx: Context<InitializeAccountResolutionPage>,
+    ctx: &mut Context<InitializeAccountResolutionPage>,
+    _events: &mut crate::event_cpi::Payloads,
     page_index: u16,
 ) -> Result<()> {
     require!(

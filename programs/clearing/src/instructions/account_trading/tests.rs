@@ -13,7 +13,7 @@ fn clock() -> Clock {
 }
 fn root() -> MarginAccount {
     MarginAccount {
-        schema_version: 3,
+        schema_version: 5,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         owner: Pubkey::new_from_array([1; 32]),
@@ -26,7 +26,7 @@ fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
         Market {
-            schema_version: 3,
+            schema_version: 5,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
             cross_eligible: true,
@@ -198,12 +198,12 @@ fn positive_unpaid_claims_never_fund_risk_or_fee() {
 #[test]
 fn fee_carry_is_exact_per_market_and_never_an_asset() {
     let mut custody = Custody {
-        schema_version: 3,
+        schema_version: 5,
         total_cash: 100_000,
         ..Default::default()
     };
     let mut ledgers = [0u8, 1].map(|market_index| MarketLedger {
-        schema_version: 3,
+        schema_version: 5,
         market_index,
         ..Default::default()
     });

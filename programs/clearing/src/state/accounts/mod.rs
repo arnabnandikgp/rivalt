@@ -1,4 +1,4 @@
-//! Schema-3 layouts and the explicitly qualified local release marker.
+//! Schema-5 scoped layouts and the explicitly qualified local release marker.
 //! Venue identity, account risk, market backing and exceptional safety are distinct.
 use crate::state::{
     records::{OrderBook, Position},
@@ -11,7 +11,7 @@ mod resolution;
 pub use layouts::*;
 pub use resolution::*;
 
-pub const SCHEMA_VERSION: u16 = 3;
+pub const SCHEMA_VERSION: u16 = 5;
 pub const PROFILE_VERSION: u16 = 4;
 pub use crate::state::identity::{MARKET_COUNT, MAX_MEMBERS};
 pub const RESOLUTION_PAGE_ROWS: usize = 2;

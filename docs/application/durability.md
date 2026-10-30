@@ -250,8 +250,8 @@ transition is reconstructed; no stale proof authorizes a payment. Source account
 and external maker prices remain separately authenticated inputs. P42/P44 own
 continuously active certificate and performance measurements.
 
-Implementation begins with the isolated causal-order primitive in `scoped-history.ts`.
-It is deliberately not wired into the current journal until exact on-chain envelopes,
+The isolated causal-order primitive in `scoped-history.ts` and clearing envelope
+implementation are not wired into the current journal until exact on-chain envelopes,
 ABI/SDK parity, missing/duplicate/reordered/reverted cases, same-slot batches,
 RPC reconciliation, crash recovery and fresh PostgreSQL replay all pass on rebuilt
 artifacts. An ordering unit test does not qualify any of those integration layers.

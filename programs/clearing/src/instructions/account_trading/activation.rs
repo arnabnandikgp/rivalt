@@ -9,7 +9,7 @@ pub struct QualifyAccountTrading<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority, has_one = vault)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
+    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
     pub custody: Box<Account<'info, Custody>>,
     #[account(mut, seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
@@ -53,7 +53,10 @@ fn storage_ready(header: &Resolution, safety: &VenueSafety) -> Result<()> {
 
 /// Candidate-only profile4 activation. Shared safety storage and oracle recovery
 /// remain mandatory; the historical profile3 entrypoint cannot activate it.
-pub fn activate_liquidity(ctx: Context<ActivateAccounts>) -> Result<()> {
+pub fn activate_liquidity(
+    ctx: &mut Context<ActivateAccounts>,
+    events: &mut crate::event_cpi::Payloads,
+) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty()
             && cfg!(feature = "liquidity-execution-qualification")
@@ -61,10 +64,13 @@ pub fn activate_liquidity(ctx: Context<ActivateAccounts>) -> Result<()> {
         ClearingError::Profile
     );
     storage_ready(&ctx.accounts.resolution, &ctx.accounts.qualification.safety)?;
-    transition_accounts(&mut ctx.accounts.qualification)
+    transition_accounts(&mut ctx.accounts.qualification, events)
 }
 
-fn transition_accounts(accounts: &mut QualifyAccountTrading) -> Result<()> {
+fn transition_accounts(
+    accounts: &mut QualifyAccountTrading,
+    events: &mut crate::event_cpi::Payloads,
+) -> Result<()> {
     base_profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
     require!(!accounts.safety.paused, ClearingError::Paused);
     require!(
@@ -96,10 +102,10 @@ fn transition_accounts(accounts: &mut QualifyAccountTrading) -> Result<()> {
     }
     accounts.safety.mode = ACTIVE;
     increment(&mut accounts.safety.epoch)?;
-    increment(&mut accounts.custody.sequence)?;
+
     let emitted = crate::events::AccountQualification {
         venue: accounts.venue.key(),
-        sequence: accounts.custody.sequence,
+
         slot: clock.slot,
         safety_epoch: accounts.safety.epoch,
         markets: [
@@ -107,7 +113,7 @@ fn transition_accounts(accounts: &mut QualifyAccountTrading) -> Result<()> {
             crate::events::MarketSnapshot::from(&**accounts.eth),
         ],
     };
-    crate::event_cpi::emit(&emitted, accounts.event_authority.to_account_info())
+    events.emit(&emitted, accounts.event_authority.to_account_info())
 }
 
 #[cfg(test)]
@@ -117,18 +123,18 @@ mod tests {
     #[test]
     fn current_activation_rejects_retired_profiles_pauses_and_nontrading_modes() {
         let mut venue = Venue {
-            schema_version: 3,
+            schema_version: 5,
             profile_version: 4,
             market_count: 2,
             insurance_fee_share_bps: 2500,
             ..Default::default()
         };
         let custody = Custody {
-            schema_version: 3,
+            schema_version: 5,
             ..Default::default()
         };
         let mut safety = VenueSafety {
-            schema_version: 3,
+            schema_version: 5,
             mode: ACTIVE,
             ..Default::default()
         };

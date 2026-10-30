@@ -47,7 +47,7 @@ pub(crate) fn sealed_registry(
     market: Pubkey,
 ) -> Result<()> {
     require!(
-        registry.schema_version == 4
+        registry.schema_version == 5
             && registry.venue == venue
             && registry.market == market
             && registry.sealed
@@ -101,7 +101,7 @@ impl<'account, 'info> View<'account, 'info> {
         // admission belongs to execution, not publication authentication.
         let registration = self.registration;
         require!(
-            registration.schema_version == 4
+            registration.schema_version == 5
                 && registration.venue == venue.key()
                 && registration.market == market.key()
                 && registration.instance < 3

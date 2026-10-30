@@ -17,7 +17,8 @@ pub struct ManageMarketFees<'info> {
 }
 
 pub fn manage(
-    ctx: Context<ManageMarketFees>,
+    ctx: &mut Context<ManageMarketFees>,
+    events: &mut crate::event_cpi::Payloads,
     market_index: u8,
     amount: u64,
     withdraw: bool,
@@ -78,7 +79,7 @@ pub fn manage(
     }
     // T/I are excluded from profit backing; do not consume funding or invalidate
     // a payment certificate merely for treasury bookkeeping.
-    increment(&mut identity.custody.sequence)?;
+
     super::super::account_custody::reconciled(
         &identity.custody,
         [&identity.btc_ledger, &identity.eth_ledger],
@@ -86,6 +87,7 @@ pub fn manage(
     )?;
     emit(
         identity,
+        events,
         accounts.event_authority.to_account_info(),
         accounts.fee_authority.key(),
         if withdraw { 6 } else { 5 },

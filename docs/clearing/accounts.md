@@ -134,7 +134,7 @@ omitted. Its hashes do not replace raw codec/PDA conformance, SBF or RPC tests.
 D84 freezes this fresh local wire change before runtime edits. Current accepted
 accounts above remain the P40A deployment. The successor has clearing-owned account
 schema **5**; profile 4 still selects the bounded liquidity behavior, and maker-owned
-curve/price schemas and quote/report payload versions remain 4. Source names stay
+curve/price schemas and quote payloads remain 4; signed funding reports remain version 1. Source names stay
 canonical. No account, database or unresolved original is migrated in place.
 
 Each of the 17 clearing-owned account types inserts `revision:u64` immediately after
@@ -185,9 +185,11 @@ journal counter or readonly-account mutation is introduced.
 
 The event contract and transaction-atomic reconstruction are owned by
 [durability](../application/durability.md#scoped-history-successor-contract-p40b).
-Account financial snapshots remain payloads; the final envelope owns revision
-advancement. If a payload includes a revision field, it must equal the envelope's
-predecessor; its candidate financial values are applied before that final revision.
+Full `MarginAccountSnapshot`, `MarketSnapshot`, `LiquidityRegistryPayload`,
+`MakerRegistrationPayload` and `FundingPublisherPayload` retain byte parity with
+their account bodies by including the predecessor revision after schema. This
+preserves the bounded borrowed-event serializers. The final envelope owns revision
+advancement; apply candidate financial values before that final revision.
 Economic nonces, liability versions, membership, source sequences and safety epochs
 retain their separate purposes. Source funding prefixes still materialize under
 P40B; P41 owns their dependency reduction.
@@ -209,3 +211,23 @@ proof must reject during the pause or advance its bound safety/membership epoch.
 The already-resolved complete-header retirement path remains distinct. Retirement
 still clears pause into irreversible Retired mode, preserving eligible user cash
 and separately authorized reserve exits. No reserve ownership or payout rule changes.
+
+### Explicit ABI delta and access coverage
+
+`ops/scoped_wire_contract.py` constructs the exact successor ABI from immutable
+P40A `f8984e0`, without recapturing expectations from changed generated output.
+The original wire fixture remains intact. Besides the layout/event changes above,
+20 instruction variants lose custody's sequence-only write privilege and three
+storage-precreation instructions append event authority/program metas. Economic
+custody writers remain writable, including delegation's liability invalidation.
+Maker-owned curves/prices and their instruction/event encodings remain unchanged;
+their IDLs' imported Venue/Market/MarginAccount types reflect clearing schema 5.
+
+`instructions/scopes.rs` declares all 42 public contexts, flattened through nested
+and optional fields. `ops/check-scoped-history.py` compares that table with Anchor
+source declarations and verifies all 53 entrypoint wrappers and real discriminators.
+Only APPLY-stage resolution may write remaining cohort roots; other remaining
+roots record reads even when the complete transaction promotes their privileges.
+These static/native checks do not prove compiled CPI, rollback, packet/CU fit or
+journal completeness. The successor financial build stays disabled pending those
+acceptance gates.

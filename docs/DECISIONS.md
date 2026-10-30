@@ -150,3 +150,11 @@ The P40B contract and isolated ordering tests do not activate new accounts/event
 Require rebuilt ABI/SDK/SBF and actual RPC/WS/PostgreSQL acceptance; P40A, P16A and
 historical results cannot qualify the changed journal. External gates and deferred
 endurance are unchanged.
+
+P40B implementation detail: full account-body payloads retain the predecessor
+revision so the borrowed route/liquidation serializers remain byte-identical to
+owned IDL payloads without duplicating large account objects. A separate final
+footer advances the revision. The explicit ABI delta fixes 20 sequence-only custody
+meta reductions and the three zero-payload footer additions; imported financial
+types in maker IDLs advance with clearing, while maker-owned layouts stay unchanged.
+The successor is still disabled pending SDK/journal and compiled integrated acceptance.

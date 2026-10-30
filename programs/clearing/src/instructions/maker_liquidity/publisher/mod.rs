@@ -12,9 +12,13 @@ use validation::*;
 #[cfg(test)]
 mod tests;
 
-pub fn initialize(ctx: Context<InitializeFundingPublisher>, publisher: Pubkey) -> Result<()> {
+pub fn initialize(
+    ctx: &mut Context<InitializeFundingPublisher>,
+    events: &mut crate::event_cpi::Payloads,
+    publisher: Pubkey,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = ctx.accounts;
+    let accounts = &mut *ctx.accounts;
     execution_profile(
         &accounts.venue,
         &accounts.custody,
@@ -39,7 +43,8 @@ pub fn initialize(ctx: Context<InitializeFundingPublisher>, publisher: Pubkey) -
     )?;
     let clock = Clock::get()?;
     accounts.configuration.set_inner(FundingPublisher {
-        schema_version: 4,
+        revision: 0,
+        schema_version: 5,
         venue: accounts.venue.key(),
         market: accounts.market.key(),
         publisher,
@@ -50,11 +55,11 @@ pub fn initialize(ctx: Context<InitializeFundingPublisher>, publisher: Pubkey) -
         enabled: true,
         bump: ctx.bumps.configuration,
     });
-    increment(&mut accounts.custody.sequence)?;
-    crate::event_cpi::emit(
+
+    events.emit(
         &FundingPublisherChanged {
             venue: accounts.venue.key(),
-            sequence: accounts.custody.sequence,
+
             slot: clock.slot,
             market: accounts.market.key(),
             configuration: accounts.configuration.key(),
@@ -66,22 +71,23 @@ pub fn initialize(ctx: Context<InitializeFundingPublisher>, publisher: Pubkey) -
 }
 
 pub fn configure(
-    ctx: Context<ConfigureFundingPublisher>,
+    ctx: &mut Context<ConfigureFundingPublisher>,
+    events: &mut crate::event_cpi::Payloads,
     expected_authority: u64,
     publisher: Pubkey,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = ctx.accounts;
+    let accounts = &mut *ctx.accounts;
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && accounts.venue.schema_version == 3
+            && accounts.venue.schema_version == 5
             && accounts.venue.profile_version == 4
             && accounts.venue.market_count == 2
             && accounts.venue.insurance_fee_share_bps == 2500
-            && accounts.custody.schema_version == 3
-            && accounts.safety.schema_version == 3
-            && accounts.market.schema_version == 3
-            && accounts.configuration.schema_version == 4
+            && accounts.custody.schema_version == 5
+            && accounts.safety.schema_version == 5
+            && accounts.market.schema_version == 5
+            && accounts.configuration.schema_version == 5
             && accounts.configuration.authority_epoch == expected_authority
             && expected_authority > 0
             && matches!(
@@ -106,11 +112,11 @@ pub fn configure(
     accounts.configuration.enabled = enabled;
     accounts.configuration.last_observed_slot = clock.slot;
     accounts.configuration.last_observed_time = clock.unix_timestamp;
-    increment(&mut accounts.custody.sequence)?;
-    crate::event_cpi::emit(
+
+    events.emit(
         &FundingPublisherChanged {
             venue: accounts.venue.key(),
-            sequence: accounts.custody.sequence,
+
             slot: clock.slot,
             market: accounts.market.key(),
             configuration: accounts.configuration.key(),
@@ -121,9 +127,13 @@ pub fn configure(
     )
 }
 
-pub fn publish(ctx: Context<PublishFundingReport>, report: FundingReport) -> Result<()> {
+pub fn publish(
+    ctx: &mut Context<PublishFundingReport>,
+    events: &mut crate::event_cpi::Payloads,
+    report: FundingReport,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = ctx.accounts;
+    let accounts = &mut *ctx.accounts;
     execution_profile(
         &accounts.venue,
         &accounts.custody,
@@ -162,11 +172,11 @@ pub fn publish(ctx: Context<PublishFundingReport>, report: FundingReport) -> Res
     accounts.configuration.last_sequence = report.sequence;
     accounts.configuration.last_observed_slot = report.observed_slot;
     accounts.configuration.last_observed_time = report.observed_time;
-    increment(&mut accounts.custody.sequence)?;
-    crate::event_cpi::emit(
+
+    events.emit(
         &FundingReportAccepted {
             venue: accounts.venue.key(),
-            sequence: accounts.custody.sequence,
+
             slot: clock.slot,
             market: accounts.market.key(),
             publisher: accounts.publisher.key(),
