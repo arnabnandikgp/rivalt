@@ -146,14 +146,33 @@ fixed metas; three focused conformance tests pass. No economic/program change is
 required by this recorder fix. Retain the failed run at
 `.local/liquidity-execution/runs/p37-safety-6819b1f/`.
 
-No P37 safety/PostgreSQL/browser/full-book acceptance is claimed yet. P37 has no PR;
-source and artifact commits remain intermediate checkpoints. P38 is the separate
-final README PR; P36's green CI does not qualify P37. No endurance, external review,
-independent maker or funded deployment is claimed.
+The second safety run (`p37-safety-pages`) completed all 290 signed outcomes,
+including liquidation, complete default, stale-source terminal exit, sustained
+recovery and reactivation. Its independent raw audit matches eight exact Fraction
+payouts and rejects ten corruptions. Final Anchor comparison then exposed its
+legacy client's missing variable-byte conversion; the new regression covers both
+proposal instruction bytes and event bytes. The captured original instructions,
+accounts and events pass the corrected post-run comparison (560 / 2 / 543).
+This is a completed on-chain lifecycle with repaired post-run conformance, not a
+claim that the original shell invocation exited successfully. Program binaries
+remain the clean `828fe543` set; the auditor's original-discriminator correction
+is `9703039`. The failed and completed-stage captures stay in place.
 
-Next exact action: rerun current safety with the corrected dynamic-page conformance
-recorder, then complete PostgreSQL/service/browser and full-book qualification on
-the pinned `828fe543` SBF set.
+Full protected-book qualification passes 147 outcomes (489,571 CU maximum route);
+full entry-book qualification passes 165 (488,255 CU). Both measure 1,262 bytes v1
+and 26 loaded route keys, with rollback for an unfunded second maker. Exact raw
+verifier hashes are retained in their summaries; no source/program change occurred
+between the resource runs and the safety-auditor correction. Evidence directories:
+`.local/liquidity-execution/runs/p37-resources-{protected,entry}/`.
+
+P37 still requires the stored-order resource case, PostgreSQL rebuild/recovery,
+service/browser/demo and operational exit qualification before its ready PR.
+P38 remains the separate README PR. No endurance, external review, independent
+maker or funded deployment is claimed.
+
+Next exact action: complete the current PostgreSQL/services/browser qualification
+and stored-order resource case on the pinned P37 SBF set, then operational recovery
+and demo acceptance.
 
 ## Deployment and operational limits
 

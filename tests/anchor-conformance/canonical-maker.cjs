@@ -8,6 +8,7 @@ const jsonValue = value => JSON.parse(JSON.stringify(value, function (key, item)
   const original = this[key];
   if (anchor.BN.isBN(original)) return original.toString(10);
   if (original instanceof PublicKey) return original.toBase58();
+  if (original instanceof Uint8Array) return Array.from(original);
   return item;
 }));
 (async () => {
@@ -17,6 +18,7 @@ const jsonValue = value => JSON.parse(JSON.stringify(value, function (key, item)
     const program = new anchor.Program(idl, { connection: new Connection('http://127.0.0.1:8899') });
     function convert(type, value) {
       if (type === 'pubkey') return new PublicKey(value);
+      if (type === 'bytes') return Buffer.from(value);
       if (['u64','i64','u128','i128'].includes(type)) return new anchor.BN(value);
       if (typeof type === 'string') return value;
       if (type.array) return value.map(item => convert(type.array[0], item));

@@ -2,7 +2,7 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import { expect, it } from 'vitest';
-import { createNoopSigner } from '@solana/kit';
+import { createNoopSigner, getBase58Decoder } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import { CanonicalConformance } from './canonical-maker-conformance.js';
 
@@ -36,5 +36,21 @@ it('compares nested resolution contexts and every dynamic page meta with isolate
   expect(()=>new CanonicalConformance().record([{...fixed,accounts:fixed.accounts.slice(0,-1)}])).toThrow(/missing fixed IDL account/);
   const directory=mkdtempSync(join(tmpdir(),'rivalt-current-conformance-'));
   try{const result=await conformance.finish(directory,[],async()=>null);expect(result[0].instructions).toBe(1);}
+  finally{rmSync(directory,{recursive:true});}
+});
+
+it('encodes the variable-byte untrusted proposal through the isolated Anchor client',async()=>{
+  const key=sdk.CLEARING_PROGRAM_ADDRESS,conformance=new CanonicalConformance();
+  conformance.record([sdk.getProposeAccountResolutionInstruction({venue:key,custody:key,safety:key,btc:key,eth:key,
+    btcLedger:key,ethLedger:key,vault:key,registry:key,resolution:key,work:key,eventAuthority:key,program:key,
+    epoch:9007199254740993n,evaluation:2,proposalHash:new Uint8Array(32).fill(255),offset:1024,
+    bytes:Uint8Array.from({length:512},(_,index)=>index%256)})]);
+  const payload=sdk.getAccountResolutionProposalEventEncoder().encode({venue:key,sequence:1n,slot:100n,epoch:9007199254740993n,
+    evaluation:2,proposalHash:new Uint8Array(32).fill(255),offset:1024,bytes:Uint8Array.from([0,255,1]),rejected:false,nextStage:4});
+  conformance.record([],{meta:{err:null,innerInstructions:[{instructions:[{programIdIndex:0,
+    data:getBase58Decoder().decode(Buffer.concat([Buffer.alloc(8),Buffer.from(payload)]))}]}]},
+    transaction:{message:{accountKeys:[key]}}});
+  const directory=mkdtempSync(join(tmpdir(),'rivalt-proposal-conformance-'));
+  try{const result=await conformance.finish(directory,[],async()=>null);expect(result[0].instructions).toBe(1);expect(result[0].events).toBe(1);}
   finally{rmSync(directory,{recursive:true});}
 });
