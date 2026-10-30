@@ -14,7 +14,7 @@ the integration and preceding baselines.
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
 | M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
-| P39 dependency audit/baseline | In progress — publication pending | Accepted focused RPC/WS baseline and 61-entrypoint inventory; prepare ready PR |
+| P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | Planned | Verified P39 parent; atomic per-entity event reconstruction, PG replay and independent execution |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
@@ -134,8 +134,11 @@ Disk has about 790 MiB free; preserve research, keys, databases and evidence.
 P40's eventual SBF rebuild may need additional space; this is not a current P39
 blocker. No external access/product decision is pending.
 
-Next exact action: publish the accepted P39 baseline as a ready PR, then stack
-P40's scoped event/indexer contract and implementation on its exact parent.
+P39 is published ready for review as [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55).
+Measured harness is `0ac6511`; verified summary/acceptance content is `b810b13`.
+
+Next exact action: stack P40's scoped event/indexer and bounded execution work on
+P39's accepted exact parent; keep the stack open.
 
 ## Deployment and operational limits
 
