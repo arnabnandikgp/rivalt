@@ -362,9 +362,13 @@ rejections, TP/SL, full reservations, strict post-fee liquidation, eight-root co
 default, stale-source resolved cash exit and sustained recovery/reactivation. The
 independent raw-byte Fraction audit verifies all eight payouts and rejects ten
 corruptions. Evidence: `p42-safety/`; this safety driver is not a separate SQL run.
-Next exact action: run selected-ledger treasury and terminal reserve exits plus real
-journal rollback/restart/fresh replay, then close out P42 acceptance and publish its
-ready stacked PR. No validator
+Clean verifier `6fbc5d6` passes selected-ledger fee allocation/exit, terminal reserve
+exits and actual SQL rollback/restart/fresh replay. The rebuilt native suite passes
+all 114 cases. The custody gateway probe correctly rejects a duplicated writable
+ledger with Anchor 2040; its old seed-error expectation (2006) is repaired without
+changing runtime checks. Failed evidence remains in `p42-custody-gateways/`.
+Next exact action: rerun that scoped gateway probe, record final acceptance and
+publish P42 ready above #59. No validator
 throughput, endurance or funded qualification is claimed.
 
 ## Deployment and operational limits

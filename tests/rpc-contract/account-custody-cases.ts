@@ -143,7 +143,7 @@ export async function accountCustodyCases(h: Harness) {
   await rejected('reject duplicate surplus classification', [await sdk.getClassifyMarketSurplusInstructionAsync({
     ...common, reserveAuthority: attacker, ledger: ledgers[1], marketIndex: 1, amount: 1n })], [attacker], 6106);
   await rejected('reject foreign ledger alias', [await sdk.getDepositAccountInstructionAsync({
-    ...cash, ethLedger: ledgers[0], margin: btc, amount: 1n })], [owner], 2006);
+    ...cash, ethLedger: ledgers[0], margin: btc, amount: 1n })], [owner], 2040);
   await rejected('reject unapproved insurance donor attribution', [await sdk.getSeedMarketInsuranceInstructionAsync({
     ...common, reserveAuthority: payer, ledger: ledgers[1], donor: owner, donorToken: token.address, quoteMint: mint.address,
     marketIndex: 1, amount: 11n })], [owner], 6102);
