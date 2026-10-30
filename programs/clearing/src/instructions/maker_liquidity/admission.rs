@@ -1,16 +1,17 @@
 //! Reuse actual route maker transitions for each funding-search quantity. This
 //! must not replace financial feasibility with a prefix or free-cash estimate.
 use super::*;
-use crate::instructions::{account_trading, group_margin, group_trading};
-use crate::state::v2::GroupMarketV2;
+use crate::engine::{self, account};
+use crate::instructions::account_trading;
+use crate::state::accounts::Market;
 use financial_core::margin::{Margin, Risk};
 
 pub(crate) struct MakerAdmission<'market> {
-    capital: &'market MarginAccountV3,
+    capital: &'market MarginAccount,
     accrued: Margin,
     prepared_risk: financial_core::liquidity::PreparedMakerRisk,
     reservations: super::reservations::Reservations,
-    market: &'market GroupMarketV2,
+    market: &'market Market,
     funding: [i128; 2],
     risks: [Risk; 2],
     slot: u64,
@@ -19,24 +20,24 @@ pub(crate) struct MakerAdmission<'market> {
 impl<'market> MakerAdmission<'market> {
     #[inline(never)]
     pub(crate) fn new(
-        capital: &'market MarginAccountV3,
-        market: &'market GroupMarketV2,
+        capital: &'market MarginAccount,
+        market: &'market Market,
         funding: i128,
         slot: u64,
     ) -> Result<Self> {
         require!(
             capital.role == ROLE_MAKER
                 && capital.mode == MODE_ISOLATED
-                && capital.venue == market.group
+                && capital.venue == market.venue
                 && capital.isolated_market_index == market.index
                 && market.index < 2,
             ClearingError::MakerCapital
         );
         let root = account_trading::root_view_value(capital)?;
-        group_trading::book::validate(&root)?;
+        engine::book::validate(&root)?;
         let mut indexes = [0; 2];
         indexes[usize::from(market.index)] = funding;
-        let accrued = group_trading::checked(group_margin::model(&root)?.accrued(indexes))?;
+        let accrued = engine::checked(account::model(&root)?.accrued(indexes))?;
         let position = accrued.positions[usize::from(market.index)];
         let selected = financial_core::Participant {
             id: accrued.id,
@@ -48,13 +49,12 @@ impl<'market> MakerAdmission<'market> {
             reserved: 0,
         };
         let reservations = super::reservations::Reservations::new(&root, market, slot);
-        let prepared_risk =
-            group_trading::checked(financial_core::liquidity::PreparedMakerRisk::new(
-                selected,
-                market.lower,
-                market.upper,
-                funding,
-            ))?;
+        let prepared_risk = engine::checked(financial_core::liquidity::PreparedMakerRisk::new(
+            selected,
+            market.lower,
+            market.upper,
+            funding,
+        ))?;
         Ok(Self {
             capital,
             accrued,
@@ -62,7 +62,7 @@ impl<'market> MakerAdmission<'market> {
             reservations,
             market,
             funding: indexes,
-            risks: group_trading::risk(market, funding)?,
+            risks: engine::risk(market, funding)?,
             slot,
         })
     }
@@ -115,25 +115,19 @@ impl<'market> MakerAdmission<'market> {
         let Ok(mut candidate) = account_trading::root_view_value(self.capital) else {
             return false;
         };
-        group_trading::routes::finish_maker(
-            &mut candidate,
-            model,
-            self.market,
-            self.slot,
-            self.risks,
-        )
-        .is_ok()
+        engine::routes::finish_maker(&mut candidate, model, self.market, self.slot, self.risks)
+            .is_ok()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::v2;
+    use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
-    fn environment() -> (MarginAccountV3, GroupMarketV2) {
+    fn environment() -> (MarginAccount, Market) {
         let venue = Pubkey::new_unique();
-        let capital = MarginAccountV3 {
+        let capital = MarginAccount {
             schema_version: 3,
             venue,
             owner: Pubkey::new_unique(),
@@ -145,19 +139,19 @@ mod tests {
             cash: 500,
             delegate_epoch: 1,
             positions: [
-                v2::PositionV2 {
+                crate::state::Position {
                     lots: 3,
                     virtual_scaled: -30_000 * financial_core::SCALE,
                     generation: 1,
                     ..Default::default()
                 },
-                v2::PositionV2::default(),
+                crate::state::Position::default(),
             ],
             ..Default::default()
         };
-        let market = GroupMarketV2 {
-            schema_version: 2,
-            group: venue,
+        let market = Market {
+            schema_version: SCHEMA_VERSION,
+            venue,
             index: 0,
             reference_price: 10_000,
             lower: 9900,
@@ -195,7 +189,7 @@ mod tests {
         let (mut capital, market) = environment();
         capital.book.last_order_id = 4;
         for (index, stored) in capital.book.orders.iter_mut().enumerate() {
-            stored.order = crate::state::StoredOrder {
+            stored.order = crate::state::OrderRecord {
                 id: index as u64 + 1,
                 version: 1,
                 state: 1,
@@ -247,8 +241,8 @@ mod tests {
                                 market.index = market_index as u8;
                                 capital.isolated_market_index = market.index;
                                 capital.cash = cash;
-                                capital.positions = [v2::PositionV2::default(); 2];
-                                capital.positions[market_index] = v2::PositionV2 {
+                                capital.positions = [crate::state::Position::default(); 2];
+                                capital.positions[market_index] = crate::state::Position {
                                     lots: inventory,
                                     virtual_scaled: claim - i128::from(inventory) * 10000 * SCALE,
                                     generation: 1,
@@ -262,7 +256,7 @@ mod tests {
                                         capital.book.orders.iter_mut().enumerate()
                                     {
                                         stored.market_index = market.index;
-                                        stored.order = crate::state::StoredOrder {
+                                        stored.order = crate::state::OrderRecord {
                                             id: index as u64 + 1,
                                             version: 1,
                                             state: 1,

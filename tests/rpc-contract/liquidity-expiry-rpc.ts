@@ -22,7 +22,7 @@ try {
   for(const check of checks) {
     const transaction=await rpc.call('getTransaction',[check.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     if(transaction?.meta.err===null&&eventPayloads(String(check.signature),transaction,setup.deployment.eventAuthority).some(({payload})=>
-      sdk.hex(payload.subarray(0,8))===sdk.hex(sdk.ACCOUNT_CUSTODY_CHANGED_V3_EVENT_DISCRIMINATOR)&&sdk.getAccountCustodyChangedV3EventDecoder().decode(payload).kind===0)) {
+      sdk.hex(payload.subarray(0,8))===sdk.hex(sdk.ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR)&&sdk.getAccountCustodyChangedEventDecoder().decode(payload).kind===0)) {
       anchor=String(check.signature);break;
     }
   }
@@ -32,7 +32,7 @@ try {
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   const initial=(await indexer.store.snapshot()).state;
   runtime=new AccountRuntime(databaseUrl,runId,config.rpcUrl,4);await runtime.open();
-  const maker=setup.instances[0],before=sdk.makerA.getMakerPriceV4Decoder().decode((await h.read(maker.price))!).state;
+  const maker=setup.instances[0],before=sdk.makerA.getMakerPriceDecoder().decode((await h.read(maker.price))!).state;
   await setup.waitUntil(before.updatedTime+1n);
   assert.equal((await runtime.maker(0,0,setup.updater)).status,'queued');
   const original=(await runtime.store.pool.query('SELECT * FROM service_intents WHERE run_id=$1',[runId])).rows[0];
@@ -51,7 +51,7 @@ try {
   await assert.rejects(transferLiquidityBudget(runtime,'maker',0,setup.updater,0),/Resolve every original/);
   await runtime.close();runtime=new AccountRuntime(databaseUrl,runId,config.rpcUrl,4);await runtime.open();
   assert.equal((await runtime.queue.get(original.request_id)).status,'expired-unexecuted');
-  const instruction=maker.module.getRepriceV4Instruction({...maker.makerCommon,actor:setup.updater,
+  const instruction=maker.module.getRepriceInstruction({...maker.makerCommon,actor:setup.updater,
     expectedControl:before.controlEpoch,expectedSequence:before.sequence,anchor:before.anchor});
   const retry=await runtime.enqueue(original.request_id,[instruction],setup.updater,original.budget,original.authority);
   assert(retry);assert.equal(retry.request_id,original.request_id+':retry:1');assert.notEqual(retry.signature,original.signature);
@@ -66,7 +66,7 @@ try {
   const signal=await ws.notification(notification);assert.equal(signal.params.result.value.err,null);
   const transaction=await rpc.call('getTransaction',[retry.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
   assert.equal(transaction.transaction[0],retry.wire);assert.equal(transaction.meta.err,null);
-  assert.equal(sdk.makerA.getMakerPriceV4Decoder().decode((await h.read(maker.price))!).state.sequence,before.sequence+1n);
+  assert.equal(sdk.makerA.getMakerPriceDecoder().decode((await h.read(maker.price))!).state.sequence,before.sequence+1n);
   const finalBudget=await budget();assert.equal(finalBudget.committed,'20000');assert.equal(finalBudget.spent,String(transaction.meta.fee));
   const retained=(await runtime.store.pool.query('SELECT * FROM service_intents WHERE run_id=$1 AND request_id=$2',[runId,original.request_id])).rows[0];
   assert.equal(retained.wire,original.wire);assert.equal(retained.signature,original.signature);

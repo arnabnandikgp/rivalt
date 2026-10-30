@@ -1,24 +1,18 @@
 use super::*;
 
-fn fixture() -> (
-    VenueV3,
-    MarketV3,
-    FundingPublisherV4,
-    FundingReportV4,
-    Clock,
-) {
-    let venue = VenueV3 {
+fn fixture() -> (Venue, Market, FundingPublisher, FundingReport, Clock) {
+    let venue = Venue {
         domain: [7; 32],
-        ..VenueV3::default()
+        ..Venue::default()
     };
-    let market = MarketV3 {
+    let market = Market {
         schema_version: 3,
         config_epoch: 4,
         terms_epoch: 2,
         observation_sequence: 9,
-        ..MarketV3::default()
+        ..Market::default()
     };
-    let configuration = FundingPublisherV4 {
+    let configuration = FundingPublisher {
         schema_version: 4,
         venue: Pubkey::new_unique(),
         market: Pubkey::new_unique(),
@@ -30,7 +24,7 @@ fn fixture() -> (
         enabled: true,
         bump: 254,
     };
-    let report = FundingReportV4 {
+    let report = FundingReport {
         version: 1,
         domain: venue.domain,
         market: configuration.market,
@@ -74,9 +68,9 @@ fn frozen_wire_widths_and_account_event_parity() {
     let mut account_bytes = Vec::new();
     configuration.try_serialize(&mut account_bytes).unwrap();
     assert_eq!(account_bytes.len(), 140);
-    assert_eq!(FundingPublisherV4::INIT_SPACE, 132);
+    assert_eq!(FundingPublisher::INIT_SPACE, 132);
     let mut payload_bytes = Vec::new();
-    FundingPublisherPayloadV4::from(&configuration)
+    FundingPublisherPayload::from(&configuration)
         .serialize(&mut payload_bytes)
         .unwrap();
     assert_eq!(payload_bytes, account_bytes[8..]);
@@ -95,7 +89,7 @@ fn frozen_wire_widths_and_account_event_parity() {
 fn signed_report_rejects_replay_wrong_binding_and_stale_control_snapshot() {
     let (venue, market, configuration, report, clock) = fixture();
     assert!(validate_report(&venue, &market, &configuration, &report, &clock).is_ok());
-    let mutations: &[fn(&mut FundingReportV4)] = &[
+    let mutations: &[fn(&mut FundingReport)] = &[
         |report| report.version = 2,
         |report| report.domain = [9; 32],
         |report| report.market = Pubkey::new_unique(),
@@ -112,7 +106,7 @@ fn signed_report_rejects_replay_wrong_binding_and_stale_control_snapshot() {
         mutate(&mut invalid);
         assert!(validate_report(&venue, &market, &configuration, &invalid, &clock).is_err());
     }
-    let disabled = FundingPublisherV4 {
+    let disabled = FundingPublisher {
         enabled: false,
         ..configuration
     };
@@ -122,7 +116,7 @@ fn signed_report_rejects_replay_wrong_binding_and_stale_control_snapshot() {
 #[test]
 fn observation_fences_and_expiry_bound_latency_without_backdating() {
     let (venue, market, configuration, report, clock) = fixture();
-    let mutations: &[fn(&mut FundingReportV4)] = &[
+    let mutations: &[fn(&mut FundingReport)] = &[
         |report| report.observed_slot = 1000, // snapshot before publisher authorization
         |report| report.observed_slot = 1016, // future slot
         |report| report.observed_time = 99,   // too old / before authority fence
@@ -162,7 +156,7 @@ fn independent_index_fixes_quantity_and_permits_only_bounded_gross_prices() {
             .quantity,
         100
     );
-    let mut boundary = FundingReportV4 {
+    let mut boundary = FundingReport {
         bid: 5_400_000,
         ask: 6_600_000,
         ..report
@@ -174,7 +168,7 @@ fn independent_index_fixes_quantity_and_permits_only_bounded_gross_prices() {
     boundary.ask += 1;
     assert!(report_impact(&boundary, Some(bounds(60_000))).is_err());
     assert!(report_impact(
-        &FundingReportV4 {
+        &FundingReport {
             quantity: 99,
             ..report
         },
@@ -182,14 +176,14 @@ fn independent_index_fixes_quantity_and_permits_only_bounded_gross_prices() {
     )
     .is_err());
     assert!(report_impact(
-        &FundingReportV4 {
+        &FundingReport {
             ask: report.bid - 1,
             ..report
         },
         Some(bounds(60_000))
     )
     .is_err());
-    let rounded = FundingReportV4 {
+    let rounded = FundingReport {
         reference_price: 59_999,
         quantity: 101,
         bid: 6_059_899,
@@ -203,7 +197,7 @@ fn independent_index_fixes_quantity_and_permits_only_bounded_gross_prices() {
 fn unavailable_attestation_carries_no_usable_price_or_expiry() {
     let (venue, market, configuration, report, clock) = fixture();
     for outcome in 1..=3 {
-        let unavailable = FundingReportV4 {
+        let unavailable = FundingReport {
             outcome,
             reference_price: 0,
             quantity: 0,
@@ -216,7 +210,7 @@ fn unavailable_attestation_carries_no_usable_price_or_expiry() {
         assert!(validate_report(&venue, &market, &configuration, &unavailable, &clock).is_ok());
         assert!(report_impact(&unavailable, None).unwrap().is_none());
         for mutate in [
-            (|report: &mut FundingReportV4| report.bid = 1) as fn(&mut FundingReportV4),
+            (|report: &mut FundingReport| report.bid = 1) as fn(&mut FundingReport),
             |report| report.ask = 1,
             |report| report.reference_price = 1,
             |report| report.quantity = 1,
@@ -236,7 +230,7 @@ fn signed_available_reports_preserve_both_funding_cap_directions() {
     market.lots_per_unit = 1_000_000;
     market.cross_eligible = true;
     for (gross, expected_premium) in [(5_400_000, -300_000_000_000), (6_600_000, 300_000_000_000)] {
-        let bounded = FundingReportV4 {
+        let bounded = FundingReport {
             bid: gross,
             ask: gross,
             ..report

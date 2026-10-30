@@ -7,7 +7,7 @@
   },
   "instructions": [
     {
-      "name": "control_curve_v4",
+      "name": "control_curve",
       "discriminator": [
         87,
         246,
@@ -44,7 +44,7 @@
               {
                 "kind": "account",
                 "path": "config.state.capital",
-                "account": "MakerCurveV4"
+                "account": "MakerCurve"
               }
             ]
           }
@@ -93,273 +93,14 @@
           "name": "action",
           "type": {
             "defined": {
-              "name": "CurveControlV4"
+              "name": "CurveControl"
             }
           }
         }
       ]
     },
     {
-      "name": "initialize_account_config",
-      "discriminator": [
-        7,
-        193,
-        245,
-        28,
-        113,
-        9,
-        81,
-        7
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "venue"
-        },
-        {
-          "name": "safety",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  97,
-                  102,
-                  101,
-                  116,
-                  121,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "venue"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                203,
-                88,
-                155,
-                202,
-                90,
-                219,
-                148,
-                43,
-                250,
-                4,
-                140,
-                111,
-                46,
-                96,
-                211,
-                139,
-                13,
-                246,
-                221,
-                44,
-                68,
-                81,
-                197,
-                87,
-                135,
-                138,
-                167,
-                122,
-                240,
-                193,
-                192,
-                202
-              ]
-            }
-          }
-        },
-        {
-          "name": "market"
-        },
-        {
-          "name": "capital",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  114,
-                  103,
-                  105,
-                  110,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "capital.portfolio",
-                "account": "MarginAccountV3"
-              },
-              {
-                "kind": "account",
-                "path": "capital.subaccount_index",
-                "account": "MarginAccountV3"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                203,
-                88,
-                155,
-                202,
-                90,
-                219,
-                148,
-                43,
-                250,
-                4,
-                140,
-                111,
-                46,
-                96,
-                211,
-                139,
-                13,
-                246,
-                221,
-                44,
-                68,
-                81,
-                197,
-                87,
-                135,
-                138,
-                167,
-                122,
-                240,
-                193,
-                192,
-                202
-              ]
-            }
-          }
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  107,
-                  101,
-                  114,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "capital"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "duration",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "initialize_config",
-      "discriminator": [
-        208,
-        127,
-        21,
-        1,
-        194,
-        190,
-        196,
-        70
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "capital"
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  107,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "capital"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "market",
-          "type": "pubkey"
-        },
-        {
-          "name": "domain",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        },
-        {
-          "name": "duration",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "initialize_curve_v4",
+      "name": "initialize_curve",
       "discriminator": [
         2,
         112,
@@ -403,12 +144,12 @@
               {
                 "kind": "account",
                 "path": "capital.portfolio",
-                "account": "MarginAccountV3"
+                "account": "MarginAccount"
               },
               {
                 "kind": "account",
                 "path": "capital.subaccount_index",
-                "account": "MarginAccountV3"
+                "account": "MarginAccount"
               }
             ],
             "program": {
@@ -516,7 +257,7 @@
           "name": "shape",
           "type": {
             "defined": {
-              "name": "ShapeV4"
+              "name": "LiquidityShape"
             }
           }
         },
@@ -535,448 +276,7 @@
       ]
     },
     {
-      "name": "initialize_group_config",
-      "discriminator": [
-        218,
-        62,
-        50,
-        190,
-        163,
-        16,
-        225,
-        116
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "group"
-        },
-        {
-          "name": "market"
-        },
-        {
-          "name": "capital",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  114,
-                  103,
-                  105,
-                  110,
-                  45,
-                  118,
-                  50
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "capital.portfolio",
-                "account": "MarginAccountV2"
-              },
-              {
-                "kind": "account",
-                "path": "capital.subaccount_index",
-                "account": "MarginAccountV2"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                203,
-                88,
-                155,
-                202,
-                90,
-                219,
-                148,
-                43,
-                250,
-                4,
-                140,
-                111,
-                46,
-                96,
-                211,
-                139,
-                13,
-                246,
-                221,
-                44,
-                68,
-                81,
-                197,
-                87,
-                135,
-                138,
-                167,
-                122,
-                240,
-                193,
-                192,
-                202
-              ]
-            }
-          }
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  107,
-                  101,
-                  114,
-                  45,
-                  118,
-                  50
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "capital"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "duration",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "publish_account_epoch",
-      "discriminator": [
-        249,
-        155,
-        61,
-        145,
-        130,
-        254,
-        16,
-        47
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  107,
-                  101,
-                  114,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "config.state.capital",
-                "account": "MakerAccountConfig"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "duration",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "publish_epoch",
-      "discriminator": [
-        222,
-        6,
-        136,
-        82,
-        54,
-        246,
-        245,
-        120
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  107,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "config.state.capital",
-                "account": "MakerConfig"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "duration",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "publish_group_epoch",
-      "discriminator": [
-        146,
-        31,
-        217,
-        133,
-        75,
-        59,
-        115,
-        29
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  107,
-                  101,
-                  114,
-                  45,
-                  118,
-                  50
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "config.state.capital",
-                "account": "MakerGroupConfig"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "duration",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "quote",
-      "discriminator": [
-        149,
-        42,
-        109,
-        247,
-        134,
-        146,
-        213,
-        123
-      ],
-      "accounts": [
-        {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  107,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "config.state.capital",
-                "account": "MakerConfig"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "request",
-          "type": {
-            "defined": {
-              "name": "QuoteRequest"
-            }
-          }
-        }
-      ],
-      "returns": {
-        "defined": {
-          "name": "QuoteResponse"
-        }
-      }
-    },
-    {
-      "name": "quote_account",
-      "discriminator": [
-        237,
-        171,
-        49,
-        25,
-        178,
-        26,
-        194,
-        200
-      ],
-      "accounts": [
-        {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  107,
-                  101,
-                  114,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "config.state.capital",
-                "account": "MakerAccountConfig"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "request",
-          "type": {
-            "defined": {
-              "name": "AccountQuoteRequest"
-            }
-          }
-        }
-      ],
-      "returns": {
-        "defined": {
-          "name": "QuoteResponse"
-        }
-      }
-    },
-    {
-      "name": "quote_group",
-      "discriminator": [
-        201,
-        69,
-        231,
-        90,
-        159,
-        170,
-        190,
-        87
-      ],
-      "accounts": [
-        {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  107,
-                  101,
-                  114,
-                  45,
-                  118,
-                  50
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "config.state.capital",
-                "account": "MakerGroupConfig"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "request",
-          "type": {
-            "defined": {
-              "name": "GroupQuoteRequest"
-            }
-          }
-        }
-      ],
-      "returns": {
-        "defined": {
-          "name": "QuoteResponse"
-        }
-      }
-    },
-    {
-      "name": "quote_v4",
+      "name": "quote_curve",
       "discriminator": [
         186,
         69,
@@ -1008,7 +308,7 @@
               {
                 "kind": "account",
                 "path": "config.state.capital",
-                "account": "MakerCurveV4"
+                "account": "MakerCurve"
               }
             ]
           }
@@ -1043,19 +343,19 @@
           "name": "request",
           "type": {
             "defined": {
-              "name": "QuoteRequestV4"
+              "name": "MakerQuoteRequest"
             }
           }
         }
       ],
       "returns": {
         "defined": {
-          "name": "QuoteResponseV4"
+          "name": "MakerQuoteResponse"
         }
       }
     },
     {
-      "name": "reprice_v4",
+      "name": "reprice",
       "discriminator": [
         104,
         190,
@@ -1091,7 +391,7 @@
               {
                 "kind": "account",
                 "path": "config.state.capital",
-                "account": "MakerCurveV4"
+                "account": "MakerCurve"
               }
             ]
           }
@@ -1146,33 +446,7 @@
   ],
   "accounts": [
     {
-      "name": "MakerAccountConfig",
-      "discriminator": [
-        132,
-        83,
-        224,
-        98,
-        186,
-        215,
-        52,
-        206
-      ]
-    },
-    {
-      "name": "MakerConfig",
-      "discriminator": [
-        76,
-        171,
-        10,
-        33,
-        116,
-        211,
-        115,
-        209
-      ]
-    },
-    {
-      "name": "MakerCurveV4",
+      "name": "MakerCurve",
       "discriminator": [
         193,
         186,
@@ -1185,20 +459,7 @@
       ]
     },
     {
-      "name": "MakerGroupConfig",
-      "discriminator": [
-        3,
-        173,
-        181,
-        180,
-        176,
-        103,
-        166,
-        58
-      ]
-    },
-    {
-      "name": "MakerPriceV4",
+      "name": "MakerPrice",
       "discriminator": [
         66,
         156,
@@ -1213,7 +474,7 @@
   ],
   "events": [
     {
-      "name": "LiquidityPriceV4",
+      "name": "MakerPriceUpdated",
       "discriminator": [
         245,
         185,
@@ -1226,7 +487,7 @@
       ]
     },
     {
-      "name": "LiquidityShapeV4",
+      "name": "MakerShapeUpdated",
       "discriminator": [
         52,
         132,
@@ -1263,134 +524,7 @@
   ],
   "types": [
     {
-      "name": "AccountQuoteRequest",
-      "docs": [
-        "Schema-3 venue binding is a separate envelope; the reference curve is shared."
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "venue",
-            "type": "pubkey"
-          },
-          {
-            "name": "quote",
-            "type": {
-              "defined": {
-                "name": "QuoteRequest"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "ClearingGroupV2",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "schema_version",
-            "type": "u16"
-          },
-          {
-            "name": "profile_version",
-            "type": "u16"
-          },
-          {
-            "name": "domain",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "authority",
-            "type": "pubkey"
-          },
-          {
-            "name": "quote_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "markets",
-            "docs": [
-              "Canonical index 0 BTC, 1 ETH; immutable after both registrations."
-            ],
-            "type": {
-              "array": [
-                "pubkey",
-                2
-              ]
-            }
-          },
-          {
-            "name": "market_count",
-            "type": "u8"
-          },
-          {
-            "name": "terms_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "config_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "sequence",
-            "type": "u64"
-          },
-          {
-            "name": "mode",
-            "docs": [
-              "0 custody, 1 isolated trading, 2 cross trading, 3 frozen resolution."
-            ],
-            "type": "u8"
-          },
-          {
-            "name": "paused",
-            "type": "bool"
-          },
-          {
-            "name": "total_cash",
-            "type": "u64"
-          },
-          {
-            "name": "settlement",
-            "type": "u64"
-          },
-          {
-            "name": "insurance",
-            "type": "u64"
-          },
-          {
-            "name": "fees",
-            "type": "u64"
-          },
-          {
-            "name": "allocated_vault",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "vault_bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "CurveControlV4",
+      "name": "CurveControl",
       "docs": [
         "Borsh discriminants 0..3, with no extra vector-length prefix on the payload."
       ],
@@ -1402,7 +536,7 @@
             "fields": [
               {
                 "defined": {
-                  "name": "ShapeV4"
+                  "name": "LiquidityShape"
                 }
               }
             ]
@@ -1436,7 +570,7 @@
       }
     },
     {
-      "name": "CurveStateV4",
+      "name": "CurveState",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1501,7 +635,7 @@
             "name": "shape",
             "type": {
               "defined": {
-                "name": "ShapeV4"
+                "name": "LiquidityShape"
               }
             }
           },
@@ -1513,111 +647,88 @@
       }
     },
     {
-      "name": "GroupMarketV2",
+      "name": "LiquidityShape",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "schema_version",
-            "type": "u16"
-          },
-          {
-            "name": "group",
-            "type": "pubkey"
-          },
-          {
-            "name": "index",
+            "name": "mode",
+            "docs": [
+              "0 disabled, 1 enabled, 3 enabled and maker-inventory reduce-only."
+            ],
             "type": "u8"
           },
           {
-            "name": "symbol",
+            "name": "ttl_slots",
+            "type": "u16"
+          },
+          {
+            "name": "target",
+            "type": "i64"
+          },
+          {
+            "name": "skew_step",
+            "type": "u64"
+          },
+          {
+            "name": "skew_tick",
+            "type": "u64"
+          },
+          {
+            "name": "long_cap",
+            "type": "u64"
+          },
+          {
+            "name": "short_cap",
+            "type": "u64"
+          },
+          {
+            "name": "bid_count",
+            "type": "u8"
+          },
+          {
+            "name": "ask_count",
+            "type": "u8"
+          },
+          {
+            "name": "bids",
             "type": {
               "array": [
-                "u8",
+                {
+                  "defined": {
+                    "name": "PriceRegion"
+                  }
+                },
                 8
               ]
             }
           },
           {
-            "name": "lots_per_unit",
-            "type": "u64"
-          },
-          {
-            "name": "terms_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "config_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "funding_index_scaled",
-            "type": "i128"
-          },
-          {
-            "name": "funding_time",
-            "type": "i64"
-          },
-          {
-            "name": "gross_lots",
-            "type": "u64"
-          },
-          {
-            "name": "observation_sequence",
-            "type": "u64"
-          },
-          {
-            "name": "reference_price",
-            "type": "u64"
-          },
-          {
-            "name": "lower",
-            "type": "u64"
-          },
-          {
-            "name": "upper",
-            "type": "u64"
-          },
-          {
-            "name": "valid_from",
-            "type": "u64"
-          },
-          {
-            "name": "valid_until",
-            "type": "u64"
-          },
-          {
-            "name": "oracle",
+            "name": "asks",
             "type": {
-              "defined": {
-                "name": "OracleState"
-              }
+              "array": [
+                {
+                  "defined": {
+                    "name": "PriceRegion"
+                  }
+                },
+                8
+              ]
             }
-          },
-          {
-            "name": "bump",
-            "type": "u8"
           }
         ]
       }
     },
     {
-      "name": "GroupQuoteRequest",
-      "docs": [
-        "Separate V2 contract binds the group as well as market and isolated capital."
-      ],
+      "name": "MakerCurve",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "group",
-            "type": "pubkey"
-          },
-          {
-            "name": "quote",
+            "name": "state",
             "type": {
               "defined": {
-                "name": "QuoteRequest"
+                "name": "CurveState"
               }
             }
           }
@@ -1625,7 +736,23 @@
       }
     },
     {
-      "name": "LiquidityPriceV4",
+      "name": "MakerPrice",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "PriceState"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerPriceUpdated",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1657,141 +784,13 @@
       }
     },
     {
-      "name": "LiquidityShapeV4",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "config",
-            "type": "pubkey"
-          },
-          {
-            "name": "state",
-            "type": {
-              "defined": {
-                "name": "CurveStateV4"
-              }
-            }
-          },
-          {
-            "name": "action",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "MakerAccountConfig",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "venue",
-            "type": "pubkey"
-          },
-          {
-            "name": "state",
-            "type": {
-              "defined": {
-                "name": "MakerState"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "MakerConfig",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "state",
-            "type": {
-              "defined": {
-                "name": "MakerState"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "MakerCurveV4",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "state",
-            "type": {
-              "defined": {
-                "name": "CurveStateV4"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "MakerGroupConfig",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "group",
-            "type": "pubkey"
-          },
-          {
-            "name": "state",
-            "type": {
-              "defined": {
-                "name": "MakerState"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "MakerPriceV4",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "state",
-            "type": {
-              "defined": {
-                "name": "PriceStateV4"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "MakerState",
+      "name": "MakerQuoteRequest",
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "version",
             "type": "u16"
-          },
-          {
-            "name": "maker_id",
-            "type": "u8"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "market",
-            "type": "pubkey"
-          },
-          {
-            "name": "capital",
-            "type": "pubkey"
           },
           {
             "name": "domain",
@@ -1803,129 +802,118 @@
             }
           },
           {
-            "name": "quote_epoch",
-            "type": "u64"
+            "name": "market",
+            "type": "pubkey"
           },
           {
-            "name": "start_slot",
-            "type": "u64"
+            "name": "capital",
+            "type": "pubkey"
           },
           {
-            "name": "expiry_slot",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
+            "name": "instance",
             "type": "u8"
+          },
+          {
+            "name": "authority_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "control_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "shape_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "depth_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "inventory",
+            "type": "i64"
+          },
+          {
+            "name": "consumed",
+            "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "MarginAccountV2",
+      "name": "MakerQuoteResponse",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "schema_version",
-            "type": "u16"
-          },
-          {
-            "name": "group",
-            "type": "pubkey"
-          },
-          {
-            "name": "portfolio",
-            "type": "pubkey"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "subaccount_index",
-            "type": "u16"
-          },
-          {
-            "name": "id",
-            "type": "u16"
-          },
-          {
-            "name": "mode",
-            "type": "u8"
-          },
-          {
-            "name": "isolated_market_index",
-            "type": "u8"
-          },
-          {
-            "name": "role",
-            "type": "u8"
-          },
-          {
-            "name": "cash",
-            "type": "u64"
-          },
-          {
-            "name": "positions",
-            "docs": [
-              "Index equals the immutable group's market index, even for empty entries."
-            ],
-            "type": {
-              "array": [
-                {
-                  "defined": {
-                    "name": "PositionV2"
-                  }
-                },
-                2
-              ]
-            }
-          },
-          {
-            "name": "nonce",
-            "type": "u64"
-          },
-          {
-            "name": "state_version",
-            "type": "u64"
-          },
-          {
-            "name": "delegate",
-            "type": "pubkey"
-          },
-          {
-            "name": "delegate_expiry_slot",
-            "type": "u64"
-          },
-          {
-            "name": "delegate_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "reserved",
-            "docs": [
-              "Diagnostic cache only; admission recomputes the complete order book."
-            ],
-            "type": "u64"
-          },
-          {
-            "name": "book",
+            "name": "request",
             "type": {
               "defined": {
-                "name": "OrderBookV2"
+                "name": "MakerQuoteRequest"
               }
             }
           },
           {
-            "name": "bump",
+            "name": "price_sequence",
+            "type": "u64"
+          },
+          {
+            "name": "anchor",
+            "type": "u64"
+          },
+          {
+            "name": "gross",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until_slot",
+            "type": "u64"
+          },
+          {
+            "name": "valid_until_time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerShapeUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "CurveState"
+              }
+            }
+          },
+          {
+            "name": "action",
             "type": "u8"
           }
         ]
       }
     },
     {
-      "name": "MarginAccountV3",
+      "name": "MarginAccount",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1978,7 +966,7 @@
               "array": [
                 {
                   "defined": {
-                    "name": "PositionV2"
+                    "name": "Position"
                   }
                 },
                 2
@@ -2016,7 +1004,7 @@
             ],
             "type": {
               "defined": {
-                "name": "OrderBookV2"
+                "name": "OrderBook"
               }
             }
           },
@@ -2028,7 +1016,7 @@
       }
     },
     {
-      "name": "MarketV3",
+      "name": "Market",
       "type": {
         "kind": "struct",
         "fields": [
@@ -2214,7 +1202,7 @@
       }
     },
     {
-      "name": "OrderBookV2",
+      "name": "OrderBook",
       "type": {
         "kind": "struct",
         "fields": [
@@ -2241,7 +1229,7 @@
               "array": [
                 {
                   "defined": {
-                    "name": "StoredOrderV2"
+                    "name": "StoredOrder"
                   }
                 },
                 4
@@ -2254,7 +1242,7 @@
               "array": [
                 {
                   "defined": {
-                    "name": "ProtectionV2"
+                    "name": "Protection"
                   }
                 },
                 2
@@ -2265,512 +1253,7 @@
       }
     },
     {
-      "name": "PositionV2",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "lots",
-            "type": "i64"
-          },
-          {
-            "name": "virtual_scaled",
-            "type": "i128"
-          },
-          {
-            "name": "funding_checkpoint_scaled",
-            "type": "i128"
-          },
-          {
-            "name": "generation",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PriceStateV4",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "schema_version",
-            "type": "u16"
-          },
-          {
-            "name": "config",
-            "type": "pubkey"
-          },
-          {
-            "name": "control_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "sequence",
-            "type": "u64"
-          },
-          {
-            "name": "anchor",
-            "type": "u64"
-          },
-          {
-            "name": "updated_slot",
-            "type": "u64"
-          },
-          {
-            "name": "updated_time",
-            "type": "i64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ProtectionV2",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "market_index",
-            "type": "u8"
-          },
-          {
-            "name": "protection",
-            "type": {
-              "defined": {
-                "name": "ProtectiveGroup"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "ProtectiveGroup",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "id",
-            "type": "u64"
-          },
-          {
-            "name": "version",
-            "type": "u64"
-          },
-          {
-            "name": "original",
-            "type": "u64"
-          },
-          {
-            "name": "remaining",
-            "type": "u64"
-          },
-          {
-            "name": "generation",
-            "type": "u64"
-          },
-          {
-            "name": "side",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "QuoteRequest",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "version",
-            "type": "u16"
-          },
-          {
-            "name": "domain",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "market",
-            "type": "pubkey"
-          },
-          {
-            "name": "capital",
-            "type": "pubkey"
-          },
-          {
-            "name": "quote_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "authority_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "terms_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "market_config_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "side",
-            "docs": [
-              "Taker side: 0 buys from the maker; 1 sells to it."
-            ],
-            "type": "u8"
-          },
-          {
-            "name": "lots",
-            "type": "u64"
-          },
-          {
-            "name": "inventory",
-            "type": "i64"
-          },
-          {
-            "name": "cash",
-            "type": "u64"
-          },
-          {
-            "name": "inventory_limit",
-            "type": "u64"
-          },
-          {
-            "name": "consumed",
-            "type": "u64"
-          },
-          {
-            "name": "reference_price",
-            "docs": [
-              "Indicative quote input, never an authenticated risk observation."
-            ],
-            "type": "u64"
-          },
-          {
-            "name": "slot",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "QuoteRequestV4",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "version",
-            "type": "u16"
-          },
-          {
-            "name": "domain",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "market",
-            "type": "pubkey"
-          },
-          {
-            "name": "capital",
-            "type": "pubkey"
-          },
-          {
-            "name": "instance",
-            "type": "u8"
-          },
-          {
-            "name": "authority_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "control_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "shape_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "depth_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "side",
-            "type": "u8"
-          },
-          {
-            "name": "lots",
-            "type": "u64"
-          },
-          {
-            "name": "inventory",
-            "type": "i64"
-          },
-          {
-            "name": "consumed",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "QuoteResponse",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "version",
-            "type": "u16"
-          },
-          {
-            "name": "maker_id",
-            "type": "u8"
-          },
-          {
-            "name": "side",
-            "type": "u8"
-          },
-          {
-            "name": "lots",
-            "type": "u64"
-          },
-          {
-            "name": "gross_quote",
-            "type": "u64"
-          },
-          {
-            "name": "remaining",
-            "type": "u64"
-          },
-          {
-            "name": "quote_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "authority_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "terms_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "market_config_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "start_slot",
-            "type": "u64"
-          },
-          {
-            "name": "expiry_slot",
-            "type": "u64"
-          },
-          {
-            "name": "consumed_before",
-            "type": "u64"
-          },
-          {
-            "name": "reference_price",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "QuoteResponseV4",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "request",
-            "type": {
-              "defined": {
-                "name": "QuoteRequestV4"
-              }
-            }
-          },
-          {
-            "name": "price_sequence",
-            "type": "u64"
-          },
-          {
-            "name": "anchor",
-            "type": "u64"
-          },
-          {
-            "name": "gross",
-            "type": "u64"
-          },
-          {
-            "name": "remaining",
-            "type": "u64"
-          },
-          {
-            "name": "valid_until_slot",
-            "type": "u64"
-          },
-          {
-            "name": "valid_until_time",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "RegionV4",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "end_lots",
-            "type": "u64"
-          },
-          {
-            "name": "offset",
-            "type": "u64"
-          },
-          {
-            "name": "slope",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "SafetyV3",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "schema_version",
-            "type": "u16"
-          },
-          {
-            "name": "venue",
-            "type": "pubkey"
-          },
-          {
-            "name": "mode",
-            "type": "u8"
-          },
-          {
-            "name": "paused",
-            "type": "bool"
-          },
-          {
-            "name": "epoch",
-            "type": "u64"
-          },
-          {
-            "name": "resolution_epoch",
-            "type": "u64"
-          },
-          {
-            "name": "recovery_since",
-            "type": "i64"
-          },
-          {
-            "name": "recovery_last",
-            "type": "i64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ShapeV4",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "mode",
-            "docs": [
-              "0 disabled, 1 enabled, 3 enabled and maker-inventory reduce-only."
-            ],
-            "type": "u8"
-          },
-          {
-            "name": "ttl_slots",
-            "type": "u16"
-          },
-          {
-            "name": "target",
-            "type": "i64"
-          },
-          {
-            "name": "skew_step",
-            "type": "u64"
-          },
-          {
-            "name": "skew_tick",
-            "type": "u64"
-          },
-          {
-            "name": "long_cap",
-            "type": "u64"
-          },
-          {
-            "name": "short_cap",
-            "type": "u64"
-          },
-          {
-            "name": "bid_count",
-            "type": "u8"
-          },
-          {
-            "name": "ask_count",
-            "type": "u8"
-          },
-          {
-            "name": "bids",
-            "type": {
-              "array": [
-                {
-                  "defined": {
-                    "name": "RegionV4"
-                  }
-                },
-                8
-              ]
-            }
-          },
-          {
-            "name": "asks",
-            "type": {
-              "array": [
-                {
-                  "defined": {
-                    "name": "RegionV4"
-                  }
-                },
-                8
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "StoredOrder",
+      "name": "OrderRecord",
       "type": {
         "kind": "struct",
         "fields": [
@@ -2861,7 +1344,143 @@
       }
     },
     {
-      "name": "StoredOrderV2",
+      "name": "Position",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lots",
+            "type": "i64"
+          },
+          {
+            "name": "virtual_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "funding_checkpoint_scaled",
+            "type": "i128"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PriceRegion",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "end_lots",
+            "type": "u64"
+          },
+          {
+            "name": "offset",
+            "type": "u64"
+          },
+          {
+            "name": "slope",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PriceState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "control_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "anchor",
+            "type": "u64"
+          },
+          {
+            "name": "updated_slot",
+            "type": "u64"
+          },
+          {
+            "name": "updated_time",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Protection",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_index",
+            "type": "u8"
+          },
+          {
+            "name": "protection",
+            "type": {
+              "defined": {
+                "name": "ProtectiveGroup"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProtectiveGroup",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "version",
+            "type": "u64"
+          },
+          {
+            "name": "original",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StoredOrder",
       "type": {
         "kind": "struct",
         "fields": [
@@ -2880,7 +1499,7 @@
             "name": "order",
             "type": {
               "defined": {
-                "name": "StoredOrder"
+                "name": "OrderRecord"
               }
             }
           }
@@ -2888,7 +1507,7 @@
       }
     },
     {
-      "name": "VenueV3",
+      "name": "Venue",
       "type": {
         "kind": "struct",
         "fields": [

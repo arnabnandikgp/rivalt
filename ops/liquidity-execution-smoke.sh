@@ -3,4 +3,4 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export RIVALT_LIQUIDITY_PROBE=execution
-exec bash ops/liquidity-sampling-smoke.sh
+exec bash ops/current-runtime-smoke.sh

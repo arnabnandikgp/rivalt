@@ -43,8 +43,8 @@ try {
     const tx=await rpc.call('getTransaction',[check.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     if(!tx||tx.meta.err!==null)continue;
     if(eventPayloads(String(check.signature),tx,setup.deployment.eventAuthority).some(({payload})=>
-      sdk.hex(payload.subarray(0,8))===sdk.hex(sdk.ACCOUNT_CUSTODY_CHANGED_V3_EVENT_DISCRIMINATOR)&&
-      sdk.getAccountCustodyChangedV3EventDecoder().decode(payload).kind===0)){anchor=String(check.signature);break;}
+      sdk.hex(payload.subarray(0,8))===sdk.hex(sdk.ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR)&&
+      sdk.getAccountCustodyChangedEventDecoder().decode(payload).kind===0)){anchor=String(check.signature);break;}
   }
   assert(anchor);
   const config:LiquidityConfig={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,
@@ -52,7 +52,7 @@ try {
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   const openingState=(await indexer.store.snapshot()).state;
   const {binding}=await indexer.store.snapshot();
-  const client=new sdk.LiquidityUserClient({version:4,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
+  const client=new sdk.AccountUserClient({version:4,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
     genesis:binding.genesis,anchor,anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain});
   writeFileSync(`${directory}/public-deployment.json`,json(client.config));
   runtime=new AccountRuntime(databaseUrl,config.runId,config.rpcUrl,4);await runtime.open();
@@ -72,13 +72,13 @@ try {
   assert.equal(cashFault.receipt.status,'finalized');faults.push(cashFault);
   assert.equal((await client.snapshot([margin])).roots[margin].cash,cashBefore-7n);
   await setup.qualify();await indexer.cycle();
-  const beforePrice=sdk.makerA.getMakerPriceV4Decoder().decode((await h.read(setup.instances[0].price))!).state;
+  const beforePrice=sdk.makerA.getMakerPriceDecoder().decode((await h.read(setup.instances[0].price))!).state;
   await setup.waitUntil(beforePrice.updatedTime+1n);
   assert.equal((await runtime.maker(0,0,setup.updater)).status,'queued');
   const makerOriginal=(await runtime.queue.pending())[0];assert(makerOriginal);
   const makerFault=await liquidityQueueFault(runtime,{databaseUrl,rpcUrl:config.rpcUrl,directory},makerOriginal);
   assert.equal(makerFault.receipt.status,'finalized');faults.push(makerFault);
-  assert.equal(sdk.makerA.getMakerPriceV4Decoder().decode((await h.read(setup.instances[0].price))!).state.sequence,beforePrice.sequence+1n);
+  assert.equal(sdk.makerA.getMakerPriceDecoder().decode((await h.read(setup.instances[0].price))!).state.sequence,beforePrice.sequence+1n);
 
   const start=(role:'maker'|'funding'|'orders'|'settlement'|'executor',key?:Keypair,marketIndex?:number,instance?:number)=>{
     const identity=`${role}-${marketIndex??'venue'}-${instance??'none'}-${children.length}`;
@@ -132,7 +132,7 @@ try {
   const quote=await client.route({snapshot,trader:margin,marketIndex:0,side:0,lots:1n,maxFee:1000n,allInLimit:100_000n},owner.address);assert(quote);
   await wallet('open for actual order worker',quote.instructions);snapshot=await client.snapshot([margin],'confirmed');
   await wallet('triggered existing-position order',[await client.manageOrder(snapshot,owner.address,margin,0,
-    sdk.groupOrderAction('Place',{expectedId:snapshot.roots[margin].book.lastOrderId+1n,terms:{side:1,lots:1n,limit:50_000n,feeBudget:1000n,
+    sdk.orderAction('Place',{expectedId:snapshot.roots[margin].book.lastOrderId+1n,terms:{side:1,lots:1n,limit:50_000n,feeBudget:1000n,
       startSlot:snapshot.slot,expirySlot:snapshot.slot+2000n,trigger:1,threshold:59_999n,reduceOnly:true,generation:snapshot.roots[margin].positions[0].generation}}))]);
   const orders=start('orders',setup.payer);
   await until(()=>client.snapshot([margin],'confirmed'),value=>value.roots[margin].positions[0].lots===0n,'actual stored order worker fill');await stop(orders);
@@ -176,7 +176,7 @@ try {
       const quantity=(6_000_000n+reference-1n)/reference;
       assert.equal(BigInt(report.referencePrice),reference);assert.equal(BigInt(report.quantity),quantity);
       for(const instance of setup.instances.slice(market*3,market*3+3)) {
-        const configuration=sdk.makerA.getMakerCurveV4Decoder().decode(Buffer.from(input.accounts.get(instance.config)!.data[0],'base64')).state;
+        const configuration=sdk.makerA.getMakerCurveDecoder().decode(Buffer.from(input.accounts.get(instance.config)!.data[0],'base64')).state;
         assert.equal(configuration.shape.skewTick,0n);assert.equal(configuration.shape.bids[0].offset,2n);assert.equal(configuration.shape.asks[0].offset,3n);
       }
       assert.equal(BigInt(report.bid),quantity*(reference-2n));assert.equal(BigInt(report.ask),quantity*(reference+3n));

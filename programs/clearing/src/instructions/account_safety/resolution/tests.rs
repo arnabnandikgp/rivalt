@@ -1,18 +1,18 @@
 //! Literal expectations against the functions called by the frozen handlers.
 //! Signed accounts, source authentication and resource limits require runtime tests.
 use super::*;
-use crate::state::v2::PositionV2;
+use crate::state::Position;
 use math::{oracle::Bounds, SCALE};
 
-fn root(id: u16, cash: u64, claims: [i128; 2]) -> MarginAccountV3 {
-    MarginAccountV3 {
+fn root(id: u16, cash: u64, claims: [i128; 2]) -> MarginAccount {
+    MarginAccount {
         schema_version: 3,
         id,
         cash,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         delegate_epoch: 1,
-        positions: claims.map(|claim| PositionV2 {
+        positions: claims.map(|claim| Position {
             virtual_scaled: claim,
             generation: 4,
             ..Default::default()
@@ -20,8 +20,8 @@ fn root(id: u16, cash: u64, claims: [i128; 2]) -> MarginAccountV3 {
         ..Default::default()
     }
 }
-fn markets() -> [MarketV3; 2] {
-    [MarketV3::default(), MarketV3::default()]
+fn markets() -> [Market; 2] {
+    [Market::default(), Market::default()]
 }
 fn bounds() -> [Option<Bounds>; 2] {
     [Some(Bounds {
@@ -186,7 +186,7 @@ fn valid_target_does_not_authorize_valuing_another_exposed_market_without_a_pric
 
 #[test]
 fn frozen_value_consumes_both_fractional_funding_endpoints_and_reconciles() {
-    let mut header = ResolutionV3 {
+    let mut header = Resolution {
         count: 2,
         prices: [100, 200],
         funding: [SCALE / 3, -SCALE / 7],
@@ -200,7 +200,7 @@ fn frozen_value_consumes_both_fractional_funding_endpoints_and_reconciles() {
     let mut creditor = root(1, 10, [300 * SCALE, -400 * SCALE]);
     creditor.positions[0].lots = -3;
     creditor.positions[1].lots = 2;
-    let mut row = ResolutionRowV3::default();
+    let mut row = ResolutionRow::default();
     pages::value_row(&mut header, &mut row, Pubkey::new_unique(), &debtor).unwrap();
     assert_eq!(row.claims_scaled, [-999_999_999, -285_714_284]);
     assert_eq!(row.collected, 1); // Own fractional debts combine before atom collection.
@@ -218,7 +218,7 @@ fn frozen_value_consumes_both_fractional_funding_endpoints_and_reconciles() {
 #[test]
 fn omitted_or_corrupted_cohort_sums_never_advance() {
     for altered in 0..5 {
-        let mut header = ResolutionV3 {
+        let mut header = Resolution {
             count: 2,
             cursor: 2,
             cash_before: 9,
@@ -245,13 +245,13 @@ fn page_range_authenticates_every_legal_count_and_cursor() {
     for stage in [VALUE, DENOMINATOR, VERIFY, FLOW_PLAN, APPLY, RECONCILE] {
         for count in 1..=64 {
             for start in 0..count {
-                let header = ResolutionV3 {
+                let header = Resolution {
                     stage,
                     cursor: start,
                     count,
                     ..Default::default()
                 };
-                let page = ResolutionPageV3 {
+                let page = ResolutionPage {
                     schema_version: 3,
                     page_index: start / 2,
                     ..Default::default()
@@ -277,7 +277,7 @@ fn page_range_authenticates_every_legal_count_and_cursor() {
 fn registry_hash_binds_version_order_count_and_uniqueness() {
     let first = Pubkey::new_unique();
     let second = Pubkey::new_unique();
-    let mut registry = VenueRegistryV3 {
+    let mut registry = VenueRegistry {
         schema_version: 3,
         count: 2,
         membership_version: 1,
@@ -300,8 +300,8 @@ fn registry_hash_binds_version_order_count_and_uniqueness() {
 fn cohort(
     inputs: &[(u64, [i128; 2])],
     insurance: [u64; 2],
-) -> (ResolutionV3, ResolutionWorkV3, Vec<ResolutionRowV3>) {
-    let mut header = ResolutionV3 {
+) -> (Resolution, ResolutionWork, Vec<ResolutionRow>) {
+    let mut header = Resolution {
         stage: RATE_PROPOSAL,
         count: inputs.len() as u16,
         budgets: insurance,
@@ -320,7 +320,7 @@ fn cohort(
             for index in 0..2 {
                 header.positive_scaled[index] += claims[index].max(0) as u128;
             }
-            ResolutionRowV3 {
+            ResolutionRow {
                 cash_before: *cash,
                 claims_scaled: *claims,
                 collected: model.collected().unwrap(),
@@ -328,7 +328,7 @@ fn cohort(
             }
         })
         .collect();
-    (header, ResolutionWorkV3::default(), rows)
+    (header, ResolutionWork::default(), rows)
 }
 fn proposal_bytes(numerators: [u128; 2], factor: u128) -> Vec<u8> {
     let mut bytes = vec![0; 1560];
@@ -339,8 +339,8 @@ fn proposal_bytes(numerators: [u128; 2], factor: u128) -> Vec<u8> {
     bytes
 }
 fn propose(
-    header: &mut ResolutionV3,
-    work: &mut ResolutionWorkV3,
+    header: &mut Resolution,
+    work: &mut ResolutionWork,
     numerators: [u128; 2],
     factor: u128,
 ) -> u8 {
@@ -360,11 +360,7 @@ fn propose(
     }
     result
 }
-fn verify(
-    header: &mut ResolutionV3,
-    work: &mut ResolutionWorkV3,
-    rows: &mut [ResolutionRowV3],
-) -> u8 {
+fn verify(header: &mut Resolution, work: &mut ResolutionWork, rows: &mut [ResolutionRow]) -> u8 {
     assert_eq!(header.stage, VERIFY);
     for row in rows {
         rates::verify_row(header, work, row).unwrap();
@@ -469,7 +465,7 @@ fn bad_complete_encoding_and_bad_fixed_equation_reset_without_spending() {
 fn application_preserves_other_cash_and_accounts_for_insurance_once() {
     // Creditor has 20 unpaid atoms; bankrupt debtor owns only 10 cash, and its
     // market contributes exactly 3 insurance. Unrelated cash5 is never seized.
-    let mut header = ResolutionV3 {
+    let mut header = Resolution {
         stage: APPLY,
         count: 3,
         prices: [1; 2],
@@ -479,14 +475,14 @@ fn application_preserves_other_cash_and_accounts_for_insurance_once() {
         insurance_spent: [3, 0],
         ..Default::default()
     };
-    let work = ResolutionWorkV3::default();
+    let work = ResolutionWork::default();
     let mut roots = [
         root(0, 10, [-20 * SCALE, 0]),
         root(1, 0, [20 * SCALE, 0]),
         root(2, 5, [0, 0]),
     ];
     let mut rows = [
-        ResolutionRowV3 {
+        ResolutionRow {
             cash_before: 10,
             claims_scaled: [-20 * SCALE, 0],
             generations: [4; 2],
@@ -495,14 +491,14 @@ fn application_preserves_other_cash_and_accounts_for_insurance_once() {
             cash_after: 0,
             ..Default::default()
         },
-        ResolutionRowV3 {
+        ResolutionRow {
             claims_scaled: [20 * SCALE, 0],
             generations: [4; 2],
             rounded_flows: [13, 0],
             cash_after: 13,
             ..Default::default()
         },
-        ResolutionRowV3 {
+        ResolutionRow {
             cash_before: 5,
             generations: [4; 2],
             cash_after: 5,
@@ -540,14 +536,14 @@ fn application_preserves_other_cash_and_accounts_for_insurance_once() {
     debtor.delegate = Pubkey::new_unique();
     debtor.delegate_expiry_slot = 123;
     debtor.book.last_order_id = 81;
-    let mut one = ResolutionV3 {
+    let mut one = Resolution {
         stage: APPLY,
         count: 1,
         prices: [1; 2],
         scanned_cash: 10,
         ..Default::default()
     };
-    let mut row = ResolutionRowV3 {
+    let mut row = ResolutionRow {
         cash_before: 10,
         claims_scaled: [-20 * SCALE, 0],
         generations: [4; 2],
@@ -568,19 +564,19 @@ fn application_preserves_other_cash_and_accounts_for_insurance_once() {
 
 #[test]
 fn closed_cycle_applies_without_a_cash_mint_or_cross_market_haircut() {
-    let mut header = ResolutionV3 {
+    let mut header = Resolution {
         stage: APPLY,
         count: 2,
         prices: [1; 2],
         ..Default::default()
     };
-    let work = ResolutionWorkV3::default();
+    let work = ResolutionWork::default();
     for (id, claims) in [[10 * SCALE, -10 * SCALE], [-10 * SCALE, 10 * SCALE]]
         .into_iter()
         .enumerate()
     {
         let mut account = root(id as u16, 0, claims);
-        let mut row = ResolutionRowV3 {
+        let mut row = ResolutionRow {
             claims_scaled: claims,
             generations: [4; 2],
             rounded_flows: [10, 10],
@@ -601,12 +597,12 @@ fn closed_cycle_applies_without_a_cash_mint_or_cross_market_haircut() {
 
 #[test]
 fn terminal_reconciliation_rejects_residual_claims_or_revived_authority() {
-    let mut header = ResolutionV3 {
+    let mut header = Resolution {
         stage: RECONCILE,
         funding: [17, -23],
         ..Default::default()
     };
-    let row = ResolutionRowV3 {
+    let row = ResolutionRow {
         applied: true,
         cash_after: 7,
         generations: [4; 2],
@@ -628,7 +624,7 @@ fn terminal_reconciliation_rejects_residual_claims_or_revived_authority() {
 
 #[test]
 fn isolated_application_keeps_the_forbidden_market_slot_empty() {
-    let mut header = ResolutionV3 {
+    let mut header = Resolution {
         stage: APPLY,
         count: 1,
         prices: [1; 2],
@@ -637,13 +633,13 @@ fn isolated_application_keeps_the_forbidden_market_slot_empty() {
         scanned_cash: 9,
         ..Default::default()
     };
-    let work = ResolutionWorkV3::default();
+    let work = ResolutionWork::default();
     let mut account = root(0, 9, [0; 2]);
     account.mode = MODE_ISOLATED;
     account.subaccount_index = 1;
     account.isolated_market_index = 0;
-    account.positions[1] = PositionV2::default();
-    let mut row = ResolutionRowV3 {
+    account.positions[1] = Position::default();
+    let mut row = ResolutionRow {
         cash_before: 9,
         cash_after: 9,
         generations: [4, 0],

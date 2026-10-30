@@ -4,48 +4,48 @@ use super::*;
 #[event_cpi]
 #[derive(Accounts)]
 #[instruction(market_index: u8)]
-pub struct InitializeMarketBackingV3<'info> {
+pub struct InitializeMarketBacking<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
-    #[account(init, payer = payer, space = 8 + SettlementCertificateV3::INIT_SPACE,
+    pub safety: Box<Account<'info, VenueSafety>>,
+    #[account(init, payer = payer, space = 8 + SettlementCertificate::INIT_SPACE,
         seeds = [b"settlement-v3", venue.key().as_ref(), &[market_index]], bump)]
-    pub certificate: Box<Account<'info, SettlementCertificateV3>>,
+    pub certificate: Box<Account<'info, SettlementCertificate>>,
     pub system_program: Program<'info, System>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct CheckMarketBackingV3<'info> {
+pub struct CheckMarketBacking<'info> {
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(seeds = [b"registry-v3", venue.key().as_ref()], bump = registry.bump, has_one = venue)]
-    pub registry: Box<Account<'info, VenueRegistryV3>>,
+    pub registry: Box<Account<'info, VenueRegistry>>,
     #[account(seeds = [b"market-v3", venue.key().as_ref(), &[0]], bump = btc.bump, has_one = venue,
         constraint = venue.markets[0] == btc.key() @ ClearingError::Profile)]
-    pub btc: Box<Account<'info, MarketV3>>,
+    pub btc: Box<Account<'info, Market>>,
     #[account(seeds = [b"market-v3", venue.key().as_ref(), &[1]], bump = eth.bump, has_one = venue,
         constraint = venue.markets[1] == eth.key() @ ClearingError::Profile)]
-    pub eth: Box<Account<'info, MarketV3>>,
+    pub eth: Box<Account<'info, Market>>,
     #[account(seeds = [b"ledger-v3", ledger.market.as_ref()], bump = ledger.bump, has_one = venue,
         constraint = ledger.market_index < 2 && venue.markets[usize::from(ledger.market_index)] == ledger.market @ ClearingError::Profile)]
-    pub ledger: Box<Account<'info, MarketLedgerV3>>,
+    pub ledger: Box<Account<'info, MarketLedger>>,
     #[account(mut, seeds = [b"settlement-v3", venue.key().as_ref(), &[certificate.market_index]],
         bump = certificate.bump, has_one = venue,
         constraint = certificate.market_index == ledger.market_index @ ClearingError::Profile)]
-    pub certificate: Box<Account<'info, SettlementCertificateV3>>,
+    pub certificate: Box<Account<'info, SettlementCertificate>>,
 }
 
-pub fn initialize(ctx: Context<InitializeMarketBackingV3>, market_index: u8) -> Result<()> {
+pub fn initialize(ctx: Context<InitializeMarketBacking>, market_index: u8) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty() && market_index < 2,
         ClearingError::Profile
@@ -55,7 +55,7 @@ pub fn initialize(ctx: Context<InitializeMarketBackingV3>, market_index: u8) -> 
         &ctx.accounts.custody,
         &ctx.accounts.safety,
     )?;
-    ctx.accounts.certificate.set_inner(SettlementCertificateV3 {
+    ctx.accounts.certificate.set_inner(SettlementCertificate {
         schema_version: SCHEMA_VERSION,
         venue: ctx.accounts.venue.key(),
         market_index,
@@ -70,7 +70,7 @@ pub fn initialize(ctx: Context<InitializeMarketBackingV3>, market_index: u8) -> 
     )
 }
 
-fn registry_valid(registry: &VenueRegistryV3) -> Result<()> {
+fn registry_valid(registry: &VenueRegistry) -> Result<()> {
     require!(
         registry.schema_version == SCHEMA_VERSION
             && registry.count > 0
@@ -88,10 +88,10 @@ fn registry_valid(registry: &VenueRegistryV3) -> Result<()> {
 }
 
 fn stamps(
-    certificate: &SettlementCertificateV3,
-    custody: &CustodyV3,
-    safety: &SafetyV3,
-    registry: &VenueRegistryV3,
+    certificate: &SettlementCertificate,
+    custody: &Custody,
+    safety: &VenueSafety,
+    registry: &VenueRegistry,
     snapshot: &Snapshot,
 ) -> Result<()> {
     registry_valid(registry)?;
@@ -115,20 +115,16 @@ fn stamps(
                     && snapshot.risks[index].funding <= certificate.funding_bounds[index][1],
                 ClearingError::ExitCohort
             );
-            super::super::group_trading::oracle::action(
-                &snapshot.markets[index],
-                &snapshot.clock,
-                false,
-            )?;
+            crate::engine::oracle::action(&snapshot.markets[index], &snapshot.clock, false)?;
         }
     }
     Ok(())
 }
 
 pub(crate) fn certified(
-    certificate: &Account<SettlementCertificateV3>,
-    identity: &AccountFinancialIdentityV3,
-    registry: &VenueRegistryV3,
+    certificate: &Account<SettlementCertificate>,
+    identity: &AccountFinancialIdentity,
+    registry: &VenueRegistry,
     snapshot: &Snapshot,
     selected: usize,
 ) -> Result<()> {
@@ -163,18 +159,18 @@ pub(crate) fn certified(
 #[inline(never)]
 fn member(
     info: &AccountInfo,
-    registry: &VenueRegistryV3,
+    registry: &VenueRegistry,
     index: usize,
-) -> Result<Box<MarginAccountV3>> {
+) -> Result<Box<MarginAccount>> {
     require!(
         info.owner == &crate::ID
             && !info.is_writable
             && !info.is_signer
             && registry.members.get(index) == Some(info.key)
-            && info.data_len() == 8 + MarginAccountV3::INIT_SPACE,
+            && info.data_len() == 8 + MarginAccount::INIT_SPACE,
         ClearingError::ExitCohort
     );
-    let root = Box::new(MarginAccountV3::try_deserialize(
+    let root = Box::new(MarginAccount::try_deserialize(
         &mut &info.try_borrow_data()?[..],
     )?);
     require!(
@@ -199,7 +195,7 @@ fn member(
 /// Returns precisely the market observations needed to establish this root's
 /// selected claim and, if it can be a debtor, both gross obligations.
 pub(crate) fn debtor_mask(
-    root: &MarginAccountV3,
+    root: &MarginAccount,
     snapshot: &Snapshot,
     selected: usize,
 ) -> Result<u8> {
@@ -233,17 +229,13 @@ pub(crate) fn debtor_mask(
     }
     for index in 0..2 {
         if mask & (1 << index) != 0 {
-            super::super::group_trading::oracle::action(
-                &snapshot.markets[index],
-                &snapshot.clock,
-                false,
-            )?;
+            crate::engine::oracle::action(&snapshot.markets[index], &snapshot.clock, false)?;
         }
     }
     Ok(mask)
 }
 
-pub fn check(ctx: Context<CheckMarketBackingV3>, start: u16) -> Result<()> {
+pub fn check(ctx: Context<CheckMarketBacking>, start: u16) -> Result<()> {
     let accounts = &mut *ctx.accounts;
     profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
     registry_valid(&accounts.registry)?;
@@ -374,17 +366,17 @@ pub fn check(ctx: Context<CheckMarketBackingV3>, start: u16) -> Result<()> {
 
 #[inline(never)]
 fn emit_certificate<'info>(
-    certificate: &Account<SettlementCertificateV3>,
+    certificate: &Account<SettlementCertificate>,
     sequence: u64,
     authority: AccountInfo<'info>,
 ) -> Result<()> {
     crate::event_cpi::emit(
-        &crate::events::AccountBackingChangedV3 {
+        &crate::events::AccountBackingChanged {
             venue: certificate.venue,
             sequence,
             slot: Clock::get()?.slot,
             certificate: certificate.key(),
-            state: crate::events::BackingSnapshotV3::from(&**certificate),
+            state: crate::events::BackingSnapshot::from(&**certificate),
         },
         authority,
     )

@@ -1,4 +1,4 @@
-"""Independent P23 raw-byte custody audit. Imports no SDK/program math."""
+"""Independent current raw-byte custody audit. Imports no SDK/program math."""
 import base64
 from copy import deepcopy
 import hashlib
@@ -25,18 +25,18 @@ def integer(raw, offset, size=8, signed=False):
 def account(report, address, name, size):
     raw = base64.b64decode(report['rawAccounts'][address])
     assert len(raw) == size, (name, len(raw))
-    assert raw[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
+    assert raw[:8] == hashlib.sha256(f"account:{ {'Venue':'VenueV3','Custody':'CustodyV3','VenueSafety':'SafetyV3','VenueRegistry':'VenueRegistryV3','MarginAccount':'MarginAccountV3','MarketLedger':'MarketLedgerV3'}[name]}".encode()).digest()[:8]
     assert integer(raw, 8, 2) == 3
     return raw
 
 
 def audit(report):
     result = report['result']
-    venue = account(report, result['venue'], 'VenueV3', 321)
-    custody = account(report, result['custody'], 'CustodyV3', 83)
-    safety = account(report, result['safety'], 'SafetyV3', 77)
-    registry = account(report, result['registry'], 'VenueRegistryV3', 2105)
-    assert integer(venue, 10, 2) == 3
+    venue = account(report, result['venue'], 'Venue', 321)
+    custody = account(report, result['custody'], 'Custody', 83)
+    safety = account(report, result['safety'], 'VenueSafety', 77)
+    registry = account(report, result['registry'], 'VenueRegistry', 2105)
+    assert integer(venue, 10, 2) == 4
     assert key(venue[172:204]) == result['quoteMint']
     assert key(venue[204:236]) == result['vault']
     assert [key(venue[236 + index * 32:268 + index * 32]) for index in range(2)] == result['markets']
@@ -49,7 +49,7 @@ def audit(report):
     assert [key(registry[56 + index * 32:88 + index * 32]) for index in range(5)] == result['roots']
     cash_total = 0
     for index, address in enumerate(result['roots']):
-        raw = account(report, address, 'MarginAccountV3', 970)
+        raw = account(report, address, 'MarginAccount', 970)
         assert key(raw[10:42]) == result['venue']
         assert integer(raw, 108, 2) == index
         assert integer(raw, 113) == 0
@@ -60,7 +60,7 @@ def audit(report):
         cash_total += integer(raw, 113)
     reserves = []
     for index, address in enumerate(result['ledgers']):
-        raw = account(report, address, 'MarketLedgerV3', 109)
+        raw = account(report, address, 'MarketLedger', 109)
         assert key(raw[10:42]) == result['venue'] and key(raw[42:74]) == result['markets'][index]
         assert raw[74] == index and raw[99] == 0
         assert integer(raw, 75) == integer(raw, 91) == 0
@@ -102,4 +102,4 @@ if __name__ == '__main__':
             pass
         else:
             raise AssertionError(f'auditor accepted mutation at {offset}')
-    print(f'P23 independent raw-byte audit: {count} signed RPC outcomes, cash/market reserves/token identities; {len(mutations)} mutations rejected')
+    print(f'Current independent raw-byte audit: {count} signed RPC outcomes, cash/market reserves/token identities; {len(mutations)} mutations rejected')

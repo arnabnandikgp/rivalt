@@ -14,8 +14,8 @@ export function decodeAccountWorker<Value>(account:any,discriminator:ReadonlyUin
 
 export async function accountWorkerKeys(venue:Address) {
   const [[registry],[resolution],[work],[eventAuthority]]=await Promise.all([
-    sdk.findVenueComponentV3Pda(venue,'registry'),sdk.findVenueComponentV3Pda(venue,'resolution'),
-    sdk.findVenueComponentV3Pda(venue,'resolution-work'),
+    sdk.deriveVenueComponent(venue,'registry'),sdk.deriveVenueComponent(venue,'resolution'),
+    sdk.deriveVenueComponent(venue,'resolution-work'),
     getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('__event_authority')]})]);
   return {registry,resolution,work,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS};
 }
@@ -25,26 +25,26 @@ export async function accountWorkerKeys(venue:Address) {
 export async function readAccountResolution(rpc:Pick<Rpc,'call'>,venue:Address) {
   const keys=await accountWorkerKeys(venue);
   const [[,registryBump],[,resolutionBump],[,workBump],pages]=await Promise.all([
-    sdk.findVenueComponentV3Pda(venue,'registry'),sdk.findVenueComponentV3Pda(venue,'resolution'),
-    sdk.findVenueComponentV3Pda(venue,'resolution-work'),
-    Promise.all(Array.from({length:32},(_,index)=>sdk.findResolutionPageV3Pda(venue,index)))]);
+    sdk.deriveVenueComponent(venue,'registry'),sdk.deriveVenueComponent(venue,'resolution'),
+    sdk.deriveVenueComponent(venue,'resolution-work'),
+    Promise.all(Array.from({length:32},(_,index)=>sdk.findResolutionPagePda(venue,index)))]);
   const response=await rpc.call('getMultipleAccounts',[[keys.registry,keys.resolution,keys.work,...pages.map(([key])=>key)],
     {encoding:'base64',commitment:'confirmed'}]);
   assert(response.value?.length===35,'Incomplete resolution continuation');
-  const registry=decodeAccountWorker(response.value[0],sdk.VENUE_REGISTRY_V3_DISCRIMINATOR,sdk.getVenueRegistryV3Decoder());
-  const header=decodeAccountWorker(response.value[1],sdk.RESOLUTION_V3_DISCRIMINATOR,sdk.getResolutionV3Decoder());
-  const work=decodeAccountWorker(response.value[2],sdk.RESOLUTION_WORK_V3_DISCRIMINATOR,sdk.getResolutionWorkV3Decoder());
+  const registry=decodeAccountWorker(response.value[0],sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder());
+  const header=decodeAccountWorker(response.value[1],sdk.RESOLUTION_DISCRIMINATOR,sdk.getResolutionDecoder());
+  const work=decodeAccountWorker(response.value[2],sdk.RESOLUTION_WORK_DISCRIMINATOR,sdk.getResolutionWorkDecoder());
   assert(registry.schemaVersion===3&&registry.venue===venue&&registry.bump===registryBump&&registry.count>0&&registry.count<=64&&
     registry.members.length===registry.count&&new Set(registry.members).size===registry.count,'Invalid complete resolution registry');
   assert(header.schemaVersion===3&&header.venue===venue&&header.bump===resolutionBump&&
     work.schemaVersion===3&&work.venue===venue&&work.bump===workBump,'Foreign resolution continuation');
-  const rows:sdk.ResolutionRowV3[]=[];
+  const rows:sdk.ResolutionRow[]=[];
   if(header.stage>=2&&header.stage<=11) {
     assert(header.count===registry.count&&work.epoch===header.epoch,'Resolution epoch/count mismatch');
-    const hash=createHash('sha256').update(sdk.getVenueRegistryV3Encoder().encode(registry).slice(8)).digest();
+    const hash=createHash('sha256').update(sdk.getVenueRegistryEncoder().encode(registry).slice(8)).digest();
     assert(sdk.hex(hash)===sdk.hex(header.registryHash),'Frozen membership hash mismatch');
     for(let index=0;index<Math.ceil(header.count/2);index++) {
-      const page=decodeAccountWorker(response.value[3+index],sdk.RESOLUTION_PAGE_V3_DISCRIMINATOR,sdk.getResolutionPageV3Decoder());
+      const page=decodeAccountWorker(response.value[3+index],sdk.RESOLUTION_PAGE_DISCRIMINATOR,sdk.getResolutionPageDecoder());
       assert(page.schemaVersion===3&&page.venue===venue&&page.bump===pages[index][1]&&page.pageIndex===index,'Foreign resolution page');
       // Future pages in Value still contain the previous/precreated epoch.
       if(header.stage>2)assert(page.epoch===header.epoch&&page.rowCount===Math.min(2,header.count-2*index),'Incomplete frozen page');
@@ -60,7 +60,7 @@ export function accountRiskSources(snapshot:sdk.AccountSnapshot) {
   return {primaryBtc:btc[0],primaryCollateral:btc[1],guardBtc:btc[2],guardCollateral:btc[3],primaryEth:eth[0],guardEth:eth[2]};
 }
 
-export function accountRemainderOrders(rows:sdk.ResolutionRowV3[],denominator:bigint):[number[],number[]] {
+export function accountRemainderOrders(rows:sdk.ResolutionRow[],denominator:bigint):[number[],number[]] {
   assert(rows.length>0&&rows.length<=64&&denominator>0n,'Invalid remainder inputs');
   const orders=[0,1].map(market=>{
     const remainders=rows.map(row=>{

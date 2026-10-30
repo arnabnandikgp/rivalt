@@ -271,11 +271,11 @@ class AllocationContract(unittest.TestCase):
 
 class WireAndResourceContract(unittest.TestCase):
     def test_layout_sizes_and_offsets_are_frozen(self):
-        expected = {"LiquidityRegistryV4": 173, "MakerRegistrationV4": 333,
-                    "MakerCurveV4": 691, "MakerPriceV4": 83}
+        expected = {"LiquidityRegistry": 173, "MakerRegistration": 333,
+                    "MakerCurve": 691, "MakerPrice": 83}
         self.assertEqual({name: offsets(name)[1] for name in LAYOUTS}, expected)
-        self.assertEqual(offsets("MakerPriceV4")[0]["sequence"], 50)
-        self.assertEqual(offsets("MakerRegistrationV4")[0]["buy_consumed"], 315)
+        self.assertEqual(offsets("MakerPrice")[0]["sequence"], 50)
+        self.assertEqual(offsets("MakerRegistration")[0]["buy_consumed"], 315)
 
     def test_historical_v0_size_model_not_current_transport_acceptance(self):
         # Route: conservative 32 unique keys, 32 ix references, <=256 bytes data.

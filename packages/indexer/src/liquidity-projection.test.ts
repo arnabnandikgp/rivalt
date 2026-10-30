@@ -8,17 +8,17 @@ const venue=sdk.CLEARING_PROGRAM_ADDRESS,domain='00'.repeat(32);
 const blank=(decoder:{fixedSize:number;decode(bytes:Uint8Array):unknown})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize))) as any;
 function fixture() {
   const state=emptyLiquidity();
-  state.venue={...blank(sdk.getVenueV3Decoder()),schemaVersion:3,profileVersion:4,domain,markets:['btc','eth'],marketCount:2};
+  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:3,profileVersion:4,domain,markets:['btc','eth'],marketCount:2};
   state.custody={schemaVersion:3,venue,sequence:'0',totalCash:'200000',allocatedVault:'200000',liabilityVersions:['0','0']};
   state.safety={schemaVersion:3,venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
   state.members=['trader','capital'];state.membershipVersion='3';
   for(const [index,key] of ['btc','eth'].entries()) {
-    state.markets[key]={...blank(sdk.getMarketV3Decoder()),schemaVersion:3,venue,index,lotsPerUnit:index===0?'1000000':'100000'};
+    state.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:3,venue,index,lotsPerUnit:index===0?'1000000':'100000'};
     state.ledgers[`${key}-ledger`]={schemaVersion:3,venue,market:key,marketIndex:index,settlement:'0',insurance:'0',fees:'0',insuranceFeeRemainder:0,version:'1'};
   }
-  for(const [id,key] of state.members.entries())state.roots[key]={...blank(sdk.getMarginAccountV3Decoder()),schemaVersion:3,venue,
+  for(const [id,key] of state.members.entries())state.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:3,venue,
     id,mode:1,role:id,owner:'owner',subaccountIndex:1,isolatedMarketIndex:0,cash:'100000',delegateEpoch:'1'};
-  state.liquidity!.makers.maker={...blank(sdk.getMakerRegistrationV4Decoder()),schemaVersion:4,venue,market:'btc',owner:'owner',
+  state.liquidity!.makers.maker={...blank(sdk.getMakerRegistrationDecoder()),schemaVersion:4,venue,market:'btc',owner:'owner',
     capital:'capital',instance:0,authorityEpoch:'1',depthEpoch:'1'};
   state.liquidity!.publishers.publisher={schemaVersion:4,venue,market:'btc',publisher:'signer',authorityEpoch:'1',lastSequence:'0',lastObservedSlot:'0',lastObservedTime:'0',enabled:true};
   return state;
@@ -53,8 +53,8 @@ describe('profile-4 financial reconstruction',()=>{
     expect(()=>apply(state,change)).toThrow();
   });
   it('keeps V3 projections and V4 maker messages explicitly separated',()=>{
-    const {state,change}=trade();expect(()=>projectAccounts(state,change,venue,domain)).toThrow(/profile/);
-    change.type='AccountRouteExecutedV3';expect(()=>apply(state,change)).toThrow(/profile/);
+    const {state,change}=trade();expect(()=>projectAccounts(state,change,venue,domain,3 as 4)).toThrow(/profile/);
+    change.type='AccountRouteExecutedV3' as unknown as AccountEvent['type'];expect(()=>apply(state,change)).toThrow(/Unsupported liquidity projection event/);
   });
 });
 describe('restricted publisher reconstruction',()=>{

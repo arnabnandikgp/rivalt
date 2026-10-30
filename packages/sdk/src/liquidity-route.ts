@@ -1,6 +1,6 @@
 import { createNoopSigner, getProgramDerivedAddress, type Address } from '@solana/kit';
-import type { MarginRouteIntent } from './margin-allocation.js';
-import type { readLiquidityTradeSnapshot } from './account-snapshot.js';
+import type { MarginRouteIntent } from './route-intent.js';
+import type { readAccountTradeSnapshot } from './account-snapshot.js';
 import { accountSourceMode,effectiveAccountFunding } from './account-balance.js';
 import { allocateLiquidityRoute } from './liquidity-allocation.js';
 import { requireValue } from './wallet-client.js';
@@ -8,7 +8,7 @@ import * as protocol from './generated/index.js';
 import { accountGuard } from './account-snapshot.js';
 
 export type LiquidityRouteInput = MarginRouteIntent & {
-  snapshot: Awaited<ReturnType<typeof readLiquidityTradeSnapshot>>; trader: Address;
+  snapshot: Awaited<ReturnType<typeof readAccountTradeSnapshot>>; trader: Address;
 };
 
 /** Exact preview is available before activation; no transaction authority is implied. */
@@ -63,8 +63,8 @@ export async function buildLiquidityRoute(input: LiquidityRouteInput, actor: Add
   const position = root.positions[marketIndex];
   const reduceOnly = input.reduceOnly ?? (input.side === 1 ? position.lots >= input.lots : -position.lots >= input.lots);
   const instruction = input.stored
-    ? await protocol.getExecuteLiquidityOrderV4InstructionAsync({ ...common, ...input.stored })
-    : await protocol.getExecuteLiquidityRouteV4InstructionAsync({ ...common, domain: snapshot.venueState.domain,
+    ? await protocol.getExecuteLiquidityOrderInstructionAsync({ ...common, ...input.stored })
+    : await protocol.getExecuteLiquidityRouteInstructionAsync({ ...common, domain: snapshot.venueState.domain,
       termsEpoch: market.termsEpoch, configEpoch: market.configEpoch, side: input.side,
       allInLimit: input.allInLimit, maxFee: input.maxFee, reduceOnly, generation: position.generation });
   return { snapshotCommitment: snapshot.commitment, snapshotSlot: snapshot.slot, trader, marketIndex,

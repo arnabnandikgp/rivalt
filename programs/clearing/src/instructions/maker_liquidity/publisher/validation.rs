@@ -2,10 +2,10 @@ use super::*;
 
 /// Validate signed report identity and time independently of its claimed prices.
 pub(super) fn validate_report(
-    venue: &VenueV3,
-    market: &MarketV3,
-    configuration: &FundingPublisherV4,
-    report: &FundingReportV4,
+    venue: &Venue,
+    market: &Market,
+    configuration: &FundingPublisher,
+    report: &FundingReport,
     clock: &Clock,
 ) -> Result<()> {
     require!(
@@ -62,9 +62,9 @@ pub(super) fn validate_report(
 }
 
 pub(super) fn report_impact(
-    report: &FundingReportV4,
+    report: &FundingReport,
     bounds: Option<policy::Bounds>,
-) -> Result<Option<impact::Impact>> {
+) -> Result<Option<funding::Impact>> {
     if report.outcome != 0 {
         return Ok(None);
     }
@@ -90,20 +90,18 @@ pub(super) fn report_impact(
             ClearingError::OraclePolicy
         );
     }
-    Ok(Some(impact::Impact {
+    Ok(Some(funding::Impact {
         quantity: report.quantity,
         bid: report.bid,
         ask: report.ask,
         expiry_slot: report.valid_until_slot,
         expiry_time: report.valid_until_time,
-        bid_legs: Vec::new(),
-        ask_legs: Vec::new(),
     }))
 }
 
 /// Independent source validation is retained on-chain; maker coverage is attested.
 pub(super) fn read_sources(
-    market: &MarketV3,
+    market: &Market,
     sources: [&UncheckedAccount; 4],
     clock: &Clock,
 ) -> Result<(Option<policy::Bounds>, [u64; 4])> {
@@ -113,12 +111,8 @@ pub(super) fn read_sources(
         .into_iter()
         .enumerate()
     {
-        crate::instructions::oracle::binding(
-            sources[position],
-            market.oracle.sources[position],
-            feed,
-        )?;
-        if let Ok((price, sequence)) = crate::instructions::oracle::source(
+        crate::engine::sources::binding(sources[position], market.oracle.sources[position], feed)?;
+        if let Ok((price, sequence)) = crate::engine::sources::source(
             sources[position],
             market.oracle.sources[position],
             feed,

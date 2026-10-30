@@ -1,9 +1,9 @@
 import { WalletMultiButton } from '@solana/wallet-adapter';
 import { fixed, short } from '../amount.js';
 import { terminal } from '../receipts.js';
-import { Field, Metric, GroupReview, GroupReceipts } from '../group/Primitives.js';
-import { GroupPositions, GroupTicket, GroupOrders, GroupAuthority, GroupFills } from '../group/GroupPanels.js';
-import { GROUP_MARKETS } from '../group/model.js';
+import { Field, Metric, Review, Receipts } from '../shared/Primitives.js';
+import { Positions, Ticket, Orders, Authority, Fills } from '../shared/Panels.js';
+import { MARKETS } from '../shared/model.js';
 import { DemoPanel } from './DemoPanel.js';
 import { accountLabel } from './model.js';
 import { useAccountController, type AccountController } from './useAccountController.js';
@@ -22,7 +22,7 @@ function Selection({controller}: {controller: AccountController}) {
       })}
     </select></Field>
     <Field label="Market"><select value={marketIndex} disabled={root?.mode===1} onChange={event=>setMarketIndex(Number(event.target.value) as 0|1)}>
-      {GROUP_MARKETS.map((market,index)=><option key={market.name} value={index}>{market.name}</option>)}
+      {MARKETS.map((market,index)=><option key={market.name} value={index}>{market.name}</option>)}
     </select></Field>
     {!root&&<button disabled={disabled} onClick={()=>void create()}>{portfolio?'Register account':'Create portfolio'}</button>}
     <p className="caption">Cross shares this account’s cash across BTC and ETH. Isolated uses only its selected market. Sibling accounts never supply collateral automatically. Account mode is fixed at creation.</p>
@@ -62,7 +62,7 @@ function Reserves({controller}: {controller: AccountController}) {
   return <section className="panel"><h2>Market reserves</h2>
     <p className="caption">25% of collected taker fees funds the originating market’s insurance; 75% remains protocol fees. Insurance is a market loss buffer, not your cash or a guarantee of profit payment. All makers and collateral in this environment are internal/test only.</p>
     <div className="table-scroll"><table><thead><tr><th>Market</th><th>Funded settlement pool</th><th>Insurance</th><th>Retained fees</th></tr></thead><tbody>
-      {controller.snapshot?.ledgerStates.map((ledger,index)=><tr key={index}><td>{GROUP_MARKETS[index].name}</td><td>{fixed(ledger.settlement)}</td><td>{fixed(ledger.insurance)}</td><td>{fixed(ledger.fees)}</td></tr>)}
+      {controller.snapshot?.ledgerStates.map((ledger,index)=><tr key={index}><td>{MARKETS[index].name}</td><td>{fixed(ledger.settlement)}</td><td>{fixed(ledger.insurance)}</td><td>{fixed(ledger.fees)}</td></tr>)}
     </tbody></table></div>
   </section>;
 }
@@ -71,7 +71,7 @@ export function FundingReports({controller}: {controller:AccountController}) {
   return <section className="panel"><h2>Funding publications</h2>
     <p className="caption">Funding uses published maker depth attested by a restricted operator. A trade separately checks actual maker capital and your account’s margin. Makers are internal reference bots; no live hedging is performed.</p>
     <div className="table-scroll"><table><thead><tr><th>Market</th><th>Index · USD/unit</th><th>Published impact mid · USD/unit</th><th>Latest finalized report</th><th>Report age</th><th>Publisher</th></tr></thead><tbody>
-      {GROUP_MARKETS.map((market,index)=>{
+      {MARKETS.map((market,index)=>{
         const key=controller.snapshot?.markets[index],entry=key?reports[key]:undefined;
         const publisher=Object.values(publishers).find((value:any)=>value.market===key) as any;
         const age=entry&&controller.snapshot?controller.snapshot.now-BigInt(entry.report.observedTime):null;
@@ -98,9 +98,9 @@ export function AccountApp({config}: {config: AccountTraderConfig}) {
       {[venue.rpcError,venue.error].filter(Boolean).map((message,index)=><p key={index} className="banner error" role="alert">{message}</p>)}
       {venue.apiError&&<p className="banner warning" role="status">{venue.apiError}</p>}{venue.notice&&<p className="banner" role="status">{venue.notice}</p>}{venue.busy&&<p role="status">{venue.busy}</p>}
       {config.demo&&<DemoPanel controller={controller}/>}
-      <Selection controller={controller}/><GroupReview venue={venue}/>
-      <div className="trading-grid"><div className="market-column"><Balances controller={controller}/><GroupPositions controller={controller}/></div><GroupTicket controller={controller}/></div>
-      <GroupOrders controller={controller}/><GroupAuthority controller={controller}/><GroupFills controller={controller}/><Reserves controller={controller}/>{config.version===4&&<FundingReports controller={controller}/>}<GroupReceipts venue={venue}/>
+      <Selection controller={controller}/><Review venue={venue}/>
+      <div className="trading-grid"><div className="market-column"><Balances controller={controller}/><Positions controller={controller}/></div><Ticket controller={controller}/></div>
+      <Orders controller={controller}/><Authority controller={controller}/><Fills controller={controller}/><Reserves controller={controller}/>{config.version===4&&<FundingReports controller={controller}/>}<Receipts venue={venue}/>
       <p className="caption">{venue.records.filter(record=>!terminal(record)).length} unresolved saved transaction(s). Test venue {short(config.venue)} · one collateral mint · no funded deployment.</p>
     </main>
   </>;

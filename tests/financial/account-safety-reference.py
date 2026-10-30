@@ -23,14 +23,17 @@ integer, root, SCALE = wire.integer, wire.root, wire.SCALE
 
 
 def account(raw, key, name, size):
+    # Source names changed; the independently derived original wire names did not.
+    assert name in {'Resolution','ResolutionPage','ResolutionWork','MarginAccount','Market','MarketLedger','Custody','VenueSafety'}
+    original = 'SafetyV3' if name == 'VenueSafety' else name + 'V3'
     data = base64.b64decode(raw[key])
-    assert len(data) == size and data[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
+    assert len(data) == size and data[:8] == hashlib.sha256(f'account:{original}'.encode()).digest()[:8]
     assert integer(data, 8, 2) == 3
     return data
 
 
 def header(raw, key):
-    data = account(raw, key, 'ResolutionV3', 3644)
+    data = account(raw, key, 'Resolution', 3644)
     # Ordered contract fields, independent of generated IDL/SDK offsets.
     offset = 8 + 2 + 32
     result = {}
@@ -55,12 +58,12 @@ def balanced(report, raw):
     raw = {key:value for key,value in raw.items() if value is not None}
     wire.decode(report, raw)
     for key in report['roots']:
-        account(raw, key, 'MarginAccountV3', 970)
+        account(raw, key, 'MarginAccount', 970)
     for key in report['markets']:
-        account(raw, key, 'MarketV3', 447)
+        account(raw, key, 'Market', 447)
     for key in report['ledgers']:
-        account(raw, key, 'MarketLedgerV3', 109)
-    custody = account(raw, report['custody'], 'CustodyV3', 83)
+        account(raw, key, 'MarketLedger', 109)
+    custody = account(raw, report['custody'], 'Custody', 83)
     token_total = integer(base64.b64decode(raw[report['vault']]),64)
     for key in report['userTokens'] + [report['reserveDestination']]:
         token_total += integer(base64.b64decode(raw[key]),64)
@@ -92,8 +95,8 @@ def audit(report):
     for index in range(2):
         assert Fraction(finished['rates'][index],finished['common']*finished['factor']) == expected.benchmark.rates[index]
     for index,key in enumerate(report['roots']):
-        before = account(frozen,key,'MarginAccountV3',970)
-        after = account(completed,key,'MarginAccountV3',970)
+        before = account(frozen,key,'MarginAccount',970)
+        after = account(completed,key,'MarginAccount',970)
         assert integer(after,113) == expected.cash[index], 'exact atom owner'
         assert all(lots == virtual == 0 for lots,virtual,_ in root(after)['positions'])
         assert after[233:273] == bytes(40) and integer(after,281) == 0, 'delegate/reserve cleanup'
@@ -105,7 +108,7 @@ def audit(report):
                 assert integer(after,offset+24,16,True) == original['funding'][position]
                 assert integer(after,offset+40) == integer(before,offset+40)+1
             else: assert after[offset:offset+48] == bytes(48), 'isolated forbidden slot'
-        page = account(completed,report['pages'][index//2],'ResolutionPageV3',3400)
+        page = account(completed,report['pages'][index//2],'ResolutionPage',3400)
         offset = 53 + (index%2)*1673
         assert integer(page,42) == original['epoch'] and integer(page,50,2) == index//2
         assert integer(page,offset+32) == accounts[index].cash
@@ -119,8 +122,8 @@ def audit(report):
         assert integer(page,offset+1664) == expected.cash[index] and page[offset+1672] == 1
     assert balanced(report,completed) == sum(expected.cash) == finished['cash_applied']
     for index,key in enumerate(report['ledgers']):
-        before = account(frozen,key,'MarketLedgerV3',109)
-        after = account(completed,key,'MarketLedgerV3',109)
+        before = account(frozen,key,'MarketLedger',109)
+        after = account(completed,key,'MarketLedger',109)
         assert integer(after,75) == 0
         assert integer(after,83) == original['insurance'][index]-expected.insurance_spent[index]
         assert integer(after,91) == original['fees'][index] and after[99] == before[99]
@@ -132,9 +135,9 @@ def audit(report):
         if name == 'rawAccounts' and report.get('scenario') == 'two-market-resolved':mode=3
         raw = report[name]
         balanced(report,raw)
-        assert account(raw,report['safety'],'SafetyV3',77)[42:44] == bytes([mode,0])
+        assert account(raw,report['safety'],'VenueSafety',77)[42:44] == bytes([mode,0])
         for index,key in enumerate(report['markets']):
-            assert integer(account(raw,key,'MarketV3',447),76,16,True) == original['funding'][index]
+            assert integer(account(raw,key,'Market',447),76,16,True) == original['funding'][index]
     # The signed scenario withdraws 100 terminal owner atoms, performs a matched
     # 10-atom recovery deposit/exit, then matched 1-atom active deposit/retired exit.
     final = report['rawAccounts']

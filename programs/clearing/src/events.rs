@@ -1,716 +1,31 @@
-//! Critical event schemas consumed by the SDK and finalized indexer.
+//! Critical current event schemas; historical journal tags stay versioned.
 use crate::state::*;
 use anchor_lang::prelude::*;
 
-#[event]
-pub struct LiquidityRegistryChangedV4 {
+#[event(discriminator = [211, 73, 106, 79, 120, 190, 40, 231])]
+pub struct LiquidityRegistryChanged {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub registry: Pubkey,
-    pub state: crate::state::v4::LiquidityRegistryPayloadV4,
+    pub state: crate::state::liquidity::LiquidityRegistryPayload,
 }
 
-#[event]
-pub struct LiquidityMakerChangedV4 {
+#[event(discriminator = [88, 64, 64, 174, 240, 198, 130, 26])]
+pub struct LiquidityMakerChanged {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub market: Pubkey,
-    pub market_state: MarketSnapshotV3,
+    pub market_state: MarketSnapshot,
     pub registration: Pubkey,
-    pub state: crate::state::v4::MakerRegistrationPayloadV4,
+    pub state: crate::state::liquidity::MakerRegistrationPayload,
     pub operation: u8,
-}
-
-#[event]
-pub struct OrderChanged {
-    pub version: u16,
-    pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    /// 0 place, 1 replace, 2 cancel, 3 protective pair, 4 cancel group, 5 cleanup.
-    pub kind: u8,
-    pub participant: Pubkey,
-    pub order_id: u64,
-    pub reserved: u64,
-    pub order_ids: [u64; 4],
-    pub book: OrderBook,
-}
-
-#[event]
-pub struct MakerChanged {
-    pub version: u16,
-    pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub kind: u8,
-    pub registration: Pubkey,
-    pub capital: Pubkey,
-    pub maker_id: u8,
-    pub authority_epoch: u64,
-    pub quote_epoch: u64,
-    pub quarantined: bool,
-    pub approved_hash: [u8; 32],
-    pub config_epoch: u64,
-}
-
-#[event]
-pub struct SettlementChanged {
-    pub version: u16,
-    pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub observation: u64,
-    /// 0 collect loss, 1 settle gain, 2 withdraw funded cash.
-    pub kind: u8,
-    pub participant: Pubkey,
-    pub amount: u64,
-    pub participant_cash: u64,
-    pub participant_virtual: i128,
-    pub participant_reserved: u64,
-    pub participant_order_ids: [u64; 4],
-    pub participant_book: crate::state::OrderBook,
-    pub funding_index_scaled: i128,
-    pub funding_time: i64,
-    pub total_cash: u64,
-    pub settlement: u64,
-    pub allocated_vault: u64,
-    pub actual_vault: u64,
-}
-
-#[event]
-pub struct TestRiskPublished {
-    pub version: u16,
-    pub terms_epoch: u64,
-    pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub sequence: u64,
-    pub config_epoch: u64,
-    pub observation_sequence: u64,
-    pub reference_price: u64,
-    pub lower: u64,
-    pub upper: u64,
-    pub valid_from: u64,
-    pub valid_until: u64,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct ExecutedLeg {
-    pub maker_id: u8,
-    pub capital: Pubkey,
-    pub lots: u64,
-    pub gross_quote: u64,
-    pub quote_epoch: u64,
-    pub authority_epoch: u64,
-    pub consumed_after: u64,
-    pub position_after: i64,
-    pub virtual_after: i128,
-    pub generation_after: u64,
-    pub reserved_after: u64,
-    pub order_ids_after: [u64; 4],
-    pub book_after: crate::state::OrderBook,
-}
-
-#[event]
-pub struct RouteExecuted {
-    pub version: u16,
-    pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub terms_epoch: u64,
-    pub config_epoch: u64,
-    pub sequence: u64,
-    pub slot: u64,
-    pub observation_sequence: u64,
-    pub trader: Pubkey,
-    pub nonce: u64,
-    pub side: u8,
-    pub lots: u64,
-    pub gross_quote: u64,
-    pub fee: u64,
-    pub trader_cash: u64,
-    pub trader_lots: i64,
-    pub trader_virtual: i128,
-    pub trader_generation: u64,
-    pub trader_reserved: u64,
-    pub trader_order_ids: [u64; 4],
-    pub trader_book: crate::state::OrderBook,
-    pub order_id: u64,
-    pub order_version: u64,
-    pub funding_index_scaled: i128,
-    pub funding_time: i64,
-    pub total_cash: u64,
-    pub total_fees: u64,
-    pub gross_lots: u64,
-    pub legs: Vec<ExecutedLeg>,
-}
-
-#[event]
-pub struct CustodyChanged {
-    pub schema_version: u16,
-    pub profile_version: u16,
-    pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub terms_epoch: u64,
-    pub config_epoch: u64,
-    pub sequence: u64,
-    pub slot: u64,
-    /// 0 initialize, 1 register, 2 deposit, 3 withdraw, 4 insurance, 5 surplus, 6 pause.
-    pub kind: u8,
-    pub actor: Pubkey,
-    /// Default pubkey means a market-wide event.
-    pub participant: Pubkey,
-    pub amount: u64,
-    pub participant_cash: u64,
-    pub total_cash: u64,
-    pub settlement: u64,
-    pub insurance: u64,
-    pub fees: u64,
-    pub allocated_vault: u64,
-    pub actual_vault: u64,
-    pub paused: bool,
-}
-
-#[event]
-pub struct OracleObserved {
-    pub version: u16,
-    pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub terms_epoch: u64,
-    pub config_epoch: u64,
-    pub observation_sequence: u64,
-    pub reference_price: u64,
-    pub lower: u64,
-    pub upper: u64,
-    pub valid_from: u64,
-    pub valid_until: u64,
-    pub funding_index_scaled: i128,
-    pub funding_time: i64,
-    pub oracle: OracleState,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct ResolutionUpdate {
-    pub id: u16,
-    pub row: ResolutionRow,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct ResolutionParticipant {
-    pub participant: Pubkey,
-    pub id: u16,
-    pub cash: u64,
-    pub lots: i64,
-    pub virtual_scaled: i128,
-    pub funding_checkpoint_scaled: i128,
-    pub generation: u64,
-    /// Apply invalidates all active orders, zeros reserves/IDs and group allowance.
-    /// Collection leaves the full existing book and nonce unchanged.
-    pub finalized: bool,
-}
-
-#[event]
-pub struct ResolutionProgress {
-    pub version: u16,
-    pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub terms_epoch: u64,
-    pub config_epoch: u64,
-    pub sequence: u64,
-    pub slot: u64,
-    /// 0 freeze/reset rows, 1 page, 2 valuation/recovery check, 3 resume.
-    pub kind: u8,
-    pub mode: u8,
-    pub paused: bool,
-    pub funding_index_scaled: i128,
-    pub funding_time: i64,
-    pub total_cash: u64,
-    pub settlement: u64,
-    pub insurance: u64,
-    pub fees: u64,
-    pub allocated_vault: u64,
-    pub gross_lots: u64,
-    pub oracle: crate::state::OracleState,
-    pub header: ResolutionHeader,
-    pub rows: Vec<ResolutionUpdate>,
-    pub participants: Vec<ResolutionParticipant>,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct RiskParticipant {
-    pub participant: Pubkey,
-    pub id: u16,
-    pub cash: u64,
-    pub lots: i64,
-    pub virtual_scaled: i128,
-    pub funding_checkpoint_scaled: i128,
-    pub generation: u64,
-    pub nonce: u64,
-    pub reserved: u64,
-    pub order_ids: [u64; 4],
-    pub book: OrderBook,
-}
-
-#[event]
-pub struct LiquidationApplied {
-    pub version: u16,
-    pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub terms_epoch: u64,
-    pub config_epoch: u64,
-    pub sequence: u64,
-    pub slot: u64,
-    pub observation: u64,
-    pub lots: u64,
-    pub price: u64,
-    pub fee: u64,
-    pub deficit_before: i128,
-    pub deficit_after: i128,
-    pub funding_index_scaled: i128,
-    pub funding_time: i64,
-    pub gross_lots: u64,
-    pub target: RiskParticipant,
-    pub receiver: RiskParticipant,
-}
-
-#[event]
-pub struct ProbeRecorded {
-    pub schema_version: u16,
-    pub owner: Pubkey,
-    pub record: Pubkey,
-    pub nonce: u64,
-    pub signed_value: i128,
-    pub optional_value: Option<u64>,
-    pub choice: ProbeChoice,
-}
-/// V2 custody events are separate from V1's market-scoped journal.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct GroupMemberCashV2 {
-    pub margin: Pubkey,
-    pub portfolio: Pubkey,
-    pub owner: Pubkey,
-    pub subaccount_index: u16,
-    pub id: u16,
-    pub mode: u8,
-    pub isolated_market_index: u8,
-    pub role: u8,
-    pub cash: u64,
-    pub state_version: u64,
-}
-
-#[event]
-pub struct GroupCustodyChangedV2 {
-    pub schema_version: u16,
-    pub profile_version: u16,
-    pub domain: [u8; 32],
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    /// 0 group, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdraw,
-    /// 6 internal transfer, 7 unfrozen pause, 8 unsolicited surplus to insurance, 9 explicit fee allocation.
-    pub kind: u8,
-    pub actor: Pubkey,
-    pub subject: Pubkey,
-    pub index: u16,
-    pub amount: u64,
-    pub members: Vec<GroupMemberCashV2>,
-    pub authority: Pubkey,
-    pub quote_mint: Pubkey,
-    pub vault: Pubkey,
-    pub markets: [Pubkey; 2],
-    pub market_count: u8,
-    pub mode: u8,
-    pub paused: bool,
-    pub terms_epoch: u64,
-    pub config_epoch: u64,
-    pub total_cash: u64,
-    pub settlement: u64,
-    pub insurance: u64,
-    pub fees: u64,
-    pub allocated_vault: u64,
-    /// None when this operation does not read the token account.
-    pub actual_vault: Option<u64>,
-}
-
-#[event]
-pub struct GroupMakerChangedV2 {
-    pub group: Pubkey,
-    pub market: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub config_epoch: u64,
-    pub registration: Pubkey,
-    pub state: MakerRegistrationSnapshotV2,
-    pub operation: u8,
-}
-
-#[event]
-pub struct GroupOracleChangedV2 {
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub market: Pubkey,
-    pub state: GroupMarketSnapshotV2,
-}
-
-#[event]
-pub struct MarginClaimsNettedV2 {
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub margin: Pubkey,
-    pub state: MarginAccountSnapshotV2,
-    pub markets: [GroupMarketSnapshotV2; 2],
-    pub cancelled_scaled: i128,
-}
-
-#[event]
-pub struct MarginAuthorityChangedV2 {
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub margin: Pubkey,
-    pub state: MarginAccountSnapshotV2,
-}
-
-#[event]
-pub struct MarginOrderChangedV2 {
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub market: Pubkey,
-    pub market_state: GroupMarketSnapshotV2,
-    pub margin: Pubkey,
-    pub state: MarginAccountSnapshotV2,
-    pub other_market: Pubkey,
-    pub other_market_state: GroupMarketSnapshotV2,
-}
-
-#[event]
-pub struct MarginRouteExecutedV2 {
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub market: Pubkey,
-    pub market_state: GroupMarketSnapshotV2,
-    pub nonce: u64,
-    pub side: u8,
-    pub lots: u64,
-    pub gross_quote: u64,
-    pub fee: u64,
-    pub order_id: u64,
-    pub order_version: u64,
-    pub root_states: Vec<MarginAccountSnapshotV2>,
-    pub maker_states: Vec<MakerRegistrationSnapshotV2>,
-    pub total_cash: u64,
-    pub fees: u64,
-    pub other_market: Pubkey,
-    pub other_market_state: GroupMarketSnapshotV2,
-}
-
-impl MarginOrderChangedV2 {
-    #[inline(never)]
-    pub(crate) fn with_other(
-        change: GroupOrderChangedV2,
-        other_market: Pubkey,
-        other_market_state: GroupMarketSnapshotV2,
-    ) -> Box<Self> {
-        Box::new(Self {
-            group: change.group,
-            sequence: change.sequence,
-            slot: change.slot,
-            market: change.market,
-            market_state: change.market_state,
-            margin: change.margin,
-            state: change.state,
-            other_market,
-            other_market_state,
-        })
-    }
-}
-impl MarginRouteExecutedV2 {
-    #[inline(never)]
-    pub(crate) fn with_other(
-        execution: GroupRouteExecutedV2,
-        other_market: Pubkey,
-        other_market_state: GroupMarketSnapshotV2,
-    ) -> Box<Self> {
-        Box::new(Self {
-            group: execution.group,
-            sequence: execution.sequence,
-            slot: execution.slot,
-            market: execution.market,
-            market_state: execution.market_state,
-            nonce: execution.nonce,
-            side: execution.side,
-            lots: execution.lots,
-            gross_quote: execution.gross_quote,
-            fee: execution.fee,
-            order_id: execution.order_id,
-            order_version: execution.order_version,
-            root_states: execution.root_states,
-            maker_states: execution.maker_states,
-            total_cash: execution.total_cash,
-            fees: execution.fees,
-            other_market,
-            other_market_state,
-        })
-    }
-}
-
-#[event]
-pub struct GroupOrderChangedV2 {
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub market: Pubkey,
-    pub market_state: GroupMarketSnapshotV2,
-    pub margin: Pubkey,
-    pub state: MarginAccountSnapshotV2,
-}
-
-#[event]
-pub struct GroupRouteExecutedV2 {
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub market: Pubkey,
-    pub market_state: GroupMarketSnapshotV2,
-    pub nonce: u64,
-    pub side: u8,
-    pub lots: u64,
-    pub gross_quote: u64,
-    pub fee: u64,
-    pub order_id: u64,
-    pub order_version: u64,
-    /// At most three roots; keys derive from each immutable portfolio/child identity.
-    pub root_states: Vec<MarginAccountSnapshotV2>,
-    pub maker_states: Vec<MakerRegistrationSnapshotV2>,
-    pub total_cash: u64,
-    pub fees: u64,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct MarginAccountSnapshotV2 {
-    pub schema_version: u16,
-    pub group: Pubkey,
-    pub portfolio: Pubkey,
-    pub owner: Pubkey,
-    pub subaccount_index: u16,
-    pub id: u16,
-    pub mode: u8,
-    pub isolated_market_index: u8,
-    pub role: u8,
-    pub cash: u64,
-    pub positions: [crate::state::v2::PositionV2; 2],
-    pub nonce: u64,
-    pub state_version: u64,
-    pub delegate: Pubkey,
-    pub delegate_expiry_slot: u64,
-    pub delegate_epoch: u64,
-    pub reserved: u64,
-    pub book: crate::state::v2::OrderBookV2,
-    pub bump: u8,
-}
-
-impl From<&crate::state::v2::MarginAccountV2> for MarginAccountSnapshotV2 {
-    fn from(state: &crate::state::v2::MarginAccountV2) -> Self {
-        Self {
-            schema_version: state.schema_version,
-            group: state.group,
-            portfolio: state.portfolio,
-            owner: state.owner,
-            subaccount_index: state.subaccount_index,
-            id: state.id,
-            mode: state.mode,
-            isolated_market_index: state.isolated_market_index,
-            role: state.role,
-            cash: state.cash,
-            positions: state.positions,
-            nonce: state.nonce,
-            state_version: state.state_version,
-            delegate: state.delegate,
-            delegate_expiry_slot: state.delegate_expiry_slot,
-            delegate_epoch: state.delegate_epoch,
-            reserved: state.reserved,
-            book: state.book,
-            bump: state.bump,
-        }
-    }
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct GroupMarketSnapshotV2 {
-    pub schema_version: u16,
-    pub group: Pubkey,
-    pub index: u8,
-    pub symbol: [u8; 8],
-    pub lots_per_unit: u64,
-    pub terms_epoch: u64,
-    pub config_epoch: u64,
-    pub funding_index_scaled: i128,
-    pub funding_time: i64,
-    pub gross_lots: u64,
-    pub observation_sequence: u64,
-    pub reference_price: u64,
-    pub lower: u64,
-    pub upper: u64,
-    pub valid_from: u64,
-    pub valid_until: u64,
-    pub oracle: crate::state::OracleState,
-    pub bump: u8,
-}
-
-impl From<&crate::state::v2::GroupMarketV2> for GroupMarketSnapshotV2 {
-    fn from(state: &crate::state::v2::GroupMarketV2) -> Self {
-        Self {
-            schema_version: state.schema_version,
-            group: state.group,
-            index: state.index,
-            symbol: state.symbol,
-            lots_per_unit: state.lots_per_unit,
-            terms_epoch: state.terms_epoch,
-            config_epoch: state.config_epoch,
-            funding_index_scaled: state.funding_index_scaled,
-            funding_time: state.funding_time,
-            gross_lots: state.gross_lots,
-            observation_sequence: state.observation_sequence,
-            reference_price: state.reference_price,
-            lower: state.lower,
-            upper: state.upper,
-            valid_from: state.valid_from,
-            valid_until: state.valid_until,
-            oracle: state.oracle,
-            bump: state.bump,
-        }
-    }
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct MakerRegistrationSnapshotV2 {
-    pub schema_version: u16,
-    pub group: Pubkey,
-    pub market: Pubkey,
-    pub market_index: u8,
-    pub maker_id: u8,
-    pub capital: Pubkey,
-    pub owner: Pubkey,
-    pub pricing_program: Pubkey,
-    pub program_data: Pubkey,
-    pub config: Pubkey,
-    pub approved_hash: [u8; 32],
-    pub authority_epoch: u64,
-    pub quote_epoch: u64,
-    pub start_slot: u64,
-    pub expiry_slot: u64,
-    pub inventory_limit: u64,
-    pub buy_consumed: u64,
-    pub sell_consumed: u64,
-    pub quarantined: bool,
-    pub bump: u8,
-}
-
-impl From<&crate::state::v2::MakerRegistrationV2> for MakerRegistrationSnapshotV2 {
-    fn from(state: &crate::state::v2::MakerRegistrationV2) -> Self {
-        Self {
-            schema_version: state.schema_version,
-            group: state.group,
-            market: state.market,
-            market_index: state.market_index,
-            maker_id: state.maker_id,
-            capital: state.capital,
-            owner: state.owner,
-            pricing_program: state.pricing_program,
-            program_data: state.program_data,
-            config: state.config,
-            approved_hash: state.approved_hash,
-            authority_epoch: state.authority_epoch,
-            quote_epoch: state.quote_epoch,
-            start_slot: state.start_slot,
-            expiry_slot: state.expiry_slot,
-            inventory_limit: state.inventory_limit,
-            buy_consumed: state.buy_consumed,
-            sell_consumed: state.sell_consumed,
-            quarantined: state.quarantined,
-            bump: state.bump,
-        }
-    }
-}
-
-#[event]
-pub struct GroupSafetyChangedV2 {
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub mode: u8,
-    pub paused: bool,
-    pub terms_epoch: u64,
-    pub config_epoch: u64,
-    /// 0 activate, 1 collect, 2 pay, 3 deposit, 4 withdraw, 5 transfer.
-    pub kind: u8,
-    pub amount: u64,
-    pub roots: Vec<MarginAccountSnapshotV2>,
-    pub markets: [GroupMarketSnapshotV2; 2],
-    pub total_cash: u64,
-    pub settlement: u64,
-    pub insurance: u64,
-    pub fees: u64,
-    pub allocated_vault: u64,
-    pub actual_vault: u64,
-}
-
-#[event]
-pub struct GroupLiquidationV2 {
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub market_index: u8,
-    pub lots: u64,
-    pub price: u64,
-    pub fee: u64,
-    pub deficit_before: i128,
-    pub deficit_after: i128,
-    pub target: MarginAccountSnapshotV2,
-    pub receiver: MarginAccountSnapshotV2,
-    pub markets: [GroupMarketSnapshotV2; 2],
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct GroupResolutionUpdateV2 {
-    pub id: u16,
-    pub row: crate::state::v2::GroupResolutionRowV2,
-}
-
-#[event]
-pub struct GroupResolutionProgressV2 {
-    pub group: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub kind: u8,
-    pub mode: u8,
-    pub paused: bool,
-    pub terms_epoch: u64,
-    pub config_epoch: u64,
-    pub markets: [GroupMarketSnapshotV2; 2],
-    pub header: crate::state::v2::GroupResolutionHeaderV2,
-    pub rows: Vec<GroupResolutionUpdateV2>,
-    pub roots: Vec<MarginAccountSnapshotV2>,
-    pub total_cash: u64,
-    pub settlement: u64,
-    pub insurance: u64,
-    pub fees: u64,
-    pub allocated_vault: u64,
-    pub actual_vault: u64,
 }
 
 /// Version-3 custody payloads are scalar snapshots, never nested account types.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct AccountCashSnapshotV3 {
+pub struct AccountCashSnapshot {
     pub margin: Pubkey,
     pub portfolio: Pubkey,
     pub owner: Pubkey,
@@ -724,7 +39,7 @@ pub struct AccountCashSnapshotV3 {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct MarketLedgerSnapshotV3 {
+pub struct MarketLedgerSnapshot {
     pub ledger: Pubkey,
     pub market: Pubkey,
     pub market_index: u8,
@@ -735,8 +50,8 @@ pub struct MarketLedgerSnapshotV3 {
     pub version: u64,
 }
 
-#[event]
-pub struct AccountCustodyChangedV3 {
+#[event(discriminator = [116, 78, 173, 90, 240, 10, 196, 1])]
+pub struct AccountCustodyChanged {
     pub schema_version: u16,
     pub profile_version: u16,
     pub domain: [u8; 32],
@@ -750,8 +65,8 @@ pub struct AccountCustodyChangedV3 {
     pub subject: Pubkey,
     pub index: u16,
     pub amount: u64,
-    pub members: Vec<AccountCashSnapshotV3>,
-    pub ledgers: Vec<MarketLedgerSnapshotV3>,
+    pub members: Vec<AccountCashSnapshot>,
+    pub ledgers: Vec<MarketLedgerSnapshot>,
     pub authority: Pubkey,
     pub fee_authority: Pubkey,
     pub reserve_authority: Pubkey,
@@ -775,7 +90,7 @@ pub struct AccountCustodyChangedV3 {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct MarginAccountSnapshotV3 {
+pub struct MarginAccountSnapshot {
     pub schema_version: u16,
     pub venue: Pubkey,
     pub portfolio: Pubkey,
@@ -786,19 +101,19 @@ pub struct MarginAccountSnapshotV3 {
     pub isolated_market_index: u8,
     pub role: u8,
     pub cash: u64,
-    pub positions: [crate::state::v2::PositionV2; 2],
+    pub positions: [crate::state::Position; 2],
     pub nonce: u64,
     pub state_version: u64,
     pub delegate: Pubkey,
     pub delegate_expiry_slot: u64,
     pub delegate_epoch: u64,
     pub reserved: u64,
-    pub book: crate::state::v2::OrderBookV2,
+    pub book: crate::state::OrderBook,
     pub bump: u8,
 }
 
-impl From<&crate::state::v3::MarginAccountV3> for MarginAccountSnapshotV3 {
-    fn from(state: &crate::state::v3::MarginAccountV3) -> Self {
+impl From<&crate::state::accounts::MarginAccount> for MarginAccountSnapshot {
+    fn from(state: &crate::state::accounts::MarginAccount) -> Self {
         Self {
             schema_version: state.schema_version,
             venue: state.venue,
@@ -824,7 +139,7 @@ impl From<&crate::state::v3::MarginAccountV3> for MarginAccountSnapshotV3 {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct MarketSnapshotV3 {
+pub struct MarketSnapshot {
     pub schema_version: u16,
     pub venue: Pubkey,
     pub index: u8,
@@ -846,8 +161,8 @@ pub struct MarketSnapshotV3 {
     pub bump: u8,
 }
 
-impl From<&crate::state::v3::MarketV3> for MarketSnapshotV3 {
-    fn from(state: &crate::state::v3::MarketV3) -> Self {
+impl From<&crate::state::accounts::Market> for MarketSnapshot {
+    fn from(state: &crate::state::accounts::Market) -> Self {
         Self {
             schema_version: state.schema_version,
             venue: state.venue,
@@ -872,139 +187,66 @@ impl From<&crate::state::v3::MarketV3> for MarketSnapshotV3 {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct MakerRegistrationSnapshotV3 {
-    pub schema_version: u16,
-    pub venue: Pubkey,
-    pub market: Pubkey,
-    pub market_index: u8,
-    pub maker_id: u8,
-    pub capital: Pubkey,
-    pub owner: Pubkey,
-    pub pricing_program: Pubkey,
-    pub program_data: Pubkey,
-    pub config: Pubkey,
-    pub approved_hash: [u8; 32],
-    pub authority_epoch: u64,
-    pub quote_epoch: u64,
-    pub start_slot: u64,
-    pub expiry_slot: u64,
-    pub inventory_limit: u64,
-    pub buy_consumed: u64,
-    pub sell_consumed: u64,
-    pub quarantined: bool,
-    pub bump: u8,
-}
-
-impl From<&crate::state::v3::MakerRegistrationV3> for MakerRegistrationSnapshotV3 {
-    fn from(state: &crate::state::v3::MakerRegistrationV3) -> Self {
-        Self {
-            schema_version: state.schema_version,
-            venue: state.venue,
-            market: state.market,
-            market_index: state.market_index,
-            maker_id: state.maker_id,
-            capital: state.capital,
-            owner: state.owner,
-            pricing_program: state.pricing_program,
-            program_data: state.program_data,
-            config: state.config,
-            approved_hash: state.approved_hash,
-            authority_epoch: state.authority_epoch,
-            quote_epoch: state.quote_epoch,
-            start_slot: state.start_slot,
-            expiry_slot: state.expiry_slot,
-            inventory_limit: state.inventory_limit,
-            buy_consumed: state.buy_consumed,
-            sell_consumed: state.sell_consumed,
-            quarantined: state.quarantined,
-            bump: state.bump,
-        }
-    }
-}
-
-#[event]
-pub struct AccountMakerChangedV3 {
+#[event(discriminator = [110, 134, 123, 30, 250, 53, 165, 164])]
+pub struct AccountOracleChanged {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub market: Pubkey,
-    pub market_state: MarketSnapshotV3,
-    pub registration: Pubkey,
-    pub state: MakerRegistrationSnapshotV3,
-    pub operation: u8,
+    pub state: MarketSnapshot,
 }
 
-#[event]
-pub struct AccountOracleChangedV3 {
-    pub venue: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub market: Pubkey,
-    pub state: MarketSnapshotV3,
-}
-
-#[event]
-pub struct AccountOrderChangedV3 {
+#[event(discriminator = [138, 63, 159, 244, 107, 190, 119, 30])]
+pub struct AccountOrderChanged {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub margin: Pubkey,
-    pub state: MarginAccountSnapshotV3,
-    pub markets: [MarketSnapshotV3; 2],
+    pub state: MarginAccountSnapshot,
+    pub markets: [MarketSnapshot; 2],
     pub liability_versions: [u64; 2],
 }
 
-#[event]
-pub struct LiquidityOracleChangedV4 {
-    pub venue: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub market: Pubkey,
-    pub state: MarketSnapshotV3,
-    pub inputs: [crate::state::v4::SampleInputV4; 3],
-    pub bid_legs: Vec<crate::state::v4::SampleLegV4>,
-    pub ask_legs: Vec<crate::state::v4::SampleLegV4>,
-}
-#[event]
-pub struct FundingPublisherChangedV4 {
+#[event(discriminator = [69, 250, 247, 174, 178, 243, 46, 47])]
+pub struct FundingPublisherChanged {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub market: Pubkey,
     pub configuration: Pubkey,
-    pub state: crate::state::v4::FundingPublisherPayloadV4,
-    pub market_state: MarketSnapshotV3,
+    pub state: crate::state::liquidity::FundingPublisherPayload,
+    pub market_state: MarketSnapshot,
 }
 
-#[event]
-pub struct FundingReportAcceptedV4 {
+#[event(discriminator = [157, 0, 211, 150, 191, 4, 31, 22])]
+pub struct FundingReportAccepted {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub market: Pubkey,
     pub publisher: Pubkey,
-    pub report: crate::state::v4::FundingReportV4,
-    pub state: MarketSnapshotV3,
+    pub report: crate::state::liquidity::FundingReport,
+    pub state: MarketSnapshot,
 }
-#[event]
-pub struct AccountAuthorityChangedV3 {
+
+#[event(discriminator = [251, 40, 242, 186, 173, 63, 170, 85])]
+pub struct AccountAuthorityChanged {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub margin: Pubkey,
-    pub state: MarginAccountSnapshotV3,
+    pub state: MarginAccountSnapshot,
     pub liability_versions: [u64; 2],
 }
 
-#[event]
-pub struct AccountRouteExecutedV3 {
+#[event(discriminator = [56, 145, 24, 73, 218, 166, 221, 174])]
+pub struct LiquidityRouteExecuted {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub market: Pubkey,
-    pub market_state: MarketSnapshotV3,
-    pub other_market_state: MarketSnapshotV3,
+    pub market_state: MarketSnapshot,
+    pub other_market_state: MarketSnapshot,
     pub nonce: u64,
     pub side: u8,
     pub lots: u64,
@@ -1014,53 +256,27 @@ pub struct AccountRouteExecutedV3 {
     pub retained_fee: u64,
     pub carry_before: u8,
     pub carry_after: u8,
-    pub ledger: MarketLedgerSnapshotV3,
+    pub ledger: MarketLedgerSnapshot,
     pub order_id: u64,
     pub order_version: u64,
-    pub root_states: Vec<MarginAccountSnapshotV3>,
-    pub maker_states: Vec<MakerRegistrationSnapshotV3>,
+    pub root_states: Vec<MarginAccountSnapshot>,
+    pub maker_states: Vec<crate::state::liquidity::MakerRegistrationPayload>,
     pub total_cash: u64,
     pub liability_versions: [u64; 2],
+    pub legs: Vec<crate::state::liquidity::ExecutedLeg>,
 }
 
-#[event]
-pub struct LiquidityRouteExecutedV4 {
-    pub venue: Pubkey,
-    pub sequence: u64,
-    pub slot: u64,
-    pub market: Pubkey,
-    pub market_state: MarketSnapshotV3,
-    pub other_market_state: MarketSnapshotV3,
-    pub nonce: u64,
-    pub side: u8,
-    pub lots: u64,
-    pub gross_quote: u64,
-    pub fee: u64,
-    pub insurance_credit: u64,
-    pub retained_fee: u64,
-    pub carry_before: u8,
-    pub carry_after: u8,
-    pub ledger: MarketLedgerSnapshotV3,
-    pub order_id: u64,
-    pub order_version: u64,
-    pub root_states: Vec<MarginAccountSnapshotV3>,
-    pub maker_states: Vec<crate::state::v4::MakerRegistrationPayloadV4>,
-    pub total_cash: u64,
-    pub liability_versions: [u64; 2],
-    pub legs: Vec<crate::state::v4::ExecutedLegV4>,
-}
-
-#[event]
-pub struct AccountQualificationV3 {
+#[event(discriminator = [78, 191, 27, 88, 192, 34, 235, 128])]
+pub struct AccountQualification {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub safety_epoch: u64,
-    pub markets: [MarketSnapshotV3; 2],
+    pub markets: [MarketSnapshot; 2],
 }
 
-#[event]
-pub struct AccountFinancialChangedV3 {
+#[event(discriminator = [76, 103, 155, 59, 195, 212, 214, 99])]
+pub struct AccountFinancialChanged {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1076,22 +292,22 @@ pub struct AccountFinancialChangedV3 {
     pub actual_vault: u64,
     pub liability_versions: [u64; 2],
     pub roots: Vec<Pubkey>,
-    pub root_states: Vec<MarginAccountSnapshotV3>,
-    pub markets: [MarketSnapshotV3; 2],
-    pub ledgers: [MarketLedgerSnapshotV3; 2],
+    pub root_states: Vec<MarginAccountSnapshot>,
+    pub markets: [MarketSnapshot; 2],
+    pub ledgers: [MarketLedgerSnapshot; 2],
 }
 
-#[event]
-pub struct AccountBackingChangedV3 {
+#[event(discriminator = [66, 133, 138, 218, 88, 161, 206, 5])]
+pub struct AccountBackingChanged {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
     pub certificate: Pubkey,
-    pub state: BackingSnapshotV3,
+    pub state: BackingSnapshot,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct BackingSnapshotV3 {
+pub struct BackingSnapshot {
     pub schema_version: u16,
     pub venue: Pubkey,
     pub market_index: u8,
@@ -1111,19 +327,32 @@ pub struct BackingSnapshotV3 {
     pub bump: u8,
 }
 
-impl From<&crate::state::v3::SettlementCertificateV3> for BackingSnapshotV3 {
-    fn from(state: &crate::state::v3::SettlementCertificateV3) -> Self {
-        Self {schema_version: state.schema_version, venue: state.venue, market_index: state.market_index,
-            safety_epoch: state.safety_epoch, membership_version: state.membership_version,
-            liability_versions: state.liability_versions, observations: state.observations,
-            funding_bounds: state.funding_bounds, source_deadlines: state.source_deadlines,
-            required_market_mask: state.required_market_mask, count: state.count, next: state.next,
-            cash: state.cash, lots: state.lots, claim_sum: state.claim_sum, complete: state.complete, bump: state.bump}
+impl From<&crate::state::accounts::SettlementCertificate> for BackingSnapshot {
+    fn from(state: &crate::state::accounts::SettlementCertificate) -> Self {
+        Self {
+            schema_version: state.schema_version,
+            venue: state.venue,
+            market_index: state.market_index,
+            safety_epoch: state.safety_epoch,
+            membership_version: state.membership_version,
+            liability_versions: state.liability_versions,
+            observations: state.observations,
+            funding_bounds: state.funding_bounds,
+            source_deadlines: state.source_deadlines,
+            required_market_mask: state.required_market_mask,
+            count: state.count,
+            next: state.next,
+            cash: state.cash,
+            lots: state.lots,
+            claim_sum: state.claim_sum,
+            complete: state.complete,
+            bump: state.bump,
+        }
     }
 }
 
-#[event]
-pub struct AccountLiquidatedV3 {
+#[event(discriminator = [35, 131, 226, 210, 153, 126, 68, 34])]
+pub struct AccountLiquidated {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1137,13 +366,14 @@ pub struct AccountLiquidatedV3 {
     pub deficit_after: i128,
     pub target: Pubkey,
     pub receiver: Pubkey,
-    pub target_state: MarginAccountSnapshotV3,
-    pub receiver_state: MarginAccountSnapshotV3,
-    pub markets: [MarketSnapshotV3; 2],
+    pub target_state: MarginAccountSnapshot,
+    pub receiver_state: MarginAccountSnapshot,
+    pub markets: [MarketSnapshot; 2],
 }
+
 /// The complete frozen input header; wide derived work is emitted separately.
-#[event]
-pub struct AccountResolutionFrozenV3 {
+#[event(discriminator = [9, 69, 237, 92, 238, 192, 233, 138])]
+pub struct AccountResolutionFrozen {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1168,11 +398,11 @@ pub struct AccountResolutionFrozenV3 {
     pub allocated: u64,
     pub gross: [u64; 2],
     pub actual_vault: u64,
-    pub markets: [MarketSnapshotV3; 2],
+    pub markets: [MarketSnapshot; 2],
 }
 
-#[event]
-pub struct AccountResolutionValuedV3 {
+#[event(discriminator = [50, 162, 81, 145, 11, 220, 251, 122])]
+pub struct AccountResolutionValued {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1186,8 +416,8 @@ pub struct AccountResolutionValuedV3 {
     pub collected: u64,
 }
 
-#[event]
-pub struct AccountResolutionProgressV3 {
+#[event(discriminator = [95, 79, 7, 241, 6, 199, 46, 157])]
+pub struct AccountResolutionProgress {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1201,8 +431,8 @@ pub struct AccountResolutionProgressV3 {
     pub clipped_mask: u8,
 }
 
-#[event]
-pub struct AccountResolutionProposalV3 {
+#[event(discriminator = [143, 137, 233, 117, 27, 179, 172, 62])]
+pub struct AccountResolutionProposal {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1215,8 +445,8 @@ pub struct AccountResolutionProposalV3 {
     pub next_stage: u8,
 }
 
-#[event]
-pub struct AccountResolutionRatesV3 {
+#[event(discriminator = [91, 235, 196, 127, 1, 112, 115, 135])]
+pub struct AccountResolutionRates {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1231,8 +461,8 @@ pub struct AccountResolutionRatesV3 {
     pub insurance_spent: [u64; 2],
 }
 
-#[event]
-pub struct AccountResolutionPlannedV3 {
+#[event(discriminator = [104, 193, 251, 138, 199, 42, 223, 137])]
+pub struct AccountResolutionPlanned {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1243,8 +473,8 @@ pub struct AccountResolutionPlannedV3 {
     pub cash_floor: u64,
 }
 
-#[event]
-pub struct AccountResolutionOrderV3 {
+#[event(discriminator = [255, 128, 154, 229, 22, 34, 225, 38])]
+pub struct AccountResolutionOrder {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1252,8 +482,8 @@ pub struct AccountResolutionOrderV3 {
     pub orders: [Vec<u16>; 2],
 }
 
-#[event]
-pub struct AccountResolutionRoundedV3 {
+#[event(discriminator = [1, 231, 71, 83, 144, 31, 238, 83])]
+pub struct AccountResolutionRounded {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1266,8 +496,8 @@ pub struct AccountResolutionRoundedV3 {
     pub depth: u16,
 }
 
-#[event]
-pub struct AccountResolutionAppliedV3 {
+#[event(discriminator = [235, 156, 190, 81, 243, 206, 170, 101])]
+pub struct AccountResolutionApplied {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1282,11 +512,11 @@ pub struct AccountResolutionAppliedV3 {
     pub remaining_lots: [i128; 2],
     pub remaining_gross: [u64; 2],
     pub remaining_claims: [i128; 2],
-    pub state: MarginAccountSnapshotV3,
+    pub state: MarginAccountSnapshot,
 }
 
-#[event]
-pub struct AccountResolutionCompletedV3 {
+#[event(discriminator = [227, 126, 217, 202, 34, 46, 211, 23])]
+pub struct AccountResolutionCompleted {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1306,8 +536,8 @@ pub struct AccountResolutionCompletedV3 {
     pub insurance_fee_remainders: [u8; 2],
 }
 
-#[event]
-pub struct AccountSafetyRecoveryV3 {
+#[event(discriminator = [171, 93, 161, 145, 184, 243, 209, 202])]
+pub struct AccountSafetyRecovery {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1325,10 +555,11 @@ pub struct AccountSafetyRecoveryV3 {
     pub total_cash: u64,
     pub allocated_vault: u64,
     pub actual_vault: u64,
-    pub markets: [MarketSnapshotV3; 2],
+    pub markets: [MarketSnapshot; 2],
 }
-#[event]
-pub struct AccountRetirementProgressV3 {
+
+#[event(discriminator = [51, 205, 34, 225, 187, 4, 113, 1])]
+pub struct AccountRetirementProgress {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1340,8 +571,8 @@ pub struct AccountRetirementProgressV3 {
     pub complete: bool,
 }
 
-#[event]
-pub struct AccountsRetiredV3 {
+#[event(discriminator = [146, 20, 112, 36, 111, 171, 202, 245])]
+pub struct AccountsRetired {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,
@@ -1353,8 +584,8 @@ pub struct AccountsRetiredV3 {
     pub actual_vault: u64,
 }
 
-#[event]
-pub struct RetiredReserveWithdrawnV3 {
+#[event(discriminator = [167, 139, 59, 103, 37, 196, 95, 47])]
+pub struct RetiredReserveWithdrawn {
     pub venue: Pubkey,
     pub sequence: u64,
     pub slot: u64,

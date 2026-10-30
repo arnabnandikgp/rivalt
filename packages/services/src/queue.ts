@@ -2,16 +2,15 @@ import { createPublicKey, verify } from 'node:crypto';
 import { VersionedTransaction } from '@solana/web3.js';
 import { getBase58Decoder, getAddressEncoder, type Address } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
-import { Store } from '../../indexer/src/store.js';
+import type {Pool} from 'pg';
 import { Rpc, integer } from '../../indexer/src/rpc.js';
 import { json } from '../../indexer/src/events.js';
-import {groupAuthorityValue, type GroupAuthority} from './group-authority.js';
 import {accountAuthorityValue, type AccountAuthority} from './account-authority.js';
 import {persistLiquidityInputs,type LiquidityInputs} from './liquidity-inputs.js';
 import {liquidityPriceSequence,type LiquidityPriceAuthority} from './liquidity-authority.js';
 
 export const RESERVATION=20_000n;
-export type Authority={kind:'nonce'|'sequence'|'quoteEpoch';account:string;value:string} | GroupAuthority | AccountAuthority | LiquidityPriceAuthority;
+export type Authority=AccountAuthority | LiquidityPriceAuthority;
 export function signedWire(wire:string,maxVersion:0|1=0) {
   const maximum=maxVersion===1?4096:1232;
   if(typeof wire!=='string' || wire.length>4*Math.ceil(maximum/3))throw new Error('Invalid transaction size');
@@ -30,36 +29,8 @@ export function signedWire(wire:string,maxVersion:0|1=0) {
 }
 // External ingress accepts only one wallet-owned financial action. No relay key
 // or sponsorship is exposed by this API, and a wallet signature is never rebuilt.
-export function userAuthority(wire:string,market:string,program:Address=sdk.CLEARING_PROGRAM_ADDRESS):Authority|null {
-  const {tx,keys}=signedWire(wire);const instructions=tx.message.compiledInstructions;
-  let economic:typeof instructions[number]|undefined;
-  const budgets=new Set<string>();
-  for(const ix of instructions){
-    if(keys[ix.programIdIndex]==='ComputeBudget111111111111111111111111111111'){
-      const data=Buffer.from(ix.data),kind=data.equals(Buffer.from(sdk.routeComputeBudget().data!))?'limit':data.equals(Buffer.from(sdk.zeroPriorityFee().data!))?'price':null;
-      if(!kind||economic||ix.accountKeyIndexes.length||budgets.has(kind))throw new Error('Unsupported compute budget');
-      budgets.add(kind);
-    }else{if(economic || keys[ix.programIdIndex]!==program)throw new Error('Unsupported transaction');economic=ix;}
-  }
-  if(!economic || instructions.length>3 || (budgets.has('price')&&!budgets.has('limit')))throw new Error('Expected one financial action');
-  const ix=economic,accounts=ix.accountKeyIndexes.map(i=>keys[i]);
-  if(accounts[0]!==keys[0] || accounts[1]!==market)throw new Error('Wallet fee payer/market mismatch');
-  const disc=Buffer.from(ix.data).subarray(0,8);
-  if(disc.equals(Buffer.from(sdk.EXECUTE_ROUTE_DISCRIMINATOR))){
-    const d=sdk.getExecuteRouteInstructionDataDecoder().decode(ix.data);
-    return {kind:'nonce',account:accounts[2],value:d.nonce.toString()};
-  }
-  if(disc.equals(Buffer.from(sdk.WITHDRAW_TRADING_DISCRIMINATOR))){
-    const d=sdk.getWithdrawTradingInstructionDataDecoder().decode(ix.data);
-    return {kind:'sequence',account:market,value:d.sequence.toString()};
-  }
-  if(disc.equals(Buffer.from(sdk.DEPOSIT_DISCRIMINATOR))) { sdk.getDepositInstructionDataDecoder().decode(ix.data);return null; }
-  const orders=[sdk.PLACE_ORDER_DISCRIMINATOR,sdk.REPLACE_ORDER_DISCRIMINATOR,sdk.CANCEL_ORDER_DISCRIMINATOR,sdk.PLACE_PROTECTION_DISCRIMINATOR,sdk.CANCEL_PROTECTION_DISCRIMINATOR];
-  if(orders.some(d=>disc.equals(Buffer.from(d))))return null; // Chain versions bind authority; never infer nonexecution from missing history.
-  throw new Error('Unsupported financial action');
-}
 export class Queue {
-  constructor(readonly store:Pick<Store,'pool'|'runId'>,readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS,readonly maxVersion:0|1=0){}
+  constructor(readonly store:{pool:Pool;runId:string},readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS,readonly maxVersion:0|1=0){}
   async budget(name:string,wallet:string,cap:bigint){
     await this.store.pool.query('INSERT INTO service_budgets(run_id,name,wallet,cap) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[this.store.runId,name,wallet,cap.toString()]);
     const r=(await this.store.pool.query('SELECT * FROM service_budgets WHERE run_id=$1 AND name=$2',[this.store.runId,name])).rows[0];
@@ -118,10 +89,7 @@ export class Queue {
             const a=await this.rpc.call('getAccountInfo',[r.authority.account,{encoding:'base64',commitment:'finalized',minContextSlot:integer(valid.context.slot)}]);
             if(a.value?.owner===this.program){
               const bytes=Buffer.from(a.value.data[0],'base64');
-              const value=['accountStateVersion','accountMakerEpoch','accountObservation'].includes(r.authority.kind)?await accountAuthorityValue(r.authority,bytes):
-                ['marginNonce','groupSequence','groupQuoteEpoch','groupObservationSequence'].includes(r.authority.kind)?groupAuthorityValue(r.authority,bytes):r.authority.kind==='nonce'?sdk.getParticipantDecoder().decode(bytes).nonce:
-                r.authority.kind==='quoteEpoch'?sdk.getMakerRegistrationDecoder().decode(bytes).quoteEpoch:
-                sdk.getMarketStateDecoder().decode(bytes).sequence;
+              const value=await accountAuthorityValue(r.authority,bytes);
               // Unchanged authority rules out the economic effect, not a failed
               // landing/network fee hidden by incomplete history. Keep any fee
               // reservation until independent transaction evidence exists.

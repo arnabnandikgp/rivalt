@@ -3,7 +3,7 @@ use crate::constants::orders::{OPEN, PARTIAL};
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace)]
-pub struct StoredOrder {
+pub struct OrderRecord {
     pub id: u64,
     pub version: u64,
     pub state: u8,
@@ -27,7 +27,7 @@ pub struct StoredOrder {
     pub reserve: u64,
 }
 
-impl StoredOrder {
+impl OrderRecord {
     pub fn active(&self) -> bool {
         self.state == OPEN || self.state == PARTIAL
     }
@@ -41,13 +41,4 @@ pub struct ProtectiveGroup {
     pub remaining: u64,
     pub generation: u64,
     pub side: u8,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace)]
-pub struct OrderBook {
-    pub last_order_id: u64,
-    pub last_group_id: u64,
-    pub reserve_observation: u64,
-    pub orders: [StoredOrder; 4],
-    pub groups: [ProtectiveGroup; 2],
 }

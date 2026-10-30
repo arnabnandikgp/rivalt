@@ -9,7 +9,7 @@ import {getTransferSolInstruction} from '@solana-program/system';
 import {demoTransport} from './transport.js';
 import {DemoFaucet} from './faucet.js';
 
-vi.mock('../../../tests/rpc-contract/custody-cases.js',()=>({payerKey:async()=>{
+vi.mock('../../../tests/rpc-contract/harness.js',()=>({payerKey:async()=>{
   const {Keypair}=await import('@solana/web3.js');return Keypair.generate();
 }}));
 const directories:string[]=[];

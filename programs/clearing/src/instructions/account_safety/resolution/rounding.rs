@@ -6,7 +6,7 @@ use math::clearing::{atoms, circulation::Graph};
 // After verified rates: register0 = four sign masks, required/sent at limbs4/5;
 // register1 = root outgoing permutations; register2 = signed residual balances;
 // register3 = previous market remainder during EdgeOrder; 4..7 = row scratch.
-fn balance(work: &mut ResolutionWorkV3, node: usize, delta: i128) -> Result<()> {
+fn balance(work: &mut ResolutionWork, node: usize, delta: i128) -> Result<()> {
     let value = i128::from(work.registers[2].limbs[node] as i64)
         .checked_add(delta)
         .ok_or(ClearingError::Arithmetic)?;
@@ -15,7 +15,7 @@ fn balance(work: &mut ResolutionWorkV3, node: usize, delta: i128) -> Result<()> 
     Ok(())
 }
 
-pub(super) fn initialize_plan(header: &ResolutionV3, work: &mut ResolutionWorkV3) -> Result<()> {
+pub(super) fn initialize_plan(header: &Resolution, work: &mut ResolutionWork) -> Result<()> {
     require!(
         header.stage == FLOW_PLAN && header.cursor == 0,
         ClearingError::Resolution
@@ -41,9 +41,9 @@ pub(super) fn initialize_plan(header: &ResolutionV3, work: &mut ResolutionWorkV3
 }
 
 pub(super) fn plan_row(
-    header: &ResolutionV3,
-    work: &mut ResolutionWorkV3,
-    row: &mut ResolutionRowV3,
+    header: &Resolution,
+    work: &mut ResolutionWork,
+    row: &mut ResolutionRow,
     id: usize,
 ) -> Result<()> {
     let [_, _, _, _, first, second, cash, remainder] = &mut work.registers;
@@ -87,7 +87,7 @@ pub(super) fn plan_row(
     balance(work, count + 2, i128::from(plan.cash))
 }
 
-fn graph(work: &mut ResolutionWorkV3, count: usize) -> Graph<'_> {
+fn graph(work: &mut ResolutionWork, count: usize) -> Graph<'_> {
     let [metadata, orders, balances, ..] = &mut work.registers;
     let signs = [
         metadata.limbs[0],
@@ -112,7 +112,7 @@ fn graph(work: &mut ResolutionWorkV3, count: usize) -> Graph<'_> {
 }
 
 pub fn order(
-    ctx: Context<ProposeAccountResolutionV3>,
+    ctx: Context<ProposeAccountResolution>,
     epoch: u64,
     orders: [Vec<u16>; 2],
 ) -> Result<()> {
@@ -155,7 +155,7 @@ pub fn order(
     work.registers[3].limbs.fill(0);
     increment(&mut accounts.identity.custody.sequence)?;
     crate::event_cpi::emit(
-        &crate::events::AccountResolutionOrderV3 {
+        &crate::events::AccountResolutionOrder {
             venue: accounts.identity.venue.key(),
             sequence: accounts.identity.custody.sequence,
             slot: Clock::get()?.slot,
@@ -166,7 +166,7 @@ pub fn order(
     )
 }
 
-pub fn check_order(ctx: Context<AdvanceAccountResolutionV3>, epoch: u64, start: u16) -> Result<()> {
+pub fn check_order(ctx: Context<AdvanceAccountResolution>, epoch: u64, start: u16) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     frozen(
@@ -247,7 +247,7 @@ pub fn check_order(ctx: Context<AdvanceAccountResolutionV3>, epoch: u64, start: 
     }
     increment(&mut accounts.identity.custody.sequence)?;
     crate::event_cpi::emit(
-        &crate::events::AccountResolutionProgressV3 {
+        &crate::events::AccountResolutionProgress {
             venue: accounts.identity.venue.key(),
             sequence: accounts.identity.custody.sequence,
             slot: Clock::get()?.slot,
@@ -264,7 +264,7 @@ pub fn check_order(ctx: Context<AdvanceAccountResolutionV3>, epoch: u64, start: 
     )
 }
 
-pub fn round(ctx: Context<ProposeAccountResolutionV3>, epoch: u64, start: u16) -> Result<()> {
+pub fn round(ctx: Context<ProposeAccountResolution>, epoch: u64, start: u16) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     frozen(
@@ -298,7 +298,7 @@ pub fn round(ctx: Context<ProposeAccountResolutionV3>, epoch: u64, start: u16) -
     }
     increment(&mut accounts.identity.custody.sequence)?;
     crate::event_cpi::emit(
-        &crate::events::AccountResolutionRoundedV3 {
+        &crate::events::AccountResolutionRounded {
             venue: accounts.identity.venue.key(),
             sequence: accounts.identity.custody.sequence,
             slot: Clock::get()?.slot,

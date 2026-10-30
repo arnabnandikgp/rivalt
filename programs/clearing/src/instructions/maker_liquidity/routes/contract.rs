@@ -1,9 +1,9 @@
 use super::*;
-use crate::instructions::account_trading::authority::AccountGuardV3;
+use crate::instructions::account_trading::authority::AccountGuard;
 
 /// D70 signs structural authority, never a price sequence or consumption prefix.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct LiquidityRouteLegV4 {
+pub struct LiquidityRouteLeg {
     pub lots: u64,
     pub authority_epoch: u64,
     pub control_epoch: u64,
@@ -12,8 +12,8 @@ pub struct LiquidityRouteLegV4 {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct LiquidityRouteIntentV4 {
-    pub guard: AccountGuardV3,
+pub struct LiquidityRouteIntent {
+    pub guard: AccountGuard,
     pub domain: [u8; 32],
     pub terms_epoch: u64,
     pub config_epoch: u64,
@@ -25,22 +25,22 @@ pub struct LiquidityRouteIntentV4 {
     pub max_fee: u64,
     pub reduce_only: bool,
     pub generation: Option<u64>,
-    pub legs: Vec<LiquidityRouteLegV4>,
+    pub legs: Vec<LiquidityRouteLeg>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct LiquidityOrderExecutionV4 {
-    pub guard: AccountGuardV3,
+pub struct LiquidityOrderExecution {
+    pub guard: AccountGuard,
     pub id: u64,
     pub version: u64,
     pub filled: u64,
     pub start_slot: u64,
     pub expiry_slot: u64,
     pub lots: u64,
-    pub legs: Vec<LiquidityRouteLegV4>,
+    pub legs: Vec<LiquidityRouteLeg>,
 }
 
-pub(super) fn shared_legs(legs: &[LiquidityRouteLegV4]) -> Vec<RouteLeg> {
+pub(super) fn shared_legs(legs: &[LiquidityRouteLeg]) -> Vec<RouteLeg> {
     legs.iter()
         .map(|leg| RouteLeg {
             lots: leg.lots,
@@ -51,9 +51,9 @@ pub(super) fn shared_legs(legs: &[LiquidityRouteLegV4]) -> Vec<RouteLeg> {
 }
 
 pub(super) fn validate_leg(
-    leg: &LiquidityRouteLegV4,
-    registration: &MakerRegistrationV4,
-    curve: &CurveStateV4,
+    leg: &LiquidityRouteLeg,
+    registration: &MakerRegistration,
+    curve: &CurveState,
 ) -> Result<()> {
     require!(
         leg.lots > 0
@@ -70,11 +70,11 @@ pub(super) fn validate_leg(
 /// Normalize an already authenticated, independently checked CPI result into the
 /// shared financial engine's scalar quote envelope. No legacy maker is invoked.
 pub(super) fn financial_quote(
-    quote: &canonical::QuoteResponseV4,
-    market: &MarketV3,
+    quote: &canonical::MakerQuoteResponse,
+    market: &Market,
     clock: &Clock,
-) -> maker_interface::QuoteResponse {
-    maker_interface::QuoteResponse {
+) -> crate::engine::routes::ExecutionQuote {
+    crate::engine::routes::ExecutionQuote {
         version: 4,
         maker_id: quote.request.instance,
         side: quote.request.side,
@@ -93,8 +93,8 @@ pub(super) fn financial_quote(
 }
 
 pub(super) fn consume(
-    registration: &mut MakerRegistrationV4,
-    quote: &canonical::QuoteResponseV4,
+    registration: &mut MakerRegistration,
+    quote: &canonical::MakerQuoteResponse,
 ) -> Result<()> {
     require!(
         quote.request.instance == registration.instance && quote.request.side <= 1,

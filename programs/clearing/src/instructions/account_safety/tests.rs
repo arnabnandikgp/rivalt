@@ -1,10 +1,10 @@
 //! Literal economic expectations against the V3 adapter used by the handler.
 use super::*;
-use crate::state::{v2::PositionV2, OracleState};
+use crate::state::{OracleState, Position};
 use financial_core::SCALE;
 
-fn root(id: u16, cash: u64) -> MarginAccountV3 {
-    MarginAccountV3 {
+fn root(id: u16, cash: u64) -> MarginAccount {
+    MarginAccount {
         schema_version: 3,
         id,
         cash,
@@ -15,8 +15,8 @@ fn root(id: u16, cash: u64) -> MarginAccountV3 {
         ..Default::default()
     }
 }
-fn markets() -> [MarketV3; 2] {
-    [0u8, 1].map(|index| MarketV3 {
+fn markets() -> [Market; 2] {
+    [0u8, 1].map(|index| Market {
         schema_version: 3,
         index,
         cross_eligible: true,
@@ -50,10 +50,10 @@ fn clock() -> Clock {
         ..Default::default()
     }
 }
-fn debtor() -> MarginAccountV3 {
+fn debtor() -> MarginAccount {
     let mut target = root(0, 185);
     target.positions =
-        [(10, -1000 * SCALE), (1, -250 * SCALE)].map(|(lots, virtual_scaled)| PositionV2 {
+        [(10, -1000 * SCALE), (1, -250 * SCALE)].map(|(lots, virtual_scaled)| Position {
             lots,
             virtual_scaled,
             generation: 1,

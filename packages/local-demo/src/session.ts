@@ -9,11 +9,11 @@ import {Keypair} from '@solana/web3.js';
 import {getCreateAccountInstruction,getTransferSolInstruction} from '@solana-program/system';
 import {TOKEN_PROGRAM_ADDRESS,getInitializeAccount3Instruction,getMintToInstruction} from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
-import {AccountIndexer} from '../../indexer/src/account-indexer.js';
+import {LiquidityIndexer} from '../../indexer/src/liquidity-indexer.js';
 import {accountApi} from '../../indexer/src/account-api.js';
 import {AccountRuntime} from '../../services/src/account-runtime.js';
 import {accountServiceApi} from '../../services/src/account-service-api.js';
-import {accountServiceSetup} from '../../../tests/rpc-contract/account-service-setup.js';
+import {liquidityExecutionSetup} from '../../../tests/rpc-contract/liquidity-execution-setup.js';
 import {DemoProcesses} from './processes.js';
 import {demoTransport,until} from './transport.js';
 import {DemoFaucet,FaucetUnavailable} from './faucet.js';
@@ -27,9 +27,9 @@ mkdirSync(RUNTIME,{recursive:false,mode:0o700});mkdirSync(logs,{recursive:true,m
 writeFileSync(RUNTIME+'/owner.json',json({kind:'rivalt-local-demo-v1',session,token,pid:process.pid}),{mode:0o600});
 const processes=new DemoProcesses(logs,text=>text.replaceAll(password,'[redacted]').replaceAll(token,'[redacted]'));
 let state='starting',stage='preflight',failure='',stopping=false;
-let publicConfig:sdk.AccountUserConfig|undefined,indexer:AccountIndexer|undefined,runtime:AccountRuntime|undefined;
+let publicConfig:sdk.AccountUserConfig|undefined,indexer:LiquidityIndexer|undefined,runtime:AccountRuntime|undefined;
 let readApi:ReturnType<typeof accountApi>|undefined,executionApi:ReturnType<typeof accountServiceApi>|undefined;
-let transport:Awaited<ReturnType<typeof demoTransport>>|undefined,setup:Awaited<ReturnType<typeof accountServiceSetup>>|undefined;
+let transport:Awaited<ReturnType<typeof demoTransport>>|undefined,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>|undefined;
 let sourceLoop:Promise<void>|undefined,monitor:NodeJS.Timeout|undefined,lease:NodeJS.Timeout|undefined;
 const faucet=new DemoFaucet();
 const status=()=>({kind:'rivalt-local-demo-v1',session,state,stage,error:failure||undefined,url:UI,
@@ -93,8 +93,8 @@ function child(name:string,script:string,environment:NodeJS.ProcessEnv){
   process.once('exit',()=>{if(!stopping)void shutdown(`${name} exited; inspect ${name}.log`,1);});return process;
 }
 try {
-  for(const artifact of sdk.ACCOUNT_ARTIFACTS){
-    const file=readFileSync(`.local/account-safety/${artifact.name.replaceAll('-','_')}.so`);
+  for(const artifact of sdk.LIQUIDITY_ARTIFACTS){
+    const file=readFileSync(`.local/liquidity-execution/${artifact.name.replaceAll('-','_')}.so`);
     assert.equal(file.length,artifact.bytes);assert.equal(createHash('sha256').update(file).digest('hex'),artifact.sha256,`Unqualified ${artifact.name}`);
   }
   const disk=statfsSync(DEMO_ROOT);assert(disk.bavail*disk.bsize>1024**3,'At least 1 GiB free disk is required');
@@ -112,29 +112,30 @@ try {
   for(const program of ['clearing','maker_a','maker_b','oracle_fixture']){
     const key=program.replaceAll('_','-'),buffer=`${RUNTIME}/buffer-${key}.json`;
     await processes.run(`buffer-${key}`,'solana-keygen',['new','--silent','--no-bip39-passphrase','--outfile',buffer]);
-    await processes.run(`deploy-${key}`,'solana',['program','deploy',`.local/account-safety/${program}.so`,'--buffer',buffer,
+    await processes.run(`deploy-${key}`,'solana',['program','deploy',`.local/liquidity-execution/${program}.so`,'--buffer',buffer,
       '--program-id',`.local/keys/${key}.json`,'--keypair','.local/keys/payer.json','--url',rpcUrl,'--use-rpc','--max-sign-attempts','20','--output','json']);
   }
   stage='PostgreSQL';mkdirSync(RUNTIME+'/postgres-data',{mode:0o700});
   writeFileSync(RUNTIME+'/postgres.env',`POSTGRES_USER=rivalt\nPOSTGRES_DB=rivalt\nPOSTGRES_PASSWORD=${password}\n`,{mode:0o600});
   await processes.run('postgres-launch','container',['run','--detach','--name',CONTAINER,'--platform','linux/arm64','--cpus','2','--memory','512M',
     '--publish','127.0.0.1:15443:5432','--env-file',RUNTIME+'/postgres.env','--volume',`${RUNTIME}/postgres-data:/var/lib/postgresql`,IMAGE]);
-  await until(async()=>{try{execFileSync('container',['exec',CONTAINER,'pg_isready','-U','rivalt','-d','rivalt'],{stdio:'pipe',timeout:2000});return true;}catch{return false;}},Boolean,'PostgreSQL');
+  // Do not mistake the image's temporary socket-only init server for readiness.
+  await until(async()=>{try{execFileSync('container',['exec',CONTAINER,'pg_isready','-h','127.0.0.1','-U','rivalt','-d','rivalt'],{stdio:'pipe',timeout:2000});return true;}catch{return false;}},Boolean,'PostgreSQL');
   const databaseUrl=`postgresql://rivalt:${password}@127.0.0.1:15443/rivalt`;
-  stage='signed venue provisioning';setup=await accountServiceSetup(transport.h,'interactive-'+session,3600n);
+  stage='signed venue provisioning';setup=await liquidityExecutionSetup(transport.h,transport.rpc,{verifyRejections:false,makerCash:500_000_000n});
   const anchor=transport.anchor();await until(()=>transport!.rpc.call('getTransaction',[anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:0}]),Boolean,'initialization finality');
   stage='finalized indexer';
-  const config={rpcUrl,wsUrl,databaseUrl,runId:'interactive-'+session,venue:setup.venue,anchor,profile:'account-safety-qualification' as const};
-  indexer=new AccountIndexer(config);await indexer.open();await indexer.cycle();
+  const config={rpcUrl,wsUrl,databaseUrl,runId:'interactive-'+session,venue:setup.venue,anchor,profile:'liquidity-execution-qualification' as const};
+  indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   const {binding}=await indexer.store.snapshot();
-  publicConfig={version:3,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,genesis:binding.genesis,anchor,
+  publicConfig={version:4,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,genesis:binding.genesis,anchor,
     anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain};
   writeFileSync(RUNTIME+'/deployment.json',json(publicConfig),{mode:0o600});
   writeFileSync(RUNTIME+'/private-config.json',json(config),{mode:0o600});
   runtime=new AccountRuntime(databaseUrl,config.runId,rpcUrl);await runtime.open();
   readApi=accountApi(indexer);await readApi.listen({host:'127.0.0.1',port:18092});
   executionApi=accountServiceApi(runtime);await executionApi.listen({host:'127.0.0.1',port:18093});
-  const environment={...process.env,RIVALT_RPC_URL:rpcUrl,RIVALT_WS_URL:wsUrl,RIVALT_DATABASE_URL:databaseUrl,RIVALT_RUN_ID:config.runId,RIVALT_FUNDING_INTERVAL_SECONDS:'5'};
+  const environment={...process.env,RIVALT_RPC_URL:rpcUrl,RIVALT_WS_URL:wsUrl,RIVALT_DATABASE_URL:databaseUrl,RIVALT_RUN_ID:config.runId,RIVALT_ACCOUNT_PROFILE:config.profile,RIVALT_FUNDING_INTERVAL_SECONDS:'2'};
   child('executor','packages/services/src/account-executor-main.ts',environment);
   const worker=(name:string,role:string,key:Keypair,marketIndex?:number,makerId?:number)=>{
     const path=RUNTIME+`/signer-${name}.json`;writeFileSync(path,JSON.stringify([...key.secretKey]),{mode:0o600});
@@ -142,8 +143,8 @@ try {
       RIVALT_MARKET_INDEX:marketIndex===undefined?undefined:String(marketIndex),RIVALT_MAKER_ID:makerId===undefined?undefined:String(makerId)});
   };
   for(const market of [0,1]){
-    for(const maker of [0,1])worker(`maker-${market}-${maker}`,'maker',setup.operators[maker+1].owner,market,maker);
-    worker(`funding-${market}`,'funding',setup.payer,market);
+    for(const maker of [0,1,2])worker(`maker-${market}-${maker}`,'maker',setup.updater,market,maker);
+    worker(`funding-${market}`,'funding',setup.updater,market);
   }
   worker('orders','orders',setup.payer);worker('settlement','settlement',setup.payer);worker('risk','risk',setup.payer);
   // Ordinary risk probing/default remains active; no receiver is invented.
@@ -160,7 +161,7 @@ try {
     if(stopping)return;
     const disk=statfsSync(DEMO_ROOT);if(disk.bavail*disk.bsize<768*1024**2)void shutdown('low disk guard',1);
   },1000);
-  sourceLoop=(async()=>{while(!stopping){for(let feed=0;feed<6&&!stopping;feed++)await setup!.publish(feed);await delay(3000);}})();
+  sourceLoop=(async()=>{while(!stopping){await setup!.freshSources();await delay(2000);}})();
   sourceLoop.catch(()=>{if(!stopping)void shutdown('synthetic source publisher failed; original retained',1);});
   stage='UI and source readiness';
   const ui=processes.start('ui',process.execPath,['apps/trader/node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','18083','--strictPort','apps/trader'],{
@@ -168,8 +169,8 @@ try {
     RIVALT_INDEXER_ORIGIN:'http://127.0.0.1:18092',RIVALT_LOCAL_DEMO:'1'});
   ui.once('exit',()=>{if(!stopping)void shutdown('UI process exited',1);});
   const client=new sdk.AccountUserClient(publicConfig);
-  await until(()=>client.snapshot([setup!.cross],'confirmed'),snapshot=>snapshot.marketStates.every(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)==='Normal'),'fresh Normal sources',60000);
-  await until(()=>runtime!.heartbeats(),makers=>makers.length===4&&makers.every(maker=>maker.online),'four internal makers',30000);
+  await until(()=>client.snapshot([setup!.roots[0]],'confirmed'),snapshot=>snapshot.marketStates.every(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)==='Normal'),'fresh Normal sources',60000);
+  await until(()=>runtime!.heartbeats(),makers=>makers.length===6&&makers.every(maker=>maker.online),'six internal makers',30000);
   await ready(UI+'/rivalt-config.json');await ready('http://127.0.0.1:18092/ready');
   state='ready';stage='interactive';writeFileSync(RUNTIME+'/ready.json',json(status()));console.log(json(status()));
   // One bounded interactive session prevents unattended disk/budget growth;

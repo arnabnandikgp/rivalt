@@ -7,10 +7,10 @@ import {assertLiquidityInputWire} from './liquidity-inputs.js';
 
 it('binds retained input/calculation to the original signed report across JSONB key order',async()=>{
   const payer=await Keypair.fromSeed(new Uint8Array(32).fill(44));
-  const report:sdk.FundingReportV4={version:1,domain:new Uint8Array(32).fill(1),market:payer.address,authorityEpoch:2n,sequence:4n,
+  const report:sdk.FundingReport={version:1,domain:new Uint8Array(32).fill(1),market:payer.address,authorityEpoch:2n,sequence:4n,
     expectedObservationSequence:6n,expectedConfigEpoch:1n,expectedTermsEpoch:1n,observedSlot:100n,observedTime:20n,
     validUntilSlot:150n,validUntilTime:26n,referencePrice:60000n,quantity:100n,bid:5999800n,ask:6000300n,outcome:0,inputDigest:new Uint8Array(32).fill(9)};
-  const data=sdk.getPublishFundingReportV4InstructionDataEncoder().encode({report});
+  const data=sdk.getPublishFundingReportInstructionDataEncoder().encode({report});
   const {transaction}=await sdk.signCanonicalInstructions({getLatestBlockhash:async()=>({blockhash:blockhash('11111111111111111111111111111111'),lastValidBlockHeight:200n})},
     payer,[{programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data}],{computeUnitLimit:200000,loadedAccountsDataSizeLimit:8388608});
   const wire=Buffer.from(transaction.serialize()).toString('base64'),calculation={kind:'funding-report-v1',report};

@@ -10,7 +10,7 @@ if(!['maker','funding','orders','settlement','risk'].includes(role)||(marketText
 const receiver=role==='risk'&&process.env.RIVALT_RECEIVER_MARGIN?address(process.env.RIVALT_RECEIVER_MARGIN):undefined;
 const makerText=role==='maker'?required('RIVALT_MAKER_ID'):undefined;
 const profile=accountExecutionProfile();
-if(makerText!==undefined&&!(profile===4?['0','1','2']:['0','1']).includes(makerText))throw new Error('Unsupported market maker identity');
+if(makerText!==undefined&&!['0','1','2'].includes(makerText))throw new Error('Unsupported market maker identity');
 const marketIndex=Number(marketText) as 0|1,makerId=Number(makerText) as 0|1|2;
 const cadence=process.env.RIVALT_FUNDING_INTERVAL_SECONDS??'2';if(!/^[2-5]$/.test(cadence))throw new Error('Funding cadence must be 2–5 seconds');
 const signerPath=required('RIVALT_SIGNER_PATH'),stat=statSync(signerPath);

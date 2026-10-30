@@ -1,4 +1,4 @@
-//! Rivalt bounded test accounting, shared by V1 and the schema-2 successor.
+//! Rivalt checked accounting primitives for the bounded two-market clearing engine.
 //! All quote amounts are atoms unless named `scaled`.
 //! No runtime, oracle, token, or authority assumptions are supplied by this crate.
 pub mod clearing;

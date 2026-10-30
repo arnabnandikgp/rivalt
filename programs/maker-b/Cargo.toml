@@ -11,9 +11,8 @@ name = "maker_b"
 [features]
 default = []
 devnet-test-profile = ["clearing/devnet-test-profile"]
-successor-test-profile = ["clearing/successor-test-profile"]
-account-trading-qualification = ["clearing/account-trading-qualification"]
-maker-liquidity-qualification = ["clearing/maker-liquidity-qualification"]
+# Pricing only; this does not enable clearing financial instructions.
+maker-liquidity-qualification = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

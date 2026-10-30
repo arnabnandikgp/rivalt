@@ -1,12 +1,11 @@
 import Fastify from 'fastify';
-import type {AccountIndexer} from './account-indexer.js';
 import type {LiquidityIndexer} from './liquidity-indexer.js';
 
 const publicKey={type:'string',pattern:'^[1-9A-HJ-NP-Za-km-z]{32,44}$'} as const;
 /** Finalized accounting facts. Risk/transaction admission requires the direct SDK
  * and a current chain simulation; an indexed cash amount is not exit permission. */
-export function accountApi(indexer:AccountIndexer|LiquidityIndexer) {
-  const version=indexer.config.profile==='liquidity-execution-qualification'?4:3,prefix=`/v${version}`;
+export function accountApi(indexer:LiquidityIndexer) {
+  const version=4,prefix=`/v${version}`;
   const app=Fastify({logger:false});
   const healthy=async()=>{
     const row=await indexer.store.snapshot();
@@ -22,7 +21,7 @@ export function accountApi(indexer:AccountIndexer|LiquidityIndexer) {
     asOf:{commitment:'finalized',sequence:row.state.sequence,signature:row.checkpoint,slot:row.checkpoint_slot},
     units:{cash:'six-decimal collateral atoms',scaled:'1e9',price:'collateral atoms/lot'}});
   app.get(`${prefix}/venue`,async()=>{const row=await indexer.store.snapshot();return {...envelope(row),state:row.state.venue,custody:row.state.custody,
-    safety:row.state.safety,markets:row.state.markets,ledgers:row.state.ledgers,makers:row.state.makers,resolution:row.state.resolution,
+    safety:row.state.safety,markets:row.state.markets,ledgers:row.state.ledgers,makers:row.state.liquidity!.makers,resolution:row.state.resolution,
     ...(version===4?{liquidity:row.state.liquidity,fundingTrust:'restricted-publisher-attestation',makerScope:'internal-reference-makers'}:{})};});
   app.get<{Params:{owner:string}}>(`${prefix}/portfolios/:owner`,{schema:{params:{type:'object',required:['owner'],additionalProperties:false,properties:{owner:publicKey}}}},async request=>{
     const row=await indexer.store.snapshot();return {...envelope(row),portfolios:Object.entries(row.state.portfolios).filter(([,portfolio])=>portfolio.owner===request.params.owner)

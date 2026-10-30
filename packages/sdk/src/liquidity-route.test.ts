@@ -17,9 +17,9 @@ function fixture() {
   const snapshot = {
     commitment: 'confirmed', venue, markets, slot: 100n, now: 100n, contextSlot: 100n,
     custody: testAddress(72), safety: testAddress(73), vault: testAddress(74), ledgers: [testAddress(75), testAddress(76)],
-    venueState: { ...emptyState(protocol.getVenueV3Decoder()), schemaVersion: 3, profileVersion: 4,
+    venueState: { ...emptyState(protocol.getVenueDecoder()), schemaVersion: 3, profileVersion: 4,
       domain: financial.makers[0].snapshot.domain, markets, marketCount: 2, insuranceFeeShareBps: 2500, termsEpoch: 1n },
-    safetyState: { ...emptyState(protocol.getSafetyV3Decoder()), schemaVersion: 3, venue, mode: 1, epoch: 1n },
+    safetyState: { ...emptyState(protocol.getVenueSafetyDecoder()), schemaVersion: 3, venue, mode: 1, epoch: 1n },
     marketStates: financial.markets, roots: { [trader]: financial.root },
     liquidity: { registry: testAddress(77), adapters: financial.makers },
   } as unknown as LiquidityRouteInput['snapshot'];
@@ -31,7 +31,7 @@ it('signs caller limits and structural epochs without pinning price sequence or 
   financial.makers[0].price.sequence = 99n;
   financial.makers[0].registrationState.buyConsumed = 10n;
   const built = (await buildLiquidityRoute(input, financial.root.owner))!;
-  const parsed = protocol.parseExecuteLiquidityRouteV4Instruction(built.instructions[0]);
+  const parsed = protocol.parseExecuteLiquidityRouteInstruction(built.instructions[0]);
   expect(parsed.data).toMatchObject({ allInLimit: 20_000n, maxFee: 10n, lots: 1n,
     legs: [{ lots: 1n, authorityEpoch: 1n, controlEpoch: 1n, shapeEpoch: 1n, depthEpoch: 1n }] });
   expect(Object.keys(parsed.data.legs[0]).sort()).toEqual(['authorityEpoch', 'controlEpoch', 'depthEpoch', 'lots', 'shapeEpoch']);
@@ -47,7 +47,7 @@ it('keeps the selected distinct two-maker allocation and caps expiry by every se
   financial.makers[2].shape = { ...financial.makers[2].shape, asks: [{ endLots: 4096n, offset: 40n, slope: 0n }] };
   financial.makers[1].validUntilSlot = 140n;
   const built = (await buildLiquidityRoute({ ...input, lots: 100n, allInLimit: 2_000_000n, maxFee: 1000n }, financial.root.owner))!;
-  const parsed = protocol.parseExecuteLiquidityRouteV4Instruction(built.instructions[0]);
+  const parsed = protocol.parseExecuteLiquidityRouteInstruction(built.instructions[0]);
   expect(parsed.data.legs.map(leg => leg.lots)).toEqual([21n, 79n]);
   expect(parsed.data.expirySlot).toBe(140n);
   expect(parsed.accounts.firstCapital.address).toBe(financial.makers[0].registrationState.capital);

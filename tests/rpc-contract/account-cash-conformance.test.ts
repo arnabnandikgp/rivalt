@@ -17,18 +17,18 @@ test('account cash preserves isolated Anchor bytes and every optional certificat
   const large=9007199254740993n,guard={safetyEpoch:3n,venueTermsEpoch:1n,nonce:large,stateVersion:9n};
   const cases:{program:string;name:string;args:unknown[];instruction:Instruction}[]=[];
   const add=(name:string,args:unknown[],instruction:Instruction)=>cases.push({program:'clearing',name,args,instruction});
-  for(const marketIndex of [0,1])add('initialize_market_backing_v3',[marketIndex],await sdk.getInitializeMarketBackingV3InstructionAsync({...common,marketIndex}));
-  add('check_market_backing_v3',[62],sdk.getCheckMarketBackingV3Instruction({...common,start:62}));
-  add('withdraw_funded_account_v3',[guard,large],sdk.getWithdrawFundedAccountV3Instruction({...common,guard,amount:large}));
-  add('transfer_funded_account_v3',[guard,large],sdk.getTransferFundedAccountV3Instruction({...common,guard,amount:large}));
-  add('net_account_claims_v3',[guard,1,large],sdk.getNetAccountClaimsV3Instruction({...common,guard,sourceMarket:1,amount:large}));
+  for(const marketIndex of [0,1])add('initialize_market_backing',[marketIndex],await sdk.getInitializeMarketBackingInstructionAsync({...common,marketIndex}));
+  add('check_market_backing',[62],sdk.getCheckMarketBackingInstruction({...common,start:62}));
+  add('withdraw_funded_account',[guard,large],sdk.getWithdrawFundedAccountInstruction({...common,guard,amount:large}));
+  add('transfer_funded_account',[guard,large],sdk.getTransferFundedAccountInstruction({...common,guard,amount:large}));
+  add('net_account_claims',[guard,1,large],sdk.getNetAccountClaimsInstruction({...common,guard,sourceMarket:1,amount:large}));
   for(const certificate of [undefined,common.certificate]) {
-    add('collect_account_loss_v3',[1,large],sdk.getCollectAccountLossV3Instruction({...common,certificate,marketIndex:1,amount:large}));
-    add('pay_account_gain_v3',[1,large],sdk.getPayAccountGainV3Instruction({...common,certificate,marketIndex:1,amount:large}));
+    add('collect_account_loss',[1,large],sdk.getCollectAccountLossInstruction({...common,certificate,marketIndex:1,amount:large}));
+    add('pay_account_gain',[1,large],sdk.getPayAccountGainInstruction({...common,certificate,marketIndex:1,amount:large}));
   }
   for(const userToken of [undefined,common.userToken]) {
-    add('allocate_market_fees_v3',[1,large],sdk.getAllocateMarketFeesV3Instruction({...common,userToken,marketIndex:1,amount:large}));
-    add('withdraw_market_fees_v3',[1,large],sdk.getWithdrawMarketFeesV3Instruction({...common,userToken,marketIndex:1,amount:large}));
+    add('allocate_market_fees',[1,large],sdk.getAllocateMarketFeesInstruction({...common,userToken,marketIndex:1,amount:large}));
+    add('withdraw_market_fees',[1,large],sdk.getWithdrawMarketFeesInstruction({...common,userToken,marketIndex:1,amount:large}));
   }
   function tagged(value:unknown):unknown {
     if(typeof value==='bigint')return {$bn:value.toString()};
@@ -47,7 +47,7 @@ test('account cash preserves isolated Anchor bytes and every optional certificat
     const input=cases.map(entry=>{
       const idl=JSON.parse(readFileSync(`packages/sdk/idl/${entry.program}.json`,'utf8'));
       const definition=idl.instructions.find((instruction:{name:string})=>instruction.name===entry.name);
-      assert(definition);
+      assert(definition,`Unknown IDL fixture instruction: ${entry.name}`);
       let cursor=0;
       const accounts=(definitions:{name:string;optional?:boolean;accounts?:any[]}[]):Record<string,unknown>=>Object.fromEntries(definitions.map(account=>{
         const name=account.name.replace(/_([a-z])/g,(_,letter)=>letter.toUpperCase());
@@ -59,7 +59,7 @@ test('account cash preserves isolated Anchor bytes and every optional certificat
       return {program:entry.program,name:entry.name.replace(/_([a-z])/g,(_,letter)=>letter.toUpperCase()),args:entry.args.map(tagged),accounts:resolved};
     });
     const file=join(directory,'input.json');writeFileSync(file,JSON.stringify(input));
-    const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/group-trading.cjs',file],{encoding:'utf8'}));
+    const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/wire.cjs',file],{encoding:'utf8'}));
     assert.equal(legacy.length,cases.length);
     for(const [index,result] of legacy.entries()){
       assert.equal(result.data,Buffer.from(cases[index].instruction.data!).toString('hex'),cases[index].name);

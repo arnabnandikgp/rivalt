@@ -22,8 +22,8 @@ it('does not invalidate selected-account discovery when an unrelated event advan
   const fixture=await environment(),original=fixture.rpc.call;
   fixture.rpc.call=async(method,params)=>{
     if(fixture.batches.length===1) {
-      const current=sdk.getCustodyV3Decoder().decode(Buffer.from(fixture.accounts.get(fixture.custody).data[0],'base64'));
-      fixture.put(fixture.custody,sdk.getCustodyV3Encoder().encode({...current,sequence:8n}));
+      const current=sdk.getCustodyDecoder().decode(Buffer.from(fixture.accounts.get(fixture.custody).data[0],'base64'));
+      fixture.put(fixture.custody,sdk.getCustodyEncoder().encode({...current,sequence:8n}));
     }return original(method,params);
   };
   const snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,fixture.margins);
@@ -34,7 +34,7 @@ it('builds one atomic funded withdrawal with only root-local authority guards',a
   const fixture=await environment(),client=new sdk.AccountUserClient(fixture.config),snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,[fixture.margins[0]]);
   const plan=await client.exit(snapshot,fixture.owner,fixture.margins[0],fixture.config.mint,17n);
   expect(plan.instructions).toHaveLength(1);
-  expect(sdk.getWithdrawFundedAccountV3InstructionDataDecoder().decode(plan.instructions[0].data!)).toMatchObject({amount:17n,guard:{safetyEpoch:2n,venueTermsEpoch:1n,nonce:4n,stateVersion:9n}});
+  expect(sdk.getWithdrawFundedAccountInstructionDataDecoder().decode(plan.instructions[0].data!)).toMatchObject({amount:17n,guard:{safetyEpoch:2n,venueTermsEpoch:1n,nonce:4n,stateVersion:9n}});
   expect(plan.instructions[0].accounts!.some(account=>account.address===fixture.margins[1])).toBe(false);
   snapshot.roots[fixture.margins[0]].positions[0].virtualScaled=999_000_000_000n;
   await expect(client.exit(snapshot,fixture.owner,fixture.margins[0],fixture.config.mint,50_001n)).rejects.toThrow(/Funded exit/);
@@ -44,11 +44,11 @@ it('checks ownership, same-owner allocation and live delegated stale-source canc
   const fixture=await environment(),client=new sdk.AccountUserClient(fixture.config),snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,fixture.margins);
   const [donor,recipient]=fixture.margins;
   const transfer=await client.transfer(snapshot,fixture.owner,donor,recipient,17n);
-  expect(sdk.getTransferFundedAccountV3InstructionDataDecoder().decode(transfer.data!).amount).toBe(17n);
+  expect(sdk.getTransferFundedAccountInstructionDataDecoder().decode(transfer.data!).amount).toBe(17n);
   const actor=fixture.config.mint;Object.assign(snapshot.roots[donor],{delegate:actor,delegateExpirySlot:101n});
   Object.assign(snapshot.roots[donor].book.orders[0],{marketIndex:1});Object.assign(snapshot.roots[donor].book.orders[0].order,{id:1n,version:2n,state:1});
   const cancel=await client.cancel(snapshot,actor,donor,1n,2n);
-  expect(sdk.getManageAccountOrderV3InstructionDataDecoder().decode(cancel.data!).operation).toEqual({__kind:'Cancel',id:1n,version:2n,protectionGroup:false});
+  expect(sdk.getManageAccountOrderInstructionDataDecoder().decode(cancel.data!).operation).toEqual({__kind:'Cancel',id:1n,version:2n,protectionGroup:false});
   snapshot.slot=101n;await expect(client.cancel(snapshot,actor,donor,1n,2n)).rejects.toThrow(/Live account/);
   await expect(client.exit(snapshot,actor,donor,fixture.config.mint,1n)).rejects.toThrow(/Owner margin/);
   snapshot.roots[recipient].owner=actor;await expect(client.transfer(snapshot,fixture.owner,donor,recipient,1n)).rejects.toThrow(/Owner margin/);
@@ -62,19 +62,19 @@ it('rejects foreign schema, missing portfolio identity, aliased roots and excess
   await expect(sdk.readAccountSnapshot(fixture.rpc,fixture.config,[fixture.margins[0]])).rejects.toThrow(/foreign/);
 });
 it('rejects cross-profile configs and selects explicit measured compute envelopes',async()=>{
-  const {config}=await environment();expect(sdk.accountUserConfig(config).version).toBe(3);
-  expect(()=>sdk.accountUserConfig({...config,version:2 as 3})).toThrow(/qualified local/);
+  const {config}=await environment();expect(sdk.accountUserConfig(config).version).toBe(4);
+  expect(()=>sdk.accountUserConfig({...config,version:3} as unknown as sdk.AccountUserConfig)).toThrow(/qualified local/);
   expect(()=>sdk.accountUserConfig({...config,rpcUrl:config.rpcUrl+'?secret=x'})).toThrow(/credentials/);
   const instruction=(data:ReadonlyUint8Array):Instruction=>({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data});
-  expect(Buffer.from(sdk.accountWalletInstructions([instruction(sdk.WITHDRAW_FUNDED_ACCOUNT_V3_DISCRIMINATOR)])[0].data!).readUInt32LE(1)).toBe(400_000);
-  expect(Buffer.from(sdk.accountWalletInstructions([instruction(sdk.EXECUTE_ACCOUNT_ROUTE_V3_DISCRIMINATOR)])[0].data!).readUInt32LE(1)).toBe(600_000);
-  expect(()=>sdk.accountWalletInstructions([instruction(sdk.FREEZE_ACCOUNTS_V3_DISCRIMINATOR)])).toThrow(/Unsupported/);
+  expect(Buffer.from(sdk.accountWalletInstructions([instruction(sdk.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR)])[0].data!).readUInt32LE(1)).toBe(400_000);
+  expect(Buffer.from(sdk.accountWalletInstructions([instruction(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR)])[0].data!).readUInt32LE(1)).toBe(800_000);
+  expect(()=>sdk.accountWalletInstructions([instruction(sdk.FREEZE_ACCOUNTS_DISCRIMINATOR)])).toThrow(/Unsupported/);
 });
 it('makes closed-claim netting explicit and binds the source market certificate',async()=>{
   const fixture=await environment(),client=new sdk.AccountUserClient(fixture.config),snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,[fixture.margins[0]]);
   const instruction=await client.netClosedClaims(snapshot,fixture.owner,fixture.margins[0],0,7n);
-  expect(sdk.getNetAccountClaimsV3InstructionDataDecoder().decode(instruction.data!)).toMatchObject({sourceMarket:0,amount:7n});
-  const [certificate]=await sdk.findBackingV3Pda(fixture.config.venue,0);
+  expect(sdk.getNetAccountClaimsInstructionDataDecoder().decode(instruction.data!)).toMatchObject({sourceMarket:0,amount:7n});
+  const [certificate]=await sdk.deriveSettlementCertificate(fixture.config.venue,0);
   expect(instruction.accounts!.some(account=>account.address===certificate)).toBe(true);
   snapshot.roots[fixture.margins[0]].positions[0].lots=1n;
   await expect(client.netClosedClaims(snapshot,fixture.owner,fixture.margins[0],0,7n)).rejects.toThrow(/flat cross/);
@@ -91,7 +91,7 @@ it('discovers only canonical children of the selected owner portfolio and reject
   expect(owned.accounts.map(([key])=>key)).toEqual(fixture.margins);
   expect(calls).toEqual([[fixture.portfolio],fixture.margins]);
   const other=await client.ownerAccounts(fixture.owner,3);expect(other.accounts).toEqual([]);expect(other.portfolio.account).toBeNull();
-  const root=sdk.getMarginAccountV3Decoder().decode(Buffer.from(fixture.accounts.get(fixture.margins[0]).data[0],'base64'));
-  fixture.put(fixture.margins[0],sdk.getMarginAccountV3Encoder().encode({...root,owner:fixture.config.mint}));
+  const root=sdk.getMarginAccountDecoder().decode(Buffer.from(fixture.accounts.get(fixture.margins[0]).data[0],'base64'));
+  fixture.put(fixture.margins[0],sdk.getMarginAccountEncoder().encode({...root,owner:fixture.config.mint}));
   await expect(client.ownerAccounts(fixture.owner,0)).rejects.toThrow('Owner account identity mismatch');
 });

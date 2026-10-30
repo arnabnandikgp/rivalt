@@ -1,12 +1,12 @@
 import * as sdk from '@rivalt/sdk';
-import type {Canonical} from './group-projection.js';
+import type {Canonical} from './canonical.js';
 import {json} from './events.js';
 import type {AccountEvent} from './account-events.js';
 import {projectLiquidity, type LiquidityState} from './liquidity-projection.js';
 
 type Fields<T> = Canonical<Omit<T, 'discriminator' | 'bump' | 'vaultBump'>>;
-export type AccountRoot = Fields<sdk.MarginAccountV3>;
-export type AccountMarket = Fields<sdk.MarketV3>;
+export type AccountRoot = Fields<sdk.MarginAccount>;
+export type AccountMarket = Fields<sdk.Market>;
 type Row = {member:string; cashBefore:string; lots:string[]; generations:string[]; claimsScaled:string[];
   collected:string; flows?:string[]; cashAfter?:string; applied?:boolean};
 export type AccountResolution = {
@@ -18,16 +18,16 @@ export type AccountResolution = {
   remainingLots:string[]; remainingGross:string[]; remainingClaims:string[];
 };
 export type AccountState = {
-  sequence:string; venue:Fields<sdk.VenueV3>|null; custody:Fields<sdk.CustodyV3>|null; safety:Fields<sdk.SafetyV3>|null;
-  membershipVersion:string|null; members:string[]; portfolios:Record<string,Fields<sdk.PortfolioV3>>;
+  sequence:string; venue:Fields<sdk.Venue>|null; custody:Fields<sdk.Custody>|null; safety:Fields<sdk.VenueSafety>|null;
+  membershipVersion:string|null; members:string[]; portfolios:Record<string,Fields<sdk.Portfolio>>;
   roots:Record<string,AccountRoot>; markets:Record<string,AccountMarket>;
-  ledgers:Record<string,Fields<sdk.MarketLedgerV3>>; makers:Record<string,Fields<sdk.MakerRegistrationV3>>;
-  backing:Record<string,Fields<sdk.SettlementCertificateV3>>;
-  retirement:Fields<sdk.RetirementCertificateV3>|null; resolution:AccountResolution|null;
+  ledgers:Record<string,Fields<sdk.MarketLedger>>;
+  backing:Record<string,Fields<sdk.SettlementCertificate>>;
+  retirement:Fields<sdk.RetirementCertificate>|null; resolution:AccountResolution|null;
   liquidity?:LiquidityState;
 };
 export const emptyAccounts = ():AccountState => ({sequence:'0',venue:null,custody:null,safety:null,membershipVersion:null,
-  members:[],portfolios:{},roots:{},markets:{},ledgers:{},makers:{},backing:{},retirement:null,resolution:null});
+  members:[],portfolios:{},roots:{},markets:{},ledgers:{},backing:{},retirement:null,resolution:null});
 export const accountFields = <T>(value:T):Fields<T> => {
   const {discriminator,bump,vaultBump,...fields}=JSON.parse(json(value)); return fields;
 };
@@ -48,9 +48,8 @@ const abs=(value:bigint)=>value<0n?-value:value;
 
 /** Only event fields are authoritative here. Canonical PDAs and complete decoded
  * financial accounts are checked separately against finalized RPC bytes. */
-export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:3|4=3) {
-  accountCheck((profile===4)===!!state.liquidity,'explicit projection profile');
-  accountCheck(profile!==4||!['AccountMakerChangedV3','AccountRouteExecutedV3'].includes(event.type),'foreign maker profile');
+export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:4=4) {
+  accountCheck(profile===4&&!!state.liquidity,'explicit projection profile');
   const change=structuredClone(event.data);
   accountCheck(change.venue===venue,'event venue');
   accountCheck(BigInt(change.sequence)===BigInt(state.sequence)+1n,'critical sequence gap');
@@ -64,30 +63,18 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     accountCheck(!key||key===canonical,'market key');
     const previous=present(state.markets[canonical],'market');
     equal(pick(value,['symbol','lotsPerUnit','crossEligible']),pick(previous,['symbol','lotsPerUnit','crossEligible']),'immutable market');
-    state.markets[canonical]=accountFields<sdk.MarketV3>(value);
+    state.markets[canonical]=accountFields<sdk.Market>(value);
   };
   const root=(value:any,key?:string)=>{
     const canonical=state.members[value.id],previous=present(state.roots[canonical],'root');
     accountCheck(!key||key===canonical,'root key');
     equal(pick(value,rootIdentity),pick(previous,rootIdentity),'immutable root identity');
-    state.roots[canonical]=accountFields<sdk.MarginAccountV3>(value);
+    state.roots[canonical]=accountFields<sdk.MarginAccount>(value);
   };
   const ledger=(value:any)=>{
     accountCheck([0,1].includes(value.marketIndex)&&currentVenue().markets[value.marketIndex]===value.market,'ledger market');
     const {ledger:key,...fields}=value;
     state.ledgers[key]={schemaVersion:3,venue,...fields};
-  };
-  const maker=(value:any,key?:string)=>{
-    const capital=present(state.roots[value.capital],'maker capital');
-    accountCheck(value.schemaVersion===3&&value.venue===venue&&[0,1].includes(value.makerId)
-      &&value.market===currentVenue().markets[value.marketIndex],'maker identity');
-    accountCheck(capital.role===1&&capital.mode===1&&capital.isolatedMarketIndex===value.marketIndex&&capital.owner===value.owner,'isolated maker capital');
-    const canonical=key??Object.keys(state.makers).find(key=>state.makers[key].capital===value.capital);
-    accountCheck(canonical,'maker key');
-    const previous=state.makers[canonical];
-    const immutable=['venue','market','marketIndex','makerId','capital','owner','pricingProgram','programData','config'];
-    if(previous)equal(pick(previous,immutable),pick(value,immutable),'immutable maker');
-    state.makers[canonical]=accountFields<sdk.MakerRegistrationV3>(value);
   };
   switch(event.type) {
     case 'AccountCustodyChangedV3': {
@@ -101,7 +88,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
         const immutable=['domain','authority','feeAuthority','reserveAuthority','reserveDestinationOwner','quoteMint','vault','insuranceFeeShareBps'];
         equal(pick(currentVenue(),immutable),pick(change,immutable),'immutable venue');
       }
-      state.venue=pick(change,venueFields) as Fields<sdk.VenueV3>;
+      state.venue=pick(change,venueFields) as Fields<sdk.Venue>;
       Object.assign(custody(),pick(change,['totalCash','allocatedVault','liabilityVersions']));
       Object.assign(safety(),{mode:change.mode,paused:change.paused,epoch:change.safetyEpoch});
       if(change.membershipVersion.__option==='Some')state.membershipVersion=change.membershipVersion.value;
@@ -109,7 +96,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
         accountCheck(!state.markets[change.subject]&&[0,1].includes(change.index),'market registration');
         equal(currentVenue().markets[change.index],change.subject,'registered market');
         const symbol=Buffer.alloc(8);symbol.write(change.index===0?'BTC':'ETH');
-        state.markets[change.subject]={...blank(sdk.getMarketV3Decoder()),schemaVersion:3,venue,index:change.index,
+        state.markets[change.subject]={...blank(sdk.getMarketDecoder()),schemaVersion:3,venue,index:change.index,
           symbol:symbol.toString('hex'),lotsPerUnit:change.index===0?'1000000':'100000',crossEligible:true,termsEpoch:'1',configEpoch:'1'};
       }
       if(change.kind===2) {
@@ -125,7 +112,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
           accountCheck(member.owner===portfolio.owner&&member.subaccountIndex<=8&&!(portfolio.children&(1<<member.subaccountIndex)),'child identity');
           portfolio.children|=1<<member.subaccountIndex;
           state.members.push(margin);
-          state.roots[margin]={...blank(sdk.getMarginAccountV3Decoder()),...identity,schemaVersion:3,venue,delegateEpoch:'1'};
+          state.roots[margin]={...blank(sdk.getMarginAccountDecoder()),...identity,schemaVersion:3,venue,delegateEpoch:'1'};
         } else {
           const previous=present(state.roots[margin],'custody root');
           equal(pick(previous,rootIdentity.slice(2)),pick(member,rootIdentity.slice(2)),'immutable custody root');
@@ -136,23 +123,10 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       change.ledgers.forEach(ledger);
       break;
     }
-    case 'AccountMakerChangedV3':
-      accountCheck([0,1,2,3].includes(change.operation),'maker operation');
-      accountCheck((change.operation===0)===!state.makers[change.registration],'maker history');
-      maker(change.state,change.registration);market(change.marketState,change.market);break;
     case 'AccountOracleChangedV3':market(change.state,change.market);break;
     case 'AccountAuthorityChangedV3':root(change.state,change.margin);custody().liabilityVersions=change.liabilityVersions;break;
     case 'AccountOrderChangedV3':
       root(change.state,change.margin);change.markets.forEach((value:any)=>market(value));custody().liabilityVersions=change.liabilityVersions;break;
-    case 'AccountRouteExecutedV3':
-      accountCheck([2,3].includes(change.rootStates.length)&&[1,2].includes(change.makerStates.length)
-        &&new Set(change.rootStates.map((value:any)=>value.id)).size===change.rootStates.length,'route shape');
-      equal(BigInt(change.fee),BigInt(change.insuranceCredit)+BigInt(change.retainedFee),'fee partition');
-      accountCheck(BigInt(change.insuranceCredit)===(BigInt(change.fee)+BigInt(change.carryBefore))/4n
-        &&BigInt(change.carryAfter)===(BigInt(change.fee)+BigInt(change.carryBefore))%4n,'insurance fee carry');
-      change.rootStates.forEach((value:any)=>root(value));change.makerStates.forEach((value:any)=>maker(value));
-      market(change.marketState,change.market);market(change.otherMarketState);ledger(change.ledger);
-      custody().totalCash=change.totalCash;custody().liabilityVersions=change.liabilityVersions;break;
     case 'AccountQualificationV3':
       safety().mode=1;safety().epoch=change.safetyEpoch;change.markets.forEach((value:any)=>market(value));break;
     case 'AccountFinancialChangedV3':
@@ -162,7 +136,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       Object.assign(custody(),pick(change,['totalCash','allocatedVault','liabilityVersions']));equal(safety().epoch,change.safetyEpoch,'financial safety epoch');break;
     case 'AccountBackingChangedV3':
       accountCheck(change.state.schemaVersion===3&&change.state.venue===venue,'backing identity');
-      state.backing[change.certificate]=accountFields<sdk.SettlementCertificateV3>(change.state);break;
+      state.backing[change.certificate]=accountFields<sdk.SettlementCertificate>(change.state);break;
     case 'AccountLiquidatedV3':
       accountCheck(change.target!==change.receiver&&BigInt(change.deficitAfter)<BigInt(change.deficitBefore),'liquidation progress');
       root(change.targetState,change.target);root(change.receiverState,change.receiver);

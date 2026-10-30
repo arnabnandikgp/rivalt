@@ -5,48 +5,40 @@ use anchor_spl::token::TokenAccount;
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct QualifyAccountTradingV3<'info> {
+pub struct QualifyAccountTrading<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority, has_one = vault)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(mut, seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[0]], bump = btc.bump, has_one = venue,
         constraint = venue.markets[0] == btc.key() @ ClearingError::Profile)]
-    pub btc: Box<Account<'info, MarketV3>>,
+    pub btc: Box<Account<'info, Market>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[1]], bump = eth.bump, has_one = venue,
         constraint = venue.markets[1] == eth.key() @ ClearingError::Profile)]
-    pub eth: Box<Account<'info, MarketV3>>,
+    pub eth: Box<Account<'info, Market>>,
     #[account(seeds = [b"ledger-v3", btc.key().as_ref()], bump = btc_ledger.bump, has_one = venue,
         constraint = btc_ledger.market == btc.key() @ ClearingError::Profile)]
-    pub btc_ledger: Box<Account<'info, MarketLedgerV3>>,
+    pub btc_ledger: Box<Account<'info, MarketLedger>>,
     #[account(seeds = [b"ledger-v3", eth.key().as_ref()], bump = eth_ledger.bump, has_one = venue,
         constraint = eth_ledger.market == eth.key() @ ClearingError::Profile)]
-    pub eth_ledger: Box<Account<'info, MarketLedgerV3>>,
+    pub eth_ledger: Box<Account<'info, MarketLedger>>,
     #[account(seeds = [b"vault-v3", venue.key().as_ref()], bump = venue.vault_bump,
         constraint = vault.owner == venue.key() && vault.mint == venue.quote_mint @ ClearingError::Mint)]
     pub vault: Box<Account<'info, TokenAccount>>,
 }
 
-pub fn qualify(ctx: Context<QualifyAccountTradingV3>) -> Result<()> {
-    require!(
-        ctx.remaining_accounts.is_empty() && !cfg!(feature = "account-safety-qualification"),
-        ClearingError::Profile
-    );
-    transition(ctx.accounts)
-}
-
 #[derive(Accounts)]
-pub struct ActivateAccountsV3<'info> {
-    pub qualification: QualifyAccountTradingV3<'info>,
+pub struct ActivateAccounts<'info> {
+    pub qualification: QualifyAccountTrading<'info>,
     #[account(seeds = [b"resolution-v3", qualification.venue.key().as_ref()], bump = resolution.bump,
         constraint = resolution.venue == qualification.venue.key() @ ClearingError::Profile)]
-    pub resolution: Box<Account<'info, ResolutionV3>>,
+    pub resolution: Box<Account<'info, Resolution>>,
 }
 
-fn storage_ready(header: &ResolutionV3, safety: &SafetyV3) -> Result<()> {
+fn storage_ready(header: &Resolution, safety: &VenueSafety) -> Result<()> {
     require!(
         header.schema_version == SCHEMA_VERSION
             && header.epoch == 0
@@ -59,18 +51,9 @@ fn storage_ready(header: &ResolutionV3, safety: &SafetyV3) -> Result<()> {
     Ok(())
 }
 
-pub fn activate(ctx: Context<ActivateAccountsV3>) -> Result<()> {
-    require!(
-        ctx.remaining_accounts.is_empty() && TRADING_IMPLEMENTED,
-        ClearingError::Profile
-    );
-    storage_ready(&ctx.accounts.resolution, &ctx.accounts.qualification.safety)?;
-    transition(&mut ctx.accounts.qualification)
-}
-
 /// Candidate-only profile4 activation. Shared safety storage and oracle recovery
 /// remain mandatory; the historical profile3 entrypoint cannot activate it.
-pub fn activate_liquidity(ctx: Context<ActivateAccountsV3>) -> Result<()> {
+pub fn activate_liquidity(ctx: Context<ActivateAccounts>) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty()
             && cfg!(feature = "liquidity-execution-qualification")
@@ -81,13 +64,8 @@ pub fn activate_liquidity(ctx: Context<ActivateAccountsV3>) -> Result<()> {
     transition_accounts(&mut ctx.accounts.qualification)
 }
 
-fn transition(accounts: &mut QualifyAccountTradingV3) -> Result<()> {
-    profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
-    transition_accounts(accounts)
-}
-
-fn transition_accounts(accounts: &mut QualifyAccountTradingV3) -> Result<()> {
-    financial_base_profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
+fn transition_accounts(accounts: &mut QualifyAccountTrading) -> Result<()> {
+    base_profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
     require!(!accounts.safety.paused, ClearingError::Paused);
     require!(
         accounts.safety.mode == CUSTODY && accounts.safety.resolution_epoch == 0,
@@ -113,20 +91,20 @@ fn transition_accounts(accounts: &mut QualifyAccountTradingV3) -> Result<()> {
         );
         oracle::action(market, &clock, true)?;
         let mut view = market_view(market)?;
-        super::super::group_safety::settlement::reset_oracle(&mut view, clock.unix_timestamp, 0)?;
+        crate::engine::oracle::reset_oracle(&mut view, clock.unix_timestamp, 0)?;
         commit_market(market, &view)?;
     }
     accounts.safety.mode = ACTIVE;
     increment(&mut accounts.safety.epoch)?;
     increment(&mut accounts.custody.sequence)?;
-    let emitted = crate::events::AccountQualificationV3 {
+    let emitted = crate::events::AccountQualification {
         venue: accounts.venue.key(),
         sequence: accounts.custody.sequence,
         slot: clock.slot,
         safety_epoch: accounts.safety.epoch,
         markets: [
-            crate::events::MarketSnapshotV3::from(&**accounts.btc),
-            crate::events::MarketSnapshotV3::from(&**accounts.eth),
+            crate::events::MarketSnapshot::from(&**accounts.btc),
+            crate::events::MarketSnapshot::from(&**accounts.eth),
         ],
     };
     crate::event_cpi::emit(&emitted, accounts.event_authority.to_account_info())
@@ -137,39 +115,48 @@ mod tests {
     use super::*;
 
     #[test]
-    fn financial_profile_gate_keeps_legacy_routes_and_non_candidate_builds_separate() {
-        let mut venue = VenueV3 {
-            schema_version: 3, profile_version: 4, market_count: 2,
-            insurance_fee_share_bps: 2500, ..Default::default()
+    fn current_activation_rejects_retired_profiles_pauses_and_nontrading_modes() {
+        let mut venue = Venue {
+            schema_version: 3,
+            profile_version: 4,
+            market_count: 2,
+            insurance_fee_share_bps: 2500,
+            ..Default::default()
         };
-        let custody = CustodyV3 { schema_version: 3, ..Default::default() };
-        let mut safety = SafetyV3 { schema_version: 3, mode: ACTIVE, ..Default::default() };
-        assert!(base_profile(&venue, &custody, &safety).is_err());
-        assert!(activated(&venue, &custody, &safety).is_err());
-        assert_eq!(financial_activated(&venue, &custody, &safety).is_ok(), cfg!(feature = "liquidity-execution-qualification"));
+        let custody = Custody {
+            schema_version: 3,
+            ..Default::default()
+        };
+        let mut safety = VenueSafety {
+            schema_version: 3,
+            mode: ACTIVE,
+            ..Default::default()
+        };
+        assert_eq!(
+            activated(&venue, &custody, &safety).is_ok(),
+            cfg!(feature = "liquidity-execution-qualification")
+        );
         for mode in [CUSTODY, FROZEN, RESOLVED, RETIRED] {
             safety.mode = mode;
-            assert!(financial_activated(&venue, &custody, &safety).is_err());
+            assert!(activated(&venue, &custody, &safety).is_err());
         }
         safety.mode = ACTIVE;
         safety.paused = true;
-        assert!(financial_activated(&venue, &custody, &safety).is_err());
+        assert!(activated(&venue, &custody, &safety).is_err());
         safety.paused = false;
-        for version in [0, 1, 2, 5] {
+        for version in [0, 1, 2, 3, 5] {
             venue.profile_version = version;
-            assert!(financial_activated(&venue, &custody, &safety).is_err());
+            assert!(activated(&venue, &custody, &safety).is_err());
         }
-        venue.profile_version = 3;
-        assert_eq!(activated(&venue, &custody, &safety).is_ok(), cfg!(feature = "account-trading-qualification"));
     }
 
     #[test]
     fn fresh_activation_requires_all_precreated_pages_and_no_previous_resolution() {
-        let mut header = ResolutionV3 {
+        let mut header = Resolution {
             schema_version: SCHEMA_VERSION,
             ..Default::default()
         };
-        let mut safety = SafetyV3::default();
+        let mut safety = VenueSafety::default();
         for cursor in 0..32 {
             header.cursor = cursor;
             assert!(storage_ready(&header, &safety).is_err());

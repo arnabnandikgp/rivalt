@@ -2,49 +2,49 @@ use super::*;
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct InitializeLiquidityV4<'info> {
+pub struct InitializeLiquidity<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
-    #[account(init, payer = authority, space = 8 + LiquidityRegistryV4::INIT_SPACE,
+    pub safety: Box<Account<'info, VenueSafety>>,
+    #[account(init, payer = authority, space = 8 + LiquidityRegistry::INIT_SPACE,
         seeds = [b"liquidity-v4", market.key().as_ref()], bump)]
-    pub registry: Box<Account<'info, LiquidityRegistryV4>>,
+    pub registry: Box<Account<'info, LiquidityRegistry>>,
     pub system_program: Program<'info, System>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
 #[instruction(instance: u8)]
-pub struct RegisterLiquidityV4<'info> {
+pub struct RegisterLiquidity<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(mut, seeds = [b"liquidity-v4", market.key().as_ref()], bump = registry.bump, has_one = venue, has_one = market)]
-    pub registry: Box<Account<'info, LiquidityRegistryV4>>,
+    pub registry: Box<Account<'info, LiquidityRegistry>>,
     #[account(seeds = [b"margin-v3", capital.portfolio.as_ref(), &capital.subaccount_index.to_le_bytes()],
         bump = capital.bump, has_one = venue, has_one = owner)]
-    pub capital: Box<Account<'info, MarginAccountV3>>,
-    #[account(init, payer = owner, space = 8 + MakerRegistrationV4::INIT_SPACE,
+    pub capital: Box<Account<'info, MarginAccount>>,
+    #[account(init, payer = owner, space = 8 + MakerRegistration::INIT_SPACE,
         seeds = [b"maker-v4", market.key().as_ref(), &[instance]], bump)]
-    pub registration: Box<Account<'info, MakerRegistrationV4>>,
-    #[account(init, payer = owner, space = 8 + CapitalBindingV3::INIT_SPACE,
+    pub registration: Box<Account<'info, MakerRegistration>>,
+    #[account(init, payer = owner, space = 8 + CapitalBinding::INIT_SPACE,
         seeds = [b"capital-v3", capital.key().as_ref()], bump)]
-    pub capital_binding: Box<Account<'info, CapitalBindingV3>>,
+    pub capital_binding: Box<Account<'info, CapitalBinding>>,
     /// CHECK: exact maker owner, discriminator, size, PDA and identity checked below.
     pub config: UncheckedAccount<'info>,
     /// CHECK: exact maker owner, discriminator, size, PDA and binding checked below.
@@ -57,45 +57,45 @@ pub struct RegisterLiquidityV4<'info> {
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct SealLiquidityV4<'info> {
+pub struct SealLiquidity<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"liquidity-v4", market.key().as_ref()], bump = registry.bump, has_one = venue, has_one = market)]
-    pub registry: Box<Account<'info, LiquidityRegistryV4>>,
+    pub registry: Box<Account<'info, LiquidityRegistry>>,
     #[account(address = registry.registrations[0] @ ClearingError::MakerBinding)]
-    pub first: Box<Account<'info, MakerRegistrationV4>>,
+    pub first: Box<Account<'info, MakerRegistration>>,
     #[account(address = registry.registrations[1] @ ClearingError::MakerBinding)]
-    pub second: Box<Account<'info, MakerRegistrationV4>>,
+    pub second: Box<Account<'info, MakerRegistration>>,
     #[account(address = registry.registrations[2] @ ClearingError::MakerBinding)]
-    pub third: Box<Account<'info, MakerRegistrationV4>>,
+    pub third: Box<Account<'info, MakerRegistration>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct ControlLiquidityV4<'info> {
+pub struct ControlLiquidity<'info> {
     pub actor: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(mut, seeds = [b"maker-v4", market.key().as_ref(), &[registration.instance]], bump = registration.bump,
         has_one = venue, has_one = market, has_one = capital, has_one = config, has_one = price,
         has_one = pricing_program, has_one = program_data)]
-    pub registration: Box<Account<'info, MakerRegistrationV4>>,
+    pub registration: Box<Account<'info, MakerRegistration>>,
     #[account(seeds = [b"margin-v3", capital.portfolio.as_ref(), &capital.subaccount_index.to_le_bytes()],
         bump = capital.bump, has_one = venue)]
-    pub capital: Box<Account<'info, MarginAccountV3>>,
+    pub capital: Box<Account<'info, MarginAccount>>,
     /// CHECK: authenticated fixed config; only this writable account goes to maker CPI.
     #[account(mut)]
     pub config: UncheckedAccount<'info>,
@@ -118,20 +118,20 @@ pub struct ControlLiquidityV4<'info> {
 /// its own dependencies. It invokes no maker code and loads no maker-owned state.
 #[event_cpi]
 #[derive(Accounts)]
-pub struct QuarantineLiquidityV4<'info> {
+pub struct QuarantineLiquidity<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(mut, seeds = [b"maker-v4", market.key().as_ref(), &[registration.instance]], bump = registration.bump,
         has_one = venue, has_one = market, has_one = capital)]
-    pub registration: Box<Account<'info, MakerRegistrationV4>>,
+    pub registration: Box<Account<'info, MakerRegistration>>,
     #[account(seeds = [b"margin-v3", capital.portfolio.as_ref(), &capital.subaccount_index.to_le_bytes()],
         bump = capital.bump, has_one = venue)]
-    pub capital: Box<Account<'info, MarginAccountV3>>,
+    pub capital: Box<Account<'info, MarginAccount>>,
 }

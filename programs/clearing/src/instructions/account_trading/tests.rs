@@ -1,8 +1,8 @@
 //! Independently calculated atom-level expectations against the actual adapters,
 //! route candidate and fee transition. No expected result calls the engine twice.
-use super::super::group_trading::routes as candidates;
 use super::super::{RouteIntent, RouteLeg};
 use super::*;
+use crate::engine::routes as candidates;
 
 fn clock() -> Clock {
     Clock {
@@ -11,8 +11,8 @@ fn clock() -> Clock {
         ..Default::default()
     }
 }
-fn root() -> MarginAccountV3 {
-    MarginAccountV3 {
+fn root() -> MarginAccount {
+    MarginAccount {
         schema_version: 3,
         mode: MODE_CROSS,
         isolated_market_index: 255,
@@ -22,10 +22,10 @@ fn root() -> MarginAccountV3 {
         ..Default::default()
     }
 }
-fn markets() -> [MarketV3; 2] {
+fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
-        MarketV3 {
+        Market {
             schema_version: 3,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
@@ -52,8 +52,8 @@ fn markets() -> [MarketV3; 2] {
         }
     })
 }
-fn maker() -> MarginAccountV3 {
-    MarginAccountV3 {
+fn maker() -> MarginAccount {
+    MarginAccount {
         id: 1,
         mode: MODE_ISOLATED,
         isolated_market_index: 0,
@@ -86,8 +86,8 @@ fn intent() -> RouteIntent {
         }],
     }
 }
-fn quote() -> maker_interface::QuoteResponse {
-    maker_interface::QuoteResponse {
+fn quote() -> crate::engine::routes::ExecutionQuote {
+    crate::engine::routes::ExecutionQuote {
         version: 3,
         maker_id: 0,
         side: 0,
@@ -105,13 +105,13 @@ fn quote() -> maker_interface::QuoteResponse {
     }
 }
 fn fill(
-    trader: &MarginAccountV3,
-    markets: &[MarketV3; 2],
+    trader: &MarginAccount,
+    markets: &[Market; 2],
     request: &RouteIntent,
 ) -> Result<candidates::Candidate> {
     let views = [market_view(&markets[0])?, market_view(&markets[1])?];
     candidates::candidate_for_version(
-        &v2::ClearingGroupV2::default(),
+        &Venue::default(),
         &*root_view(trader)?,
         &[*root_view(&maker())?],
         &[quote()],
@@ -126,7 +126,7 @@ fn fill(
 #[test]
 fn whole_account_funding_fee_and_health_have_literal_boundaries() {
     let mut trader = root();
-    trader.positions[1] = v2::PositionV2 {
+    trader.positions[1] = crate::state::Position {
         lots: 2,
         virtual_scaled: -60_000 * math::SCALE,
         generation: 1,
@@ -171,7 +171,7 @@ fn whole_account_funding_fee_and_health_have_literal_boundaries() {
         market_view(&markets[1]).unwrap(),
     ];
     assert!(candidates::candidate_for_version(
-        &v2::ClearingGroupV2::default(),
+        &Venue::default(),
         &root_view(&trader).unwrap(),
         &[*root_view(&maker()).unwrap()],
         &[wrong_version],
@@ -197,12 +197,12 @@ fn positive_unpaid_claims_never_fund_risk_or_fee() {
 
 #[test]
 fn fee_carry_is_exact_per_market_and_never_an_asset() {
-    let mut custody = CustodyV3 {
+    let mut custody = Custody {
         schema_version: 3,
         total_cash: 100_000,
         ..Default::default()
     };
-    let mut ledgers = [0u8, 1].map(|market_index| MarketLedgerV3 {
+    let mut ledgers = [0u8, 1].map(|market_index| MarketLedger {
         schema_version: 3,
         market_index,
         ..Default::default()
@@ -251,15 +251,15 @@ fn source_relevance_and_account_guard_ignore_unrelated_history() {
     exposed.positions[1].lots = 1;
     exposed.positions[1].virtual_scaled = -30_000 * math::SCALE;
     assert!(fill(&exposed, &sources, &intent()).is_err());
-    let venue = VenueV3 {
+    let venue = Venue {
         terms_epoch: 4,
         ..Default::default()
     };
-    let mut safety = SafetyV3 {
+    let mut safety = VenueSafety {
         epoch: 9,
         ..Default::default()
     };
-    let guard = authority::AccountGuardV3 {
+    let guard = authority::AccountGuard {
         safety_epoch: 9,
         venue_terms_epoch: 4,
         nonce: 0,
@@ -276,7 +276,7 @@ fn source_relevance_and_account_guard_ignore_unrelated_history() {
 
 #[test]
 fn dependency_stamps_follow_both_claims_but_not_cash_only_siblings() {
-    let mut custody = CustodyV3::default();
+    let mut custody = Custody::default();
     let mut account = root();
     invalidate(&mut custody, account.positions, account.positions).unwrap();
     assert_eq!(custody.liability_versions, [0, 0]);

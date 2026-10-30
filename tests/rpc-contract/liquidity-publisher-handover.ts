@@ -11,8 +11,8 @@ import {liquidityQueueFault} from './liquidity-queue-fault.js';
 /** Called with pricing/source/indexer loops alive and all old publishers stopped. */
 export async function publisherHandover(runtime:AccountRuntime,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,
   transport:Awaited<ReturnType<typeof openCanonicalRpcHarness>>,databaseUrl:string,directory:string) {
-  const state=async()=>sdk.getFundingPublisherV4Decoder().decode((await transport.h.read(setup.configurations[0]))!);
-  const control=async(publisher:typeof setup.owner.address,label:string)=>transport.h.send(label,[sdk.getConfigureFundingPublisherV4Instruction({
+  const state=async()=>sdk.getFundingPublisherDecoder().decode((await transport.h.read(setup.configurations[0]))!);
+  const control=async(publisher:typeof setup.owner.address,label:string)=>transport.h.send(label,[sdk.getConfigureFundingPublisherInstruction({
     ...setup.common,authority:setup.payer,market:setup.markets[0],configuration:setup.configurations[0],
     expectedAuthority:(await state()).authorityEpoch,publisher})]);
   const previous=await state();

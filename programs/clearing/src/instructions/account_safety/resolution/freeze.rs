@@ -1,10 +1,10 @@
 use super::*;
-use crate::instructions::group_safety::resolution as shared;
+use crate::engine::oracle as shared;
 use financial_core::oracle::Bounds;
 
 pub(super) fn sources(
-    identity: &mut ResolutionIdentityV3,
-    feeds: &ResolutionSourcesV3,
+    identity: &mut ResolutionIdentity,
+    feeds: &ResolutionSources,
     now: i64,
 ) -> Result<[Option<Bounds>; 2]> {
     let mut btc = account_trading::market_view(&identity.btc)?;
@@ -30,8 +30,8 @@ pub(super) fn sources(
 /// The default trigger is economic insolvency, not conservative margin failure.
 /// A flat mixed-sign cycle may have sufficient net equity but unpaid gross debt.
 pub(super) fn authorized_prices(
-    target: &MarginAccountV3,
-    markets: [&MarketV3; 2],
+    target: &MarginAccount,
+    markets: [&Market; 2],
     bounds: [Option<Bounds>; 2],
     funding: [i128; 2],
     emergency: bool,
@@ -78,7 +78,7 @@ pub(super) fn authorized_prices(
     required_prices(markets, bounds)
 }
 
-fn required_prices(markets: [&MarketV3; 2], bounds: [Option<Bounds>; 2]) -> Result<[u64; 2]> {
+fn required_prices(markets: [&Market; 2], bounds: [Option<Bounds>; 2]) -> Result<[u64; 2]> {
     if markets
         .iter()
         .enumerate()
@@ -93,14 +93,14 @@ fn required_prices(markets: [&MarketV3; 2], bounds: [Option<Bounds>; 2]) -> Resu
     }))
 }
 
-fn coverage(market: &mut MarketV3, now: i64) -> Result<()> {
+fn coverage(market: &mut Market, now: i64) -> Result<()> {
     let mut view = account_trading::market_view(market)?;
     shared::freeze_coverage(&mut view, now)?;
     account_trading::commit_market(market, &view)
 }
 
 pub fn freeze(
-    ctx: Context<FreezeAccountsV3>,
+    ctx: Context<FreezeAccounts>,
     expected_safety_epoch: u64,
     expected_resolution_epoch: u64,
     emergency: bool,
@@ -231,7 +231,7 @@ pub fn freeze(
     )
 }
 
-pub fn value_sources(ctx: Context<ValueAccountResolutionV3>, epoch: u64) -> Result<()> {
+pub fn value_sources(ctx: Context<ValueAccountResolution>, epoch: u64) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     frozen(
@@ -273,15 +273,15 @@ pub fn value_sources(ctx: Context<ValueAccountResolutionV3>, epoch: u64) -> Resu
 
 #[inline(never)]
 fn emit(
-    identity: &ResolutionIdentityV3,
-    header: &ResolutionV3,
+    identity: &ResolutionIdentity,
+    header: &Resolution,
     trigger: Pubkey,
     emergency: bool,
     clock: &Clock,
     authority: AccountInfo,
 ) -> Result<()> {
     crate::event_cpi::emit(
-        &crate::events::AccountResolutionFrozenV3 {
+        &crate::events::AccountResolutionFrozen {
             venue: identity.venue.key(),
             sequence: identity.custody.sequence,
             slot: clock.slot,
@@ -307,8 +307,8 @@ fn emit(
             gross: header.remaining_gross,
             actual_vault: identity.vault.amount,
             markets: [
-                crate::events::MarketSnapshotV3::from(&**identity.btc),
-                crate::events::MarketSnapshotV3::from(&**identity.eth),
+                crate::events::MarketSnapshot::from(&**identity.btc),
+                crate::events::MarketSnapshot::from(&**identity.eth),
             ],
         },
         authority,

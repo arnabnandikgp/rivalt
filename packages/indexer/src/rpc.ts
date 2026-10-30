@@ -53,3 +53,5 @@ export class Subscription {
   }
   close() { this.socket.close(); }
 }
+
+export type AccountBatch = (keys:string[]) => Promise<{context:{slot:number};value:({owner:string;data:[string,string]}|null)[]}>;

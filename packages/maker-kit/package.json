@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/economics.ts"
+    ".": "./src/liquidity-economics.ts"
   },
   "dependencies": {
     "@rivalt/sdk": "workspace:*",

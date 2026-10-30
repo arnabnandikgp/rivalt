@@ -3,9 +3,9 @@
 //! Pricing only: execution requires capital admission; D74 funding does not.
 use super::*;
 
-pub struct QuoteLadderV4<'shape> {
-    shape: &'shape ShapeV4,
-    regions: &'shape [RegionV4],
+pub struct QuoteLadder<'shape> {
+    shape: &'shape LiquidityShape,
+    regions: &'shape [PriceRegion],
     anchor: i64,
     direction: i64,
     relative_inventory: i64,
@@ -18,9 +18,9 @@ pub struct QuoteLadderV4<'shape> {
     failed: bool,
 }
 
-impl<'shape> QuoteLadderV4<'shape> {
+impl<'shape> QuoteLadder<'shape> {
     pub fn new(
-        shape: &'shape ShapeV4,
+        shape: &'shape LiquidityShape,
         anchor: u64,
         side: u8,
         inventory: i64,
@@ -153,8 +153,8 @@ impl<'shape> QuoteLadderV4<'shape> {
 mod tests {
     use super::*;
 
-    fn curve() -> ShapeV4 {
-        let mut shape = ShapeV4 {
+    fn curve() -> LiquidityShape {
+        let mut shape = LiquidityShape {
             mode: 1,
             ttl_slots: 150,
             skew_step: 2,
@@ -165,22 +165,22 @@ mod tests {
             ask_count: 2,
             ..Default::default()
         };
-        shape.bids[0] = RegionV4 {
+        shape.bids[0] = PriceRegion {
             end_lots: 3,
             offset: 2,
             slope: 1,
         };
-        shape.bids[1] = RegionV4 {
+        shape.bids[1] = PriceRegion {
             end_lots: 8,
             offset: 8,
             slope: 0,
         };
-        shape.asks[0] = RegionV4 {
+        shape.asks[0] = PriceRegion {
             end_lots: 3,
             offset: 3,
             slope: 2,
         };
-        shape.asks[1] = RegionV4 {
+        shape.asks[1] = PriceRegion {
             end_lots: 8,
             offset: 12,
             slope: 0,
@@ -198,7 +198,7 @@ mod tests {
             (1, -3, 0, vec![100, 197, 293, 385]),
             (0, -3, 3, vec![114, 230, 346, 464]),
         ] {
-            let mut ladder = QuoteLadderV4::new(&shape, 100, side, inventory, consumed).unwrap();
+            let mut ladder = QuoteLadder::new(&shape, 100, side, inventory, consumed).unwrap();
             for gross in expected {
                 assert_eq!(ladder.next_quote().unwrap().unwrap().0, gross);
             }
@@ -209,10 +209,10 @@ mod tests {
     fn zero_capacity_is_not_an_invalid_publication_or_a_prefix_health_claim() {
         let mut shape = curve();
         shape.mode = 3;
-        let mut ladder = QuoteLadderV4::new(&shape, 100, 0, -1, 0).unwrap();
+        let mut ladder = QuoteLadder::new(&shape, 100, 0, -1, 0).unwrap();
         assert_eq!(ladder.capacity(), 0);
         assert_eq!(ladder.next_quote().unwrap(), None);
-        let mut ladder = QuoteLadderV4::new(&shape, 100, 0, 3, 0).unwrap();
+        let mut ladder = QuoteLadder::new(&shape, 100, 0, 3, 0).unwrap();
         assert_eq!(ladder.capacity(), 3);
         for _ in 0..3 {
             assert!(ladder.next_quote().unwrap().is_some());
@@ -223,10 +223,10 @@ mod tests {
     #[test]
     fn an_invalid_first_or_later_marginal_cannot_be_skipped() {
         let shape = curve();
-        let mut first = QuoteLadderV4::new(&shape, 1, 1, 0, 0).unwrap();
+        let mut first = QuoteLadder::new(&shape, 1, 1, 0, 0).unwrap();
         assert!(first.next_quote().is_err());
         assert!(first.next_quote().is_err());
-        let mut later = QuoteLadderV4::new(&shape, 5, 1, 0, 0).unwrap();
+        let mut later = QuoteLadder::new(&shape, 5, 1, 0, 0).unwrap();
         assert_eq!(later.next_quote().unwrap().unwrap().0, 3);
         assert_eq!(later.next_quote().unwrap().unwrap().0, 5);
         assert!(later.next_quote().is_err());

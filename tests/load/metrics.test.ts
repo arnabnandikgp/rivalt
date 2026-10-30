@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { distribution, summarize, type Attempt } from './metrics.js';
-import { Indexer } from '../../packages/indexer/src/index.js';
+import { LiquidityIndexer } from '../../packages/indexer/src/index.js';
 it('retains every offered, failed, pending and fault population without denominator inflation',()=>{
   const row=(status:string,extra:Partial<Attempt>={}):Attempt=>({id:status,phase:'x',actor:0,offeredAt:0,fault:false,status,...extra});
   const result=summarize([
@@ -18,5 +18,5 @@ it('uses a complete nearest-rank latency population and reports absent observati
   expect(summarize([]).normalSuccess).toBeNull();
 });
 it('rejects unsafe/unbounded history options before opening a database',()=>{
-  for(const limit of [0,-1,200001,Infinity,1.5,NaN])expect(()=>new Indexer({rpcUrl:'http://127.0.0.1',wsUrl:'ws://127.0.0.1',databaseUrl:'unused',runId:'bounds',market:'unused',anchor:'unused',maxRecoveryTransactions:limit})).toThrow('Invalid bounded');
+  for(const limit of [0,-1,200001,Infinity,1.5,NaN])expect(()=>new LiquidityIndexer({rpcUrl:'http://127.0.0.1',wsUrl:'ws://127.0.0.1',databaseUrl:'unused',runId:'bounds',venue:'11111111111111111111111111111111',profile:'liquidity-execution-qualification',anchor:'unused',maxRecoveryTransactions:limit})).toThrow('Invalid bounded');
 });

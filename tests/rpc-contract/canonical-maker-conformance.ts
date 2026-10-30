@@ -25,8 +25,8 @@ export class CanonicalConformance {
   record(instructions: Instruction[], history?: any) {
     for (const module of this.modules) {
       for (const instruction of instructions.filter(item => item.programAddress === module.address)) {
-        const definition = module.idl.instructions.find((item: any) => item.name.endsWith('_v4')
-          && Buffer.from(item.discriminator).equals(Buffer.from(instruction.data!).subarray(0,8)));
+        const definition = module.idl.instructions.find((item: any) =>
+          Buffer.from(item.discriminator).equals(Buffer.from(instruction.data!).subarray(0,8)));
         if (!definition) continue;
         const name = camel(definition.name), implementation = module.sdk as any;
         const decoded = canonicalValue(implementation[`get${upper(name)}InstructionDataDecoder`]().decode(instruction.data));
@@ -37,19 +37,25 @@ export class CanonicalConformance {
         let offset = 0;
         const accountTree = (definitions: any[]): any => Object.fromEntries(definitions.map(account => {
           if (account.accounts) return [camel(account.name), accountTree(account.accounts)];
-          const key = instruction.accounts![offset++].address;
+          const meta = instruction.accounts?.[offset++];
+          assert(meta, `${name}: missing fixed IDL account ${account.name}`);
+          const key = meta.address;
           return [camel(account.name), account.optional && key === module.address ? null : key];
         }));
         const accounts = accountTree(definition.accounts);
-        assert.equal(offset, instruction.accounts!.length, `${name}: complete nested account mapping`);
-        module.instructions.push({ name, args, accounts, expected: { name, data: Buffer.from(instruction.data!).toString('hex'),
+        // Resolution/backing pages are deliberately outside the fixed IDL context.
+        // Retain every dynamic meta and compare the full instruction through Anchor.
+        // The real program separately authenticates the complete ordered page set.
+        const remainingAccounts = instruction.accounts!.slice(offset).map(account => ({
+          address: account.address, signer: (account.role & 2) !== 0, writable: (account.role & 1) !== 0 }));
+        module.instructions.push({ name, args, accounts, remainingAccounts, expected: { name, data: Buffer.from(instruction.data!).toString('hex'),
           accounts: instruction.accounts!.map(account => ({ address: account.address, signer: (account.role & 2) !== 0, writable: (account.role & 1) !== 0 })) } });
       }
       if (!history || history.meta.err) continue; // Reverted event bytes are not committed state.
       for (const instruction of (history.meta.innerInstructions ?? []).flatMap((group: any) => group.instructions)) {
         if (history.transaction.message.accountKeys[instruction.programIdIndex] !== module.address) continue;
         const bytes = Buffer.from(getBase58Encoder().encode(instruction.data)).subarray(8);
-        const definition = module.idl.events?.find((item: any) => item.name.endsWith('V4') && Buffer.from(item.discriminator).equals(bytes.subarray(0,8)));
+        const definition = module.idl.events?.find((item: any) => Buffer.from(item.discriminator).equals(bytes.subarray(0,8)));
         if (!definition) continue;
         module.events.push(bytes.toString('base64'));
         module.expectedEvents.push(canonicalValue((module.sdk as any)[`get${definition.name}EventDecoder`]().decode(bytes)));
@@ -57,6 +63,7 @@ export class CanonicalConformance {
     }
   }
   async finish(runDir: string, keys: { program: Address; name: string; key: Address }[], read: (key: Address) => Promise<Buffer | null>) {
+    assert(this.modules.some(module => module.instructions.length > 0), 'No instructions captured for Anchor conformance');
     for (const key of keys) {
       const module = this.modules.find(item => item.address === key.program)!;
       const bytes = (await read(key.key))!;

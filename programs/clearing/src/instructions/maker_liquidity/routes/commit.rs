@@ -1,19 +1,19 @@
 use super::*;
-use crate::state::v4::ExecutedLegV4;
+use crate::state::liquidity::ExecutedLeg;
 
 #[inline(never)]
 pub(super) fn apply(
-    accounts: &mut ExecuteLiquidityRouteV4,
+    accounts: &mut ExecuteLiquidityRoute,
     intent: &RouteIntent,
     order_index: Option<usize>,
     clock: &Clock,
     next: &candidates::Candidate,
-    quotes: &[canonical::QuoteResponseV4],
+    quotes: &[canonical::MakerQuoteResponse],
 ) -> Result<()> {
     let mut executed = Vec::with_capacity(quotes.len());
-    let leg = |registration: &Account<MakerRegistrationV4>,
+    let leg = |registration: &Account<MakerRegistration>,
                capital: Pubkey,
-               quote: &canonical::QuoteResponseV4| ExecutedLegV4 {
+               quote: &canonical::MakerQuoteResponse| ExecutedLeg {
         registration: registration.key(),
         capital,
         instance: registration.instance,
@@ -94,7 +94,7 @@ pub(super) fn apply(
     )
 }
 
-/// Wire-identical to LiquidityRouteExecutedV4. Borrow full roots/registrations so
+/// Wire-identical to LiquidityRouteExecuted. Borrow full roots/registrations so
 /// event serialization does not allocate multiple full order-book copies.
 #[derive(AnchorSerialize)]
 pub(super) struct RouteEventView<'a> {
@@ -102,8 +102,8 @@ pub(super) struct RouteEventView<'a> {
     pub sequence: u64,
     pub slot: u64,
     pub market: Pubkey,
-    pub market_state: &'a MarketV3,
-    pub other_market_state: &'a MarketV3,
+    pub market_state: &'a Market,
+    pub other_market_state: &'a Market,
     pub nonce: u64,
     pub side: u8,
     pub lots: u64,
@@ -113,32 +113,32 @@ pub(super) struct RouteEventView<'a> {
     pub retained_fee: u64,
     pub carry_before: u8,
     pub carry_after: u8,
-    pub ledger: crate::events::MarketLedgerSnapshotV3,
+    pub ledger: crate::events::MarketLedgerSnapshot,
     pub order_id: u64,
     pub order_version: u64,
-    pub root_states: Vec<&'a MarginAccountV3>,
-    pub maker_states: Vec<&'a MakerRegistrationV4>,
+    pub root_states: Vec<&'a MarginAccount>,
+    pub maker_states: Vec<&'a MakerRegistration>,
     pub total_cash: u64,
     pub liability_versions: [u64; 2],
-    pub legs: Vec<ExecutedLegV4>,
+    pub legs: Vec<ExecutedLeg>,
 }
 
 #[inline(never)]
 fn emit(
-    accounts: &ExecuteLiquidityRouteV4,
+    accounts: &ExecuteLiquidityRoute,
     intent: &RouteIntent,
-    order: Option<crate::state::StoredOrder>,
+    order: Option<crate::state::OrderRecord>,
     gross: u64,
     fee: u64,
     insurance_credit: u64,
     retained_fee: u64,
     carry_before: u8,
     slot: u64,
-    legs: Vec<ExecutedLegV4>,
+    legs: Vec<ExecutedLeg>,
 ) -> Result<()> {
     let identity = &accounts.identity;
-    let mut roots: Vec<&MarginAccountV3> = vec![&identity.trader, &accounts.first_capital];
-    let mut makers: Vec<&MakerRegistrationV4> = vec![&accounts.first_registration];
+    let mut roots: Vec<&MarginAccount> = vec![&identity.trader, &accounts.first_capital];
+    let mut makers: Vec<&MakerRegistration> = vec![&accounts.first_registration];
     if legs.len() == 2 {
         roots.push(accounts.second_capital.as_deref().unwrap());
         makers.push(accounts.second_registration.as_deref().unwrap());
@@ -159,7 +159,7 @@ fn emit(
         retained_fee,
         carry_before,
         carry_after: identity.ledger.insurance_fee_remainder,
-        ledger: crate::events::MarketLedgerSnapshotV3 {
+        ledger: crate::events::MarketLedgerSnapshot {
             ledger: identity.ledger.key(),
             market: identity.market.key(),
             market_index: identity.market.index,
@@ -177,7 +177,7 @@ fn emit(
         liability_versions: identity.custody.liability_versions,
         legs,
     };
-    crate::event_cpi::emit_borrowed::<crate::events::LiquidityRouteExecutedV4, _>(
+    crate::event_cpi::emit_borrowed::<crate::events::LiquidityRouteExecuted, _>(
         &event,
         accounts.event_authority.to_account_info(),
     )

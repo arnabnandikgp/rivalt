@@ -1,16 +1,16 @@
 import {Keypair,VersionedTransaction} from '@solana/web3.js';
-import {AccountUserClient,CLEARING_PROGRAM_ADDRESS,type AccountUserConfig,type LiquidityUserConfig} from '@rivalt/sdk';
+import {AccountUserClient,CLEARING_PROGRAM_ADDRESS,type AccountUserConfig} from '@rivalt/sdk';
 
-export function requireLocalDemo(config:AccountUserConfig|LiquidityUserConfig,origin:string){
+export function requireLocalDemo(config:AccountUserConfig,origin:string){
   const page=new URL(origin);
   if(page.origin!=='http://127.0.0.1:18083'||config.chain!=='solana:localnet'||
-    !(config.version===3&&config.profile==='account-safety-qualification'||config.version===4&&config.profile==='liquidity-execution-qualification')||
+    !(config.version===4&&config.profile==='liquidity-execution-qualification')||
     new URL(config.rpcUrl).hostname!=='127.0.0.1'||new URL(config.wsUrl).hostname!=='127.0.0.1')
     throw new Error('Demo wallet is restricted to the explicit loopback test deployment.');
 }
 /** Standalone local demo wallet. Keys are created in this browser tab; no key is
  * imported from the operator, supplied by an API, logged or sent to a server. */
-export async function installDemoWallet(config:AccountUserConfig|LiquidityUserConfig){
+export async function installDemoWallet(config:AccountUserConfig){
   requireLocalDemo(config,location.origin);
   const storageKey=`rivalt:demo-wallet:${config.genesis}:${config.anchor}`;
   const saved=sessionStorage.getItem(storageKey);

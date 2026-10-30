@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import * as sdk from '@rivalt/sdk';
-import { AccountStore } from '../../packages/indexer/src/account-store.js';
+import {JournalStore} from '../../packages/indexer/src/store.js';
 import { json } from '../../packages/indexer/src/events.js';
 import { openCanonicalRpcHarness } from './canonical-rpc-harness.js';
 import { liquidityExecutionSetup } from './liquidity-execution-setup.js';
@@ -33,14 +33,14 @@ try {
   assert.equal((await store.pool.query('SELECT count(*) FROM transactions WHERE run_id=$1', [store.runId])).rows[0].count, '0', 'SQL batch rolled back');
   await store.commit(initial.transactions, initial.events, initial.head, null);
   assert.equal((await store.snapshot()).state.digest, initial.digest);
-  const legacy = new AccountStore(databaseUrl, store.runId);
+  const legacy = new JournalStore(databaseUrl,store.runId,{schema:3,empty:()=>({sequence:'0'}),project:()=>{throw new Error('Wrong-schema projection must never run');}});
   try { await assert.rejects(() => legacy.snapshot(), /Incompatible projection schema/); } finally { await legacy.close(); }
   // Close the actual SQL lease/pool. The next fill must be recovered from RPC,
   // even though the prototype journal was not present to observe its WS hint.
   await store.close(); store = undefined;
   await setup.qualify();
   await h.send('P32 route actual fill during journal shutdown', [await trade()], [owner]);
-  const withdrawal = sdk.getWithdrawFundedAccountV3Instruction({ ...setup.common, owner,
+  const withdrawal = sdk.getWithdrawFundedAccountInstruction({ ...setup.common, owner,
     btc: setup.markets[0], eth: setup.markets[1], margin, quoteMint: setup.mint.address,
     userToken: setup.traderToken.address, guard: await guard(margin), amount: 1n });
   const before = await root(margin);
@@ -60,7 +60,7 @@ try {
   }
   await store.commit(recovered.transactions, recovered.events, recovered.head, previous.checkpoint);
   const snapshot = await store.snapshot(); assert.equal(snapshot.state.digest, recovered.digest);
-  assert.equal(BigInt(snapshot.state.sequence), sdk.getCustodyV3Decoder().decode((await h.read(setup.custody))!).sequence);
+  assert.equal(BigInt(snapshot.state.sequence), sdk.getCustodyDecoder().decode((await h.read(setup.custody))!).sequence);
   await store.commit(recovered.transactions, recovered.events, recovered.head, snapshot.checkpoint);
   assert.deepEqual((await store.snapshot()).state, snapshot.state, 'Idempotent finalized backfill');
   const conflict = { ...recovered.events[0], bytes: Buffer.from('different finalized payload').toString('base64') };
@@ -86,7 +86,7 @@ try {
     assert.equal(roots.reduce((sum, account) => { const position = account.positions[index]; return sum + position.virtualScaled
       - position.lots * (markets[index].fundingIndexScaled - position.fundingCheckpointScaled); }, 0n), 0n);
   }
-  const ledger = sdk.getMarketLedgerV3Decoder().decode((await h.read(setup.ledgers[0]))!);
+  const ledger = sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[0]))!);
   assert.deepEqual([ledger.insurance, ledger.fees, ledger.insuranceFeeRemainder], [6n, 20n, 2]);
   assert.equal(roots.reduce((sum, account) => sum + account.cash, 0n) + 26n, 8_000_000n);
   writeFileSync(`${runDir}/summary.json`, json({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),

@@ -1,5 +1,5 @@
 use super::*;
-use crate::instructions::account_trading::authority::AccountGuardV3;
+use crate::instructions::account_trading::authority::AccountGuard;
 use financial_core::SCALE;
 
 fn clock() -> Clock {
@@ -9,10 +9,10 @@ fn clock() -> Clock {
         ..Default::default()
     }
 }
-fn markets() -> [MarketV3; 2] {
+fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
-        MarketV3 {
+        Market {
             schema_version: 3,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
@@ -39,8 +39,8 @@ fn markets() -> [MarketV3; 2] {
         }
     })
 }
-fn trader(cash: u64) -> MarginAccountV3 {
-    MarginAccountV3 {
+fn trader(cash: u64) -> MarginAccount {
+    MarginAccount {
         schema_version: 3,
         mode: MODE_CROSS,
         isolated_market_index: 255,
@@ -50,8 +50,8 @@ fn trader(cash: u64) -> MarginAccountV3 {
         ..Default::default()
     }
 }
-fn makers() -> [MarginAccountV3; 2] {
-    [1u8, 2].map(|id| MarginAccountV3 {
+fn makers() -> [MarginAccount; 2] {
+    [1u8, 2].map(|id| MarginAccount {
         id: u16::from(id),
         mode: MODE_ISOLATED,
         isolated_market_index: 0,
@@ -61,8 +61,8 @@ fn makers() -> [MarginAccountV3; 2] {
         ..trader(1_000_000)
     })
 }
-fn leg() -> LiquidityRouteLegV4 {
-    LiquidityRouteLegV4 {
+fn leg() -> LiquidityRouteLeg {
+    LiquidityRouteLeg {
         lots: 1,
         authority_epoch: 2,
         control_epoch: 3,
@@ -70,9 +70,9 @@ fn leg() -> LiquidityRouteLegV4 {
         depth_epoch: 5,
     }
 }
-fn canonical_quote(instance: u8, gross: u64) -> canonical::QuoteResponseV4 {
-    canonical::QuoteResponseV4 {
-        request: canonical::QuoteRequestV4 {
+fn canonical_quote(instance: u8, gross: u64) -> canonical::MakerQuoteResponse {
+    canonical::MakerQuoteResponse {
+        request: canonical::MakerQuoteRequest {
             version: 4,
             domain: [0; 32],
             market: Pubkey::default(),
@@ -114,9 +114,9 @@ fn intent() -> RouteIntent {
     }
 }
 fn fill(
-    root: &MarginAccountV3,
-    makers: &[MarginAccountV3; 2],
-    markets: &[MarketV3; 2],
+    root: &MarginAccount,
+    makers: &[MarginAccount; 2],
+    markets: &[Market; 2],
     intent: &RouteIntent,
 ) -> Result<candidates::Candidate> {
     let market_views = [market_view(&markets[0])?, market_view(&markets[1])?];
@@ -125,7 +125,7 @@ fn fill(
         financial_quote(&canonical_quote(1, 60_005), &markets[0], &clock()),
     ];
     candidates::candidate_for_version(
-        &v2::ClearingGroupV2::default(),
+        &Venue::default(),
         &*root_view(root)?,
         &[*root_view(&makers[0])?, *root_view(&makers[1])?],
         &quotes,
@@ -191,7 +191,7 @@ fn canonical_fill_rejects_unfunded_second_maker_and_every_signed_price_fee_limit
 #[test]
 fn canonical_execution_accrues_the_entire_cross_account_before_admission() {
     let mut trader = trader(22_012);
-    trader.positions[1] = v2::PositionV2 {
+    trader.positions[1] = crate::state::Position {
         lots: 2,
         virtual_scaled: -60_000 * SCALE,
         generation: 1,
@@ -214,13 +214,13 @@ fn canonical_execution_accrues_the_entire_cross_account_before_admission() {
 
 #[test]
 fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumption() {
-    let guard = || AccountGuardV3 {
+    let guard = || AccountGuard {
         safety_epoch: 1,
         venue_terms_epoch: 1,
         nonce: 0,
         state_version: 0,
     };
-    let route = LiquidityRouteIntentV4 {
+    let route = LiquidityRouteIntent {
         guard: guard(),
         domain: [0; 32],
         terms_epoch: 1,
@@ -235,7 +235,7 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
         generation: Some(1),
         legs: vec![leg(), leg()],
     };
-    let order = LiquidityOrderExecutionV4 {
+    let order = LiquidityOrderExecution {
         guard: guard(),
         id: 1,
         version: 1,
@@ -251,7 +251,7 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
     bytes.clear();
     order.serialize(&mut bytes).unwrap();
     assert_eq!(bytes.len() + 8, 172);
-    let mut registration = MakerRegistrationV4 {
+    let mut registration = MakerRegistration {
         schema_version: 4,
         venue: Pubkey::default(),
         market: Pubkey::default(),
@@ -288,7 +288,7 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
     quote.request.lots = 1;
     consume(&mut registration, &quote).unwrap();
     assert_eq!(registration.buy_consumed, 11);
-    let curve = CurveStateV4 {
+    let curve = CurveState {
         schema_version: 4,
         venue: Pubkey::default(),
         market: Pubkey::default(),
@@ -302,12 +302,12 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
         domain: [0; 32],
         instance: 0,
         capability: 1,
-        shape: canonical::ShapeV4::default(),
+        shape: canonical::LiquidityShape::default(),
         bump: 0,
     };
     validate_leg(&leg(), &registration, &curve).unwrap();
     for mutate in [
-        (|leg: &mut LiquidityRouteLegV4| leg.authority_epoch += 1) as fn(&mut LiquidityRouteLegV4),
+        (|leg: &mut LiquidityRouteLeg| leg.authority_epoch += 1) as fn(&mut LiquidityRouteLeg),
         |leg| leg.control_epoch += 1,
         |leg| leg.shape_epoch += 1,
         |leg| leg.depth_epoch += 1,
@@ -332,9 +332,9 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
     let mut root = candidates::manage_candidate(
         &initial,
         &placement_environment,
-        candidates::GroupOrderAction::Place {
+        candidates::OrderAction::Place {
             expected_id: 1,
-            terms: crate::instructions::orders::OrderTerms {
+            terms: crate::instructions::types::OrderTerms {
                 side: 0,
                 lots: 2,
                 limit: 61_000,
@@ -360,7 +360,7 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
         ];
         let environment = environment(&market_views, 0, &clock()).unwrap();
         let (intent, index) = candidates::stored_intent(
-            &v2::ClearingGroupV2::default(),
+            &Venue::default(),
             &market_views[0],
             &root,
             OrderExecution {
@@ -378,7 +378,7 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
         .unwrap();
         let quote = financial_quote(&canonical_quote(0, gross), &markets[0], &clock());
         let next = candidates::candidate_for_version(
-            &v2::ClearingGroupV2::default(),
+            &Venue::default(),
             &root,
             &[maker],
             &[quote],
@@ -401,12 +401,12 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
     assert_eq!(root.reserved, 0);
     assert_eq!(root.book.orders[0].order.notional, 120_008);
     assert_eq!(root.book.orders[0].order.fee_charged, 25);
-    let mut custody = CustodyV3 {
+    let mut custody = Custody {
         schema_version: 3,
         total_cash: 2_100_000,
         ..Default::default()
     };
-    let mut ledger = MarketLedgerV3 {
+    let mut ledger = MarketLedger {
         schema_version: 3,
         ..Default::default()
     };
@@ -425,13 +425,13 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
 #[test]
 fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
     use crate::events::{
-        LiquidityRouteExecutedV4, MarginAccountSnapshotV3, MarketLedgerSnapshotV3, MarketSnapshotV3,
+        LiquidityRouteExecuted, MarginAccountSnapshot, MarketLedgerSnapshot, MarketSnapshot,
     };
-    use crate::state::v4::{ExecutedLegV4, MakerRegistrationPayloadV4};
+    use crate::state::liquidity::{ExecutedLeg, MakerRegistrationPayload};
     let markets = markets();
     let roots = [trader(100_000), makers()[0].clone(), makers()[1].clone()];
     let makers = [0u8, 1].map(|instance| {
-        let mut value = MakerRegistrationV4::try_from_slice(&[0; 325]).unwrap();
+        let mut value = MakerRegistration::try_from_slice(&[0; 325]).unwrap();
         value.schema_version = 4;
         value.instance = instance;
         value.capital = Pubkey::new_from_array([instance + 21; 32]);
@@ -441,7 +441,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         value.depth_epoch = 51 + u64::from(instance);
         value
     });
-    let legs = [0u8, 1].map(|instance| ExecutedLegV4 {
+    let legs = [0u8, 1].map(|instance| ExecutedLeg {
         registration: Pubkey::new_from_array([instance + 71; 32]),
         capital: makers[usize::from(instance)].capital,
         instance,
@@ -455,7 +455,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         consumed_before: 9,
         consumed_after: 11 + u64::from(instance),
     });
-    let ledger = MarketLedgerSnapshotV3 {
+    let ledger = MarketLedgerSnapshot {
         ledger: Pubkey::new_unique(),
         market: Pubkey::new_unique(),
         market_index: 0,
@@ -465,13 +465,13 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         insurance_fee_remainder: 3,
         version: 105,
     };
-    let owned = LiquidityRouteExecutedV4 {
+    let owned = LiquidityRouteExecuted {
         venue: roots[0].venue,
         sequence: 110,
         slot: 111,
         market: ledger.market,
-        market_state: MarketSnapshotV3::from(&markets[0]),
-        other_market_state: MarketSnapshotV3::from(&markets[1]),
+        market_state: MarketSnapshot::from(&markets[0]),
+        other_market_state: MarketSnapshot::from(&markets[1]),
         nonce: 112,
         side: 0,
         lots: 5,
@@ -484,11 +484,8 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         ledger: ledger.clone(),
         order_id: 113,
         order_version: 114,
-        root_states: roots.iter().map(MarginAccountSnapshotV3::from).collect(),
-        maker_states: makers
-            .iter()
-            .map(MakerRegistrationPayloadV4::from)
-            .collect(),
+        root_states: roots.iter().map(MarginAccountSnapshot::from).collect(),
+        maker_states: makers.iter().map(MakerRegistrationPayload::from).collect(),
         total_cash: 115,
         liability_versions: [116, 117],
         legs: legs.to_vec(),

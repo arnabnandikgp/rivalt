@@ -3,7 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { getBase58Decoder, getTransactionDecoder, getCompiledTransactionMessageDecoder } from '@solana/kit';
 import { Connection, VersionedTransaction } from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
-import { payerKey } from './custody-cases.js';
+import { payerKey } from './harness.js';
 import type { CanonicalHarness } from './canonical-maker-cases.js';
 import { CanonicalConformance } from './canonical-maker-conformance.js';
 import { WireRpc, WireSubscriptions, eventually } from './wire.js';
@@ -135,7 +135,7 @@ const h: CanonicalHarness = {
     assert.equal(history.meta.returnData.programId, instruction.programAddress);
     const raw = Buffer.from(history.meta.returnData.data[0], 'base64');
     assert.equal(raw.length, 204);
-    const quote = sdk.makerA.getQuoteResponseV4Decoder().decode(raw);
+    const quote = sdk.makerA.getMakerQuoteResponseDecoder().decode(raw);
     assert.equal(quote.gross, expected, label);
   },
 };

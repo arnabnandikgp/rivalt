@@ -6,8 +6,5 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./makerAccountConfig.js";
-export * from "./makerConfig.js";
-export * from "./makerCurveV4.js";
-export * from "./makerGroupConfig.js";
-export * from "./makerPriceV4.js";
+export * from "./makerCurve.js";
+export * from "./makerPrice.js";

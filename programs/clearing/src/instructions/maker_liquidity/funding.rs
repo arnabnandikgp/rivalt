@@ -1,13 +1,23 @@
 //! Causal profile-4 observations. Retain already-earned funding even when the
 //! next sample fails; structural controls close and account for the old interval.
-use super::{impact::Impact, *};
-use crate::instructions::{account_trading, group_trading::oracle};
+use super::*;
+
+/// Published depth admitted by the restricted report verifier, not a fill guarantee.
+pub(crate) struct Impact {
+    pub quantity: u64,
+    pub bid: u64,
+    pub ask: u64,
+    pub expiry_slot: u64,
+    pub expiry_time: i64,
+}
+use crate::engine::oracle;
+use crate::instructions::account_trading;
 use financial_core::oracle as policy;
 
 /// Seconds actually materialized in this observation, not merely seconds for
 /// which the next observation happens to qualify. Existing slot/catchup gates
 /// still decide whether an unmaterialized old interval can accrue.
-fn coverage(mode: u8, materialized: &crate::state::v2::GroupMarketV2, now: i64) -> u64 {
+fn coverage(mode: u8, materialized: &crate::state::accounts::Market, now: i64) -> u64 {
     let old = materialized.oracle;
     if mode != ACTIVE || old.sampled_at == 0 || old.held_until <= old.sampled_at {
         return 0;
@@ -17,12 +27,12 @@ fn coverage(mode: u8, materialized: &crate::state::v2::GroupMarketV2, now: i64) 
 
 pub(crate) fn sample_candidate(
     mode: u8,
-    market: &MarketV3,
+    market: &Market,
     clock: &Clock,
     bounds: Option<policy::Bounds>,
     sequences: [u64; 4],
     impact: Option<&Impact>,
-) -> Result<MarketV3> {
+) -> Result<Market> {
     let mut materialized = account_trading::market_view(market)?;
     let old = materialized.oracle;
     require!(
@@ -79,7 +89,7 @@ pub(crate) fn sample_candidate(
 /// Called before the control mutation and before a safety mode transition. A
 /// control is an unqualified observation at its actual Clock, not a source
 /// update. Source identities/sequences/deadline and risk bounds stay unchanged.
-pub(crate) fn control_candidate(mode: u8, market: &MarketV3, clock: &Clock) -> Result<MarketV3> {
+pub(crate) fn control_candidate(mode: u8, market: &Market, clock: &Clock) -> Result<Market> {
     let mut candidate = account_trading::market_view(market)?;
     let old = candidate.oracle;
     require!(
@@ -123,8 +133,8 @@ mod tests {
     use crate::state::OracleState;
     use financial_core::SCALE;
 
-    fn market() -> MarketV3 {
-        MarketV3 {
+    fn market() -> Market {
+        Market {
             schema_version: 3,
             venue: Pubkey::new_unique(),
             cross_eligible: true,
@@ -154,7 +164,7 @@ mod tests {
                 ask: 6_007_200,
                 ..OracleState::default()
             },
-            ..MarketV3::default()
+            ..Market::default()
         }
     }
 
@@ -183,8 +193,6 @@ mod tests {
             ask: 6_006_000,
             expiry_slot: 2000,
             expiry_time,
-            bid_legs: vec![],
-            ask_legs: vec![],
         }
     }
 

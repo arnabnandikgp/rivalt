@@ -3,7 +3,7 @@ use super::account_custody::{arithmetic as checked, increment};
 use super::account_trading as trading;
 use crate::{
     error::ClearingError,
-    state::{v2, v3::*},
+    state::{accounts::*, records::*},
 };
 use anchor_lang::prelude::*;
 use financial_core as math;
@@ -28,15 +28,15 @@ fn subtract(left: i128, right: i128) -> Result<i128> {
         .ok_or_else(|| error!(ClearingError::Arithmetic))
 }
 
-pub(crate) fn profile(venue: &VenueV3, custody: &CustodyV3, safety: &SafetyV3) -> Result<()> {
+pub(crate) fn profile(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> Result<()> {
     require!(
-        cfg!(feature = "account-cash-qualification"),
+        cfg!(feature = "liquidity-execution-qualification"),
         ClearingError::Profile
     );
-    trading::financial_activated(venue, custody, safety)
+    trading::activated(venue, custody, safety)
 }
 
-fn begin(identity: &AccountFinancialIdentityV3) -> Result<Snapshot> {
+fn begin(identity: &AccountFinancialIdentity) -> Result<Snapshot> {
     profile(&identity.venue, &identity.custody, &identity.safety)?;
     super::account_custody::reconciled(
         &identity.custody,
@@ -47,16 +47,16 @@ fn begin(identity: &AccountFinancialIdentityV3) -> Result<Snapshot> {
 }
 
 fn commit(
-    identity: &mut AccountFinancialIdentityV3,
-    root: &mut Account<MarginAccountV3>,
-    candidate: &v2::MarginAccountV2,
+    identity: &mut AccountFinancialIdentity,
+    root: &mut Account<MarginAccount>,
+    candidate: &MarginAccount,
 ) -> Result<()> {
     let previous = root.positions;
     trading::commit_root(root, candidate)?;
     trading::invalidate(&mut identity.custody, previous, root.positions)
 }
 
-fn finish(identity: &mut AccountFinancialIdentityV3, clock: &Clock) -> Result<()> {
+fn finish(identity: &mut AccountFinancialIdentity, clock: &Clock) -> Result<()> {
     trading::materialize([&mut identity.btc, &mut identity.eth], clock)?;
     increment(&mut identity.custody.sequence)?;
     super::account_custody::reconciled(
@@ -68,16 +68,16 @@ fn finish(identity: &mut AccountFinancialIdentityV3, clock: &Clock) -> Result<()
 
 #[inline(never)]
 fn emit<'info>(
-    identity: &AccountFinancialIdentityV3<'info>,
+    identity: &AccountFinancialIdentity<'info>,
     authority: AccountInfo<'info>,
     actor: Pubkey,
     kind: u8,
     market_index: u8,
     amount: u64,
-    roots: &[&Account<'info, MarginAccountV3>],
+    roots: &[&Account<'info, MarginAccount>],
     slot: u64,
 ) -> Result<()> {
-    let event = Box::new(crate::events::AccountFinancialChangedV3 {
+    let event = Box::new(crate::events::AccountFinancialChanged {
         venue: identity.venue.key(),
         sequence: identity.custody.sequence,
         slot,
@@ -93,14 +93,14 @@ fn emit<'info>(
         roots: roots.iter().map(|root| root.key()).collect(),
         root_states: roots
             .iter()
-            .map(|root| crate::events::MarginAccountSnapshotV3::from(&***root))
+            .map(|root| crate::events::MarginAccountSnapshot::from(&***root))
             .collect(),
         markets: [
-            crate::events::MarketSnapshotV3::from(&**identity.btc),
-            crate::events::MarketSnapshotV3::from(&**identity.eth),
+            crate::events::MarketSnapshot::from(&**identity.btc),
+            crate::events::MarketSnapshot::from(&**identity.eth),
         ],
         ledgers: [&identity.btc_ledger, &identity.eth_ledger].map(|ledger| {
-            crate::events::MarketLedgerSnapshotV3 {
+            crate::events::MarketLedgerSnapshot {
                 ledger: ledger.key(),
                 market: ledger.market,
                 market_index: ledger.market_index,

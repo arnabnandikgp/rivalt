@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# One fresh G22 profile. Run baseline/control/treatment sequentially on this host.
+# One fresh G22 profile. Run control/treatment sequentially on this host.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-export RIVALT_CONTINUATION_PROFILE="${RIVALT_CONTINUATION_PROFILE:?baseline, control or treatment required}"
+export RIVALT_CONTINUATION_PROFILE="${RIVALT_CONTINUATION_PROFILE:?control or treatment required}"
 case "$RIVALT_CONTINUATION_PROFILE" in
-  baseline) export RIVALT_ARTIFACT_DIR=.local/account-safety ;;
   control|treatment) export RIVALT_ARTIFACT_DIR=.local/liquidity-execution ;;
   *) echo 'Unknown comparison profile' >&2; exit 1 ;;
 esac

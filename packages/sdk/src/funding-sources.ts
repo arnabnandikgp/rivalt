@@ -1,5 +1,5 @@
 import { address, getAddressDecoder, type Address } from '@solana/kit';
-import type { MarketV3 } from './generated/index.js';
+import type { Market } from './generated/index.js';
 import { fromBase64, hex } from './wallet-client.js';
 import type { LiquidityAccountMap } from './liquidity-adapter.js';
 
@@ -9,7 +9,7 @@ type Source = { value: bigint; confidence: bigint; published: bigint };
 /** Local profile only. Decode the authenticated fixture schema from the same RPC
  * snapshot as makers. Clearing independently repeats source authentication and
  * bounds; an off-chain valid result never authorizes risk valuation by itself. */
-export async function fundingReference(market: MarketV3, accounts: LiquidityAccountMap, now: bigint): Promise<bigint | null> {
+export async function fundingReference(market: Market, accounts: LiquidityAccountMap, now: bigint): Promise<bigint | null> {
   const discriminator = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('account:Feed'))).slice(0, 8);
   const indexes = market.index === 0 ? [0, 1, 2, 3] : market.index === 1 ? [4, 1, 5, 3] : [];
   const multiplier = market.lotsPerUnit === 1_000_000n ? 1n : market.lotsPerUnit === 100_000n ? 10n : 0n;

@@ -36,6 +36,8 @@ jobs:
           persist-credentials: false
       - name: Keep raw evidence out of the tracked tree
         run: python3 ops/check-evidence-policy.py
+      - name: Preserve the pinned wire contract
+        run: python3 ops/wire_contract.py
       - id: scope
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -88,21 +90,17 @@ jobs:
       - run: rustup toolchain install 1.97.1 --profile minimal
       - run: mkdir -p .local
       - run: bash ops/financial.sh
-      - name: Schema-3 safety and activation handlers
+      - name: Current engine and disabled-default gates
         env:
           CARGO_PROFILE_TEST_DEBUG: '0'
           CARGO_PROFILE_DEV_DEBUG: '0'
           CARGO_INCREMENTAL: '0'
         run: |
-          cargo test --locked -p clearing --lib instructions::account_safety --features account-safety-qualification
-          cargo test --locked -p clearing --lib instructions::account_trading::activation --features account-safety-qualification
-          cargo test --locked -p clearing --lib instructions::account_trading::routes::event_tests --features account-safety-qualification
-          cargo test --locked -p clearing --lib state::v3::tests --features account-safety-qualification
-          cargo test --locked -p clearing --lib state::v3::tests
-          cargo test --locked -p clearing --lib instructions::maker_liquidity::tests --features maker-liquidity-qualification,account-safety-qualification
-          cargo test --locked -p clearing --lib instructions::maker_liquidity::tests
-          cargo test --locked -p clearing --lib instructions::maker_liquidity::publisher::tests --features liquidity-execution-qualification
-          cargo test --locked -p clearing --lib instructions::maker_liquidity::routes::tests --features liquidity-execution-qualification
+          cargo test --locked -p clearing --lib --features liquidity-execution-qualification
+          cargo test --locked -p clearing --lib
+          cargo test --locked -p maker_a -p maker_b --lib --features maker-liquidity-qualification
+          cargo test --locked -p maker_a -p maker_b --lib
+
   shell:
     needs: scope
     if: needs.scope.outputs.shell == 'true'

@@ -48,7 +48,7 @@ import {
 } from "@solana/kit";
 
 export const MAKER_REGISTRATION_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([231, 196, 106, 151, 199, 213, 13, 66]);
+  new Uint8Array([64, 36, 102, 180, 245, 54, 123, 199]);
 
 export function getMakerRegistrationDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -58,21 +58,19 @@ export function getMakerRegistrationDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type MakerRegistration = {
   discriminator: ReadonlyUint8Array;
-  version: number;
-  makerId: number;
+  schemaVersion: number;
+  venue: Address;
   market: Address;
   capital: Address;
   owner: Address;
   pricingProgram: Address;
   programData: Address;
   config: Address;
-  /** Entire loader ProgramData, including deployment slot, authority and code. */
+  price: Address;
   approvedHash: ReadonlyUint8Array;
+  instance: number;
   authorityEpoch: bigint;
-  quoteEpoch: bigint;
-  startSlot: bigint;
-  expirySlot: bigint;
-  inventoryLimit: bigint;
+  depthEpoch: bigint;
   buyConsumed: bigint;
   sellConsumed: bigint;
   quarantined: boolean;
@@ -80,21 +78,19 @@ export type MakerRegistration = {
 };
 
 export type MakerRegistrationArgs = {
-  version: number;
-  makerId: number;
+  schemaVersion: number;
+  venue: Address | HasAddress;
   market: Address | HasAddress;
   capital: Address | HasAddress;
   owner: Address | HasAddress;
   pricingProgram: Address | HasAddress;
   programData: Address | HasAddress;
   config: Address | HasAddress;
-  /** Entire loader ProgramData, including deployment slot, authority and code. */
+  price: Address | HasAddress;
   approvedHash: ReadonlyUint8Array;
+  instance: number;
   authorityEpoch: number | bigint;
-  quoteEpoch: number | bigint;
-  startSlot: number | bigint;
-  expirySlot: number | bigint;
-  inventoryLimit: number | bigint;
+  depthEpoch: number | bigint;
   buyConsumed: number | bigint;
   sellConsumed: number | bigint;
   quarantined: boolean;
@@ -106,20 +102,19 @@ export function getMakerRegistrationEncoder(): FixedSizeEncoder<MakerRegistratio
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["version", getU16Encoder()],
-      ["makerId", getU8Encoder()],
+      ["schemaVersion", getU16Encoder()],
+      ["venue", getAddressEncoder()],
       ["market", getAddressEncoder()],
       ["capital", getAddressEncoder()],
       ["owner", getAddressEncoder()],
       ["pricingProgram", getAddressEncoder()],
       ["programData", getAddressEncoder()],
       ["config", getAddressEncoder()],
+      ["price", getAddressEncoder()],
       ["approvedHash", fixEncoderSize(getBytesEncoder(), 32)],
+      ["instance", getU8Encoder()],
       ["authorityEpoch", getU64Encoder()],
-      ["quoteEpoch", getU64Encoder()],
-      ["startSlot", getU64Encoder()],
-      ["expirySlot", getU64Encoder()],
-      ["inventoryLimit", getU64Encoder()],
+      ["depthEpoch", getU64Encoder()],
       ["buyConsumed", getU64Encoder()],
       ["sellConsumed", getU64Encoder()],
       ["quarantined", getBooleanEncoder()],
@@ -133,20 +128,19 @@ export function getMakerRegistrationEncoder(): FixedSizeEncoder<MakerRegistratio
 export function getMakerRegistrationDecoder(): FixedSizeDecoder<MakerRegistration> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["version", getU16Decoder()],
-    ["makerId", getU8Decoder()],
+    ["schemaVersion", getU16Decoder()],
+    ["venue", getAddressDecoder()],
     ["market", getAddressDecoder()],
     ["capital", getAddressDecoder()],
     ["owner", getAddressDecoder()],
     ["pricingProgram", getAddressDecoder()],
     ["programData", getAddressDecoder()],
     ["config", getAddressDecoder()],
+    ["price", getAddressDecoder()],
     ["approvedHash", fixDecoderSize(getBytesDecoder(), 32)],
+    ["instance", getU8Decoder()],
     ["authorityEpoch", getU64Decoder()],
-    ["quoteEpoch", getU64Decoder()],
-    ["startSlot", getU64Decoder()],
-    ["expirySlot", getU64Decoder()],
-    ["inventoryLimit", getU64Decoder()],
+    ["depthEpoch", getU64Decoder()],
     ["buyConsumed", getU64Decoder()],
     ["sellConsumed", getU64Decoder()],
     ["quarantined", getBooleanDecoder()],
@@ -245,5 +239,5 @@ export async function fetchAllMaybeMakerRegistration(
 }
 
 export function getMakerRegistrationSize(): number {
-  return 293;
+  return 333;
 }

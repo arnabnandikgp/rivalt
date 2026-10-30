@@ -1,5 +1,5 @@
 //! Fresh account-centric custody. Trading and nonzero financial state stay gated.
-use crate::{error::ClearingError, events::*, state::v3::*};
+use crate::{error::ClearingError, events::*, state::accounts::*};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, TransferChecked};
 use financial_core::{cash_add, cash_sub};
@@ -16,15 +16,14 @@ pub(crate) fn increment(value: &mut u64) -> Result<()> {
 }
 
 pub(crate) fn custody_profile(
-    venue: &VenueV3,
-    custody: &CustodyV3,
-    safety: &SafetyV3,
+    venue: &Venue,
+    custody: &Custody,
+    safety: &VenueSafety,
 ) -> Result<()> {
     require!(
-        cfg!(feature = "account-test-profile")
+        cfg!(feature = "liquidity-execution-qualification")
             && venue.schema_version == SCHEMA_VERSION
-            && (venue.profile_version == PROFILE_VERSION
-                || (cfg!(feature = "maker-liquidity-qualification") && venue.profile_version == 4))
+            && venue.profile_version == PROFILE_VERSION
             && venue.insurance_fee_share_bps == 2500
             && custody.schema_version == SCHEMA_VERSION
             && safety.schema_version == SCHEMA_VERSION
@@ -34,7 +33,7 @@ pub(crate) fn custody_profile(
     Ok(())
 }
 
-pub(crate) fn active(venue: &VenueV3, custody: &CustodyV3, safety: &SafetyV3) -> Result<()> {
+pub(crate) fn active(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> Result<()> {
     custody_profile(venue, custody, safety)?;
     require!(!safety.paused, ClearingError::Paused);
     Ok(())
@@ -42,7 +41,7 @@ pub(crate) fn active(venue: &VenueV3, custody: &CustodyV3, safety: &SafetyV3) ->
 
 /// Identity admission and reserve donation may continue after candidate activation;
 /// they do not authorize trading or consume a price-dependent financial path.
-fn available_identity(venue: &VenueV3, custody: &CustodyV3, safety: &SafetyV3) -> Result<()> {
+fn available_identity(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> Result<()> {
     if safety.mode == ACTIVE {
         super::account_cash::profile(venue, custody, safety)
     } else {
@@ -51,8 +50,8 @@ fn available_identity(venue: &VenueV3, custody: &CustodyV3, safety: &SafetyV3) -
 }
 
 pub(crate) fn reconciled(
-    custody: &CustodyV3,
-    ledgers: [&MarketLedgerV3; 2],
+    custody: &Custody,
+    ledgers: [&MarketLedger; 2],
     actual: u64,
 ) -> Result<()> {
     let mut allocated = u128::from(custody.total_cash);
@@ -73,8 +72,8 @@ pub(crate) fn reconciled(
     Ok(())
 }
 
-fn empty_financial_state(margin: &MarginAccountV3) -> Result<()> {
-    let mut book = Vec::with_capacity(crate::state::v2::OrderBookV2::INIT_SPACE);
+fn empty_financial_state(margin: &MarginAccount) -> Result<()> {
+    let mut book = Vec::with_capacity(crate::state::OrderBook::INIT_SPACE);
     margin.book.serialize(&mut book)?;
     require!(
         margin.schema_version == SCHEMA_VERSION
@@ -102,13 +101,13 @@ fn empty_financial_state(margin: &MarginAccountV3) -> Result<()> {
 
 /// Completed resolution retains historical generations/nonces. Those are not
 /// liabilities; custody cash access still requires every live obligation absent.
-pub(crate) fn recovered_custody(safety: &SafetyV3) -> bool {
-    cfg!(feature = "account-safety-qualification")
+pub(crate) fn recovered_custody(safety: &VenueSafety) -> bool {
+    cfg!(feature = "liquidity-execution-qualification")
         && safety.mode == CUSTODY
         && safety.resolution_epoch > 0
 }
 
-pub(crate) fn liability_free(margin: &MarginAccountV3) -> Result<()> {
+pub(crate) fn liability_free(margin: &MarginAccount) -> Result<()> {
     super::account_trading::model(margin)?;
     require!(
         margin.reserved == 0
@@ -126,8 +125,8 @@ pub(crate) fn liability_free(margin: &MarginAccountV3) -> Result<()> {
     Ok(())
 }
 
-fn member(account: &Account<MarginAccountV3>) -> AccountCashSnapshotV3 {
-    AccountCashSnapshotV3 {
+fn member(account: &Account<MarginAccount>) -> AccountCashSnapshot {
+    AccountCashSnapshot {
         margin: account.key(),
         portfolio: account.portfolio,
         owner: account.owner,
@@ -141,8 +140,8 @@ fn member(account: &Account<MarginAccountV3>) -> AccountCashSnapshotV3 {
     }
 }
 
-fn ledger_snapshot(account: &Account<MarketLedgerV3>) -> MarketLedgerSnapshotV3 {
-    MarketLedgerSnapshotV3 {
+fn ledger_snapshot(account: &Account<MarketLedger>) -> MarketLedgerSnapshot {
+    MarketLedgerSnapshot {
         ledger: account.key(),
         market: account.market,
         market_index: account.market_index,
@@ -155,21 +154,21 @@ fn ledger_snapshot(account: &Account<MarketLedgerV3>) -> MarketLedgerSnapshotV3 
 }
 
 fn event(
-    venue: &Account<VenueV3>,
-    custody: &mut Account<CustodyV3>,
-    safety: &Account<SafetyV3>,
+    venue: &Account<Venue>,
+    custody: &mut Account<Custody>,
+    safety: &Account<VenueSafety>,
     kind: u8,
     actor: Pubkey,
     subject: Pubkey,
     index: u16,
     amount: u64,
     actual_vault: Option<u64>,
-    members: Vec<AccountCashSnapshotV3>,
-    ledgers: Vec<MarketLedgerSnapshotV3>,
-    registry: Option<&Account<VenueRegistryV3>>,
-) -> Result<AccountCustodyChangedV3> {
+    members: Vec<AccountCashSnapshot>,
+    ledgers: Vec<MarketLedgerSnapshot>,
+    registry: Option<&Account<VenueRegistry>>,
+) -> Result<AccountCustodyChanged> {
     increment(&mut custody.sequence)?;
-    Ok(AccountCustodyChangedV3 {
+    Ok(AccountCustodyChanged {
         schema_version: SCHEMA_VERSION,
         profile_version: venue.profile_version,
         domain: venue.domain,
@@ -206,29 +205,29 @@ fn event(
     })
 }
 
-pub fn initialize(
-    ctx: Context<InitializeVenueV3>,
-    domain: [u8; 32],
-    fee_authority: Pubkey,
-    reserve_authority: Pubkey,
-    reserve_destination_owner: Pubkey,
-) -> Result<()> {
-    initialize_profile(ctx, domain, fee_authority, reserve_authority, reserve_destination_owner, PROFILE_VERSION)
-}
-
 pub fn initialize_liquidity(
-    ctx: Context<InitializeVenueV3>,
+    ctx: Context<InitializeVenue>,
     domain: [u8; 32],
     fee_authority: Pubkey,
     reserve_authority: Pubkey,
     reserve_destination_owner: Pubkey,
 ) -> Result<()> {
-    require!(cfg!(feature = "maker-liquidity-qualification"), ClearingError::Profile);
-    initialize_profile(ctx, domain, fee_authority, reserve_authority, reserve_destination_owner, 4)
+    require!(
+        cfg!(feature = "liquidity-execution-qualification"),
+        ClearingError::Profile
+    );
+    initialize_profile(
+        ctx,
+        domain,
+        fee_authority,
+        reserve_authority,
+        reserve_destination_owner,
+        4,
+    )
 }
 
 fn initialize_profile(
-    ctx: Context<InitializeVenueV3>,
+    ctx: Context<InitializeVenue>,
     domain: [u8; 32],
     fee_authority: Pubkey,
     reserve_authority: Pubkey,
@@ -236,7 +235,7 @@ fn initialize_profile(
     profile_version: u16,
 ) -> Result<()> {
     require!(
-        cfg!(feature = "account-test-profile") && ctx.remaining_accounts.is_empty(),
+        cfg!(feature = "liquidity-execution-qualification") && ctx.remaining_accounts.is_empty(),
         ClearingError::Profile
     );
     require!(domain != [0; 32], ClearingError::Domain);
@@ -247,7 +246,7 @@ fn initialize_profile(
         ClearingError::Authority
     );
     let venue = &mut ctx.accounts.venue;
-    venue.set_inner(VenueV3 {
+    venue.set_inner(Venue {
         schema_version: SCHEMA_VERSION,
         profile_version,
         domain,
@@ -264,13 +263,13 @@ fn initialize_profile(
         vault_bump: ctx.bumps.vault,
         ..Default::default()
     });
-    ctx.accounts.custody.set_inner(CustodyV3 {
+    ctx.accounts.custody.set_inner(Custody {
         schema_version: SCHEMA_VERSION,
         venue: venue.key(),
         bump: ctx.bumps.custody,
         ..Default::default()
     });
-    ctx.accounts.safety.set_inner(SafetyV3 {
+    ctx.accounts.safety.set_inner(VenueSafety {
         schema_version: SCHEMA_VERSION,
         venue: venue.key(),
         epoch: 1,
@@ -294,7 +293,7 @@ fn initialize_profile(
     Ok(())
 }
 
-pub fn initialize_registry(ctx: Context<InitializeVenueRegistryV3>) -> Result<()> {
+pub fn initialize_registry(ctx: Context<InitializeVenueRegistry>) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     active(
         &ctx.accounts.venue,
@@ -306,7 +305,7 @@ pub fn initialize_registry(ctx: Context<InitializeVenueRegistryV3>) -> Result<()
         ctx.accounts.venue.authority,
         ClearingError::Authority
     );
-    ctx.accounts.registry.set_inner(VenueRegistryV3 {
+    ctx.accounts.registry.set_inner(VenueRegistry {
         schema_version: SCHEMA_VERSION,
         venue: ctx.accounts.venue.key(),
         membership_version: 1,
@@ -330,7 +329,7 @@ pub fn initialize_registry(ctx: Context<InitializeVenueRegistryV3>) -> Result<()
     Ok(())
 }
 
-pub fn initialize_market(ctx: Context<InitializeMarketV3>, index: u8) -> Result<()> {
+pub fn initialize_market(ctx: Context<InitializeMarket>, index: u8) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     active(
         &ctx.accounts.venue,
@@ -346,7 +345,7 @@ pub fn initialize_market(ctx: Context<InitializeMarketV3>, index: u8) -> Result<
         usize::from(index) < MARKET_COUNT && index == ctx.accounts.venue.market_count,
         ClearingError::Profile
     );
-    ctx.accounts.market.set_inner(MarketV3 {
+    ctx.accounts.market.set_inner(Market {
         schema_version: SCHEMA_VERSION,
         venue: ctx.accounts.venue.key(),
         index,
@@ -362,7 +361,7 @@ pub fn initialize_market(ctx: Context<InitializeMarketV3>, index: u8) -> Result<
         bump: ctx.bumps.market,
         ..Default::default()
     });
-    ctx.accounts.ledger.set_inner(MarketLedgerV3 {
+    ctx.accounts.ledger.set_inner(MarketLedger {
         schema_version: SCHEMA_VERSION,
         venue: ctx.accounts.venue.key(),
         market: ctx.accounts.market.key(),
@@ -389,7 +388,7 @@ pub fn initialize_market(ctx: Context<InitializeMarketV3>, index: u8) -> Result<
     Ok(())
 }
 
-pub fn create_portfolio(ctx: Context<CreatePortfolioV3>, index: u16) -> Result<()> {
+pub fn create_portfolio(ctx: Context<CreatePortfolio>, index: u16) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     available_identity(
         &ctx.accounts.venue,
@@ -400,7 +399,7 @@ pub fn create_portfolio(ctx: Context<CreatePortfolioV3>, index: u16) -> Result<(
         index < MAX_PORTFOLIOS && usize::from(ctx.accounts.venue.market_count) == MARKET_COUNT,
         ClearingError::Profile
     );
-    ctx.accounts.portfolio.set_inner(PortfolioV3 {
+    ctx.accounts.portfolio.set_inner(Portfolio {
         schema_version: SCHEMA_VERSION,
         venue: ctx.accounts.venue.key(),
         owner: ctx.accounts.owner.key(),
@@ -426,7 +425,7 @@ pub fn create_portfolio(ctx: Context<CreatePortfolioV3>, index: u16) -> Result<(
 }
 
 pub fn register(
-    ctx: Context<RegisterMarginV3>,
+    ctx: Context<RegisterMargin>,
     subaccount_index: u16,
     mode: u8,
     isolated_market_index: u8,
@@ -467,7 +466,7 @@ pub fn register(
         registry.members.len() < MAX_MEMBERS,
         ClearingError::Capacity
     );
-    ctx.accounts.margin.set_inner(MarginAccountV3 {
+    ctx.accounts.margin.set_inner(MarginAccount {
         schema_version: SCHEMA_VERSION,
         venue: ctx.accounts.venue.key(),
         portfolio: ctx.accounts.portfolio.key(),
@@ -502,7 +501,7 @@ pub fn register(
     Ok(())
 }
 
-pub fn cash(ctx: Context<AccountCashV3>, amount: u64, withdraw: bool) -> Result<()> {
+pub fn cash(ctx: Context<AccountCash>, amount: u64, withdraw: bool) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     if !withdraw && ctx.accounts.safety.mode == ACTIVE {
         super::account_cash::profile(
@@ -596,7 +595,7 @@ pub fn cash(ctx: Context<AccountCashV3>, amount: u64, withdraw: bool) -> Result<
     Ok(())
 }
 
-pub fn transfer(ctx: Context<TransferAccountCustodyV3>, amount: u64) -> Result<()> {
+pub fn transfer(ctx: Context<TransferAccountCustody>, amount: u64) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     active(
         &ctx.accounts.venue,
@@ -640,7 +639,7 @@ pub fn transfer(ctx: Context<TransferAccountCustodyV3>, amount: u64) -> Result<(
     Ok(())
 }
 
-pub fn pause(ctx: Context<PauseVenueV3>, paused: bool) -> Result<()> {
+pub fn pause(ctx: Context<PauseVenue>, paused: bool) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     if ctx.accounts.safety.mode == ACTIVE {
         super::account_trading::base_profile(
@@ -688,7 +687,7 @@ pub fn pause(ctx: Context<PauseVenueV3>, paused: bool) -> Result<()> {
 }
 
 pub fn classify_surplus(
-    ctx: Context<ClassifyMarketSurplusV3>,
+    ctx: Context<ClassifyMarketSurplus>,
     market_index: u8,
     amount: u64,
 ) -> Result<()> {
@@ -748,7 +747,7 @@ pub fn classify_surplus(
 }
 
 pub fn seed_insurance(
-    ctx: Context<SeedMarketInsuranceV3>,
+    ctx: Context<SeedMarketInsurance>,
     market_index: u8,
     amount: u64,
 ) -> Result<()> {

@@ -24,12 +24,12 @@ it('matches isolated Anchor for nested identities, optional legs and flattened i
       secondProgram: two ? sdk.makerB.MAKER_B_PROGRAM_ADDRESS : undefined,
       secondProgramData: two ? testAddress(20) : undefined, secondConfig: two ? testAddress(21) : undefined,
       secondPrice: two ? testAddress(22) : undefined };
-    for (const generation of [null, 1n]) conformance.record([sdk.getExecuteLiquidityRouteV4Instruction({ ...accounts,
+    for (const generation of [null, 1n]) conformance.record([sdk.getExecuteLiquidityRouteInstruction({ ...accounts,
       domain: new Uint8Array(32).fill(31), termsEpoch: 32n, configEpoch: 33n, side: 0,
       allInLimit: 120_033n, maxFee: 25n, reduceOnly: false, generation })]);
-    conformance.record([sdk.getExecuteLiquidityOrderV4Instruction({ ...accounts, id: 34n, version: 35n, filled: 36n })]);
+    conformance.record([sdk.getExecuteLiquidityOrderInstruction({ ...accounts, id: 34n, version: 35n, filled: 36n })]);
   }
-  conformance.record([sdk.getActivateLiquidityV4Instruction({ authority: common.actor, venue: common.venue,
+  conformance.record([sdk.getActivateLiquidityInstruction({ authority: common.actor, venue: common.venue,
     custody: common.custody, safety: common.safety, btc: common.market, eth: common.otherMarket,
     btcLedger: common.ledger, ethLedger: common.otherLedger, vault: common.vault,
     eventAuthority: common.eventAuthority, program: common.program, resolution: testAddress(23) })]);

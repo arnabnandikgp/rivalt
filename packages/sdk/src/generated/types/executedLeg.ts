@@ -10,12 +10,6 @@ import {
   combineCodec,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
-  getI128Decoder,
-  getI128Encoder,
-  getI64Decoder,
-  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -28,78 +22,68 @@ import {
   type FixedSizeEncoder,
   type HasAddress,
 } from "@solana/kit";
-import {
-  getOrderBookDecoder,
-  getOrderBookEncoder,
-  type OrderBook,
-  type OrderBookArgs,
-} from "./index.js";
 
 export type ExecutedLeg = {
-  makerId: number;
+  registration: Address;
   capital: Address;
+  instance: number;
   lots: bigint;
-  grossQuote: bigint;
-  quoteEpoch: bigint;
+  gross: bigint;
+  priceSequence: bigint;
   authorityEpoch: bigint;
+  controlEpoch: bigint;
+  shapeEpoch: bigint;
+  depthEpoch: bigint;
+  consumedBefore: bigint;
   consumedAfter: bigint;
-  positionAfter: bigint;
-  virtualAfter: bigint;
-  generationAfter: bigint;
-  reservedAfter: bigint;
-  orderIdsAfter: Array<bigint>;
-  bookAfter: OrderBook;
 };
 
 export type ExecutedLegArgs = {
-  makerId: number;
+  registration: Address | HasAddress;
   capital: Address | HasAddress;
+  instance: number;
   lots: number | bigint;
-  grossQuote: number | bigint;
-  quoteEpoch: number | bigint;
+  gross: number | bigint;
+  priceSequence: number | bigint;
   authorityEpoch: number | bigint;
+  controlEpoch: number | bigint;
+  shapeEpoch: number | bigint;
+  depthEpoch: number | bigint;
+  consumedBefore: number | bigint;
   consumedAfter: number | bigint;
-  positionAfter: number | bigint;
-  virtualAfter: number | bigint;
-  generationAfter: number | bigint;
-  reservedAfter: number | bigint;
-  orderIdsAfter: Array<number | bigint>;
-  bookAfter: OrderBookArgs;
 };
 
 export function getExecutedLegEncoder(): FixedSizeEncoder<ExecutedLegArgs> {
   return getStructEncoder([
-    ["makerId", getU8Encoder()],
+    ["registration", getAddressEncoder()],
     ["capital", getAddressEncoder()],
+    ["instance", getU8Encoder()],
     ["lots", getU64Encoder()],
-    ["grossQuote", getU64Encoder()],
-    ["quoteEpoch", getU64Encoder()],
+    ["gross", getU64Encoder()],
+    ["priceSequence", getU64Encoder()],
     ["authorityEpoch", getU64Encoder()],
+    ["controlEpoch", getU64Encoder()],
+    ["shapeEpoch", getU64Encoder()],
+    ["depthEpoch", getU64Encoder()],
+    ["consumedBefore", getU64Encoder()],
     ["consumedAfter", getU64Encoder()],
-    ["positionAfter", getI64Encoder()],
-    ["virtualAfter", getI128Encoder()],
-    ["generationAfter", getU64Encoder()],
-    ["reservedAfter", getU64Encoder()],
-    ["orderIdsAfter", getArrayEncoder(getU64Encoder(), { size: 4 })],
-    ["bookAfter", getOrderBookEncoder()],
   ]);
 }
 
 export function getExecutedLegDecoder(): FixedSizeDecoder<ExecutedLeg> {
   return getStructDecoder([
-    ["makerId", getU8Decoder()],
+    ["registration", getAddressDecoder()],
     ["capital", getAddressDecoder()],
+    ["instance", getU8Decoder()],
     ["lots", getU64Decoder()],
-    ["grossQuote", getU64Decoder()],
-    ["quoteEpoch", getU64Decoder()],
+    ["gross", getU64Decoder()],
+    ["priceSequence", getU64Decoder()],
     ["authorityEpoch", getU64Decoder()],
+    ["controlEpoch", getU64Decoder()],
+    ["shapeEpoch", getU64Decoder()],
+    ["depthEpoch", getU64Decoder()],
+    ["consumedBefore", getU64Decoder()],
     ["consumedAfter", getU64Decoder()],
-    ["positionAfter", getI64Decoder()],
-    ["virtualAfter", getI128Decoder()],
-    ["generationAfter", getU64Decoder()],
-    ["reservedAfter", getU64Decoder()],
-    ["orderIdsAfter", getArrayDecoder(getU64Decoder(), { size: 4 })],
-    ["bookAfter", getOrderBookDecoder()],
   ]);
 }
 

@@ -6,7 +6,7 @@ import { getBase58Encoder } from '@solana/kit';
 import { Connection } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
-import { payerKey, program, type Harness } from './custody-cases.js';
+import { payerKey, program, type Harness } from './harness.js';
 import { accountCustodyCases } from './account-custody-cases.js';
 import { WireRpc, WireSubscriptions, eventually } from './wire.js';
 
@@ -15,7 +15,7 @@ assert.equal(new URL(url).hostname, '127.0.0.1');
 const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
 const ws = new WireSubscriptions(process.env.RIVALT_WS_URL!);
 const payer = await payerKey(), base58 = getBase58Encoder();
-const checks: Record<string, unknown>[] = [], committed: ReturnType<typeof sdk.parseAccountCustodyChangedV3Event>[] = [];
+const checks: Record<string, unknown>[] = [], committed: ReturnType<typeof sdk.parseAccountCustodyChangedEvent>[] = [];
 const eventBytes: string[] = [];
 const serialize = (value: unknown) => JSON.stringify(value, (_, item) => typeof item === 'bigint' ? item.toString() : item, 2)+'\n';
 await ws.ready();
@@ -47,8 +47,8 @@ const h: Harness = {
     const bytes = (history.meta.innerInstructions ?? []).flatMap((outer: any) => outer.instructions)
       .filter((instruction: any) => history.transaction.message.accountKeys[instruction.programIdIndex] === program)
       .map((instruction: any) => Buffer.from(base58.encode(instruction.data)))
-      .filter((data: Buffer) => data.subarray(8, 16).equals(Buffer.from(sdk.ACCOUNT_CUSTODY_CHANGED_V3_EVENT_DISCRIMINATOR)));
-    const events = bytes.map((data: Buffer) => sdk.parseAccountCustodyChangedV3Event(data.subarray(8)));
+      .filter((data: Buffer) => data.subarray(8, 16).equals(Buffer.from(sdk.ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR)));
+    const events = bytes.map((data: Buffer) => sdk.parseAccountCustodyChangedEvent(data.subarray(8)));
     if (expectedError === undefined) {
       committed.push(...events);
       eventBytes.push(...bytes.map((data: Buffer) => data.subarray(8).toString('base64')));
@@ -73,9 +73,9 @@ try {
       sum + ledger.settlement + ledger.insurance + ledger.fees, 0n));
   }
   assert.equal(committed.at(-1)!.totalCash, 0n);
-  const accountKeys = { venueV3: result.venue, venueRegistryV3: result.registry, custodyV3: result.custody,
-    safetyV3: result.safety, marginAccountV3: result.roots[0], portfolioV3: result.portfolios[0],
-    marketV3: result.markets[1], marketLedgerV3: result.ledgers[1] };
+  const accountKeys = { venue: result.venue, venueRegistry: result.registry, custody: result.custody,
+    venueSafety: result.safety, marginAccount: result.roots[0], portfolio: result.portfolios[0],
+    market: result.markets[1], marketLedger: result.ledgers[1] };
   const accounts: Record<string, string> = Object.fromEntries(await Promise.all(Object.entries(accountKeys).map(async ([name, key]) => [name, (await h.read(key))!.toString('base64')])));
   const conformancePath = `${runDir}/legacy-input.json`;
   writeFileSync(conformancePath, serialize({ accounts, events: eventBytes }));

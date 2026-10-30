@@ -4,8 +4,8 @@ use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct ManageMarketFeesV3<'info> {
-    pub identity: AccountFinancialIdentityV3<'info>,
+pub struct ManageMarketFees<'info> {
+    pub identity: AccountFinancialIdentity<'info>,
     #[account(address = identity.venue.fee_authority @ ClearingError::Authority)]
     pub fee_authority: Signer<'info>,
     #[account(address = identity.venue.quote_mint @ ClearingError::Mint)]
@@ -17,7 +17,7 @@ pub struct ManageMarketFeesV3<'info> {
 }
 
 pub fn manage(
-    ctx: Context<ManageMarketFeesV3>,
+    ctx: Context<ManageMarketFees>,
     market_index: u8,
     amount: u64,
     withdraw: bool,
@@ -29,9 +29,9 @@ pub fn manage(
     let accounts = &mut *ctx.accounts;
     let identity = &mut accounts.identity;
     require!(
-        cfg!(feature = "account-cash-qualification")
+        cfg!(feature = "liquidity-execution-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
-            && trading::financial_profile_version(&identity.venue)
+            && trading::supported_profile(&identity.venue)
             && identity.venue.insurance_fee_share_bps == 2500
             && identity.custody.schema_version == SCHEMA_VERSION
             && identity.safety.schema_version == SCHEMA_VERSION

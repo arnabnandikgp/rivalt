@@ -12,7 +12,7 @@ container system status >/dev/null
 trap 'if [[ -n ${RIVALT_PG_CONTAINER:-} ]]; then container stop "$RIVALT_PG_CONTAINER" >/dev/null 2>&1 || true; container delete "$RIVALT_PG_CONTAINER" >/dev/null 2>&1 || true; fi' EXIT
 source ops/liquidity-qualification-postgres.sh
 # Optional scoped retry selects a declared profile, never alters offer/time counts.
-for RIVALT_CONTINUATION_PROFILE in ${RIVALT_QUALIFICATION_PROFILES:-baseline control treatment}; do
+for RIVALT_CONTINUATION_PROFILE in ${RIVALT_QUALIFICATION_PROFILES:-control treatment}; do
   export RIVALT_CONTINUATION_PROFILE
   export RIVALT_RUN_DIR="$RIVALT_QUALIFICATION_ROOT/$RIVALT_CONTINUATION_PROFILE"
   export RIVALT_CONTINUATION_ENTRY=tests/rpc-contract/liquidity-qualification-rpc.ts

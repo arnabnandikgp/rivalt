@@ -29,33 +29,3 @@ pub mod routes {
     pub const MAX_ROUTE_LOTS: u64 = 4_608;
     pub const MAX_INTENT_SLOTS: u64 = 150;
 }
-
-pub mod custody {
-    pub const SCHEMA_VERSION: u16 = 1;
-    pub const PROFILE_VERSION: u16 = 1;
-    pub const DECIMALS: u8 = 6;
-}
-
-pub mod resolution {
-    pub const IDLE: u8 = 0;
-    pub const AWAIT_VALUATION: u8 = 1;
-    pub const VALUE: u8 = 2;
-    pub const COLLECT: u8 = 3;
-    pub const INSURANCE_FLOORS: u8 = 4;
-    pub const INSURANCE_AWARDS: u8 = 5;
-    pub const IMPAIR_FLOORS: u8 = 6;
-    pub const IMPAIR_AWARDS: u8 = 7;
-    pub const PAY_FLOORS: u8 = 8;
-    pub const PAY_AWARDS: u8 = 9;
-    pub const APPLY: u8 = 10;
-    pub const RECONCILE: u8 = 11;
-    pub const COMPLETE: u8 = 12;
-    pub const RESUMED: u8 = 13;
-}
-
-pub(crate) const fn financial_profile() -> bool {
-    cfg!(any(
-        feature = "local-test-profile",
-        feature = "devnet-test-profile"
-    ))
-}

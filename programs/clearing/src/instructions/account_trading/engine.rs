@@ -1,54 +1,25 @@
-//! Typed adapters to the existing pure book/risk candidates. These are in-memory
-//! scalar views only: schema-3 contexts own authentication, no V2 account handler
-//! or PDA is invoked, and immutable identity is never copied back from a candidate.
+//! Candidate snapshots and checked commits for current account records.
+//! Contexts authenticate PDAs; commits cannot change immutable account identity.
 use super::*;
+pub(crate) use crate::engine::account::model;
 
 #[inline(never)]
-pub(crate) fn root_view(root: &MarginAccountV3) -> Result<Box<v2::MarginAccountV2>> {
+pub(crate) fn root_view(root: &MarginAccount) -> Result<Box<MarginAccount>> {
     Ok(Box::new(root_view_value(root)?))
 }
 
-/// The same authenticated scalar adapter without a persistent heap copy. Used
-/// for short-lived funding projections in a separate bounded SBF frame.
+/// Copy a validated current root in a separate bounded SBF frame.
 #[inline(never)]
-pub(crate) fn root_view_value(root: &MarginAccountV3) -> Result<v2::MarginAccountV2> {
-    require!(
-        root.schema_version == SCHEMA_VERSION,
-        ClearingError::Profile
-    );
-    let view = v2::MarginAccountV2 {
-        schema_version: v2::SCHEMA_VERSION,
-        group: root.venue,
-        portfolio: root.portfolio,
-        owner: root.owner,
-        subaccount_index: root.subaccount_index,
-        id: root.id,
-        mode: root.mode,
-        isolated_market_index: root.isolated_market_index,
-        role: root.role,
-        cash: root.cash,
-        positions: root.positions,
-        nonce: root.nonce,
-        state_version: root.state_version,
-        delegate: root.delegate,
-        delegate_expiry_slot: root.delegate_expiry_slot,
-        delegate_epoch: root.delegate_epoch,
-        reserved: root.reserved,
-        book: root.book,
-        bump: root.bump,
-    };
-    super::super::group_margin::model(&view)?;
-    Ok(view)
+pub(crate) fn root_view_value(root: &MarginAccount) -> Result<MarginAccount> {
+    model(root)?;
+    Ok(root.clone())
 }
 
-pub(crate) fn commit_root(
-    root: &mut MarginAccountV3,
-    candidate: &v2::MarginAccountV2,
-) -> Result<()> {
+pub(crate) fn commit_root(root: &mut MarginAccount, candidate: &MarginAccount) -> Result<()> {
     model(root)?;
     require!(
-        candidate.schema_version == v2::SCHEMA_VERSION
-            && candidate.group == root.venue
+        candidate.schema_version == SCHEMA_VERSION
+            && candidate.venue == root.venue
             && candidate.portfolio == root.portfolio
             && candidate.owner == root.owner
             && candidate.subaccount_index == root.subaccount_index
@@ -59,7 +30,7 @@ pub(crate) fn commit_root(
             && candidate.bump == root.bump,
         ClearingError::Profile
     );
-    super::super::group_margin::model(candidate)?;
+    crate::engine::account::model(candidate)?;
     book::validate(candidate)?;
     root.cash = candidate.cash;
     root.positions = candidate.positions;
@@ -73,7 +44,7 @@ pub(crate) fn commit_root(
     Ok(())
 }
 
-pub(crate) fn market_view(market: &MarketV3) -> Result<v2::GroupMarketV2> {
+pub(crate) fn market_view(market: &Market) -> Result<Market> {
     require!(
         market.schema_version == SCHEMA_VERSION
             && market.index < 2
@@ -81,35 +52,17 @@ pub(crate) fn market_view(market: &MarketV3) -> Result<v2::GroupMarketV2> {
             && market.lots_per_unit == [1_000_000, 100_000][usize::from(market.index)],
         ClearingError::Profile
     );
-    Ok(v2::GroupMarketV2 {
-        schema_version: v2::SCHEMA_VERSION,
-        group: market.venue,
-        index: market.index,
-        symbol: market.symbol,
-        lots_per_unit: market.lots_per_unit,
-        terms_epoch: market.terms_epoch,
-        config_epoch: market.config_epoch,
-        funding_index_scaled: market.funding_index_scaled,
-        funding_time: market.funding_time,
-        gross_lots: market.gross_lots,
-        observation_sequence: market.observation_sequence,
-        reference_price: market.reference_price,
-        lower: market.lower,
-        upper: market.upper,
-        valid_from: market.valid_from,
-        valid_until: market.valid_until,
-        oracle: market.oracle,
-        bump: market.bump,
-    })
+    Ok(market.clone())
 }
 
-pub(crate) fn commit_market(market: &mut MarketV3, candidate: &v2::GroupMarketV2) -> Result<()> {
+pub(crate) fn commit_market(market: &mut Market, candidate: &Market) -> Result<()> {
     require!(
-        candidate.schema_version == v2::SCHEMA_VERSION
-            && candidate.group == market.venue
+        candidate.schema_version == SCHEMA_VERSION
+            && candidate.venue == market.venue
             && candidate.index == market.index
             && candidate.symbol == market.symbol
             && candidate.lots_per_unit == market.lots_per_unit
+            && candidate.cross_eligible == market.cross_eligible
             && candidate.bump == market.bump
             && candidate.terms_epoch == market.terms_epoch,
         ClearingError::Profile
@@ -128,47 +81,12 @@ pub(crate) fn commit_market(market: &mut MarketV3, candidate: &v2::GroupMarketV2
     Ok(())
 }
 
-pub(crate) fn model(root: &MarginAccountV3) -> Result<math::margin::Margin> {
-    require!(
-        root.schema_version == SCHEMA_VERSION
-            && valid_identity(
-                0,
-                root.subaccount_index,
-                root.mode,
-                root.isolated_market_index,
-                root.role
-            )
-            && root.delegate_epoch > 0
-            && ((root.delegate == Pubkey::default()) == (root.delegate_expiry_slot == 0))
-            && (root.delegate == Pubkey::default() || root.delegate != root.owner),
-        ClearingError::Profile
-    );
-    let candidate = math::margin::Margin {
-        id: root.id,
-        mode: if root.mode == MODE_CROSS {
-            math::margin::Mode::Cross
-        } else {
-            math::margin::Mode::Isolated(usize::from(root.isolated_market_index))
-        },
-        cash: root.cash,
-        reserved: root.reserved,
-        positions: root.positions.map(|position| math::margin::Position {
-            lots: position.lots,
-            virtual_scaled: position.virtual_scaled,
-            funding_checkpoint: position.funding_checkpoint_scaled,
-            generation: position.generation,
-        }),
-    };
-    checked(candidate.validate())?;
-    Ok(candidate)
-}
-
 /// Event order does not authorize actions. Only economic dependencies invalidate
 /// payment certificates, including cross-market cash changes with an existing debt.
 pub(crate) fn invalidate(
-    custody: &mut CustodyV3,
-    before: [v2::PositionV2; 2],
-    after: [v2::PositionV2; 2],
+    custody: &mut Custody,
+    before: [crate::state::Position; 2],
+    after: [crate::state::Position; 2],
 ) -> Result<()> {
     for index in 0..2 {
         if [before[index], after[index]]
@@ -182,13 +100,13 @@ pub(crate) fn invalidate(
 }
 
 pub(crate) fn environment<'a>(
-    markets: &'a [v2::GroupMarketV2; 2],
+    markets: &'a [Market; 2],
     selected: usize,
     clock: &Clock,
 ) -> Result<book::Environment<'a>> {
     require!(
         selected < 2
-            && markets[0].group == markets[1].group
+            && markets[0].venue == markets[1].venue
             && markets[0].index == 0
             && markets[1].index == 1,
         ClearingError::Profile
@@ -210,7 +128,7 @@ pub(crate) fn environment<'a>(
 /// Every consumed prefix persists even if a later sample is lost or held coverage
 /// expires. Both canonical market accounts are locked; irrelevant prices need not
 /// be fresh and no observation/event counter is a signed-intent dependency.
-pub(crate) fn materialize(markets: [&mut MarketV3; 2], clock: &Clock) -> Result<()> {
+pub(crate) fn materialize(markets: [&mut Market; 2], clock: &Clock) -> Result<()> {
     for market in markets {
         let mut view = market_view(market)?;
         shared_oracle::materialize(2, &mut view, clock)?;
@@ -220,8 +138,8 @@ pub(crate) fn materialize(markets: [&mut MarketV3; 2], clock: &Clock) -> Result<
 }
 
 pub(crate) fn split_fee(
-    custody: &mut CustodyV3,
-    ledger: &mut MarketLedgerV3,
+    custody: &mut Custody,
+    ledger: &mut MarketLedger,
     fee: u64,
 ) -> Result<(u64, u64, u8)> {
     require!(

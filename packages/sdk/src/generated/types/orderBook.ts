@@ -19,12 +19,12 @@ import {
   type FixedSizeEncoder,
 } from "@solana/kit";
 import {
-  getProtectiveGroupDecoder,
-  getProtectiveGroupEncoder,
+  getProtectionDecoder,
+  getProtectionEncoder,
   getStoredOrderDecoder,
   getStoredOrderEncoder,
-  type ProtectiveGroup,
-  type ProtectiveGroupArgs,
+  type Protection,
+  type ProtectionArgs,
   type StoredOrder,
   type StoredOrderArgs,
 } from "./index.js";
@@ -32,26 +32,26 @@ import {
 export type OrderBook = {
   lastOrderId: bigint;
   lastGroupId: bigint;
-  reserveObservation: bigint;
+  reserveObservations: Array<bigint>;
   orders: Array<StoredOrder>;
-  groups: Array<ProtectiveGroup>;
+  protections: Array<Protection>;
 };
 
 export type OrderBookArgs = {
   lastOrderId: number | bigint;
   lastGroupId: number | bigint;
-  reserveObservation: number | bigint;
+  reserveObservations: Array<number | bigint>;
   orders: Array<StoredOrderArgs>;
-  groups: Array<ProtectiveGroupArgs>;
+  protections: Array<ProtectionArgs>;
 };
 
 export function getOrderBookEncoder(): FixedSizeEncoder<OrderBookArgs> {
   return getStructEncoder([
     ["lastOrderId", getU64Encoder()],
     ["lastGroupId", getU64Encoder()],
-    ["reserveObservation", getU64Encoder()],
+    ["reserveObservations", getArrayEncoder(getU64Encoder(), { size: 2 })],
     ["orders", getArrayEncoder(getStoredOrderEncoder(), { size: 4 })],
-    ["groups", getArrayEncoder(getProtectiveGroupEncoder(), { size: 2 })],
+    ["protections", getArrayEncoder(getProtectionEncoder(), { size: 2 })],
   ]);
 }
 
@@ -59,9 +59,9 @@ export function getOrderBookDecoder(): FixedSizeDecoder<OrderBook> {
   return getStructDecoder([
     ["lastOrderId", getU64Decoder()],
     ["lastGroupId", getU64Decoder()],
-    ["reserveObservation", getU64Decoder()],
+    ["reserveObservations", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["orders", getArrayDecoder(getStoredOrderDecoder(), { size: 4 })],
-    ["groups", getArrayDecoder(getProtectiveGroupDecoder(), { size: 2 })],
+    ["protections", getArrayDecoder(getProtectionDecoder(), { size: 2 })],
   ]);
 }
 

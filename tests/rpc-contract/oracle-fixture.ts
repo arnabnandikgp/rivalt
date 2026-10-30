@@ -2,7 +2,7 @@
 import {createHash} from 'node:crypto';
 import {address,AccountRole,getAddressEncoder,getProgramDerivedAddress,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
-import {fixtureKey} from './custody-cases.js';
+import {fixtureKey} from './harness.js';
 export const ORACLE_FIXTURE=address('A5ACpHNQHLkCQtfvRkPoR45juvuxwfi9mEWGU43eD5nj');
 const disc=(name:string)=>createHash('sha256').update(`global:${name}`).digest().subarray(0,8);
 export async function feedAddress(index:number){

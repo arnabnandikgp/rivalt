@@ -1,21 +1,21 @@
 //! Current-price canonical execution reuses the whole-account financial engine.
 //! No profile-4 activation path is supplied by this module.
 use super::*;
+use crate::engine::routes as candidates;
 use crate::instructions::account_trading::{self as trading, environment, market_view, root_view};
-use crate::instructions::group_trading::routes as candidates;
 use crate::instructions::{OrderExecution, RouteIntent, RouteLeg};
-use crate::state::v2;
+use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
 mod contract;
 use contract::*;
-pub use contract::{LiquidityOrderExecutionV4, LiquidityRouteIntentV4, LiquidityRouteLegV4};
+pub use contract::{LiquidityOrderExecution, LiquidityRouteIntent, LiquidityRouteLeg};
 mod contexts;
 pub use contexts::*;
 mod commit;
 #[cfg(test)]
 mod tests;
 
-pub fn execute(ctx: Context<ExecuteLiquidityRouteV4>, args: LiquidityRouteIntentV4) -> Result<()> {
+pub fn execute(ctx: Context<ExecuteLiquidityRoute>, args: LiquidityRouteIntent) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     args.guard.check(
         &ctx.accounts.identity.venue,
@@ -23,7 +23,7 @@ pub fn execute(ctx: Context<ExecuteLiquidityRouteV4>, args: LiquidityRouteIntent
         &ctx.accounts.identity.trader,
     )?;
     let clock = Clock::get()?;
-    crate::instructions::group_margin::trade_authority(
+    crate::engine::account::trade_authority(
         &*root_view(&ctx.accounts.identity.trader)?,
         ctx.accounts.identity.actor.key(),
         clock.slot,
@@ -48,8 +48,8 @@ pub fn execute(ctx: Context<ExecuteLiquidityRouteV4>, args: LiquidityRouteIntent
 }
 
 pub fn execute_order(
-    ctx: Context<ExecuteLiquidityRouteV4>,
-    args: LiquidityOrderExecutionV4,
+    ctx: Context<ExecuteLiquidityRoute>,
+    args: LiquidityOrderExecution,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     args.guard.check(
@@ -58,13 +58,10 @@ pub fn execute_order(
         &ctx.accounts.identity.trader,
     )?;
     let clock = Clock::get()?;
-    let domain = Box::new(v2::ClearingGroupV2 {
-        domain: ctx.accounts.identity.venue.domain,
-        ..Default::default()
-    });
+    let venue = &ctx.accounts.identity.venue;
     // The current durable order supplies authority, price/fee limits and position generation.
     let (intent, index) = candidates::stored_intent(
-        &domain,
+        venue,
         &market_view(&ctx.accounts.identity.market)?,
         &*root_view(&ctx.accounts.identity.trader)?,
         OrderExecution {
@@ -84,10 +81,10 @@ pub fn execute_order(
 
 #[inline(never)]
 fn execute_core(
-    accounts: &mut ExecuteLiquidityRouteV4,
+    accounts: &mut ExecuteLiquidityRoute,
     intent: RouteIntent,
     order_index: Option<usize>,
-    signed_legs: &[LiquidityRouteLegV4],
+    signed_legs: &[LiquidityRouteLeg],
     clock: &Clock,
 ) -> Result<()> {
     let identity = &accounts.identity;
@@ -173,12 +170,9 @@ fn execute_core(
         actual_quotes.push(actual);
     }
     let roots = maker_roots(accounts, has_second)?;
-    let domain = Box::new(v2::ClearingGroupV2 {
-        domain: identity.venue.domain,
-        ..Default::default()
-    });
+    let venue = &identity.venue;
     let next = candidates::candidate_for_version(
-        &domain,
+        venue,
         &trader,
         &roots,
         &quotes,
@@ -195,11 +189,13 @@ fn execute_core(
 /// Construct large root values in their own frame and place them directly in the
 /// candidate vector. Avoid temporary boxed copies on the non-reclaiming SBF heap.
 #[inline(never)]
-fn maker_roots(accounts: &ExecuteLiquidityRouteV4, has_second: bool) -> Result<Vec<v2::MarginAccountV2>> {
+fn maker_roots(accounts: &ExecuteLiquidityRoute, has_second: bool) -> Result<Vec<MarginAccount>> {
     let mut roots = Vec::with_capacity(if has_second { 2 } else { 1 });
     roots.push(trading::root_view_value(&accounts.first_capital)?);
     if has_second {
-        roots.push(trading::root_view_value(accounts.second_capital.as_deref().unwrap())?);
+        roots.push(trading::root_view_value(
+            accounts.second_capital.as_deref().unwrap(),
+        )?);
     }
     Ok(roots)
 }
@@ -210,12 +206,12 @@ fn maker_roots(accounts: &ExecuteLiquidityRouteV4, has_second: bool) -> Result<V
 #[inline(never)]
 fn quote_current(
     view: &pricing::View,
-    accounts: &ExecuteLiquidityRouteV4,
-    leg: &LiquidityRouteLegV4,
+    accounts: &ExecuteLiquidityRoute,
+    leg: &LiquidityRouteLeg,
     side: u8,
     clock: &Clock,
     cache: &mut pricing::CodeApprovalCache,
-) -> Result<canonical::QuoteResponseV4> {
+) -> Result<canonical::MakerQuoteResponse> {
     let identity = &accounts.identity;
     let state = view.authenticate(&identity.venue, &identity.market, &accounts.registry, cache)?;
     validate_leg(leg, view.registration, &state.config)?;

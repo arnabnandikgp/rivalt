@@ -8,11 +8,11 @@ import type { CanonicalHarness } from './canonical-maker-cases.js';
 
 type Setup = Awaited<ReturnType<typeof liquidityExecutionSetup>>;
 export function executionTestHelpers(h: CanonicalHarness, setup: Setup) {
-  const root = async (key: Address) => sdk.getMarginAccountV3Decoder().decode((await h.read(key))!);
+  const root = async (key: Address) => sdk.getMarginAccountDecoder().decode((await h.read(key))!);
   const guard = async (key: Address) => {
     const state = await root(key);
-    return { safetyEpoch: sdk.getSafetyV3Decoder().decode((await h.read(setup.safety))!).epoch,
-      venueTermsEpoch: sdk.getVenueV3Decoder().decode((await h.read(setup.venue))!).termsEpoch,
+    return { safetyEpoch: sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).epoch,
+      venueTermsEpoch: sdk.getVenueDecoder().decode((await h.read(setup.venue))!).termsEpoch,
       nonce: state.nonce, stateVersion: state.stateVersion };
   };
   const route = async (input: { trader: Address; actor: TransactionSigner; marketIndex: 0 | 1; side: 0 | 1;
@@ -33,8 +33,8 @@ export function executionTestHelpers(h: CanonicalHarness, setup: Setup) {
         return { lots: lots[index], authorityEpoch: registered.authorityEpoch, controlEpoch: config.controlEpoch,
           shapeEpoch: config.shapeEpoch, depthEpoch: registered.depthEpoch };
       })) };
-    if (input.stored) return sdk.getExecuteLiquidityOrderV4InstructionAsync({ ...shared, ...input.stored });
-    return sdk.getExecuteLiquidityRouteV4InstructionAsync({ ...shared, domain: setup.domain,
+    if (input.stored) return sdk.getExecuteLiquidityOrderInstructionAsync({ ...shared, ...input.stored });
+    return sdk.getExecuteLiquidityRouteInstructionAsync({ ...shared, domain: setup.domain,
       termsEpoch: state.termsEpoch, configEpoch: state.configEpoch, side,
       allInLimit: input.allInLimit ?? (side === 0 ? 1_000_000_000n : 0n), maxFee: input.maxFee ?? 200_000n,
       reduceOnly: input.reduceOnly ?? false, generation: input.generation ?? null });

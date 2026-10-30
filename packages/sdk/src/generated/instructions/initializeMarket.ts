@@ -14,6 +14,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  getU8Decoder,
+  getU8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -40,11 +42,15 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findMarketPda, findRegistryPda, findVaultPda } from "../pdas/index.js";
+import {
+  findCustodyPda,
+  findMarketLedgerPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const INITIALIZE_MARKET_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([35, 35, 189, 193, 155, 48, 170, 203]);
+  new Uint8Array([239, 190, 155, 70, 222, 88, 62, 74]);
 
 export function getInitializeMarketDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -55,15 +61,11 @@ export function getInitializeMarketDiscriminatorBytes(): ReadonlyUint8Array {
 export type InitializeMarketInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountAuthority extends string | AccountMeta<string> = string,
-  TAccountClearingProgram extends string | AccountMeta<string> =
-    "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
-  TAccountProgramData extends string | AccountMeta<string> = string,
-  TAccountQuoteMint extends string | AccountMeta<string> = string,
+  TAccountVenue extends string | AccountMeta<string> = string,
+  TAccountCustody extends string | AccountMeta<string> = string,
+  TAccountSafety extends string | AccountMeta<string> = string,
   TAccountMarket extends string | AccountMeta<string> = string,
-  TAccountRegistry extends string | AccountMeta<string> = string,
-  TAccountVault extends string | AccountMeta<string> = string,
-  TAccountTokenProgram extends string | AccountMeta<string> =
-    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  TAccountLedger extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TAccountEventAuthority extends string | AccountMeta<string> = string,
@@ -77,27 +79,21 @@ export type InitializeMarketInstruction<
         ? WritableSignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
-      TAccountClearingProgram extends string
-        ? ReadonlyAccount<TAccountClearingProgram>
-        : TAccountClearingProgram,
-      TAccountProgramData extends string
-        ? ReadonlyAccount<TAccountProgramData>
-        : TAccountProgramData,
-      TAccountQuoteMint extends string
-        ? ReadonlyAccount<TAccountQuoteMint>
-        : TAccountQuoteMint,
+      TAccountVenue extends string
+        ? WritableAccount<TAccountVenue>
+        : TAccountVenue,
+      TAccountCustody extends string
+        ? WritableAccount<TAccountCustody>
+        : TAccountCustody,
+      TAccountSafety extends string
+        ? ReadonlyAccount<TAccountSafety>
+        : TAccountSafety,
       TAccountMarket extends string
         ? WritableAccount<TAccountMarket>
         : TAccountMarket,
-      TAccountRegistry extends string
-        ? WritableAccount<TAccountRegistry>
-        : TAccountRegistry,
-      TAccountVault extends string
-        ? WritableAccount<TAccountVault>
-        : TAccountVault,
-      TAccountTokenProgram extends string
-        ? ReadonlyAccount<TAccountTokenProgram>
-        : TAccountTokenProgram,
+      TAccountLedger extends string
+        ? WritableAccount<TAccountLedger>
+        : TAccountLedger,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -113,18 +109,16 @@ export type InitializeMarketInstruction<
 
 export type InitializeMarketInstructionData = {
   discriminator: ReadonlyUint8Array;
-  domain: ReadonlyUint8Array;
+  index: number;
 };
 
-export type InitializeMarketInstructionDataArgs = {
-  domain: ReadonlyUint8Array;
-};
+export type InitializeMarketInstructionDataArgs = { index: number };
 
 export function getInitializeMarketInstructionDataEncoder(): FixedSizeEncoder<InitializeMarketInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["domain", fixEncoderSize(getBytesEncoder(), 32)],
+      ["index", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_MARKET_DISCRIMINATOR }),
   );
@@ -133,7 +127,7 @@ export function getInitializeMarketInstructionDataEncoder(): FixedSizeEncoder<In
 export function getInitializeMarketInstructionDataDecoder(): FixedSizeDecoder<InitializeMarketInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["domain", fixDecoderSize(getBytesDecoder(), 32)],
+    ["index", getU8Decoder()],
   ]);
 }
 
@@ -149,15 +143,11 @@ export function getInitializeMarketInstructionDataCodec(): FixedSizeCodec<
 
 export type InitializeMarketAsyncInput<
   TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
-  TAccountClearingProgram extends InstructionAccountInput =
-    InstructionAccountInput,
-  TAccountProgramData extends InstructionAccountInput = InstructionAccountInput,
-  TAccountQuoteMint extends InstructionAccountInput = InstructionAccountInput,
+  TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
+  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
+  TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
-  TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
-  TAccountTokenProgram extends InstructionAccountInput =
-    InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
@@ -165,28 +155,24 @@ export type InitializeMarketAsyncInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   authority: TAccountAuthority;
-  clearingProgram?: TAccountClearingProgram;
-  programData: TAccountProgramData;
-  quoteMint: TAccountQuoteMint;
-  market?: TAccountMarket;
-  registry?: TAccountRegistry;
-  vault?: TAccountVault;
-  tokenProgram?: TAccountTokenProgram;
+  venue: TAccountVenue;
+  custody?: TAccountCustody;
+  safety?: TAccountSafety;
+  market: TAccountMarket;
+  ledger?: TAccountLedger;
   systemProgram?: TAccountSystemProgram;
   eventAuthority: TAccountEventAuthority;
   program: TAccountProgram;
-  domain: InitializeMarketInstructionDataArgs["domain"];
+  index: InitializeMarketInstructionDataArgs["index"];
 };
 
 export async function getInitializeMarketInstructionAsync<
   TAccountAuthority extends InstructionSignerInput,
-  TAccountClearingProgram extends InstructionAccountInput,
-  TAccountProgramData extends InstructionAccountInput,
-  TAccountQuoteMint extends InstructionAccountInput,
+  TAccountVenue extends InstructionAccountInput,
+  TAccountCustody extends InstructionAccountInput,
+  TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
-  TAccountRegistry extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
-  TAccountTokenProgram extends InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
@@ -194,13 +180,11 @@ export async function getInitializeMarketInstructionAsync<
 >(
   input: InitializeMarketAsyncInput<
     TAccountAuthority,
-    TAccountClearingProgram,
-    TAccountProgramData,
-    TAccountQuoteMint,
+    TAccountVenue,
+    TAccountCustody,
+    TAccountSafety,
     TAccountMarket,
-    TAccountRegistry,
-    TAccountVault,
-    TAccountTokenProgram,
+    TAccountLedger,
     TAccountSystemProgram,
     TAccountEventAuthority,
     TAccountProgram
@@ -216,32 +200,24 @@ export async function getInitializeMarketInstructionAsync<
       InstructionAccountInputAddress<TAccountAuthority>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountClearingProgram,
-      InstructionAccountInputAddress<TAccountClearingProgram>
+      TAccountVenue,
+      InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountProgramData,
-      InstructionAccountInputAddress<TAccountProgramData>
+      TAccountCustody,
+      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountQuoteMint,
-      InstructionAccountInputAddress<TAccountQuoteMint>
+      TAccountSafety,
+      InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
       TAccountMarket,
       InstructionAccountInputAddress<TAccountMarket>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountRegistry,
-      InstructionAccountInputAddress<TAccountRegistry>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountTokenProgram,
-      InstructionAccountInputAddress<TAccountTokenProgram>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
@@ -275,33 +251,15 @@ export async function getInitializeMarketInstructionAsync<
       isSigner: true,
       isWritable: true,
     },
-    clearingProgram: {
-      value: input.clearingProgram ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    programData: {
-      value: input.programData ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    quoteMint: {
-      value: input.quoteMint ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    market: { value: input.market ?? null, isSigner: false, isWritable: true },
-    registry: {
-      value: input.registry ?? null,
+    venue: { value: input.venue ?? null, isSigner: false, isWritable: true },
+    custody: {
+      value: input.custody ?? null,
       isSigner: false,
       isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
-    tokenProgram: {
-      value: input.tokenProgram ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
+    safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
+    market: { value: input.market ?? null, isSigner: false, isWritable: true },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     systemProgram: {
       value: input.systemProgram ?? null,
       isSigner: false,
@@ -327,15 +285,30 @@ export async function getInitializeMarketInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.clearingProgram.value) {
-    accounts.clearingProgram.value =
-      "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo" as Address<"Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo">;
+  if (!accounts.custody.value) {
+    accounts.custody.value = await findCustodyPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
   }
-  if (!accounts.market.value) {
-    accounts.market.value = await findMarketPda({ programAddress });
+  if (!accounts.safety.value) {
+    accounts.safety.value = await findVenueSafetyPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
   }
-  if (!accounts.registry.value) {
-    accounts.registry.value = await findRegistryPda(
+  if (!accounts.ledger.value) {
+    accounts.ledger.value = await findMarketLedgerPda(
       {
         market: getAddressFromResolvedInstructionAccount(
           "market",
@@ -344,21 +317,6 @@ export async function getInitializeMarketInstructionAsync<
       },
       { programAddress },
     );
-  }
-  if (!accounts.vault.value) {
-    accounts.vault.value = await findVaultPda(
-      {
-        market: getAddressFromResolvedInstructionAccount(
-          "market",
-          accounts.market.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.tokenProgram.value) {
-    accounts.tokenProgram.value =
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
   }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
@@ -368,13 +326,11 @@ export async function getInitializeMarketInstructionAsync<
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
-      getAccountMeta("clearingProgram", accounts.clearingProgram),
-      getAccountMeta("programData", accounts.programData),
-      getAccountMeta("quoteMint", accounts.quoteMint),
+      getAccountMeta("venue", accounts.venue),
+      getAccountMeta("custody", accounts.custody),
+      getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
-      getAccountMeta("registry", accounts.registry),
-      getAccountMeta("vault", accounts.vault),
-      getAccountMeta("tokenProgram", accounts.tokenProgram),
+      getAccountMeta("ledger", accounts.ledger),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
@@ -390,32 +346,24 @@ export async function getInitializeMarketInstructionAsync<
       InstructionAccountInputAddress<TAccountAuthority>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountClearingProgram,
-      InstructionAccountInputAddress<TAccountClearingProgram>
+      TAccountVenue,
+      InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountProgramData,
-      InstructionAccountInputAddress<TAccountProgramData>
+      TAccountCustody,
+      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountQuoteMint,
-      InstructionAccountInputAddress<TAccountQuoteMint>
+      TAccountSafety,
+      InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
       TAccountMarket,
       InstructionAccountInputAddress<TAccountMarket>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountRegistry,
-      InstructionAccountInputAddress<TAccountRegistry>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountTokenProgram,
-      InstructionAccountInputAddress<TAccountTokenProgram>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
@@ -434,15 +382,11 @@ export async function getInitializeMarketInstructionAsync<
 
 export type InitializeMarketInput<
   TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
-  TAccountClearingProgram extends InstructionAccountInput =
-    InstructionAccountInput,
-  TAccountProgramData extends InstructionAccountInput = InstructionAccountInput,
-  TAccountQuoteMint extends InstructionAccountInput = InstructionAccountInput,
+  TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
+  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
+  TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
-  TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
-  TAccountTokenProgram extends InstructionAccountInput =
-    InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
@@ -450,28 +394,24 @@ export type InitializeMarketInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   authority: TAccountAuthority;
-  clearingProgram?: TAccountClearingProgram;
-  programData: TAccountProgramData;
-  quoteMint: TAccountQuoteMint;
+  venue: TAccountVenue;
+  custody: TAccountCustody;
+  safety: TAccountSafety;
   market: TAccountMarket;
-  registry: TAccountRegistry;
-  vault: TAccountVault;
-  tokenProgram?: TAccountTokenProgram;
+  ledger: TAccountLedger;
   systemProgram?: TAccountSystemProgram;
   eventAuthority: TAccountEventAuthority;
   program: TAccountProgram;
-  domain: InitializeMarketInstructionDataArgs["domain"];
+  index: InitializeMarketInstructionDataArgs["index"];
 };
 
 export function getInitializeMarketInstruction<
   TAccountAuthority extends InstructionSignerInput,
-  TAccountClearingProgram extends InstructionAccountInput,
-  TAccountProgramData extends InstructionAccountInput,
-  TAccountQuoteMint extends InstructionAccountInput,
+  TAccountVenue extends InstructionAccountInput,
+  TAccountCustody extends InstructionAccountInput,
+  TAccountSafety extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
-  TAccountRegistry extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
-  TAccountTokenProgram extends InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
@@ -479,13 +419,11 @@ export function getInitializeMarketInstruction<
 >(
   input: InitializeMarketInput<
     TAccountAuthority,
-    TAccountClearingProgram,
-    TAccountProgramData,
-    TAccountQuoteMint,
+    TAccountVenue,
+    TAccountCustody,
+    TAccountSafety,
     TAccountMarket,
-    TAccountRegistry,
-    TAccountVault,
-    TAccountTokenProgram,
+    TAccountLedger,
     TAccountSystemProgram,
     TAccountEventAuthority,
     TAccountProgram
@@ -500,32 +438,24 @@ export function getInitializeMarketInstruction<
     InstructionAccountInputAddress<TAccountAuthority>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountClearingProgram,
-    InstructionAccountInputAddress<TAccountClearingProgram>
+    TAccountVenue,
+    InstructionAccountInputAddress<TAccountVenue>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountProgramData,
-    InstructionAccountInputAddress<TAccountProgramData>
+    TAccountCustody,
+    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountQuoteMint,
-    InstructionAccountInputAddress<TAccountQuoteMint>
+    TAccountSafety,
+    InstructionAccountInputAddress<TAccountSafety>
   >,
   ResolvedInstructionAccountMeta<
     TAccountMarket,
     InstructionAccountInputAddress<TAccountMarket>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountRegistry,
-    InstructionAccountInputAddress<TAccountRegistry>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountVault,
-    InstructionAccountInputAddress<TAccountVault>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountTokenProgram,
-    InstructionAccountInputAddress<TAccountTokenProgram>
+    TAccountLedger,
+    InstructionAccountInputAddress<TAccountLedger>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSystemProgram,
@@ -558,33 +488,15 @@ export function getInitializeMarketInstruction<
       isSigner: true,
       isWritable: true,
     },
-    clearingProgram: {
-      value: input.clearingProgram ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    programData: {
-      value: input.programData ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    quoteMint: {
-      value: input.quoteMint ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    market: { value: input.market ?? null, isSigner: false, isWritable: true },
-    registry: {
-      value: input.registry ?? null,
+    venue: { value: input.venue ?? null, isSigner: false, isWritable: true },
+    custody: {
+      value: input.custody ?? null,
       isSigner: false,
       isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
-    tokenProgram: {
-      value: input.tokenProgram ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
+    safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
+    market: { value: input.market ?? null, isSigner: false, isWritable: true },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     systemProgram: {
       value: input.systemProgram ?? null,
       isSigner: false,
@@ -610,14 +522,6 @@ export function getInitializeMarketInstruction<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.clearingProgram.value) {
-    accounts.clearingProgram.value =
-      "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo" as Address<"Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo">;
-  }
-  if (!accounts.tokenProgram.value) {
-    accounts.tokenProgram.value =
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
-  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -626,13 +530,11 @@ export function getInitializeMarketInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
-      getAccountMeta("clearingProgram", accounts.clearingProgram),
-      getAccountMeta("programData", accounts.programData),
-      getAccountMeta("quoteMint", accounts.quoteMint),
+      getAccountMeta("venue", accounts.venue),
+      getAccountMeta("custody", accounts.custody),
+      getAccountMeta("safety", accounts.safety),
       getAccountMeta("market", accounts.market),
-      getAccountMeta("registry", accounts.registry),
-      getAccountMeta("vault", accounts.vault),
-      getAccountMeta("tokenProgram", accounts.tokenProgram),
+      getAccountMeta("ledger", accounts.ledger),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
@@ -648,32 +550,24 @@ export function getInitializeMarketInstruction<
       InstructionAccountInputAddress<TAccountAuthority>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountClearingProgram,
-      InstructionAccountInputAddress<TAccountClearingProgram>
+      TAccountVenue,
+      InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountProgramData,
-      InstructionAccountInputAddress<TAccountProgramData>
+      TAccountCustody,
+      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountQuoteMint,
-      InstructionAccountInputAddress<TAccountQuoteMint>
+      TAccountSafety,
+      InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
       TAccountMarket,
       InstructionAccountInputAddress<TAccountMarket>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountRegistry,
-      InstructionAccountInputAddress<TAccountRegistry>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountTokenProgram,
-      InstructionAccountInputAddress<TAccountTokenProgram>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
@@ -697,16 +591,14 @@ export type ParsedInitializeMarketInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     authority: TAccountMetas[0];
-    clearingProgram: TAccountMetas[1];
-    programData: TAccountMetas[2];
-    quoteMint: TAccountMetas[3];
+    venue: TAccountMetas[1];
+    custody: TAccountMetas[2];
+    safety: TAccountMetas[3];
     market: TAccountMetas[4];
-    registry: TAccountMetas[5];
-    vault: TAccountMetas[6];
-    tokenProgram: TAccountMetas[7];
-    systemProgram: TAccountMetas[8];
-    eventAuthority: TAccountMetas[9];
-    program: TAccountMetas[10];
+    ledger: TAccountMetas[5];
+    systemProgram: TAccountMetas[6];
+    eventAuthority: TAccountMetas[7];
+    program: TAccountMetas[8];
   };
   data: InitializeMarketInstructionData;
 };
@@ -719,12 +611,12 @@ export function parseInitializeMarketInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedInitializeMarketInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 11) {
+  if (instruction.accounts.length < 9) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 11,
+        expectedAccountMetas: 9,
       },
     );
   }
@@ -738,13 +630,11 @@ export function parseInitializeMarketInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       authority: getNextAccount(),
-      clearingProgram: getNextAccount(),
-      programData: getNextAccount(),
-      quoteMint: getNextAccount(),
+      venue: getNextAccount(),
+      custody: getNextAccount(),
+      safety: getNextAccount(),
       market: getNextAccount(),
-      registry: getNextAccount(),
-      vault: getNextAccount(),
-      tokenProgram: getNextAccount(),
+      ledger: getNextAccount(),
       systemProgram: getNextAccount(),
       eventAuthority: getNextAccount(),
       program: getNextAccount(),

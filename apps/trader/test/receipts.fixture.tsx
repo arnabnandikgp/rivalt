@@ -4,7 +4,7 @@ import { Suspense, startTransition, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import type { SignedIntent } from '@rivalt/sdk';
-import { useReceiptRecords } from '../src/group/useReceiptRecords.js';
+import { useReceiptRecords } from '../src/shared/useReceiptRecords.js';
 import { mergeReconciled } from '../src/receipts.js';
 
 const prior = { id: 'prior', status: 'pending', signature: 'prior', wire: 'prior-bytes' } as SignedIntent;
