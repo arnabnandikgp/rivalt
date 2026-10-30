@@ -45,9 +45,7 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import {
-  findBtcLedgerPda,
   findCustodyPda,
-  findEthLedgerPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
@@ -199,10 +197,10 @@ export type LiquidateAccountAsyncInput<
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
-  btcLedger?: TAccountBtcLedger;
-  ethLedger?: TAccountEthLedger;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
+  btcLedger: TAccountBtcLedger;
+  ethLedger: TAccountEthLedger;
   vault?: TAccountVault;
   receiverOwner: TAccountReceiverOwner;
   target: TAccountTarget;
@@ -393,28 +391,6 @@ export async function getLiquidateAccountInstructionAsync<
       { programAddress },
     );
   }
-  if (!accounts.btcLedger.value) {
-    accounts.btcLedger.value = await findBtcLedgerPda(
-      {
-        btc: getAddressFromResolvedInstructionAccount(
-          "btc",
-          accounts.btc.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.ethLedger.value) {
-    accounts.ethLedger.value = await findEthLedgerPda(
-      {
-        eth: getAddressFromResolvedInstructionAccount(
-          "eth",
-          accounts.eth.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.vault.value) {
     accounts.vault.value = await findVenueVaultPda(
       {
@@ -523,8 +499,8 @@ export type LiquidateAccountInput<
   venue: TAccountVenue;
   custody: TAccountCustody;
   safety: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
   btcLedger: TAccountBtcLedger;
   ethLedger: TAccountEthLedger;
   vault: TAccountVault;
@@ -778,8 +754,8 @@ export type ParsedLiquidateAccountInstruction<
     venue: TAccountMetas[0];
     custody: TAccountMetas[1];
     safety: TAccountMetas[2];
-    btc: TAccountMetas[3];
-    eth: TAccountMetas[4];
+    btc?: TAccountMetas[3] | undefined;
+    eth?: TAccountMetas[4] | undefined;
     btcLedger: TAccountMetas[5];
     ethLedger: TAccountMetas[6];
     vault: TAccountMetas[7];
@@ -815,14 +791,20 @@ export function parseLiquidateAccountInstruction<
     accountIndex += 1;
     return accountMeta;
   };
+  const getNextOptionalAccount = () => {
+    const accountMeta = getNextAccount();
+    return accountMeta.address === CLEARING_PROGRAM_ADDRESS
+      ? undefined
+      : accountMeta;
+  };
   return {
     programAddress: instruction.programAddress,
     accounts: {
       venue: getNextAccount(),
       custody: getNextAccount(),
       safety: getNextAccount(),
-      btc: getNextAccount(),
-      eth: getNextAccount(),
+      btc: getNextOptionalAccount(),
+      eth: getNextOptionalAccount(),
       btcLedger: getNextAccount(),
       ethLedger: getNextAccount(),
       vault: getNextAccount(),

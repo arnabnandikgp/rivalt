@@ -3,7 +3,7 @@ SELECT pg_advisory_xact_lock(hashtextextended('rivalt/schema',0));
 CREATE TABLE IF NOT EXISTS schema_version (version integer PRIMARY KEY CHECK (version = 2));
 DO $$ BEGIN
   IF to_regclass('schema_version') IS NOT NULL AND EXISTS (SELECT 1 FROM schema_version WHERE version <> 2) THEN
-    RAISE EXCEPTION 'Fresh schema-5 journal database required; retained schema-1 originals cannot migrate';
+    RAISE EXCEPTION 'Fresh schema-6 journal database required; retained schema-1 originals cannot migrate';
   END IF;
 END $$;
 INSERT INTO schema_version VALUES (2) ON CONFLICT DO NOTHING;

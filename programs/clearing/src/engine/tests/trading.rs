@@ -685,7 +685,7 @@ fn event_snapshots_preserve_account_payload_without_discriminator() {
         serialized(&crate::events::MarketSnapshot::from(&market))
     );
     let registration = crate::state::liquidity::MakerRegistration {
-        schema_version: 5,
+        schema_version: 6,
         revision: 0,
         owner: root.owner,
         venue: root.venue,

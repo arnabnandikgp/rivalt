@@ -1,7 +1,7 @@
 import {expect,it} from 'vitest';
 import type {AccountUserConfig} from '@rivalt/sdk';
 import {requireLocalDemo} from './demo-wallet.js';
-const config={version:4,accountSchema:5 as const,chain:'solana:localnet',profile:'liquidity-execution-qualification',rpcUrl:'http://127.0.0.1:18931',wsUrl:'ws://127.0.0.1:18932'} as AccountUserConfig;
+const config={version:4,accountSchema:6 as const,chain:'solana:localnet',profile:'liquidity-execution-qualification',rpcUrl:'http://127.0.0.1:18931',wsUrl:'ws://127.0.0.1:18932'} as AccountUserConfig;
 it('permits only the explicit loopback account demo',()=>{
   expect(()=>requireLocalDemo(config,'http://127.0.0.1:18083')).not.toThrow();
   expect(()=>requireLocalDemo({...config,version:4,profile:'liquidity-execution-qualification'},'http://127.0.0.1:18083')).not.toThrow();

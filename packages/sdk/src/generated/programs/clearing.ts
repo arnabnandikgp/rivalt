@@ -314,7 +314,6 @@ import {
   findMakerEventAuthorityPda,
   findMarginAccountPda,
   findMarketLedgerPda,
-  findOtherMarketLedgerPda,
   findPagePda,
   findPortfolioPda,
   findResolutionPda,
@@ -2415,7 +2414,6 @@ export type ClearingPluginPdas = {
   fundingPublisher: typeof findFundingPublisherPda;
   portfolio: typeof findPortfolioPda;
   marketLedger: typeof findMarketLedgerPda;
-  otherMarketLedger: typeof findOtherMarketLedgerPda;
   resolution: typeof findResolutionPda;
   work: typeof findWorkPda;
   page: typeof findPagePda;
@@ -2975,11 +2973,6 @@ export function clearingProgram(
             }),
           marketLedger: (seeds, pdaConfig) =>
             findMarketLedgerPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          otherMarketLedger: (seeds, pdaConfig) =>
-            findOtherMarketLedgerPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

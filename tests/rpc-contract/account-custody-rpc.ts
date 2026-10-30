@@ -67,7 +67,7 @@ try {
   const ledgerState = new Map<number, {settlement: bigint; insurance: bigint; fees: bigint}>();
   for (const [index, event] of committed.entries()) {
     assert.equal(event.venue, result.venue);
-    assert.equal(event.schemaVersion, 5);
+    assert.equal(event.schemaVersion, 6);
     for (const ledger of event.ledgers) ledgerState.set(ledger.marketIndex, ledger);
     assert.equal(event.allocatedVault, event.totalCash + [...ledgerState.values()].reduce((sum, ledger) =>
       sum + ledger.settlement + ledger.insurance + ledger.fees, 0n));

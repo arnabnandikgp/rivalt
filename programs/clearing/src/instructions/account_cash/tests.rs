@@ -5,7 +5,7 @@ use math::SCALE;
 
 fn root(cash: u64, claims: [i128; 2]) -> MarginAccount {
     MarginAccount {
-        schema_version: 5,
+        schema_version: 6,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         owner: Pubkey::new_from_array([1; 32]),
@@ -21,7 +21,7 @@ fn root(cash: u64, claims: [i128; 2]) -> MarginAccount {
 
 fn fixture_snapshot() -> Snapshot {
     let markets = [0u8, 1].map(|index| Market {
-        schema_version: 5,
+        schema_version: 6,
         index,
         cross_eligible: true,
         lots_per_unit: [1_000_000, 100_000][usize::from(index)],
@@ -58,7 +58,7 @@ fn fixture_snapshot() -> Snapshot {
 #[test]
 fn flat_exit_needs_own_cash_and_gross_losses_without_fresh_prices() {
     let mut snapshot = fixture_snapshot();
-    for market in &mut snapshot.markets {
+    for market in snapshot.markets.iter_mut().flatten() {
         market.valid_until = 0;
         market.oracle.status = 0;
     }
@@ -139,12 +139,12 @@ fn full_current_margin_and_orders_survive_cash_outflow() {
     );
     assert!(withdraw_candidate(&account, &snapshot, 91).is_err());
     let mut stale = fixture_snapshot();
-    stale.markets[0].valid_until = 0;
+    stale.markets[0].as_mut().unwrap().valid_until = 0;
     assert!(withdraw_candidate(&account, &stale, 1).is_err());
     let mut ordered_snapshot = fixture_snapshot();
-    ordered_snapshot.markets[0].reference_price = 10_000;
-    ordered_snapshot.markets[0].lower = 10_000;
-    ordered_snapshot.markets[0].upper = 10_000;
+    ordered_snapshot.markets[0].as_mut().unwrap().reference_price = 10_000;
+    ordered_snapshot.markets[0].as_mut().unwrap().lower = 10_000;
+    ordered_snapshot.markets[0].as_mut().unwrap().upper = 10_000;
     ordered_snapshot.risks[0].lower = 10_000;
     ordered_snapshot.risks[0].upper = 10_000;
     account.cash = 3_000;
@@ -272,9 +272,9 @@ fn cash_receipt_consumes_funding_without_requiring_recipient_health() {
     account.positions[0].lots = 1;
     account.positions[0].generation = 1;
     let mut snapshot = fixture_snapshot();
-    snapshot.markets[0].valid_until = 0;
-    snapshot.markets[0].funding_index_scaled = SCALE / 3;
-    snapshot.markets[0].oracle.funding_base = SCALE / 3;
+    snapshot.markets[0].as_mut().unwrap().valid_until = 0;
+    snapshot.markets[0].as_mut().unwrap().funding_index_scaled = SCALE / 3;
+    snapshot.markets[0].as_mut().unwrap().oracle.funding_base = SCALE / 3;
     snapshot.risks[0].funding = SCALE / 3;
     let next = receive_candidate(&account, &snapshot, 1).unwrap();
     assert_eq!(next.cash, 1);
@@ -284,4 +284,28 @@ fn cash_receipt_consumes_funding_without_requiring_recipient_health() {
         .unwrap()
         .admissible(snapshot.risks)
         .is_err());
+}
+
+#[test]
+fn optional_cash_dependencies_preserve_flat_cursors_and_require_recipient_losses() {
+    let mut account = root(100, [0, 0]);
+    account.positions[0].funding_checkpoint_scaled = 17;
+    account.positions[1].funding_checkpoint_scaled = -21;
+    account.positions[1].generation = 8;
+    account.book.reserve_observations = [43, 51];
+    let clock = fixture_snapshot().clock;
+    let empty = Snapshot::optional([None, None], &clock).unwrap();
+    let withdrawn = withdraw_candidate(&account, &empty, 100).unwrap();
+    assert_eq!(withdrawn.cash, 0);
+    assert_eq!(withdrawn.positions[0].funding_checkpoint_scaled, 17);
+    assert_eq!(withdrawn.positions[1].funding_checkpoint_scaled, -21);
+    assert_eq!(withdrawn.positions[1].generation, 8);
+    assert_eq!(withdrawn.book.reserve_observations, [43, 51]);
+    account.positions[1].virtual_scaled = -1;
+    assert!(withdraw_candidate(&account, &empty, 1).is_err());
+    assert!(receive_candidate(&account, &empty, 1).is_err());
+    account.positions[1].virtual_scaled = 1;
+    assert!(receive_candidate(&account, &empty, 1).is_err());
+    account.positions[1].virtual_scaled = 0;
+    assert_eq!(receive_candidate(&account, &empty, 1).unwrap().cash, 101);
 }

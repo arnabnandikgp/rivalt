@@ -634,11 +634,13 @@
             },
             {
               "name": "btc",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "eth",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "btc_ledger",
@@ -661,7 +663,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "btc"
+                    "path": "venue.markets [0]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -687,7 +690,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "eth"
+                    "path": "venue.markets [1]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -1996,11 +2000,13 @@
             },
             {
               "name": "btc",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "eth",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "btc_ledger",
@@ -2023,7 +2029,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "btc"
+                    "path": "venue.markets [0]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -2049,7 +2056,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "eth"
+                    "path": "venue.markets [1]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -3061,7 +3069,8 @@
             },
             {
               "name": "other_market",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "ledger",
@@ -3090,29 +3099,7 @@
               }
             },
             {
-              "name": "other_ledger",
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "other_market"
-                  }
-                ]
-              }
+              "name": "other_ledger"
             },
             {
               "name": "vault",
@@ -3361,7 +3348,8 @@
             },
             {
               "name": "other_market",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "ledger",
@@ -3390,29 +3378,7 @@
               }
             },
             {
-              "name": "other_ledger",
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      108,
-                      101,
-                      100,
-                      103,
-                      101,
-                      114,
-                      45,
-                      118,
-                      51
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "other_market"
-                  }
-                ]
-              }
+              "name": "other_ledger"
             },
             {
               "name": "vault",
@@ -5634,11 +5600,13 @@
             },
             {
               "name": "btc",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "eth",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "btc_ledger",
@@ -5661,7 +5629,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "btc"
+                    "path": "venue.markets [0]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -5687,7 +5656,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "eth"
+                    "path": "venue.markets [1]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -5909,11 +5879,13 @@
         },
         {
           "name": "btc",
-          "writable": true
+          "writable": true,
+          "optional": true
         },
         {
           "name": "eth",
-          "writable": true
+          "writable": true,
+          "optional": true
         },
         {
           "name": "margin",
@@ -6058,11 +6030,13 @@
             },
             {
               "name": "btc",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "eth",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "btc_ledger",
@@ -6085,7 +6059,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "btc"
+                    "path": "venue.markets [0]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -6111,7 +6086,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "eth"
+                    "path": "venue.markets [1]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -6803,11 +6779,13 @@
             },
             {
               "name": "btc",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "eth",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "btc_ledger",
@@ -6830,7 +6808,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "btc"
+                    "path": "venue.markets [0]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -6856,7 +6835,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "eth"
+                    "path": "venue.markets [1]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -10202,11 +10182,13 @@
             },
             {
               "name": "btc",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "eth",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "btc_ledger",
@@ -10229,7 +10211,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "btc"
+                    "path": "venue.markets [0]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -10255,7 +10238,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "eth"
+                    "path": "venue.markets [1]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -10969,11 +10953,13 @@
             },
             {
               "name": "btc",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "eth",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "btc_ledger",
@@ -10996,7 +10982,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "btc"
+                    "path": "venue.markets [0]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -11022,7 +11009,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "eth"
+                    "path": "venue.markets [1]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -11210,11 +11198,13 @@
             },
             {
               "name": "btc",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "eth",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "btc_ledger",
@@ -11237,7 +11227,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "btc"
+                    "path": "venue.markets [0]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -11263,7 +11254,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "eth"
+                    "path": "venue.markets [1]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -11413,11 +11405,13 @@
             },
             {
               "name": "btc",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "eth",
-              "writable": true
+              "writable": true,
+              "optional": true
             },
             {
               "name": "btc_ledger",
@@ -11440,7 +11434,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "btc"
+                    "path": "venue.markets [0]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -11466,7 +11461,8 @@
                   },
                   {
                     "kind": "account",
-                    "path": "eth"
+                    "path": "venue.markets [1]",
+                    "account": "Venue"
                   }
                 ]
               }
@@ -12658,14 +12654,11 @@
           {
             "name": "markets",
             "type": {
-              "array": [
-                {
-                  "defined": {
-                    "name": "MarketSnapshot"
-                  }
-                },
-                2
-              ]
+              "vec": {
+                "defined": {
+                  "name": "MarketSnapshot"
+                }
+              }
             }
           },
           {
@@ -12785,14 +12778,11 @@
           {
             "name": "markets",
             "type": {
-              "array": [
-                {
-                  "defined": {
-                    "name": "MarketSnapshot"
-                  }
-                },
-                2
-              ]
+              "vec": {
+                "defined": {
+                  "name": "MarketSnapshot"
+                }
+              }
             }
           }
         ]
@@ -12854,14 +12844,11 @@
           {
             "name": "markets",
             "type": {
-              "array": [
-                {
-                  "defined": {
-                    "name": "MarketSnapshot"
-                  }
-                },
-                2
-              ]
+              "vec": {
+                "defined": {
+                  "name": "MarketSnapshot"
+                }
+              }
             }
           },
           {
@@ -14650,8 +14637,10 @@
           {
             "name": "other_market_state",
             "type": {
-              "defined": {
-                "name": "MarketSnapshot"
+              "option": {
+                "defined": {
+                  "name": "MarketSnapshot"
+                }
               }
             }
           },

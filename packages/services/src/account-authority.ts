@@ -13,13 +13,13 @@ export async function accountAuthorityValue(authority:AccountAuthority,bytes:Buf
   if(authority.kind==='accountStateVersion') {
     tagged(sdk.MARGIN_ACCOUNT_DISCRIMINATOR,sdk.getMarginAccountSize());const root=sdk.getMarginAccountDecoder().decode(bytes);
     const [canonical,bump]=await sdk.deriveMarginAccount(root.portfolio,root.subaccountIndex);
-    if(root.schemaVersion!==5||root.venue!==venue||canonical!==key||root.bump!==bump)throw new Error('Account root authority binding');
+    if(root.schemaVersion!==6||root.venue!==venue||canonical!==key||root.bump!==bump)throw new Error('Account root authority binding');
     return root.stateVersion;
   }
   if(authority.kind==='accountObservation') {
     tagged(sdk.MARKET_DISCRIMINATOR,sdk.getMarketSize());const market=sdk.getMarketDecoder().decode(bytes);
     const [canonical,bump]=await sdk.deriveAccountMarket(venue,market.index);
-    if(market.schemaVersion!==5||market.venue!==venue||canonical!==key||market.bump!==bump)throw new Error('Account observation authority binding');
+    if(market.schemaVersion!==6||market.venue!==venue||canonical!==key||market.bump!==bump)throw new Error('Account observation authority binding');
     return market.observationSequence;
   }
   throw new Error('Unknown account authority');

@@ -89,7 +89,7 @@ pub fn initialize(
     )?;
     ctx.accounts.registry.set_inner(LiquidityRegistry {
         revision: 0,
-        schema_version: 5,
+        schema_version: 6,
         venue: ctx.accounts.venue.key(),
         market: ctx.accounts.market.key(),
         count: 0,
@@ -115,7 +115,7 @@ fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<(
         &accounts.market,
     )?;
     require!(
-        accounts.registry.schema_version == 5
+        accounts.registry.schema_version == 6
             && !accounts.registry.sealed
             && instance < 3
             && instance == accounts.registry.count,
@@ -150,7 +150,7 @@ pub fn register(
     validate_registration(accounts, instance)?;
     accounts.registration.set_inner(MakerRegistration {
         revision: 0,
-        schema_version: 5,
+        schema_version: 6,
         venue: accounts.venue.key(),
         market: accounts.market.key(),
         capital: accounts.capital.key(),
@@ -212,7 +212,7 @@ pub fn seal(
         &accounts.market,
     )?;
     require!(
-        accounts.registry.schema_version == 5
+        accounts.registry.schema_version == 6
             && accounts.registry.count == 3
             && !accounts.registry.sealed,
         ClearingError::MakerBinding
@@ -220,7 +220,7 @@ pub fn seal(
     let makers = [&accounts.first, &accounts.second, &accounts.third];
     for (index, registration) in makers.iter().enumerate() {
         require!(
-            registration.schema_version == 5
+            registration.schema_version == 6
                 && usize::from(registration.instance) == index
                 && registration.venue == accounts.venue.key()
                 && registration.market == accounts.market.key(),
@@ -393,7 +393,7 @@ pub fn quarantine(
     )?;
     capital_identity(&accounts.capital, &accounts.market)?;
     require!(
-        accounts.registration.schema_version == 5
+        accounts.registration.schema_version == 6
             && accounts.registration.authority_epoch == authority
             && authority > 0
             && accounts.registration.owner == accounts.capital.owner,

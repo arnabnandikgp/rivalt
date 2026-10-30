@@ -26,7 +26,7 @@ is an ordinary own-cash withdrawal prerequisite.
 
 ## Durable execution boundary
 
-`AccountExecution` reuses the immutable signed-wire queue and schema-5 journal with
+`AccountExecution` reuses the immutable signed-wire queue and current schema-bound journal with
 qualified genesis/anchor/artifact binding. Public ingress accepts one measured
 wallet action with explicit zero priority price, one wallet signer and exact
 schema-decoded venue/actor/owner accounts. It does not accept arbitrary operator
@@ -293,3 +293,18 @@ local journal export check; it is not a field supplied by the on-chain event or
 a substitute for the journal's complete-block and entity-revision authentication.
 These are implemented local contracts; [validation](../operations/validation.md)
 records the separate compiled, signed and database evidence.
+
+## Relevant-market payloads (P41 candidate)
+
+Schema-6 accounts/envelopes and projection binding 6 use a new deployment and
+fresh database. Four event shapes explicitly omit unconsumed markets: routes use
+an optional other-market snapshot; order/cash/liquidation events contain zero to
+two snapshots in registry order. Duplicate/out-of-order snapshots reject. Missing
+snapshots preserve prior projected state, including its scoped revision; the
+authenticated footer contains exactly the supplied dependencies. No market state
+is synthesized to fill an absent slot. Full-cohort payloads remain complete.
+
+The numeric binding prevents replaying schema-5 events through the new codecs.
+Maker economics and independent report readers unwrap optional snapshots before
+accruing their recorded funding; local payload cursors remain separate from wire
+authority. The rebuilt RPC/WS/PostgreSQL acceptance is pending in STATUS.

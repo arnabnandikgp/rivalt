@@ -39,10 +39,10 @@ pub struct ManageAccountOrder<'info> {
     pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[0]], bump = btc.bump, has_one = venue,
         constraint = venue.markets[0] == btc.key() @ ClearingError::Profile)]
-    pub btc: Box<Account<'info, Market>>,
+    pub btc: Option<Box<Account<'info, Market>>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[1]], bump = eth.bump, has_one = venue,
         constraint = venue.markets[1] == eth.key() @ ClearingError::Profile)]
-    pub eth: Box<Account<'info, Market>>,
+    pub eth: Option<Box<Account<'info, Market>>>,
     #[account(mut, seeds = [b"margin-v3", margin.portfolio.as_ref(), &margin.subaccount_index.to_le_bytes()], bump = margin.bump, has_one = venue)]
     pub margin: Box<Account<'info, MarginAccount>>,
 }
@@ -87,8 +87,13 @@ pub fn manage(
     } else {
         crate::engine::account::trade_authority(&root, accounts.actor.key(), clock.slot)?
     };
-    let market_views = [market_view(&accounts.btc)?, market_view(&accounts.eth)?];
-    let environment = environment(&market_views, usize::from(market_index), &clock)?;
+    require!(market_index < 2, ClearingError::Profile);
+    // Borrow the authenticated market states through candidate computation; no
+    // duplicate two-market snapshot belongs on the 4 KiB instruction stack.
+    let environment = optional_environment([
+        accounts.btc.as_deref().map(|market| &**market),
+        accounts.eth.as_deref().map(|market| &**market),
+    ], usize::from(market_index), &clock)?;
     match &operation {
         OrderAction::Place { terms, .. } | OrderAction::Replace { terms, .. } => {
             environment.admit_sources(&root, &clock, !terms.reduce_only)?
@@ -100,7 +105,10 @@ pub fn manage(
     let previous = accounts.margin.positions;
     commit_root(&mut accounts.margin, &next)?;
     invalidate(&mut accounts.custody, previous, accounts.margin.positions)?;
-    materialize([&mut accounts.btc, &mut accounts.eth], &clock)?;
+    materialize_optional([
+        accounts.btc.as_deref_mut().map(|market| &mut **market),
+        accounts.eth.as_deref_mut().map(|market| &mut **market),
+    ], &clock)?;
 
     emit_order(events, accounts, clock.slot)
 }
@@ -117,10 +125,8 @@ fn emit_order(
         slot,
         margin: accounts.margin.key(),
         state: crate::events::MarginAccountSnapshot::from(&**accounts.margin),
-        markets: [
-            crate::events::MarketSnapshot::from(&**accounts.btc),
-            crate::events::MarketSnapshot::from(&**accounts.eth),
-        ],
+        markets: [accounts.btc.as_deref(), accounts.eth.as_deref()].into_iter().flatten()
+            .map(|market| crate::events::MarketSnapshot::from(&**market)).collect(),
         liability_versions: accounts.custody.liability_versions,
     });
     events.emit(&*emitted, accounts.event_authority.to_account_info())

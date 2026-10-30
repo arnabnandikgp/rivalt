@@ -111,13 +111,13 @@ fn initialize_curve(
     let capital = &ctx.accounts.capital;
     let clock = Clock::get()?;
     require!(
-        venue.schema_version == 5
+        venue.schema_version == 6
             && venue.profile_version == 4
             && venue.market_count == 2
-            && market.schema_version == 5
+            && market.schema_version == 6
             && market.index < 2
             && venue.markets[usize::from(market.index)] == market.key()
-            && capital.schema_version == 5
+            && capital.schema_version == 6
             && capital.mode == MODE_ISOLATED
             && capital.role == ROLE_MAKER
             && capital.isolated_market_index == market.index

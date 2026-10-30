@@ -113,6 +113,57 @@ processes are stopped. No browser, full P44 instruction/resource coverage, valid
 scheduler throughput, funded deployment or endurance result is claimed. Scoped
 client/typecheck/generation/source/ABI checks pass; broad regressions run in CI.
 
+### Relevant-market acceptance (P41)
+
+Schema 6 preserves account layouts/seeds while optional canonical market contexts
+and four explicit partial payloads remove unrelated source/funding dependencies.
+The D86 ABI delta is checked against immutable P40B `d55ab82`. Independent omitted
+one-scaled-unit claims, live orders and receiver dependencies reject; absent empty
+slots retain their checkpoint/generation and reservation observations.
+
+Clean SBF **`b0c5675f9e511c1d46a6538d22ced16241d6a4f8`** builds default/qualified
+programs, IDLs and generated SDK. Clearing is 2,472,208 bytes; SHA-256
+`03c475ba72dcc77244ed32b2fc3c79c9ffe58ac0ae0ca90cb06e96d313d11e03`.
+The first order handler exceeded the 4 KiB frame by 240 bytes; borrowing typed
+markets removes duplicate snapshots. No heap/CU limit or admission check changes.
+All three compiled default initialization gates reject. Native coverage comprises
+112 passing clearing cases followed by eight affected trading cases including the
+new independent negative-prefix/expiry vector; these counts overlap.
+
+- Clean verifier **`ca8bab092ae6bc17b0ba982181a4a8c58f4df3f9`**: 167 actual RPC/WS
+  outcomes, 161 successes/six expected rejections; both isolated markets, coupled
+  cross roots, transfers/exits, orders/protection, negative funding, actual hold
+  expiry/revocation, complete backing, gain payment and explicit flat netting.
+  Ten omission cases check signed-message/footer absence and unchanged market bytes.
+  Fresh PostgreSQL replay matches all 115 events and reconciles 73 accounts/nine
+  members. Literal cash 7,998,935 + pools 999/4 + insurance 9/5 + retained fees
+  30/15 equals actual/allocated vault 7,999,997 atoms; fee carries are 3/0.
+  Exact quantity and checkpoint-adjusted claim identities pass in both markets.
+  Anchor independently checks 148 clearing encodings/257 events plus both makers.
+- Clean safety verifier **`078057ae4f0581dfed0228dd098f442d18c99093`**, same SBF:
+  290 signed outcomes, 267 successes/23 expected rejections, TP/SL/reservations,
+  strict post-fee liquidation, complete eight-root default, cash exit and recovery.
+  Independent raw-byte Fraction audit verifies eight payouts and ten corruptions.
+  Anchor checks 266 clearing encodings, two account codecs and 487 events plus
+  makers. Offline projection matches five raw-body boundaries, with one explicitly
+  uncaptured portfolio; it is not additional live SQL/block-fence evidence.
+
+Maximum observed CU is 276,058 in the dependency probe and 480,324 in safety;
+these are scoped observations, not P44 full-path bounds or validator throughput.
+The first claim probe landed all effects then found a revision-less certificate
+payload projection error. The corrected reader binds it to the authenticated
+footer; 13 affected projection cases pass, followed by the fresh successful probe.
+Current typecheck, generation, source coverage, explicit ABI and inventory checks
+pass. The legacy payload itself and on-chain settlement logic were unchanged by
+that repair.
+
+Raw records remain under `.local/liquidity-execution/runs/p41-claims-revision/`,
+`p41-safety/` and retained failed/earlier attempts; build/check logs use `.local/p41-*`.
+Owned RPC/WS/PostgreSQL processes stop after each run. Broader browser, services,
+full-cohort resources and endurance are not rerun for this phase; P44 owns final
+integration and full profiling. Custody/ledger coupling and continuous-activity
+certificate progress remain P42. External/funded gates are unchanged.
+
 ## Qualified baseline and provenance
 
 | Scope | Actual tested pin(s) | Evidence boundary |

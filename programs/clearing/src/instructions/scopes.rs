@@ -8,11 +8,11 @@ use anchor_lang::prelude::*;
 macro_rules! context {
     ($context:ident, $($venue:ident).+, $($authority:ident).+;
         [$($($field:ident).+ : $access:ident),* $(,)?];
-        [$($optional:ident : $optional_access:ident),* $(,)?]) => {
+        [$($($optional:ident).+ : $optional_access:ident),* $(,)?]) => {
         impl<'info> ScopedContext<'info> for $context<'info> {
             fn visit(&mut self, scope: &mut Scope) -> Result<()> {
                 $(scope.account(&mut self.$($field).+, Access::$access)?;)*
-                $(if let Some(account) = self.$optional.as_deref_mut() {
+                $(if let Some(account) = self.$($optional).+.as_deref_mut() {
                     scope.account(account, Access::$optional_access)?;
                 })*
                 Ok(())
@@ -72,14 +72,12 @@ context!(ChangeAccountClaim, identity.venue, event_authority;
         identity.venue: Read,
         identity.custody: Write,
         identity.safety: Read,
-        identity.btc: Write,
-        identity.eth: Write,
         identity.btc_ledger: Write,
         identity.eth_ledger: Write,
         margin: Write,
         registry: Read,
     ];
-    [certificate: Read]);
+    [identity.btc: Write, identity.eth: Write, certificate: Read]);
 
 context!(CheckAccountRetirement, identity.venue, event_authority;
     [
@@ -154,7 +152,6 @@ context!(ExecuteLiquidityRoute, identity.venue, event_authority;
         identity.custody: Write,
         identity.safety: Read,
         identity.market: Write,
-        identity.other_market: Write,
         identity.ledger: Write,
         identity.other_ledger: Read,
         identity.trader: Write,
@@ -162,7 +159,7 @@ context!(ExecuteLiquidityRoute, identity.venue, event_authority;
         first_capital: Write,
         first_registration: Write,
     ];
-    [second_capital: Write, second_registration: Write]);
+    [identity.other_market: Write, second_capital: Write, second_registration: Write]);
 
 context!(FreezeAccounts, identity.venue, event_authority;
     [
@@ -279,52 +276,44 @@ context!(LiquidateAccount, identity.venue, event_authority;
         identity.venue: Read,
         identity.custody: Write,
         identity.safety: Read,
-        identity.btc: Write,
-        identity.eth: Write,
         identity.btc_ledger: Write,
         identity.eth_ledger: Write,
         target: Write,
         receiver: Write,
     ];
-    []);
+    [identity.btc: Write, identity.eth: Write]);
 
 context!(ManageAccountOrder, venue, event_authority;
     [
         venue: Read,
         custody: Write,
         safety: Read,
-        btc: Write,
-        eth: Write,
         margin: Write,
     ];
-    []);
+    [btc: Write, eth: Write]);
 
 context!(ManageMarketFees, identity.venue, event_authority;
     [
         identity.venue: Read,
         identity.custody: Write,
         identity.safety: Read,
-        identity.btc: Write,
-        identity.eth: Write,
         identity.btc_ledger: Write,
         identity.eth_ledger: Write,
     ];
-    []);
+    [identity.btc: Write, identity.eth: Write]);
 
 context!(NetAccountClaims, identity.venue, event_authority;
     [
         identity.venue: Read,
         identity.custody: Write,
         identity.safety: Read,
-        identity.btc: Write,
-        identity.eth: Write,
         identity.btc_ledger: Write,
         identity.eth_ledger: Write,
         margin: Write,
         registry: Read,
         certificate: Read,
     ];
-    []);
+    [identity.btc: Write, identity.eth: Write]);
 
 context!(PauseVenue, venue, event_authority;
     [
@@ -472,14 +461,12 @@ context!(TransferFundedAccount, identity.venue, event_authority;
         identity.venue: Read,
         identity.custody: Write,
         identity.safety: Read,
-        identity.btc: Write,
-        identity.eth: Write,
         identity.btc_ledger: Write,
         identity.eth_ledger: Write,
         donor: Write,
         recipient: Write,
     ];
-    []);
+    [identity.btc: Write, identity.eth: Write]);
 
 context!(ValueAccountResolution, identity.venue, event_authority;
     [
@@ -500,22 +487,18 @@ context!(WithdrawFundedAccount, identity.venue, event_authority;
         identity.venue: Read,
         identity.custody: Write,
         identity.safety: Read,
-        identity.btc: Write,
-        identity.eth: Write,
         identity.btc_ledger: Write,
         identity.eth_ledger: Write,
         margin: Write,
     ];
-    []);
+    [identity.btc: Write, identity.eth: Write]);
 
 context!(WithdrawRetiredReserve, identity.venue, event_authority;
     [
         identity.venue: Read,
         identity.custody: Write,
         identity.safety: Read,
-        identity.btc: Write,
-        identity.eth: Write,
         identity.btc_ledger: Write,
         identity.eth_ledger: Write,
     ];
-    []);
+    [identity.btc: Write, identity.eth: Write]);

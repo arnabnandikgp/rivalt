@@ -13,6 +13,7 @@ import subprocess
 from wire_contract import program_contract, source_domains
 
 PREDECESSOR = 'f8984e04ca655b81312a5ec13443dba5f08f6a21'
+MARKET_PREDECESSOR = 'd55ab82'
 ACCOUNTS = ('Venue', 'Custody', 'VenueSafety', 'VenueRegistry', 'Portfolio',
             'MarginAccount', 'Market', 'MarketLedger', 'CapitalBinding',
             'SettlementCertificate', 'Resolution', 'ResolutionPage', 'ResolutionWork',
@@ -39,7 +40,7 @@ def predecessor_idl(program):
     return json.loads(subprocess.check_output(['git', 'show', f'{PREDECESSOR}:packages/sdk/idl/{program}.json']))
 
 
-def expected_idl(program):
+def scoped_idl(program):
     original = predecessor_idl(program)
     frozen = json.loads(Path('tests/fixtures/wire-contract.json').read_text())
     assert program_contract(original) == frozen['contract']['programs'][program]
@@ -98,6 +99,51 @@ def expected_idl(program):
     return expected
 
 
+def expected_idl(program):
+    # Freeze P41 against accepted P40B, itself checked against the original D84
+    # delta. Never derive expected fields from newly generated output.
+    expected = json.loads(subprocess.check_output([
+        'git', 'show', f'{MARKET_PREDECESSOR}:packages/sdk/idl/{program}.json']))
+    assert program_contract(expected) == program_contract(scoped_idl(program))
+    if program != 'clearing':
+        return expected
+    financial = ('allocate_market_fees', 'collect_account_loss', 'liquidate_account',
+                 'net_account_claims', 'pay_account_gain', 'transfer_funded_account',
+                 'withdraw_funded_account', 'withdraw_market_fees', 'withdraw_retired_reserve')
+    for instruction in expected['instructions']:
+        name = instruction['name']
+        fields = instruction['accounts']
+        if name in financial or name in ('execute_liquidity_order', 'execute_liquidity_route'):
+            fields = next(field for field in fields if field['name'] == 'identity')['accounts']
+        if name in financial or name == 'manage_account_order':
+            for field in fields:
+                if field['name'] in ('btc', 'eth'):
+                    assert field == {'name': field['name'], 'writable': True}
+                    field['optional'] = True
+                elif name in financial and field['name'] in ('btc_ledger', 'eth_ledger'):
+                    market, index = ('btc', 0) if field['name'] == 'btc_ledger' else ('eth', 1)
+                    assert field['pda']['seeds'][1] == {'kind': 'account', 'path': market}
+                    field['pda']['seeds'][1] = {'kind': 'account', 'path': f'venue.markets [{index}]', 'account': 'Venue'}
+        elif name in ('execute_liquidity_order', 'execute_liquidity_route'):
+            for field in fields:
+                if field['name'] == 'other_market':
+                    assert field == {'name': 'other_market', 'writable': True}
+                    field['optional'] = True
+                elif field['name'] == 'other_ledger':
+                    assert field['pda']['seeds'][1] == {'kind': 'account', 'path': 'other_market'}
+                    del field['pda']  # Dynamic canonical registry index is not IDL-resolvable.
+    for record in expected['types']:
+        if record['name'] in ('AccountFinancialChanged', 'AccountLiquidated', 'AccountOrderChanged'):
+            field = next(field for field in record['type']['fields'] if field['name'] == 'markets')
+            assert field['type'] == {'array': [{'defined': {'name': 'MarketSnapshot'}}, 2]}
+            field['type'] = {'vec': {'defined': {'name': 'MarketSnapshot'}}}
+        elif record['name'] == 'LiquidityRouteExecuted':
+            field = next(field for field in record['type']['fields'] if field['name'] == 'other_market_state')
+            assert field['type'] == {'defined': {'name': 'MarketSnapshot'}}
+            field['type'] = {'option': {'defined': {'name': 'MarketSnapshot'}}}
+    return expected
+
+
 def check(directory):
     frozen = json.loads(Path('tests/fixtures/wire-contract.json').read_text())
     assert source_domains() == frozen['contract']['domains'], 'Seeds/hash domains changed outside D84'
@@ -105,7 +151,7 @@ def check(directory):
         expected = program_contract(expected_idl(program))
         current = program_contract(json.loads((directory / f'{program}.json').read_text()))
         assert current == expected, (program, current, expected)
-    print(f'Scoped ABI matches explicit D84 delta from {PREDECESSOR}: 17 layouts, 28 events, 20 custody read metas, three footer metas; maker-owned ABIs unchanged, imported clearing types revised')
+    print(f'ABI matches explicit D84 then D86 deltas: P40A {PREDECESSOR}, P40B {MARKET_PREDECESSOR}; P41 optional market metas and four partial-market payloads; account layouts/maker ABIs unchanged')
 
 
 if __name__ == '__main__':

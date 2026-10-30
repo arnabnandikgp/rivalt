@@ -43,7 +43,7 @@ fn begin(identity: &AccountFinancialIdentity) -> Result<Snapshot> {
         [&identity.btc_ledger, &identity.eth_ledger],
         identity.vault.amount,
     )?;
-    Snapshot::new([&identity.btc, &identity.eth], &Clock::get()?)
+    Snapshot::optional(identity.markets(), &Clock::get()?)
 }
 
 fn commit(
@@ -57,7 +57,7 @@ fn commit(
 }
 
 fn finish(identity: &mut AccountFinancialIdentity, clock: &Clock) -> Result<()> {
-    trading::materialize([&mut identity.btc, &mut identity.eth], clock)?;
+    identity.materialize(clock)?;
 
     super::account_custody::reconciled(
         &identity.custody,
@@ -96,10 +96,7 @@ fn emit<'info>(
             .iter()
             .map(|root| crate::events::MarginAccountSnapshot::from(&***root))
             .collect(),
-        markets: [
-            crate::events::MarketSnapshot::from(&**identity.btc),
-            crate::events::MarketSnapshot::from(&**identity.eth),
-        ],
+        markets: identity.markets().into_iter().flatten().map(crate::events::MarketSnapshot::from).collect(),
         ledgers: [&identity.btc_ledger, &identity.eth_ledger].map(|ledger| {
             crate::events::MarketLedgerSnapshot {
                 ledger: ledger.key(),

@@ -52,7 +52,7 @@ writes remain hot accounts; P24/P28 measure them rather than claim parallelism.
 
 Ordered Borsh fields in [state/accounts](../../programs/clearing/src/state/accounts) are normative.
 Clearing accounts use canonical discriminator bytes, SHA-256(`account:<name>`)[0..8].
-Each begins with schema u16=5 and a scoped revision u64. D84 deliberately supersedes
+Each begins with schema u16=6 and a scoped revision u64. D84 deliberately supersedes
 P36's preserved historical discriminators for this fresh local domain. Integer seeds are little endian. Reused Position and
 OrderBook scalar records preserve 48-/680-byte encoding only, not V2 account
 identity, handlers or common-loss semantics. All public JSON integers are decimal
@@ -85,7 +85,7 @@ contract's size tests do not establish SBF stack/CU safety.
 
 ## Current-profile additions and activation
 
-Canonical maker registrations and funding publishers are clearing-owned schema 5.
+Canonical maker registrations and funding publishers are clearing-owned schema 6.
 Maker-owned curve and price accounts retain schema 4. Their exact layouts are in
 [quoting](../liquidity/quoting.md) and [funding](../liquidity/funding.md).
 The older fixed-maker registration is retired, not reinterpreted as the current
@@ -219,3 +219,70 @@ roots record reads even when the complete transaction promotes their privileges.
 These static/native checks do not prove compiled CPI, rollback, packet/CU fit or
 journal completeness. The explicit local qualification build is tested separately from these static
 checks; default/devnet builds continue to reject financial activation.
+
+## Relevant-market contract (P41)
+
+D86 froze this fresh local boundary before changing contexts. Source, rebuilt
+artifacts and scoped integrated acceptance are recorded in
+[validation](../operations/validation.md#relevant-market-acceptance-p41). Clearing-owned
+accounts and scoped envelopes select **schema 6**; field order, sizes, kinds,
+canonical discriminators and PDA seeds stay as schema 5. A new domain/genesis,
+explicit `accountSchema: 6`, new artifact pins and fresh journal are required.
+Maker-owned curve/price schema 4 and signed quote/report formats remain unchanged.
+No retained P40B deployment, original or database is migrated in place.
+
+The required market set is derived on-chain from every touched trader, selected
+maker, transfer recipient and liquidation receiver. Include every nonzero position
+or scaled claim (positive or negative), every stored active order (including its
+protective child), and each requested market effect. Inert protection allowance
+without an active child creates no execution authority. Expired-but-not-cleaned
+active records remain conservative dependencies until the action refreshes them.
+A caller-supplied mask never authorizes omission. Validate root identity and book
+bounds before using the set. Existing oracle admission rules remain unchanged;
+including a flat claim in the dependency set does not add positive margin credit.
+
+- Immediate/stored routes require the selected market and the complete union for
+  trader plus one/two makers. `AccountRouteIdentity.other_market` becomes optional.
+- Order actions require the requested market plus the complete root set.
+  `ManageAccountOrder.btc/eth` become optional.
+- Funded withdrawal/transfer require the complete donor/recipient sets. A flat
+  account may omit both. `AccountFinancialIdentity.btc/eth` become optional.
+- Claim collection/payment adds the selected market. Gain payment also includes
+  every market required by its complete-backing certificate; flat netting requires
+  both. Liquidation includes target/receiver sets and the selected market, even
+  though target risk orders are cancelled by the transition.
+- Treasury fee allocation/withdrawal and resolved reserve withdrawal consume no
+  funding and may omit both markets through the same optional financial context.
+  Their ledger/custody/vault conservation and authority checks remain intact.
+- Complete default, recovery, activation and retirement retain their complete
+  two-market contexts. P42 owns ledger/vault/custody isolation and certificate
+  liveness; P41 does not remove those remaining shared dependencies.
+
+Each supplied market is a typed, canonical writable account. Omission uses Anchor's
+program placeholder and contributes no market read/write to the compiled message
+or scoped footer. A missing required market rejects before economic changes. Extra
+canonical markets may still be supplied by direct callers; SDK builders omit them
+when unnecessary. Superfluous supplied markets retain the full old validation,
+materialization and revision semantics rather than silently claiming independence.
+
+Only supplied markets produce funding views/materialize their consumed prefixes.
+For a proven empty omitted slot, arithmetic uses neutral zero-exposure inputs and
+preserves the original position/checkpoint/generation and reservation-observation
+bytes. It never substitutes a neutral valuation for an exposure, claim or live
+order. Each relevant consumed prefix remains irreversible under time/slot expiry,
+publisher outage/revocation and later reports; held-window bounds and mixed-market
+withdrawal checks remain intact.
+
+The four affected payload shapes become explicit partial snapshots:
+`LiquidityRouteExecuted.other_market_state` is `Option<MarketSnapshot>`;
+`AccountOrderChanged.markets`, `AccountFinancialChanged.markets` and
+`AccountLiquidated.markets` are bounded vectors of at most two snapshots, ordered
+by registry index. Omitted market snapshots are absent, never fabricated or used to
+reset the projection. Revisions authenticate every included snapshot. Existing
+financial amounts, account guards, complete-root snapshots and fee splits stay.
+
+Acceptance requires independent missing-loss/order/receiver cases, signed isolated
+BTC/ETH dependency sets, cross-market coupling, held/expired/negative funding
+prefix checks, transfers/withdrawals/reservations/TP/SL/liquidation, ABI/SDK parity
+and actual Surfpool RPC/WS/PostgreSQL reconstruction. Failed and successful paths
+must use the rebuilt schema-6 artifact; P40B evidence does not qualify it.

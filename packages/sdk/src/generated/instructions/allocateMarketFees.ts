@@ -45,9 +45,7 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import {
-  findBtcLedgerPda,
   findCustodyPda,
-  findEthLedgerPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
@@ -191,10 +189,10 @@ export type AllocateMarketFeesAsyncInput<
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
-  btcLedger?: TAccountBtcLedger;
-  ethLedger?: TAccountEthLedger;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
+  btcLedger: TAccountBtcLedger;
+  ethLedger: TAccountEthLedger;
   vault?: TAccountVault;
   feeAuthority: TAccountFeeAuthority;
   quoteMint: TAccountQuoteMint;
@@ -398,28 +396,6 @@ export async function getAllocateMarketFeesInstructionAsync<
       { programAddress },
     );
   }
-  if (!accounts.btcLedger.value) {
-    accounts.btcLedger.value = await findBtcLedgerPda(
-      {
-        btc: getAddressFromResolvedInstructionAccount(
-          "btc",
-          accounts.btc.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.ethLedger.value) {
-    accounts.ethLedger.value = await findEthLedgerPda(
-      {
-        eth: getAddressFromResolvedInstructionAccount(
-          "eth",
-          accounts.eth.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.vault.value) {
     accounts.vault.value = await findVenueVaultPda(
       {
@@ -539,8 +515,8 @@ export type AllocateMarketFeesInput<
   venue: TAccountVenue;
   custody: TAccountCustody;
   safety: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
   btcLedger: TAccountBtcLedger;
   ethLedger: TAccountEthLedger;
   vault: TAccountVault;
@@ -818,8 +794,8 @@ export type ParsedAllocateMarketFeesInstruction<
     venue: TAccountMetas[0];
     custody: TAccountMetas[1];
     safety: TAccountMetas[2];
-    btc: TAccountMetas[3];
-    eth: TAccountMetas[4];
+    btc?: TAccountMetas[3] | undefined;
+    eth?: TAccountMetas[4] | undefined;
     btcLedger: TAccountMetas[5];
     ethLedger: TAccountMetas[6];
     vault: TAccountMetas[7];
@@ -868,8 +844,8 @@ export function parseAllocateMarketFeesInstruction<
       venue: getNextAccount(),
       custody: getNextAccount(),
       safety: getNextAccount(),
-      btc: getNextAccount(),
-      eth: getNextAccount(),
+      btc: getNextOptionalAccount(),
+      eth: getNextOptionalAccount(),
       btcLedger: getNextAccount(),
       ethLedger: getNextAccount(),
       vault: getNextAccount(),

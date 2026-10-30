@@ -123,18 +123,18 @@ mod tests {
     #[test]
     fn current_activation_rejects_retired_profiles_pauses_and_nontrading_modes() {
         let mut venue = Venue {
-            schema_version: 5,
+            schema_version: 6,
             profile_version: 4,
             market_count: 2,
             insurance_fee_share_bps: 2500,
             ..Default::default()
         };
         let custody = Custody {
-            schema_version: 5,
+            schema_version: 6,
             ..Default::default()
         };
         let mut safety = VenueSafety {
-            schema_version: 5,
+            schema_version: 6,
             mode: ACTIVE,
             ..Default::default()
         };

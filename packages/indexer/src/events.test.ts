@@ -7,7 +7,7 @@ import {decodeAccounts} from './account-events.js';
 const key=fixtureVenue,authority=fixtureAuthority;
 const rootDecoder=sdk.getMarginAccountSnapshotDecoder();
 const payload=Buffer.from(sdk.getAccountAuthorityChangedEventEncoder().encode({venue:key,slot:10n,margin:key,
-  state:{...rootDecoder.decode(new Uint8Array(rootDecoder.fixedSize)),schemaVersion:5},liabilityVersions:[0n,0n]}));
+  state:{...rootDecoder.decode(new Uint8Array(rootDecoder.fixedSize)),schemaVersion:6},liabilityVersions:[0n,0n]}));
 const decode=(signature:string,transaction:unknown,authority:string,program:string=PROGRAM)=>decodeAccounts(signature,transaction,authority,key,program);
 const tx=(bytes=payload)=>eventTransaction(bytes,key,authority,sdk.CLEARING_PROGRAM_ADDRESS,'signature');
 it('requires successful metadata and authenticated event-CPI envelope, not log strings',()=>{

@@ -45,6 +45,11 @@ pub(crate) fn commit_root(root: &mut MarginAccount, candidate: &MarginAccount) -
 }
 
 pub(crate) fn market_view(market: &Market) -> Result<Market> {
+    validate_market(market)?;
+    Ok(market.clone())
+}
+
+fn validate_market(market: &Market) -> Result<()> {
     require!(
         market.schema_version == SCHEMA_VERSION
             && market.index < 2
@@ -52,7 +57,7 @@ pub(crate) fn market_view(market: &Market) -> Result<Market> {
             && market.lots_per_unit == [1_000_000, 100_000][usize::from(market.index)],
         ClearingError::Profile
     );
-    Ok(market.clone())
+    Ok(())
 }
 
 pub(crate) fn commit_market(market: &mut Market, candidate: &Market) -> Result<()> {
@@ -111,25 +116,46 @@ pub(crate) fn environment<'a>(
             && markets[1].index == 1,
         ClearingError::Profile
     );
+    optional_environment(markets.each_ref().map(Some), selected, clock)
+}
+
+pub(crate) fn optional_environment<'a>(
+    markets: [Option<&'a Market>; 2],
+    selected: usize,
+    clock: &Clock,
+) -> Result<book::Environment<'a>> {
+    require!(selected <= 2, ClearingError::Profile);
+    if let [Some(btc), Some(eth)] = markets {
+        require!(btc.venue == eth.venue, ClearingError::Profile);
+    }
+    let mut funding = [0; 2];
+    let mut credible = [false; 2];
+    for (index, market) in markets.iter().enumerate() {
+        if let Some(market) = market {
+            validate_market(market)?;
+            require!(market.index as usize == index, ClearingError::Profile);
+            funding[index] = shared_oracle::effective(2, market, clock)?;
+            credible[index] = shared_oracle::action(market, clock, false).is_ok();
+        }
+    }
     Ok(book::Environment {
-        markets: [Some(&markets[0]), Some(&markets[1])],
+        markets,
         selected,
-        funding: [
-            shared_oracle::effective(2, &markets[0], clock)?,
-            shared_oracle::effective(2, &markets[1], clock)?,
-        ],
+        funding,
         slot: clock.slot,
-        credible: markets
-            .each_ref()
-            .map(|market| shared_oracle::action(market, clock, false).is_ok()),
+        credible,
     })
 }
 
 /// Every consumed prefix persists even if a later sample is lost or held coverage
-/// expires. Both canonical market accounts are locked; irrelevant prices need not
-/// be fresh and no observation/event counter is a signed-intent dependency.
+/// expires. Complete default still supplies both markets; ordinary actions supply
+/// only their validated dependency union (and any explicit canonical extras).
 pub(crate) fn materialize(markets: [&mut Market; 2], clock: &Clock) -> Result<()> {
-    for market in markets {
+    materialize_optional(markets.map(Some), clock)
+}
+
+pub(crate) fn materialize_optional(markets: [Option<&mut Market>; 2], clock: &Clock) -> Result<()> {
+    for market in markets.into_iter().flatten() {
         let mut view = market_view(market)?;
         shared_oracle::materialize(2, &mut view, clock)?;
         commit_market(market, &view)?;

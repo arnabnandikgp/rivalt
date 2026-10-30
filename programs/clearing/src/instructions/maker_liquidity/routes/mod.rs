@@ -2,7 +2,7 @@
 //! No profile-4 activation path is supplied by this module.
 use super::*;
 use crate::engine::routes as candidates;
-use crate::instructions::account_trading::{self as trading, environment, market_view, root_view};
+use crate::instructions::account_trading::{self as trading, optional_environment, market_view, root_view};
 use crate::instructions::{OrderExecution, RouteIntent, RouteLeg};
 use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
@@ -117,9 +117,9 @@ fn execute_core(
     require!(
         selected < 2
             && identity.venue.markets[selected] == identity.market.key()
-            && identity.venue.markets[1 - selected] == identity.other_market.key()
+            && identity.other_market.as_ref().is_none_or(|market| identity.venue.markets[1 - selected] == market.key())
             && identity.ledger.market_index == identity.market.index
-            && identity.other_ledger.market_index == identity.other_market.index,
+            && usize::from(identity.other_ledger.market_index) == 1 - selected,
         ClearingError::Profile
     );
     let has_second = intent.legs.len() == 2;
@@ -140,16 +140,21 @@ fn execute_core(
     );
     let markets = if selected == 0 {
         [
-            market_view(&identity.market)?,
-            market_view(&identity.other_market)?,
+            Some(market_view(&identity.market)?),
+            identity.other_market.as_deref().map(|market| market_view(market)).transpose()?,
         ]
     } else {
         [
-            market_view(&identity.other_market)?,
-            market_view(&identity.market)?,
+            identity.other_market.as_deref().map(|market| market_view(market)).transpose()?,
+            Some(market_view(&identity.market)?),
         ]
     };
-    let environment = environment(&markets, selected, clock)?;
+    let environment = optional_environment(markets.each_ref().map(Option::as_ref), selected, clock)?;
+    environment.validate(&identity.trader)?;
+    environment.validate(&accounts.first_capital)?;
+    if let Some(capital) = accounts.second_capital.as_deref() {
+        environment.validate(capital)?;
+    }
     let trader = root_view(&identity.trader)?;
     let mut views = vec![pricing::View {
         capital: &accounts.first_capital,

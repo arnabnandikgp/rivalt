@@ -26,7 +26,7 @@ def account(report, address, name, size):
     raw = base64.b64decode(report['rawAccounts'][address])
     assert len(raw) == size, (name, len(raw))
     assert raw[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
-    assert integer(raw, 8, 2) == 5 and integer(raw, 10) > 0
+    assert integer(raw, 8, 2) == 6 and integer(raw, 10) > 0
     return raw
 
 

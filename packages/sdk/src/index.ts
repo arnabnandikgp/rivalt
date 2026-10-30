@@ -14,6 +14,7 @@ export * from './artifacts.js';
 export * from './account-addresses.js';
 export * from './account-snapshot.js';
 export * from './account-client.js';
+export * from './account-markets.js';
 export * from './account-balance.js';
 export * from './liquidity-adapter.js';
 export * from './liquidity-margin.js';

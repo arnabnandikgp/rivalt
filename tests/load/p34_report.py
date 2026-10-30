@@ -73,7 +73,7 @@ def audit_finances(run):
         change, kind = event['payload'], event['kind']
         sequence += 1
         assert int(event['cursor']) == sequence, 'Missing local journal payload'
-        for value in [change.get('marketState'), change.get('otherMarketState'), change.get('state'), *change.get('markets', [])]:
+        for value in [change.get('marketState'), (change.get('otherMarketState') or {}).get('value'), change.get('state'), *change.get('markets', [])]:
             if isinstance(value, dict) and 'fundingIndexScaled' in value:
                 indexes[value['index']] = int(value['fundingIndexScaled'])
         accrue()

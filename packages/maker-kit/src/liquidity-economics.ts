@@ -36,7 +36,7 @@ export function liquidityMakerEconomics(input:LiquidityEconomicsInput) {
     const change=event.payload;assert.equal(unsigned(event.cursor),++sequence,'Incomplete local payload stream');
     const transaction=bySignature.get(event.signature);assert(transaction&&!transaction.failed,'Successful finalized transaction required');
     assert(!/Resolution|Liquidated|Retired/.test(event.kind),'Exceptional resolution requires its separate economics report');
-    const market=[change.marketState,change.otherMarketState,...(change.markets??[]),change.state].find(value=>
+    const market=[change.marketState,change.otherMarketState?.__option==='Some'?change.otherMarketState.value:undefined,...(change.markets??[]),change.state].find(value=>
       value&&typeof value==='object'&&value.index===marketIndex&&value.fundingIndexScaled!==undefined);
     if(market)accrue(integer(market.fundingIndexScaled));
     if(event.kind==='LiquidityRouteExecutedV4') {

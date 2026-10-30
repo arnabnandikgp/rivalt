@@ -12,6 +12,7 @@ use financial_core as math;
 pub(crate) mod account;
 pub(crate) mod authority;
 pub(crate) mod book;
+pub(crate) mod markets;
 pub(crate) mod oracle;
 pub(crate) mod risk;
 pub mod routes;
