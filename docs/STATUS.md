@@ -15,7 +15,9 @@ the integration and preceding baselines.
 |---|---|---|
 | M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
 | P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
-| P40 scoped events/services | Planned | Verified P39 parent; atomic per-entity event reconstruction, PG replay and independent execution |
+| P40 scoped events/services | In progress | Split into two cohesive PRs under D83; umbrella acceptance requires A and B |
+| P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
+| P40B scoped event history | Planned | Atomic per-entity events, versioned ABI and finalized PG replay/reconciliation |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
@@ -130,9 +132,11 @@ No SBF rebuild, broad financial suite or PostgreSQL run is warranted for these
 harness/docs changes. No full CU coverage, scheduler throughput, endurance or
 migration result is claimed. P40/P44 must supply their own integrated acceptance.
 
-Disk has about 790 MiB free; preserve research, keys, databases and evidence.
-P40's eventual SBF rebuild may need additional space; this is not a current P39
-blocker. No external access/product decision is pending.
+The user approved deletion of exactly 23 older stopped PostgreSQL test-data copies
+(2.18 GiB). Container state was independently checked before deletion; all approved
+copies were removed. Current P40A data, every interactive demo, raw evidence, logs,
+keys, configuration and installed dependencies remain. The local manifest is
+`.local/p40-inactive-db-cleanup.json`; P40B's disk-space blocker is cleared.
 
 P39 review clarifies that compiled-message coverage applies to the focused scenarios,
 while the 61-entrypoint inventory is static. No metric or runtime changes.
@@ -140,8 +144,39 @@ while the 61-entrypoint inventory is static. No metric or runtime changes.
 P39 is published ready for review as [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55).
 Measured harness is `0ac6511`; verified summary/acceptance content is `b810b13`.
 
-Next exact action: stack P40's scoped event/indexer and bounded execution work on
-P39's accepted exact parent; keep the stack open.
+P39 CI passes all five applicable hosted jobs on `2df1c30` in
+[run 41031665229](https://github.com/arnabnandikgp/rivalt/actions/runs/41031665229).
+P40A is based on that exact parent. It adds two bounded execution lanes and durable
+signed-message conflict reservations, with an explicit drain-before-upgrade gate.
+Fourteen targeted dispatch/expiry/liquidation-authority consumer cases and typecheck
+pass. Actual RPC/WS/PostgreSQL acceptance passes at clean `9134fd6`: two independent
+originals concurrently broadcast once despite duplicate executors; shared-payer
+work defers without an attempt; a genuine failed original releases access and
+charges its actual fee. Real finalized expiry releases resource locks while
+retaining 20,000 lamports of unknown-fee reserve. Actual SIGKILL after upstream
+acceptance recovers the original seven-atom withdrawal exactly once; cash totals
+7,999,993 atoms and fresh 61-event PostgreSQL replay matches. Eight originals are
+six finalized successes, one landed rejection and one proven unexecuted expiry;
+operator spent fees total 60,000 lamports. Owned test ports are released. Raw
+records are in `.local/liquidity-execution/runs/p40a-dispatch-9134fd6/`.
+
+Additional SQL checks pass at `a2860f9` on that retained owned database: read/read
+sharing, W/W and both W/R conflicts, persistence after releasing the connection,
+legacy ambiguity rejection and idempotent activation after a known receipt.
+`dispatch-database.json` records these as SQL access fixtures, not new economic
+executions. Their first typecheck found an unresolvable direct `pg` import from
+the test workspace; using the existing store's public pool type fixes it, and
+typecheck passes. The database is stopped again. Executable service code is
+identical to the successful `9134fd6` run; `a1a44a5` merges P39's documentation-only
+review correction without rewriting either tested commit. No on-chain ABI/event migration or validator throughput
+is claimed. Broad financial/build/browser suites are unnecessary for this service
+part; no prior evidence is presented as a new pass.
+
+P40A is ready for review in [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56),
+stacked on #55. Accepted content is `0d124c1`; service runtime remains `9134fd6`.
+
+Next exact action: freeze P40B's scoped event/account revision contract on a new
+stack branch above #56 before program/indexer changes.
 
 ## Deployment and operational limits
 

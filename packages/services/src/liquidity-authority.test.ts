@@ -3,15 +3,16 @@ import * as sdk from '@rivalt/sdk';
 import {liquidityAccountFixture} from '../../sdk/test-support/liquidity-accounts.js';
 import {Queue} from './queue.js';
 import type {LiquidityPriceAuthority} from './liquidity-authority.js';
+import {dispatchWire,dispatchMockRows} from '../test-support/dispatch-fixture.js';
 
 async function fixture(instance=0) {
   const input=await liquidityAccountFixture(),maker=input.states[instance];
   const authority:LiquidityPriceAuthority={kind:'liquidityPriceSequence',venue:input.snapshot.venue,
     account:maker.price,registration:maker.registration,pricingProgram:maker.program,value:'1'};
-  const intent={status:'pending',signature:'original-signature',wire:'original-wire',blockhash:'original-blockhash',
+  const intent={status:'pending',signature:'original-signature',wire:dispatchWire(),blockhash:'original-blockhash',
     budget:'liquidity-maker',authority};
   const writes:{sql:string;params:any[]}[]=[],reads:{method:string;params:any[]}[]=[];
-  const query=async(sql:string,params:any[]=[])=>{writes.push({sql,params});return {rows:sql.includes('FOR UPDATE SKIP LOCKED')?[intent]:[]};};
+  const query=async(sql:string,params:any[]=[])=>{writes.push({sql,params});return {rows:dispatchMockRows(sql,intent)};};
   const rpc={call:async(method:string,params:any[]=[]):Promise<any>=>{
     reads.push({method,params});
     if(method==='getSignatureStatuses')return {value:[null]};

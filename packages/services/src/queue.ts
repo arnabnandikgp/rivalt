@@ -8,6 +8,7 @@ import { json } from '../../indexer/src/events.js';
 import {accountAuthorityValue, type AccountAuthority} from './account-authority.js';
 import {persistLiquidityInputs,type LiquidityInputs} from './liquidity-inputs.js';
 import {liquidityPriceSequence,type LiquidityPriceAuthority} from './liquidity-authority.js';
+import {prepareDispatch,reserveDispatch} from './dispatch.js';
 
 export const RESERVATION=20_000n;
 export type Authority=AccountAuthority | LiquidityPriceAuthority;
@@ -31,6 +32,7 @@ export function signedWire(wire:string,maxVersion:0|1=0) {
 // or sponsorship is exposed by this API, and a wallet signature is never rebuilt.
 export class Queue {
   constructor(readonly store:{pool:Pool;runId:string},readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS,readonly maxVersion:0|1=0){}
+  async prepare(){await prepareDispatch(this.store.pool,this.store.runId);}
   async budget(name:string,wallet:string,cap:bigint){
     await this.store.pool.query('INSERT INTO service_budgets(run_id,name,wallet,cap) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[this.store.runId,name,wallet,cap.toString()]);
     const r=(await this.store.pool.query('SELECT * FROM service_budgets WHERE run_id=$1 AND name=$2',[this.store.runId,name])).rows[0];
@@ -61,10 +63,28 @@ export class Queue {
   async pending(){return (await this.store.pool.query(`SELECT request_id FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved','expired-unexecuted') AND next_attempt<=now() ORDER BY next_attempt LIMIT 32`,[this.store.runId])).rows.map(r=>r.request_id as string);}
   async step(id:string){
     const c=await this.store.pool.connect();
+    const requestLock=`${this.store.runId}/dispatch-original/${id}`;
+    let owned=false,destroy=false;
     try{
+      owned=(await c.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS acquired',[requestLock])).rows[0]?.acquired===true;
+      if(!owned)return;
       await c.query('BEGIN');
       const r=(await c.query(`SELECT * FROM service_intents WHERE run_id=$1 AND request_id=$2 AND status IN ('pending','unresolved','expired-unexecuted') FOR UPDATE SKIP LOCKED`,[this.store.runId,id])).rows[0];
       if(!r){await c.query('COMMIT');return;}
+      if(r.status!=='expired-unexecuted') {
+        await c.query('SAVEPOINT admission');
+        if(!await reserveDispatch(c,this.store.runId,id,r.wire)) {
+          await c.query('ROLLBACK TO SAVEPOINT admission');
+          // Let later independent work enter the bounded due-work list. This is
+          // scheduling deferral, not an RPC attempt or a new economic outcome.
+          await c.query("UPDATE service_intents SET next_attempt=now()+interval '1 second' WHERE run_id=$1 AND request_id=$2",[this.store.runId,id]);
+          await c.query('COMMIT');return;
+        }
+      }
+      // Crash here or after send leaves the resource reservation durable. The
+      // per-original session lock excludes a second worker across this commit.
+      await c.query('COMMIT');
+      await c.query('BEGIN');
       let status=r.status==='expired-unexecuted'?r.status:'unresolved',result:any=r.status==='expired-unexecuted'?r.result:null,release=false;
       try{
         const s=(await this.rpc.call('getSignatureStatuses',[[r.signature],{searchTransactionHistory:true}])).value[0];
@@ -96,7 +116,7 @@ export class Queue {
               if(value.toString()===r.authority.value){status='expired-unexecuted';result={slot:integer(a.context.slot).toString(),fee:null,error:null,economicEffect:'not-applied'};}
             }
             }
-          }else if(valid.value===true){
+          }else if(valid.value===true&&r.status!=='expired-unexecuted'){
             // The INSERT was committed before this worker can broadcast. Lost
             // acknowledgements and process death only cause identical-byte retries.
             console.log(JSON.stringify({event:'executor-broadcast',runId:this.store.runId,requestId:id,signature:r.signature,at:Date.now()}));
@@ -108,8 +128,13 @@ export class Queue {
         const fee=BigInt(result.fee);if(fee>RESERVATION)throw new Error('Actual fee exceeds reservation');
         await c.query('UPDATE service_budgets SET committed=committed-$3,spent=spent+$4 WHERE run_id=$1 AND name=$2',[this.store.runId,r.budget,RESERVATION.toString(),fee.toString()]);
       }
+      if(release||status==='expired-unexecuted')
+        await c.query('DELETE FROM service_dispatch_access WHERE run_id=$1 AND request_id=$2',[this.store.runId,id]);
       await c.query("UPDATE service_intents SET status=$3,result=$4,attempts=attempts+1,updated_at=now(),next_attempt=now()+interval '1 second' WHERE run_id=$1 AND request_id=$2",[this.store.runId,id,status,result?json(result):null]);
       await c.query('COMMIT');
-    }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
+    }catch(e){await c.query('ROLLBACK');throw e;}finally{
+      if(owned)try{await c.query('SELECT pg_advisory_unlock(hashtextextended($1,0))',[requestLock]);}catch{destroy=true;}
+      c.release(destroy);
+    }
   }
 }

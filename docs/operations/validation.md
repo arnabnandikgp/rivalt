@@ -21,6 +21,7 @@ below; P37's fresh integrated qualification after retirement is recorded separat
 | Current execution | `bash ops/liquidity-execution-smoke.sh` and affected full-book variants |
 | Maker CPI isolation | `node --import tsx tests/rpc-contract/liquidity-hostile-svm.ts`; compiled fault injection, distinct from real RPC landing/upgrade evidence |
 | Account/default arithmetic | Independent Fraction/bounded integer cases in `tests/financial/`, actual account safety handlers and compiled/RPC tests |
+| Durable dispatch/conflict scheduling | `bash ops/dispatch-smoke.sh`, scoped `dispatch`, queue and expiry-authority tests; P40A acceptance tracked separately |
 | Services/wallet/replay | `bash ops/liquidity-services-smoke.sh`, independent `tests/financial/p33_services_reference.py` |
 | Default/recovery/exits | `bash ops/liquidity-operations-smoke.sh`, independent `tests/load/p34_operations_report.py` |
 | Bounded comparison when changed behavior warrants it | `bash ops/liquidity-qualification-smoke.sh`, `tests/load/p34_report.py` |
@@ -43,6 +44,26 @@ all actual receipts/wires agree. Eight-root cash/claims, 83 fee atoms and the
 61 entrypoints; only the named twelve cases have new CU measurements. Separate
 payer versus protocol locks are recorded. No PostgreSQL, throughput, full
 instruction-profile or Anchor v2 claim follows from this focused audit.
+
+P40A service code at **`9134fd6aceed0b910b556bfb24c52134b5b280d0`** passes actual
+Surfpool RPC/WS/PostgreSQL dispatch: two independent originals progress concurrently
+under duplicate executors, shared-payer conflicts defer, expired nonexecution
+releases access but retains a 20,000-lamport fee reserve, and actual SIGKILL after
+upstream acceptance recovers the same cash-withdrawal original. Eight queue
+originals yield six successes, one charged on-chain rejection and one proven
+unexecuted expiry. Cash reconciles to 7,999,993 atoms; operator fees are 60,000
+lamports. Fresh 61-event PostgreSQL replay matches. The RPC harness separately
+verifies 106 signed setup/price-advance outcomes on unchanged SBF `828fe543`.
+
+The SQL follow-up at **`a2860f93af6190ba116ad752a6e26359305abce0`** checks read/read,
+W/W and both W/R directions, committed reservation persistence, rejection of
+ambiguous legacy queues and idempotent activation after their known receipt. Those
+encoded access fixtures are not additional financial executions. Fourteen scoped
+consumer tests and typecheck pass. Raw records remain under
+`.local/liquidity-execution/runs/p40a-dispatch-9134fd6/` (`dispatch.json` and
+`dispatch-database.json`); owned processes/ports are released. P40B event migration,
+validator scheduler throughput, broad financial/build/browser checks and endurance
+are outside this service-only acceptance. The current global on-chain writes remain.
 
 ## Qualified baseline and provenance
 
