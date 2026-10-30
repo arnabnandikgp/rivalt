@@ -16,7 +16,7 @@ the integration and preceding baselines.
 | M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
 | P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | In progress | Split into two cohesive PRs under D83; umbrella acceptance requires A and B |
-| P40A bounded service execution | In progress | Two RPC lanes and durable account reservations implemented; actual RPC/PG fault acceptance pending |
+| P40A bounded service execution | In progress — publication pending | Scoped RPC/WS/PG fault and fresh replay acceptance passed; prepare ready PR |
 | P40B scoped event history | Planned | Atomic per-entity events, versioned ABI and finalized PG replay/reconciliation |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
@@ -160,15 +160,20 @@ six finalized successes, one landed rejection and one proven unexecuted expiry;
 operator spent fees total 60,000 lamports. Owned test ports are released. Raw
 records are in `.local/liquidity-execution/runs/p40a-dispatch-9134fd6/`.
 
-Additional read/write and legacy-upgrade SQL edge checks are prepared for that
-retained owned database. Their first typecheck found an unresolvable direct `pg`
-import from the test workspace; using the existing store's public pool type fixes
-it, and typecheck passes. No on-chain ABI/event migration or validator throughput
+Additional SQL checks pass at `a2860f9` on that retained owned database: read/read
+sharing, W/W and both W/R conflicts, persistence after releasing the connection,
+legacy ambiguity rejection and idempotent activation after a known receipt.
+`dispatch-database.json` records these as SQL access fixtures, not new economic
+executions. Their first typecheck found an unresolvable direct `pg` import from
+the test workspace; using the existing store's public pool type fixes it, and
+typecheck passes. The database is stopped again. Executable service code is
+identical to the successful `9134fd6` run; `a1a44a5` merges P39's documentation-only
+review correction without rewriting either tested commit. No on-chain ABI/event migration or validator throughput
 is claimed. Broad financial/build/browser suites are unnecessary for this service
 part; no prior evidence is presented as a new pass.
 
-Next exact action: run the scoped PostgreSQL access/upgrade edge checks on the
-retained P40A database, then publish the accepted P40A PR above #55.
+Next exact action: publish the accepted P40A PR above #55, then freeze P40B's
+scoped event/account revision contract before its program/indexer changes.
 
 ## Deployment and operational limits
 

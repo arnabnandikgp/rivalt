@@ -108,7 +108,7 @@ deferred endurance and authorization requirements for external/funded work persi
 
 ## D83 — durable service conflict admission before scoped history
 
-P40A implements D82's independent execution with two bounded RPC lanes and durable
+On 30 October 2026, P40A implements D82's independent execution with two bounded RPC lanes and durable
 signed-message account reservations. Acknowledgements and process death cannot
 release an ambiguous original's resource or fee rights. Finalized receipts release
 both as applicable; authenticated expired nonexecution releases resources only.

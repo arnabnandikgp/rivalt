@@ -72,8 +72,8 @@ Authenticated nonexecution after finalized expiry also releases resource access,
 but keeps the unknown fee reservation. Such an original is never broadcast again,
 even if a later RPC claims its blockhash valid. Absent proof retains access and can
 block that resource indefinitely; another independent resource can still progress.
-Direct wallet submissions outside this queue remain governed by on-chain locks and
-checks. Two executor processes do not each get to send the same active original.
+Reservations apply within one run/database. Direct submissions or separate queue
+deployments remain governed by on-chain locks and checks. Two executor processes do not each get to send the same active original.
 
 Deployment is additive SQL, with no account/event/financial wire change. Stop old
 executors first. An existing run without dispatcher version 1 is admitted only if
