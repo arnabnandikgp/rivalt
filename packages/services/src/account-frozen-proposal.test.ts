@@ -8,10 +8,10 @@ async function fixture() {
   const setup=await accountFixture(),{empty,put,config,accounts}=setup,venue=config.venue;
   const [[resolution,bump],[registry,registryBump]]=await Promise.all([sdk.deriveVenueComponent(venue,'resolution'),sdk.deriveVenueComponent(venue,'registry')]);
   const [third]=await sdk.deriveMarginAccount(setup.portfolio,2),members=[...setup.margins,third];
-  const registryState={schemaVersion:3,venue,membershipVersion:4n,count:3,members,bump:registryBump};
+  const registryState={schemaVersion:5,revision:1n,venue,membershipVersion:4n,count:3,members,bump:registryBump};
   const registryBytes=sdk.getVenueRegistryEncoder().encode(registryState);
   put(registry,Buffer.concat([Buffer.from(registryBytes),Buffer.alloc(100)])); // Account allocation padding is not serialized membership.
-  const header={...empty(sdk.getResolutionDecoder()),schemaVersion:3,venue,epoch:1n,stage:4,count:3,safetyEpoch:2n,termsEpoch:1n,
+  const header={...empty(sdk.getResolutionDecoder()),schemaVersion:5,revision:1n,venue,epoch:1n,stage:4,count:3,safetyEpoch:2n,termsEpoch:1n,
     registryHash:createHash('sha256').update(registryBytes.slice(8)).digest(),cashBefore:100n,poolsBefore:[0n,0n],insuranceBefore:[20n,10n],
     budgets:[20n,10n],positiveScaled:[80_000_000_000n,80_000_000_000n],bump};header.common.limbs[0]=160_000_000_000n;
   put(resolution,sdk.getResolutionEncoder().encode(header));
@@ -20,7 +20,7 @@ async function fixture() {
   const pageStates=[];
   for(let pageIndex=0;pageIndex<2;pageIndex++) {
     const [key,pageBump]=await sdk.findResolutionPagePda(venue,pageIndex);
-    const page={...empty(sdk.getResolutionPageDecoder()),schemaVersion:3,venue,epoch:1n,pageIndex,rowCount:pageIndex===0?2:1,bump:pageBump};
+    const page={...empty(sdk.getResolutionPageDecoder()),schemaVersion:5,revision:1n,venue,epoch:1n,pageIndex,rowCount:pageIndex===0?2:1,bump:pageBump};
     for(let offset=0;offset<page.rowCount;offset++) {
       const id=pageIndex*2+offset;
       Object.assign(page.rows[offset],{member:members[id],cashBefore:id===0?100n:0n,collected:id===0?100n:0n,

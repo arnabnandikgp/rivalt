@@ -21,7 +21,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   };
   const discovery=await rpc.call('getAccountInfo',[resolution,{encoding:'base64',commitment:'confirmed'}]);
   const discovered=decode(discovery.value,sdk.RESOLUTION_DISCRIMINATOR,sdk.getResolutionDecoder());
-  assert(discovered.schemaVersion===3&&discovered.venue===venue&&discovered.epoch===epoch&&discovered.stage===4&&
+  assert(discovered.schemaVersion===5&&discovered.venue===venue&&discovered.epoch===epoch&&discovered.stage===4&&
     discovered.count>0&&discovered.count<=64,'No complete frozen cohort awaiting proposal.');
   const pages=await Promise.all(Array.from({length:Math.ceil(discovered.count/2)},(_,index)=>sdk.findResolutionPagePda(venue,index)));
   const keys=[venue,safety,registry,resolution,...pages.map(([key])=>key)];
@@ -32,13 +32,13 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   const registryState=decode(response.value[2],sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder());
   const header=decode(response.value[3],sdk.RESOLUTION_DISCRIMINATOR,sdk.getResolutionDecoder());
   const [canonicalVenue,venueBump]=await sdk.deriveAccountVenue(Uint8Array.from(venueState.domain));
-  assert(canonicalVenue===venue&&venueState.bump===venueBump&&venueState.schemaVersion===3&&venueState.profileVersion===expectedProfile&&
+  assert(canonicalVenue===venue&&venueState.bump===venueBump&&venueState.schemaVersion===5&&venueState.profileVersion===expectedProfile&&
     venueState.marketCount===2&&venueState.insuranceFeeShareBps===2500,'Foreign proposal venue/profile.');
-  assert(safetyState.schemaVersion===3&&safetyState.venue===venue&&safetyState.bump===safetyBump&&safetyState.mode===2&&safetyState.paused&&
+  assert(safetyState.schemaVersion===5&&safetyState.venue===venue&&safetyState.bump===safetyBump&&safetyState.mode===2&&safetyState.paused&&
     safetyState.resolutionEpoch===epoch&&safetyState.epoch===header.safetyEpoch,'Proposal venue is not in the expected freeze.');
-  assert(header.schemaVersion===3&&header.venue===venue&&header.bump===resolutionBump&&header.epoch===epoch&&header.stage===4&&
+  assert(header.schemaVersion===5&&header.venue===venue&&header.bump===resolutionBump&&header.epoch===epoch&&header.stage===4&&
     header.cursor===0&&header.evaluation<3&&header.termsEpoch===venueState.termsEpoch&&header.count===discovered.count,'Frozen proposal stage/epoch changed.');
-  assert(registryState.schemaVersion===3&&registryState.venue===venue&&registryState.bump===registryBump&&registryState.count===header.count&&
+  assert(registryState.schemaVersion===5&&registryState.venue===venue&&registryState.bump===registryBump&&registryState.count===header.count&&
     registryState.members.length===header.count&&new Set(registryState.members).size===header.count&&
     registryState.members.every(member=>member!=='11111111111111111111111111111111'),'Incomplete or duplicate frozen registry.');
   const registryHash=createHash('sha256').update(sdk.getVenueRegistryEncoder().encode(registryState).slice(8)).digest();
@@ -47,7 +47,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   for(const [index,[,bump]] of pages.entries()) {
     const page=decode(response.value[4+index],sdk.RESOLUTION_PAGE_DISCRIMINATOR,sdk.getResolutionPageDecoder());
     const count=Math.min(2,header.count-2*index);
-    assert(page.schemaVersion===3&&page.venue===venue&&page.bump===bump&&page.epoch===epoch&&page.pageIndex===index&&page.rowCount===count,
+    assert(page.schemaVersion===5&&page.venue===venue&&page.bump===bump&&page.epoch===epoch&&page.pageIndex===index&&page.rowCount===count,
       'Incomplete or foreign frozen page.');
     for(let offset=0;offset<count;offset++) {
       const row=page.rows[offset];assert(row.member===registryState.members[2*index+offset]&&!row.applied,'Wrong frozen member/order/application state.');

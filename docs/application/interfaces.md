@@ -78,3 +78,9 @@ books are snapshots, and a daemon heartbeat does not refresh on-chain prices.
 Never describe insurance as guaranteed profit backing, reference makers as
 independent operators, or assumed hedges as observed costs. Instrumented local
 Wallet Standard browser evidence is distinct from external-provider compatibility.
+
+P40B's fresh account-schema-5 candidate retains API version 4 but requires
+`accountSchema: 5` in deployment configuration and API envelopes. `asOf.cursor`
+is the journal-local financial-payload cursor, `asOf.cursorScope` identifies that
+scope, and `asOf.blockhash`/`slot` identify its complete finalized block fence.
+Scoped revisions authenticate protocol history; UI pagination cursors do not.

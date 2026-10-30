@@ -2,7 +2,7 @@ import {address} from '@solana/kit';
 import {LiquidityArtifactVerifier,LIQUIDITY_ARTIFACT_SET} from '@rivalt/sdk';
 import {FinalizedIndexer,type TransportConfig} from './finalized-indexer.js';
 import {LiquidityStore,type LiquidityBinding} from './liquidity-store.js';
-import {decodeAccounts,type AccountEvent} from './account-events.js';
+import {decodeAccountInvocations,eventDomain,type AccountEvent} from './account-events.js';
 import type {AccountState} from './account-projection.js';
 import {hash} from './events.js';
 import {reconcileAccountSnapshot} from './account-reconcile.js';
@@ -17,14 +17,18 @@ export class LiquidityIndexer extends FinalizedIndexer<AccountState,LiquidityBin
     super({...config,chain:'solana:localnet',maxTransactionVersion:1},new LiquidityStore(config.databaseUrl,config.runId));
   }
   protected get historyAddress(){return this.config.venue;}
-  protected decodeTransaction(signature:string,transaction:any) {
-    return decodeAccounts(signature,transaction,this.eventAuthority,this.config.venue,this.deployment.clearing,4);
+  protected decodeTransaction(signature:string,transaction:any,transactionIndex:number,binding:LiquidityBinding) {
+    return decodeAccountInvocations(signature,transaction,transactionIndex,{program:this.deployment.clearing,
+      eventAuthority:this.eventAuthority,venue:binding.venue,domain:binding.domain});
   }
   protected async initializeBinding(anchor:any,genesis:string):Promise<LiquidityBinding> {
-    const init=this.decodeTransaction(this.config.anchor,anchor).find(event=>event.type==='AccountCustodyChangedV3'&&event.data.kind===0&&event.data.sequence==='1');
+    const domain=eventDomain(this.config.anchor,anchor,this.eventAuthority,this.config.venue,this.deployment.clearing);
+    const invocations=decodeAccountInvocations(this.config.anchor,anchor,0,{program:this.deployment.clearing,eventAuthority:this.eventAuthority,venue:this.config.venue,domain});
+    const initialization=invocations.find(value=>value.writes.some(write=>write.account===this.config.venue&&write.kind===0&&write.before==='0'));
+    const init=initialization?.events.find(event=>event.type==='AccountCustodyChangedV3'&&event.data.kind===0);
     if(!init)throw new Error('Invalid liquidity initialization anchor');
     await this.artifacts.verify(address(init.data.authority));
-    return {schema:4,venue:this.config.venue,profile:this.config.profile,artifactSet:LIQUIDITY_ARTIFACT_SET,genesis,domain:init.data.domain,
+    return {schema:5,venue:this.config.venue,profile:this.config.profile,artifactSet:LIQUIDITY_ARTIFACT_SET,genesis,domain:init.data.domain,
       anchor:this.config.anchor,anchorHash:hash(anchor.transaction),program:this.deployment.clearing};
   }
   async reconcile(snapshot?:{state:AccountState;binding:LiquidityBinding}) {

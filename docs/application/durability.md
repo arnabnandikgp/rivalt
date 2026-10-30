@@ -263,3 +263,23 @@ belong to their immediate clearing frame; the final footer binds that frame's
 actual instruction, slot, domain and count. Unknown payload tags and instructions
 fail closed. This gate remains disconnected from the current schema-4 runtime
 until full payload decoding, complete-block discovery and journal acceptance pass.
+
+The schema-5 candidate now uses SQL journal format **2**, which refuses retained
+format-1 databases. `getBlocks` plus complete `getBlock` bodies establish a fixed
+finalized fence; parent slot/hash links detect omitted produced blocks, and each
+stored block preserves its ordered signatures and their digest. WS remains a hint.
+Projection orders whole signed transactions by scoped causal dependencies. A
+second account pass fences every entity revision before combining RPC chunks.
+Only a relevant advance permits bounded tail catch-up (three extensions).
+
+SQL independently decodes the supplied block transactions before accepting their
+envelopes, then commits blocks, original transactions, envelope/payload bytes,
+entity revisions, financial projection, outbox and fence together. Exact repeated
+blocks are checked against retained bytes without applying their effects again.
+`state.sequence` / the SQL event `sequence` column now mean a **local payload
+cursor** only; no such field is injected into canonical event data. Zero-payload
+storage transitions advance revisions without creating a financial payload.
+The public API labels this `asOf.cursor` and `cursorScope: local-payload-stream`,
+and exposes the finalized `blockhash`; it does not label a block hash a signature.
+These are implemented candidate contracts; fresh SBF/RPC/WS/PG acceptance remains
+required before P40B enters Review.

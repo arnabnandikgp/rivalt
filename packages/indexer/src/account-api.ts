@@ -16,9 +16,9 @@ export function accountApi(indexer:LiquidityIndexer) {
   app.addHook('preHandler',async(request,reply)=>{
     if(request.url.startsWith(`${prefix}/`)&&!await healthy())return reply.code(503).send({error:'ProjectionUnavailable'});
   });
-  const envelope=(row:Awaited<ReturnType<typeof indexer.store.snapshot>>)=>({schemaVersion:version,venue:row.binding.venue,
+  const envelope=(row:Awaited<ReturnType<typeof indexer.store.snapshot>>)=>({schemaVersion:version,accountSchema:5,venue:row.binding.venue,
     deployment:{anchor:row.binding.anchor,genesis:row.binding.genesis,domain:row.binding.domain,profile:row.binding.profile,artifactSet:row.binding.artifactSet},
-    asOf:{commitment:'finalized',sequence:row.state.sequence,signature:row.checkpoint,slot:row.checkpoint_slot},
+    asOf:{commitment:'finalized',cursor:row.state.sequence,cursorScope:'local-payload-stream',blockhash:row.checkpoint,slot:row.checkpoint_slot},
     units:{cash:'six-decimal collateral atoms',scaled:'1e9',price:'collateral atoms/lot'}});
   app.get(`${prefix}/venue`,async()=>{const row=await indexer.store.snapshot();return {...envelope(row),state:row.state.venue,custody:row.state.custody,
     safety:row.state.safety,markets:row.state.markets,ledgers:row.state.ledgers,makers:row.state.liquidity!.makers,resolution:row.state.resolution,

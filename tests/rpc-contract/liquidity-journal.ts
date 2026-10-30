@@ -1,91 +1,51 @@
-// Narrow P32 journal adapter, deliberately not a public account projection.
-// P33 owns production consumers. This fixture verifies actual critical event
-// bytes, ordering, SQL atomicity, checkpoints and replay without enabling them.
+// Current scoped journal harness. Initialization address lookup locates the
+// anchor only; complete finalized blocks prove subsequent history coverage.
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import {createHash} from 'node:crypto';
 import * as sdk from '@rivalt/sdk';
-import { eventPayloads, hash, json, type JournalEvent } from '../../packages/indexer/src/events.js';
-import { JournalStore, type JournalBinding } from '../../packages/indexer/src/store.js';
-import type { WireRpc } from './wire.js';
+import {decodeAccountInvocations,type AccountInvocation} from '../../packages/indexer/src/account-events.js';
+import {eventPayloads,hash,type JournalEvent} from '../../packages/indexer/src/events.js';
+import {decodeFinalizedBlock,validateBlockChain,type FinalizedBlock} from '../../packages/indexer/src/finalized-block.js';
+import {orderScopedTransactions} from '../../packages/indexer/src/scoped-history.js';
+import type {LiquidityBinding} from '../../packages/indexer/src/liquidity-store.js';
+import type {WireRpc} from './wire.js';
 
-export type PrototypeState = { sequence: string; digest: string; kinds: Record<string, number> };
-export type PrototypeBinding = JournalBinding & { schema: 4; venue: string; scope: 'p32-journal-only' };
-const idl = JSON.parse(readFileSync('packages/sdk/idl/clearing.json', 'utf8'));
-const decoders = idl.events.map((event: { name: string; discriminator: number[] }) => {
-  const factory = (sdk as Record<string, any>)[`get${event.name}EventDecoder`];
-  assert.equal(typeof factory, 'function', `Generated decoder for ${event.name}`);
-  return { name: event.name, discriminator: Buffer.from(event.discriminator), decoder: factory() };
-}) as { name: string; discriminator: Buffer; decoder: { read(bytes: Uint8Array, offset: number): [any, number] } }[];
-
-export function decodePrototype(signature: string, transaction: any, authority: string, venue: string): JournalEvent[] {
-  return eventPayloads(signature, transaction, authority).map(({ outer, inner, payload }) => {
-    const entry = decoders.find(item => payload.subarray(0, 8).equals(item.discriminator));
-    assert(entry, 'Unknown critical prototype event schema');
-    const [value, end] = entry.decoder.read(payload, 0);
-    assert.equal(end, payload.length, 'Complete critical payload');
-    const data = JSON.parse(json(value));
-    assert.equal(data.venue, venue, 'Exact prototype venue');
-    assert.equal(BigInt(data.slot), BigInt(transaction.slot), 'Fetched event slot');
-    assert(BigInt(data.sequence) > 0n, 'Critical sequence is explicit');
-    return { signature, outer, inner, ordinal: 0, slot: transaction.slot, blockTime: transaction.blockTime,
-      type: entry.name, data, bytes: payload.toString('base64') };
-  });
+export const digestEvents=(events:Pick<JournalEvent,'bytes'>[])=>events.reduce((digest,event)=>createHash('sha256')
+  .update(Buffer.from(digest,'hex')).update(Buffer.from(event.bytes,'base64')).digest('hex'),'0'.repeat(64));
+export async function fetchScopedHistory(rpc:WireRpc,anchor:string,authority:string,venue:string,domain:string) {
+  const original=await rpc.call('getTransaction',[anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+  assert(original,'Actual initialization receipt');
+  const end=await rpc.call('getSlot',[{commitment:'finalized'}]),blocks:FinalizedBlock[]=[],invocations:AccountInvocation[]=[];
+  for(let start=original.slot;start<=end;start+=1000) {
+    const slots=await rpc.call('getBlocks',[start,Math.min(end,start+999),{commitment:'finalized'}]);
+    for(const slot of slots) {
+      const block=decodeFinalizedBlock(slot,await rpc.call('getBlock',[slot,{encoding:'json',transactionDetails:'full',rewards:false,commitment:'finalized',maxSupportedTransactionVersion:1}]));
+      blocks.push(block);
+      for(const [index,{signature,tx}] of block.transactions.entries()) {
+        const keys=[...tx.transaction.message.accountKeys,...(tx.meta.loadedAddresses?.writable??[]),...(tx.meta.loadedAddresses?.readonly??[])];
+        if(keys.includes(sdk.CLEARING_PROGRAM_ADDRESS))invocations.push(...decodeAccountInvocations(signature,tx,index,
+          {program:sdk.CLEARING_PROGRAM_ADDRESS,eventAuthority:authority,venue,domain}));
+      }
+    }
+  }
+  const head={slot:end,blockhash:blocks.at(-1)!.blockhash};validateBlockChain(blocks,null,head);
+  const order=orderScopedTransactions(invocations,{}),byIdentity=new Map(invocations.map(value=>[`${value.signature}/${value.outer}/${value.invocation}`,value]));
+  const events=order.transactions.flatMap(transaction=>transaction.envelopes.flatMap(value=>byIdentity.get(`${value.signature}/${value.outer}/${value.invocation}`)!.events));
+  return {blocks,invocations,events,head,transactions:blocks.flatMap(block=>block.transactions),digest:digestEvents(events),original};
 }
-
-const empty = (): PrototypeState => ({ sequence: '0', digest: '0'.repeat(64), kinds: {} });
-export const digestEvents = (events: JournalEvent[]) => {
-  let digest = '0'.repeat(64);
-  for (const event of [...events].sort((left, right) => BigInt(left.data.sequence) < BigInt(right.data.sequence) ? -1 : 1)) {
-    digest = createHash('sha256').update(Buffer.from(digest, 'hex')).update(Buffer.from(event.bytes, 'base64')).digest('hex');
-  }
-  return digest;
-};
-export class PrototypeJournal extends JournalStore<PrototypeState, PrototypeBinding, JournalEvent> {
-  constructor(url: string, runId: string) {
-    super(url, runId, { schema: 4, empty, project(state, event, binding) {
-      assert.equal(event.data.venue, binding.venue);
-      assert.equal(BigInt(event.data.sequence), BigInt(state.sequence) + 1n, 'Prototype critical sequence gap');
-      state.digest = createHash('sha256').update(Buffer.from(state.digest, 'hex')).update(Buffer.from(event.bytes, 'base64')).digest('hex');
-      state.sequence = String(event.data.sequence);
-      state.kinds[event.type] = (state.kinds[event.type] ?? 0) + 1;
-    } });
-  }
+export async function journalBinding(rpc:WireRpc,anchor:string,history:Awaited<ReturnType<typeof fetchScopedHistory>>,
+  venue:string,domain:string):Promise<LiquidityBinding> {
+  const first=history.events.find(event=>event.signature===anchor&&event.type==='AccountCustodyChangedV3'&&event.data.kind===0);
+  assert(first);assert.equal(first.data.schemaVersion,5);assert.equal(first.data.profileVersion,4);
+  return {schema:5,profile:'liquidity-execution-qualification',artifactSet:sdk.LIQUIDITY_ARTIFACT_SET,
+    genesis:await rpc.call('getGenesisHash',[]),domain,anchor,anchorHash:hash(history.original.transaction),program:sdk.CLEARING_PROGRAM_ADDRESS,venue};
 }
-
-export async function fetchPrototypeHistory(rpc: WireRpc, custody: string, authority: string, venue: string) {
-  const signatures: { signature: string; slot: number }[] = [];
-  let before: string | undefined;
-  for (let page = 0; page < 100; page++) {
-    const rows = await rpc.call('getSignaturesForAddress', [custody, { commitment: 'finalized', limit: 37, ...(before ? { before } : {}) }]);
-    signatures.push(...rows);
-    if (rows.length < 37) break;
-    before = rows.at(-1).signature;
-    assert(page < 99, 'Finite history bound');
+export async function initializationSignature(rpc:WireRpc,signatures:string[],authority:string) {
+  for(const signature of signatures) {
+    const tx=await rpc.call('getTransaction',[signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+    if(!tx||tx.meta.err!==null)continue;
+    if(eventPayloads(signature,tx,authority).some(({payload})=>payload.subarray(0,8).equals(Buffer.from(sdk.ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR))
+      &&sdk.getAccountCustodyChangedEventDecoder().decode(payload).kind===0))return signature;
   }
-  assert(signatures.length > 0);
-  assert.equal(new Set(signatures.map(row => row.signature)).size, signatures.length, 'No pagination duplicates');
-  const transactions: { signature: string; tx: any }[] = [];
-  const events: JournalEvent[] = [];
-  for (const item of [...signatures].reverse()) {
-    const tx = await rpc.call('getTransaction', [item.signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]);
-    assert(tx, 'Missing finalized history');
-    transactions.push({ signature: item.signature, tx });
-    events.push(...decodePrototype(item.signature, tx, authority, venue));
-  }
-  const ordered = [...events].sort((left, right) => BigInt(left.data.sequence) < BigInt(right.data.sequence) ? -1 : 1);
-  ordered.forEach((event, index) => assert.equal(BigInt(event.data.sequence), BigInt(index + 1)));
-  return { transactions, events: ordered, head: signatures[0], digest: digestEvents(ordered) };
-}
-
-export async function prototypeBinding(rpc: WireRpc, history: Awaited<ReturnType<typeof fetchPrototypeHistory>>,
-  venue: string, domain: string): Promise<PrototypeBinding> {
-  const first = history.events[0];
-  // This test-only digest projection uses current IDL names. The production
-  // account projection separately preserves its persisted schema-tag mapping.
-  assert.equal(first.type, 'AccountCustodyChanged');
-  assert.equal(first.data.schemaVersion, 3); assert.equal(first.data.profileVersion, 4);
-  const transaction = history.transactions.find(item => item.signature === first.signature)!;
-  return { schema: 4, scope: 'p32-journal-only', genesis: await rpc.call('getGenesisHash', []),
-    domain, anchor: first.signature, anchorHash: hash(transaction.tx), program: sdk.CLEARING_PROGRAM_ADDRESS, venue };
+  throw new Error('Missing actual initialization signature');
 }

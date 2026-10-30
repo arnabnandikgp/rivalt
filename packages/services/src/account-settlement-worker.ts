@@ -67,7 +67,7 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
     const response=await runtime.rpc.call('getMultipleAccounts',[[snapshot.registry,certificate],{encoding:'base64',commitment:'confirmed'}]);
     const registry=decodeAccountWorker(response.value[0],sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder());
     const [,registryBump]=await sdk.deriveVenueComponent(snapshot.venue,'registry');
-    assert(registry.schemaVersion===3&&registry.venue===snapshot.venue&&registry.bump===registryBump&&registry.count>0&&registry.count<=64&&
+    assert(registry.schemaVersion===5&&registry.venue===snapshot.venue&&registry.bump===registryBump&&registry.count>0&&registry.count<=64&&
       registry.members.length===registry.count&&new Set(registry.members).size===registry.count,'Invalid backing registry');
     if(!response.value[1]) {
       await runtime.enqueue(`keeper:certificate:${marketIndex}`,[sdk.routeComputeBudget(),
@@ -75,7 +75,7 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
       return {status:'queued',reason:'initialize-market-backing'};
     }
     const proof=decodeAccountWorker(response.value[1],sdk.SETTLEMENT_CERTIFICATE_DISCRIMINATOR,sdk.getSettlementCertificateDecoder());
-    assert(proof.schemaVersion===3&&proof.venue===snapshot.venue&&proof.marketIndex===marketIndex&&proof.bump===bump,'Foreign backing certificate');
+    assert(proof.schemaVersion===5&&proof.venue===snapshot.venue&&proof.marketIndex===marketIndex&&proof.bump===bump,'Foreign backing certificate');
     const current=accountBackingCurrent(snapshot,registry,proof);
     const complete=current&&proof.complete&&proof.next===proof.count;
     try {

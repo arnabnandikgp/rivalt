@@ -29,11 +29,6 @@ declare_id!("BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv");
 ))]
 compile_error!("local and devnet financial profiles are mutually exclusive");
 
-// P40B wire work is not a qualified financial build until all entrypoints emit
-// authenticated scoped envelopes. Default builds remain nonfinancial.
-#[cfg(feature = "liquidity-execution-qualification")]
-compile_error!("P40B scoped-envelope integration is incomplete; financial build disabled");
-
 /// Financial paths require the explicit qualified local profile.
 #[program]
 pub mod clearing {

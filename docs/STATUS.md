@@ -1,6 +1,6 @@
 # Current status
 
-Updated 30 October 2026. This is the live handoff, not a cumulative run diary.
+Updated 31 October 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -226,10 +226,21 @@ in projection, reconciliation, risk-worker keys and their fixtures/RPC harnesses
 `.local/p40b-schema-types.log` records the actual failures; no suppression or legacy
 sequence substitution is used. The active journal still needs complete migration.
 
-Next exact action: replace sequence-based payload projection and reconciliation
-with authenticated envelope revisions and an explicitly local outbox cursor, then
-wire complete-block discovery/atomic PostgreSQL replay and resolve their consumers
-before rebuilding/qualifying the financial artifact.
+The subsequent journal candidate now connects authenticated envelopes to causal
+whole-transaction projection, complete finalized blocks, SQL format 2, per-entity
+revision reconciliation and explicit local outbox cursors. Fresh databases are
+mandatory. Remaining service/schema consumers and current RPC journal fixtures
+are migrated; whole-project typecheck and 93 targeted transport/projection,
+worker, authority, adapter and conformance tests pass in
+`.local/p40b-journal-types.log` and `.local/p40b-journal-unit.log`. This is local
+candidate verification, not a signed integration result. Broad unrelated suites
+and endurance are not run. The temporary build prohibition is removed solely to
+build and qualify fresh local artifacts; default/devnet activation gates remain.
+P40B remains In progress, with P41–P44 dependent on its actual acceptance.
+
+Next exact action: pin the current candidate, rebuild fresh SBF and qualify the
+complete-block journal against real signed Surfpool RPC/WS/PostgreSQL history,
+including reverted effects, SQL rollback, restart, duplicate delivery and replay.
 
 ## Deployment and operational limits
 
