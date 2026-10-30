@@ -171,7 +171,7 @@ fn impact(
     let mut pricing_market = (**accounts.market).clone();
     pricing_market.lower = bounds.lower;
     pricing_market.upper = bounds.upper;
-    let risks = super::super::group_trading::risk(&market_view(&pricing_market)?, funding)?;
+    let risks = crate::engine::risk(&market_view(&pricing_market)?, funding)?;
     let market_index = usize::from(pricing_market.index);
     let mut totals = [0; 2];
     for side in 0..2u8 {
@@ -192,7 +192,7 @@ fn impact(
         for maker_index in 0..2 {
             let mut root = root_view(views[maker_index].capital)?;
             book::refresh(&mut root, &market_view(&pricing_market)?, clock.slot, true)?;
-            let model = checked(super::super::group_margin::model(&root)?.accrued(indexes))?;
+            let model = checked(crate::engine::account::model(&root)?.accrued(indexes))?;
             let first = views[maker_index].quote(&states[maker_index], &requests[maker_index])?;
             let equity = checked(model.risk_equity(risks))?;
             let initial = checked(model.requirement(risks, math::IM_BPS))?;

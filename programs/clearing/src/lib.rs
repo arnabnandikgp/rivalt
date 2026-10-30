@@ -4,6 +4,7 @@ use maker_interface::QuoteResponse;
 
 pub mod constants;
 pub mod error;
+pub mod engine;
 mod event_cpi;
 pub mod events;
 pub mod instructions;

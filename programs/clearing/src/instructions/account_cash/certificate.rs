@@ -115,7 +115,7 @@ fn stamps(
                     && snapshot.risks[index].funding <= certificate.funding_bounds[index][1],
                 ClearingError::ExitCohort
             );
-            super::super::group_trading::oracle::action(
+            crate::engine::oracle::action(
                 &snapshot.markets[index],
                 &snapshot.clock,
                 false,
@@ -233,7 +233,7 @@ pub(crate) fn debtor_mask(
     }
     for index in 0..2 {
         if mask & (1 << index) != 0 {
-            super::super::group_trading::oracle::action(
+            crate::engine::oracle::action(
                 &snapshot.markets[index],
                 &snapshot.clock,
                 false,

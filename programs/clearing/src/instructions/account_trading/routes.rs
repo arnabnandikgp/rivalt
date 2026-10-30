@@ -1,5 +1,5 @@
 //! Atomic one/two-maker execution with root/safety authority and current relevant risk.
-use super::super::group_trading::routes as candidates;
+use crate::engine::routes as candidates;
 use super::super::{OrderExecution, RouteIntent, RouteLeg};
 use super::authority::AccountGuard;
 use super::*;
@@ -109,7 +109,7 @@ pub fn execute(ctx: Context<ExecuteAccountRoute>, args: AccountRouteIntent) -> R
         &ctx.accounts.identity.trader,
     )?;
     let clock = Clock::get()?;
-    super::super::group_margin::trade_authority(
+    crate::engine::account::trade_authority(
         &*root_view(&ctx.accounts.identity.trader)?,
         ctx.accounts.identity.actor.key(),
         clock.slot,

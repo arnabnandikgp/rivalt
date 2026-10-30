@@ -1,6 +1,6 @@
 //! Independently calculated atom-level expectations against the actual adapters,
 //! route candidate and fee transition. No expected result calls the engine twice.
-use super::super::group_trading::routes as candidates;
+use crate::engine::routes as candidates;
 use super::super::{RouteIntent, RouteLeg};
 use super::*;
 

@@ -1,7 +1,7 @@
 //! Schema-3 account risk and trading in explicit local qualification profiles.
 //! P26's complete safety profile uses storage-ready authority activation.
 pub(crate) use super::account_custody::{arithmetic as checked, increment};
-use super::group_trading::{book, oracle as shared_oracle};
+use crate::engine::{book, oracle as shared_oracle};
 use crate::{
     error::ClearingError,
     state::{v2, accounts::*},

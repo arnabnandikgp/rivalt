@@ -28,7 +28,7 @@ pub(crate) fn candidate(
     lots: u64,
     price: u64,
     clock: &Clock,
-) -> Result<super::super::group_safety::risk::Candidate> {
+) -> Result<crate::engine::risk::Candidate> {
     let target = account_trading::root_view(target)?;
     let receiver = account_trading::root_view(receiver)?;
     let markets = [
@@ -37,7 +37,7 @@ pub(crate) fn candidate(
     ];
     // The shared oracle adapter uses 2 for active two-market funding. V3's
     // persisted ACTIVE mode is authenticated separately by candidate_profile.
-    super::super::group_safety::risk::candidate(
+    crate::engine::risk::candidate(
         &target,
         &receiver,
         [&markets[0], &markets[1]],

@@ -1,4 +1,5 @@
 //! Complete-group certificates and ordinary funded-cash/claim transitions.
+pub(crate) use crate::engine::oracle::{reset_oracle, funding_bounds};
 use super::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
@@ -253,23 +254,7 @@ pub fn activate_cross(ctx: Context<ActivateIsolatedGroup>) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn reset_oracle(market: &mut GroupMarketV2, now: i64, skipped: u64) -> Result<()> {
-    let previous = market.oracle;
-    market.oracle = crate::state::OracleState {
-        sources: previous.sources,
-        source_sequences: previous.source_sequences,
-        funding_base: market.funding_index_scaled,
-        covered_seconds: previous.covered_seconds,
-        skipped_seconds: previous
-            .skipped_seconds
-            .checked_add(skipped)
-            .ok_or(ClearingError::Arithmetic)?,
-        ..Default::default()
-    };
-    market.valid_until = 0;
-    market.funding_time = now;
-    Ok(())
-}
+
 
 pub(crate) fn live(
     group: &ClearingGroupV2,
@@ -286,27 +271,7 @@ pub(crate) fn live(
     Ok(())
 }
 
-pub(crate) fn funding_bounds(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Result<[i128; 2]> {
-    let current = oracle::effective(mode, market, clock)?;
-    let mut end = current;
-    let observation = &market.oracle;
-    if matches!(mode, 1 | 2)
-        && observation.held_epoch == market.config_epoch
-        && observation.held_until > observation.sampled_at
-        && clock.slot < observation.held_slot
-        && clock.unix_timestamp >= observation.sampled_at
-        && clock.unix_timestamp - observation.sampled_at <= math::oracle::MAX_CATCHUP
-    {
-        end = checked(math::oracle::endpoint(
-            observation.funding_base,
-            observation.premium_scaled,
-            observation.sampled_at,
-            observation.held_until,
-            observation.held_until,
-        ))?;
-    }
-    Ok([current.min(end), current.max(end)])
-}
+
 
 /// Funding can move in opposite directions across markets. Testing just the
 /// two diagonal snapshots misses the adverse mixed corner for a cross root.

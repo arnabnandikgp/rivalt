@@ -1,7 +1,8 @@
 //! Reuse actual route maker transitions for each funding-search quantity. This
 //! must not replace financial feasibility with a prefix or free-cash estimate.
 use super::*;
-use crate::instructions::{account_trading, group_margin, group_trading};
+use crate::instructions::account_trading;
+use crate::engine::{self, account};
 use crate::state::v2::GroupMarketV2;
 use financial_core::margin::{Margin, Risk};
 
@@ -33,10 +34,10 @@ impl<'market> MakerAdmission<'market> {
             ClearingError::MakerCapital
         );
         let root = account_trading::root_view_value(capital)?;
-        group_trading::book::validate(&root)?;
+        engine::book::validate(&root)?;
         let mut indexes = [0; 2];
         indexes[usize::from(market.index)] = funding;
-        let accrued = group_trading::checked(group_margin::model(&root)?.accrued(indexes))?;
+        let accrued = engine::checked(account::model(&root)?.accrued(indexes))?;
         let position = accrued.positions[usize::from(market.index)];
         let selected = financial_core::Participant {
             id: accrued.id,
@@ -49,7 +50,7 @@ impl<'market> MakerAdmission<'market> {
         };
         let reservations = super::reservations::Reservations::new(&root, market, slot);
         let prepared_risk =
-            group_trading::checked(financial_core::liquidity::PreparedMakerRisk::new(
+            engine::checked(financial_core::liquidity::PreparedMakerRisk::new(
                 selected,
                 market.lower,
                 market.upper,
@@ -62,7 +63,7 @@ impl<'market> MakerAdmission<'market> {
             reservations,
             market,
             funding: indexes,
-            risks: group_trading::risk(market, funding)?,
+            risks: engine::risk(market, funding)?,
             slot,
         })
     }
@@ -115,7 +116,7 @@ impl<'market> MakerAdmission<'market> {
         let Ok(mut candidate) = account_trading::root_view_value(self.capital) else {
             return false;
         };
-        group_trading::routes::finish_maker(
+        engine::routes::finish_maker(
             &mut candidate,
             model,
             self.market,

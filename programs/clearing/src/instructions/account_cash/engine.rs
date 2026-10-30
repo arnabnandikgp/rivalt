@@ -1,7 +1,7 @@
 //! Checked candidates share the existing account and order engine. Expected
 //! financial boundaries are independently enumerated in this module's tests.
 use super::*;
-use crate::instructions::group_trading::book;
+use crate::engine::book;
 use math::margin::{Margin, Risk};
 
 pub(crate) struct Snapshot {
@@ -20,8 +20,8 @@ impl Snapshot {
         let environment = trading::environment(&views, 0, clock)?;
         let risks = environment.risks();
         let bounds = [
-            super::super::group_safety::settlement::funding_bounds(2, &views[0], clock)?,
-            super::super::group_safety::settlement::funding_bounds(2, &views[1], clock)?,
+            crate::engine::oracle::funding_bounds(2, &views[0], clock)?,
+            crate::engine::oracle::funding_bounds(2, &views[1], clock)?,
         ];
         Ok(Self {
             markets: views,
@@ -51,7 +51,7 @@ impl Snapshot {
                         entry.order.active() && usize::from(entry.market_index) == index
                     })
                 {
-                    super::super::group_trading::oracle::action(
+                    crate::engine::oracle::action(
                         &self.markets[index],
                         &self.clock,
                         false,
@@ -60,7 +60,7 @@ impl Snapshot {
             }
         }
         let accrued = checked(
-            super::super::group_margin::model(&next)?.accrued(self.risks.map(|risk| risk.funding)),
+            crate::engine::account::model(&next)?.accrued(self.risks.map(|risk| risk.funding)),
         )?;
         copy_model(&mut next, accrued);
         Ok(next)
@@ -118,7 +118,7 @@ pub(crate) fn withdraw_candidate(
     require!(amount > 0, ClearingError::Amount);
     let mut next = snapshot.refresh(root, true)?;
     let candidate =
-        checked(super::super::group_margin::model(&next)?.withdraw(amount, snapshot.risks))?;
+        checked(crate::engine::account::model(&next)?.withdraw(amount, snapshot.risks))?;
     snapshot.held_solvent(candidate)?;
     copy_model(&mut next, candidate);
     advance(&mut next)?;
@@ -149,7 +149,7 @@ pub(crate) fn claim_candidate(
 ) -> Result<(Box<v2::MarginAccountV2>, u64)> {
     require!(market < 2 && amount > 0, ClearingError::Amount);
     let mut next = snapshot.refresh(root, true)?;
-    let model = super::super::group_margin::model(&next)?;
+    let model = crate::engine::account::model(&next)?;
     require!(model.allows(market), ClearingError::Profile);
     let claims = snapshot.claims(model)?;
     let scaled = checked(math::scaled(amount))?;
@@ -161,7 +161,7 @@ pub(crate) fn claim_candidate(
         next.cash = checked(math::cash_add(next.cash, amount))?;
         next.positions[market].virtual_scaled =
             subtract(next.positions[market].virtual_scaled, scaled)?;
-        checked(super::super::group_margin::model(&next)?.admissible(snapshot.risks))?;
+        checked(crate::engine::account::model(&next)?.admissible(snapshot.risks))?;
         checked(math::cash_sub(pool, amount))?
     } else {
         let debt = claims

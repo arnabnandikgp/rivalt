@@ -108,7 +108,7 @@ pub fn recover(ctx: Context<RecoverAccounts>, epoch: u64, resume: bool) -> Resul
             increment(&mut market.terms_epoch)?;
             increment(&mut market.config_epoch)?;
             let mut view = account_trading::market_view(market)?;
-            crate::instructions::group_safety::settlement::reset_oracle(
+            crate::engine::oracle::reset_oracle(
                 &mut view,
                 clock.unix_timestamp,
                 skipped,
@@ -167,7 +167,7 @@ pub fn reactivate(ctx: Context<RecoverAccounts>, epoch: u64) -> Result<()> {
     for market in [&mut accounts.identity.btc, &mut accounts.identity.eth] {
         account_trading::oracle::action(market, &clock, true)?;
         let mut view = account_trading::market_view(market)?;
-        crate::instructions::group_safety::settlement::reset_oracle(
+        crate::engine::oracle::reset_oracle(
             &mut view,
             clock.unix_timestamp,
             0,

@@ -280,7 +280,7 @@ fn cash_receipt_consumes_funding_without_requiring_recipient_health() {
     assert_eq!(next.cash, 1);
     assert_eq!(next.positions[0].virtual_scaled, -100 * SCALE - SCALE / 3);
     assert_eq!(next.positions[0].funding_checkpoint_scaled, SCALE / 3);
-    assert!(super::super::group_margin::model(&next)
+    assert!(crate::engine::account::model(&next)
         .unwrap()
         .admissible(snapshot.risks)
         .is_err());

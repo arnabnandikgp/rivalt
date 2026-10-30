@@ -1,5 +1,5 @@
 use super::*;
-use crate::instructions::group_safety::resolution as shared;
+use crate::engine::oracle as shared;
 use financial_core::oracle::Bounds;
 
 pub(super) fn sources(

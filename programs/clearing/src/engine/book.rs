@@ -1,6 +1,6 @@
 //! Four orders and two protections belong to one root, with explicit market/generation binding.
 use super::*;
-use crate::instructions::group_margin::{commit_model, live_order_authority, model};
+use super::account::{commit_model, live_order_authority, model};
 mod environment;
 use crate::{
     constants::orders::*,

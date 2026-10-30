@@ -1,17 +1,16 @@
 //! Successor trading primitives. P18C supplies local-only isolated safety; cross remains gated.
-pub(crate) use super::group_margin::{commit_model, model};
+pub(crate) use crate::engine::{checked, risk, advance};
+pub(crate) use super::group_margin::model;
 use crate::{error::ClearingError, state::v2::*};
 use anchor_lang::prelude::*;
 use financial_core as math;
 
-pub mod book;
+pub(crate) use crate::engine::book;
 pub mod makers;
 pub mod oracle;
 pub mod routes;
 
-pub(crate) fn checked<T>(value: math::Result<T>) -> Result<T> {
-    value.map_err(|_| error!(ClearingError::Arithmetic))
-}
+
 
 pub(crate) fn profile(group: &ClearingGroupV2) -> Result<()> {
     require!(
@@ -36,27 +35,9 @@ pub(crate) fn activated(group: &ClearingGroupV2) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn risk(market: &GroupMarketV2, funding: i128) -> Result<[math::margin::Risk; 2]> {
-    require!(
-        market.index < 2 && market.schema_version == SCHEMA_VERSION,
-        ClearingError::Profile
-    );
-    let mut risks = [math::margin::Risk::default(); 2];
-    risks[usize::from(market.index)] = math::margin::Risk {
-        lower: market.lower,
-        upper: market.upper,
-        funding,
-    };
-    Ok(risks)
-}
 
-pub(crate) fn advance(root: &mut MarginAccountV2) -> Result<()> {
-    root.state_version = root
-        .state_version
-        .checked_add(1)
-        .ok_or(ClearingError::Arithmetic)?;
-    Ok(())
-}
+
+
 
 #[cfg(test)]
 mod tests;

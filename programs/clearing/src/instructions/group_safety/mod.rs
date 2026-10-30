@@ -1,4 +1,5 @@
 //! Group-wide solvency, guarded exits and frozen complete-cohort recovery.
+pub(crate) use crate::engine::risk::risks;
 use crate::instructions::{group_custody, group_trading};
 use crate::{error::ClearingError, state::v2::*};
 use anchor_lang::prelude::*;
@@ -88,21 +89,7 @@ pub(crate) fn markets(
     Ok(())
 }
 
-pub(crate) fn risks(
-    mode: u8,
-    markets: [&GroupMarketV2; 2],
-    clock: &Clock,
-) -> Result<[math::margin::Risk; 2]> {
-    let mut result = [math::margin::Risk::default(); 2];
-    for (index, market) in markets.into_iter().enumerate() {
-        result[index] = math::margin::Risk {
-            lower: market.lower.max(1),
-            upper: market.upper.max(1),
-            funding: oracle::effective(mode, market, clock)?,
-        };
-    }
-    Ok(result)
-}
+
 
 pub(crate) fn refresh(
     root: &mut MarginAccountV2,

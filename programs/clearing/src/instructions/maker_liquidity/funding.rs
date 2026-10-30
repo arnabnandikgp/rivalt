@@ -1,7 +1,8 @@
 //! Causal profile-4 observations. Retain already-earned funding even when the
 //! next sample fails; structural controls close and account for the old interval.
 use super::{impact::Impact, *};
-use crate::instructions::{account_trading, group_trading::oracle};
+use crate::instructions::account_trading;
+use crate::engine::oracle;
 use financial_core::oracle as policy;
 
 /// Seconds actually materialized in this observation, not merely seconds for

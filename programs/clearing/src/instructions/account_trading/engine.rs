@@ -37,7 +37,7 @@ pub(crate) fn root_view_value(root: &MarginAccount) -> Result<v2::MarginAccountV
         book: root.book,
         bump: root.bump,
     };
-    super::super::group_margin::model(&view)?;
+    crate::engine::account::model(&view)?;
     Ok(view)
 }
 
@@ -59,7 +59,7 @@ pub(crate) fn commit_root(
             && candidate.bump == root.bump,
         ClearingError::Profile
     );
-    super::super::group_margin::model(candidate)?;
+    crate::engine::account::model(candidate)?;
     book::validate(candidate)?;
     root.cash = candidate.cash;
     root.positions = candidate.positions;

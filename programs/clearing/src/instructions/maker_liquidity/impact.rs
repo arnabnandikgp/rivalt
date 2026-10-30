@@ -4,7 +4,7 @@ use super::{
     pricing::{AuthenticatedCurve, CodeApprovalCache, View},
     *,
 };
-use crate::instructions::group_trading;
+use crate::engine;
 use crate::state::liquidity::{SampleInput, SampleLeg};
 use financial_core::{
     liquidity::{best_sample_pair, SAMPLE_ENTRIES, SAMPLE_STRIDE},
@@ -118,7 +118,7 @@ fn sample_side(
             ClearingError::MakerResponse
         );
     }
-    let selected = group_trading::checked(best_sample_pair(&table, quantity, side))?
+    let selected = engine::checked(best_sample_pair(&table, quantity, side))?
         .ok_or(ClearingError::MakerCapital)?;
     let mut invoked = 0u64;
     for (instance, lots) in selected.quantities.into_iter().enumerate() {

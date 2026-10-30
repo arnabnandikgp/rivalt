@@ -113,7 +113,7 @@ fn transition_accounts(accounts: &mut QualifyAccountTrading) -> Result<()> {
         );
         oracle::action(market, &clock, true)?;
         let mut view = market_view(market)?;
-        super::super::group_safety::settlement::reset_oracle(&mut view, clock.unix_timestamp, 0)?;
+        crate::engine::oracle::reset_oracle(&mut view, clock.unix_timestamp, 0)?;
         commit_market(market, &view)?;
     }
     accounts.safety.mode = ACTIVE;

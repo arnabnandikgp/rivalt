@@ -17,7 +17,7 @@ planning checkpoint `84c46d4`, and separately requested a final README PR after 
 | M11 consolidation | In progress | Component docs, canonical names, justified retirement and final README |
 | P35 component docs/handoff | Review | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50); 20 maintained docs, 93-line handoff, scoped checks pass |
 | P36 canonical names/ABI | Review | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51); renamed current API, preserved ABI and scoped compiled/RPC acceptance |
-| P37 legacy retirement/runtime | Open | Consumer audit, current launcher/API consolidation, retained independent cases and fresh financial/RPC/WS/PG/browser/resources |
+| P37 legacy retirement/runtime | In progress | Shared engine extracted; consumer retirement, current launcher/API consolidation and fresh integrated qualification remain |
 | P38 professional root README | Open | Separate final PR after P35–P37; concise product/architecture/quick-start/status entrypoint |
 | P15B independent maker validation | Open — external | Actual independent operator and economics; internal bots/assumed hedges cannot substitute |
 | P16B independent review/funded readiness | Open — external | Actual independent review, risk/reserve calibration and separate funded authorization |
@@ -86,15 +86,28 @@ Fix `b94381a8395d0a9b824a8c4c0aa563dc752ac311` passes hosted
 scope, client, financial, report and shell jobs all succeeded. Generated parity,
 typecheck, the client suite and trader build pass there. No SBF/RPC rerun is needed
 for test-label changes; program source and binaries are unchanged by this repair.
-PR #51 remains ready/open. The empty P37 branch is restacked on the repaired parent.
+PR #51 remains ready/open. The status-only head `3511e44` also passes all five jobs
+in [run 41003463384](https://github.com/arnabnandikgp/rivalt/actions/runs/41003463384).
+P37 is stacked on that head.
+
+P37's first source checkpoint moves the shared order/reservation, route, delegate,
+source/funding and liquidation candidates into `programs/clearing/src/engine`.
+Current callers use that module; retained group handlers delegate to the same
+definitions. The scalar V2 adapters remain temporarily and are explicitly pending
+retirement, not a completed consolidation. On the working tree based on `3511e44`,
+the current feature compiles and 117 affected native cases pass: 42 account,
+29 maker-liquidity and 46 shared/group cases. A fresh clearing IDL is byte-identical
+and the frozen three-program wire guard passes. Source comparison verifies 29 moved
+definitions plus the two book files retain their bodies apart from qualified helper
+paths. Logs are local under `.local/p37-engine-*`. No new SBF, RPC/WS/PostgreSQL,
+browser or resource acceptance is claimed for this intermediate extraction.
 
 With explicit user approval, only the five older shared Solana compiler caches
 v1.41/v1.43/v1.48/v1.50/v1.51 were deleted; pinned v1.52 and all Rust installations,
 project data and evidence remain. Free space afterwards: 6.4 GiB.
 
-Next exact action: resume P37's live-consumer audit and extract the shared financial
-engine before retiring its historical group handlers; no P37 implementation or
-qualification is claimed yet.
+Next exact action: finish P37's explicit consumer/ABI retirement inventory, then
+replace the historical scalar adapters and remove the obsolete group runtime.
 
 ## Deployment and operational limits
 

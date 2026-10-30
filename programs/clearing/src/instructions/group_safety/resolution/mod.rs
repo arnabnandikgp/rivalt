@@ -1,4 +1,5 @@
 //! Frozen complete-group authority and monotonic page dispatch.
+pub(crate) use crate::engine::oracle::{sources, freeze_coverage};
 use super::*;
 pub use crate::constants::resolution::*;
 use anchor_spl::token::TokenAccount;
@@ -89,51 +90,8 @@ pub struct RecoverGroupResolution<'info> {
     pub guard_eth: UncheckedAccount<'info>,
 }
 
-fn source(
-    market: &mut GroupMarketV2,
-    infos: [&AccountInfo; 4],
-    now: i64,
-) -> Result<Option<policy::Bounds>> {
-    let mut values = [None; 4];
-    for (position, feed) in oracle::feed_indexes(market.index)?.into_iter().enumerate() {
-        crate::instructions::oracle::binding(
-            infos[position],
-            market.oracle.sources[position],
-            feed,
-        )?;
-        if let Ok((value, sequence)) = crate::instructions::oracle::source(
-            infos[position],
-            market.oracle.sources[position],
-            feed,
-            market.oracle.source_sequences[position],
-        ) {
-            values[position] = Some(value);
-            market.oracle.source_sequences[position] = sequence;
-        }
-    }
-    Ok(values[0].zip(values[1]).and_then(|(asset, collateral)| {
-        policy::market_bounds(
-            market.lots_per_unit,
-            [asset, collateral],
-            values[2]
-                .zip(values[3])
-                .map(|(asset, collateral)| [asset, collateral]),
-            now,
-        )
-        .ok()
-    }))
-}
-pub(crate) fn sources(
-    btc: &mut GroupMarketV2,
-    eth: &mut GroupMarketV2,
-    infos: [&AccountInfo; 6],
-    now: i64,
-) -> Result<[Option<policy::Bounds>; 2]> {
-    Ok([
-        source(btc, [infos[0], infos[1], infos[2], infos[3]], now)?,
-        source(eth, [infos[4], infos[1], infos[5], infos[3]], now)?,
-    ])
-}
+
+
 
 pub(crate) fn cash_invariant(
     group: &ClearingGroupV2,
@@ -231,32 +189,7 @@ fn event(
     })
 }
 
-pub(crate) fn freeze_coverage(market: &mut GroupMarketV2, now: i64) -> Result<()> {
-    let observation = &mut market.oracle;
-    if observation.sampled_at == 0 {
-        return Ok(());
-    }
-    let elapsed = u64::try_from(
-        now.checked_sub(observation.sampled_at)
-            .ok_or(ClearingError::Arithmetic)?,
-    )
-    .map_err(|_| error!(ClearingError::Resolution))?;
-    let covered = if observation.held_until > observation.sampled_at {
-        (market.funding_time.min(observation.held_until) - observation.sampled_at).max(0) as u64
-    } else {
-        0
-    };
-    require!(covered <= elapsed, ClearingError::Resolution);
-    observation.covered_seconds = observation
-        .covered_seconds
-        .checked_add(covered)
-        .ok_or(ClearingError::Arithmetic)?;
-    observation.skipped_seconds = observation
-        .skipped_seconds
-        .checked_add(elapsed - covered)
-        .ok_or(ClearingError::Arithmetic)?;
-    Ok(())
-}
+
 
 /// The caller authenticates both sources and the complete target identity.
 /// A conservative risk deficit alone does not authorize default. Missing prices

@@ -1,5 +1,5 @@
 //! Root-local authority and durable orders; history sequence is never authorization.
-use super::super::group_trading::routes::{self as candidates, GroupOrderAction};
+use crate::engine::routes::{self as candidates, GroupOrderAction};
 use super::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -84,7 +84,7 @@ pub fn manage(
     let delegate_epoch = if matches!(&operation, GroupOrderAction::Cleanup) {
         0
     } else {
-        super::super::group_margin::trade_authority(&root, accounts.actor.key(), clock.slot)?
+        crate::engine::account::trade_authority(&root, accounts.actor.key(), clock.slot)?
     };
     let market_views = [market_view(&accounts.btc)?, market_view(&accounts.eth)?];
     let environment = environment(&market_views, usize::from(market_index), &clock)?;
@@ -140,7 +140,7 @@ pub fn delegate(
         ClearingError::Profile
     );
     guard.check(&accounts.venue, &accounts.safety, &accounts.margin)?;
-    let next = super::super::group_margin::authority::candidate(
+    let next = crate::engine::authority::candidate(
         &*root_view(&accounts.margin)?,
         accounts.owner.key(),
         delegate,

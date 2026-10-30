@@ -2,7 +2,7 @@
 //! No profile-4 activation path is supplied by this module.
 use super::*;
 use crate::instructions::account_trading::{self as trading, environment, market_view, root_view};
-use crate::instructions::group_trading::routes as candidates;
+use crate::engine::routes as candidates;
 use crate::instructions::{OrderExecution, RouteIntent, RouteLeg};
 use crate::state::v2;
 
@@ -23,7 +23,7 @@ pub fn execute(ctx: Context<ExecuteLiquidityRoute>, args: LiquidityRouteIntent) 
         &ctx.accounts.identity.trader,
     )?;
     let clock = Clock::get()?;
-    crate::instructions::group_margin::trade_authority(
+    crate::engine::account::trade_authority(
         &*root_view(&ctx.accounts.identity.trader)?,
         ctx.accounts.identity.actor.key(),
         clock.slot,
