@@ -186,7 +186,7 @@ exposure or claims, including cash effects caused by another market. Unrelated
 ETH-only activity does not become a BTC payment dependency. Required source and
 held-funding stamps are checked again on consumption.
 
-The 234-byte certificate's cash accumulator is cash in selected-exposed/claim roots,
+The 242-byte certificate's cash accumulator is cash in selected-exposed/claim roots,
 not a common fungible backing pool. Its lots contain both sampled sums; only the
 selected sum is certified. Each debtor independently covers all gross debt.
 Missing/reordered/duplicate roots or changed required stamps restart/reject.

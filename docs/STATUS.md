@@ -18,7 +18,7 @@ the integration and preceding baselines.
 | P40 scoped events/services | Review | A and B acceptance passed; awaiting stack integration |
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
-| P41 relevant market dependencies | In progress | D86 implemented; signed market-dependency and full safety runs pass; normal claim/certificate/net acceptance pending |
+| P41 relevant market dependencies | In progress | Acceptance passed on clean `ca8bab0` / SBF `b0c5675`; ready PR publication next |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
@@ -307,17 +307,24 @@ raw-byte Fraction audit verifies eight exact payouts and rejects ten corruptions
 Retained-receipt projection matches five lifecycle boundaries (68 entities, one
 explicitly uncaptured portfolio); this is not a new SQL/block-fence run. Evidence:
 `p41-safety/`, `.local/p41-safety-financial.log` and `.local/p41-safety-projection.log`.
-Owned test listeners/containers have stopped. P41's ordinary claim/certificate/net
-extension at `b127eca` completed all 167 signed outcomes, including normal gain
-payment and flat netting, then exposed a revision-less backing payload projection
-bug. The reader now takes that predecessor from its authenticated footer; targeted
-projection regression and a fresh integrated rerun are pending. Failed evidence stays
-in `p41-claims-complete/`. Broad unrelated/browser/endurance suites
-are omitted; P44 owns fresh full qualification.
+The final claim/certificate/net probe passes at clean verifier **`ca8bab0`** on
+that same SBF: 167 signed outcomes (161 successes/six expected rejections), ten
+actual omitted-market cases and identical **115-event PostgreSQL replay**. All
+73 accounts/nine members reconcile to cash 7,998,935, pools 999/4, insurance 9/5,
+fees 30/15 and actual vault **7,999,997** atoms. Isolated Anchor parity verifies
+148 clearing instruction encodings/257 events plus both makers. Source and certificate
+market omissions reject; flat netting preserves cash and exact fractional claims.
+The first attempt completed every signed effect but exposed missing predecessor
+revision in the certificate projection. The fix binds its revision-less payload
+to the authenticated footer; all 13 affected projection tests and typecheck pass.
+Successful raw records stay in `p41-claims-revision/`, the failed attempt in
+`p41-claims-complete/`. Owned test listeners/containers are stopped.
 
-Next exact action: run the affected normal claim/certificate/net extension with
-actual RPC/WS/PostgreSQL, publish accepted P41 above #58, then continue P42. No
-full-phase, throughput, endurance or funded qualification is claimed.
+P41 acceptance is complete; publication/integration are still pending. No broad
+unrelated/browser/endurance suites are rerun; CI owns broad regression and P44 owns
+full fresh qualification. Next exact action: publish P41 ready above #58, then
+freeze and implement P42's exact custody/accounting isolation contract. No validator
+throughput, endurance or funded qualification is claimed.
 
 ## Deployment and operational limits
 

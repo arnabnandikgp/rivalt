@@ -220,10 +220,11 @@ These static/native checks do not prove compiled CPI, rollback, packet/CU fit or
 journal completeness. The explicit local qualification build is tested separately from these static
 checks; default/devnet builds continue to reject financial activation.
 
-## Relevant-market successor contract (P41, implementation pending)
+## Relevant-market contract (P41)
 
-D86 freezes the fresh local boundary before changing contexts. Source implementation
-is underway; rebuilt artifact and integrated acceptance remain pending. Clearing-owned
+D86 froze this fresh local boundary before changing contexts. Source, rebuilt
+artifacts and scoped integrated acceptance are recorded in
+[validation](../operations/validation.md#relevant-market-acceptance-p41). Clearing-owned
 accounts and scoped envelopes select **schema 6**; field order, sizes, kinds,
 canonical discriminators and PDA seeds stay as schema 5. A new domain/genesis,
 explicit `accountSchema: 6`, new artifact pins and fresh journal are required.

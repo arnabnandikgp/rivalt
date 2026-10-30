@@ -186,7 +186,7 @@ RPC/WS/PostgreSQL acceptance on this runtime is still required.
 ## D86 — complete relevant-market dependencies
 
 On 31 October 2026, P41 freezes D82's
-[relevant-market contract](clearing/accounts.md#relevant-market-successor-contract-p41-implementation-pending).
+[relevant-market contract](clearing/accounts.md#relevant-market-contract-p41).
 Ordinary actions may omit unrelated market accounts, but clearing derives the
 required union from all touched roots, requested effects and applicable certificate
 bounds. There is no caller-selected risk universe. Persist every consumed relevant
