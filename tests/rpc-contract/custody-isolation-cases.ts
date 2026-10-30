@@ -1,6 +1,9 @@
 // P42-specific signed invariants. Provisioning cannot inject financial state.
 import assert from 'node:assert/strict';
 import {AccountRole,type Address,type Instruction} from '@solana/kit';
+import {getCreateAccountInstruction,getTransferSolInstruction} from '@solana-program/system';
+import {TOKEN_PROGRAM_ADDRESS,getInitializeAccount3Instruction,getMintToInstruction} from '@solana-program/token';
+import {fixtureKey} from './harness.js';
 import * as sdk from '@rivalt/sdk';
 import type {CanonicalHarness} from './canonical-maker-cases.js';
 import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
@@ -9,7 +12,12 @@ import {instructionLocks,conflicts} from '../performance/lock-model.js';
 
 type Setup=Awaited<ReturnType<typeof liquidityExecutionSetup>>;
 export async function custodyIsolationCases(h:CanonicalHarness,setup:Setup) {
-  const {root,guard,route}=executionTestHelpers(h,setup), owner=setup.owner;
+  const {root,guard,route}=executionTestHelpers(h,setup), owner=await fixtureKey('p42-independent-trader');
+  const token=await fixtureKey('p42-independent-token');
+  await h.send('P42 fund independent test owner',[getTransferSolInstruction({source:setup.payer,destination:owner.address,amount:1_000_000_000n})]);
+  await h.send('P42 mint independent test collateral',[getCreateAccountInstruction({payer:setup.payer,newAccount:token,lamports:await h.rent(165),space:165n,programAddress:TOKEN_PROGRAM_ADDRESS}),
+    getInitializeAccount3Instruction({account:token.address,mint:setup.mint.address,owner:owner.address}),
+    getMintToInstruction({mint:setup.mint.address,token:token.address,mintAuthority:setup.payer,amount:100_000n})],[token]);
   const ledger=async(index:number)=>sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[index]))!);
   const omit=(instruction:Instruction,key:Address):Instruction=>({...instruction,accounts:instruction.accounts!.map(meta=>
     meta.address===key?{address:sdk.CLEARING_PROGRAM_ADDRESS,role:AccountRole.READONLY}:meta)});
@@ -18,9 +26,8 @@ export async function custodyIsolationCases(h:CanonicalHarness,setup:Setup) {
   await h.send('P42 create distinct owner portfolio',[await sdk.getCreatePortfolioInstructionAsync({...setup.common,owner,portfolio,index:3})],[owner]);
   await h.send('P42 register distinct owner isolated ETH',[await sdk.getRegisterMarginInstructionAsync({...setup.common,owner,portfolio,
     margin:ethRoot,subaccountIndex:1,mode:1,isolatedMarketIndex:1,role:0})],[owner]);
-  const donor=setup.instances[4].capital;
-  await h.send('P42 internal allocation omits token custody',[sdk.getTransferFundedAccountInstruction({...setup.common,
-    btcLedger:undefined,ethLedger:undefined,owner,donor,recipient:ethRoot,guard:await guard(donor),amount:100_000n})],[owner]);
+  await h.send('P42 deposit independent collateral without liability ledgers',[await sdk.getDepositAccountInstructionAsync({...setup.common,
+    btcLedger:undefined,ethLedger:undefined,owner,margin:ethRoot,quoteMint:setup.mint.address,userToken:token.address,amount:100_000n})],[owner]);
   await setup.sample();
   const btc=await route({trader:setup.roots[1],actor:setup.traderOwner,marketIndex:0,side:0,makers:[setup.instances[0]],lots:[1n],minimalMarkets:true});
   const eth=await route({trader:ethRoot,actor:owner,marketIndex:1,side:0,makers:[setup.instances[3]],lots:[1n],minimalMarkets:true});

@@ -342,8 +342,12 @@ D87 parity and eleven ABI guard regressions pass. SDK artifact pins now select t
 new candidate hashes; the prior P41 artifacts remain in their local revision directory.
 The scoped signed driver adds cross-liability omission rollback, separate BTC/ETH
 owners/payers, classified source-observation scan invalidation and atomic final-page/
-payment including later-instruction rollback. Typecheck passes; this driver has not
-run yet. Next exact action: execute the fresh P42 dependency/custody RPC/WS/PostgreSQL
+payment including later-instruction rollback. Typecheck passes. The first fresh run preserved 173 signed outcomes through
+cross/fractional claims and isolated BTC; the ETH fixture correctly hit the existing
+self-trade prohibition because its owner also owned the selected maker. The fixture
+now uses a third independently funded test owner; no self-trade rule is changed.
+All three compiled default gates pass and the four dependency-builder cases pass.
+Next exact action: execute the fresh P42 dependency/custody RPC/WS/PostgreSQL
 probe, fix actual failures, then complete the remaining safety/default/retirement gates. No validator
 throughput, endurance or funded qualification is claimed.
 

@@ -11,6 +11,7 @@ import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {initializationSignature,fetchScopedHistory} from './liquidity-journal.js';
+import {fixtureKey} from './harness.js';
 import {custodyIsolationCases} from './custody-isolation-cases.js';
 import type {Keypair} from '@solana/web3.js';
 import {transactionLocks,conflicts} from '../performance/lock-model.js';
@@ -176,7 +177,7 @@ try {
   const netted=await root(cross);assert.equal(netted.cash,closed.cash);
   assert.equal(netted.positions[0].virtualScaled,closed.positions[0].virtualScaled-1_000_000_000n);
   assert.equal(netted.positions[1].virtualScaled,closed.positions[1].virtualScaled+1_000_000_000n);
-  independentPayer=setup.owner;
+  independentPayer=await fixtureKey('p42-independent-trader');
   const custodyIsolation=await custodyIsolationCases(h,setup);
   await flush();
   const anchor=await initializationSignature(rpc,checks.map(check=>String(check.signature)),setup.deployment.eventAuthority);
@@ -205,7 +206,7 @@ try {
   const roots=await Promise.all([...setup.roots,ethOnly,custodyIsolation.ethRoot,...setup.instances.map(maker=>maker.capital)].map(root));
   const ledgers=await Promise.all(setup.ledgers.map(async key=>sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
   const markets=await Promise.all([0,1].map(setup.marketState));
-  assert.equal(roots.reduce((sum,account)=>sum+account.cash,0n),7_998_916n);
+  assert.equal(roots.reduce((sum,account)=>sum+account.cash,0n),8_098_916n);
   assert.deepEqual(ledgers.map(ledger=>[ledger.insurance,ledger.fees,ledger.insuranceFeeRemainder]),[[13n,39n,0],[6n,21n,3]]);
   for(const index of [0,1]) {
     assert.equal(roots.reduce((sum,account)=>sum+account.positions[index].lots,0n),0n);
@@ -213,7 +214,7 @@ try {
       -position.lots*(markets[index].fundingIndexScaled-position.fundingCheckpointScaled);},0n),ledgers[index].settlement*1_000_000_000n);
   }
   assert.deepEqual(ledgers.map(ledger=>ledger.settlement),[999n,3n]);
-  assert.equal(BigInt(reconciliation.actualVault),7_999_997n);
+  assert.equal(BigInt(reconciliation.actualVault),8_099_997n);
   const message=(label:string)=>{
     const index=checks.findIndex(check=>check.label===label);assert(index>=0);
     return transactionLocks(Buffer.from(JSON.parse(readFileSync(`${directory}/wire-${index}.json`,'utf8')).wireBase64,'base64'));
