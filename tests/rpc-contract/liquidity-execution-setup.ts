@@ -77,7 +77,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   const [work] = await sdk.deriveVenueComponent(venue, 'resolution-work');
   const safetyCommon = { ...common, authority: payer, payer, btc: markets[0], eth: markets[1], resolution, work };
   await h.send('precreate complete resolution header and work', [sdk.getInitializeAccountResolutionInstruction(safetyCommon)]);
-  await h.send('activation rejects incomplete safety storage', [sdk.getActivateLiquidityInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__RESOLUTION);
+  if(options.verifyRejections!==false)await h.send('activation rejects incomplete safety storage', [sdk.getActivateLiquidityInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__RESOLUTION);
   const pages = [];
   for (let pageIndex = 0; pageIndex < 32; pageIndex++) {
     const [page] = await sdk.findResolutionPagePda(venue, pageIndex);
