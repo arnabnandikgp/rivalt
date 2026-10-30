@@ -5,15 +5,15 @@ import {MAKER_B_PROGRAM_ADDRESS} from './generatedMakerB/index.js';
 import {ArtifactVerifier} from './artifacts.js';
 import type {UserRpc} from './wallet-client.js';
 
-// P40B candidate: clean SBF source ba2f15f; qualification is recorded in STATUS.
+// P40B candidate: clean SBF source 6123dc8; qualification is recorded in STATUS.
 // Public configuration
 // selects this profile, never replacement hashes or a default/devnet executable.
-export const LIQUIDITY_ARTIFACT_SET='p40b-scoped-history-candidate-v1';
+export const LIQUIDITY_ARTIFACT_SET='p40b-scoped-history-candidate-v2';
 export const LIQUIDITY_ARTIFACTS=Object.freeze([
-  {name:'clearing',program:CLEARING_PROGRAM_ADDRESS,bytes:2457544,sha256:'87bde9823a236e57ef11b1deb0acf193012d3924b85fa1e6605f7639a517649d'},
+  {name:'clearing',program:CLEARING_PROGRAM_ADDRESS,bytes:2457560,sha256:'6cd74facd3292ca95e76f2040439b3e769d5336fba32c7183623feee46ab0ce3'},
   {name:'maker-a',program:MAKER_A_PROGRAM_ADDRESS,bytes:261056,sha256:'4ab6c75534971f89c7568043cad30b1ee1430d877a309d4bfed771763d492137'},
   {name:'maker-b',program:MAKER_B_PROGRAM_ADDRESS,bytes:261056,sha256:'c6896918f0ab76a72d11da638c923d86382ba9d0becf71a46874aa82bce2daaa'},
-  {name:'oracle-fixture',program:address('A5ACpHNQHLkCQtfvRkPoR45juvuxwfi9mEWGU43eD5nj'),bytes:151608,sha256:'d8996b99368c7edf94a812d0c58bac4bf43471d4dbbb943ec610d839769b57c4'},
+  {name:'oracle-fixture',program:address('A5ACpHNQHLkCQtfvRkPoR45juvuxwfi9mEWGU43eD5nj'),bytes:168720,sha256:'85a4369ebf563f77d01c77b3a363750839b8799622fc99db2fff78bfebce46c7'},
 ].map(artifact=>Object.freeze(artifact)));
 export class LiquidityArtifactVerifier {
   private readonly verifier:ArtifactVerifier;
