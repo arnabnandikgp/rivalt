@@ -36,7 +36,7 @@ it('persists final backing page and payment as one original with receiver-versio
   const {instructions,authority}=submissions[0];expect(instructions).toHaveLength(3);
   expect(sdk.hex(instructions[1].data!.slice(0,8))).toBe(sdk.hex(sdk.CHECK_MARKET_BACKING_DISCRIMINATOR));
   expect(sdk.hex(instructions[2].data!.slice(0,8))).toBe(sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR));
-  expect(sdk.parsePayAccountGainInstruction(instructions[2]).data.amount).toBe(3n);
+  expect(sdk.getPayAccountGainInstructionDataDecoder().decode(instructions[2].data!).amount).toBe(3n);
   expect(authority).toEqual({kind:'accountStateVersion',venue,account:margin,value:root.stateVersion.toString()});
   for(const key of [test.custody,(await sdk.deriveVenueComponent(venue,'vault'))[0]])
     expect(instructions.slice(1).some(instruction=>instruction.accounts!.some(meta=>meta.address===key))).toBe(false);
