@@ -55,8 +55,11 @@ manifest matches parent `72187bc`; 11 mutation/compatibility guard checks, 9 nat
 state/layout checks, 66 targeted SDK/indexer/UI tests and workspace typecheck pass.
 Generated-output parity and documentation link/path checks pass. Initial name/PDA
 collisions were corrected before these results. No financial arithmetic changed.
-Fresh SBF, isolated legacy Anchor raw parity, submitted route/publisher probes and
-resource measurements remain required before P36 can enter Review. Broad inherited
+Fresh SBF builds passed on clean source `cff1cf9` with no oversized stack frame.
+Clearing is 4,511,952 bytes; each maker is 382,864 bytes; the oracle hash is unchanged.
+Prior binaries/manifest remain under `.local/p36-pre-rename-artifacts`. The SDK pins
+the exact new candidate hashes. Isolated legacy Anchor raw parity, submitted
+route/publisher probes and resource measurements remain required before Review. Broad inherited
 regression is assigned to scoped CI, not claimed as run locally.
 
 With explicit user approval, only the five older shared Solana compiler caches

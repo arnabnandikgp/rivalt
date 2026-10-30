@@ -2,6 +2,7 @@
 // prove real SBF quote evaluation, not deposits, fills or reachable financial state.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { address, getAddressEncoder, getProgramDerivedAddress, getTransactionDecoder, lamports } from '@solana/kit';
 import { FailedTransactionMetadata, LiteSVM } from 'litesvm';
 import * as sdk from '@rivalt/sdk';
@@ -13,7 +14,9 @@ const clock = svm.getClock(); clock.unixTimestamp = 1_800_000_000n; clock.slot =
 const keyBytes = getAddressEncoder();
 const module = process.env.RIVALT_CANONICAL_PROGRAM === 'maker_b' ? sdk.makerB : sdk.makerA;
 const program = process.env.RIVALT_CANONICAL_PROGRAM === 'maker_b' ? sdk.makerB.MAKER_B_PROGRAM_ADDRESS : sdk.makerA.MAKER_A_PROGRAM_ADDRESS;
-svm.addProgramFromFile(program, `.local/canonical-maker/${process.env.RIVALT_CANONICAL_PROGRAM ?? 'maker_a'}.so`);
+const artifact = `${process.env.RIVALT_CANONICAL_ARTIFACT_DIR ?? '.local/canonical-maker'}/${process.env.RIVALT_CANONICAL_PROGRAM ?? 'maker_a'}.so`;
+console.error('SBF pricing artifact:', JSON.stringify({ artifact, sha256: createHash('sha256').update(readFileSync(artifact)).digest('hex') }));
+svm.addProgramFromFile(program, artifact);
 const [config, configBump] = await getProgramDerivedAddress({ programAddress: program, seeds: [Buffer.from('curve-v4'), keyBytes.encode(payer.address)] });
 const [price, priceBump] = await getProgramDerivedAddress({ programAddress: program, seeds: [Buffer.from('price-v4'), keyBytes.encode(config)] });
 const domain = new Uint8Array(32).fill(30);
