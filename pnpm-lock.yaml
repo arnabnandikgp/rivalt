@@ -201,6 +201,9 @@ importers:
       '@rivalt/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@solana-program/token':
+        specifier: 0.18.0
+        version: 0.18.0(@solana/kit@8.5.0(typescript@5.9.3))
       '@solana/kit':
         specifier: 8.5.0
         version: 8.5.0(typescript@5.9.3)

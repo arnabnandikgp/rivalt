@@ -20,7 +20,7 @@ the integration and preceding baselines.
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
 | P42 custody/accounting isolation | Review | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60), stacked on #59; D87 schema-7 financial/lock/settlement/gateway/default and fresh SQL replay acceptance passes |
-| P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
+| P43 targeted CU optimization | In progress | Fresh same-runtime profiling of the accepted P42 paths; no admission/ABI/framework changes yet |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
 | P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
@@ -369,7 +369,11 @@ against isolated Anchor, after updating its obsolete context-name fixture.
 pins, counts, limits and local run paths. Prior P41 binaries remain preserved.
 Acceptance content is `5c9a81d`; [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60)
 is ready above #59. Integration and newly triggered hosted CI remain pending.
-Next exact action: begin P43 profiling on this accepted parent without waiting for merge. P44 still owns full-path measurement,
+P43 is on `performance/p43-cu-optimization` above exact P42 `aae9090`. The focused
+profiler now builds minimum required dependencies and records explicit before/after
+checkpoints, runtime/IDL/SBF pins and real vault conservation. Historical P39 metrics
+remain immutable. Next exact action: run the clean before-optimization RPC/WS profile,
+then attribute measured costs before selecting implementation changes. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 

@@ -1,10 +1,11 @@
-// P39 focused baseline: signed current-artifact actions, fetched RPC/WS receipts
-// and actual compiled lock sets. This does not measure validator scheduling/TPS.
+// Focused current-artifact CU comparison with actual RPC/WS and message locks.
+// Historical CU output stays immutable; this does not measure scheduler TPS.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import type { Instruction } from '@solana/kit';
+import { getTokenDecoder } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import { openCanonicalRpcHarness } from '../rpc-contract/canonical-rpc-harness.js';
 import { liquidityExecutionSetup } from '../rpc-contract/liquidity-execution-setup.js';
@@ -12,14 +13,17 @@ import { executionTestHelpers } from '../rpc-contract/liquidity-execution-helper
 import { conflicts, instructionLocks, transactionLocks, type LockSet } from './lock-model.js';
 
 const runDir = process.env.RIVALT_RUN_DIR!;
+const checkpoint = process.env.RIVALT_PROFILE_STAGE;
+assert(checkpoint === 'p43-before' || checkpoint === 'p43-after' || checkpoint === 'p43-trace',
+  'Select an explicit CU comparison checkpoint');
 const json = (value: unknown) => JSON.stringify(value, (_, item) => typeof item === 'bigint' ? item.toString() : item, 2) + '\n';
 const runtime = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, runDir, {
-  deferFinality: true, computeUnitLimit: label => label.startsWith('P39 trade') ? 800_000 : 400_000,
+  deferFinality: true, computeUnitLimit: label => label.startsWith('CU trade') ? 800_000 : 400_000,
 });
 const { h, rpc, ws, flush, checks, conformance } = runtime;
 const declared = new Map<string, LockSet>(), send = h.send.bind(h);
 h.send = async (label, instructions, signers = [], expectedError) => {
-  if (label.startsWith('P39 ')) {
+  if (label.startsWith('CU ')) {
     assert(!declared.has(label), 'Unique case identity');
     declared.set(label, instructionLocks(instructions));
   }
@@ -37,8 +41,8 @@ try {
     await setup.sample();
     const trader = setup.roots[rootIndex], before = await helper.root(trader);
     const instruction = await helper.route({ trader, actor: owner, marketIndex, side: 0,
-      makers: makerIndices.map(index => setup.instances[index]), lots: makerIndices.map(() => 1n) });
-    await h.send(`P39 trade ${name}`, [instruction], [owner]);
+      makers: makerIndices.map(index => setup.instances[index]), lots: makerIndices.map(() => 1n), minimalMarkets: true });
+    await h.send(`CU trade ${name}`, [instruction], [owner]);
     firstRoute ??= instruction;
     // Literal one-region fixed-price fixture; independent of the allocator/core.
     const quantity = BigInt(makerIndices.length), gross = quantity * (marketIndex === 0 ? 60_003n : 30_003n);
@@ -51,24 +55,24 @@ try {
   assert(firstRoute);
   const watched = [...setup.tracked, ...setup.roots, ...setup.configurations];
   const beforeReplay = await Promise.all(watched.map(h.read));
-  await h.send('P39 trade stale-account-rejection', [firstRoute], [owner], sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);
+  await h.send('CU trade stale-account-rejection', [firstRoute], [owner], sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);
   assert.deepEqual(await Promise.all(watched.map(h.read)), beforeReplay, 'Rejected replay must preserve economic bytes');
 
   await setup.sample();
   const orderRoot = setup.roots[1], orderAccounts = { ...setup.common, actor: owner,
-    btc: setup.markets[0], eth: setup.markets[1], margin: orderRoot };
+    btc: setup.markets[0], margin: orderRoot };
   const startSlot = await setup.slot();
-  await h.send('P39 order place', [sdk.getManageAccountOrderInstruction({ ...orderAccounts,
+  await h.send('CU order place', [sdk.getManageAccountOrderInstruction({ ...orderAccounts,
     guard: await helper.guard(orderRoot), marketIndex: 0, operation: { __kind: 'Place', expectedId: 1n,
       terms: { side: 0, lots: 1n, limit: 66_000n, feeBudget: 1_000n, startSlot, expirySlot: startSlot + 200n,
         trigger: 0, threshold: 0n, reduceOnly: false, generation: 0n } } })], [owner]);
-  await h.send('P39 order cancel', [sdk.getManageAccountOrderInstruction({ ...orderAccounts,
+  await h.send('CU order cancel', [sdk.getManageAccountOrderInstruction({ ...orderAccounts,
     guard: await helper.guard(orderRoot), marketIndex: 0,
     operation: { __kind: 'Cancel', id: 1n, version: 1n, protectionGroup: false } })], [owner]);
   for (const index of [0, 1]) {
     const maker = setup.instances[index], config = await maker.state();
     const price = maker.module.getMakerPriceDecoder().decode((await h.read(maker.price))!).state;
-    await h.send(`P39 reprice ${index}`, [maker.module.getRepriceInstruction({ ...maker.makerCommon, actor: setup.updater,
+    await h.send(`CU reprice ${index}`, [maker.module.getRepriceInstruction({ ...maker.makerCommon, actor: setup.updater,
       expectedControl: config.controlEpoch, expectedSequence: price.sequence, anchor: 60_000n })], [setup.updater]);
   }
   // Separate, not batched, publisher receipts for the two market access sets.
@@ -77,7 +81,7 @@ try {
   for (const marketIndex of [0, 1] as const) {
     const input = await sdk.readFundingReport(rpc, setup.venue, marketIndex);
     assert.equal(input.report.outcome, 0);
-    await h.send(`P39 funding ${marketIndex}`, [sdk.getPublishFundingReportInstruction({ ...setup.common,
+    await h.send(`CU funding ${marketIndex}`, [sdk.getPublishFundingReportInstruction({ ...setup.common,
       ...input.instructionAccounts, publisher: setup.updater, report: input.report })], [setup.updater]);
   }
   await flush();
@@ -97,6 +101,7 @@ try {
   const totalCash = roots.reduce((sum, root) => sum + root.cash, 0n);
   assert.equal(custody.allocatedVault, totalCash + ledgers.reduce((sum, ledger) => sum + ledger.settlement + ledger.insurance + ledger.fees, 0n));
   assert.equal(totalCash + feeTotals[0] + feeTotals[1], 8_000_000n);
+  assert.equal(getTokenDecoder().decode((await h.read(setup.vault))!).amount, custody.allocatedVault);
 
   const samples = checks.flatMap((check, index) => {
     const label = String(check.label), protocol = declared.get(label);
@@ -110,13 +115,13 @@ try {
   });
   const byLabel = (label: string) => { const sample = samples.find(sample => sample.label === label); assert(sample); return sample; };
   const pairs = [
-    ['P39 trade btc-single', 'P39 trade eth-single', true],
-    ['P39 trade btc-single', 'P39 trade isolated-single', true],
-    ['P39 order cancel', 'P39 trade btc-single', true],
-    ['P39 funding 0', 'P39 funding 1', true],
-    ['P39 reprice 0', 'P39 reprice 1', false],
-    ['P39 reprice 0', 'P39 trade btc-single', true],
-    ['P39 reprice 0', 'P39 trade isolated-single', false],
+    ['CU trade btc-single', 'CU trade eth-single', true],
+    ['CU trade btc-single', 'CU trade isolated-single', true],
+    ['CU order cancel', 'CU trade btc-single', true],
+    ['CU funding 0', 'CU funding 1', false],
+    ['CU reprice 0', 'CU reprice 1', false],
+    ['CU reprice 0', 'CU trade btc-single', true],
+    ['CU reprice 0', 'CU trade isolated-single', false],
   ] as const;
   const accessChecks = pairs.map(([left, right, expected]) => {
     const protocol = conflicts(byLabel(left).protocol, byLabel(right).protocol);
@@ -126,12 +131,19 @@ try {
   const parity = await conformance.finish(runDir, [], h.read);
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
   const build = JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8'));
-  const summary = { schema: 1, revision,
+  const summary = { schema: 2, checkpoint, revision,
+    instrumented: checkpoint === 'p43-trace',
+    workload: { schema: 7, profile: 4, markets: 2, makersPerMarket: 3,
+      lotsPerLeg: '1', quantities: [1, 1, 1, 2, 2], orderBook: 'one live order, then cancel',
+      dependencies: 'on-chain-required root union, no unused market/ledger',
+      initialCashAtoms: '8000000', takerFeeBps: 2, insuranceFeePercent: 25 },
+    idlHashes: Object.fromEntries(['clearing', 'maker_a', 'maker_b'].map(name =>
+      [name, createHash('sha256').update(readFileSync(`packages/sdk/idl/${name}.json`)).digest('hex')])),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
     build, runtime: await rpc.call('getVersion'), genesis: await rpc.call('getGenesisHash'),
     scope: 'Focused fresh RPC/WS resources and access conflicts; no throughput, PG, full instruction or phase-44 claim',
     samples, accessChecks, parity, independentFinancialCheck: { feeTotals, custodyCash: totalCash, roots: roots.length },
     setupOutcomes: checks.length - samples.length, checks };
   writeFileSync(`${runDir}/performance.json`, json(summary));
-  console.log(`P39: ${samples.length} focused signed outcomes; ${accessChecks.length} actual access-set comparisons; complete fee/cash/claim reconciliation.`);
+  console.log(`CU profile: ${samples.length} focused signed outcomes; ${accessChecks.length} actual access-set comparisons; complete fee/cash/claim reconciliation.`);
 } finally { try { await flush(); } finally { ws.close(); } }
