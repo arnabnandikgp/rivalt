@@ -3,12 +3,12 @@ use super::*;
 use crate::constants::orders::INVALIDATED;
 
 pub(crate) fn candidate(
-    root: &MarginAccountV2,
+    root: &MarginAccount,
     actor: Pubkey,
     delegate: Pubkey,
     expiry_slot: u64,
     slot: u64,
-) -> Result<MarginAccountV2> {
+) -> Result<MarginAccount> {
     model(root)?;
     book::validate(root)?;
     require_keys_eq!(actor, root.owner, ClearingError::Authority);

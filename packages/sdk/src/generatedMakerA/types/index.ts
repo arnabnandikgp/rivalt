@@ -6,16 +6,12 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./clearingGroupV2.js";
 export * from "./curveControl.js";
 export * from "./curveState.js";
-export * from "./groupMarketV2.js";
 export * from "./liquidityShape.js";
 export * from "./makerQuoteRequest.js";
 export * from "./makerQuoteResponse.js";
-export * from "./makerState.js";
 export * from "./marginAccount.js";
-export * from "./marginAccountV2.js";
 export * from "./market.js";
 export * from "./oracleState.js";
 export * from "./orderBook.js";
@@ -25,8 +21,5 @@ export * from "./priceRegion.js";
 export * from "./priceState.js";
 export * from "./protection.js";
 export * from "./protectiveGroup.js";
-export * from "./quoteRequest.js";
-export * from "./quoteResponse.js";
 export * from "./storedOrder.js";
 export * from "./venue.js";
-export * from "./venueSafety.js";

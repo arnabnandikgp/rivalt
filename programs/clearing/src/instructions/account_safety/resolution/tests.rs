@@ -1,7 +1,7 @@
 //! Literal expectations against the functions called by the frozen handlers.
 //! Signed accounts, source authentication and resource limits require runtime tests.
 use super::*;
-use crate::state::v2::Position;
+use crate::state::Position;
 use math::{oracle::Bounds, SCALE};
 
 fn root(id: u16, cash: u64, claims: [i128; 2]) -> MarginAccount {
@@ -360,11 +360,7 @@ fn propose(
     }
     result
 }
-fn verify(
-    header: &mut Resolution,
-    work: &mut ResolutionWork,
-    rows: &mut [ResolutionRow],
-) -> u8 {
+fn verify(header: &mut Resolution, work: &mut ResolutionWork, rows: &mut [ResolutionRow]) -> u8 {
     assert_eq!(header.stage, VERIFY);
     for row in rows {
         rates::verify_row(header, work, row).unwrap();

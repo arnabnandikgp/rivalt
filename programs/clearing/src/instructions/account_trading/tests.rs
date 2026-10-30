@@ -1,8 +1,8 @@
 //! Independently calculated atom-level expectations against the actual adapters,
 //! route candidate and fee transition. No expected result calls the engine twice.
-use crate::engine::routes as candidates;
 use super::super::{RouteIntent, RouteLeg};
 use super::*;
+use crate::engine::routes as candidates;
 
 fn clock() -> Clock {
     Clock {
@@ -86,8 +86,8 @@ fn intent() -> RouteIntent {
         }],
     }
 }
-fn quote() -> maker_interface::QuoteResponse {
-    maker_interface::QuoteResponse {
+fn quote() -> crate::engine::routes::ExecutionQuote {
+    crate::engine::routes::ExecutionQuote {
         version: 3,
         maker_id: 0,
         side: 0,
@@ -111,7 +111,7 @@ fn fill(
 ) -> Result<candidates::Candidate> {
     let views = [market_view(&markets[0])?, market_view(&markets[1])?];
     candidates::candidate_for_version(
-        &v2::ClearingGroupV2::default(),
+        &Venue::default(),
         &*root_view(trader)?,
         &[*root_view(&maker())?],
         &[quote()],
@@ -126,7 +126,7 @@ fn fill(
 #[test]
 fn whole_account_funding_fee_and_health_have_literal_boundaries() {
     let mut trader = root();
-    trader.positions[1] = v2::Position {
+    trader.positions[1] = crate::state::Position {
         lots: 2,
         virtual_scaled: -60_000 * math::SCALE,
         generation: 1,
@@ -171,7 +171,7 @@ fn whole_account_funding_fee_and_health_have_literal_boundaries() {
         market_view(&markets[1]).unwrap(),
     ];
     assert!(candidates::candidate_for_version(
-        &v2::ClearingGroupV2::default(),
+        &Venue::default(),
         &root_view(&trader).unwrap(),
         &[*root_view(&maker()).unwrap()],
         &[wrong_version],

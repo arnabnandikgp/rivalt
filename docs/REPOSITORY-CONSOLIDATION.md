@@ -101,6 +101,59 @@ as migration of an old deployment. Existing remote deployments remain untouched.
 Whether remaining consumers permit complete retirement is an inventory result,
 not something inferred from a `V2` suffix.
 
+### P37 disposition and compatibility boundary
+
+The audit at `b89768b` separates these families. This table defines the removal
+scope; STATUS, rather than this inventory, records which changes are implemented.
+
+| Family | Disposition / replacement | Coverage or compatibility obligation |
+|---|---|---|
+| Current financial accounts and canonical maker/publisher accounts | Keep their exact current wire layouts, seeds and numeric identities | Freeze the retained interface from the pre-retirement IDL; compare rebuilt output, never recapture changed layouts as expectations |
+| Root/book/route/source/funding/liquidation candidates inside group modules | Move to the shared engine; use current account records directly | Port applicable independent expected cases; preserve whole-account dependencies, fractions, authority and post-fee progress |
+| V1 isolated and V2 common-loss group entrypoints, contexts and account families | Retire from the current program/client/runtime | Existing deployments are untouched; historical clients and reproduction remain at the immutable pre-consolidation baseline |
+| Profile-3 fixed-maker execution and maker configurations | Retire; canonical maker configuration and execution are the supported local path | Keep shared account/cash/order/default machinery and its journal tags; do not reinterpret fixed-maker bytes as canonical maker state |
+| Disabled on-chain liquidity sampler | Retire its instruction/context and unused sampling implementation | Restricted publisher authorization, source bounds and causal accounting remain; retain applicable financial admission regressions for actual execution |
+| Current `Account*` and liquidity/funding journal events | Keep required historical tags and exact decoders | Fresh replay/recovery must reproduce original current-profile bytes, including saved signed originals and unknown-fee reservations |
+| Earlier group/indexer/UI/demo/build harnesses | Retire obsolete launch paths after extracting live helpers; launch one current profile | Port still-applicable independent checks; current signed RPC/WS/PostgreSQL/browser and full-book qualification must pass |
+| Old devnet deployments, databases, signed transactions, keys and raw evidence | Preserve in place; no migration, upgrade, rewrite or deletion | Use the old deployment's exact historical client/configuration for old accounts or unresolved originals, not the new local profile |
+
+The planned retained public program interface contains 53 clearing instructions,
+17 clearing accounts and 27 clearing events; each maker retains four instructions,
+two accounts and two events. These are dependency-derived targets, not acceptance
+results. Their expanded ABI hashes were derived from `b89768b` before retirement.
+The small wire fixture must record deliberate removals and its previous baseline;
+an old account discriminator or an unsupported profile must still reject.
+
+The retained maker IDL includes 21 types: its own quote/control records plus ten
+current clearing account types required by its contexts. The retained clearing IDL
+has 72 types. The fixture also lists retired APIs and byte-string domain literals.
+
+Current coverage replaces retired harnesses by invariant:
+
+| Retired checks | Current independent/implementation coverage |
+|---|---|
+| V1/V2 custody and scalar account clients | Actual current custody RPC plus independent raw-byte/token-conservation audit; direct portfolio/subaccount SDK identity negatives |
+| Group route, book, funding and liquidation candidates | Applicable literal cases ported to `engine/tests`; current native whole-account and maker admission cases |
+| Unfunded common-group netting/global exit stamp | Current funded netting, market backing certificates, own-cash exits and exact fractional/default cases |
+| Fixed-maker routing and on-chain impact sampler | Canonical pricing reference, exact allocator, execution/full-book RPC; restricted publisher input/report checks |
+| Old event streams, databases and signed retries | Current journal tags, immutable originals and unknown-fee reserves; actual fresh PostgreSQL rebuild/recovery |
+| Earlier wallet/demo and operator bot | Current canonical wallet envelope and demo; restricted updater/publisher kit, per-market economics and browser signing |
+| Retired activation/profile gates | Default and devnet reject current financial activation; old instruction discriminators reject; current profile identity and complete-storage acceptance |
+
+Six obsolete V2-only tests are intentionally not ported: two release-gate cases,
+the old PDA-dependency helper, unfunded group netting, global-certificate activation
+and global-certificate invalidation. Their current replacements are listed above;
+no old test count is claimed as current evidence. Historical auditors and launchers
+are reproducible only with their original code/configuration. Pure financial
+references and current report readers remain in the active tree.
+
+Historical reproduction uses `1f1a5aac4c47844517c1cc190e2bdcd578bc346b` and its exact
+recorded artifact/configuration pins. There is no maintained second trading runtime
+in the current app. Current journal compatibility remains because it has a live
+consumer; removed legacy runtimes do not receive automatic schema conversion.
+Old user funds and unresolved originals are resolved in their original deployment
+context. Removing local source does not discharge their obligations.
+
 ## Documentation organized around responsibilities
 
 Target roughly twenty maintained documents, not another directory per phase.
@@ -221,6 +274,5 @@ reading path, preserved compatibility/economics and fresh evidence for changed c
 P15B/P16B remain Open; 24-hour endurance remains Deferred. No new market, fee,
 insurance, risk, publisher trust, paid service or funded deployment is introduced.
 
-The working volume currently has about 456 MiB free. Planning/doc edits need no
-new runtime; before SBF or integration runs, establish adequate build/database
-headroom without deleting user research, keys, evidence or active databases.
+Check actual disk headroom before builds and integrations. Do not delete user
+research, keys, evidence or active databases to make a run fit.

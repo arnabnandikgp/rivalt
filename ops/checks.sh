@@ -1,36 +1,12 @@
 #!/usr/bin/env bash
+# Explicit broad current-client/reference check; scoped PR checks stay separate.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-# Check every declared acceptance listener before the long builds/slot waits.
-# Never stop another workspace's service to make these ports available.
-python3 ops/check-ports.py "${RIVALT_RPC_PORT:-18899}" "${RIVALT_WS_PORT:-18900}" 18897 18898 15432 18081 "${RIVALT_RESET_API_PORT:-18082}" 18083 18084
-# An absolute store keeps npm lifecycle-inherited config from resolving differently
-# inside the independent legacy root. CI permits noninteractive node_modules repair.
-CI=true pnpm install --frozen-lockfile --store-dir "$PWD/.local/pnpm-store"
-CI=true pnpm --dir tests/anchor-conformance install --frozen-lockfile --store-dir "$PWD/.local/pnpm-store"
-mkdir -p .local
-for program in clearing maker_a maker_b; do
-  cp "packages/sdk/idl/$program.json" ".local/expected-$program-idl.json"
-done
-bash ops/build.sh
-for program in clearing maker_a maker_b; do
-  cmp "packages/sdk/idl/$program.json" ".local/expected-$program-idl.json"
-done
 pnpm generate:check
-# build.sh regenerates the SDK; determinism alone cannot detect stale commits.
-git diff --exit-code HEAD -- packages/sdk/src/generated packages/sdk/src/generatedMakerA packages/sdk/src/generatedMakerB packages/sdk/idl
-test -z "$(git status --porcelain -- packages/sdk/src/generated packages/sdk/src/generatedMakerA packages/sdk/src/generatedMakerB packages/sdk/idl)"
+python3 ops/wire_contract.py
 pnpm typecheck
-pnpm build:trader
 pnpm test
-pnpm test:matrix-report
-pnpm test:financial
-pnpm test:svm
-pnpm test:makers
-pnpm test:routes
-pnpm test:settlement
-pnpm test:oracle
-pnpm test:orders
-pnpm test:resolution
+pnpm build:trader
+bash ops/financial.sh
 node ops/check-dependencies.mjs

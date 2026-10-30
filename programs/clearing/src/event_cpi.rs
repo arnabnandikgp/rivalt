@@ -1,4 +1,4 @@
-//! Anchor-compatible event CPI with one bounded allocation for larger V2 pages.
+//! Anchor-compatible event CPI with one bounded allocation for current events.
 //! The stock macro grows the payload Vec, concatenates it, then copies it into an
 //! Instruction. Solana's default allocator cannot reclaim those intermediate Vecs.
 use anchor_lang::solana_program::{
@@ -7,7 +7,7 @@ use anchor_lang::solana_program::{
 };
 use anchor_lang::{prelude::*, Event};
 
-const MAX_GROUP_EVENT_BYTES: usize = 8_192;
+const MAX_EVENT_BYTES: usize = 8_192;
 
 struct PayloadSize(usize);
 impl std::io::Write for PayloadSize {
@@ -15,11 +15,11 @@ impl std::io::Write for PayloadSize {
         self.0 = self
             .0
             .checked_add(bytes.len())
-            .filter(|size| *size <= MAX_GROUP_EVENT_BYTES)
+            .filter(|size| *size <= MAX_EVENT_BYTES)
             .ok_or_else(|| {
                 std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
-                    "group event exceeds bounded CPI payload",
+                    "event exceeds bounded CPI payload",
                 )
             })?;
         Ok(bytes.len())
@@ -46,7 +46,10 @@ pub(crate) fn emit<T: Event>(event: &T, authority: AccountInfo) -> Result<()> {
 
 /// Borrowed views avoid duplicating large fixed account snapshots on the SBF
 /// bump heap. The caller must prove exact serialization parity with the IDL event.
-pub(crate) fn emit_borrowed<T: Event, S: AnchorSerialize>(event: &S, authority: AccountInfo) -> Result<()> {
+pub(crate) fn emit_borrowed<T: Event, S: AnchorSerialize>(
+    event: &S,
+    authority: AccountInfo,
+) -> Result<()> {
     require_keys_eq!(
         *authority.key,
         crate::EVENT_AUTHORITY_AND_BUMP.0,
@@ -70,45 +73,29 @@ mod tests {
     use super::*;
     #[test]
     fn preallocated_payload_matches_anchor_event_bytes() {
-        let event = crate::events::GroupResolutionProgressV2 {
-            group: Pubkey::new_unique(),
+        use crate::events::{AccountResolutionApplied, MarginAccountSnapshot};
+        let event = AccountResolutionApplied {
+            venue: Pubkey::new_unique(),
             sequence: 9,
             slot: 17,
-            kind: 1,
-            mode: 3,
-            paused: true,
-            terms_epoch: 2,
-            config_epoch: 2,
-            markets: [
-                crate::events::GroupMarketSnapshotV2::from(
-                    &crate::state::v2::GroupMarketV2::default(),
-                ),
-                crate::events::GroupMarketSnapshotV2::from(
-                    &crate::state::v2::GroupMarketV2::default(),
-                ),
-            ],
-            header: crate::state::v2::GroupResolutionHeaderV2::default(),
-            rows: (0..4)
-                .map(|id| crate::events::GroupResolutionUpdateV2 {
-                    id,
-                    row: crate::state::v2::GroupResolutionRowV2::default(),
-                })
-                .collect(),
-            roots: (0..4)
-                .map(|_| {
-                    crate::events::MarginAccountSnapshotV2::from(
-                        &crate::state::v2::MarginAccountV2::default(),
-                    )
-                })
-                .collect(),
-            total_cash: 10,
-            settlement: 2,
-            insurance: 3,
-            fees: 1,
-            allocated_vault: 16,
-            actual_vault: 16,
+            epoch: 3,
+            id: 1,
+            member: Pubkey::new_unique(),
+            flows: [4, 5],
+            cash_before: 20,
+            cash_after: 29,
+            remaining_cash: 50,
+            applied_cash: 29,
+            remaining_lots: [-2, 3],
+            remaining_gross: [4, 6],
+            remaining_claims: [-7, 8],
+            state: MarginAccountSnapshot::from(&crate::state::accounts::MarginAccount::default()),
         };
         let expected = [anchor_lang::event::EVENT_IX_TAG_LE, event.data().as_slice()].concat();
-        assert_eq!(payload(&event, crate::events::GroupResolutionProgressV2::DISCRIMINATOR).unwrap(), expected);
+        assert!(expected.len() > 1_000);
+        assert_eq!(
+            payload(&event, AccountResolutionApplied::DISCRIMINATOR).unwrap(),
+            expected
+        );
     }
 }

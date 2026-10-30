@@ -9,7 +9,6 @@ const action=(discriminator:ReadonlyUint8Array,parse:Parser,decoder:Decoder<unkn
   ({discriminator,parse,decoder,wallet,root});
 const actions=[
   action(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR,sdk.parseExecuteLiquidityRouteInstruction,sdk.getExecuteLiquidityRouteInstructionDataDecoder(),'actor','trader'),
-  action(sdk.EXECUTE_ACCOUNT_ROUTE_DISCRIMINATOR,sdk.parseExecuteAccountRouteInstruction,sdk.getExecuteAccountRouteInstructionDataDecoder(),'actor','trader'),
   action(sdk.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,sdk.parseWithdrawFundedAccountInstruction,sdk.getWithdrawFundedAccountInstructionDataDecoder(),'owner','margin'),
   action(sdk.TRANSFER_FUNDED_ACCOUNT_DISCRIMINATOR,sdk.parseTransferFundedAccountInstruction,sdk.getTransferFundedAccountInstructionDataDecoder(),'owner','donor'),
   action(sdk.MANAGE_ACCOUNT_ORDER_DISCRIMINATOR,sdk.parseManageAccountOrderInstruction,sdk.getManageAccountOrderInstructionDataDecoder(),'actor','margin'),
@@ -24,8 +23,9 @@ const actions=[
 
 /** Opaque signed wallet bytes, one qualified financial action, explicit zero
  * priority fee. Generated schema parsers bind account roles; no V2 index reuse. */
-export function accountUserAuthority(wire:string,venue:string,profile:3|4=3):AccountAuthority|null {
-  const {tx,keys}=signedWire(wire,profile===4?1:0);if(tx.signatures.length!==1)throw new Error('Expected one account wallet signer');
+export function accountUserAuthority(wire:string,venue:string,profile:4=4):AccountAuthority|null {
+  if(profile!==4)throw new Error('Unsupported account service profile');
+  const {tx,keys}=signedWire(wire,1);if(tx.signatures.length!==1)throw new Error('Expected one account wallet signer');
   let economic:ParsedInput|undefined,limit:Buffer|undefined,price=false,loaded=false;
   const canonicalLimit=Buffer.alloc(5);canonicalLimit[0]=2;canonicalLimit.writeUInt32LE(800_000,1);
   const loadedLimit=Buffer.alloc(5);loadedLimit[0]=4;loadedLimit.writeUInt32LE(8*1024*1024,1);
@@ -34,9 +34,9 @@ export function accountUserAuthority(wire:string,venue:string,profile:3|4=3):Acc
     if(keys[instruction.programIdIndex]==='ComputeBudget111111111111111111111111111111') {
       if(tx.message.version===1||economic||instruction.accountKeyIndexes.length)throw new Error('Misplaced account compute budget');
       if(data.equals(Buffer.from(sdk.zeroPriorityFee().data!))) {if(price)throw new Error('Duplicate account priority price');price=true;}
-      else if(profile===4&&data.equals(loadedLimit)){if(loaded)throw new Error('Duplicate loaded account budget');loaded=true;}
+      else if(data.equals(loadedLimit)){if(loaded)throw new Error('Duplicate loaded account budget');loaded=true;}
       else {
-        const allowed=profile===4?[Buffer.from(sdk.routeComputeBudget().data!),canonicalLimit]:[sdk.routeComputeBudget(),sdk.groupRouteComputeBudget()].map(budget=>Buffer.from(budget.data!));
+        const allowed=[Buffer.from(sdk.routeComputeBudget().data!),canonicalLimit];
         if(limit||!allowed.some(budget=>data.equals(budget)))throw new Error('Unsupported account compute budget');
         limit=data;
       }
@@ -49,12 +49,12 @@ export function accountUserAuthority(wire:string,venue:string,profile:3|4=3):Acc
       })};
     }
   }
-  if(!economic||tx.message.version===0&&(!limit||!price||profile===4&&!loaded))throw new Error('Missing explicit account action/budget/zero price');
+  if(!economic||tx.message.version===0&&(!limit||!price||!loaded))throw new Error('Missing explicit account action/budget/zero price');
   const entry=actions.find(entry=>sdk.hex(entry.discriminator)===sdk.hex(economic!.data.slice(0,8)));
   if(!entry)throw new Error('Unsupported account wallet action');
   const canonicalRoute=sdk.hex(entry.discriminator)===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
-  if(entry.root==='trader'&&(profile===4)!==canonicalRoute)throw new Error('Foreign account route profile');
-  const units=entry.root==='trader'?(profile===4?800_000:600_000):400_000;
+  if(entry.root==='trader'&&!canonicalRoute)throw new Error('Foreign account route profile');
+  const units=entry.root==='trader'?800_000:400_000;
   if(tx.message.version===1) {
     const config=tx.message.transactionConfig;
     if(!config||Object.keys(config).some(key=>!['computeUnitLimit','loadedAccountsDataSizeLimit','priorityFeeLamports'].includes(key))

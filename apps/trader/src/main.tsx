@@ -1,17 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConnectionProvider, WalletProvider, WalletModalProvider } from '@solana/wallet-adapter';
-import { userConfig, groupUserConfig, accountUserConfig, liquidityUserConfig, type UserConfig } from '@rivalt/sdk';
+import { accountUserConfig } from '@rivalt/sdk';
 import '@solana/wallet-adapter/styles.css';
 import './styles.css';
-import { App } from './App.js';
-import { GroupApp } from './group/GroupApp.js';
 import { AccountApp } from './account/AccountApp.js';
 import type { AccountTraderConfig } from './account/types.js';
-import type { GroupTraderConfig } from './group/types.js';
-export type TraderConfig = UserConfig & { apiBase: string; readBase: string };
 function Root() {
-  const [config, setConfig] = useState<TraderConfig | GroupTraderConfig | AccountTraderConfig>(),
+  const [config, setConfig] = useState<AccountTraderConfig>(),
     [error, setError] = useState(''),
     [attempt, setAttempt] = useState(0);
   useEffect(() => {
@@ -21,11 +17,10 @@ function Root() {
       .then(async (r) => {
         if (!r.ok) throw new Error('The local venue configuration is unavailable.');
         const raw = await r.json(),
-          validated = raw.version === 4 ? liquidityUserConfig(raw) : raw.version === 3 ? accountUserConfig(raw) : raw.version === 2 ? groupUserConfig(raw) : userConfig(raw);
+          validated = accountUserConfig(raw);
         if (raw.apiBase !== '/api' || raw.readBase !== '/read')
           throw new Error('Unsupported service configuration.');
         if (raw.demo === true) {
-          if (validated.version !== 3&&validated.version!==4) throw new Error('Demo requires the current account profile.');
           const {installDemoWallet} = await import('./account/demo-wallet.js');
           await installDemoWallet(validated);
         }
@@ -69,7 +64,7 @@ function Root() {
     >
       <WalletProvider chain={config.chain} autoConnect>
         <WalletModalProvider>
-          {config.version === 3||config.version===4 ? <AccountApp config={config} /> : config.version === 2 ? <GroupApp config={config} /> : <App config={config} />}
+          <AccountApp config={config} />
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

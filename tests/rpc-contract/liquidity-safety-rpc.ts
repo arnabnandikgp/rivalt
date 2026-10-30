@@ -46,7 +46,7 @@ try {
   const withdraw = async (margin: Address, amount: bigint, signer = owner, token = setup.traderToken.address) =>
     sdk.getWithdrawFundedAccountInstruction({ ...common, owner: signer, margin, quoteMint: setup.mint.address,
       userToken: token, guard: await guard(margin), amount });
-  const manage = async (margin: Address, operation: sdk.GroupOrderActionArgs) => sdk.getManageAccountOrderInstruction({
+  const manage = async (margin: Address, operation: sdk.OrderActionArgs) => sdk.getManageAccountOrderInstruction({
     ...common, actor: owner, margin, guard: await guard(margin), marketIndex: 0, operation });
   const sendRoute = async (label: string, marketIndex: 0 | 1, trader: Address, side: 0 | 1, lots: bigint,
     options: { stored?: { id: bigint; version: bigint; filled: bigint }; reduceOnly?: boolean; generation?: bigint; pair?: boolean } = {}) => {

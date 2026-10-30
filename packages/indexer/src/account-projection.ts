@@ -1,5 +1,5 @@
 import * as sdk from '@rivalt/sdk';
-import type {Canonical} from './group-projection.js';
+import type {Canonical} from './canonical.js';
 import {json} from './events.js';
 import type {AccountEvent} from './account-events.js';
 import {projectLiquidity, type LiquidityState} from './liquidity-projection.js';
@@ -21,13 +21,13 @@ export type AccountState = {
   sequence:string; venue:Fields<sdk.Venue>|null; custody:Fields<sdk.Custody>|null; safety:Fields<sdk.VenueSafety>|null;
   membershipVersion:string|null; members:string[]; portfolios:Record<string,Fields<sdk.Portfolio>>;
   roots:Record<string,AccountRoot>; markets:Record<string,AccountMarket>;
-  ledgers:Record<string,Fields<sdk.MarketLedger>>; makers:Record<string,Fields<sdk.FixedMakerRegistration>>;
+  ledgers:Record<string,Fields<sdk.MarketLedger>>;
   backing:Record<string,Fields<sdk.SettlementCertificate>>;
   retirement:Fields<sdk.RetirementCertificate>|null; resolution:AccountResolution|null;
   liquidity?:LiquidityState;
 };
 export const emptyAccounts = ():AccountState => ({sequence:'0',venue:null,custody:null,safety:null,membershipVersion:null,
-  members:[],portfolios:{},roots:{},markets:{},ledgers:{},makers:{},backing:{},retirement:null,resolution:null});
+  members:[],portfolios:{},roots:{},markets:{},ledgers:{},backing:{},retirement:null,resolution:null});
 export const accountFields = <T>(value:T):Fields<T> => {
   const {discriminator,bump,vaultBump,...fields}=JSON.parse(json(value)); return fields;
 };
@@ -48,9 +48,8 @@ const abs=(value:bigint)=>value<0n?-value:value;
 
 /** Only event fields are authoritative here. Canonical PDAs and complete decoded
  * financial accounts are checked separately against finalized RPC bytes. */
-export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:3|4=3) {
-  accountCheck((profile===4)===!!state.liquidity,'explicit projection profile');
-  accountCheck(profile!==4||!['AccountMakerChangedV3','AccountRouteExecutedV3'].includes(event.type),'foreign maker profile');
+export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:4=4) {
+  accountCheck(profile===4&&!!state.liquidity,'explicit projection profile');
   const change=structuredClone(event.data);
   accountCheck(change.venue===venue,'event venue');
   accountCheck(BigInt(change.sequence)===BigInt(state.sequence)+1n,'critical sequence gap');
@@ -76,18 +75,6 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     accountCheck([0,1].includes(value.marketIndex)&&currentVenue().markets[value.marketIndex]===value.market,'ledger market');
     const {ledger:key,...fields}=value;
     state.ledgers[key]={schemaVersion:3,venue,...fields};
-  };
-  const maker=(value:any,key?:string)=>{
-    const capital=present(state.roots[value.capital],'maker capital');
-    accountCheck(value.schemaVersion===3&&value.venue===venue&&[0,1].includes(value.makerId)
-      &&value.market===currentVenue().markets[value.marketIndex],'maker identity');
-    accountCheck(capital.role===1&&capital.mode===1&&capital.isolatedMarketIndex===value.marketIndex&&capital.owner===value.owner,'isolated maker capital');
-    const canonical=key??Object.keys(state.makers).find(key=>state.makers[key].capital===value.capital);
-    accountCheck(canonical,'maker key');
-    const previous=state.makers[canonical];
-    const immutable=['venue','market','marketIndex','makerId','capital','owner','pricingProgram','programData','config'];
-    if(previous)equal(pick(previous,immutable),pick(value,immutable),'immutable maker');
-    state.makers[canonical]=accountFields<sdk.FixedMakerRegistration>(value);
   };
   switch(event.type) {
     case 'AccountCustodyChangedV3': {
@@ -136,23 +123,10 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       change.ledgers.forEach(ledger);
       break;
     }
-    case 'AccountMakerChangedV3':
-      accountCheck([0,1,2,3].includes(change.operation),'maker operation');
-      accountCheck((change.operation===0)===!state.makers[change.registration],'maker history');
-      maker(change.state,change.registration);market(change.marketState,change.market);break;
     case 'AccountOracleChangedV3':market(change.state,change.market);break;
     case 'AccountAuthorityChangedV3':root(change.state,change.margin);custody().liabilityVersions=change.liabilityVersions;break;
     case 'AccountOrderChangedV3':
       root(change.state,change.margin);change.markets.forEach((value:any)=>market(value));custody().liabilityVersions=change.liabilityVersions;break;
-    case 'AccountRouteExecutedV3':
-      accountCheck([2,3].includes(change.rootStates.length)&&[1,2].includes(change.makerStates.length)
-        &&new Set(change.rootStates.map((value:any)=>value.id)).size===change.rootStates.length,'route shape');
-      equal(BigInt(change.fee),BigInt(change.insuranceCredit)+BigInt(change.retainedFee),'fee partition');
-      accountCheck(BigInt(change.insuranceCredit)===(BigInt(change.fee)+BigInt(change.carryBefore))/4n
-        &&BigInt(change.carryAfter)===(BigInt(change.fee)+BigInt(change.carryBefore))%4n,'insurance fee carry');
-      change.rootStates.forEach((value:any)=>root(value));change.makerStates.forEach((value:any)=>maker(value));
-      market(change.marketState,change.market);market(change.otherMarketState);ledger(change.ledger);
-      custody().totalCash=change.totalCash;custody().liabilityVersions=change.liabilityVersions;break;
     case 'AccountQualificationV3':
       safety().mode=1;safety().epoch=change.safetyEpoch;change.markets.forEach((value:any)=>market(value));break;
     case 'AccountFinancialChangedV3':

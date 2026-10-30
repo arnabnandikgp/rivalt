@@ -5,7 +5,7 @@ import * as sdk from '@rivalt/sdk';
 import type { AccountTraderConfig } from './types.js';
 import { supportsAccountTransactions } from './transaction-versions.js';
 import { terminal, retain, mergeReconciled } from '../receipts.js';
-import { useReceiptRecords } from '../group/useReceiptRecords.js';
+import { useReceiptRecords } from '../shared/useReceiptRecords.js';
 
 export type Review = sdk.PreparedTransaction & {
   scope: string;
@@ -53,10 +53,10 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
   current.current.wallet = wallet;
   current.current.scope = scope;
   const [snapshot, setSnapshot] = useState<sdk.AccountSnapshot>(),
-    [tokens, setTokens] = useState<{ address: sdk.Participant['owner']; amount: bigint }[]>([]);
+    [tokens, setTokens] = useState<{ address: sdk.MarginAccount['owner']; amount: bigint }[]>([]);
   const [ownerPortfolio, setOwnerPortfolio] =
     useState<Awaited<ReturnType<sdk.AccountUserClient['ownerPortfolio']>>>();
-  const [accounts, setAccounts] = useState<[sdk.Participant['owner'], sdk.MarginAccount][]>([]);
+  const [accounts, setAccounts] = useState<[sdk.MarginAccount['owner'], sdk.MarginAccount][]>([]);
   const [rpcError, setRpcError] = useState(''),
     [apiError, setApiError] = useState(''),
     [notice, setNotice] = useState(''),
@@ -226,7 +226,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
   const preview = async (
     build: (
       s: sdk.AccountSnapshot | undefined,
-      owner: sdk.Participant['owner'],
+      owner: sdk.MarginAccount['owner'],
     ) => Promise<Omit<Review, 'scope'>>,
   ) => {
     const epoch = current.current.epoch,

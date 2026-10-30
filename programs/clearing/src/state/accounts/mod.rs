@@ -12,11 +12,11 @@ pub use layouts::*;
 pub use resolution::*;
 
 pub const SCHEMA_VERSION: u16 = 3;
-pub const PROFILE_VERSION: u16 = 3;
+pub const PROFILE_VERSION: u16 = 4;
 pub use crate::state::identity::{MARKET_COUNT, MAX_MEMBERS};
 pub const RESOLUTION_PAGE_ROWS: usize = 2;
 pub const WIDE_LIMBS: usize = 96;
-pub const TRADING_IMPLEMENTED: bool = cfg!(feature = "account-safety-qualification");
+pub const TRADING_IMPLEMENTED: bool = cfg!(feature = "liquidity-execution-qualification");
 
 pub const CUSTODY: u8 = 0;
 pub const ACTIVE: u8 = 1;

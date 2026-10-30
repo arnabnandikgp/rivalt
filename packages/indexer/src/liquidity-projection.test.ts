@@ -53,8 +53,8 @@ describe('profile-4 financial reconstruction',()=>{
     expect(()=>apply(state,change)).toThrow();
   });
   it('keeps V3 projections and V4 maker messages explicitly separated',()=>{
-    const {state,change}=trade();expect(()=>projectAccounts(state,change,venue,domain)).toThrow(/profile/);
-    change.type='AccountRouteExecutedV3';expect(()=>apply(state,change)).toThrow(/profile/);
+    const {state,change}=trade();expect(()=>projectAccounts(state,change,venue,domain,3 as 4)).toThrow(/profile/);
+    change.type='AccountRouteExecutedV3' as unknown as AccountEvent['type'];expect(()=>apply(state,change)).toThrow(/Unsupported liquidity projection event/);
   });
 });
 describe('restricted publisher reconstruction',()=>{

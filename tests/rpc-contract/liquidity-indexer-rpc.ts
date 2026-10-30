@@ -4,7 +4,7 @@ import {execFileSync} from 'node:child_process';
 import * as sdk from '@rivalt/sdk';
 import {LiquidityIndexer,type LiquidityConfig} from '../../packages/indexer/src/liquidity-indexer.js';
 import {accountApi} from '../../packages/indexer/src/account-api.js';
-import {AccountStore} from '../../packages/indexer/src/account-store.js';
+import {JournalStore} from '../../packages/indexer/src/store.js';
 import {json} from '../../packages/indexer/src/events.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
@@ -36,7 +36,7 @@ try {
     runId:'p33-indexer',venue:setup.venue,anchor:init,profile:'liquidity-execution-qualification',pageSize:37};
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   const initial=await indexer.store.snapshot();assert.equal(Object.keys(initial.state.liquidity!.makers).length,6);
-  const legacy=new AccountStore(databaseUrl,config.runId);
+  const legacy=new JournalStore(databaseUrl,config.runId,{schema:3,empty:()=>({sequence:'0'}),project:()=>{throw new Error('Wrong-schema projection must never run');}});
   try{await assert.rejects(()=>legacy.snapshot(),/Incompatible projection schema/);}finally{await legacy.close();}
   await indexer.close();indexer=undefined;
   await setup.qualify();await h.send('P33 route fill while indexer stopped',[await trade()],[owner]);

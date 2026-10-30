@@ -192,13 +192,13 @@ mod event_tests {
             cash: 17,
             nonce: 9,
             positions: [
-                crate::state::v2::Position {
+                crate::state::Position {
                     lots: -2,
                     virtual_scaled: -300_000_001,
                     funding_checkpoint_scaled: 12,
                     generation: 3,
                 },
-                crate::state::v2::Position::default(),
+                crate::state::Position::default(),
             ],
             ..Default::default()
         };

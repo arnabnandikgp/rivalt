@@ -47,12 +47,12 @@ import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
   getAccountGuardEncoder,
-  getGroupOrderActionDecoder,
-  getGroupOrderActionEncoder,
+  getOrderActionDecoder,
+  getOrderActionEncoder,
   type AccountGuard,
   type AccountGuardArgs,
-  type GroupOrderAction,
-  type GroupOrderActionArgs,
+  type OrderAction,
+  type OrderActionArgs,
 } from "../types/index.js";
 
 export const MANAGE_ACCOUNT_ORDER_DISCRIMINATOR: ReadonlyUint8Array =
@@ -112,13 +112,13 @@ export type ManageAccountOrderInstructionData = {
   discriminator: ReadonlyUint8Array;
   guard: AccountGuard;
   marketIndex: number;
-  operation: GroupOrderAction;
+  operation: OrderAction;
 };
 
 export type ManageAccountOrderInstructionDataArgs = {
   guard: AccountGuardArgs;
   marketIndex: number;
-  operation: GroupOrderActionArgs;
+  operation: OrderActionArgs;
 };
 
 export function getManageAccountOrderInstructionDataEncoder(): Encoder<ManageAccountOrderInstructionDataArgs> {
@@ -127,7 +127,7 @@ export function getManageAccountOrderInstructionDataEncoder(): Encoder<ManageAcc
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["guard", getAccountGuardEncoder()],
       ["marketIndex", getU8Encoder()],
-      ["operation", getGroupOrderActionEncoder()],
+      ["operation", getOrderActionEncoder()],
     ]),
     (value) => ({
       ...value,
@@ -141,7 +141,7 @@ export function getManageAccountOrderInstructionDataDecoder(): Decoder<ManageAcc
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["guard", getAccountGuardDecoder()],
     ["marketIndex", getU8Decoder()],
-    ["operation", getGroupOrderActionDecoder()],
+    ["operation", getOrderActionDecoder()],
   ]);
 }
 

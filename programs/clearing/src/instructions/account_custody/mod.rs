@@ -21,10 +21,9 @@ pub(crate) fn custody_profile(
     safety: &VenueSafety,
 ) -> Result<()> {
     require!(
-        cfg!(feature = "account-test-profile")
+        cfg!(feature = "liquidity-execution-qualification")
             && venue.schema_version == SCHEMA_VERSION
-            && (venue.profile_version == PROFILE_VERSION
-                || (cfg!(feature = "maker-liquidity-qualification") && venue.profile_version == 4))
+            && venue.profile_version == PROFILE_VERSION
             && venue.insurance_fee_share_bps == 2500
             && custody.schema_version == SCHEMA_VERSION
             && safety.schema_version == SCHEMA_VERSION
@@ -74,7 +73,7 @@ pub(crate) fn reconciled(
 }
 
 fn empty_financial_state(margin: &MarginAccount) -> Result<()> {
-    let mut book = Vec::with_capacity(crate::state::v2::OrderBook::INIT_SPACE);
+    let mut book = Vec::with_capacity(crate::state::OrderBook::INIT_SPACE);
     margin.book.serialize(&mut book)?;
     require!(
         margin.schema_version == SCHEMA_VERSION
@@ -103,7 +102,7 @@ fn empty_financial_state(margin: &MarginAccount) -> Result<()> {
 /// Completed resolution retains historical generations/nonces. Those are not
 /// liabilities; custody cash access still requires every live obligation absent.
 pub(crate) fn recovered_custody(safety: &VenueSafety) -> bool {
-    cfg!(feature = "account-safety-qualification")
+    cfg!(feature = "liquidity-execution-qualification")
         && safety.mode == CUSTODY
         && safety.resolution_epoch > 0
 }
@@ -206,16 +205,6 @@ fn event(
     })
 }
 
-pub fn initialize(
-    ctx: Context<InitializeVenue>,
-    domain: [u8; 32],
-    fee_authority: Pubkey,
-    reserve_authority: Pubkey,
-    reserve_destination_owner: Pubkey,
-) -> Result<()> {
-    initialize_profile(ctx, domain, fee_authority, reserve_authority, reserve_destination_owner, PROFILE_VERSION)
-}
-
 pub fn initialize_liquidity(
     ctx: Context<InitializeVenue>,
     domain: [u8; 32],
@@ -223,8 +212,18 @@ pub fn initialize_liquidity(
     reserve_authority: Pubkey,
     reserve_destination_owner: Pubkey,
 ) -> Result<()> {
-    require!(cfg!(feature = "maker-liquidity-qualification"), ClearingError::Profile);
-    initialize_profile(ctx, domain, fee_authority, reserve_authority, reserve_destination_owner, 4)
+    require!(
+        cfg!(feature = "liquidity-execution-qualification"),
+        ClearingError::Profile
+    );
+    initialize_profile(
+        ctx,
+        domain,
+        fee_authority,
+        reserve_authority,
+        reserve_destination_owner,
+        4,
+    )
 }
 
 fn initialize_profile(
@@ -236,7 +235,7 @@ fn initialize_profile(
     profile_version: u16,
 ) -> Result<()> {
     require!(
-        cfg!(feature = "account-test-profile") && ctx.remaining_accounts.is_empty(),
+        cfg!(feature = "liquidity-execution-qualification") && ctx.remaining_accounts.is_empty(),
         ClearingError::Profile
     );
     require!(domain != [0; 32], ClearingError::Domain);

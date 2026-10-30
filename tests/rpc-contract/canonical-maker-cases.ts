@@ -6,7 +6,7 @@ import { getCreateAccountInstruction, getTransferSolInstruction } from '@solana-
 import { TOKEN_PROGRAM_ADDRESS, getInitializeMint2Instruction, getInitializeAccount3Instruction, getMintToInstruction, getTokenDecoder } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import { accountPda, accountMarket } from './account-custody-cases.js';
-import { addresses, fixtureKey, payerKey, LOADER, type Harness } from './custody-cases.js';
+import { addresses, fixtureKey, payerKey, LOADER, type Harness } from './harness.js';
 
 export type CanonicalHarness = Harness & { quote(label: string, instruction: Instruction, expected: bigint): Promise<void>; elapseSeconds?(seconds: number): Promise<void> };
 const keyBytes = getAddressEncoder();

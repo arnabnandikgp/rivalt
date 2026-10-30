@@ -88,8 +88,8 @@ contract's size tests do not establish SBF stack/CU safety.
 Canonical maker registrations and funding publisher accounts use schema 4 while
 financial accounts remain schema 3. Their exact layouts are in
 [quoting](../liquidity/quoting.md) and [funding](../liquidity/funding.md).
-`FixedMakerRegistration` is the older fixed-maker format, not the current canonical
-registration. Unknown schema/profile combinations reject even if fields decode.
+The older fixed-maker registration is retired, not reinterpreted as the current
+canonical registration. Unknown schema/profile combinations reject even if fields decode.
 
 Initialization is signed by the verified clearing ProgramData upgrade authority;
 it pins separate venue, fee and reserve authorities and the immutable reserve
@@ -99,7 +99,7 @@ Surplus classification requires reserve authority and cannot exceed the unalloca
 actual vault excess; repeated classification cannot allocate it twice.
 
 The profile-4 initializer permits flat custody setup only under its explicit local
-feature. `activate_liquidity_v4` requires venue authority, unpaused Custody, complete
+feature. `activate_liquidity` requires venue authority, unpaused Custody, complete
 32-page safety storage, an idle zero-epoch resolution header, reconciled vault and
 ledgers, zero gross exposure/funding/settlement/fees/carry and both fresh Normal
 market qualifications. Only the restricted publisher can qualify this profile;
@@ -115,14 +115,16 @@ bytes, instruction metas, error numbers and signed domains must not change as an
 incidental rename. Preserve fixed 96-limb wide records as 768 serialized bytes;
 heap boxing changes placement, not wire size or ownership.
 
-The names shown here match current source. P36 will give current definitions domain
-names and explicitly retain existing discriminators and seeds. Numeric schema,
+The names shown here match current source, with explicit original discriminators
+and unchanged seeds. Numeric schema,
 API and transaction versions remain. Do not introduce permissive decoding or merge
 old accounts solely because their names collide. [Deployment rules](../operations/deployment.md)
 cover fresh artifacts, retained state and migration boundaries.
 
 The consolidation wire baseline is `tests/fixtures/wire-contract.json`, captured
-from `72187bc` before source edits. `python3 ops/wire_contract.py` pins all three
+from `72187bc` before source edits and narrowed under D81 to exact retained records
+from `b89768b`. The fixture separately lists deliberate removals; retained hashes
+are not recaptured from changed layouts. `python3 ops/wire_contract.py` pins all three
 IDLs, expanded layouts, ordered fields/variants/metas, discriminator bytes, seeds,
 errors and literal domains. Only declaration ordering, docs and source labels are
 omitted. Its hashes do not replace raw codec/PDA conformance, SBF or RPC tests.

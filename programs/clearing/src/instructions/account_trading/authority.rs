@@ -1,6 +1,6 @@
 //! Root-local authority and durable orders; history sequence is never authorization.
-use crate::engine::routes::{self as candidates, GroupOrderAction};
 use super::*;
+use crate::engine::routes::{self as candidates, OrderAction};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct AccountGuard {
@@ -65,23 +65,23 @@ pub fn manage(
     ctx: Context<ManageAccountOrder>,
     guard: AccountGuard,
     market_index: u8,
-    operation: GroupOrderAction,
+    operation: OrderAction,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
     if matches!(
         &operation,
-        GroupOrderAction::Cancel { .. } | GroupOrderAction::Cleanup
+        OrderAction::Cancel { .. } | OrderAction::Cleanup
     ) {
-        financial_base_profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
+        base_profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
         require!(accounts.safety.mode == ACTIVE, ClearingError::Profile);
     } else {
-        financial_activated(&accounts.venue, &accounts.custody, &accounts.safety)?;
+        activated(&accounts.venue, &accounts.custody, &accounts.safety)?;
     }
     guard.check(&accounts.venue, &accounts.safety, &accounts.margin)?;
     let clock = Clock::get()?;
     let root = root_view(&accounts.margin)?;
-    let delegate_epoch = if matches!(&operation, GroupOrderAction::Cleanup) {
+    let delegate_epoch = if matches!(&operation, OrderAction::Cleanup) {
         0
     } else {
         crate::engine::account::trade_authority(&root, accounts.actor.key(), clock.slot)?
@@ -89,11 +89,11 @@ pub fn manage(
     let market_views = [market_view(&accounts.btc)?, market_view(&accounts.eth)?];
     let environment = environment(&market_views, usize::from(market_index), &clock)?;
     match &operation {
-        GroupOrderAction::Place { terms, .. } | GroupOrderAction::Replace { terms, .. } => {
+        OrderAction::Place { terms, .. } | OrderAction::Replace { terms, .. } => {
             environment.admit_sources(&root, &clock, !terms.reduce_only)?
         }
-        GroupOrderAction::Protect { .. } => environment.admit_sources(&root, &clock, false)?,
-        GroupOrderAction::Cancel { .. } | GroupOrderAction::Cleanup => {}
+        OrderAction::Protect { .. } => environment.admit_sources(&root, &clock, false)?,
+        OrderAction::Cancel { .. } | OrderAction::Cleanup => {}
     }
     let next = candidates::manage_candidate(&root, &environment, operation, delegate_epoch)?;
     let previous = accounts.margin.positions;
@@ -131,9 +131,9 @@ pub fn delegate(
     let accounts = &mut *ctx.accounts;
     // Revocation needs no source or maker, and remains available while paused.
     require!(
-        cfg!(feature = "account-trading-qualification")
+        cfg!(feature = "liquidity-execution-qualification")
             && accounts.venue.schema_version == SCHEMA_VERSION
-            && financial_profile_version(&accounts.venue)
+            && supported_profile(&accounts.venue)
             && accounts.custody.schema_version == SCHEMA_VERSION
             && accounts.safety.schema_version == SCHEMA_VERSION
             && matches!(accounts.safety.mode, CUSTODY | ACTIVE),

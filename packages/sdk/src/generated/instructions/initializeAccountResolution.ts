@@ -42,7 +42,7 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
-  findInitializeAccountResolutionResolutionPda,
+  findResolutionPda,
   findVenueSafetyPda,
   findWorkPda,
 } from "../pdas/index.js";
@@ -266,16 +266,15 @@ export async function getInitializeAccountResolutionInstructionAsync<
     );
   }
   if (!accounts.resolution.value) {
-    accounts.resolution.value =
-      await findInitializeAccountResolutionResolutionPda(
-        {
-          venue: getAddressFromResolvedInstructionAccount(
-            "venue",
-            accounts.venue.value,
-          ),
-        },
-        { programAddress },
-      );
+    accounts.resolution.value = await findResolutionPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
   }
   if (!accounts.work.value) {
     accounts.work.value = await findWorkPda(

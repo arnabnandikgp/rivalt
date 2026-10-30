@@ -1,6 +1,6 @@
 import { createNoopSigner, getProgramDerivedAddress, type Address } from '@solana/kit';
-import type { MarginRouteIntent } from './margin-allocation.js';
-import type { readLiquidityTradeSnapshot } from './account-snapshot.js';
+import type { MarginRouteIntent } from './route-intent.js';
+import type { readAccountTradeSnapshot } from './account-snapshot.js';
 import { accountSourceMode,effectiveAccountFunding } from './account-balance.js';
 import { allocateLiquidityRoute } from './liquidity-allocation.js';
 import { requireValue } from './wallet-client.js';
@@ -8,7 +8,7 @@ import * as protocol from './generated/index.js';
 import { accountGuard } from './account-snapshot.js';
 
 export type LiquidityRouteInput = MarginRouteIntent & {
-  snapshot: Awaited<ReturnType<typeof readLiquidityTradeSnapshot>>; trader: Address;
+  snapshot: Awaited<ReturnType<typeof readAccountTradeSnapshot>>; trader: Address;
 };
 
 /** Exact preview is available before activation; no transaction authority is implied. */

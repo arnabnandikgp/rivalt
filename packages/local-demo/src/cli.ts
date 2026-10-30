@@ -62,7 +62,7 @@ else if(action==='start'||action==='reset'){
   execFileSync('python3',['ops/check-ports.py',...PORTS.map(String)],{stdio:'inherit'});
   assert(execFileSync('surfpool',['--version'],{encoding:'utf8'}).trim()==='surfpool 1.6.1','Pinned Surfpool required');
   execFileSync('container',['system','start'],{stdio:'inherit'});
-  for(const program of ['clearing','maker_a','maker_b','oracle_fixture'])assert(existsSync(`.local/account-safety/${program}.so`),'Build qualified artifacts with bash ops/build-account-safety.sh');
+  for(const program of ['clearing','maker_a','maker_b','oracle_fixture'])assert(existsSync(`.local/liquidity-execution/${program}.so`),'Build qualified artifacts with bash ops/build-liquidity-execution.sh');
   mkdirSync(DEMO_ROOT,{recursive:true,mode:0o700});
   const log=openSync(DEMO_ROOT+'/supervisor.log','w',0o600);
   const child=spawn(process.execPath,['--import','tsx','packages/local-demo/src/session.ts'],{cwd:process.cwd(),env:process.env,detached:true,stdio:['ignore',log,log]});

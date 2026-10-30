@@ -15,7 +15,6 @@ const decoders = [
   ['AccountCustodyChangedV3', sdk.ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR, sdk.getAccountCustodyChangedEventDecoder()],
   ['AccountFinancialChangedV3', sdk.ACCOUNT_FINANCIAL_CHANGED_EVENT_DISCRIMINATOR, sdk.getAccountFinancialChangedEventDecoder()],
   ['AccountLiquidatedV3', sdk.ACCOUNT_LIQUIDATED_EVENT_DISCRIMINATOR, sdk.getAccountLiquidatedEventDecoder()],
-  ['AccountMakerChangedV3', sdk.ACCOUNT_MAKER_CHANGED_EVENT_DISCRIMINATOR, sdk.getAccountMakerChangedEventDecoder()],
   ['AccountOracleChangedV3', sdk.ACCOUNT_ORACLE_CHANGED_EVENT_DISCRIMINATOR, sdk.getAccountOracleChangedEventDecoder()],
   ['AccountOrderChangedV3', sdk.ACCOUNT_ORDER_CHANGED_EVENT_DISCRIMINATOR, sdk.getAccountOrderChangedEventDecoder()],
   ['AccountQualificationV3', sdk.ACCOUNT_QUALIFICATION_EVENT_DISCRIMINATOR, sdk.getAccountQualificationEventDecoder()],
@@ -30,7 +29,6 @@ const decoders = [
   ['AccountResolutionRoundedV3', sdk.ACCOUNT_RESOLUTION_ROUNDED_EVENT_DISCRIMINATOR, sdk.getAccountResolutionRoundedEventDecoder()],
   ['AccountResolutionValuedV3', sdk.ACCOUNT_RESOLUTION_VALUED_EVENT_DISCRIMINATOR, sdk.getAccountResolutionValuedEventDecoder()],
   ['AccountRetirementProgressV3', sdk.ACCOUNT_RETIREMENT_PROGRESS_EVENT_DISCRIMINATOR, sdk.getAccountRetirementProgressEventDecoder()],
-  ['AccountRouteExecutedV3', sdk.ACCOUNT_ROUTE_EXECUTED_EVENT_DISCRIMINATOR, sdk.getAccountRouteExecutedEventDecoder()],
   ['AccountSafetyRecoveryV3', sdk.ACCOUNT_SAFETY_RECOVERY_EVENT_DISCRIMINATOR, sdk.getAccountSafetyRecoveryEventDecoder()],
   ['AccountsRetiredV3', sdk.ACCOUNTS_RETIRED_EVENT_DISCRIMINATOR, sdk.getAccountsRetiredEventDecoder()],
   ['RetiredReserveWithdrawnV3', sdk.RETIRED_RESERVE_WITHDRAWN_EVENT_DISCRIMINATOR, sdk.getRetiredReserveWithdrawnEventDecoder()],
@@ -39,13 +37,12 @@ export type AccountEvent = JournalEvent & {type: typeof decoders[number][0]};
 
 /** Shared financial schemas do not imply interchangeable deployment profiles. */
 export function decodeAccounts(signature: string, transaction: any, authority: string,
-  venue: string, program: string = PROGRAM, profile: 3 | 4 = 3): AccountEvent[] {
+  venue: string, program: string = PROGRAM, profile: 4 = 4): AccountEvent[] {
+  if (profile !== 4) throw new Error('Unsupported account event profile');
   return eventPayloads(signature, transaction, authority, program).flatMap(({outer, inner, payload}) => {
     const entry = decoders.find(([, discriminator]) => payload.subarray(0,8).equals(Buffer.from(discriminator)));
     if (!entry) throw new Error('Unknown critical account event schema');
     const [type, , decoder] = entry;
-    if (type.endsWith('V4') && profile !== 4 || profile === 4 &&
-      ['AccountMakerChangedV3', 'AccountRouteExecutedV3'].includes(type)) throw new Error('Foreign account event profile');
     const [value, end] = decoder.read(payload, 0);
     if (end !== payload.length) throw new Error('Trailing account event bytes');
     const data = JSON.parse(json(value));

@@ -35,6 +35,25 @@ try {
     assert(built, 'financially executable canonical allocation');
     return built;
   };
+  // Profile retirement must preserve active-mode emergency control. The previous
+  // base-profile helper accepted only profile 3, stranding profile-4 pause calls.
+  const pause=(paused:boolean,authority=setup.payer)=>sdk.getPauseVenueInstruction({...setup.common,authority,paused});
+  const beforePause=await bytes();
+  await h.send('active pause rejects foreign authority',[pause(true,owner)],[owner],sdk.CLEARING_ERROR__AUTHORITY);
+  assert.deepEqual(await bytes(),beforePause);
+  const heldRoute=await build(0,1n);
+  const safetyBefore=sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
+  await h.send('authority pauses active canonical venue',[pause(true)]);
+  const paused=sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
+  assert.equal(paused.paused,true);assert.equal(paused.epoch,safetyBefore.epoch+1n);
+  const pausedIntent=sdk.getExecuteLiquidityRouteInstructionDataDecoder().decode(heldRoute.instructions[0].data!);
+  const whilePaused={...heldRoute.instructions[0],data:sdk.getExecuteLiquidityRouteInstructionDataEncoder().encode({
+    ...pausedIntent,guard:{...pausedIntent.guard,safetyEpoch:paused.epoch}})};
+  await rejected('paused venue rejects current guard',whilePaused,sdk.CLEARING_ERROR__PAUSED);
+  await h.send('authority unpauses active canonical venue',[pause(false)]);
+  const resumed=sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
+  assert.equal(resumed.paused,false);assert.equal(resumed.epoch,paused.epoch+1n);
+  await rejected('pause epoch invalidates old signed route',heldRoute.instructions[0],sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);
   await setup.fresh();
   const singleton = await build(0, 1n);
   assert.equal(singleton.allocation.grossQuote, 60_003n);

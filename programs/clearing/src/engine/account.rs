@@ -1,7 +1,7 @@
 //! Scalar account validation and root-scoped trading authority.
 use super::*;
 
-pub(crate) fn model(root: &MarginAccountV2) -> Result<math::margin::Margin> {
+pub(crate) fn model(root: &MarginAccount) -> Result<math::margin::Margin> {
     require!(
         root.schema_version == SCHEMA_VERSION
             && valid_identity(
@@ -37,7 +37,7 @@ pub(crate) fn model(root: &MarginAccountV2) -> Result<math::margin::Margin> {
 }
 
 pub(crate) fn commit_model(
-    root: &mut MarginAccountV2,
+    root: &mut MarginAccount,
     candidate: math::margin::Margin,
 ) -> Result<()> {
     let previous = model(root)?;
@@ -59,7 +59,7 @@ pub(crate) fn commit_model(
 
 /// Zero identifies owner-created durable authority. The live delegate grant is
 /// scoped to this root and expires exclusively at its stored slot.
-pub(crate) fn trade_authority(root: &MarginAccountV2, actor: Pubkey, slot: u64) -> Result<u64> {
+pub(crate) fn trade_authority(root: &MarginAccount, actor: Pubkey, slot: u64) -> Result<u64> {
     model(root)?;
     if actor == root.owner {
         return Ok(0);
@@ -71,7 +71,7 @@ pub(crate) fn trade_authority(root: &MarginAccountV2, actor: Pubkey, slot: u64) 
     Ok(root.delegate_epoch)
 }
 
-pub(crate) fn live_order_authority(root: &MarginAccountV2, epoch: u64, slot: u64) -> bool {
+pub(crate) fn live_order_authority(root: &MarginAccount, epoch: u64, slot: u64) -> bool {
     epoch == 0
         || (epoch == root.delegate_epoch
             && root.delegate != Pubkey::default()

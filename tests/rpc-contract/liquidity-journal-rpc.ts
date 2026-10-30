@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import * as sdk from '@rivalt/sdk';
-import { AccountStore } from '../../packages/indexer/src/account-store.js';
+import {JournalStore} from '../../packages/indexer/src/store.js';
 import { json } from '../../packages/indexer/src/events.js';
 import { openCanonicalRpcHarness } from './canonical-rpc-harness.js';
 import { liquidityExecutionSetup } from './liquidity-execution-setup.js';
@@ -33,7 +33,7 @@ try {
   assert.equal((await store.pool.query('SELECT count(*) FROM transactions WHERE run_id=$1', [store.runId])).rows[0].count, '0', 'SQL batch rolled back');
   await store.commit(initial.transactions, initial.events, initial.head, null);
   assert.equal((await store.snapshot()).state.digest, initial.digest);
-  const legacy = new AccountStore(databaseUrl, store.runId);
+  const legacy = new JournalStore(databaseUrl,store.runId,{schema:3,empty:()=>({sequence:'0'}),project:()=>{throw new Error('Wrong-schema projection must never run');}});
   try { await assert.rejects(() => legacy.snapshot(), /Incompatible projection schema/); } finally { await legacy.close(); }
   // Close the actual SQL lease/pool. The next fill must be recovered from RPC,
   // even though the prototype journal was not present to observe its WS hint.

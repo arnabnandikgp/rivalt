@@ -1,7 +1,7 @@
 //! Native parity driver. Calls the actual canonical implementation; expectations
 //! are produced independently by tests/financial/check_maker_curve_parity.py.
 use anchor_lang::AnchorDeserialize;
-use maker_interface::canonical::{quote_amount, QuoteLadder, LiquidityShape};
+use maker_interface::canonical::{quote_amount, LiquidityShape, QuoteLadder};
 use std::io::{self, BufRead};
 
 fn decode_hex(input: &str) -> Result<Vec<u8>, String> {

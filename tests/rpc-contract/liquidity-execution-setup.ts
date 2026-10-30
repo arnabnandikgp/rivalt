@@ -8,14 +8,14 @@ import { getCreateAccountInstruction, getTransferSolInstruction } from '@solana-
 import { TOKEN_PROGRAM_ADDRESS, getInitializeAccount3Instruction, getMintToInstruction } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import { provisionCanonicalMakers, goldenShape, type CanonicalHarness } from './canonical-maker-cases.js';
-import { fixtureKey } from './custody-cases.js';
+import { fixtureKey } from './harness.js';
 import { ORACLE_FIXTURE } from './oracle-fixture.js';
 import type { WireRpc } from './wire.js';
 
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
-export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
-  options: { shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint } = {}) {
+export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
+  options: { shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; verifyRejections?: boolean } = {}) {
   const region = (offset: bigint) => [{ endLots: 4096n, offset, slope: 0n },
     ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
   const shape = { ...goldenShape, skewTick: 0n, longCap: 4096n, shortCap: 4096n,
@@ -126,12 +126,12 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
   }
   const qualify = async () => { for (let round = 0; round < 4; round++) await sample(); };
   await qualify();
-  await h.send('legacy activation rejects canonical profile', [sdk.getActivateAccountsInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__PROFILE);
+  if(options.verifyRejections!==false)await h.send('retired activation discriminator rejects', [{programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data:discriminator('activate_accounts_v3')}], [], 101);
   await h.send('activate storage-ready canonical candidate', [sdk.getActivateLiquidityInstruction(safetyCommon)]);
-  await h.send('canonical activation cannot replay', [sdk.getActivateLiquidityInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__PROFILE);
+  if(options.verifyRejections!==false)await h.send('canonical activation cannot replay', [sdk.getActivateLiquidityInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__PROFILE);
   await qualify();
   const identity = { venue, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
-  const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readLiquidityTradeSnapshot(rpc, identity, root, marketIndex);
+  const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readAccountTradeSnapshot(rpc, identity, root, marketIndex);
   return { ...fixture, primary, guard, traderOwner, traderToken, roots, feeds, configurations, resolution, work, pages,
     safetyCommon, sourcePrices, now, slot, waitUntil, marketState, fresh, freshSources, sample, qualify, identity, snapshot };
 }

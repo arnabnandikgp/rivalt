@@ -88,28 +88,6 @@ impl From<&FundingPublisher> for FundingPublisherPayload {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, Default)]
-pub struct SampleInput {
-    pub registration: Pubkey,
-    pub capital: Pubkey,
-    pub authority_epoch: u64,
-    pub control_epoch: u64,
-    pub shape_epoch: u64,
-    pub depth_epoch: u64,
-    pub price_sequence: u64,
-    pub buy_consumed: u64,
-    pub sell_consumed: u64,
-    pub expiry_slot: u64,
-    pub expiry_time: i64,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, Default)]
-pub struct SampleLeg {
-    pub instance: u8,
-    pub lots: u64,
-    pub gross: u64,
-}
-
 #[account(discriminator = [133, 250, 116, 223, 223, 193, 72, 233])]
 #[derive(InitSpace)]
 pub struct LiquidityRegistry {

@@ -19,7 +19,7 @@ test('account safety preserves isolated Anchor bytes and every stage/optional pr
   const cases:{program:string;name:string;args:unknown[];instruction:Instruction}[]=[];
   const add=(name:string,args:unknown[],instruction:Instruction)=>cases.push({program:'clearing',name,args,instruction});
   add('initialize_account_resolution',[],sdk.getInitializeAccountResolutionInstruction(common));
-  add('activate_accounts',[],sdk.getActivateAccountsInstruction(common));
+  add('activate_liquidity',[],sdk.getActivateLiquidityInstruction(common));
   add('initialize_account_resolution_page',[31],sdk.getInitializeAccountResolutionPageInstruction({...common,pageIndex:31}));
   for(const emergency of [false,true])add('freeze_accounts',[large,large+1n,emergency],
     sdk.getFreezeAccountsInstruction({...common,safetyEpoch:large,resolutionEpoch:large+1n,emergency}));
@@ -76,7 +76,7 @@ test('account safety preserves isolated Anchor bytes and every stage/optional pr
       return {program:entry.program,name:entry.name.replace(/_([a-z])/g,(_,letter)=>letter.toUpperCase()),args:entry.args.map(tagged),accounts:resolved};
     });
     const file=join(directory,'input.json');writeFileSync(file,JSON.stringify(input));
-    const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/group-trading.cjs',file],{encoding:'utf8'}));
+    const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/wire.cjs',file],{encoding:'utf8'}));
     assert.equal(legacy.length,cases.length);
     for(const [index,result] of legacy.entries()){
       assert.equal(result.data,Buffer.from(cases[index].instruction.data!).toString('hex'),cases[index].name);

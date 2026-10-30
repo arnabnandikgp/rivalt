@@ -40,9 +40,9 @@ const PAGE_COUNT: u16 = (MAX_MEMBERS / RESOLUTION_PAGE_ROWS) as u16;
 
 fn profile(identity: &ResolutionIdentity) -> Result<()> {
     require!(
-        cfg!(feature = "account-safety-qualification")
+        cfg!(feature = "liquidity-execution-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
-            && account_trading::financial_profile_version(&identity.venue)
+            && account_trading::supported_profile(&identity.venue)
             && identity.venue.market_count == 2
             && identity.venue.insurance_fee_share_bps == 2500
             && identity.custody.schema_version == SCHEMA_VERSION
@@ -142,10 +142,10 @@ fn frozen(
 
 pub fn initialize(ctx: Context<InitializeAccountResolution>) -> Result<()> {
     require!(
-        ctx.remaining_accounts.is_empty() && cfg!(feature = "account-safety-qualification"),
+        ctx.remaining_accounts.is_empty() && cfg!(feature = "liquidity-execution-qualification"),
         ClearingError::Profile
     );
-    account_trading::financial_base_profile(
+    account_trading::base_profile(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,
@@ -168,10 +168,10 @@ pub fn initialize_page(
     page_index: u16,
 ) -> Result<()> {
     require!(
-        ctx.remaining_accounts.is_empty() && cfg!(feature = "account-safety-qualification"),
+        ctx.remaining_accounts.is_empty() && cfg!(feature = "liquidity-execution-qualification"),
         ClearingError::Profile
     );
-    account_trading::financial_base_profile(
+    account_trading::base_profile(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,

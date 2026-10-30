@@ -9,8 +9,9 @@ manifest. Public configuration cannot replace the SDK's executable allowlist.
 Qualify fresh build hashes before promoting them; preserve previous deployment
 manifests and unresolved original transactions.
 
-Earlier default, custody-only, successor, account-trading/cash/safety and devnet
-profiles still exist as separate source/test consumers. Never combine local and
+Earlier custody-only, successor, account-trading/cash/safety and devnet
+profiles use their original clients at the historical baseline, not this active
+source tree. Never combine local and
 devnet features. The latest profile cannot be enabled on devnet by pointing a local
 launcher at a different URL. Previously tested Pyth sponsored Core accounts and
 Phantom registration belong to the older devnet implementation, not current parity.
@@ -28,7 +29,7 @@ by relabeling database rows. Keep any needed compatibility reader explicitly sco
 Create a private JSON file (`chmod 600`) containing `schemaVersion: 4`,
 `operatorClass: "internal-reference"`, `deployment`, `runId`, `databaseEnv`,
 `signerPath`, `signer`, `role`, `marketIndex` and, for a maker, `instance`.
-`deployment` is the public `LiquidityUserConfig`: version 4, local chain/profile,
+`deployment` is the public `AccountUserConfig`: version 4, local chain/profile,
 RPC/WS URLs, genesis, actual initialization signature/hash, venue, mint and domain.
 Copy it from the deployment operator's explicit configuration, never infer these
 identities from whichever process happens to occupy an RPC port. `databaseEnv`
@@ -45,7 +46,7 @@ venue and database binding before starting. A PostgreSQL advisory lease admits o
 process for a market/instance role. The executor runs separately using
 `packages/services/src/account-executor-main.ts`, the same database/run ID/RPC and
 `RIVALT_ACCOUNT_PROFILE=liquidity-execution-qualification`. The finalized indexer
-uses `packages/indexer/src/account-main.ts` with the explicit profile, venue and
+uses `packages/indexer/src/main.ts` with the explicit profile, venue and
 initialization signature. `RIVALT_ACCOUNT_ROLE=funding` is a separate restricted
 publisher role, with no maker instance. Do not use an owner/custody key as its signer.
 
@@ -81,7 +82,7 @@ cap and spent amount; it cannot reset its allowance or release pending reservati
 It verifies the current on-chain publisher/updater authority and refuses unresolved
 originals. Revocation alone never transfers a fee budget to an arbitrary key.
 
-`readLiquidityTradeSnapshot` and `buildLiquidityRoute` expose authenticated books
+`readAccountTradeSnapshot` and `buildLiquidityRoute` expose authenticated books
 and current whole-account trade admission. `readFundingReport` calculates published
 funding depth without hypothetical maker margin checks. These are intentionally
 different promises. `/v4/operators` reports daemon state; heartbeat loss alone does
@@ -107,7 +108,7 @@ pnpm liquidity:report /absolute/captured-input.json /absolute/new-report.json
 Normal exit: stop new aggressive exposure, use owner controls to disable quoting,
 cancel capital-account orders, close remaining positions through an admissible
 route, settle collectible losses and eligible funded gains, and use
-`LiquidityUserClient.exit` for admissible own-cash withdrawal. Disabling or revoking
+`AccountUserClient.exit` for admissible own-cash withdrawal. Disabling or revoking
 an updater does not erase inventory, claims or funding. Maker-free direct cash exits
 do not depend on either HTTP service. A disabled maker interrupts the fixed
 complete-coverage funding set: plan the test venue's controlled recovery rather

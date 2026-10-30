@@ -21,10 +21,10 @@ recovery. [Operator setup](../operations/deployment.md) gives actual entrypoints
 | Queue/executor/workers | [Services](../../packages/services/src/) |
 | Maker/publisher config and economics | [Maker kit](../../packages/maker-kit/src/) |
 | Wallet, review, positions and receipts | [Trader application](../../apps/trader/src/) |
-| Earlier one-command demo supervisor | [Local demo](../../packages/local-demo/src/) |
+| Local demo supervisor | [Local demo](../../packages/local-demo/src/) |
 
-The canonical deployment uses `/v4` interfaces and profile 4 with schema-3 financial
-accounts. The interactive demo currently uses the preceding profile; do not claim
-it exercises canonical liquidity until its launcher is migrated and tested.
-Historical interfaces remain compatibility consumers until P37's inventory retires
-them. API/schema identifiers remain meaningful even after source naming cleanup.
+The deployment uses `/v4` interfaces and profile 4 with schema-3 financial accounts.
+The SDK, services, indexer, app and demo now select this one runtime explicitly;
+unknown or historical profiles reject. API/schema and persisted journal tags retain
+their existing identities. Historical clients remain at the immutable pre-retirement
+revision; [STATUS](../STATUS.md) records fresh runtime acceptance separately.

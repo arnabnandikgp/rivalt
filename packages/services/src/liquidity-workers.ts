@@ -59,7 +59,7 @@ export async function publishLiquidityFunding(runtime:AccountRuntime,marketIndex
   return {status:'queued',reason:input.report.outcome===0?'available-published-funding-depth':`funding-unavailable-outcome-${input.report.outcome}`};
 }
 
-export async function quoteLiquidity(runtime:AccountRuntime,actor:Address,trader:Address,marketIndex:0|1,side:0|1,lots:bigint,stored?:sdk.GroupStoredFill) {
+export async function quoteLiquidity(runtime:AccountRuntime,actor:Address,trader:Address,marketIndex:0|1,side:0|1,lots:bigint,stored?:sdk.MarginStoredFill) {
   const snapshot=await runtime.snapshot([trader],marketIndex);
   const diagnostic={snapshotCommitment:snapshot.commitment,snapshotSlot:snapshot.slot.toString(),marketIndex,
     sourceModes:snapshot.marketStates.map(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)),

@@ -35,92 +35,38 @@ import {
   type SelfPlanAndSendFunctions,
 } from "@solana/kit/program-client-core";
 import {
-  getMakerAccountConfigCodec,
-  getMakerConfigCodec,
   getMakerCurveCodec,
-  getMakerGroupConfigCodec,
   getMakerPriceCodec,
-  type MakerAccountConfig,
-  type MakerAccountConfigArgs,
-  type MakerConfig,
-  type MakerConfigArgs,
   type MakerCurve,
   type MakerCurveArgs,
-  type MakerGroupConfig,
-  type MakerGroupConfigArgs,
   type MakerPrice,
   type MakerPriceArgs,
 } from "../accounts/index.js";
 import {
   getControlCurveInstructionAsync,
-  getInitializeAccountConfigInstructionAsync,
-  getInitializeConfigInstructionAsync,
   getInitializeCurveInstructionAsync,
-  getInitializeGroupConfigInstructionAsync,
-  getPublishAccountEpochInstruction,
-  getPublishEpochInstruction,
-  getPublishGroupEpochInstruction,
-  getQuoteAccountInstruction,
   getQuoteCurveInstructionAsync,
-  getQuoteGroupInstruction,
-  getQuoteInstruction,
   getRepriceInstructionAsync,
   parseControlCurveInstruction,
-  parseInitializeAccountConfigInstruction,
-  parseInitializeConfigInstruction,
   parseInitializeCurveInstruction,
-  parseInitializeGroupConfigInstruction,
-  parsePublishAccountEpochInstruction,
-  parsePublishEpochInstruction,
-  parsePublishGroupEpochInstruction,
-  parseQuoteAccountInstruction,
   parseQuoteCurveInstruction,
-  parseQuoteGroupInstruction,
-  parseQuoteInstruction,
   parseRepriceInstruction,
   type ControlCurveAsyncInput,
-  type InitializeAccountConfigAsyncInput,
-  type InitializeConfigAsyncInput,
   type InitializeCurveAsyncInput,
-  type InitializeGroupConfigAsyncInput,
   type ParsedControlCurveInstruction,
-  type ParsedInitializeAccountConfigInstruction,
-  type ParsedInitializeConfigInstruction,
   type ParsedInitializeCurveInstruction,
-  type ParsedInitializeGroupConfigInstruction,
-  type ParsedPublishAccountEpochInstruction,
-  type ParsedPublishEpochInstruction,
-  type ParsedPublishGroupEpochInstruction,
-  type ParsedQuoteAccountInstruction,
   type ParsedQuoteCurveInstruction,
-  type ParsedQuoteGroupInstruction,
-  type ParsedQuoteInstruction,
   type ParsedRepriceInstruction,
-  type PublishAccountEpochInput,
-  type PublishEpochInput,
-  type PublishGroupEpochInput,
-  type QuoteAccountInput,
   type QuoteCurveAsyncInput,
-  type QuoteGroupInput,
-  type QuoteInput,
   type RepriceAsyncInput,
 } from "../instructions/index.js";
-import {
-  findAccountConfigPda,
-  findConfigPda,
-  findCurveConfigPda,
-  findCurvePricePda,
-  findInitializeGroupConfigConfigPda,
-} from "../pdas/index.js";
+import { findCurveConfigPda, findCurvePricePda } from "../pdas/index.js";
 
 export const MAKER_B_PROGRAM_ADDRESS =
   "F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc" as Address<"F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc">;
 
 export enum MakerBAccount {
-  MakerAccountConfig,
-  MakerConfig,
   MakerCurve,
-  MakerGroupConfig,
   MakerPrice,
 }
 
@@ -132,45 +78,12 @@ export function identifyMakerBAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([132, 83, 224, 98, 186, 215, 52, 206]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBAccount.MakerAccountConfig;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([76, 171, 10, 33, 116, 211, 115, 209]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBAccount.MakerConfig;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([193, 186, 219, 30, 59, 114, 63, 19]),
       ),
       0,
     )
   ) {
     return MakerBAccount.MakerCurve;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([3, 173, 181, 180, 176, 103, 166, 58]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBAccount.MakerGroupConfig;
   }
   if (
     containsBytes(
@@ -227,17 +140,8 @@ export function identifyMakerBEvent(
 
 export enum MakerBInstruction {
   ControlCurve,
-  InitializeAccountConfig,
-  InitializeConfig,
   InitializeCurve,
-  InitializeGroupConfig,
-  PublishAccountEpoch,
-  PublishEpoch,
-  PublishGroupEpoch,
-  Quote,
-  QuoteAccount,
   QuoteCurve,
-  QuoteGroup,
   Reprice,
 }
 
@@ -260,28 +164,6 @@ export function identifyMakerBInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([7, 193, 245, 28, 113, 9, 81, 7]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBInstruction.InitializeAccountConfig;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([208, 127, 21, 1, 194, 190, 196, 70]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBInstruction.InitializeConfig;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([2, 112, 249, 167, 34, 145, 140, 171]),
       ),
       0,
@@ -293,89 +175,12 @@ export function identifyMakerBInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([218, 62, 50, 190, 163, 16, 225, 116]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBInstruction.InitializeGroupConfig;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([249, 155, 61, 145, 130, 254, 16, 47]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBInstruction.PublishAccountEpoch;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([222, 6, 136, 82, 54, 246, 245, 120]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBInstruction.PublishEpoch;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([146, 31, 217, 133, 75, 59, 115, 29]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBInstruction.PublishGroupEpoch;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([149, 42, 109, 247, 134, 146, 213, 123]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBInstruction.Quote;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([237, 171, 49, 25, 178, 26, 194, 200]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBInstruction.QuoteAccount;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([186, 69, 30, 223, 191, 154, 12, 19]),
       ),
       0,
     )
   ) {
     return MakerBInstruction.QuoteCurve;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([201, 69, 231, 90, 159, 170, 190, 87]),
-      ),
-      0,
-    )
-  ) {
-    return MakerBInstruction.QuoteGroup;
   }
   if (
     containsBytes(
@@ -401,38 +206,11 @@ export type ParsedMakerBInstruction<
       instructionType: MakerBInstruction.ControlCurve;
     } & ParsedControlCurveInstruction<TProgram>)
   | ({
-      instructionType: MakerBInstruction.InitializeAccountConfig;
-    } & ParsedInitializeAccountConfigInstruction<TProgram>)
-  | ({
-      instructionType: MakerBInstruction.InitializeConfig;
-    } & ParsedInitializeConfigInstruction<TProgram>)
-  | ({
       instructionType: MakerBInstruction.InitializeCurve;
     } & ParsedInitializeCurveInstruction<TProgram>)
   | ({
-      instructionType: MakerBInstruction.InitializeGroupConfig;
-    } & ParsedInitializeGroupConfigInstruction<TProgram>)
-  | ({
-      instructionType: MakerBInstruction.PublishAccountEpoch;
-    } & ParsedPublishAccountEpochInstruction<TProgram>)
-  | ({
-      instructionType: MakerBInstruction.PublishEpoch;
-    } & ParsedPublishEpochInstruction<TProgram>)
-  | ({
-      instructionType: MakerBInstruction.PublishGroupEpoch;
-    } & ParsedPublishGroupEpochInstruction<TProgram>)
-  | ({
-      instructionType: MakerBInstruction.Quote;
-    } & ParsedQuoteInstruction<TProgram>)
-  | ({
-      instructionType: MakerBInstruction.QuoteAccount;
-    } & ParsedQuoteAccountInstruction<TProgram>)
-  | ({
       instructionType: MakerBInstruction.QuoteCurve;
     } & ParsedQuoteCurveInstruction<TProgram>)
-  | ({
-      instructionType: MakerBInstruction.QuoteGroup;
-    } & ParsedQuoteGroupInstruction<TProgram>)
   | ({
       instructionType: MakerBInstruction.Reprice;
     } & ParsedRepriceInstruction<TProgram>);
@@ -449,20 +227,6 @@ export function parseMakerBInstruction<TProgram extends string>(
         ...parseControlCurveInstruction(instruction),
       };
     }
-    case MakerBInstruction.InitializeAccountConfig: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: MakerBInstruction.InitializeAccountConfig,
-        ...parseInitializeAccountConfigInstruction(instruction),
-      };
-    }
-    case MakerBInstruction.InitializeConfig: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: MakerBInstruction.InitializeConfig,
-        ...parseInitializeConfigInstruction(instruction),
-      };
-    }
     case MakerBInstruction.InitializeCurve: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -470,60 +234,11 @@ export function parseMakerBInstruction<TProgram extends string>(
         ...parseInitializeCurveInstruction(instruction),
       };
     }
-    case MakerBInstruction.InitializeGroupConfig: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: MakerBInstruction.InitializeGroupConfig,
-        ...parseInitializeGroupConfigInstruction(instruction),
-      };
-    }
-    case MakerBInstruction.PublishAccountEpoch: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: MakerBInstruction.PublishAccountEpoch,
-        ...parsePublishAccountEpochInstruction(instruction),
-      };
-    }
-    case MakerBInstruction.PublishEpoch: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: MakerBInstruction.PublishEpoch,
-        ...parsePublishEpochInstruction(instruction),
-      };
-    }
-    case MakerBInstruction.PublishGroupEpoch: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: MakerBInstruction.PublishGroupEpoch,
-        ...parsePublishGroupEpochInstruction(instruction),
-      };
-    }
-    case MakerBInstruction.Quote: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: MakerBInstruction.Quote,
-        ...parseQuoteInstruction(instruction),
-      };
-    }
-    case MakerBInstruction.QuoteAccount: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: MakerBInstruction.QuoteAccount,
-        ...parseQuoteAccountInstruction(instruction),
-      };
-    }
     case MakerBInstruction.QuoteCurve: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: MakerBInstruction.QuoteCurve,
         ...parseQuoteCurveInstruction(instruction),
-      };
-    }
-    case MakerBInstruction.QuoteGroup: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: MakerBInstruction.QuoteGroup,
-        ...parseQuoteGroupInstruction(instruction),
       };
     }
     case MakerBInstruction.Reprice: {
@@ -551,14 +266,8 @@ export type MakerBPlugin = {
 };
 
 export type MakerBPluginAccounts = {
-  makerAccountConfig: ReturnType<typeof getMakerAccountConfigCodec> &
-    SelfFetchFunctions<MakerAccountConfigArgs, MakerAccountConfig>;
-  makerConfig: ReturnType<typeof getMakerConfigCodec> &
-    SelfFetchFunctions<MakerConfigArgs, MakerConfig>;
   makerCurve: ReturnType<typeof getMakerCurveCodec> &
     SelfFetchFunctions<MakerCurveArgs, MakerCurve>;
-  makerGroupConfig: ReturnType<typeof getMakerGroupConfigCodec> &
-    SelfFetchFunctions<MakerGroupConfigArgs, MakerGroupConfig>;
   makerPrice: ReturnType<typeof getMakerPriceCodec> &
     SelfFetchFunctions<MakerPriceArgs, MakerPrice>;
 };
@@ -569,57 +278,16 @@ export type MakerBPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getControlCurveInstructionAsync> &
     SelfPlanAndSendFunctions;
-  initializeAccountConfig: (
-    input: InitializeAccountConfigAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeAccountConfigInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  initializeConfig: (
-    input: InitializeConfigAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeConfigInstructionAsync> &
-    SelfPlanAndSendFunctions;
   initializeCurve: (
     input: InitializeCurveAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeCurveInstructionAsync> &
     SelfPlanAndSendFunctions;
-  initializeGroupConfig: (
-    input: InitializeGroupConfigAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeGroupConfigInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  publishAccountEpoch: (
-    input: PublishAccountEpochInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getPublishAccountEpochInstruction> &
-    SelfPlanAndSendFunctions;
-  publishEpoch: (
-    input: PublishEpochInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getPublishEpochInstruction> & SelfPlanAndSendFunctions;
-  publishGroupEpoch: (
-    input: PublishGroupEpochInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getPublishGroupEpochInstruction> &
-    SelfPlanAndSendFunctions;
-  quote: (
-    input: QuoteInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getQuoteInstruction> & SelfPlanAndSendFunctions;
-  quoteAccount: (
-    input: QuoteAccountInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getQuoteAccountInstruction> & SelfPlanAndSendFunctions;
   quoteCurve: (
     input: QuoteCurveAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getQuoteCurveInstructionAsync> &
     SelfPlanAndSendFunctions;
-  quoteGroup: (
-    input: QuoteGroupInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getQuoteGroupInstruction> & SelfPlanAndSendFunctions;
   reprice: (
     input: RepriceAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -628,10 +296,7 @@ export type MakerBPluginInstructions = {
 
 export type MakerBPluginPdas = {
   curvePrice: typeof findCurvePricePda;
-  accountConfig: typeof findAccountConfigPda;
-  config: typeof findConfigPda;
   curveConfig: typeof findCurveConfigPda;
-  initializeGroupConfigConfig: typeof findInitializeGroupConfigConfigPda;
 };
 
 export type MakerBPluginRequirements = ClientWithRpc<
@@ -649,16 +314,7 @@ export function makerBProgram(
     return extendClient(client, {
       makerB: <MakerBPlugin>{
         accounts: {
-          makerAccountConfig: addSelfFetchFunctions(
-            client,
-            getMakerAccountConfigCodec(),
-          ),
-          makerConfig: addSelfFetchFunctions(client, getMakerConfigCodec()),
           makerCurve: addSelfFetchFunctions(client, getMakerCurveCodec()),
-          makerGroupConfig: addSelfFetchFunctions(
-            client,
-            getMakerGroupConfigCodec(),
-          ),
           makerPrice: addSelfFetchFunctions(client, getMakerPriceCodec()),
         },
         instructions: {
@@ -666,22 +322,6 @@ export function makerBProgram(
             addSelfPlanAndSendFunctions(
               client,
               getControlCurveInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeAccountConfig: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeAccountConfigInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeConfig: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeConfigInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -694,66 +334,10 @@ export function makerBProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          initializeGroupConfig: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeGroupConfigInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          publishAccountEpoch: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPublishAccountEpochInstruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          publishEpoch: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPublishEpochInstruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          publishGroupEpoch: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPublishGroupEpochInstruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          quote: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getQuoteInstruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          quoteAccount: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getQuoteAccountInstruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           quoteCurve: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getQuoteCurveInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          quoteGroup: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getQuoteGroupInstruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -773,23 +357,8 @@ export function makerBProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          accountConfig: (seeds, pdaConfig) =>
-            findAccountConfigPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          config: (seeds, pdaConfig) =>
-            findConfigPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
           curveConfig: (seeds, pdaConfig) =>
             findCurveConfigPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          initializeGroupConfigConfig: (seeds, pdaConfig) =>
-            findInitializeGroupConfigConfigPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

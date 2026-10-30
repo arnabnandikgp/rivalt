@@ -1,7 +1,7 @@
 //! Shared serialized position/order records, independent of deployment generation.
-use anchor_lang::prelude::*;
-use super::{OrderRecord, ProtectiveGroup};
 use super::identity::{MARKET_COUNT, MAX_MEMBERS};
+use super::{OrderRecord, ProtectiveGroup};
+use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace)]
 pub struct Position {
@@ -33,7 +33,6 @@ pub struct OrderBook {
     pub orders: [StoredOrder; 4],
     pub protections: [Protection; 2],
 }
-
 
 /// Borsh's generic Vec reader grows its allocation while decoding. The SBF
 /// bump allocator cannot reclaim those buffers. Allocate the bounded cohort once

@@ -3,7 +3,7 @@
 //! mixed live roots are never added to those frozen aggregates a second time.
 use super::*;
 
-fn empty_position(position: &crate::state::v2::Position) -> bool {
+fn empty_position(position: &crate::state::Position) -> bool {
     position.lots == 0
         && position.virtual_scaled == 0
         && position.funding_checkpoint_scaled == 0

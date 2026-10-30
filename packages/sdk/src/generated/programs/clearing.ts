@@ -37,107 +37,50 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   getCapitalBindingCodec,
-  getCapitalBindingV2Codec,
-  getClearingGroupV2Codec,
   getCustodyCodec,
-  getExitGuardCodec,
-  getFixedMakerRegistrationCodec,
   getFundingPublisherCodec,
-  getGroupExitGuardV2Codec,
-  getGroupMarketV2Codec,
-  getGroupRegistryV2Codec,
-  getGroupResolutionV2Codec,
-  getLegacyCapitalBindingCodec,
-  getLegacyMakerRegistrationCodec,
   getLiquidityRegistryCodec,
   getMakerRegistrationCodec,
-  getMakerRegistrationV2Codec,
   getMarginAccountCodec,
-  getMarginAccountV2Codec,
   getMarketCodec,
   getMarketLedgerCodec,
-  getMarketStateCodec,
-  getParticipantCodec,
-  getParticipantRegistryCodec,
   getPortfolioCodec,
-  getPortfolioV2Codec,
-  getProbeRecordCodec,
   getResolutionCodec,
   getResolutionPageCodec,
-  getResolutionStateCodec,
   getResolutionWorkCodec,
   getRetirementCertificateCodec,
   getSettlementCertificateCodec,
-  getTestRouteStateCodec,
   getVenueCodec,
   getVenueRegistryCodec,
   getVenueSafetyCodec,
   type CapitalBinding,
   type CapitalBindingArgs,
-  type CapitalBindingV2,
-  type CapitalBindingV2Args,
-  type ClearingGroupV2,
-  type ClearingGroupV2Args,
   type Custody,
   type CustodyArgs,
-  type ExitGuard,
-  type ExitGuardArgs,
-  type FixedMakerRegistration,
-  type FixedMakerRegistrationArgs,
   type FundingPublisher,
   type FundingPublisherArgs,
-  type GroupExitGuardV2,
-  type GroupExitGuardV2Args,
-  type GroupMarketV2,
-  type GroupMarketV2Args,
-  type GroupRegistryV2,
-  type GroupRegistryV2Args,
-  type GroupResolutionV2,
-  type GroupResolutionV2Args,
-  type LegacyCapitalBinding,
-  type LegacyCapitalBindingArgs,
-  type LegacyMakerRegistration,
-  type LegacyMakerRegistrationArgs,
   type LiquidityRegistry,
   type LiquidityRegistryArgs,
   type MakerRegistration,
   type MakerRegistrationArgs,
-  type MakerRegistrationV2,
-  type MakerRegistrationV2Args,
   type MarginAccount,
   type MarginAccountArgs,
-  type MarginAccountV2,
-  type MarginAccountV2Args,
   type Market,
   type MarketArgs,
   type MarketLedger,
   type MarketLedgerArgs,
-  type MarketState,
-  type MarketStateArgs,
-  type Participant,
-  type ParticipantArgs,
-  type ParticipantRegistry,
-  type ParticipantRegistryArgs,
   type Portfolio,
   type PortfolioArgs,
-  type PortfolioV2,
-  type PortfolioV2Args,
-  type ProbeRecord,
-  type ProbeRecordArgs,
   type Resolution,
   type ResolutionArgs,
   type ResolutionPage,
   type ResolutionPageArgs,
-  type ResolutionState,
-  type ResolutionStateArgs,
   type ResolutionWork,
   type ResolutionWorkArgs,
   type RetirementCertificate,
   type RetirementCertificateArgs,
   type SettlementCertificate,
   type SettlementCertificateArgs,
-  type TestRouteState,
-  type TestRouteStateArgs,
   type Venue,
   type VenueArgs,
   type VenueRegistry,
@@ -146,574 +89,235 @@ import {
   type VenueSafetyArgs,
 } from "../accounts/index.js";
 import {
-  getActivateAccountsInstructionAsync,
-  getActivateCrossGroupV2InstructionAsync,
-  getActivateIsolatedGroupV2InstructionAsync,
   getActivateLiquidityInstructionAsync,
   getAdvanceAccountResolutionInstructionAsync,
-  getAdvanceGroupResolutionV2InstructionAsync,
-  getAdvanceResolutionInstructionAsync,
-  getAllocateGroupFeesV2InstructionAsync,
   getAllocateMarketFeesInstructionAsync,
   getApproveLiquidityInstructionAsync,
-  getApproveMakerInstructionAsync,
-  getCancelOrderInstructionAsync,
-  getCancelProtectionInstructionAsync,
-  getChangeGroupClaimV2InstructionAsync,
   getCheckAccountResolutionOrderInstructionAsync,
   getCheckAccountRetirementInstructionAsync,
-  getCheckExitCohortInstructionAsync,
-  getCheckGroupExitV2InstructionAsync,
   getCheckMarketBackingInstructionAsync,
-  getClassifyGroupSurplusV2InstructionAsync,
   getClassifyMarketSurplusInstructionAsync,
-  getClassifySurplusInstructionAsync,
-  getCleanupOrdersInstructionAsync,
   getCollectAccountLossInstructionAsync,
-  getCollectLossInstructionAsync,
   getConfigureFundingPublisherInstructionAsync,
   getControlLiquidityInstructionAsync,
   getCreatePortfolioInstructionAsync,
-  getCreatePortfolioV2InstructionAsync,
   getDepositAccountInstructionAsync,
-  getDepositGroupV2InstructionAsync,
-  getDepositInstructionAsync,
-  getExecuteAccountOrderInstructionAsync,
-  getExecuteAccountRouteInstructionAsync,
-  getExecuteGroupOrderV2InstructionAsync,
-  getExecuteGroupRouteV2InstructionAsync,
   getExecuteLiquidityOrderInstructionAsync,
   getExecuteLiquidityRouteInstructionAsync,
-  getExecuteMarginOrderV2InstructionAsync,
-  getExecuteMarginRouteV2InstructionAsync,
-  getExecuteOrderInstructionAsync,
-  getExecuteRouteInstructionAsync,
   getFinalizeAccountResolutionRatesInstructionAsync,
   getFreezeAccountsInstructionAsync,
-  getFreezeGroupV2InstructionAsync,
-  getFreezeMarketInstructionAsync,
-  getFundInsuranceInstructionAsync,
-  getGroupTradingCashV2InstructionAsync,
-  getInitializeAccountOracleInstructionAsync,
   getInitializeAccountResolutionInstructionAsync,
   getInitializeAccountResolutionPageInstructionAsync,
   getInitializeAccountRetirementInstructionAsync,
-  getInitializeExitGuardInstructionAsync,
   getInitializeFundingPublisherInstructionAsync,
-  getInitializeGroupMarketV2Instruction,
-  getInitializeGroupOracleV2Instruction,
-  getInitializeGroupSafetyV2InstructionAsync,
-  getInitializeGroupV2InstructionAsync,
-  getInitializeLegacyMarketInstructionAsync,
   getInitializeLiquidityInstructionAsync,
   getInitializeLiquidityOracleInstructionAsync,
   getInitializeLiquidityVenueInstructionAsync,
   getInitializeMarketBackingInstructionAsync,
   getInitializeMarketInstructionAsync,
-  getInitializeOracleInstructionAsync,
-  getInitializeResolutionInstructionAsync,
-  getInitializeTestRoutesInstructionAsync,
-  getInitializeVenueInstructionAsync,
   getInitializeVenueRegistryInstructionAsync,
   getLiquidateAccountInstructionAsync,
-  getLiquidateGroupV2InstructionAsync,
-  getLiquidateInstructionAsync,
   getManageAccountOrderInstructionAsync,
-  getManageGroupOrderV2Instruction,
-  getManageMarginOrderV2Instruction,
   getNetAccountClaimsInstructionAsync,
-  getNetMarginClaimsV2Instruction,
   getOrderAccountResolutionInstructionAsync,
-  getPauseGroupCustodyV2InstructionAsync,
   getPauseVenueInstructionAsync,
   getPayAccountGainInstructionAsync,
-  getPlaceOrderInstructionAsync,
-  getPlaceProtectionInstructionAsync,
-  getPreviewAccountMakerInstructionAsync,
-  getPreviewGroupMakerV2Instruction,
-  getPreviewMakerInstructionAsync,
-  getProbeInstructionAsync,
   getProposeAccountResolutionInstructionAsync,
   getPublishFundingReportInstructionAsync,
-  getPublishTestRiskInstructionAsync,
-  getQualifyAccountTradingInstructionAsync,
   getQuarantineLiquidityInstructionAsync,
-  getQuarantineMakerInstructionAsync,
   getReactivateAccountsInstructionAsync,
   getRecoverAccountsInstructionAsync,
-  getRecoverGroupResolutionV2InstructionAsync,
-  getRecoverResolutionInstructionAsync,
-  getRegisterAccountMakerInstructionAsync,
-  getRegisterGroupMakerV2InstructionAsync,
   getRegisterLiquidityInstructionAsync,
-  getRegisterMakerInstructionAsync,
   getRegisterMarginInstructionAsync,
-  getRegisterMarginV2InstructionAsync,
-  getRegisterParticipantInstructionAsync,
-  getReplaceOrderInstructionAsync,
   getReplenishLiquidityInstructionAsync,
   getRetireAccountsInstructionAsync,
   getRoundAccountResolutionInstructionAsync,
-  getSampleAccountOracleInstructionAsync,
-  getSampleGroupOracleV2Instruction,
-  getSampleLiquidityInstructionAsync,
-  getSampleOracleInstructionAsync,
   getSealLiquidityInstructionAsync,
   getSeedMarketInsuranceInstructionAsync,
   getSetAccountDelegateInstructionAsync,
-  getSetCustodyPauseInstructionAsync,
-  getSetMarginDelegateV2Instruction,
-  getSettleGainInstructionAsync,
-  getSyncMakerEpochInstructionAsync,
   getTransferAccountCustodyInstructionAsync,
   getTransferFundedAccountInstructionAsync,
-  getTransferGroupCustodyV2InstructionAsync,
-  getTransferTradingCashV2InstructionAsync,
-  getUpdateAccountMakerInstructionAsync,
-  getUpdateGroupMakerV2Instruction,
   getValueAccountResolutionInstructionAsync,
   getWithdrawAccountCustodyInstructionAsync,
   getWithdrawFundedAccountInstructionAsync,
-  getWithdrawGroupCustodyV2InstructionAsync,
-  getWithdrawInstructionAsync,
   getWithdrawMarketFeesInstructionAsync,
   getWithdrawRetiredReserveInstructionAsync,
-  getWithdrawTradingInstructionAsync,
-  parseActivateAccountsInstruction,
-  parseActivateCrossGroupV2Instruction,
-  parseActivateIsolatedGroupV2Instruction,
   parseActivateLiquidityInstruction,
   parseAdvanceAccountResolutionInstruction,
-  parseAdvanceGroupResolutionV2Instruction,
-  parseAdvanceResolutionInstruction,
-  parseAllocateGroupFeesV2Instruction,
   parseAllocateMarketFeesInstruction,
   parseApproveLiquidityInstruction,
-  parseApproveMakerInstruction,
-  parseCancelOrderInstruction,
-  parseCancelProtectionInstruction,
-  parseChangeGroupClaimV2Instruction,
   parseCheckAccountResolutionOrderInstruction,
   parseCheckAccountRetirementInstruction,
-  parseCheckExitCohortInstruction,
-  parseCheckGroupExitV2Instruction,
   parseCheckMarketBackingInstruction,
-  parseClassifyGroupSurplusV2Instruction,
   parseClassifyMarketSurplusInstruction,
-  parseClassifySurplusInstruction,
-  parseCleanupOrdersInstruction,
   parseCollectAccountLossInstruction,
-  parseCollectLossInstruction,
   parseConfigureFundingPublisherInstruction,
   parseControlLiquidityInstruction,
   parseCreatePortfolioInstruction,
-  parseCreatePortfolioV2Instruction,
   parseDepositAccountInstruction,
-  parseDepositGroupV2Instruction,
-  parseDepositInstruction,
-  parseExecuteAccountOrderInstruction,
-  parseExecuteAccountRouteInstruction,
-  parseExecuteGroupOrderV2Instruction,
-  parseExecuteGroupRouteV2Instruction,
   parseExecuteLiquidityOrderInstruction,
   parseExecuteLiquidityRouteInstruction,
-  parseExecuteMarginOrderV2Instruction,
-  parseExecuteMarginRouteV2Instruction,
-  parseExecuteOrderInstruction,
-  parseExecuteRouteInstruction,
   parseFinalizeAccountResolutionRatesInstruction,
   parseFreezeAccountsInstruction,
-  parseFreezeGroupV2Instruction,
-  parseFreezeMarketInstruction,
-  parseFundInsuranceInstruction,
-  parseGroupTradingCashV2Instruction,
-  parseInitializeAccountOracleInstruction,
   parseInitializeAccountResolutionInstruction,
   parseInitializeAccountResolutionPageInstruction,
   parseInitializeAccountRetirementInstruction,
-  parseInitializeExitGuardInstruction,
   parseInitializeFundingPublisherInstruction,
-  parseInitializeGroupMarketV2Instruction,
-  parseInitializeGroupOracleV2Instruction,
-  parseInitializeGroupSafetyV2Instruction,
-  parseInitializeGroupV2Instruction,
-  parseInitializeLegacyMarketInstruction,
   parseInitializeLiquidityInstruction,
   parseInitializeLiquidityOracleInstruction,
   parseInitializeLiquidityVenueInstruction,
   parseInitializeMarketBackingInstruction,
   parseInitializeMarketInstruction,
-  parseInitializeOracleInstruction,
-  parseInitializeResolutionInstruction,
-  parseInitializeTestRoutesInstruction,
-  parseInitializeVenueInstruction,
   parseInitializeVenueRegistryInstruction,
   parseLiquidateAccountInstruction,
-  parseLiquidateGroupV2Instruction,
-  parseLiquidateInstruction,
   parseManageAccountOrderInstruction,
-  parseManageGroupOrderV2Instruction,
-  parseManageMarginOrderV2Instruction,
   parseNetAccountClaimsInstruction,
-  parseNetMarginClaimsV2Instruction,
   parseOrderAccountResolutionInstruction,
-  parsePauseGroupCustodyV2Instruction,
   parsePauseVenueInstruction,
   parsePayAccountGainInstruction,
-  parsePlaceOrderInstruction,
-  parsePlaceProtectionInstruction,
-  parsePreviewAccountMakerInstruction,
-  parsePreviewGroupMakerV2Instruction,
-  parsePreviewMakerInstruction,
-  parseProbeInstruction,
   parseProposeAccountResolutionInstruction,
   parsePublishFundingReportInstruction,
-  parsePublishTestRiskInstruction,
-  parseQualifyAccountTradingInstruction,
   parseQuarantineLiquidityInstruction,
-  parseQuarantineMakerInstruction,
   parseReactivateAccountsInstruction,
   parseRecoverAccountsInstruction,
-  parseRecoverGroupResolutionV2Instruction,
-  parseRecoverResolutionInstruction,
-  parseRegisterAccountMakerInstruction,
-  parseRegisterGroupMakerV2Instruction,
   parseRegisterLiquidityInstruction,
-  parseRegisterMakerInstruction,
   parseRegisterMarginInstruction,
-  parseRegisterMarginV2Instruction,
-  parseRegisterParticipantInstruction,
-  parseReplaceOrderInstruction,
   parseReplenishLiquidityInstruction,
   parseRetireAccountsInstruction,
   parseRoundAccountResolutionInstruction,
-  parseSampleAccountOracleInstruction,
-  parseSampleGroupOracleV2Instruction,
-  parseSampleLiquidityInstruction,
-  parseSampleOracleInstruction,
   parseSealLiquidityInstruction,
   parseSeedMarketInsuranceInstruction,
   parseSetAccountDelegateInstruction,
-  parseSetCustodyPauseInstruction,
-  parseSetMarginDelegateV2Instruction,
-  parseSettleGainInstruction,
-  parseSyncMakerEpochInstruction,
   parseTransferAccountCustodyInstruction,
   parseTransferFundedAccountInstruction,
-  parseTransferGroupCustodyV2Instruction,
-  parseTransferTradingCashV2Instruction,
-  parseUpdateAccountMakerInstruction,
-  parseUpdateGroupMakerV2Instruction,
   parseValueAccountResolutionInstruction,
   parseWithdrawAccountCustodyInstruction,
   parseWithdrawFundedAccountInstruction,
-  parseWithdrawGroupCustodyV2Instruction,
-  parseWithdrawInstruction,
   parseWithdrawMarketFeesInstruction,
   parseWithdrawRetiredReserveInstruction,
-  parseWithdrawTradingInstruction,
-  type ActivateAccountsAsyncInput,
-  type ActivateCrossGroupV2AsyncInput,
-  type ActivateIsolatedGroupV2AsyncInput,
   type ActivateLiquidityAsyncInput,
   type AdvanceAccountResolutionAsyncInput,
-  type AdvanceGroupResolutionV2AsyncInput,
-  type AdvanceResolutionAsyncInput,
-  type AllocateGroupFeesV2AsyncInput,
   type AllocateMarketFeesAsyncInput,
   type ApproveLiquidityAsyncInput,
-  type ApproveMakerAsyncInput,
-  type CancelOrderAsyncInput,
-  type CancelProtectionAsyncInput,
-  type ChangeGroupClaimV2AsyncInput,
   type CheckAccountResolutionOrderAsyncInput,
   type CheckAccountRetirementAsyncInput,
-  type CheckExitCohortAsyncInput,
-  type CheckGroupExitV2AsyncInput,
   type CheckMarketBackingAsyncInput,
-  type ClassifyGroupSurplusV2AsyncInput,
   type ClassifyMarketSurplusAsyncInput,
-  type ClassifySurplusAsyncInput,
-  type CleanupOrdersAsyncInput,
   type CollectAccountLossAsyncInput,
-  type CollectLossAsyncInput,
   type ConfigureFundingPublisherAsyncInput,
   type ControlLiquidityAsyncInput,
   type CreatePortfolioAsyncInput,
-  type CreatePortfolioV2AsyncInput,
   type DepositAccountAsyncInput,
-  type DepositAsyncInput,
-  type DepositGroupV2AsyncInput,
-  type ExecuteAccountOrderAsyncInput,
-  type ExecuteAccountRouteAsyncInput,
-  type ExecuteGroupOrderV2AsyncInput,
-  type ExecuteGroupRouteV2AsyncInput,
   type ExecuteLiquidityOrderAsyncInput,
   type ExecuteLiquidityRouteAsyncInput,
-  type ExecuteMarginOrderV2AsyncInput,
-  type ExecuteMarginRouteV2AsyncInput,
-  type ExecuteOrderAsyncInput,
-  type ExecuteRouteAsyncInput,
   type FinalizeAccountResolutionRatesAsyncInput,
   type FreezeAccountsAsyncInput,
-  type FreezeGroupV2AsyncInput,
-  type FreezeMarketAsyncInput,
-  type FundInsuranceAsyncInput,
-  type GroupTradingCashV2AsyncInput,
-  type InitializeAccountOracleAsyncInput,
   type InitializeAccountResolutionAsyncInput,
   type InitializeAccountResolutionPageAsyncInput,
   type InitializeAccountRetirementAsyncInput,
-  type InitializeExitGuardAsyncInput,
   type InitializeFundingPublisherAsyncInput,
-  type InitializeGroupMarketV2Input,
-  type InitializeGroupOracleV2Input,
-  type InitializeGroupSafetyV2AsyncInput,
-  type InitializeGroupV2AsyncInput,
-  type InitializeLegacyMarketAsyncInput,
   type InitializeLiquidityAsyncInput,
   type InitializeLiquidityOracleAsyncInput,
   type InitializeLiquidityVenueAsyncInput,
   type InitializeMarketAsyncInput,
   type InitializeMarketBackingAsyncInput,
-  type InitializeOracleAsyncInput,
-  type InitializeResolutionAsyncInput,
-  type InitializeTestRoutesAsyncInput,
-  type InitializeVenueAsyncInput,
   type InitializeVenueRegistryAsyncInput,
   type LiquidateAccountAsyncInput,
-  type LiquidateAsyncInput,
-  type LiquidateGroupV2AsyncInput,
   type ManageAccountOrderAsyncInput,
-  type ManageGroupOrderV2Input,
-  type ManageMarginOrderV2Input,
   type NetAccountClaimsAsyncInput,
-  type NetMarginClaimsV2Input,
   type OrderAccountResolutionAsyncInput,
-  type ParsedActivateAccountsInstruction,
-  type ParsedActivateCrossGroupV2Instruction,
-  type ParsedActivateIsolatedGroupV2Instruction,
   type ParsedActivateLiquidityInstruction,
   type ParsedAdvanceAccountResolutionInstruction,
-  type ParsedAdvanceGroupResolutionV2Instruction,
-  type ParsedAdvanceResolutionInstruction,
-  type ParsedAllocateGroupFeesV2Instruction,
   type ParsedAllocateMarketFeesInstruction,
   type ParsedApproveLiquidityInstruction,
-  type ParsedApproveMakerInstruction,
-  type ParsedCancelOrderInstruction,
-  type ParsedCancelProtectionInstruction,
-  type ParsedChangeGroupClaimV2Instruction,
   type ParsedCheckAccountResolutionOrderInstruction,
   type ParsedCheckAccountRetirementInstruction,
-  type ParsedCheckExitCohortInstruction,
-  type ParsedCheckGroupExitV2Instruction,
   type ParsedCheckMarketBackingInstruction,
-  type ParsedClassifyGroupSurplusV2Instruction,
   type ParsedClassifyMarketSurplusInstruction,
-  type ParsedClassifySurplusInstruction,
-  type ParsedCleanupOrdersInstruction,
   type ParsedCollectAccountLossInstruction,
-  type ParsedCollectLossInstruction,
   type ParsedConfigureFundingPublisherInstruction,
   type ParsedControlLiquidityInstruction,
   type ParsedCreatePortfolioInstruction,
-  type ParsedCreatePortfolioV2Instruction,
   type ParsedDepositAccountInstruction,
-  type ParsedDepositGroupV2Instruction,
-  type ParsedDepositInstruction,
-  type ParsedExecuteAccountOrderInstruction,
-  type ParsedExecuteAccountRouteInstruction,
-  type ParsedExecuteGroupOrderV2Instruction,
-  type ParsedExecuteGroupRouteV2Instruction,
   type ParsedExecuteLiquidityOrderInstruction,
   type ParsedExecuteLiquidityRouteInstruction,
-  type ParsedExecuteMarginOrderV2Instruction,
-  type ParsedExecuteMarginRouteV2Instruction,
-  type ParsedExecuteOrderInstruction,
-  type ParsedExecuteRouteInstruction,
   type ParsedFinalizeAccountResolutionRatesInstruction,
   type ParsedFreezeAccountsInstruction,
-  type ParsedFreezeGroupV2Instruction,
-  type ParsedFreezeMarketInstruction,
-  type ParsedFundInsuranceInstruction,
-  type ParsedGroupTradingCashV2Instruction,
-  type ParsedInitializeAccountOracleInstruction,
   type ParsedInitializeAccountResolutionInstruction,
   type ParsedInitializeAccountResolutionPageInstruction,
   type ParsedInitializeAccountRetirementInstruction,
-  type ParsedInitializeExitGuardInstruction,
   type ParsedInitializeFundingPublisherInstruction,
-  type ParsedInitializeGroupMarketV2Instruction,
-  type ParsedInitializeGroupOracleV2Instruction,
-  type ParsedInitializeGroupSafetyV2Instruction,
-  type ParsedInitializeGroupV2Instruction,
-  type ParsedInitializeLegacyMarketInstruction,
   type ParsedInitializeLiquidityInstruction,
   type ParsedInitializeLiquidityOracleInstruction,
   type ParsedInitializeLiquidityVenueInstruction,
   type ParsedInitializeMarketBackingInstruction,
   type ParsedInitializeMarketInstruction,
-  type ParsedInitializeOracleInstruction,
-  type ParsedInitializeResolutionInstruction,
-  type ParsedInitializeTestRoutesInstruction,
-  type ParsedInitializeVenueInstruction,
   type ParsedInitializeVenueRegistryInstruction,
   type ParsedLiquidateAccountInstruction,
-  type ParsedLiquidateGroupV2Instruction,
-  type ParsedLiquidateInstruction,
   type ParsedManageAccountOrderInstruction,
-  type ParsedManageGroupOrderV2Instruction,
-  type ParsedManageMarginOrderV2Instruction,
   type ParsedNetAccountClaimsInstruction,
-  type ParsedNetMarginClaimsV2Instruction,
   type ParsedOrderAccountResolutionInstruction,
-  type ParsedPauseGroupCustodyV2Instruction,
   type ParsedPauseVenueInstruction,
   type ParsedPayAccountGainInstruction,
-  type ParsedPlaceOrderInstruction,
-  type ParsedPlaceProtectionInstruction,
-  type ParsedPreviewAccountMakerInstruction,
-  type ParsedPreviewGroupMakerV2Instruction,
-  type ParsedPreviewMakerInstruction,
-  type ParsedProbeInstruction,
   type ParsedProposeAccountResolutionInstruction,
   type ParsedPublishFundingReportInstruction,
-  type ParsedPublishTestRiskInstruction,
-  type ParsedQualifyAccountTradingInstruction,
   type ParsedQuarantineLiquidityInstruction,
-  type ParsedQuarantineMakerInstruction,
   type ParsedReactivateAccountsInstruction,
   type ParsedRecoverAccountsInstruction,
-  type ParsedRecoverGroupResolutionV2Instruction,
-  type ParsedRecoverResolutionInstruction,
-  type ParsedRegisterAccountMakerInstruction,
-  type ParsedRegisterGroupMakerV2Instruction,
   type ParsedRegisterLiquidityInstruction,
-  type ParsedRegisterMakerInstruction,
   type ParsedRegisterMarginInstruction,
-  type ParsedRegisterMarginV2Instruction,
-  type ParsedRegisterParticipantInstruction,
-  type ParsedReplaceOrderInstruction,
   type ParsedReplenishLiquidityInstruction,
   type ParsedRetireAccountsInstruction,
   type ParsedRoundAccountResolutionInstruction,
-  type ParsedSampleAccountOracleInstruction,
-  type ParsedSampleGroupOracleV2Instruction,
-  type ParsedSampleLiquidityInstruction,
-  type ParsedSampleOracleInstruction,
   type ParsedSealLiquidityInstruction,
   type ParsedSeedMarketInsuranceInstruction,
   type ParsedSetAccountDelegateInstruction,
-  type ParsedSetCustodyPauseInstruction,
-  type ParsedSetMarginDelegateV2Instruction,
-  type ParsedSettleGainInstruction,
-  type ParsedSyncMakerEpochInstruction,
   type ParsedTransferAccountCustodyInstruction,
   type ParsedTransferFundedAccountInstruction,
-  type ParsedTransferGroupCustodyV2Instruction,
-  type ParsedTransferTradingCashV2Instruction,
-  type ParsedUpdateAccountMakerInstruction,
-  type ParsedUpdateGroupMakerV2Instruction,
   type ParsedValueAccountResolutionInstruction,
   type ParsedWithdrawAccountCustodyInstruction,
   type ParsedWithdrawFundedAccountInstruction,
-  type ParsedWithdrawGroupCustodyV2Instruction,
-  type ParsedWithdrawInstruction,
   type ParsedWithdrawMarketFeesInstruction,
   type ParsedWithdrawRetiredReserveInstruction,
-  type ParsedWithdrawTradingInstruction,
-  type PauseGroupCustodyV2AsyncInput,
   type PauseVenueAsyncInput,
   type PayAccountGainAsyncInput,
-  type PlaceOrderAsyncInput,
-  type PlaceProtectionAsyncInput,
-  type PreviewAccountMakerAsyncInput,
-  type PreviewGroupMakerV2Input,
-  type PreviewMakerAsyncInput,
-  type ProbeAsyncInput,
   type ProposeAccountResolutionAsyncInput,
   type PublishFundingReportAsyncInput,
-  type PublishTestRiskAsyncInput,
-  type QualifyAccountTradingAsyncInput,
   type QuarantineLiquidityAsyncInput,
-  type QuarantineMakerAsyncInput,
   type ReactivateAccountsAsyncInput,
   type RecoverAccountsAsyncInput,
-  type RecoverGroupResolutionV2AsyncInput,
-  type RecoverResolutionAsyncInput,
-  type RegisterAccountMakerAsyncInput,
-  type RegisterGroupMakerV2AsyncInput,
   type RegisterLiquidityAsyncInput,
-  type RegisterMakerAsyncInput,
   type RegisterMarginAsyncInput,
-  type RegisterMarginV2AsyncInput,
-  type RegisterParticipantAsyncInput,
-  type ReplaceOrderAsyncInput,
   type ReplenishLiquidityAsyncInput,
   type RetireAccountsAsyncInput,
   type RoundAccountResolutionAsyncInput,
-  type SampleAccountOracleAsyncInput,
-  type SampleGroupOracleV2Input,
-  type SampleLiquidityAsyncInput,
-  type SampleOracleAsyncInput,
   type SealLiquidityAsyncInput,
   type SeedMarketInsuranceAsyncInput,
   type SetAccountDelegateAsyncInput,
-  type SetCustodyPauseAsyncInput,
-  type SetMarginDelegateV2Input,
-  type SettleGainAsyncInput,
-  type SyncMakerEpochAsyncInput,
   type TransferAccountCustodyAsyncInput,
   type TransferFundedAccountAsyncInput,
-  type TransferGroupCustodyV2AsyncInput,
-  type TransferTradingCashV2AsyncInput,
-  type UpdateAccountMakerAsyncInput,
-  type UpdateGroupMakerV2Input,
   type ValueAccountResolutionAsyncInput,
   type WithdrawAccountCustodyAsyncInput,
-  type WithdrawAsyncInput,
   type WithdrawFundedAccountAsyncInput,
-  type WithdrawGroupCustodyV2AsyncInput,
   type WithdrawMarketFeesAsyncInput,
   type WithdrawRetiredReserveAsyncInput,
-  type WithdrawTradingAsyncInput,
 } from "../instructions/index.js";
 import {
-  findBindingPda,
   findBtcLedgerPda,
   findCapitalBindingPda,
-  findCapitalPda,
   findCertificatePda,
-  findClassifyGroupSurplusV2VaultPda,
   findCustodyPda,
   findEthLedgerPda,
   findFundingPublisherPda,
-  findGroupBindingPda,
-  findGroupExitGuardPda,
-  findGroupPda,
-  findGroupPortfolioPda,
-  findGroupResolutionPda,
-  findGuardPda,
-  findInitializeAccountResolutionResolutionPda,
-  findInitializeGroupV2RegistryPda,
-  findLegacyMarketPda,
   findLiquidityControllerPda,
   findLiquidityRegistryPda,
   findMakerEventAuthorityPda,
   findMarginAccountPda,
-  findMarginPda,
   findMarketLedgerPda,
   findOtherMarketLedgerPda,
   findPagePda,
   findPortfolioPda,
-  findReceiverBindingPda,
-  findReceiverPda,
-  findRecordPda,
-  findRegistryPda,
   findResolutionPda,
-  findRouteStatePda,
-  findVaultPda,
   findVenuePda,
   findVenueRegistryPda,
   findVenueSafetyPda,
@@ -726,38 +330,19 @@ export const CLEARING_PROGRAM_ADDRESS =
 
 export enum ClearingAccount {
   CapitalBinding,
-  CapitalBindingV2,
-  ClearingGroupV2,
   Custody,
-  ExitGuard,
-  FixedMakerRegistration,
   FundingPublisher,
-  GroupExitGuardV2,
-  GroupMarketV2,
-  GroupRegistryV2,
-  GroupResolutionV2,
-  LegacyCapitalBinding,
-  LegacyMakerRegistration,
   LiquidityRegistry,
   MakerRegistration,
-  MakerRegistrationV2,
   MarginAccount,
-  MarginAccountV2,
   Market,
   MarketLedger,
-  MarketState,
-  Participant,
-  ParticipantRegistry,
   Portfolio,
-  PortfolioV2,
-  ProbeRecord,
   Resolution,
   ResolutionPage,
-  ResolutionState,
   ResolutionWork,
   RetirementCertificate,
   SettlementCertificate,
-  TestRouteState,
   Venue,
   VenueRegistry,
   VenueSafety,
@@ -782,28 +367,6 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([50, 242, 210, 82, 231, 160, 189, 1]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.CapitalBindingV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([60, 4, 152, 2, 231, 16, 248, 219]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.ClearingGroupV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([10, 141, 69, 218, 220, 92, 189, 65]),
       ),
       0,
@@ -815,100 +378,12 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([199, 210, 148, 192, 93, 253, 196, 218]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.ExitGuard;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([178, 121, 174, 51, 57, 224, 24, 117]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.FixedMakerRegistration;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([44, 251, 162, 245, 60, 52, 128, 8]),
       ),
       0,
     )
   ) {
     return ClearingAccount.FundingPublisher;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([43, 24, 130, 93, 85, 191, 99, 107]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.GroupExitGuardV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([89, 243, 183, 73, 107, 29, 154, 104]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.GroupMarketV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([199, 59, 120, 36, 239, 228, 207, 239]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.GroupRegistryV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([143, 217, 71, 136, 198, 140, 107, 141]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.GroupResolutionV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([176, 183, 79, 146, 172, 158, 6, 18]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.LegacyCapitalBinding;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([231, 196, 106, 151, 199, 213, 13, 66]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.LegacyMakerRegistration;
   }
   if (
     containsBytes(
@@ -936,34 +411,12 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([240, 139, 7, 8, 254, 47, 173, 133]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.MakerRegistrationV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([200, 111, 5, 168, 138, 82, 246, 229]),
       ),
       0,
     )
   ) {
     return ClearingAccount.MarginAccount;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([143, 109, 33, 76, 190, 108, 140, 149]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.MarginAccountV2;
   }
   if (
     containsBytes(
@@ -991,67 +444,12 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([0, 125, 123, 215, 95, 96, 164, 194]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.MarketState;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([32, 142, 108, 79, 247, 179, 54, 6]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.Participant;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([230, 90, 135, 85, 212, 177, 130, 197]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.ParticipantRegistry;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([179, 160, 245, 234, 80, 218, 219, 211]),
       ),
       0,
     )
   ) {
     return ClearingAccount.Portfolio;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([152, 214, 99, 129, 44, 242, 239, 229]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.PortfolioV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([103, 16, 110, 32, 227, 147, 95, 56]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.ProbeRecord;
   }
   if (
     containsBytes(
@@ -1074,17 +472,6 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.ResolutionPage;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([79, 128, 50, 21, 72, 199, 254, 128]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.ResolutionState;
   }
   if (
     containsBytes(
@@ -1118,17 +505,6 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.SettlementCertificate;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([27, 89, 110, 243, 98, 85, 236, 58]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingAccount.TestRouteState;
   }
   if (
     containsBytes(
@@ -1175,7 +551,6 @@ export enum ClearingEvent {
   AccountCustodyChanged,
   AccountFinancialChanged,
   AccountLiquidated,
-  AccountMakerChanged,
   AccountOracleChanged,
   AccountOrderChanged,
   AccountQualification,
@@ -1190,38 +565,14 @@ export enum ClearingEvent {
   AccountResolutionRounded,
   AccountResolutionValued,
   AccountRetirementProgress,
-  AccountRouteExecuted,
   AccountSafetyRecovery,
   AccountsRetired,
-  CustodyChanged,
   FundingPublisherChanged,
   FundingReportAccepted,
-  GroupCustodyChangedV2,
-  GroupLiquidationV2,
-  GroupMakerChangedV2,
-  GroupOracleChangedV2,
-  GroupOrderChangedV2,
-  GroupResolutionProgressV2,
-  GroupRouteExecutedV2,
-  GroupSafetyChangedV2,
-  LiquidationApplied,
   LiquidityMakerChanged,
-  LiquidityOracleChanged,
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
-  MakerChanged,
-  MarginAuthorityChangedV2,
-  MarginClaimsNettedV2,
-  MarginOrderChangedV2,
-  MarginRouteExecutedV2,
-  OracleObserved,
-  OrderChanged,
-  ProbeRecorded,
-  ResolutionProgress,
   RetiredReserveWithdrawn,
-  RouteExecuted,
-  SettlementChanged,
-  TestRiskPublished,
 }
 
 export function identifyClearingEvent(
@@ -1282,17 +633,6 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.AccountLiquidated;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([54, 119, 236, 63, 241, 13, 201, 26]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.AccountMakerChanged;
   }
   if (
     containsBytes(
@@ -1452,17 +792,6 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([127, 173, 157, 79, 126, 181, 21, 231]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.AccountRouteExecuted;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([171, 93, 161, 145, 184, 243, 209, 202]),
       ),
       0,
@@ -1480,17 +809,6 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.AccountsRetired;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([240, 255, 148, 254, 96, 178, 196, 158]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.CustodyChanged;
   }
   if (
     containsBytes(
@@ -1518,122 +836,12 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([100, 161, 9, 132, 195, 42, 100, 208]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.GroupCustodyChangedV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([76, 130, 107, 121, 57, 127, 72, 199]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.GroupLiquidationV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([244, 148, 141, 125, 103, 10, 245, 8]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.GroupMakerChangedV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([221, 6, 239, 172, 159, 158, 52, 107]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.GroupOracleChangedV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([42, 250, 100, 36, 26, 114, 102, 144]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.GroupOrderChangedV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([138, 119, 145, 131, 103, 201, 226, 217]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.GroupResolutionProgressV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([178, 61, 6, 143, 1, 3, 17, 113]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.GroupRouteExecutedV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([251, 55, 56, 51, 190, 238, 95, 95]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.GroupSafetyChangedV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([36, 102, 222, 145, 192, 150, 20, 41]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.LiquidationApplied;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([88, 64, 64, 174, 240, 198, 130, 26]),
       ),
       0,
     )
   ) {
     return ClearingEvent.LiquidityMakerChanged;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([113, 243, 29, 5, 135, 237, 79, 1]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.LiquidityOracleChanged;
   }
   if (
     containsBytes(
@@ -1661,105 +869,6 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([208, 85, 87, 120, 6, 221, 0, 171]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.MakerChanged;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([64, 70, 28, 91, 96, 157, 199, 224]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.MarginAuthorityChangedV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([210, 155, 171, 115, 156, 90, 164, 200]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.MarginClaimsNettedV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([47, 171, 99, 223, 204, 38, 135, 66]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.MarginOrderChangedV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([10, 252, 13, 34, 170, 212, 83, 91]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.MarginRouteExecutedV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([251, 25, 221, 41, 50, 211, 179, 216]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.OracleObserved;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([159, 192, 209, 208, 211, 229, 147, 199]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.OrderChanged;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([63, 158, 201, 180, 143, 158, 27, 151]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.ProbeRecorded;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([164, 124, 164, 77, 35, 136, 138, 141]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.ResolutionProgress;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([167, 139, 59, 103, 37, 196, 95, 47]),
       ),
       0,
@@ -1767,217 +876,71 @@ export function identifyClearingEvent(
   ) {
     return ClearingEvent.RetiredReserveWithdrawn;
   }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([223, 139, 136, 123, 11, 101, 183, 17]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.RouteExecuted;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([245, 182, 67, 134, 121, 92, 221, 133]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.SettlementChanged;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([108, 25, 154, 69, 185, 245, 237, 196]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingEvent.TestRiskPublished;
-  }
   throw new Error(
     "The provided event could not be identified as a clearing event.",
   );
 }
 
 export enum ClearingInstruction {
-  ActivateAccounts,
-  ActivateCrossGroupV2,
-  ActivateIsolatedGroupV2,
   ActivateLiquidity,
   AdvanceAccountResolution,
-  AdvanceGroupResolutionV2,
-  AdvanceResolution,
-  AllocateGroupFeesV2,
   AllocateMarketFees,
   ApproveLiquidity,
-  ApproveMaker,
-  CancelOrder,
-  CancelProtection,
-  ChangeGroupClaimV2,
   CheckAccountResolutionOrder,
   CheckAccountRetirement,
-  CheckExitCohort,
-  CheckGroupExitV2,
   CheckMarketBacking,
-  ClassifyGroupSurplusV2,
   ClassifyMarketSurplus,
-  ClassifySurplus,
-  CleanupOrders,
   CollectAccountLoss,
-  CollectLoss,
   ConfigureFundingPublisher,
   ControlLiquidity,
   CreatePortfolio,
-  CreatePortfolioV2,
-  Deposit,
   DepositAccount,
-  DepositGroupV2,
-  ExecuteAccountOrder,
-  ExecuteAccountRoute,
-  ExecuteGroupOrderV2,
-  ExecuteGroupRouteV2,
   ExecuteLiquidityOrder,
   ExecuteLiquidityRoute,
-  ExecuteMarginOrderV2,
-  ExecuteMarginRouteV2,
-  ExecuteOrder,
-  ExecuteRoute,
   FinalizeAccountResolutionRates,
   FreezeAccounts,
-  FreezeGroupV2,
-  FreezeMarket,
-  FundInsurance,
-  GroupTradingCashV2,
-  InitializeAccountOracle,
   InitializeAccountResolution,
   InitializeAccountResolutionPage,
   InitializeAccountRetirement,
-  InitializeExitGuard,
   InitializeFundingPublisher,
-  InitializeGroupMarketV2,
-  InitializeGroupOracleV2,
-  InitializeGroupSafetyV2,
-  InitializeGroupV2,
-  InitializeLegacyMarket,
   InitializeLiquidity,
   InitializeLiquidityOracle,
   InitializeLiquidityVenue,
   InitializeMarket,
   InitializeMarketBacking,
-  InitializeOracle,
-  InitializeResolution,
-  InitializeTestRoutes,
-  InitializeVenue,
   InitializeVenueRegistry,
-  Liquidate,
   LiquidateAccount,
-  LiquidateGroupV2,
   ManageAccountOrder,
-  ManageGroupOrderV2,
-  ManageMarginOrderV2,
   NetAccountClaims,
-  NetMarginClaimsV2,
   OrderAccountResolution,
-  PauseGroupCustodyV2,
   PauseVenue,
   PayAccountGain,
-  PlaceOrder,
-  PlaceProtection,
-  PreviewAccountMaker,
-  PreviewGroupMakerV2,
-  PreviewMaker,
-  Probe,
   ProposeAccountResolution,
   PublishFundingReport,
-  PublishTestRisk,
-  QualifyAccountTrading,
   QuarantineLiquidity,
-  QuarantineMaker,
   ReactivateAccounts,
   RecoverAccounts,
-  RecoverGroupResolutionV2,
-  RecoverResolution,
-  RegisterAccountMaker,
-  RegisterGroupMakerV2,
   RegisterLiquidity,
-  RegisterMaker,
   RegisterMargin,
-  RegisterMarginV2,
-  RegisterParticipant,
-  ReplaceOrder,
   ReplenishLiquidity,
   RetireAccounts,
   RoundAccountResolution,
-  SampleAccountOracle,
-  SampleGroupOracleV2,
-  SampleLiquidity,
-  SampleOracle,
   SealLiquidity,
   SeedMarketInsurance,
   SetAccountDelegate,
-  SetCustodyPause,
-  SetMarginDelegateV2,
-  SettleGain,
-  SyncMakerEpoch,
   TransferAccountCustody,
   TransferFundedAccount,
-  TransferGroupCustodyV2,
-  TransferTradingCashV2,
-  UpdateAccountMaker,
-  UpdateGroupMakerV2,
   ValueAccountResolution,
-  Withdraw,
   WithdrawAccountCustody,
   WithdrawFundedAccount,
-  WithdrawGroupCustodyV2,
   WithdrawMarketFees,
   WithdrawRetiredReserve,
-  WithdrawTrading,
 }
 
 export function identifyClearingInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([30, 109, 231, 197, 224, 144, 237, 202]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ActivateAccounts;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([49, 156, 2, 35, 97, 140, 24, 135]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ActivateCrossGroupV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([140, 146, 201, 150, 206, 229, 99, 15]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ActivateIsolatedGroupV2;
-  }
   if (
     containsBytes(
       data,
@@ -1999,39 +962,6 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.AdvanceAccountResolution;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([137, 254, 147, 209, 130, 80, 136, 138]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.AdvanceGroupResolutionV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([112, 155, 208, 72, 177, 155, 63, 181]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.AdvanceResolution;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([209, 166, 216, 237, 209, 208, 254, 13]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.AllocateGroupFeesV2;
   }
   if (
     containsBytes(
@@ -2059,50 +989,6 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([182, 108, 6, 26, 13, 52, 208, 158]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ApproveMaker;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([95, 129, 237, 240, 8, 49, 223, 132]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.CancelOrder;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([237, 169, 181, 11, 241, 193, 117, 4]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.CancelProtection;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([148, 204, 239, 67, 234, 167, 238, 19]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ChangeGroupClaimV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([24, 254, 55, 247, 185, 141, 200, 14]),
       ),
       0,
@@ -2125,45 +1011,12 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([218, 218, 53, 17, 248, 121, 117, 186]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.CheckExitCohort;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([143, 82, 107, 48, 136, 76, 27, 41]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.CheckGroupExitV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([21, 81, 56, 88, 183, 171, 83, 40]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.CheckMarketBacking;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([159, 41, 45, 243, 79, 122, 164, 108]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ClassifyGroupSurplusV2;
   }
   if (
     containsBytes(
@@ -2180,45 +1033,12 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([233, 161, 140, 11, 133, 238, 233, 139]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ClassifySurplus;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([231, 52, 245, 91, 29, 84, 160, 33]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.CleanupOrders;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([233, 57, 152, 62, 151, 36, 207, 224]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.CollectAccountLoss;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([47, 245, 158, 140, 104, 252, 109, 86]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.CollectLoss;
   }
   if (
     containsBytes(
@@ -2257,89 +1077,12 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([103, 138, 79, 66, 241, 26, 122, 144]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.CreatePortfolioV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([242, 35, 198, 137, 82, 225, 242, 182]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.Deposit;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([135, 248, 38, 135, 220, 118, 42, 215]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.DepositAccount;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([185, 254, 189, 240, 223, 190, 24, 198]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.DepositGroupV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([227, 81, 78, 150, 222, 178, 206, 229]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ExecuteAccountOrder;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([19, 140, 42, 107, 134, 174, 49, 183]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ExecuteAccountRoute;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([40, 58, 221, 117, 50, 75, 244, 156]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ExecuteGroupOrderV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([100, 62, 127, 30, 128, 163, 243, 168]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ExecuteGroupRouteV2;
   }
   if (
     containsBytes(
@@ -2367,50 +1110,6 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([54, 118, 150, 186, 35, 159, 30, 221]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ExecuteMarginOrderV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([134, 81, 232, 64, 100, 127, 209, 163]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ExecuteMarginRouteV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([115, 61, 180, 24, 168, 32, 215, 20]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ExecuteOrder;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([246, 14, 81, 121, 140, 237, 86, 23]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ExecuteRoute;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([159, 255, 180, 192, 47, 160, 38, 65]),
       ),
       0,
@@ -2428,61 +1127,6 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.FreezeAccounts;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([128, 106, 151, 57, 243, 152, 7, 239]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.FreezeGroupV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([184, 154, 237, 98, 127, 82, 217, 180]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.FreezeMarket;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([58, 216, 37, 162, 201, 50, 20, 66]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.FundInsurance;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([222, 223, 223, 172, 164, 27, 162, 117]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.GroupTradingCashV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([58, 25, 84, 47, 225, 194, 103, 162]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeAccountOracle;
   }
   if (
     containsBytes(
@@ -2521,78 +1165,12 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([119, 141, 64, 241, 210, 16, 221, 137]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeExitGuard;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([46, 125, 193, 138, 25, 29, 38, 77]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.InitializeFundingPublisher;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([158, 97, 253, 193, 15, 110, 53, 115]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeGroupMarketV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([15, 171, 94, 126, 82, 67, 251, 220]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeGroupOracleV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([238, 144, 153, 254, 11, 114, 255, 232]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeGroupSafetyV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([43, 252, 233, 172, 129, 165, 143, 15]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeGroupV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([35, 35, 189, 193, 155, 48, 170, 203]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeLegacyMarket;
   }
   if (
     containsBytes(
@@ -2653,67 +1231,12 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([144, 223, 131, 120, 196, 253, 181, 99]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeOracle;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([114, 234, 73, 65, 38, 194, 180, 145]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeResolution;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([16, 190, 103, 220, 65, 98, 245, 241]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeTestRoutes;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([184, 183, 92, 124, 237, 161, 136, 192]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.InitializeVenue;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([102, 230, 6, 145, 112, 93, 102, 185]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.InitializeVenueRegistry;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([223, 179, 226, 125, 48, 46, 39, 74]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.Liquidate;
   }
   if (
     containsBytes(
@@ -2730,45 +1253,12 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([41, 162, 84, 38, 191, 217, 216, 209]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.LiquidateGroupV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([222, 137, 80, 44, 228, 144, 103, 165]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.ManageAccountOrder;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([104, 186, 58, 235, 253, 234, 64, 80]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ManageGroupOrderV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([53, 7, 56, 106, 194, 46, 39, 211]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ManageMarginOrderV2;
   }
   if (
     containsBytes(
@@ -2785,34 +1275,12 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([71, 239, 164, 181, 10, 0, 5, 187]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.NetMarginClaimsV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([97, 21, 211, 203, 242, 247, 254, 77]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.OrderAccountResolution;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([229, 193, 43, 194, 24, 28, 38, 22]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.PauseGroupCustodyV2;
   }
   if (
     containsBytes(
@@ -2840,72 +1308,6 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([51, 194, 155, 175, 109, 130, 96, 106]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.PlaceOrder;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([101, 184, 4, 139, 113, 214, 10, 1]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.PlaceProtection;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([4, 9, 219, 208, 111, 237, 103, 157]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.PreviewAccountMaker;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([166, 89, 63, 129, 186, 89, 137, 85]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.PreviewGroupMakerV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([30, 210, 207, 120, 189, 100, 226, 6]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.PreviewMaker;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([9, 126, 79, 73, 106, 229, 245, 221]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.Probe;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([117, 16, 202, 186, 1, 19, 96, 124]),
       ),
       0,
@@ -2928,45 +1330,12 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([46, 208, 112, 198, 93, 161, 13, 246]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.PublishTestRisk;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([198, 106, 71, 214, 196, 62, 118, 65]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.QualifyAccountTrading;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([241, 172, 102, 0, 106, 204, 141, 71]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.QuarantineLiquidity;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([153, 18, 69, 131, 41, 154, 187, 101]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.QuarantineMaker;
   }
   if (
     containsBytes(
@@ -2994,50 +1363,6 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([40, 78, 229, 212, 204, 162, 12, 232]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.RecoverGroupResolutionV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([160, 117, 82, 167, 208, 168, 218, 196]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.RecoverResolution;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([136, 50, 227, 15, 132, 196, 125, 61]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.RegisterAccountMaker;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([116, 244, 112, 118, 126, 48, 174, 34]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.RegisterGroupMakerV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([37, 201, 113, 79, 246, 27, 211, 123]),
       ),
       0,
@@ -3049,56 +1374,12 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([148, 253, 56, 234, 31, 33, 225, 11]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.RegisterMaker;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([18, 5, 57, 115, 223, 186, 54, 240]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.RegisterMargin;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([245, 98, 170, 57, 48, 74, 199, 244]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.RegisterMarginV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([248, 112, 38, 215, 226, 230, 249, 40]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.RegisterParticipant;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([196, 148, 255, 192, 194, 68, 104, 91]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.ReplaceOrder;
   }
   if (
     containsBytes(
@@ -3137,50 +1418,6 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([85, 241, 43, 118, 197, 109, 150, 171]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.SampleAccountOracle;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([52, 201, 124, 89, 140, 29, 104, 145]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.SampleGroupOracleV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([9, 149, 124, 151, 174, 246, 56, 42]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.SampleLiquidity;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([189, 254, 170, 62, 147, 181, 131, 127]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.SampleOracle;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([9, 220, 8, 208, 93, 107, 35, 66]),
       ),
       0,
@@ -3214,50 +1451,6 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([139, 80, 85, 170, 59, 17, 172, 172]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.SetCustodyPause;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([115, 128, 87, 51, 123, 182, 46, 182]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.SetMarginDelegateV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([36, 171, 80, 119, 51, 41, 156, 177]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.SettleGain;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([176, 197, 132, 132, 121, 222, 151, 188]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.SyncMakerEpoch;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([95, 81, 42, 204, 234, 182, 15, 18]),
       ),
       0,
@@ -3280,67 +1473,12 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([246, 64, 34, 6, 176, 113, 45, 11]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.TransferGroupCustodyV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([112, 133, 138, 5, 181, 18, 52, 28]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.TransferTradingCashV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([9, 35, 59, 247, 110, 33, 195, 33]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.UpdateAccountMaker;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([39, 60, 188, 96, 187, 42, 121, 231]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.UpdateGroupMakerV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([139, 215, 4, 127, 183, 174, 98, 189]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.ValueAccountResolution;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([183, 18, 70, 156, 148, 109, 161, 34]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.Withdraw;
   }
   if (
     containsBytes(
@@ -3368,17 +1506,6 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([211, 136, 191, 178, 159, 237, 139, 18]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.WithdrawGroupCustodyV2;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([236, 141, 236, 121, 133, 175, 96, 152]),
       ),
       0,
@@ -3397,17 +1524,6 @@ export function identifyClearingInstruction(
   ) {
     return ClearingInstruction.WithdrawRetiredReserve;
   }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([78, 233, 115, 42, 209, 223, 53, 166]),
-      ),
-      0,
-    )
-  ) {
-    return ClearingInstruction.WithdrawTrading;
-  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "clearing" },
@@ -3418,29 +1534,11 @@ export type ParsedClearingInstruction<
   TProgram extends string = "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
 > =
   | ({
-      instructionType: ClearingInstruction.ActivateAccounts;
-    } & ParsedActivateAccountsInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ActivateCrossGroupV2;
-    } & ParsedActivateCrossGroupV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ActivateIsolatedGroupV2;
-    } & ParsedActivateIsolatedGroupV2Instruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.ActivateLiquidity;
     } & ParsedActivateLiquidityInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.AdvanceAccountResolution;
     } & ParsedAdvanceAccountResolutionInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.AdvanceGroupResolutionV2;
-    } & ParsedAdvanceGroupResolutionV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.AdvanceResolution;
-    } & ParsedAdvanceResolutionInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.AllocateGroupFeesV2;
-    } & ParsedAllocateGroupFeesV2Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.AllocateMarketFees;
     } & ParsedAllocateMarketFeesInstruction<TProgram>)
@@ -3448,50 +1546,20 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ApproveLiquidity;
     } & ParsedApproveLiquidityInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.ApproveMaker;
-    } & ParsedApproveMakerInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.CancelOrder;
-    } & ParsedCancelOrderInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.CancelProtection;
-    } & ParsedCancelProtectionInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ChangeGroupClaimV2;
-    } & ParsedChangeGroupClaimV2Instruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.CheckAccountResolutionOrder;
     } & ParsedCheckAccountResolutionOrderInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.CheckAccountRetirement;
     } & ParsedCheckAccountRetirementInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.CheckExitCohort;
-    } & ParsedCheckExitCohortInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.CheckGroupExitV2;
-    } & ParsedCheckGroupExitV2Instruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.CheckMarketBacking;
     } & ParsedCheckMarketBackingInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ClassifyGroupSurplusV2;
-    } & ParsedClassifyGroupSurplusV2Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ClassifyMarketSurplus;
     } & ParsedClassifyMarketSurplusInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.ClassifySurplus;
-    } & ParsedClassifySurplusInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.CleanupOrders;
-    } & ParsedCleanupOrdersInstruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.CollectAccountLoss;
     } & ParsedCollectAccountLossInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.CollectLoss;
-    } & ParsedCollectLossInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ConfigureFundingPublisher;
     } & ParsedConfigureFundingPublisherInstruction<TProgram>)
@@ -3502,29 +1570,8 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.CreatePortfolio;
     } & ParsedCreatePortfolioInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.CreatePortfolioV2;
-    } & ParsedCreatePortfolioV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.Deposit;
-    } & ParsedDepositInstruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.DepositAccount;
     } & ParsedDepositAccountInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.DepositGroupV2;
-    } & ParsedDepositGroupV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ExecuteAccountOrder;
-    } & ParsedExecuteAccountOrderInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ExecuteAccountRoute;
-    } & ParsedExecuteAccountRouteInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ExecuteGroupOrderV2;
-    } & ParsedExecuteGroupOrderV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ExecuteGroupRouteV2;
-    } & ParsedExecuteGroupRouteV2Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ExecuteLiquidityOrder;
     } & ParsedExecuteLiquidityOrderInstruction<TProgram>)
@@ -3532,38 +1579,11 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ExecuteLiquidityRoute;
     } & ParsedExecuteLiquidityRouteInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.ExecuteMarginOrderV2;
-    } & ParsedExecuteMarginOrderV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ExecuteMarginRouteV2;
-    } & ParsedExecuteMarginRouteV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ExecuteOrder;
-    } & ParsedExecuteOrderInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ExecuteRoute;
-    } & ParsedExecuteRouteInstruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.FinalizeAccountResolutionRates;
     } & ParsedFinalizeAccountResolutionRatesInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.FreezeAccounts;
     } & ParsedFreezeAccountsInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.FreezeGroupV2;
-    } & ParsedFreezeGroupV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.FreezeMarket;
-    } & ParsedFreezeMarketInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.FundInsurance;
-    } & ParsedFundInsuranceInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.GroupTradingCashV2;
-    } & ParsedGroupTradingCashV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.InitializeAccountOracle;
-    } & ParsedInitializeAccountOracleInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.InitializeAccountResolution;
     } & ParsedInitializeAccountResolutionInstruction<TProgram>)
@@ -3574,26 +1594,8 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.InitializeAccountRetirement;
     } & ParsedInitializeAccountRetirementInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.InitializeExitGuard;
-    } & ParsedInitializeExitGuardInstruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.InitializeFundingPublisher;
     } & ParsedInitializeFundingPublisherInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.InitializeGroupMarketV2;
-    } & ParsedInitializeGroupMarketV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.InitializeGroupOracleV2;
-    } & ParsedInitializeGroupOracleV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.InitializeGroupSafetyV2;
-    } & ParsedInitializeGroupSafetyV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.InitializeGroupV2;
-    } & ParsedInitializeGroupV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.InitializeLegacyMarket;
-    } & ParsedInitializeLegacyMarketInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.InitializeLiquidity;
     } & ParsedInitializeLiquidityInstruction<TProgram>)
@@ -3610,50 +1612,20 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.InitializeMarketBacking;
     } & ParsedInitializeMarketBackingInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.InitializeOracle;
-    } & ParsedInitializeOracleInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.InitializeResolution;
-    } & ParsedInitializeResolutionInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.InitializeTestRoutes;
-    } & ParsedInitializeTestRoutesInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.InitializeVenue;
-    } & ParsedInitializeVenueInstruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.InitializeVenueRegistry;
     } & ParsedInitializeVenueRegistryInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.Liquidate;
-    } & ParsedLiquidateInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.LiquidateAccount;
     } & ParsedLiquidateAccountInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.LiquidateGroupV2;
-    } & ParsedLiquidateGroupV2Instruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.ManageAccountOrder;
     } & ParsedManageAccountOrderInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ManageGroupOrderV2;
-    } & ParsedManageGroupOrderV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ManageMarginOrderV2;
-    } & ParsedManageMarginOrderV2Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.NetAccountClaims;
     } & ParsedNetAccountClaimsInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.NetMarginClaimsV2;
-    } & ParsedNetMarginClaimsV2Instruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.OrderAccountResolution;
     } & ParsedOrderAccountResolutionInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.PauseGroupCustodyV2;
-    } & ParsedPauseGroupCustodyV2Instruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.PauseVenue;
     } & ParsedPauseVenueInstruction<TProgram>)
@@ -3661,41 +1633,14 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.PayAccountGain;
     } & ParsedPayAccountGainInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.PlaceOrder;
-    } & ParsedPlaceOrderInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.PlaceProtection;
-    } & ParsedPlaceProtectionInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.PreviewAccountMaker;
-    } & ParsedPreviewAccountMakerInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.PreviewGroupMakerV2;
-    } & ParsedPreviewGroupMakerV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.PreviewMaker;
-    } & ParsedPreviewMakerInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.Probe;
-    } & ParsedProbeInstruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.ProposeAccountResolution;
     } & ParsedProposeAccountResolutionInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.PublishFundingReport;
     } & ParsedPublishFundingReportInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.PublishTestRisk;
-    } & ParsedPublishTestRiskInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.QualifyAccountTrading;
-    } & ParsedQualifyAccountTradingInstruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.QuarantineLiquidity;
     } & ParsedQuarantineLiquidityInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.QuarantineMaker;
-    } & ParsedQuarantineMakerInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ReactivateAccounts;
     } & ParsedReactivateAccountsInstruction<TProgram>)
@@ -3703,35 +1648,11 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.RecoverAccounts;
     } & ParsedRecoverAccountsInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.RecoverGroupResolutionV2;
-    } & ParsedRecoverGroupResolutionV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.RecoverResolution;
-    } & ParsedRecoverResolutionInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.RegisterAccountMaker;
-    } & ParsedRegisterAccountMakerInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.RegisterGroupMakerV2;
-    } & ParsedRegisterGroupMakerV2Instruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.RegisterLiquidity;
     } & ParsedRegisterLiquidityInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.RegisterMaker;
-    } & ParsedRegisterMakerInstruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.RegisterMargin;
     } & ParsedRegisterMarginInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.RegisterMarginV2;
-    } & ParsedRegisterMarginV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.RegisterParticipant;
-    } & ParsedRegisterParticipantInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.ReplaceOrder;
-    } & ParsedReplaceOrderInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ReplenishLiquidity;
     } & ParsedReplenishLiquidityInstruction<TProgram>)
@@ -3742,18 +1663,6 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.RoundAccountResolution;
     } & ParsedRoundAccountResolutionInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.SampleAccountOracle;
-    } & ParsedSampleAccountOracleInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.SampleGroupOracleV2;
-    } & ParsedSampleGroupOracleV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.SampleLiquidity;
-    } & ParsedSampleLiquidityInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.SampleOracle;
-    } & ParsedSampleOracleInstruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.SealLiquidity;
     } & ParsedSealLiquidityInstruction<TProgram>)
   | ({
@@ -3763,41 +1672,14 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.SetAccountDelegate;
     } & ParsedSetAccountDelegateInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.SetCustodyPause;
-    } & ParsedSetCustodyPauseInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.SetMarginDelegateV2;
-    } & ParsedSetMarginDelegateV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.SettleGain;
-    } & ParsedSettleGainInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.SyncMakerEpoch;
-    } & ParsedSyncMakerEpochInstruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.TransferAccountCustody;
     } & ParsedTransferAccountCustodyInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.TransferFundedAccount;
     } & ParsedTransferFundedAccountInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.TransferGroupCustodyV2;
-    } & ParsedTransferGroupCustodyV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.TransferTradingCashV2;
-    } & ParsedTransferTradingCashV2Instruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.UpdateAccountMaker;
-    } & ParsedUpdateAccountMakerInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.UpdateGroupMakerV2;
-    } & ParsedUpdateGroupMakerV2Instruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.ValueAccountResolution;
     } & ParsedValueAccountResolutionInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.Withdraw;
-    } & ParsedWithdrawInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.WithdrawAccountCustody;
     } & ParsedWithdrawAccountCustodyInstruction<TProgram>)
@@ -3805,44 +1687,17 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.WithdrawFundedAccount;
     } & ParsedWithdrawFundedAccountInstruction<TProgram>)
   | ({
-      instructionType: ClearingInstruction.WithdrawGroupCustodyV2;
-    } & ParsedWithdrawGroupCustodyV2Instruction<TProgram>)
-  | ({
       instructionType: ClearingInstruction.WithdrawMarketFees;
     } & ParsedWithdrawMarketFeesInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.WithdrawRetiredReserve;
-    } & ParsedWithdrawRetiredReserveInstruction<TProgram>)
-  | ({
-      instructionType: ClearingInstruction.WithdrawTrading;
-    } & ParsedWithdrawTradingInstruction<TProgram>);
+    } & ParsedWithdrawRetiredReserveInstruction<TProgram>);
 
 export function parseClearingInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClearingInstruction<TProgram> {
   const instructionType = identifyClearingInstruction(instruction);
   switch (instructionType) {
-    case ClearingInstruction.ActivateAccounts: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ActivateAccounts,
-        ...parseActivateAccountsInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.ActivateCrossGroupV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ActivateCrossGroupV2,
-        ...parseActivateCrossGroupV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.ActivateIsolatedGroupV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ActivateIsolatedGroupV2,
-        ...parseActivateIsolatedGroupV2Instruction(instruction),
-      };
-    }
     case ClearingInstruction.ActivateLiquidity: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -3855,27 +1710,6 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.AdvanceAccountResolution,
         ...parseAdvanceAccountResolutionInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.AdvanceGroupResolutionV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.AdvanceGroupResolutionV2,
-        ...parseAdvanceGroupResolutionV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.AdvanceResolution: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.AdvanceResolution,
-        ...parseAdvanceResolutionInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.AllocateGroupFeesV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.AllocateGroupFeesV2,
-        ...parseAllocateGroupFeesV2Instruction(instruction),
       };
     }
     case ClearingInstruction.AllocateMarketFees: {
@@ -3892,34 +1726,6 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseApproveLiquidityInstruction(instruction),
       };
     }
-    case ClearingInstruction.ApproveMaker: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ApproveMaker,
-        ...parseApproveMakerInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.CancelOrder: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.CancelOrder,
-        ...parseCancelOrderInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.CancelProtection: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.CancelProtection,
-        ...parseCancelProtectionInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.ChangeGroupClaimV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ChangeGroupClaimV2,
-        ...parseChangeGroupClaimV2Instruction(instruction),
-      };
-    }
     case ClearingInstruction.CheckAccountResolutionOrder: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -3934,32 +1740,11 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseCheckAccountRetirementInstruction(instruction),
       };
     }
-    case ClearingInstruction.CheckExitCohort: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.CheckExitCohort,
-        ...parseCheckExitCohortInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.CheckGroupExitV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.CheckGroupExitV2,
-        ...parseCheckGroupExitV2Instruction(instruction),
-      };
-    }
     case ClearingInstruction.CheckMarketBacking: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.CheckMarketBacking,
         ...parseCheckMarketBackingInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.ClassifyGroupSurplusV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ClassifyGroupSurplusV2,
-        ...parseClassifyGroupSurplusV2Instruction(instruction),
       };
     }
     case ClearingInstruction.ClassifyMarketSurplus: {
@@ -3969,32 +1754,11 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseClassifyMarketSurplusInstruction(instruction),
       };
     }
-    case ClearingInstruction.ClassifySurplus: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ClassifySurplus,
-        ...parseClassifySurplusInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.CleanupOrders: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.CleanupOrders,
-        ...parseCleanupOrdersInstruction(instruction),
-      };
-    }
     case ClearingInstruction.CollectAccountLoss: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.CollectAccountLoss,
         ...parseCollectAccountLossInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.CollectLoss: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.CollectLoss,
-        ...parseCollectLossInstruction(instruction),
       };
     }
     case ClearingInstruction.ConfigureFundingPublisher: {
@@ -4018,60 +1782,11 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseCreatePortfolioInstruction(instruction),
       };
     }
-    case ClearingInstruction.CreatePortfolioV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.CreatePortfolioV2,
-        ...parseCreatePortfolioV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.Deposit: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.Deposit,
-        ...parseDepositInstruction(instruction),
-      };
-    }
     case ClearingInstruction.DepositAccount: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.DepositAccount,
         ...parseDepositAccountInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.DepositGroupV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.DepositGroupV2,
-        ...parseDepositGroupV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.ExecuteAccountOrder: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ExecuteAccountOrder,
-        ...parseExecuteAccountOrderInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.ExecuteAccountRoute: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ExecuteAccountRoute,
-        ...parseExecuteAccountRouteInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.ExecuteGroupOrderV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ExecuteGroupOrderV2,
-        ...parseExecuteGroupOrderV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.ExecuteGroupRouteV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ExecuteGroupRouteV2,
-        ...parseExecuteGroupRouteV2Instruction(instruction),
       };
     }
     case ClearingInstruction.ExecuteLiquidityOrder: {
@@ -4088,34 +1803,6 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseExecuteLiquidityRouteInstruction(instruction),
       };
     }
-    case ClearingInstruction.ExecuteMarginOrderV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ExecuteMarginOrderV2,
-        ...parseExecuteMarginOrderV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.ExecuteMarginRouteV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ExecuteMarginRouteV2,
-        ...parseExecuteMarginRouteV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.ExecuteOrder: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ExecuteOrder,
-        ...parseExecuteOrderInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.ExecuteRoute: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ExecuteRoute,
-        ...parseExecuteRouteInstruction(instruction),
-      };
-    }
     case ClearingInstruction.FinalizeAccountResolutionRates: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4128,41 +1815,6 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.FreezeAccounts,
         ...parseFreezeAccountsInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.FreezeGroupV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.FreezeGroupV2,
-        ...parseFreezeGroupV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.FreezeMarket: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.FreezeMarket,
-        ...parseFreezeMarketInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.FundInsurance: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.FundInsurance,
-        ...parseFundInsuranceInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.GroupTradingCashV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.GroupTradingCashV2,
-        ...parseGroupTradingCashV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.InitializeAccountOracle: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeAccountOracle,
-        ...parseInitializeAccountOracleInstruction(instruction),
       };
     }
     case ClearingInstruction.InitializeAccountResolution: {
@@ -4186,53 +1838,11 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeAccountRetirementInstruction(instruction),
       };
     }
-    case ClearingInstruction.InitializeExitGuard: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeExitGuard,
-        ...parseInitializeExitGuardInstruction(instruction),
-      };
-    }
     case ClearingInstruction.InitializeFundingPublisher: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.InitializeFundingPublisher,
         ...parseInitializeFundingPublisherInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.InitializeGroupMarketV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeGroupMarketV2,
-        ...parseInitializeGroupMarketV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.InitializeGroupOracleV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeGroupOracleV2,
-        ...parseInitializeGroupOracleV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.InitializeGroupSafetyV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeGroupSafetyV2,
-        ...parseInitializeGroupSafetyV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.InitializeGroupV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeGroupV2,
-        ...parseInitializeGroupV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.InitializeLegacyMarket: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeLegacyMarket,
-        ...parseInitializeLegacyMarketInstruction(instruction),
       };
     }
     case ClearingInstruction.InitializeLiquidity: {
@@ -4270,46 +1880,11 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeMarketBackingInstruction(instruction),
       };
     }
-    case ClearingInstruction.InitializeOracle: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeOracle,
-        ...parseInitializeOracleInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.InitializeResolution: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeResolution,
-        ...parseInitializeResolutionInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.InitializeTestRoutes: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeTestRoutes,
-        ...parseInitializeTestRoutesInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.InitializeVenue: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.InitializeVenue,
-        ...parseInitializeVenueInstruction(instruction),
-      };
-    }
     case ClearingInstruction.InitializeVenueRegistry: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.InitializeVenueRegistry,
         ...parseInitializeVenueRegistryInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.Liquidate: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.Liquidate,
-        ...parseLiquidateInstruction(instruction),
       };
     }
     case ClearingInstruction.LiquidateAccount: {
@@ -4319,32 +1894,11 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseLiquidateAccountInstruction(instruction),
       };
     }
-    case ClearingInstruction.LiquidateGroupV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.LiquidateGroupV2,
-        ...parseLiquidateGroupV2Instruction(instruction),
-      };
-    }
     case ClearingInstruction.ManageAccountOrder: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.ManageAccountOrder,
         ...parseManageAccountOrderInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.ManageGroupOrderV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ManageGroupOrderV2,
-        ...parseManageGroupOrderV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.ManageMarginOrderV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ManageMarginOrderV2,
-        ...parseManageMarginOrderV2Instruction(instruction),
       };
     }
     case ClearingInstruction.NetAccountClaims: {
@@ -4354,25 +1908,11 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseNetAccountClaimsInstruction(instruction),
       };
     }
-    case ClearingInstruction.NetMarginClaimsV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.NetMarginClaimsV2,
-        ...parseNetMarginClaimsV2Instruction(instruction),
-      };
-    }
     case ClearingInstruction.OrderAccountResolution: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.OrderAccountResolution,
         ...parseOrderAccountResolutionInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.PauseGroupCustodyV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.PauseGroupCustodyV2,
-        ...parsePauseGroupCustodyV2Instruction(instruction),
       };
     }
     case ClearingInstruction.PauseVenue: {
@@ -4389,48 +1929,6 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parsePayAccountGainInstruction(instruction),
       };
     }
-    case ClearingInstruction.PlaceOrder: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.PlaceOrder,
-        ...parsePlaceOrderInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.PlaceProtection: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.PlaceProtection,
-        ...parsePlaceProtectionInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.PreviewAccountMaker: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.PreviewAccountMaker,
-        ...parsePreviewAccountMakerInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.PreviewGroupMakerV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.PreviewGroupMakerV2,
-        ...parsePreviewGroupMakerV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.PreviewMaker: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.PreviewMaker,
-        ...parsePreviewMakerInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.Probe: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.Probe,
-        ...parseProbeInstruction(instruction),
-      };
-    }
     case ClearingInstruction.ProposeAccountResolution: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4445,32 +1943,11 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parsePublishFundingReportInstruction(instruction),
       };
     }
-    case ClearingInstruction.PublishTestRisk: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.PublishTestRisk,
-        ...parsePublishTestRiskInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.QualifyAccountTrading: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.QualifyAccountTrading,
-        ...parseQualifyAccountTradingInstruction(instruction),
-      };
-    }
     case ClearingInstruction.QuarantineLiquidity: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.QuarantineLiquidity,
         ...parseQuarantineLiquidityInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.QuarantineMaker: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.QuarantineMaker,
-        ...parseQuarantineMakerInstruction(instruction),
       };
     }
     case ClearingInstruction.ReactivateAccounts: {
@@ -4487,34 +1964,6 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseRecoverAccountsInstruction(instruction),
       };
     }
-    case ClearingInstruction.RecoverGroupResolutionV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.RecoverGroupResolutionV2,
-        ...parseRecoverGroupResolutionV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.RecoverResolution: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.RecoverResolution,
-        ...parseRecoverResolutionInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.RegisterAccountMaker: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.RegisterAccountMaker,
-        ...parseRegisterAccountMakerInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.RegisterGroupMakerV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.RegisterGroupMakerV2,
-        ...parseRegisterGroupMakerV2Instruction(instruction),
-      };
-    }
     case ClearingInstruction.RegisterLiquidity: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4522,39 +1971,11 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseRegisterLiquidityInstruction(instruction),
       };
     }
-    case ClearingInstruction.RegisterMaker: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.RegisterMaker,
-        ...parseRegisterMakerInstruction(instruction),
-      };
-    }
     case ClearingInstruction.RegisterMargin: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.RegisterMargin,
         ...parseRegisterMarginInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.RegisterMarginV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.RegisterMarginV2,
-        ...parseRegisterMarginV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.RegisterParticipant: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.RegisterParticipant,
-        ...parseRegisterParticipantInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.ReplaceOrder: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.ReplaceOrder,
-        ...parseReplaceOrderInstruction(instruction),
       };
     }
     case ClearingInstruction.ReplenishLiquidity: {
@@ -4578,34 +1999,6 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseRoundAccountResolutionInstruction(instruction),
       };
     }
-    case ClearingInstruction.SampleAccountOracle: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.SampleAccountOracle,
-        ...parseSampleAccountOracleInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.SampleGroupOracleV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.SampleGroupOracleV2,
-        ...parseSampleGroupOracleV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.SampleLiquidity: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.SampleLiquidity,
-        ...parseSampleLiquidityInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.SampleOracle: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.SampleOracle,
-        ...parseSampleOracleInstruction(instruction),
-      };
-    }
     case ClearingInstruction.SealLiquidity: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4627,34 +2020,6 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseSetAccountDelegateInstruction(instruction),
       };
     }
-    case ClearingInstruction.SetCustodyPause: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.SetCustodyPause,
-        ...parseSetCustodyPauseInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.SetMarginDelegateV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.SetMarginDelegateV2,
-        ...parseSetMarginDelegateV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.SettleGain: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.SettleGain,
-        ...parseSettleGainInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.SyncMakerEpoch: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.SyncMakerEpoch,
-        ...parseSyncMakerEpochInstruction(instruction),
-      };
-    }
     case ClearingInstruction.TransferAccountCustody: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4669,46 +2034,11 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseTransferFundedAccountInstruction(instruction),
       };
     }
-    case ClearingInstruction.TransferGroupCustodyV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.TransferGroupCustodyV2,
-        ...parseTransferGroupCustodyV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.TransferTradingCashV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.TransferTradingCashV2,
-        ...parseTransferTradingCashV2Instruction(instruction),
-      };
-    }
-    case ClearingInstruction.UpdateAccountMaker: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.UpdateAccountMaker,
-        ...parseUpdateAccountMakerInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.UpdateGroupMakerV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.UpdateGroupMakerV2,
-        ...parseUpdateGroupMakerV2Instruction(instruction),
-      };
-    }
     case ClearingInstruction.ValueAccountResolution: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.ValueAccountResolution,
         ...parseValueAccountResolutionInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.Withdraw: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.Withdraw,
-        ...parseWithdrawInstruction(instruction),
       };
     }
     case ClearingInstruction.WithdrawAccountCustody: {
@@ -4725,13 +2055,6 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseWithdrawFundedAccountInstruction(instruction),
       };
     }
-    case ClearingInstruction.WithdrawGroupCustodyV2: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.WithdrawGroupCustodyV2,
-        ...parseWithdrawGroupCustodyV2Instruction(instruction),
-      };
-    }
     case ClearingInstruction.WithdrawMarketFees: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4744,13 +2067,6 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.WithdrawRetiredReserve,
         ...parseWithdrawRetiredReserveInstruction(instruction),
-      };
-    }
-    case ClearingInstruction.WithdrawTrading: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ClearingInstruction.WithdrawTrading,
-        ...parseWithdrawTradingInstruction(instruction),
       };
     }
     default:
@@ -4773,70 +2089,32 @@ export type ClearingPlugin = {
 export type ClearingPluginAccounts = {
   capitalBinding: ReturnType<typeof getCapitalBindingCodec> &
     SelfFetchFunctions<CapitalBindingArgs, CapitalBinding>;
-  capitalBindingV2: ReturnType<typeof getCapitalBindingV2Codec> &
-    SelfFetchFunctions<CapitalBindingV2Args, CapitalBindingV2>;
-  clearingGroupV2: ReturnType<typeof getClearingGroupV2Codec> &
-    SelfFetchFunctions<ClearingGroupV2Args, ClearingGroupV2>;
   custody: ReturnType<typeof getCustodyCodec> &
     SelfFetchFunctions<CustodyArgs, Custody>;
-  exitGuard: ReturnType<typeof getExitGuardCodec> &
-    SelfFetchFunctions<ExitGuardArgs, ExitGuard>;
-  fixedMakerRegistration: ReturnType<typeof getFixedMakerRegistrationCodec> &
-    SelfFetchFunctions<FixedMakerRegistrationArgs, FixedMakerRegistration>;
   fundingPublisher: ReturnType<typeof getFundingPublisherCodec> &
     SelfFetchFunctions<FundingPublisherArgs, FundingPublisher>;
-  groupExitGuardV2: ReturnType<typeof getGroupExitGuardV2Codec> &
-    SelfFetchFunctions<GroupExitGuardV2Args, GroupExitGuardV2>;
-  groupMarketV2: ReturnType<typeof getGroupMarketV2Codec> &
-    SelfFetchFunctions<GroupMarketV2Args, GroupMarketV2>;
-  groupRegistryV2: ReturnType<typeof getGroupRegistryV2Codec> &
-    SelfFetchFunctions<GroupRegistryV2Args, GroupRegistryV2>;
-  groupResolutionV2: ReturnType<typeof getGroupResolutionV2Codec> &
-    SelfFetchFunctions<GroupResolutionV2Args, GroupResolutionV2>;
-  legacyCapitalBinding: ReturnType<typeof getLegacyCapitalBindingCodec> &
-    SelfFetchFunctions<LegacyCapitalBindingArgs, LegacyCapitalBinding>;
-  legacyMakerRegistration: ReturnType<typeof getLegacyMakerRegistrationCodec> &
-    SelfFetchFunctions<LegacyMakerRegistrationArgs, LegacyMakerRegistration>;
   liquidityRegistry: ReturnType<typeof getLiquidityRegistryCodec> &
     SelfFetchFunctions<LiquidityRegistryArgs, LiquidityRegistry>;
   makerRegistration: ReturnType<typeof getMakerRegistrationCodec> &
     SelfFetchFunctions<MakerRegistrationArgs, MakerRegistration>;
-  makerRegistrationV2: ReturnType<typeof getMakerRegistrationV2Codec> &
-    SelfFetchFunctions<MakerRegistrationV2Args, MakerRegistrationV2>;
   marginAccount: ReturnType<typeof getMarginAccountCodec> &
     SelfFetchFunctions<MarginAccountArgs, MarginAccount>;
-  marginAccountV2: ReturnType<typeof getMarginAccountV2Codec> &
-    SelfFetchFunctions<MarginAccountV2Args, MarginAccountV2>;
   market: ReturnType<typeof getMarketCodec> &
     SelfFetchFunctions<MarketArgs, Market>;
   marketLedger: ReturnType<typeof getMarketLedgerCodec> &
     SelfFetchFunctions<MarketLedgerArgs, MarketLedger>;
-  marketState: ReturnType<typeof getMarketStateCodec> &
-    SelfFetchFunctions<MarketStateArgs, MarketState>;
-  participant: ReturnType<typeof getParticipantCodec> &
-    SelfFetchFunctions<ParticipantArgs, Participant>;
-  participantRegistry: ReturnType<typeof getParticipantRegistryCodec> &
-    SelfFetchFunctions<ParticipantRegistryArgs, ParticipantRegistry>;
   portfolio: ReturnType<typeof getPortfolioCodec> &
     SelfFetchFunctions<PortfolioArgs, Portfolio>;
-  portfolioV2: ReturnType<typeof getPortfolioV2Codec> &
-    SelfFetchFunctions<PortfolioV2Args, PortfolioV2>;
-  probeRecord: ReturnType<typeof getProbeRecordCodec> &
-    SelfFetchFunctions<ProbeRecordArgs, ProbeRecord>;
   resolution: ReturnType<typeof getResolutionCodec> &
     SelfFetchFunctions<ResolutionArgs, Resolution>;
   resolutionPage: ReturnType<typeof getResolutionPageCodec> &
     SelfFetchFunctions<ResolutionPageArgs, ResolutionPage>;
-  resolutionState: ReturnType<typeof getResolutionStateCodec> &
-    SelfFetchFunctions<ResolutionStateArgs, ResolutionState>;
   resolutionWork: ReturnType<typeof getResolutionWorkCodec> &
     SelfFetchFunctions<ResolutionWorkArgs, ResolutionWork>;
   retirementCertificate: ReturnType<typeof getRetirementCertificateCodec> &
     SelfFetchFunctions<RetirementCertificateArgs, RetirementCertificate>;
   settlementCertificate: ReturnType<typeof getSettlementCertificateCodec> &
     SelfFetchFunctions<SettlementCertificateArgs, SettlementCertificate>;
-  testRouteState: ReturnType<typeof getTestRouteStateCodec> &
-    SelfFetchFunctions<TestRouteStateArgs, TestRouteState>;
   venue: ReturnType<typeof getVenueCodec> &
     SelfFetchFunctions<VenueArgs, Venue>;
   venueRegistry: ReturnType<typeof getVenueRegistryCodec> &
@@ -4846,21 +2124,6 @@ export type ClearingPluginAccounts = {
 };
 
 export type ClearingPluginInstructions = {
-  activateAccounts: (
-    input: ActivateAccountsAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getActivateAccountsInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  activateCrossGroupV2: (
-    input: ActivateCrossGroupV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getActivateCrossGroupV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  activateIsolatedGroupV2: (
-    input: ActivateIsolatedGroupV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getActivateIsolatedGroupV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
   activateLiquidity: (
     input: ActivateLiquidityAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -4870,21 +2133,6 @@ export type ClearingPluginInstructions = {
     input: AdvanceAccountResolutionAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getAdvanceAccountResolutionInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  advanceGroupResolutionV2: (
-    input: AdvanceGroupResolutionV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getAdvanceGroupResolutionV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  advanceResolution: (
-    input: AdvanceResolutionAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getAdvanceResolutionInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  allocateGroupFeesV2: (
-    input: AllocateGroupFeesV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getAllocateGroupFeesV2InstructionAsync> &
     SelfPlanAndSendFunctions;
   allocateMarketFees: (
     input: AllocateMarketFeesAsyncInput,
@@ -4896,26 +2144,6 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getApproveLiquidityInstructionAsync> &
     SelfPlanAndSendFunctions;
-  approveMaker: (
-    input: ApproveMakerAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getApproveMakerInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  cancelOrder: (
-    input: CancelOrderAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getCancelOrderInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  cancelProtection: (
-    input: CancelProtectionAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getCancelProtectionInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  changeGroupClaimV2: (
-    input: ChangeGroupClaimV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getChangeGroupClaimV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
   checkAccountResolutionOrder: (
     input: CheckAccountResolutionOrderAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -4926,50 +2154,20 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCheckAccountRetirementInstructionAsync> &
     SelfPlanAndSendFunctions;
-  checkExitCohort: (
-    input: CheckExitCohortAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getCheckExitCohortInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  checkGroupExitV2: (
-    input: CheckGroupExitV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getCheckGroupExitV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
   checkMarketBacking: (
     input: CheckMarketBackingAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCheckMarketBackingInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  classifyGroupSurplusV2: (
-    input: ClassifyGroupSurplusV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getClassifyGroupSurplusV2InstructionAsync> &
     SelfPlanAndSendFunctions;
   classifyMarketSurplus: (
     input: ClassifyMarketSurplusAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getClassifyMarketSurplusInstructionAsync> &
     SelfPlanAndSendFunctions;
-  classifySurplus: (
-    input: ClassifySurplusAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getClassifySurplusInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  cleanupOrders: (
-    input: CleanupOrdersAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getCleanupOrdersInstructionAsync> &
-    SelfPlanAndSendFunctions;
   collectAccountLoss: (
     input: CollectAccountLossAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCollectAccountLossInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  collectLoss: (
-    input: CollectLossAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getCollectLossInstructionAsync> &
     SelfPlanAndSendFunctions;
   configureFundingPublisher: (
     input: ConfigureFundingPublisherAsyncInput,
@@ -4986,44 +2184,10 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCreatePortfolioInstructionAsync> &
     SelfPlanAndSendFunctions;
-  createPortfolioV2: (
-    input: CreatePortfolioV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getCreatePortfolioV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  deposit: (
-    input: DepositAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getDepositInstructionAsync> & SelfPlanAndSendFunctions;
   depositAccount: (
     input: DepositAccountAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getDepositAccountInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  depositGroupV2: (
-    input: DepositGroupV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getDepositGroupV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  executeAccountOrder: (
-    input: ExecuteAccountOrderAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getExecuteAccountOrderInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  executeAccountRoute: (
-    input: ExecuteAccountRouteAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getExecuteAccountRouteInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  executeGroupOrderV2: (
-    input: ExecuteGroupOrderV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getExecuteGroupOrderV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  executeGroupRouteV2: (
-    input: ExecuteGroupRouteV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getExecuteGroupRouteV2InstructionAsync> &
     SelfPlanAndSendFunctions;
   executeLiquidityOrder: (
     input: ExecuteLiquidityOrderAsyncInput,
@@ -5035,26 +2199,6 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getExecuteLiquidityRouteInstructionAsync> &
     SelfPlanAndSendFunctions;
-  executeMarginOrderV2: (
-    input: ExecuteMarginOrderV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getExecuteMarginOrderV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  executeMarginRouteV2: (
-    input: ExecuteMarginRouteV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getExecuteMarginRouteV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  executeOrder: (
-    input: ExecuteOrderAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getExecuteOrderInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  executeRoute: (
-    input: ExecuteRouteAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getExecuteRouteInstructionAsync> &
-    SelfPlanAndSendFunctions;
   finalizeAccountResolutionRates: (
     input: FinalizeAccountResolutionRatesAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5064,31 +2208,6 @@ export type ClearingPluginInstructions = {
     input: FreezeAccountsAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getFreezeAccountsInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  freezeGroupV2: (
-    input: FreezeGroupV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getFreezeGroupV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  freezeMarket: (
-    input: FreezeMarketAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getFreezeMarketInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  fundInsurance: (
-    input: FundInsuranceAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getFundInsuranceInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  groupTradingCashV2: (
-    input: GroupTradingCashV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getGroupTradingCashV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  initializeAccountOracle: (
-    input: InitializeAccountOracleAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeAccountOracleInstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeAccountResolution: (
     input: MakeOptional<InitializeAccountResolutionAsyncInput, "payer">,
@@ -5105,40 +2224,10 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeAccountRetirementInstructionAsync> &
     SelfPlanAndSendFunctions;
-  initializeExitGuard: (
-    input: MakeOptional<InitializeExitGuardAsyncInput, "payer">,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeExitGuardInstructionAsync> &
-    SelfPlanAndSendFunctions;
   initializeFundingPublisher: (
     input: InitializeFundingPublisherAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeFundingPublisherInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  initializeGroupMarketV2: (
-    input: InitializeGroupMarketV2Input,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeGroupMarketV2Instruction> &
-    SelfPlanAndSendFunctions;
-  initializeGroupOracleV2: (
-    input: InitializeGroupOracleV2Input,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeGroupOracleV2Instruction> &
-    SelfPlanAndSendFunctions;
-  initializeGroupSafetyV2: (
-    input: InitializeGroupSafetyV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeGroupSafetyV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  initializeGroupV2: (
-    input: InitializeGroupV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeGroupV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  initializeLegacyMarket: (
-    input: InitializeLegacyMarketAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeLegacyMarketInstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeLiquidity: (
     input: InitializeLiquidityAsyncInput,
@@ -5165,80 +2254,30 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeMarketBackingInstructionAsync> &
     SelfPlanAndSendFunctions;
-  initializeOracle: (
-    input: InitializeOracleAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeOracleInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  initializeResolution: (
-    input: InitializeResolutionAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeResolutionInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  initializeTestRoutes: (
-    input: InitializeTestRoutesAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeTestRoutesInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  initializeVenue: (
-    input: InitializeVenueAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getInitializeVenueInstructionAsync> &
-    SelfPlanAndSendFunctions;
   initializeVenueRegistry: (
     input: InitializeVenueRegistryAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeVenueRegistryInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  liquidate: (
-    input: LiquidateAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getLiquidateInstructionAsync> &
     SelfPlanAndSendFunctions;
   liquidateAccount: (
     input: LiquidateAccountAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getLiquidateAccountInstructionAsync> &
     SelfPlanAndSendFunctions;
-  liquidateGroupV2: (
-    input: LiquidateGroupV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getLiquidateGroupV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
   manageAccountOrder: (
     input: ManageAccountOrderAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getManageAccountOrderInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  manageGroupOrderV2: (
-    input: ManageGroupOrderV2Input,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getManageGroupOrderV2Instruction> &
-    SelfPlanAndSendFunctions;
-  manageMarginOrderV2: (
-    input: ManageMarginOrderV2Input,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getManageMarginOrderV2Instruction> &
     SelfPlanAndSendFunctions;
   netAccountClaims: (
     input: NetAccountClaimsAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getNetAccountClaimsInstructionAsync> &
     SelfPlanAndSendFunctions;
-  netMarginClaimsV2: (
-    input: NetMarginClaimsV2Input,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getNetMarginClaimsV2Instruction> &
-    SelfPlanAndSendFunctions;
   orderAccountResolution: (
     input: OrderAccountResolutionAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getOrderAccountResolutionInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  pauseGroupCustodyV2: (
-    input: PauseGroupCustodyV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getPauseGroupCustodyV2InstructionAsync> &
     SelfPlanAndSendFunctions;
   pauseVenue: (
     input: PauseVenueAsyncInput,
@@ -5250,35 +2289,6 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getPayAccountGainInstructionAsync> &
     SelfPlanAndSendFunctions;
-  placeOrder: (
-    input: PlaceOrderAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getPlaceOrderInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  placeProtection: (
-    input: PlaceProtectionAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getPlaceProtectionInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  previewAccountMaker: (
-    input: PreviewAccountMakerAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getPreviewAccountMakerInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  previewGroupMakerV2: (
-    input: PreviewGroupMakerV2Input,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getPreviewGroupMakerV2Instruction> &
-    SelfPlanAndSendFunctions;
-  previewMaker: (
-    input: PreviewMakerAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getPreviewMakerInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  probe: (
-    input: ProbeAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getProbeInstructionAsync> & SelfPlanAndSendFunctions;
   proposeAccountResolution: (
     input: ProposeAccountResolutionAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5289,25 +2299,10 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getPublishFundingReportInstructionAsync> &
     SelfPlanAndSendFunctions;
-  publishTestRisk: (
-    input: PublishTestRiskAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getPublishTestRiskInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  qualifyAccountTrading: (
-    input: QualifyAccountTradingAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getQualifyAccountTradingInstructionAsync> &
-    SelfPlanAndSendFunctions;
   quarantineLiquidity: (
     input: QuarantineLiquidityAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getQuarantineLiquidityInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  quarantineMaker: (
-    input: QuarantineMakerAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getQuarantineMakerInstructionAsync> &
     SelfPlanAndSendFunctions;
   reactivateAccounts: (
     input: ReactivateAccountsAsyncInput,
@@ -5319,55 +2314,15 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRecoverAccountsInstructionAsync> &
     SelfPlanAndSendFunctions;
-  recoverGroupResolutionV2: (
-    input: RecoverGroupResolutionV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getRecoverGroupResolutionV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  recoverResolution: (
-    input: RecoverResolutionAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getRecoverResolutionInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  registerAccountMaker: (
-    input: RegisterAccountMakerAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getRegisterAccountMakerInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  registerGroupMakerV2: (
-    input: RegisterGroupMakerV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getRegisterGroupMakerV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
   registerLiquidity: (
     input: RegisterLiquidityAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRegisterLiquidityInstructionAsync> &
     SelfPlanAndSendFunctions;
-  registerMaker: (
-    input: RegisterMakerAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getRegisterMakerInstructionAsync> &
-    SelfPlanAndSendFunctions;
   registerMargin: (
     input: RegisterMarginAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRegisterMarginInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  registerMarginV2: (
-    input: RegisterMarginV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getRegisterMarginV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  registerParticipant: (
-    input: RegisterParticipantAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getRegisterParticipantInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  replaceOrder: (
-    input: ReplaceOrderAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getReplaceOrderInstructionAsync> &
     SelfPlanAndSendFunctions;
   replenishLiquidity: (
     input: ReplenishLiquidityAsyncInput,
@@ -5384,26 +2339,6 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRoundAccountResolutionInstructionAsync> &
     SelfPlanAndSendFunctions;
-  sampleAccountOracle: (
-    input: SampleAccountOracleAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getSampleAccountOracleInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  sampleGroupOracleV2: (
-    input: SampleGroupOracleV2Input,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getSampleGroupOracleV2Instruction> &
-    SelfPlanAndSendFunctions;
-  sampleLiquidity: (
-    input: MakeOptional<SampleLiquidityAsyncInput, "payer">,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getSampleLiquidityInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  sampleOracle: (
-    input: SampleOracleAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getSampleOracleInstructionAsync> &
-    SelfPlanAndSendFunctions;
   sealLiquidity: (
     input: SealLiquidityAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5419,26 +2354,6 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSetAccountDelegateInstructionAsync> &
     SelfPlanAndSendFunctions;
-  setCustodyPause: (
-    input: SetCustodyPauseAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getSetCustodyPauseInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  setMarginDelegateV2: (
-    input: SetMarginDelegateV2Input,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getSetMarginDelegateV2Instruction> &
-    SelfPlanAndSendFunctions;
-  settleGain: (
-    input: SettleGainAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getSettleGainInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  syncMakerEpoch: (
-    input: SyncMakerEpochAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getSyncMakerEpochInstructionAsync> &
-    SelfPlanAndSendFunctions;
   transferAccountCustody: (
     input: TransferAccountCustodyAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5449,35 +2364,10 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getTransferFundedAccountInstructionAsync> &
     SelfPlanAndSendFunctions;
-  transferGroupCustodyV2: (
-    input: TransferGroupCustodyV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getTransferGroupCustodyV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  transferTradingCashV2: (
-    input: TransferTradingCashV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getTransferTradingCashV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
-  updateAccountMaker: (
-    input: UpdateAccountMakerAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getUpdateAccountMakerInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  updateGroupMakerV2: (
-    input: UpdateGroupMakerV2Input,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getUpdateGroupMakerV2Instruction> &
-    SelfPlanAndSendFunctions;
   valueAccountResolution: (
     input: ValueAccountResolutionAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getValueAccountResolutionInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  withdraw: (
-    input: WithdrawAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getWithdrawInstructionAsync> &
     SelfPlanAndSendFunctions;
   withdrawAccountCustody: (
     input: WithdrawAccountCustodyAsyncInput,
@@ -5489,11 +2379,6 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getWithdrawFundedAccountInstructionAsync> &
     SelfPlanAndSendFunctions;
-  withdrawGroupCustodyV2: (
-    input: WithdrawGroupCustodyV2AsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getWithdrawGroupCustodyV2InstructionAsync> &
-    SelfPlanAndSendFunctions;
   withdrawMarketFees: (
     input: WithdrawMarketFeesAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5504,11 +2389,6 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getWithdrawRetiredReserveInstructionAsync> &
     SelfPlanAndSendFunctions;
-  withdrawTrading: (
-    input: WithdrawTradingAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getWithdrawTradingInstructionAsync> &
-    SelfPlanAndSendFunctions;
 };
 
 export type ClearingPluginPdas = {
@@ -5517,40 +2397,21 @@ export type ClearingPluginPdas = {
   btcLedger: typeof findBtcLedgerPda;
   ethLedger: typeof findEthLedgerPda;
   venueVault: typeof findVenueVaultPda;
-  groupExitGuard: typeof findGroupExitGuardPda;
-  groupResolution: typeof findGroupResolutionPda;
-  classifyGroupSurplusV2Vault: typeof findClassifyGroupSurplusV2VaultPda;
-  initializeGroupV2Registry: typeof findInitializeGroupV2RegistryPda;
-  legacyMarket: typeof findLegacyMarketPda;
-  routeState: typeof findRouteStatePda;
-  registry: typeof findRegistryPda;
-  resolution: typeof findResolutionPda;
-  vault: typeof findVaultPda;
   liquidityController: typeof findLiquidityControllerPda;
   makerEventAuthority: typeof findMakerEventAuthorityPda;
-  capital: typeof findCapitalPda;
-  guard: typeof findGuardPda;
   venueRegistry: typeof findVenueRegistryPda;
   fundingPublisher: typeof findFundingPublisherPda;
   portfolio: typeof findPortfolioPda;
-  groupPortfolio: typeof findGroupPortfolioPda;
   marketLedger: typeof findMarketLedgerPda;
   otherMarketLedger: typeof findOtherMarketLedgerPda;
-  initializeAccountResolutionResolution: typeof findInitializeAccountResolutionResolutionPda;
+  resolution: typeof findResolutionPda;
   work: typeof findWorkPda;
   page: typeof findPagePda;
   certificate: typeof findCertificatePda;
   liquidityRegistry: typeof findLiquidityRegistryPda;
-  group: typeof findGroupPda;
   venue: typeof findVenuePda;
-  receiver: typeof findReceiverPda;
-  receiverBinding: typeof findReceiverBindingPda;
-  record: typeof findRecordPda;
   capitalBinding: typeof findCapitalBindingPda;
-  groupBinding: typeof findGroupBindingPda;
-  binding: typeof findBindingPda;
   marginAccount: typeof findMarginAccountPda;
-  margin: typeof findMarginPda;
 };
 
 export type ClearingPluginRequirements = ClientWithRpc<
@@ -5573,44 +2434,10 @@ export function clearingProgram(
             client,
             getCapitalBindingCodec(),
           ),
-          capitalBindingV2: addSelfFetchFunctions(
-            client,
-            getCapitalBindingV2Codec(),
-          ),
-          clearingGroupV2: addSelfFetchFunctions(
-            client,
-            getClearingGroupV2Codec(),
-          ),
           custody: addSelfFetchFunctions(client, getCustodyCodec()),
-          exitGuard: addSelfFetchFunctions(client, getExitGuardCodec()),
-          fixedMakerRegistration: addSelfFetchFunctions(
-            client,
-            getFixedMakerRegistrationCodec(),
-          ),
           fundingPublisher: addSelfFetchFunctions(
             client,
             getFundingPublisherCodec(),
-          ),
-          groupExitGuardV2: addSelfFetchFunctions(
-            client,
-            getGroupExitGuardV2Codec(),
-          ),
-          groupMarketV2: addSelfFetchFunctions(client, getGroupMarketV2Codec()),
-          groupRegistryV2: addSelfFetchFunctions(
-            client,
-            getGroupRegistryV2Codec(),
-          ),
-          groupResolutionV2: addSelfFetchFunctions(
-            client,
-            getGroupResolutionV2Codec(),
-          ),
-          legacyCapitalBinding: addSelfFetchFunctions(
-            client,
-            getLegacyCapitalBindingCodec(),
-          ),
-          legacyMakerRegistration: addSelfFetchFunctions(
-            client,
-            getLegacyMakerRegistrationCodec(),
           ),
           liquidityRegistry: addSelfFetchFunctions(
             client,
@@ -5620,34 +2447,14 @@ export function clearingProgram(
             client,
             getMakerRegistrationCodec(),
           ),
-          makerRegistrationV2: addSelfFetchFunctions(
-            client,
-            getMakerRegistrationV2Codec(),
-          ),
           marginAccount: addSelfFetchFunctions(client, getMarginAccountCodec()),
-          marginAccountV2: addSelfFetchFunctions(
-            client,
-            getMarginAccountV2Codec(),
-          ),
           market: addSelfFetchFunctions(client, getMarketCodec()),
           marketLedger: addSelfFetchFunctions(client, getMarketLedgerCodec()),
-          marketState: addSelfFetchFunctions(client, getMarketStateCodec()),
-          participant: addSelfFetchFunctions(client, getParticipantCodec()),
-          participantRegistry: addSelfFetchFunctions(
-            client,
-            getParticipantRegistryCodec(),
-          ),
           portfolio: addSelfFetchFunctions(client, getPortfolioCodec()),
-          portfolioV2: addSelfFetchFunctions(client, getPortfolioV2Codec()),
-          probeRecord: addSelfFetchFunctions(client, getProbeRecordCodec()),
           resolution: addSelfFetchFunctions(client, getResolutionCodec()),
           resolutionPage: addSelfFetchFunctions(
             client,
             getResolutionPageCodec(),
-          ),
-          resolutionState: addSelfFetchFunctions(
-            client,
-            getResolutionStateCodec(),
           ),
           resolutionWork: addSelfFetchFunctions(
             client,
@@ -5661,39 +2468,11 @@ export function clearingProgram(
             client,
             getSettlementCertificateCodec(),
           ),
-          testRouteState: addSelfFetchFunctions(
-            client,
-            getTestRouteStateCodec(),
-          ),
           venue: addSelfFetchFunctions(client, getVenueCodec()),
           venueRegistry: addSelfFetchFunctions(client, getVenueRegistryCodec()),
           venueSafety: addSelfFetchFunctions(client, getVenueSafetyCodec()),
         },
         instructions: {
-          activateAccounts: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getActivateAccountsInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          activateCrossGroupV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getActivateCrossGroupV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          activateIsolatedGroupV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getActivateIsolatedGroupV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           activateLiquidity: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -5706,30 +2485,6 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getAdvanceAccountResolutionInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          advanceGroupResolutionV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getAdvanceGroupResolutionV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          advanceResolution: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getAdvanceResolutionInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          allocateGroupFeesV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getAllocateGroupFeesV2InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -5750,38 +2505,6 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          approveMaker: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getApproveMakerInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          cancelOrder: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCancelOrderInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          cancelProtection: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCancelProtectionInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          changeGroupClaimV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getChangeGroupClaimV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           checkAccountResolutionOrder: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -5798,34 +2521,10 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          checkExitCohort: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCheckExitCohortInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          checkGroupExitV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCheckGroupExitV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           checkMarketBacking: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getCheckMarketBackingInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          classifyGroupSurplusV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getClassifyGroupSurplusV2InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -5838,34 +2537,10 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          classifySurplus: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getClassifySurplusInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          cleanupOrders: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCleanupOrdersInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           collectAccountLoss: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getCollectAccountLossInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          collectLoss: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCollectLossInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -5894,66 +2569,10 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          createPortfolioV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCreatePortfolioV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          deposit: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getDepositInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           depositAccount: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getDepositAccountInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          depositGroupV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getDepositGroupV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          executeAccountOrder: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getExecuteAccountOrderInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          executeAccountRoute: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getExecuteAccountRouteInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          executeGroupOrderV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getExecuteGroupOrderV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          executeGroupRouteV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getExecuteGroupRouteV2InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -5974,38 +2593,6 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          executeMarginOrderV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getExecuteMarginOrderV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          executeMarginRouteV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getExecuteMarginRouteV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          executeOrder: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getExecuteOrderInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          executeRoute: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getExecuteRouteInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           finalizeAccountResolutionRates: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6018,46 +2605,6 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getFreezeAccountsInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          freezeGroupV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getFreezeGroupV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          freezeMarket: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getFreezeMarketInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          fundInsurance: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getFundInsuranceInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          groupTradingCashV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getGroupTradingCashV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeAccountOracle: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeAccountOracleInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6095,61 +2642,10 @@ export function clearingProgram(
                 },
               ),
             ),
-          initializeExitGuard: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeExitGuardInstructionAsync(
-                { ...input, payer: input.payer ?? client.payer },
-                {
-                  programAddress:
-                    instructionConfig?.programAddress ?? config.programAddress,
-                },
-              ),
-            ),
           initializeFundingPublisher: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getInitializeFundingPublisherInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeGroupMarketV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeGroupMarketV2Instruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeGroupOracleV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeGroupOracleV2Instruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeGroupSafetyV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeGroupSafetyV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeGroupV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeGroupV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeLegacyMarket: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeLegacyMarketInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6197,50 +2693,10 @@ export function clearingProgram(
                 },
               ),
             ),
-          initializeOracle: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeOracleInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeResolution: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeResolutionInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeTestRoutes: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeTestRoutesInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          initializeVenue: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeVenueInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           initializeVenueRegistry: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getInitializeVenueRegistryInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          liquidate: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getLiquidateInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6253,34 +2709,10 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          liquidateGroupV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getLiquidateGroupV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           manageAccountOrder: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getManageAccountOrderInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          manageGroupOrderV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getManageGroupOrderV2Instruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          manageMarginOrderV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getManageMarginOrderV2Instruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6293,26 +2725,10 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          netMarginClaimsV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getNetMarginClaimsV2Instruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           orderAccountResolution: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getOrderAccountResolutionInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          pauseGroupCustodyV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPauseGroupCustodyV2InstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6333,54 +2749,6 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          placeOrder: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPlaceOrderInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          placeProtection: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPlaceProtectionInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          previewAccountMaker: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPreviewAccountMakerInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          previewGroupMakerV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPreviewGroupMakerV2Instruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          previewMaker: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPreviewMakerInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          probe: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getProbeInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           proposeAccountResolution: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6397,34 +2765,10 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          publishTestRisk: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPublishTestRiskInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          qualifyAccountTrading: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getQualifyAccountTradingInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           quarantineLiquidity: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getQuarantineLiquidityInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          quarantineMaker: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getQuarantineMakerInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6445,38 +2789,6 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          recoverGroupResolutionV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getRecoverGroupResolutionV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          recoverResolution: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getRecoverResolutionInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          registerAccountMaker: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getRegisterAccountMakerInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          registerGroupMakerV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getRegisterGroupMakerV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           registerLiquidity: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6485,42 +2797,10 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          registerMaker: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getRegisterMakerInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           registerMargin: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getRegisterMarginInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          registerMarginV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getRegisterMarginV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          registerParticipant: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getRegisterParticipantInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          replaceOrder: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getReplaceOrderInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6549,41 +2829,6 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          sampleAccountOracle: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSampleAccountOracleInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          sampleGroupOracleV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSampleGroupOracleV2Instruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          sampleLiquidity: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSampleLiquidityInstructionAsync(
-                { ...input, payer: input.payer ?? client.payer },
-                {
-                  programAddress:
-                    instructionConfig?.programAddress ?? config.programAddress,
-                },
-              ),
-            ),
-          sampleOracle: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSampleOracleInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           sealLiquidity: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6608,38 +2853,6 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          setCustodyPause: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetCustodyPauseInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          setMarginDelegateV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetMarginDelegateV2Instruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          settleGain: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSettleGainInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          syncMakerEpoch: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSyncMakerEpochInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           transferAccountCustody: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6656,50 +2869,10 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          transferGroupCustodyV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getTransferGroupCustodyV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          transferTradingCashV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getTransferTradingCashV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          updateAccountMaker: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getUpdateAccountMakerInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          updateGroupMakerV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getUpdateGroupMakerV2Instruction(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           valueAccountResolution: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getValueAccountResolutionInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          withdraw: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getWithdrawInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6720,14 +2893,6 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
-          withdrawGroupCustodyV2: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getWithdrawGroupCustodyV2InstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           withdrawMarketFees: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6740,14 +2905,6 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getWithdrawRetiredReserveInstructionAsync(input, {
-                programAddress:
-                  instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          withdrawTrading: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getWithdrawTradingInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6779,51 +2936,6 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          groupExitGuard: (seeds, pdaConfig) =>
-            findGroupExitGuardPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          groupResolution: (seeds, pdaConfig) =>
-            findGroupResolutionPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          classifyGroupSurplusV2Vault: (seeds, pdaConfig) =>
-            findClassifyGroupSurplusV2VaultPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          initializeGroupV2Registry: (seeds, pdaConfig) =>
-            findInitializeGroupV2RegistryPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          legacyMarket: (pdaConfig) =>
-            findLegacyMarketPda({
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          routeState: (seeds, pdaConfig) =>
-            findRouteStatePda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          registry: (seeds, pdaConfig) =>
-            findRegistryPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          resolution: (seeds, pdaConfig) =>
-            findResolutionPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          vault: (seeds, pdaConfig) =>
-            findVaultPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
           liquidityController: (seeds, pdaConfig) =>
             findLiquidityControllerPda(seeds, {
               programAddress:
@@ -6831,16 +2943,6 @@ export function clearingProgram(
             }),
           makerEventAuthority: (pdaConfig) =>
             findMakerEventAuthorityPda({
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          capital: (seeds, pdaConfig) =>
-            findCapitalPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          guard: (seeds, pdaConfig) =>
-            findGuardPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
@@ -6859,11 +2961,6 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          groupPortfolio: (seeds, pdaConfig) =>
-            findGroupPortfolioPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
           marketLedger: (seeds, pdaConfig) =>
             findMarketLedgerPda(seeds, {
               programAddress:
@@ -6874,8 +2971,8 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          initializeAccountResolutionResolution: (seeds, pdaConfig) =>
-            findInitializeAccountResolutionResolutionPda(seeds, {
+          resolution: (seeds, pdaConfig) =>
+            findResolutionPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
@@ -6899,28 +2996,8 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          group: (seeds, pdaConfig) =>
-            findGroupPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
           venue: (seeds, pdaConfig) =>
             findVenuePda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          receiver: (seeds, pdaConfig) =>
-            findReceiverPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          receiverBinding: (seeds, pdaConfig) =>
-            findReceiverBindingPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          record: (seeds, pdaConfig) =>
-            findRecordPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
@@ -6929,23 +3006,8 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          groupBinding: (seeds, pdaConfig) =>
-            findGroupBindingPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          binding: (seeds, pdaConfig) =>
-            findBindingPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
           marginAccount: (seeds, pdaConfig) =>
             findMarginAccountPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          margin: (seeds, pdaConfig) =>
-            findMarginPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

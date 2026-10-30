@@ -7,15 +7,6 @@
  */
 
 export * from "./controlCurve.js";
-export * from "./initializeAccountConfig.js";
-export * from "./initializeConfig.js";
 export * from "./initializeCurve.js";
-export * from "./initializeGroupConfig.js";
-export * from "./publishAccountEpoch.js";
-export * from "./publishEpoch.js";
-export * from "./publishGroupEpoch.js";
-export * from "./quote.js";
-export * from "./quoteAccount.js";
 export * from "./quoteCurve.js";
-export * from "./quoteGroup.js";
 export * from "./reprice.js";

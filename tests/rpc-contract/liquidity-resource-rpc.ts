@@ -87,7 +87,7 @@ try {
       const terms = { side: isLong ? 1 : 0, lots: isLong ? 2n : 1n, limit: isLong ? 54_000n : 66_000n,
         feeBudget: isLong ? 40n : 20n, startSlot: slot, expirySlot: slot + 2000n,
         reduceOnly: true, generation: position.generation };
-      const operation: sdk.GroupOrderActionArgs = bookVariant === 'protected' ? { __kind: 'Protect', expectedId: root.book.lastOrderId + 1n,
+      const operation: sdk.OrderActionArgs = bookVariant === 'protected' ? { __kind: 'Protect', expectedId: root.book.lastOrderId + 1n,
         takeProfit: { ...terms, trigger: isLong ? 1 : 2, threshold: isLong ? 70_000n : 50_000n },
         stopLoss: { ...terms, trigger: isLong ? 2 : 1, threshold: isLong ? 50_000n : 70_000n } }
         : { __kind: 'Place', expectedId: root.book.lastOrderId + 1n,

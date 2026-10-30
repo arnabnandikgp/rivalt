@@ -2,7 +2,7 @@
 
 ## Implementation boundary
 
-`readLiquidityTradeSnapshot` discovers the selected market's three sealed
+`readAccountTradeSnapshot` discovers the selected market's three sealed
 registrations, then reads immutable root identities. One final `getMultipleAccounts`
 batch contains custody, vault/mint, safety, both markets/ledgers, Clock, the selected
 root, all three isolated maker capitals and their portfolios, unique capital

@@ -27,7 +27,7 @@ try {
     const marketIndex = (maker.market === fixture.markets[0] ? 0 : 1) as 0|1;
     for (const side of [0,1] as const) {
       await maker.publish(fixture.owner,10_000n);
-      const snapshot = await sdk.readLiquidityTradeSnapshot(reader,identity,maker.capital,marketIndex);
+      const snapshot = await sdk.readAccountTradeSnapshot(reader,identity,maker.capital,marketIndex);
       assert.equal(snapshot.venueState.profileVersion,4);
       assert.equal(snapshot.safetyState.mode,0);
       assert.equal(snapshot.liquidity?.adapters.length,3);
@@ -56,7 +56,7 @@ try {
     trackedDirty: execFileSync('git',['status','--porcelain','--untracked-files=no'],{ encoding: 'utf8' }).trim() !== '',
     runtime: await rpc.call('getVersion'),genesis: await rpc.call('getGenesisHash'),largestBatch,
     binaries: Object.fromEntries(['clearing','maker_a','maker_b'].map(name => [name,
-      createHash('sha256').update(readFileSync(`.local/canonical-maker/${name}.so`)).digest('hex')])),
+      createHash('sha256').update(readFileSync(`.local/liquidity-execution/${name}.so`)).digest('hex')])),
     checks,observations,financialTradingActivated: false,wsNotifications: ws.notifications.length };
   writeFileSync(`${runDir}/summary.json`,serialize(summary));
   console.log(`P31: ${observations.length} authenticated exact quote comparisons; ${checks.length} signed RPC/WS outcomes.`);

@@ -28,9 +28,6 @@ export function deriveMarginAccount(portfolio:Address,index:number,programAddres
 export function deriveMarketLedger(market:Address,programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
   return derive('ledger-v3',[encoder.encode(market)],programAddress);
 }
-export function deriveFixedMakerRegistration(market:Address,index:number,programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
-  return derive('maker-v3',[encoder.encode(market),accountIndexBytes(index,1).slice(0,1)],programAddress);
-}
 export function findResolutionPagePda(venue:Address,index:number,programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
   return derive('resolution-page-v3',[encoder.encode(venue),accountIndexBytes(index,31)],programAddress);
 }

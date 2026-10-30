@@ -32,7 +32,7 @@ export function canonical(value:unknown):unknown {
 export function accountLiveParity(directory:string,accounts:{program:string;name:string;bytes:string}[],eventBytes:string[]) {
   const file=`${directory}/legacy-input.json`;
   writeFileSync(file,JSON.stringify({accounts,events:eventBytes.map(bytes=>({program:'clearing',bytes}))}));
-  const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/group-trading.cjs',file],{encoding:'utf8'}));
+  const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/wire.cjs',file],{encoding:'utf8'}));
   for(const [index,account] of accounts.entries()) {
     const api=account.program==='clearing'?sdk:account.program==='maker_a'?sdk.makerA:sdk.makerB;
     const name=account.name[0].toUpperCase()+account.name.slice(1);

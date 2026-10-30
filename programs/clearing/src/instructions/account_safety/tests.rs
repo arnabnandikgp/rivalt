@@ -1,6 +1,6 @@
 //! Literal economic expectations against the V3 adapter used by the handler.
 use super::*;
-use crate::state::{v2::Position, OracleState};
+use crate::state::{OracleState, Position};
 use financial_core::SCALE;
 
 fn root(id: u16, cash: u64) -> MarginAccount {

@@ -1,6 +1,6 @@
 import { marginBalanceView, marginOrderRemaining, type MarginFinancialRoot, type MarginFinancialMarket, type MarginSourceMode } from './margin-balance.js';
 import { orderTriggered } from './order-policy.js';
-import type { MarginRouteIntent } from './margin-allocation.js';
+import type { MarginRouteIntent } from './route-intent.js';
 import { requireValue } from './wallet-client.js';
 
 const SCALE = 1_000_000_000n;

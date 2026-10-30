@@ -4,7 +4,7 @@ import * as sdk from '@rivalt/sdk';
 /** A successful action must advance this monotone stamp. Unchanged finalized
  * state proves no economic success only after finalized blockhash expiry; it
  * never proves an unseen failed transaction paid no fee. */
-export type AccountAuthority={kind:'accountStateVersion'|'accountMakerEpoch'|'accountObservation';venue:string;account:string;value:string};
+export type AccountAuthority={kind:'accountStateVersion'|'accountObservation';venue:string;account:string;value:string};
 export async function accountAuthorityValue(authority:AccountAuthority,bytes:Buffer):Promise<bigint> {
   const venue=address(authority.venue),key=address(authority.account);
   const tagged=(discriminator:ArrayLike<number>,size:number)=>{
@@ -15,12 +15,6 @@ export async function accountAuthorityValue(authority:AccountAuthority,bytes:Buf
     const [canonical,bump]=await sdk.deriveMarginAccount(root.portfolio,root.subaccountIndex);
     if(root.schemaVersion!==3||root.venue!==venue||canonical!==key||root.bump!==bump)throw new Error('Account root authority binding');
     return root.stateVersion;
-  }
-  if(authority.kind==='accountMakerEpoch') {
-    tagged(sdk.FIXED_MAKER_REGISTRATION_DISCRIMINATOR,sdk.getFixedMakerRegistrationSize());const registration=sdk.getFixedMakerRegistrationDecoder().decode(bytes);
-    const [market]=await sdk.deriveAccountMarket(venue,registration.marketIndex),[canonical,bump]=await sdk.deriveFixedMakerRegistration(market,registration.makerId);
-    if(registration.schemaVersion!==3||registration.venue!==venue||registration.market!==market||canonical!==key||registration.bump!==bump)throw new Error('Account maker authority binding');
-    return registration.quoteEpoch;
   }
   if(authority.kind==='accountObservation') {
     tagged(sdk.MARKET_DISCRIMINATOR,sdk.getMarketSize());const market=sdk.getMarketDecoder().decode(bytes);

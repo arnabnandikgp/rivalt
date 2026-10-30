@@ -1,7 +1,6 @@
 //! Fresh profile-4 maker lifecycle. P30 permits custody/configuration only; all
 //! active trading/funding/default integration remains disabled until P32 acceptance.
 use super::account_custody::increment;
-use super::account_trading::makers::module_hash;
 use crate::constants::makers::{MAKER_A, MAKER_B};
 use crate::state::liquidity::{LiquidityRegistryPayload, MakerRegistrationPayload};
 use crate::{
@@ -27,13 +26,12 @@ pub(crate) mod pricing;
 // the published-liquidity sampler does not compile or invoke these checks.
 #[cfg(test)]
 pub(crate) mod admission;
+pub(crate) mod funding;
+pub mod publisher;
 #[cfg(test)]
 mod reservations;
-pub(crate) mod impact;
-pub(crate) mod funding;
-pub mod sampling;
-pub mod publisher;
 pub mod routes;
+pub mod sampling;
 
 #[cfg(test)]
 mod tests;

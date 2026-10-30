@@ -59,7 +59,7 @@ test('account cash preserves isolated Anchor bytes and every optional certificat
       return {program:entry.program,name:entry.name.replace(/_([a-z])/g,(_,letter)=>letter.toUpperCase()),args:entry.args.map(tagged),accounts:resolved};
     });
     const file=join(directory,'input.json');writeFileSync(file,JSON.stringify(input));
-    const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/group-trading.cjs',file],{encoding:'utf8'}));
+    const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/wire.cjs',file],{encoding:'utf8'}));
     assert.equal(legacy.length,cases.length);
     for(const [index,result] of legacy.entries()){
       assert.equal(result.data,Buffer.from(cases[index].instruction.data!).toString('hex'),cases[index].name);

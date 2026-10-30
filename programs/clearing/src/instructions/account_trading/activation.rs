@@ -30,14 +30,6 @@ pub struct QualifyAccountTrading<'info> {
     pub vault: Box<Account<'info, TokenAccount>>,
 }
 
-pub fn qualify(ctx: Context<QualifyAccountTrading>) -> Result<()> {
-    require!(
-        ctx.remaining_accounts.is_empty() && !cfg!(feature = "account-safety-qualification"),
-        ClearingError::Profile
-    );
-    transition(ctx.accounts)
-}
-
 #[derive(Accounts)]
 pub struct ActivateAccounts<'info> {
     pub qualification: QualifyAccountTrading<'info>,
@@ -59,15 +51,6 @@ fn storage_ready(header: &Resolution, safety: &VenueSafety) -> Result<()> {
     Ok(())
 }
 
-pub fn activate(ctx: Context<ActivateAccounts>) -> Result<()> {
-    require!(
-        ctx.remaining_accounts.is_empty() && TRADING_IMPLEMENTED,
-        ClearingError::Profile
-    );
-    storage_ready(&ctx.accounts.resolution, &ctx.accounts.qualification.safety)?;
-    transition(&mut ctx.accounts.qualification)
-}
-
 /// Candidate-only profile4 activation. Shared safety storage and oracle recovery
 /// remain mandatory; the historical profile3 entrypoint cannot activate it.
 pub fn activate_liquidity(ctx: Context<ActivateAccounts>) -> Result<()> {
@@ -81,13 +64,8 @@ pub fn activate_liquidity(ctx: Context<ActivateAccounts>) -> Result<()> {
     transition_accounts(&mut ctx.accounts.qualification)
 }
 
-fn transition(accounts: &mut QualifyAccountTrading) -> Result<()> {
-    profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
-    transition_accounts(accounts)
-}
-
 fn transition_accounts(accounts: &mut QualifyAccountTrading) -> Result<()> {
-    financial_base_profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
+    base_profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
     require!(!accounts.safety.paused, ClearingError::Paused);
     require!(
         accounts.safety.mode == CUSTODY && accounts.safety.resolution_epoch == 0,
@@ -137,30 +115,39 @@ mod tests {
     use super::*;
 
     #[test]
-    fn financial_profile_gate_keeps_legacy_routes_and_non_candidate_builds_separate() {
+    fn current_activation_rejects_retired_profiles_pauses_and_nontrading_modes() {
         let mut venue = Venue {
-            schema_version: 3, profile_version: 4, market_count: 2,
-            insurance_fee_share_bps: 2500, ..Default::default()
+            schema_version: 3,
+            profile_version: 4,
+            market_count: 2,
+            insurance_fee_share_bps: 2500,
+            ..Default::default()
         };
-        let custody = Custody { schema_version: 3, ..Default::default() };
-        let mut safety = VenueSafety { schema_version: 3, mode: ACTIVE, ..Default::default() };
-        assert!(base_profile(&venue, &custody, &safety).is_err());
-        assert!(activated(&venue, &custody, &safety).is_err());
-        assert_eq!(financial_activated(&venue, &custody, &safety).is_ok(), cfg!(feature = "liquidity-execution-qualification"));
+        let custody = Custody {
+            schema_version: 3,
+            ..Default::default()
+        };
+        let mut safety = VenueSafety {
+            schema_version: 3,
+            mode: ACTIVE,
+            ..Default::default()
+        };
+        assert_eq!(
+            activated(&venue, &custody, &safety).is_ok(),
+            cfg!(feature = "liquidity-execution-qualification")
+        );
         for mode in [CUSTODY, FROZEN, RESOLVED, RETIRED] {
             safety.mode = mode;
-            assert!(financial_activated(&venue, &custody, &safety).is_err());
+            assert!(activated(&venue, &custody, &safety).is_err());
         }
         safety.mode = ACTIVE;
         safety.paused = true;
-        assert!(financial_activated(&venue, &custody, &safety).is_err());
+        assert!(activated(&venue, &custody, &safety).is_err());
         safety.paused = false;
-        for version in [0, 1, 2, 5] {
+        for version in [0, 1, 2, 3, 5] {
             venue.profile_version = version;
-            assert!(financial_activated(&venue, &custody, &safety).is_err());
+            assert!(activated(&venue, &custody, &safety).is_err());
         }
-        venue.profile_version = 3;
-        assert_eq!(activated(&venue, &custody, &safety).is_ok(), cfg!(feature = "account-trading-qualification"));
     }
 
     #[test]

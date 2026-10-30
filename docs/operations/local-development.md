@@ -47,7 +47,7 @@ Select the affected command; this list is not a mandatory sequential test suite.
 Run from the repository root with `source ops/env.sh`.
 
 ```sh
-bash ops/build-liquidity-execution.sh
+bash ops/build.sh
 pnpm typecheck
 pnpm generate:check
 bash ops/funding-publisher-smoke.sh
@@ -66,11 +66,12 @@ does not download a browser. `pnpm build:trader` builds the UI. Integrated wrapp
 provision signed real accounts and SPL transfers, start actual services/PG and stop
 only owned processes. Fixtures do not fabricate fills or settlements.
 
-## Earlier interactive demo
+## Interactive local demo
 
-`bash ops/demo.sh start|status|stop|reset` is the existing profile-3 demo, not yet
-the canonical profile-4 launcher. It needs qualified `.local/account-safety/`
-artifacts and frozen dependencies. Open `http://127.0.0.1:18083`, select **Rivalt
+`bash ops/demo.sh start|status|stop|reset` launches the same current canonical
+profile as the SDK and services. It needs qualified `.local/liquidity-execution/`
+artifacts and frozen dependencies; [STATUS](../STATUS.md) records the current
+launcher's acceptance checkpoint. Open `http://127.0.0.1:18083`, select **Rivalt
 Local Demo**, get test funds, create portfolio/cross or isolated account, deposit,
 trade BTC/ETH, place/cancel existing-position TP/SL, close and withdraw admissible
 cash. Fixed synthetic prices demonstrate placement, not triggered-stop execution.
@@ -97,7 +98,7 @@ never delete active PostgreSQL files, user research, key material or acceptance
 captures as an automatic cleanup. Reuse a stopped owned qualification cluster with
 `RIVALT_PG_REUSE_DIR` when the wrapper supports it; preserve fsync/WAL durability.
 
-`pnpm smoke` remains the broad historical matrix, not a default current PR check.
-Earlier launchers/feature profiles remain until P37 consumer retirement; historical
-reproduction instructions are pinned in [HISTORY](../HISTORY.md). Do not point an
+`pnpm smoke` explicitly runs the broad current integration matrix on already built
+artifacts; it is not a default PR check. Earlier launchers/feature profiles are
+retired; reproduction uses the immutable baseline in [HISTORY](../HISTORY.md). Do not point an
 old suite at new accounts or claim its results validate a new implementation.

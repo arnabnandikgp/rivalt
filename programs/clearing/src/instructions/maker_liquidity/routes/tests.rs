@@ -125,7 +125,7 @@ fn fill(
         financial_quote(&canonical_quote(1, 60_005), &markets[0], &clock()),
     ];
     candidates::candidate_for_version(
-        &v2::ClearingGroupV2::default(),
+        &Venue::default(),
         &*root_view(root)?,
         &[*root_view(&makers[0])?, *root_view(&makers[1])?],
         &quotes,
@@ -191,7 +191,7 @@ fn canonical_fill_rejects_unfunded_second_maker_and_every_signed_price_fee_limit
 #[test]
 fn canonical_execution_accrues_the_entire_cross_account_before_admission() {
     let mut trader = trader(22_012);
-    trader.positions[1] = v2::Position {
+    trader.positions[1] = crate::state::Position {
         lots: 2,
         virtual_scaled: -60_000 * SCALE,
         generation: 1,
@@ -332,9 +332,9 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
     let mut root = candidates::manage_candidate(
         &initial,
         &placement_environment,
-        candidates::GroupOrderAction::Place {
+        candidates::OrderAction::Place {
             expected_id: 1,
-            terms: crate::instructions::orders::OrderTerms {
+            terms: crate::instructions::types::OrderTerms {
                 side: 0,
                 lots: 2,
                 limit: 61_000,
@@ -360,7 +360,7 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
         ];
         let environment = environment(&market_views, 0, &clock()).unwrap();
         let (intent, index) = candidates::stored_intent(
-            &v2::ClearingGroupV2::default(),
+            &Venue::default(),
             &market_views[0],
             &root,
             OrderExecution {
@@ -378,7 +378,7 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
         .unwrap();
         let quote = financial_quote(&canonical_quote(0, gross), &markets[0], &clock());
         let next = candidates::candidate_for_version(
-            &v2::ClearingGroupV2::default(),
+            &Venue::default(),
             &root,
             &[maker],
             &[quote],
@@ -485,10 +485,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         order_id: 113,
         order_version: 114,
         root_states: roots.iter().map(MarginAccountSnapshot::from).collect(),
-        maker_states: makers
-            .iter()
-            .map(MakerRegistrationPayload::from)
-            .collect(),
+        maker_states: makers.iter().map(MakerRegistrationPayload::from).collect(),
         total_cash: 115,
         liability_versions: [116, 117],
         legs: legs.to_vec(),

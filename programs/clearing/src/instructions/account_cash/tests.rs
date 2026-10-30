@@ -11,7 +11,7 @@ fn root(cash: u64, claims: [i128; 2]) -> MarginAccount {
         owner: Pubkey::new_from_array([1; 32]),
         delegate_epoch: 1,
         cash,
-        positions: claims.map(|virtual_scaled| v2::Position {
+        positions: claims.map(|virtual_scaled| crate::state::Position {
             virtual_scaled,
             ..Default::default()
         }),

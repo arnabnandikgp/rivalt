@@ -45,8 +45,8 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
-  findInitializeAccountResolutionResolutionPda,
   findPagePda,
+  findResolutionPda,
   findVenueSafetyPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
@@ -280,16 +280,15 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
     );
   }
   if (!accounts.resolution.value) {
-    accounts.resolution.value =
-      await findInitializeAccountResolutionResolutionPda(
-        {
-          venue: getAddressFromResolvedInstructionAccount(
-            "venue",
-            accounts.venue.value,
-          ),
-        },
-        { programAddress },
-      );
+    accounts.resolution.value = await findResolutionPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
   }
   if (!accounts.page.value) {
     accounts.page.value = await findPagePda(

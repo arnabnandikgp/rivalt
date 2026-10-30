@@ -52,7 +52,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
     try {
       // Frozen continuation has no invented expiry proof. Unknown originals hold
       // the budget; history/reconciliation must resolve them before any new wire.
-      await runtime.enqueue(`risk:${id}`,[resolution?sdk.resolutionComputeBudget():sdk.groupRouteComputeBudget(),instruction],key,budget,authority,true);
+      await runtime.enqueue(`risk:${id}`,[resolution?sdk.resolutionComputeBudget():sdk.liquidationComputeBudget(),instruction],key,budget,authority,true);
       return true;
     } catch(error) {if(error instanceof Error&&error.message==='Risk action presently unavailable')return false;throw error;}
   };

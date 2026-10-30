@@ -44,16 +44,7 @@ try {
   const unchangedKeys = [...makerKeys, fixture.markets[0], configuration, fixture.custody];
   const readAll = (keys = unchangedKeys) => Promise.all(keys.map(h.read));
   const beforeDisabled = await readAll();
-  await h.send('disabled legacy sampler cannot bypass publisher', [sdk.getSampleLiquidityInstruction({
-    ...fixture.common, payer: fixture.payer, market: fixture.markets[0], registry: makers[0].liquidityRegistry,
-    primaryAsset: sources[0].feed, primaryCollateral: sources[1].feed, guardAsset: sources[2].feed, guardCollateral: sources[3].feed,
-    firstCapital: makers[0].capital, firstRegistration: makers[0].registration, firstProgram: makers[0].pricingProgram,
-    firstProgramData: makers[0].controlCommon.programData, firstConfig: makers[0].config, firstPrice: makers[0].price,
-    secondCapital: makers[1].capital, secondRegistration: makers[1].registration, secondProgram: makers[1].pricingProgram,
-    secondProgramData: makers[1].controlCommon.programData, secondConfig: makers[1].config, secondPrice: makers[1].price,
-    thirdCapital: makers[2].capital, thirdRegistration: makers[2].registration, thirdProgram: makers[2].pricingProgram,
-    thirdProgramData: makers[2].controlCommon.programData, thirdConfig: makers[2].config, thirdPrice: makers[2].price,
-  })], [], sdk.CLEARING_ERROR__FUNDING_REPORT);
+  await h.send('retired sampler discriminator cannot bypass publisher', [{programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data:Buffer.from([9,149,124,151,174,246,56,42])}], [], 101);
   assert.deepEqual(await readAll(), beforeDisabled);
   const observations: unknown[] = [];
   let publisher = fixture.updater;

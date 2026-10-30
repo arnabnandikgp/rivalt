@@ -11,7 +11,7 @@ pub(crate) fn feed_indexes(market: u8) -> Result<[usize; 4]> {
     }
 }
 
-pub(crate) fn effective(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Result<i128> {
+pub(crate) fn effective(mode: u8, market: &Market, clock: &Clock) -> Result<i128> {
     let observation = &market.oracle;
     if !matches!(mode, 1 | 2)
         || observation.held_epoch != market.config_epoch
@@ -31,7 +31,7 @@ pub(crate) fn effective(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Resu
     ))
 }
 
-pub(crate) fn materialize(mode: u8, market: &mut GroupMarketV2, clock: &Clock) -> Result<()> {
+pub(crate) fn materialize(mode: u8, market: &mut Market, clock: &Clock) -> Result<()> {
     market.funding_index_scaled = effective(mode, market, clock)?;
     let observation = &market.oracle;
     if matches!(mode, 1 | 2)
@@ -46,7 +46,7 @@ pub(crate) fn materialize(mode: u8, market: &mut GroupMarketV2, clock: &Clock) -
     Ok(())
 }
 
-pub(crate) fn action(market: &GroupMarketV2, clock: &Clock, increase: bool) -> Result<()> {
+pub(crate) fn action(market: &Market, clock: &Clock, increase: bool) -> Result<()> {
     let observation = &market.oracle;
     require!(
         clock.slot >= market.valid_from
@@ -70,12 +70,12 @@ pub(crate) fn action(market: &GroupMarketV2, clock: &Clock, increase: bool) -> R
 /// Pure causal transition used by the authenticated handler and independent golden tests.
 pub(crate) fn sample_candidate(
     mode: u8,
-    market: &GroupMarketV2,
+    market: &Market,
     clock: &Clock,
     bounds: Option<policy::Bounds>,
     sequences: [u64; 4],
     impact: Option<(u64, u64, u64, u64)>,
-) -> Result<GroupMarketV2> {
+) -> Result<Market> {
     let old = market.oracle;
     let now = clock.unix_timestamp;
     require!(
@@ -182,7 +182,7 @@ pub(crate) fn sample_candidate(
     next.oracle = observation;
     Ok(next)
 }
-pub(crate) fn reset_oracle(market: &mut GroupMarketV2, now: i64, skipped: u64) -> Result<()> {
+pub(crate) fn reset_oracle(market: &mut Market, now: i64, skipped: u64) -> Result<()> {
     let previous = market.oracle;
     market.oracle = crate::state::OracleState {
         sources: previous.sources,
@@ -200,7 +200,7 @@ pub(crate) fn reset_oracle(market: &mut GroupMarketV2, now: i64, skipped: u64) -
     Ok(())
 }
 
-pub(crate) fn funding_bounds(mode: u8, market: &GroupMarketV2, clock: &Clock) -> Result<[i128; 2]> {
+pub(crate) fn funding_bounds(mode: u8, market: &Market, clock: &Clock) -> Result<[i128; 2]> {
     let current = effective(mode, market, clock)?;
     let mut end = current;
     let observation = &market.oracle;
@@ -222,18 +222,14 @@ pub(crate) fn funding_bounds(mode: u8, market: &GroupMarketV2, clock: &Clock) ->
     Ok([current.min(end), current.max(end)])
 }
 fn source(
-    market: &mut GroupMarketV2,
+    market: &mut Market,
     infos: [&AccountInfo; 4],
     now: i64,
 ) -> Result<Option<policy::Bounds>> {
     let mut values = [None; 4];
     for (position, feed) in feed_indexes(market.index)?.into_iter().enumerate() {
-        crate::instructions::oracle::binding(
-            infos[position],
-            market.oracle.sources[position],
-            feed,
-        )?;
-        if let Ok((value, sequence)) = crate::instructions::oracle::source(
+        crate::engine::sources::binding(infos[position], market.oracle.sources[position], feed)?;
+        if let Ok((value, sequence)) = crate::engine::sources::source(
             infos[position],
             market.oracle.sources[position],
             feed,
@@ -257,8 +253,8 @@ fn source(
 }
 
 pub(crate) fn sources(
-    btc: &mut GroupMarketV2,
-    eth: &mut GroupMarketV2,
+    btc: &mut Market,
+    eth: &mut Market,
     infos: [&AccountInfo; 6],
     now: i64,
 ) -> Result<[Option<policy::Bounds>; 2]> {
@@ -268,7 +264,7 @@ pub(crate) fn sources(
     ])
 }
 
-pub(crate) fn freeze_coverage(market: &mut GroupMarketV2, now: i64) -> Result<()> {
+pub(crate) fn freeze_coverage(market: &mut Market, now: i64) -> Result<()> {
     let observation = &mut market.oracle;
     if observation.sampled_at == 0 {
         return Ok(());

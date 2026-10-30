@@ -6,11 +6,11 @@ import type { AccountTraderConfig } from './types.js';
 import { useAccountVenue } from './useAccountVenue.js';
 import { accountLabel } from './model.js';
 import {
-  GROUP_MARKETS,
-  groupOrderPrice,
-  groupOrderTerms,
-  groupQuantity,
-} from '../group/model.js';
+  MARKETS,
+  orderPrice,
+  orderTerms,
+  parseQuantity,
+} from '../shared/model.js';
 
 const zero = address('11111111111111111111111111111111');
 const abs = (value: bigint) => (value < 0n ? -value : value);
@@ -59,7 +59,7 @@ export function useAccountController(config: AccountTraderConfig) {
     [slLimit, setSlLimit] = useState('58000');
   const [delegate, setDelegate] = useState(''),
     [delegateSlots, setDelegateSlots] = useState('1200');
-  const selectedMarket = GROUP_MARKETS[marketIndex];
+  const selectedMarket = MARKETS[marketIndex];
   const view = root && snapshot ? venue.client.balance(snapshot, margin!) : undefined;
   const disabled = Boolean(venue.busy) || !venue.canSign || Boolean(venue.rpcError);
   const financialDisabled =
@@ -169,7 +169,7 @@ export function useAccountController(config: AccountTraderConfig) {
   const trade = () =>
     prepare(`${side === 0 ? 'Buy' : 'Sell'} ${selectedMarket.name}`, async (state, owner) => {
       currentRoot(state, owner);
-      const lots = groupQuantity(quantity, marketIndex);
+      const lots = parseQuantity(quantity, marketIndex);
       const pricing=await venue.client.tradeSnapshot(margin!,marketIndex);
       if(config.version===4) {
         const source=sdk.accountSourceMode(pricing.safetyState,pricing.marketStates[marketIndex],pricing.now,pricing.slot);
@@ -195,7 +195,7 @@ export function useAccountController(config: AccountTraderConfig) {
           `${side === 0 ? 'Spend' : 'Receive'} ${fixed(quote.allocation.allIn)} test USD including the venue fee.`,
           ...quote.allocation.legs.map(
             (leg) =>
-              `${'instance' in leg?`Maker instance ${leg.instance} (${leg.registration.slice(0,8)})`:`Maker ${leg.makerId === 0 ? 'A' : 'B'}`}: ${fixed(leg.lots, selectedMarket.decimals)} ${selectedMarket.name}.`,
+              `Maker instance ${leg.instance} (${leg.registration.slice(0,8)}): ${fixed(leg.lots, selectedMarket.decimals)} ${selectedMarket.name}.`,
           ),
           `Quote expires at slot ${quote.expirySlot}. All submitted legs execute atomically.`,
         ],
@@ -209,17 +209,17 @@ export function useAccountController(config: AccountTraderConfig) {
   ) => {
     const position = account.positions[marketIndex];
     const orderTrigger = protection?.trigger ?? trigger;
-    return groupOrderTerms(
+    return orderTerms(
       {
         side: protection ? (position.lots > 0n ? 1 : 0) : side,
-        lots: groupQuantity(quantity, marketIndex),
-        limit: groupOrderPrice(protection?.limit ?? limit, marketIndex),
+        lots: parseQuantity(quantity, marketIndex),
+        limit: orderPrice(protection?.limit ?? limit, marketIndex),
         feeBudget: units(fee, 6, 'Lifetime fee budget'),
         startSlot: state.slot,
         expirySlot: state.slot + integer(expiry, 'Expiry slots', 216_000n),
         trigger: orderTrigger,
         threshold: orderTrigger
-          ? groupOrderPrice(protection?.threshold ?? threshold, marketIndex, true)
+          ? orderPrice(protection?.threshold ?? threshold, marketIndex, true)
           : 0n,
         reduceOnly: protection ? true : reduceOnly,
       },
@@ -241,12 +241,12 @@ export function useAccountController(config: AccountTraderConfig) {
       )
         throw new Error('The selected live order changed.');
       const operation = existing
-        ? sdk.groupOrderAction('Replace', {
+        ? sdk.orderAction('Replace', {
             id: existing.order.id,
             version: existing.order.version,
             terms: terms(state, account, existing.order),
           })
-        : sdk.groupOrderAction('Place', {
+        : sdk.orderAction('Place', {
             expectedId: account.book.lastOrderId + 1n,
             terms: terms(state, account),
           });
@@ -267,11 +267,11 @@ export function useAccountController(config: AccountTraderConfig) {
     prepare(`Protect ${selectedMarket.name}`, async (state, owner) => {
       const account = currentRoot(state, owner),
         position = account.positions[marketIndex],
-        lots = groupQuantity(quantity, marketIndex);
+        lots = parseQuantity(quantity, marketIndex);
       if (position.lots === 0n || lots > abs(position.lots))
         throw new Error('TP/SL must protect at most this existing position.');
       const long = position.lots > 0n;
-      const operation = sdk.groupOrderAction('Protect', {
+      const operation = sdk.orderAction('Protect', {
         expectedId: account.book.lastOrderId + 1n,
         takeProfit: terms(state, account, undefined, {
           trigger: long ? 1 : 2,
@@ -302,7 +302,7 @@ export function useAccountController(config: AccountTraderConfig) {
     )?.order;
     if (!previous) return;
     const decimal = (value: bigint, decimals: number) => fixed(value, decimals).replaceAll(',', '');
-    const price = (value: bigint) => decimal(value * GROUP_MARKETS[marketIndex].lotsPerUnit, 6);
+    const price = (value: bigint) => decimal(value * MARKETS[marketIndex].lotsPerUnit, 6);
     setSide(previous.side as 0 | 1);
     setReduceOnly(previous.reduceOnly);
     setQuantity(decimal(previous.lots, selectedMarket.decimals));

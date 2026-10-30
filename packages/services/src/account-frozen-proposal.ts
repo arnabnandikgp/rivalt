@@ -9,8 +9,8 @@ import {proposeAccountRates,type AccountRateInputs} from './account-rate-proposa
 /** Current canonical frozen pages, not projected or retained acceptance data.
  * One final batch includes header/registry/safety and the complete <=32 pages.
  * The service's environment additionally authenticates genesis/anchor/artifacts. */
-export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:3|4=3) {
-  assert(expectedProfile===3||expectedProfile===4,'Unsupported frozen proposal profile.');
+export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:4=4) {
+  assert(expectedProfile===4,'Unsupported frozen proposal profile.');
   const component=(name:Parameters<typeof sdk.deriveVenueComponent>[1])=>sdk.deriveVenueComponent(venue,name);
   const [[resolution,resolutionBump],[safety,safetyBump],[registry,registryBump]]=await Promise.all([component('resolution'),component('safety'),component('registry')]);
   const decode=<Value>(account:any,discriminator:ReadonlyUint8Array,decoder:Decoder<Value>&{fixedSize?:number})=>{

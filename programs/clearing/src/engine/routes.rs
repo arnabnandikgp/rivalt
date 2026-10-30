@@ -1,10 +1,27 @@
 //! Atomic route and stored-order candidates; no account writes or token CPI.
 use super::*;
 use crate::instructions::{OrderExecution, OrderTerms, RouteIntent};
-use maker_interface::QuoteResponse;
+// Internal execution admission values after canonical quote authentication.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ExecutionQuote {
+    pub version: u16,
+    pub maker_id: u8,
+    pub side: u8,
+    pub lots: u64,
+    pub gross_quote: u64,
+    pub remaining: u64,
+    pub quote_epoch: u64,
+    pub authority_epoch: u64,
+    pub terms_epoch: u64,
+    pub market_config_epoch: u64,
+    pub start_slot: u64,
+    pub expiry_slot: u64,
+    pub consumed_before: u64,
+    pub reference_price: u64,
+}
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub enum GroupOrderAction {
+pub enum OrderAction {
     Place {
         expected_id: u64,
         terms: OrderTerms,
@@ -31,19 +48,19 @@ pub enum GroupOrderAction {
 /// and relevant source actions before using this candidate.
 #[inline(never)]
 pub(crate) fn manage_candidate(
-    root: &MarginAccountV2,
+    root: &MarginAccount,
     environment: &book::Environment,
-    operation: GroupOrderAction,
+    operation: OrderAction,
     delegate_epoch: u64,
-) -> Result<MarginAccountV2> {
+) -> Result<MarginAccount> {
     match operation {
-        GroupOrderAction::Place { expected_id, terms } => {
+        OrderAction::Place { expected_id, terms } => {
             book::place_with_environment(root, environment, expected_id, terms, delegate_epoch)
         }
-        GroupOrderAction::Replace { id, version, terms } => {
+        OrderAction::Replace { id, version, terms } => {
             book::replace_with_environment(root, environment, id, version, terms, delegate_epoch)
         }
-        GroupOrderAction::Protect {
+        OrderAction::Protect {
             expected_id,
             take_profit,
             stop_loss,
@@ -55,12 +72,12 @@ pub(crate) fn manage_candidate(
             stop_loss,
             delegate_epoch,
         ),
-        GroupOrderAction::Cancel {
+        OrderAction::Cancel {
             id,
             version,
             protection_group,
         } => book::cancel_with_environment(root, environment, id, version, protection_group),
-        GroupOrderAction::Cleanup => {
+        OrderAction::Cleanup => {
             let mut next = root.clone();
             book::validate(&next)?;
             book::refresh_with_environment(&mut next, environment)?;
@@ -82,26 +99,22 @@ pub(crate) fn manage_candidate(
 }
 
 pub(crate) fn stored_intent(
-    group: &ClearingGroupV2,
-    market: &GroupMarketV2,
-    trader: &MarginAccountV2,
+    venue: &Venue,
+    market: &Market,
+    trader: &MarginAccount,
     args: OrderExecution,
     clock: &Clock,
 ) -> Result<(RouteIntent, usize)> {
     book::validate(trader)?;
     require!(
-        trader.group == market.group && model(trader)?.allows(usize::from(market.index)),
+        trader.venue == market.venue && model(trader)?.allows(usize::from(market.index)),
         ClearingError::OrderState
     );
     let index = book::find(trader, args.id, args.version)?;
     let stored = trader.book.orders[index];
     require!(
         stored.market_index == market.index
-            && super::account::live_order_authority(
-                trader,
-                stored.delegate_epoch,
-                clock.slot
-            ),
+            && super::account::live_order_authority(trader, stored.delegate_epoch, clock.slot),
         ClearingError::Authority
     );
     let order = stored.order;
@@ -122,7 +135,7 @@ pub(crate) fn stored_intent(
     );
     Ok((
         RouteIntent {
-            domain: group.domain,
+            domain: venue.domain,
             terms_epoch: order.terms_epoch,
             config_epoch: market.config_epoch,
             observation_sequence: args.observation_sequence,
@@ -149,19 +162,19 @@ pub(crate) fn stored_intent(
 }
 
 pub(crate) struct Candidate {
-    pub trader: Box<MarginAccountV2>,
-    pub makers: Vec<MarginAccountV2>,
+    pub trader: Box<MarginAccount>,
+    pub makers: Vec<MarginAccount>,
     pub fee: u64,
     pub gross: u64,
     pub gross_lots: u64,
 }
 
 pub(crate) fn candidate(
-    group: &ClearingGroupV2,
-    market: &GroupMarketV2,
-    trader: &MarginAccountV2,
-    makers: &[MarginAccountV2],
-    quotes: &[QuoteResponse],
+    venue: &Venue,
+    market: &Market,
+    trader: &MarginAccount,
+    makers: &[MarginAccount],
+    quotes: &[ExecutionQuote],
     intent: &RouteIntent,
     order_index: Option<usize>,
     funding: i128,
@@ -169,7 +182,7 @@ pub(crate) fn candidate(
 ) -> Result<Candidate> {
     let environment = book::Environment::isolated(market, funding, clock.slot, true)?;
     candidate_with_environment(
-        group,
+        venue,
         trader,
         makers,
         quotes,
@@ -181,17 +194,17 @@ pub(crate) fn candidate(
 }
 
 pub(crate) fn candidate_with_environment(
-    group: &ClearingGroupV2,
-    trader: &MarginAccountV2,
-    makers: &[MarginAccountV2],
-    quotes: &[QuoteResponse],
+    venue: &Venue,
+    trader: &MarginAccount,
+    makers: &[MarginAccount],
+    quotes: &[ExecutionQuote],
     intent: &RouteIntent,
     order_index: Option<usize>,
     environment: &book::Environment,
     clock: &Clock,
 ) -> Result<Candidate> {
     candidate_for_version(
-        group,
+        venue,
         trader,
         makers,
         quotes,
@@ -199,15 +212,15 @@ pub(crate) fn candidate_with_environment(
         order_index,
         environment,
         clock,
-        maker_interface::GROUP_VERSION,
+        maker_interface::canonical::VERSION,
     )
 }
 
 pub(crate) fn candidate_for_version(
-    group: &ClearingGroupV2,
-    trader: &MarginAccountV2,
-    makers: &[MarginAccountV2],
-    quotes: &[QuoteResponse],
+    venue: &Venue,
+    trader: &MarginAccount,
+    makers: &[MarginAccount],
+    quotes: &[ExecutionQuote],
     intent: &RouteIntent,
     order_index: Option<usize>,
     environment: &book::Environment,
@@ -219,12 +232,12 @@ pub(crate) fn candidate_for_version(
     let trader_model = model(trader)?;
     book::validate(trader)?;
     require!(
-        trader.group == market.group
+        trader.venue == market.venue
             && trader_model.allows(usize::from(market.index))
             && makers.len() == quotes.len()
             && makers.len() == intent.legs.len()
             && (1..=2).contains(&makers.len())
-            && intent.domain == group.domain
+            && intent.domain == venue.domain
             && intent.terms_epoch == market.terms_epoch
             && intent.config_epoch == market.config_epoch
             && intent.observation_sequence == market.observation_sequence
@@ -262,7 +275,7 @@ pub(crate) fn candidate_for_version(
     let mut legs = Vec::with_capacity(makers.len());
     for (index, ((maker, quote), leg)) in makers.iter().zip(quotes).zip(&intent.legs).enumerate() {
         require!(
-            maker.group == trader.group
+            maker.venue == trader.venue
                 && maker.role == ROLE_MAKER
                 && maker.owner != trader.owner
                 && maker.id != trader.id
@@ -374,9 +387,9 @@ pub(crate) fn candidate_for_version(
 
 #[inline(never)]
 pub(crate) fn finish_maker(
-    root: &mut MarginAccountV2,
+    root: &mut MarginAccount,
     candidate: math::margin::Margin,
-    market: &GroupMarketV2,
+    market: &Market,
     slot: u64,
     risks: [math::margin::Risk; 2],
 ) -> Result<()> {

@@ -5,12 +5,12 @@ import {json} from './events.js';
 import {integer} from './rpc.js';
 import {compareReconciliationSequence} from './reconciliation-progress.js';
 import {accountFields,reconcileAccountLedger,type AccountState} from './account-projection.js';
-import type {AccountBinding} from './account-store.js';
-import type {AccountBatch} from './group-reconcile.js';
+import type {LiquidityBinding} from './liquidity-store.js';
+import type {AccountBatch} from './rpc.js';
 
 /** Every <=100-key chunk includes the custody sequence. A newer finalized prefix
  * requests backfill; no different economic snapshots are silently combined. */
-export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<AccountBinding,'venue'|'domain'|'program'>,read:AccountBatch) {
+export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'>,read:AccountBatch) {
   reconcileAccountLedger(state);
   const venue=address(binding.venue),program=address(binding.program);
   const identities=new Map<string,{bump:number;decoder:{decode(bytes:Uint8Array):unknown};discriminator:ReadonlyUint8Array;expected:unknown}>();
@@ -31,7 +31,6 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<A
   for(const [key,value] of Object.entries(state.ledgers))await expect(key,sdk.deriveMarketLedger(address(value.market),program),sdk.getMarketLedgerDecoder(),sdk.MARKET_LEDGER_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.portfolios))await expect(key,sdk.deriveAccountPortfolio(venue,address(value.owner),value.index,program),sdk.getPortfolioDecoder(),sdk.PORTFOLIO_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.roots))await expect(key,sdk.deriveMarginAccount(address(value.portfolio),value.subaccountIndex,program),sdk.getMarginAccountDecoder(),sdk.MARGIN_ACCOUNT_DISCRIMINATOR,value);
-  for(const [key,value] of Object.entries(state.makers))await expect(key,sdk.deriveFixedMakerRegistration(address(value.market),value.makerId,program),sdk.getFixedMakerRegistrationDecoder(),sdk.FIXED_MAKER_REGISTRATION_DISCRIMINATOR,value);
   if(state.liquidity) {
     assert.equal(state.venue!.profileVersion,4);
     for(const [key,value] of Object.entries(state.liquidity.registries))await expect(key,sdk.findLiquidityRegistryPda({market:address(value.market)},{programAddress:program}),sdk.getLiquidityRegistryDecoder(),sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,value);

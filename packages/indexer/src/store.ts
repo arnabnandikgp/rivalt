@@ -1,10 +1,8 @@
 import { readFileSync } from 'node:fs';
 import pg, { type PoolClient } from 'pg';
-import { empty, project, type State } from './projection.js';
-import { hash, json, type Event, type JournalEvent } from './events.js';
+import { hash, json, type JournalEvent } from './events.js';
 
 export type JournalBinding = { genesis: string; domain: string; anchor: string; anchorHash: string; program: string; schema: number };
-export type Binding = JournalBinding & {market: string; schema: 1};
 export type Projection<State, Binding, Event> = {
   schema: number;
   empty(): State;
@@ -94,11 +92,6 @@ export class JournalStore<State extends {sequence: string}, Binding extends Jour
     this.closed = true;
     if (this.lease) { await this.lease.query('SELECT pg_advisory_unlock(hashtextextended($1,0))', [this.runId]); this.lease.release(); this.lease = undefined; }
     await this.pool.end();
-  }
-}
-export class Store extends JournalStore<State, Binding, Event> {
-  constructor(url: string, runId: string) {
-    super(url, runId, {schema:1, empty, project:(state, event, binding) => project(state, event, binding.market, binding.domain)});
   }
 }
 const hashSorted = (v: Record<string, unknown>) => hash(Object.fromEntries(Object.entries(v).sort(([a],[b]) => a.localeCompare(b))));

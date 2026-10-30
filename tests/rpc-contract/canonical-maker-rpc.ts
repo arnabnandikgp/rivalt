@@ -22,7 +22,7 @@ try {
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse','HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status','--porcelain','--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
     runtime: await rpc.call('getVersion'), genesis: await rpc.call('getGenesisHash'),
-    binaries: Object.fromEntries(['clearing','maker_a','maker_b'].map(name => [name, createHash('sha256').update(readFileSync(`.local/canonical-maker/${name}.so`)).digest('hex')])),
+    binaries: Object.fromEntries(['clearing','maker_a','maker_b'].map(name => [name, createHash('sha256').update(readFileSync(`.local/liquidity-execution/${name}.so`)).digest('hex')])),
     checks, result, parity, wsNotifications: ws.notifications.length }));
   console.log(`P30: ${checks.length} signed RPC/WS outcomes; includes v1 submission and independent fetch/dual decode.`);
 } finally { ws.close(); }

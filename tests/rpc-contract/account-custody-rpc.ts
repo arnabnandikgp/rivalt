@@ -6,7 +6,7 @@ import { getBase58Encoder } from '@solana/kit';
 import { Connection } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
-import { payerKey, program, type Harness } from './custody-cases.js';
+import { payerKey, program, type Harness } from './harness.js';
 import { accountCustodyCases } from './account-custody-cases.js';
 import { WireRpc, WireSubscriptions, eventually } from './wire.js';
 

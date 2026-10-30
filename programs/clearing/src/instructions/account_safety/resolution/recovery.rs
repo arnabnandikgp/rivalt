@@ -3,7 +3,12 @@
 use super::*;
 use math::oracle as policy;
 
-pub(super) fn observe(safety: &mut VenueSafety, now: i64, normal: bool, resume: bool) -> Result<()> {
+pub(super) fn observe(
+    safety: &mut VenueSafety,
+    now: i64,
+    normal: bool,
+    resume: bool,
+) -> Result<()> {
     require!(
         now > 0 && now >= safety.recovery_last,
         ClearingError::Resolution
@@ -39,11 +44,7 @@ pub(super) fn observe(safety: &mut VenueSafety, now: i64, normal: bool, resume: 
     Ok(())
 }
 
-fn no_liabilities(
-    identity: &ResolutionIdentity,
-    header: &Resolution,
-    epoch: u64,
-) -> Result<()> {
+fn no_liabilities(identity: &ResolutionIdentity, header: &Resolution, epoch: u64) -> Result<()> {
     profile(identity)?;
     require!(
         header.schema_version == SCHEMA_VERSION
@@ -108,11 +109,7 @@ pub fn recover(ctx: Context<RecoverAccounts>, epoch: u64, resume: bool) -> Resul
             increment(&mut market.terms_epoch)?;
             increment(&mut market.config_epoch)?;
             let mut view = account_trading::market_view(market)?;
-            crate::engine::oracle::reset_oracle(
-                &mut view,
-                clock.unix_timestamp,
-                skipped,
-            )?;
+            crate::engine::oracle::reset_oracle(&mut view, clock.unix_timestamp, skipped)?;
             account_trading::commit_market(market, &view)?;
         }
         accounts.identity.safety.mode = CUSTODY;
@@ -167,11 +164,7 @@ pub fn reactivate(ctx: Context<RecoverAccounts>, epoch: u64) -> Result<()> {
     for market in [&mut accounts.identity.btc, &mut accounts.identity.eth] {
         account_trading::oracle::action(market, &clock, true)?;
         let mut view = account_trading::market_view(market)?;
-        crate::engine::oracle::reset_oracle(
-            &mut view,
-            clock.unix_timestamp,
-            0,
-        )?;
+        crate::engine::oracle::reset_oracle(&mut view, clock.unix_timestamp, 0)?;
         account_trading::commit_market(market, &view)?;
     }
     accounts.identity.safety.mode = ACTIVE;

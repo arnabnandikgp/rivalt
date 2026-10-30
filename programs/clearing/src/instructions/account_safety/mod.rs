@@ -4,12 +4,12 @@ use super::{account_cash, account_custody, account_trading};
 use crate::{error::ClearingError, state::accounts::*};
 use anchor_lang::prelude::*;
 
-pub mod risk;
 pub mod resolution;
+pub mod risk;
 
 fn candidate_profile(identity: &account_cash::AccountFinancialIdentity) -> Result<()> {
     require!(
-        cfg!(feature = "account-safety-qualification"),
+        cfg!(feature = "liquidity-execution-qualification"),
         ClearingError::Profile
     );
     account_cash::profile(&identity.venue, &identity.custody, &identity.safety)?;

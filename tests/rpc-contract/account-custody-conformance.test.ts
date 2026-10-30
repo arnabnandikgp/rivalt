@@ -24,8 +24,8 @@ test('schema-3 custody bytes, roles and bounded amounts match isolated Anchor', 
   const base = ['venue','custody','safety'];
   const ledgerBase = [...base,'btcLedger','ethLedger'];
   const cases: { name: string; args: unknown[]; instruction: Instruction; names: string[] }[] = [
-    { name: 'initializeVenue', args: [value([...domain]),publicKey(key(18)),publicKey(key(19)),publicKey(key(20))],
-      instruction: await sdk.getInitializeVenueInstructionAsync({ ...common, domain, feeAuthority: key(18), reserveAuthority: key(19), reserveDestinationOwner: key(20) }),
+    { name: 'initializeLiquidityVenue', args: [value([...domain]),publicKey(key(18)),publicKey(key(19)),publicKey(key(20))],
+      instruction: await sdk.getInitializeLiquidityVenueInstructionAsync({ ...common, domain, feeAuthority: key(18), reserveAuthority: key(19), reserveDestinationOwner: key(20) }),
       names: ['authority','clearingProgram','programData','quoteMint',...base,'vault','tokenProgram','systemProgram',...end] },
     { name: 'initializeVenueRegistry', args: [], instruction: await sdk.getInitializeVenueRegistryInstructionAsync(common),
       names: ['authority',...base,'registry','systemProgram',...end] },

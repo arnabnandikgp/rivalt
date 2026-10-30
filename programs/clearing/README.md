@@ -1,112 +1,46 @@
-# Clearing program source map
+# Clearing program
 
-Start with the [current clearing guide](../../docs/clearing/README.md). The source
-map below includes older still-present profiles; their retirement is pending P37.
-
-The clearing program owns collateral, participant accounting, execution authority,
-funding, orders and risk transitions. `financial-core` supplies checked arithmetic;
-off-chain services submit transactions but cannot override these rules.
+Clearing owns custody, account authority and financial transitions. Start with the
+[current clearing contract](../../docs/clearing/README.md). Backend workers request
+transactions; they cannot create balances or override on-chain admission.
 
 ```text
 src/
-  lib.rs                 Program IDs and public instruction entrypoints
-  constants.rs           Versions, test-profile bounds and deployment bindings
-  error.rs               Published error codes
-  events.rs              Critical event schemas and event snapshot types
-  pyth_core.rs            Authenticated sponsored Pyth account decoding
-  state/                 Persistent accounts and their serialized nested types
-    market.rs            Market configuration and cash pools
-    participant.rs       Owner/market balances, position and registry
-    maker.rs             Maker authorization and capital binding
-    route.rs             Risk observation and aggregate exposure
-    oracle.rs            Source/funding observation state
-    order.rs             Stored orders and protective groups
-    settlement.rs        Complete-cohort exit certificate
-    resolution.rs        Frozen cohort header and participant rows
-    probe.rs             Nonfinancial SDK/RPC conformance record
-    v2/                  Fresh group/portfolio/two-position margin layouts (P17)
-    v3/                  Venue/custody/safety, account roots and market ledgers (P22B)
-  instructions/          Anchor account contexts, handlers and validation
-    account_custody/     Fresh schema-3 identity and actual SPL custody (P23)
-    account_trading/    Whole-account trading and maker admission (P24/P26)
-      engine.rs         Typed adapters to shared checked risk/order candidates
-      authority.rs      Root guards, delegates, orders and protective authority
-      routes.rs         Atomic fills, funding, attributed fees and borrowed events
-      oracle.rs         Canonical sources and causal common funding
-      activation.rs     Storage-ready qualified local activation; default/devnet gated
-    account_cash/       Own-cash exits and scoped market settlement (P25)
-      engine.rs         Whole-account funding/admission and held-corner candidates
-      cash.rs           Owner transfer and atomic actual SPL withdrawal
-      certificate.rs    Canonical market backing pages and relevant invalidation
-      claims.rs         Gross-debt collection, funded payout and flat netting
-      fees.rs           Separate fee authority; T withdrawal/allocation, no active I exit
-    account_safety/     Whole-account liquidation and market-attributed default (P26)
-      risk.rs           Consenting receiver; strict post-fee MM-deficit progress
-      resolution/       Frozen pages, verified rates, deterministic atom circulation
-        application.rs  Exactly-once Apply, complete Reconcile and terminal cash
-        recovery.rs     Sustained source recovery and separate reactivation
-        retirement.rs   Complete flat proof and terminal reserve custody
-    custody.rs           Register, deposit, custody-only withdrawal and controls
-    group_custody.rs     Versioned successor custody; no trading activation (P18A)
-    group_margin/       Shared root model, canonical dependencies and authority
-      authority.rs      Owner grants/revocation; delegate epoch and nonce checks
-      trading.rs        Complete two-market adapters over the existing route engine
-      netting.rs        Explicit owner-only flat closed-claim cancellation
-    group_trading/      Successor oracle, maker CPI, atomic routes and whole-root book
-      book/             One-snapshot funding, source relevance and reservations
-    group_safety/       Complete-group exits, liquidation and frozen resolution
-    makers.rs            Register, approve, sync, quarantine and preview makers
-    routes.rs            Immediate and stored-order atomic execution
-    orders.rs            Place, replace, cancel and manage protection
-    settlement.rs        Cohort scan, collect, settle and trading withdrawal
-    risk.rs              Funded receiver liquidation
-    oracle/
-      mod.rs             Source validation, sampling and funding/action policy
-      impact.rs          Complete-maker depth sampling and bounded allocation
-    resolution/
-      mod.rs             Freeze, advance and authorized recovery
-      ledger.rs          Per-row allocation and resolution stage transitions
-      tests.rs           Serialized state-machine boundary checks
-    probe.rs             Nonfinancial conformance handler
+  lib.rs                     Public instruction dispatch and explicit wire discriminators
+  constants.rs, error.rs      Limits and stable error codes
+  events.rs, event_cpi.rs     Critical financial snapshots and bounded event encoding
+  pyth_core.rs               Authenticated Pyth account decoding for the gated adapter
+  state/
+    accounts/                Venue, custody, roots, ledgers and complete-default state
+    liquidity.rs             Maker registry, registration and funding publisher
+    identity.rs, records.rs  Shared identity, position and order records
+    oracle.rs, order.rs      Source/funding state and durable order terms
+  engine/                    Shared isolated/cross financial candidates
+    account.rs, authority.rs Whole-account funding, guards and delegates
+    book.rs, book/           Reservations and existing-position protection
+    routes.rs, risk.rs       Atomic route candidates and liquidation progress
+    oracle.rs, sources.rs    Causal funding and authenticated source checks
+  instructions/
+    account_custody/          Identity, actual SPL custody and authorized pause
+    account_trading/          Current identity adapters, orders, source setup, activation
+    account_cash/             Own-cash exits, market certificates and explicit claim settlement
+    account_safety/           Consenting liquidation, complete default, recovery and retirement
+    maker_liquidity/          Maker gateway, bounded CPI, execution and restricted funding reports
 ```
 
-For a trade, read `lib.rs::execute_route`, `instructions/routes.rs::execute_core`
-and `finish`, then `financial-core/src/route.rs` and `Participant::admissible` in
-`financial-core/src/lib.rs`. The route checks the trader and each maker's capital
-separately. Persistent order reservations are refreshed before final admission.
+For trading, follow `maker_liquidity::routes::execute` through the shared engine
+and `financial-core`. Both isolated and cross accounts use the same candidates;
+every trader/maker account retains complete admission. For cash exits, read
+`account_cash::cash`; for claims, read its `claims` and `certificate` modules.
+Resolution is market-attributed and complete-cohort under `account_safety`.
 
-For the schema-2 successor, start with `group_margin::trading`, then
-`group_trading::routes::candidate_with_environment` and `financial-core::margin`.
-Cash is stored once per root; both slot claims, funding and remaining reservations
-participate in admission. Single-market isolated handlers use the same candidate
-engine. `group_margin::trading` checks the separate cross release gate; candidate
-host tests do not enable externally submitted cross trades.
+Only the explicit local `liquidity-execution-qualification` feature activates the
+current profile. Default/devnet remain gated. Historical runtimes are recoverable
+at the immutable baseline in [HISTORY](../../docs/HISTORY.md); this source removal
+is not an account migration or deployed-program upgrade.
 
-For an exit, read `instructions/settlement.rs::check` and `withdraw`. A complete
-cohort solvency certificate and the withdrawing participant's post-action margin
-are separate requirements. Resolution uses its own frozen accounting ledger.
-
-For schema 3, start with `account_trading::routes` and `account_trading::engine`.
-They use the same pure financial engine with a distinct account/authority ABI.
-The only P24 activation is in an isolated qualification build. The new cash/claim
-exit path belongs to P25 and liquidation/default to P26; V1/V2 exit certificates
-are not automatically the schema-3 funded-cash exit design.
-
-Account fields, instruction arguments, discriminants, PDA seeds, error codes and
-event layouts are wire contracts. Moving their Rust definitions must not rename
-or reorder those fields. Keep generated SDK files generated, and verify fresh
-IDL output against the committed SDK after program refactors.
-
-Use domain names such as `participant`, `registration`, `route_state`, `header`
-and `funding_index` in implementation code. `ctx` is retained in clearing handlers
-because Anchor's `emit_cpi!` macro refers to that identifier. Rust lifetimes and
-generic type parameters are not financial variable names.
-
-The explicit exports in `instructions/mod.rs` expose Anchor's generated client
-and CPI account modules without glob-exporting similarly named handler helpers.
-Program state and events are re-exported at the crate root for Anchor/IDL clients.
-
-Schema-3 account-centric custody lives in `src/instructions/account_custody/`
-(contexts and handlers), with independent layouts under `src/state/accounts/`.
-[Current accounts](../../docs/clearing/accounts.md) records authority/layouts;
-[STATUS](../../docs/STATUS.md) distinguishes qualified local profiles from gated builds.
+Discriminators, ordered fields, numeric schemas, seeds, metas and error codes remain
+wire contracts. Generate IDL/SDK outputs from source and compare the retained
+[wire manifest](../../tests/fixtures/wire-contract.json). Layout checks do not prove
+SBF resource fit or economic correctness; [validation](../../docs/operations/validation.md)
+and [STATUS](../../docs/STATUS.md) record the actual acceptance boundary.

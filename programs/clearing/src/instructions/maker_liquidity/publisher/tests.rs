@@ -1,12 +1,6 @@
 use super::*;
 
-fn fixture() -> (
-    Venue,
-    Market,
-    FundingPublisher,
-    FundingReport,
-    Clock,
-) {
+fn fixture() -> (Venue, Market, FundingPublisher, FundingReport, Clock) {
     let venue = Venue {
         domain: [7; 32],
         ..Venue::default()

@@ -2,7 +2,7 @@
 //! attestation; independent risk sources and causal funding remain on-chain.
 use super::*;
 use crate::instructions::account_trading;
-use crate::state::liquidity::{FundingPublisherPayload, FundingPublisher, FundingReport};
+use crate::state::liquidity::{FundingPublisher, FundingPublisherPayload, FundingReport};
 use financial_core::oracle as policy;
 
 mod contexts;

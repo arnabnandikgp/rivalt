@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { blockhash, getAddressEncoder, getProgramDerivedAddress, type ReadonlyUint8Array } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
-import { fixtureKey, payerKey, addresses, LOADER } from './custody-cases.js';
+import { fixtureKey, payerKey, addresses, LOADER } from './harness.js';
 import { accountPda, accountMarket } from './account-custody-cases.js';
 import { goldenShape } from './canonical-maker-cases.js';
 const payer = await payerKey(), owner = await fixtureKey('p30-owner'), updater = await fixtureKey('p30-updater');
@@ -44,5 +44,5 @@ for (const [label, instruction, signers, computeUnitLimit] of cases) {
     accounts: transaction.message.staticAccountKeys.length });
 }
 const report = { scope: 'offline signed serialization; no RPC execution claimed', results };
-writeFileSync('.local/canonical-maker/packet-sizes.json', JSON.stringify(report, null, 2)+'\n');
+writeFileSync('.local/liquidity-execution/packet-sizes.json', JSON.stringify(report, null, 2)+'\n');
 console.log(JSON.stringify(report, null, 2));

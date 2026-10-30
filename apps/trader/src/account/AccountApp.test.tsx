@@ -28,7 +28,7 @@ it('renders occupied operator slots and funded cash without offering trader acti
   client.rpc.call=async(method:string,params:any[]=[])=>method==='getAccountInfo'
     ?{context:{slot:100},value:test.accounts.get(params[0])??null}:test.rpc.call(method,params);
   const config={...test.config,readBase:'/read' as const,apiBase:'/api' as const};
-  const selectionKey=`rivalt:selection:v3:${config.genesis}:${config.anchor}:${config.venue}`;
+  const selectionKey=`rivalt:selection:v4:${config.genesis}:${config.anchor}:${config.venue}`;
   vi.stubGlobal('localStorage',{getItem:(key:string)=>key===selectionKey?JSON.stringify({portfolio:0,subaccount:1,market:1}):null});
   for(const role of [1,2,0]) {
     const margin=test.margins[1],root=sdk.getMarginAccountDecoder().decode(Buffer.from(test.accounts.get(margin).data[0],'base64'));

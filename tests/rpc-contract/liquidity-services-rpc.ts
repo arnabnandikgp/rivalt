@@ -52,7 +52,7 @@ try {
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   const openingState=(await indexer.store.snapshot()).state;
   const {binding}=await indexer.store.snapshot();
-  const client=new sdk.LiquidityUserClient({version:4,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
+  const client=new sdk.AccountUserClient({version:4,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
     genesis:binding.genesis,anchor,anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain});
   writeFileSync(`${directory}/public-deployment.json`,json(client.config));
   runtime=new AccountRuntime(databaseUrl,config.runId,config.rpcUrl,4);await runtime.open();
@@ -132,7 +132,7 @@ try {
   const quote=await client.route({snapshot,trader:margin,marketIndex:0,side:0,lots:1n,maxFee:1000n,allInLimit:100_000n},owner.address);assert(quote);
   await wallet('open for actual order worker',quote.instructions);snapshot=await client.snapshot([margin],'confirmed');
   await wallet('triggered existing-position order',[await client.manageOrder(snapshot,owner.address,margin,0,
-    sdk.groupOrderAction('Place',{expectedId:snapshot.roots[margin].book.lastOrderId+1n,terms:{side:1,lots:1n,limit:50_000n,feeBudget:1000n,
+    sdk.orderAction('Place',{expectedId:snapshot.roots[margin].book.lastOrderId+1n,terms:{side:1,lots:1n,limit:50_000n,feeBudget:1000n,
       startSlot:snapshot.slot,expirySlot:snapshot.slot+2000n,trigger:1,threshold:59_999n,reduceOnly:true,generation:snapshot.roots[margin].positions[0].generation}}))]);
   const orders=start('orders',setup.payer);
   await until(()=>client.snapshot([margin],'confirmed'),value=>value.roots[margin].positions[0].lots===0n,'actual stored order worker fill');await stop(orders);

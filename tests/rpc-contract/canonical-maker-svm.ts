@@ -5,14 +5,14 @@ import { getAddressEncoder, getTransactionDecoder, getProgramDerivedAddress, lam
 import { FailedTransactionMetadata, LiteSVM } from 'litesvm';
 import * as sdk from '@rivalt/sdk';
 import { CanonicalConformance } from './canonical-maker-conformance.js';
-import { LOADER, payerKey } from './custody-cases.js';
+import { LOADER, payerKey } from './harness.js';
 import { canonicalMakerCases, type CanonicalHarness } from './canonical-maker-cases.js';
 const svm = new LiteSVM().withSigverify(true).withBlockhashCheck(true);
 const payer = await payerKey();
 svm.airdrop(payer.address, lamports(100_000_000_000n));
 for (const [name, program] of [['clearing',sdk.CLEARING_PROGRAM_ADDRESS], ['maker_a',sdk.makerA.MAKER_A_PROGRAM_ADDRESS],
   ['maker_b',sdk.makerB.MAKER_B_PROGRAM_ADDRESS]] as const) {
-  svm.addProgramFromFile(program, `.local/canonical-maker/${name}.so`);
+  svm.addProgramFromFile(program, `.local/liquidity-execution/${name}.so`);
   const [key] = await getProgramDerivedAddress({ programAddress: LOADER, seeds: [getAddressEncoder().encode(program)] });
   const data = svm.getAccount(key); assert(data.exists);
   const bytes = Uint8Array.from(data.data); bytes[12] = 1; bytes.set(getAddressEncoder().encode(payer.address), 13);
@@ -51,12 +51,12 @@ const h: CanonicalHarness = {
   },
 };
 const result = await canonicalMakerCases(h);
-const parity = await conformance.finish('.local/canonical-maker', [
+const parity = await conformance.finish('.local/liquidity-execution', [
   ...result.registrations.map(key => ({ program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'makerRegistration', key })),
   ...await Promise.all(result.markets.map(async market => ({ program: sdk.CLEARING_PROGRAM_ADDRESS,
     name: 'liquidityRegistry', key: (await sdk.findLiquidityRegistryPda({ market }))[0] }))),
   ...result.makerAccounts.flatMap(item => [{ program: item.program, name: 'makerCurve', key: item.config },
     { program: item.program, name: 'makerPrice', key: item.price }]),
 ], h.read);
-writeFileSync('.local/canonical-maker/lifecycle-svm.json', JSON.stringify({ checks, result, parity }, null, 2)+'\n');
+writeFileSync('.local/liquidity-execution/lifecycle-svm.json', JSON.stringify({ checks, result, parity }, null, 2)+'\n');
 console.log(`P30 compiled lifecycle: ${checks.length} cases, ${checks.filter(check => check.rejected).length} rejections.`);

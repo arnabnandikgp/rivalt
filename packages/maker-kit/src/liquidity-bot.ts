@@ -1,8 +1,8 @@
 /** Run the same qualified durable worker from a private operator config. */
 import assert from 'node:assert/strict';
 import {Keypair} from '@solana/web3.js';
-import {LiquidityUserClient} from '@rivalt/sdk';
-import {protectedJson} from './config.js';
+import {AccountUserClient} from '@rivalt/sdk';
+import {protectedJson} from './operator-file.js';
 import {liquidityOperatorConfig} from './liquidity-config.js';
 import {AccountRuntime} from '../../services/src/account-runtime.js';
 import {transferLiquidityBudget} from '../../services/src/liquidity-budget.js';
@@ -13,7 +13,7 @@ const operation=process.argv[3];assert(operation===undefined||operation==='hando
 const signer=await Keypair.fromSecretKey(Uint8Array.from(protectedJson(config.signerPath)));
 assert.equal(signer.address,config.signer,'Wrong operator signer');
 const database=process.env[config.databaseEnv];assert(database,'Missing configured database environment variable');
-const client=new LiquidityUserClient(config.deployment);await client.environment();
+const client=new AccountUserClient(config.deployment);await client.environment();
 const runtime=new AccountRuntime(database,config.runId,config.deployment.rpcUrl,4);
 try {
   await runtime.open();const {binding}=await runtime.discovery();

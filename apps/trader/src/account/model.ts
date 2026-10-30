@@ -1,5 +1,5 @@
 import type { MarginAccount } from '@rivalt/sdk';
-import { accountLabel as marginLabel } from '../group/model.js';
+import { accountLabel as marginLabel } from '../shared/model.js';
 
 /** Registered operator slots remain visible for owner cash management. */
 export function accountLabel(root: Pick<MarginAccount, 'mode' | 'isolatedMarketIndex' | 'subaccountIndex' | 'role'>) {

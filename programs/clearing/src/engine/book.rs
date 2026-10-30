@@ -1,26 +1,26 @@
 //! Four orders and two protections belong to one root, with explicit market/generation binding.
-use super::*;
 use super::account::{commit_model, live_order_authority, model};
+use super::*;
 mod environment;
 use crate::{
     constants::orders::*,
-    instructions::orders::OrderTerms,
-    state::{ProtectiveGroup, OrderRecord},
+    instructions::OrderTerms,
+    state::{OrderRecord, ProtectiveGroup},
 };
 pub(crate) use environment::Environment;
 
-fn bound(root: &MarginAccountV2, market: &GroupMarketV2) -> Result<()> {
+fn bound(root: &MarginAccount, market: &Market) -> Result<()> {
     model(root)?;
     require!(
         market.schema_version == SCHEMA_VERSION
-            && market.group == root.group
+            && market.venue == root.venue
             && model(root)?.allows(usize::from(market.index)),
         ClearingError::OrderState
     );
     Ok(())
 }
 
-pub(crate) fn validate(root: &MarginAccountV2) -> Result<()> {
+pub(crate) fn validate(root: &MarginAccount) -> Result<()> {
     let account = model(root)?;
     let mut reserved = 0;
     for (index, stored) in root.book.orders.iter().enumerate() {
@@ -71,7 +71,7 @@ pub(crate) fn validate(root: &MarginAccountV2) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn eligible(root: &MarginAccountV2, order: &OrderRecord) -> Result<u64> {
+pub(crate) fn eligible(root: &MarginAccount, order: &OrderRecord) -> Result<u64> {
     let market_index = root
         .book
         .orders
@@ -102,8 +102,8 @@ pub(crate) fn eligible(root: &MarginAccountV2, order: &OrderRecord) -> Result<u6
 }
 
 pub(crate) fn refresh(
-    root: &mut MarginAccountV2,
-    market: &GroupMarketV2,
+    root: &mut MarginAccount,
+    market: &Market,
     slot: u64,
     credible: bool,
 ) -> Result<()> {
@@ -111,7 +111,7 @@ pub(crate) fn refresh(
 }
 
 pub(crate) fn refresh_with_environment(
-    root: &mut MarginAccountV2,
+    root: &mut MarginAccount,
     environment: &Environment,
 ) -> Result<()> {
     environment.validate(root)?;
@@ -188,7 +188,7 @@ pub(crate) fn refresh_with_environment(
 }
 
 fn terms(
-    root: &MarginAccountV2,
+    root: &MarginAccount,
     market_index: usize,
     terms: &OrderTerms,
     slot: u64,
@@ -225,8 +225,8 @@ fn terms(
 }
 
 fn add(
-    root: &mut MarginAccountV2,
-    market: &GroupMarketV2,
+    root: &mut MarginAccount,
+    market: &Market,
     terms: OrderTerms,
     group_id: u64,
     delegate_epoch: u64,
@@ -268,7 +268,7 @@ fn add(
     Ok(())
 }
 
-fn finish(mut next: MarginAccountV2, environment: &Environment) -> Result<MarginAccountV2> {
+fn finish(mut next: MarginAccount, environment: &Environment) -> Result<MarginAccount> {
     let accrued = checked(model(&next)?.accrued(environment.funding))?;
     commit_model(&mut next, accrued)?;
     refresh_with_environment(&mut next, environment)?;
@@ -280,12 +280,12 @@ fn finish(mut next: MarginAccountV2, environment: &Environment) -> Result<Margin
 }
 
 pub(crate) fn place_with_environment(
-    root: &MarginAccountV2,
+    root: &MarginAccount,
     environment: &Environment,
     expected_id: u64,
     order_terms: OrderTerms,
     delegate_epoch: u64,
-) -> Result<MarginAccountV2> {
+) -> Result<MarginAccount> {
     environment.validate(root)?;
     let market = environment.market(environment.selected)?;
     let slot = environment.slot;
@@ -307,7 +307,7 @@ pub(crate) fn place_with_environment(
     finish(next, environment)
 }
 
-pub(crate) fn find(root: &MarginAccountV2, id: u64, version: u64) -> Result<usize> {
+pub(crate) fn find(root: &MarginAccount, id: u64, version: u64) -> Result<usize> {
     root.book
         .orders
         .iter()
@@ -318,13 +318,13 @@ pub(crate) fn find(root: &MarginAccountV2, id: u64, version: u64) -> Result<usiz
 }
 
 pub(crate) fn replace_with_environment(
-    root: &MarginAccountV2,
+    root: &MarginAccount,
     environment: &Environment,
     id: u64,
     version: u64,
     order_terms: OrderTerms,
     delegate_epoch: u64,
-) -> Result<MarginAccountV2> {
+) -> Result<MarginAccount> {
     environment.validate(root)?;
     let market = environment.market(environment.selected)?;
     let slot = environment.slot;
@@ -387,13 +387,13 @@ pub(crate) fn replace_with_environment(
 }
 
 pub(crate) fn protect_with_environment(
-    root: &MarginAccountV2,
+    root: &MarginAccount,
     environment: &Environment,
     expected_id: u64,
     take_profit: OrderTerms,
     stop_loss: OrderTerms,
     delegate_epoch: u64,
-) -> Result<MarginAccountV2> {
+) -> Result<MarginAccount> {
     environment.validate(root)?;
     let market = environment.market(environment.selected)?;
     let slot = environment.slot;
@@ -467,12 +467,12 @@ pub(crate) fn protect_with_environment(
 
 /// Cancel remains possible without an oracle. Survivors receive conservative reserves.
 pub(crate) fn cancel_with_environment(
-    root: &MarginAccountV2,
+    root: &MarginAccount,
     environment: &Environment,
     id: u64,
     version: u64,
     protection_group: bool,
-) -> Result<MarginAccountV2> {
+) -> Result<MarginAccount> {
     environment.validate(root)?;
     let market = environment.market(environment.selected)?;
 
@@ -513,7 +513,7 @@ pub(crate) fn cancel_with_environment(
 }
 
 pub(crate) fn consume(
-    root: &mut MarginAccountV2,
+    root: &mut MarginAccount,
     index: usize,
     lots: u64,
     gross: u64,
@@ -553,13 +553,13 @@ pub(crate) fn consume(
 
 // Existing single-market entrypoints are thin adapters over the same book engine.
 pub(crate) fn place(
-    root: &MarginAccountV2,
-    market: &GroupMarketV2,
+    root: &MarginAccount,
+    market: &Market,
     funding: i128,
     slot: u64,
     expected_id: u64,
     order_terms: OrderTerms,
-) -> Result<MarginAccountV2> {
+) -> Result<MarginAccount> {
     place_with_environment(
         root,
         &Environment::isolated(market, funding, slot, true)?,
@@ -569,14 +569,14 @@ pub(crate) fn place(
     )
 }
 pub(crate) fn replace(
-    root: &MarginAccountV2,
-    market: &GroupMarketV2,
+    root: &MarginAccount,
+    market: &Market,
     funding: i128,
     slot: u64,
     id: u64,
     version: u64,
     order_terms: OrderTerms,
-) -> Result<MarginAccountV2> {
+) -> Result<MarginAccount> {
     replace_with_environment(
         root,
         &Environment::isolated(market, funding, slot, true)?,
@@ -587,14 +587,14 @@ pub(crate) fn replace(
     )
 }
 pub(crate) fn protect(
-    root: &MarginAccountV2,
-    market: &GroupMarketV2,
+    root: &MarginAccount,
+    market: &Market,
     funding: i128,
     slot: u64,
     expected_id: u64,
     take_profit: OrderTerms,
     stop_loss: OrderTerms,
-) -> Result<MarginAccountV2> {
+) -> Result<MarginAccount> {
     protect_with_environment(
         root,
         &Environment::isolated(market, funding, slot, true)?,
@@ -605,14 +605,14 @@ pub(crate) fn protect(
     )
 }
 pub(crate) fn cancel(
-    root: &MarginAccountV2,
-    market: &GroupMarketV2,
+    root: &MarginAccount,
+    market: &Market,
     slot: u64,
     id: u64,
     version: u64,
     protection_group: bool,
     credible: bool,
-) -> Result<MarginAccountV2> {
+) -> Result<MarginAccount> {
     cancel_with_environment(
         root,
         &Environment::isolated(market, 0, slot, credible)?,

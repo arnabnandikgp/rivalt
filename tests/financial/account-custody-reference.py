@@ -1,4 +1,4 @@
-"""Independent P23 raw-byte custody audit. Imports no SDK/program math."""
+"""Independent current raw-byte custody audit. Imports no SDK/program math."""
 import base64
 from copy import deepcopy
 import hashlib
@@ -25,7 +25,7 @@ def integer(raw, offset, size=8, signed=False):
 def account(report, address, name, size):
     raw = base64.b64decode(report['rawAccounts'][address])
     assert len(raw) == size, (name, len(raw))
-    assert raw[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
+    assert raw[:8] == hashlib.sha256(f"account:{ {'Venue':'VenueV3','Custody':'CustodyV3','VenueSafety':'SafetyV3','VenueRegistry':'VenueRegistryV3','MarginAccount':'MarginAccountV3','MarketLedger':'MarketLedgerV3'}[name]}".encode()).digest()[:8]
     assert integer(raw, 8, 2) == 3
     return raw
 
@@ -36,7 +36,7 @@ def audit(report):
     custody = account(report, result['custody'], 'Custody', 83)
     safety = account(report, result['safety'], 'VenueSafety', 77)
     registry = account(report, result['registry'], 'VenueRegistry', 2105)
-    assert integer(venue, 10, 2) == 3
+    assert integer(venue, 10, 2) == 4
     assert key(venue[172:204]) == result['quoteMint']
     assert key(venue[204:236]) == result['vault']
     assert [key(venue[236 + index * 32:268 + index * 32]) for index in range(2)] == result['markets']
@@ -102,4 +102,4 @@ if __name__ == '__main__':
             pass
         else:
             raise AssertionError(f'auditor accepted mutation at {offset}')
-    print(f'P23 independent raw-byte audit: {count} signed RPC outcomes, cash/market reserves/token identities; {len(mutations)} mutations rejected')
+    print(f'Current independent raw-byte audit: {count} signed RPC outcomes, cash/market reserves/token identities; {len(mutations)} mutations rejected')

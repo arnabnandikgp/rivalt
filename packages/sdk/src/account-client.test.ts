@@ -62,12 +62,12 @@ it('rejects foreign schema, missing portfolio identity, aliased roots and excess
   await expect(sdk.readAccountSnapshot(fixture.rpc,fixture.config,[fixture.margins[0]])).rejects.toThrow(/foreign/);
 });
 it('rejects cross-profile configs and selects explicit measured compute envelopes',async()=>{
-  const {config}=await environment();expect(sdk.accountUserConfig(config).version).toBe(3);
-  expect(()=>sdk.accountUserConfig({...config,version:2 as 3})).toThrow(/qualified local/);
+  const {config}=await environment();expect(sdk.accountUserConfig(config).version).toBe(4);
+  expect(()=>sdk.accountUserConfig({...config,version:3} as unknown as sdk.AccountUserConfig)).toThrow(/qualified local/);
   expect(()=>sdk.accountUserConfig({...config,rpcUrl:config.rpcUrl+'?secret=x'})).toThrow(/credentials/);
   const instruction=(data:ReadonlyUint8Array):Instruction=>({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data});
   expect(Buffer.from(sdk.accountWalletInstructions([instruction(sdk.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR)])[0].data!).readUInt32LE(1)).toBe(400_000);
-  expect(Buffer.from(sdk.accountWalletInstructions([instruction(sdk.EXECUTE_ACCOUNT_ROUTE_DISCRIMINATOR)])[0].data!).readUInt32LE(1)).toBe(600_000);
+  expect(Buffer.from(sdk.accountWalletInstructions([instruction(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR)])[0].data!).readUInt32LE(1)).toBe(800_000);
   expect(()=>sdk.accountWalletInstructions([instruction(sdk.FREEZE_ACCOUNTS_DISCRIMINATOR)])).toThrow(/Unsupported/);
 });
 it('makes closed-claim netting explicit and binds the source market certificate',async()=>{

@@ -2,7 +2,6 @@ import {readFileSync} from 'node:fs';
 import {address,type Instruction} from '@solana/kit';
 import {Connection,type Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
-import {AccountStore} from '../../indexer/src/account-store.js';
 import {LiquidityStore} from '../../indexer/src/liquidity-store.js';
 import {Rpc} from '../../indexer/src/rpc.js';
 import {hash} from '../../indexer/src/events.js';
@@ -16,12 +15,13 @@ import type {LiquidityInputs} from './liquidity-inputs.js';
 
 type OperatorRole='maker'|'funding'|'orders'|'settlement'|'risk';
 /** Local operator lamports only; never collateral, fees or market insurance. */
-export function accountBudget(role:OperatorRole,marketIndex?:number,makerId?:number,profile:3|4=3) {
-  const prefix=profile===4?'liquidity':'account';
+export function accountBudget(role:OperatorRole,marketIndex?:number,makerId?:number,profile:4=4) {
+  if(profile!==4)throw new Error('Unsupported account service profile');
+  const prefix='liquidity';
   if(role==='maker'||role==='funding') {
     if(marketIndex!==0&&marketIndex!==1)throw new Error('Market-specific account worker budget required');
     if(role==='maker') {
-      if(makerId!==0&&makerId!==1&&!(profile===4&&makerId===2))throw new Error('Maker-specific account worker budget required');
+      if(makerId!==0&&makerId!==1&&makerId!==2)throw new Error('Maker-specific account worker budget required');
       return {name:`${prefix}-maker-${marketIndex}-${makerId}`,cap:1_000_000n};
     }
     if(makerId!==undefined)throw new Error('Account funding budget is market-wide');
@@ -34,24 +34,25 @@ export function accountBudget(role:OperatorRole,marketIndex?:number,makerId?:num
 /** Durable transport; all financial decisions belong to workers and ultimately
  * the current on-chain checks. No pending original may be replaced on timeout. */
 export class AccountExecution {
-  readonly store:AccountStore|LiquidityStore;
+  readonly store:LiquidityStore;
   readonly rpc:Rpc;
   readonly connection:Connection;
   readonly queue:Queue;
-  private readonly artifacts:sdk.AccountArtifactVerifier|sdk.LiquidityArtifactVerifier;
-  constructor(database:string,readonly runId:string,url:string,readonly profile:3|4=3) {
-    sdk.testRpcUrl(url,'solana:localnet');this.store=profile===4?new LiquidityStore(database,runId):new AccountStore(database,runId);this.rpc=new Rpc(url);
-    this.connection=new Connection(url,'confirmed');this.queue=new Queue(this.store,this.rpc,sdk.CLEARING_PROGRAM_ADDRESS,profile===4?1:0);
-    this.artifacts=profile===4?new sdk.LiquidityArtifactVerifier(this.rpc):new sdk.AccountArtifactVerifier(this.rpc);
+  private readonly artifacts:sdk.LiquidityArtifactVerifier;
+  constructor(database:string,readonly runId:string,url:string,readonly profile:4=4) {
+    if(profile!==4)throw new Error('Unsupported account service profile');
+    sdk.testRpcUrl(url,'solana:localnet');this.store=new LiquidityStore(database,runId);this.rpc=new Rpc(url);
+    this.connection=new Connection(url,'confirmed');this.queue=new Queue(this.store,this.rpc,sdk.CLEARING_PROGRAM_ADDRESS,1);
+    this.artifacts=new sdk.LiquidityArtifactVerifier(this.rpc);
   }
   async open() {
     await this.store.migrate();await this.store.pool.query(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));
-    await this.store.pool.query(readFileSync(new URL(this.profile===4?'./liquidity-schema.sql':'./account-schema.sql',import.meta.url),'utf8'));await this.environment();
+    await this.store.pool.query(readFileSync(new URL('./liquidity-schema.sql',import.meta.url),'utf8'));await this.environment();
   }
   async environment() {
     const {binding,state}=await this.store.snapshot();
-    if(binding.program!==sdk.CLEARING_PROGRAM_ADDRESS||binding.profile!==(this.profile===4?'liquidity-execution-qualification':'account-safety-qualification')
-      ||binding.artifactSet!==(this.profile===4?sdk.LIQUIDITY_ARTIFACT_SET:sdk.ACCOUNT_ARTIFACT_SET)||state.venue?.profileVersion!==this.profile)
+    if(binding.program!==sdk.CLEARING_PROGRAM_ADDRESS||binding.profile!=='liquidity-execution-qualification'
+      ||binding.artifactSet!==sdk.LIQUIDITY_ARTIFACT_SET||state.venue?.profileVersion!==this.profile)
       throw new Error('Account service deployment mismatch');
     if(await this.rpc.call('getGenesisHash')!==binding.genesis)throw new Error('Account service genesis mismatch');
     const anchor=await this.rpc.call('getTransaction',[binding.anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:0}]);
@@ -69,10 +70,6 @@ export class AccountExecution {
   async enqueue(id:string,instructions:Instruction[],payer:Keypair,budget:string,authority:AccountAuthority|LiquidityPriceAuthority|null,preflight=false,inputs?:LiquidityInputs) {
     if(!/^(funding|keeper|maker|maker-sync|order|risk):/.test(id))throw new Error('Reserved account operator request namespace required');
     const binding=await this.environment();if(authority&&authority.venue!==binding.venue)throw new Error('Foreign account execution authority');
-    if(this.profile===3){
-      if(authority?.kind==='liquidityPriceSequence')throw new Error('Canonical authority requires profile 4');
-      return enqueueOperator(this,id,instructions,payer,budget,authority,preflight);
-    }
     const economic=instructions.filter(instruction=>instruction.programAddress!=='ComputeBudget111111111111111111111111111111');
     const route=economic.some(instruction=>[sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR,sdk.EXECUTE_LIQUIDITY_ORDER_DISCRIMINATOR]
       .some(discriminator=>sdk.hex(discriminator)===sdk.hex(instruction.data?.slice(0,8)??[])));

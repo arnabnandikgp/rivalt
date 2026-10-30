@@ -3,7 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { getBase58Decoder, getTransactionDecoder, getCompiledTransactionMessageDecoder } from '@solana/kit';
 import { Connection, VersionedTransaction } from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
-import { payerKey } from './custody-cases.js';
+import { payerKey } from './harness.js';
 import type { CanonicalHarness } from './canonical-maker-cases.js';
 import { CanonicalConformance } from './canonical-maker-conformance.js';
 import { WireRpc, WireSubscriptions, eventually } from './wire.js';

@@ -78,9 +78,9 @@ fn terminal_exit(
     amount: u64,
 ) -> Result<()> {
     require!(
-        cfg!(feature = "account-safety-qualification")
+        cfg!(feature = "liquidity-execution-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
-            && trading::financial_profile_version(&identity.venue)
+            && trading::supported_profile(&identity.venue)
             && identity.venue.market_count == 2
             && identity.venue.insurance_fee_share_bps == 2500
             && identity.custody.schema_version == SCHEMA_VERSION

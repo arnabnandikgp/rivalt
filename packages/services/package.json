@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/runtime.ts" },
+  "exports": { ".": "./src/account-runtime.ts" },
   "dependencies": {
     "@rivalt/sdk": "workspace:*",
     "@solana/kit": "8.5.0",

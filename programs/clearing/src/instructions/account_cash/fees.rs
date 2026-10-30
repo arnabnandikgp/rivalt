@@ -29,9 +29,9 @@ pub fn manage(
     let accounts = &mut *ctx.accounts;
     let identity = &mut accounts.identity;
     require!(
-        cfg!(feature = "account-cash-qualification")
+        cfg!(feature = "liquidity-execution-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
-            && trading::financial_profile_version(&identity.venue)
+            && trading::supported_profile(&identity.venue)
             && identity.venue.insurance_fee_share_bps == 2500
             && identity.custody.schema_version == SCHEMA_VERSION
             && identity.safety.schema_version == SCHEMA_VERSION

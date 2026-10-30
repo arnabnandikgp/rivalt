@@ -339,7 +339,11 @@ fn potential(shape: &LiquidityShape, inventory: i128) -> QuoteResult<i128> {
 
 /// Exact single-lot change of the convex potential. Endpoint validation needs
 /// this increment, not two complete prefix sums and their wide division.
-fn potential_marginal(shape: &LiquidityShape, inventory: i128, direction: i128) -> QuoteResult<i128> {
+fn potential_marginal(
+    shape: &LiquidityShape,
+    inventory: i128,
+    direction: i128,
+) -> QuoteResult<i128> {
     let before = sub(inventory, i128::from(shape.target))?;
     let after = add(before, direction)?;
     let before_distance = before.checked_abs().ok_or(QuoteError::Arithmetic)?;
@@ -864,9 +868,13 @@ mod tests {
         let bytes = wire(&response);
         assert!(validate_response(&response, key, key, &bytes).is_ok());
         assert!(validate_response(&response, key, Pubkey::default(), &bytes).is_err());
-        let mut changed = bytes.clone();
-        changed[REQUEST_BYTES] ^= 1;
-        assert!(validate_response(&response, key, key, &changed).is_err());
+        // Every echoed request and quote byte is authenticated, including lengths.
+        for index in 0..bytes.len() {
+            let mut changed = bytes.clone();
+            changed[index] ^= 1;
+            assert!(validate_response(&response, key, key, &changed).is_err());
+        }
+        assert!(validate_response(&response, key, key, &bytes[..bytes.len() - 1]).is_err());
         let mut trailing = bytes;
         trailing.push(0);
         assert!(validate_response(&response, key, key, &trailing).is_err());

@@ -1,14 +1,23 @@
 //! Causal profile-4 observations. Retain already-earned funding even when the
 //! next sample fails; structural controls close and account for the old interval.
-use super::{impact::Impact, *};
-use crate::instructions::account_trading;
+use super::*;
+
+/// Published depth admitted by the restricted report verifier, not a fill guarantee.
+pub(crate) struct Impact {
+    pub quantity: u64,
+    pub bid: u64,
+    pub ask: u64,
+    pub expiry_slot: u64,
+    pub expiry_time: i64,
+}
 use crate::engine::oracle;
+use crate::instructions::account_trading;
 use financial_core::oracle as policy;
 
 /// Seconds actually materialized in this observation, not merely seconds for
 /// which the next observation happens to qualify. Existing slot/catchup gates
 /// still decide whether an unmaterialized old interval can accrue.
-fn coverage(mode: u8, materialized: &crate::state::v2::GroupMarketV2, now: i64) -> u64 {
+fn coverage(mode: u8, materialized: &crate::state::accounts::Market, now: i64) -> u64 {
     let old = materialized.oracle;
     if mode != ACTIVE || old.sampled_at == 0 || old.held_until <= old.sampled_at {
         return 0;
@@ -184,8 +193,6 @@ mod tests {
             ask: 6_006_000,
             expiry_slot: 2000,
             expiry_time,
-            bid_legs: vec![],
-            ask_legs: vec![],
         }
     }
 

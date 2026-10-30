@@ -2,9 +2,8 @@
 //! prerequisite for a funded owner exit. No reserve can leave a live identity.
 use super::*;
 use account_cash::{
-    __client_accounts_account_financial_identity,
-    __cpi_client_accounts_account_financial_identity, AccountFinancialIdentity,
-    AccountFinancialIdentityBumps,
+    __client_accounts_account_financial_identity, __cpi_client_accounts_account_financial_identity,
+    AccountFinancialIdentity, AccountFinancialIdentityBumps,
 };
 use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
@@ -120,9 +119,9 @@ fn global_flat(identity: &ResolutionIdentity) -> Result<()> {
 pub fn initialize(ctx: Context<InitializeAccountRetirement>) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty()
-            && cfg!(feature = "account-safety-qualification")
+            && cfg!(feature = "liquidity-execution-qualification")
             && ctx.accounts.venue.schema_version == SCHEMA_VERSION
-            && account_trading::financial_profile_version(&ctx.accounts.venue)
+            && account_trading::supported_profile(&ctx.accounts.venue)
             && ctx.accounts.safety.schema_version == SCHEMA_VERSION
             && matches!(ctx.accounts.safety.mode, CUSTODY | ACTIVE | RESOLVED),
         ClearingError::Profile
@@ -275,11 +274,7 @@ pub fn retire(ctx: Context<RetireAccounts>, safety_epoch: u64) -> Result<()> {
     )
 }
 
-pub fn withdraw(
-    ctx: Context<WithdrawRetiredReserve>,
-    market_index: u8,
-    amount: u64,
-) -> Result<()> {
+pub fn withdraw(ctx: Context<WithdrawRetiredReserve>, market_index: u8, amount: u64) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty() && market_index < 2 && amount > 0,
         ClearingError::Amount
@@ -287,9 +282,9 @@ pub fn withdraw(
     let accounts = &mut *ctx.accounts;
     let identity = &mut accounts.identity;
     require!(
-        cfg!(feature = "account-safety-qualification")
+        cfg!(feature = "liquidity-execution-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
-            && account_trading::financial_profile_version(&identity.venue)
+            && account_trading::supported_profile(&identity.venue)
             && identity.custody.schema_version == SCHEMA_VERSION
             && identity.safety.schema_version == SCHEMA_VERSION
             && identity.safety.mode == RETIRED

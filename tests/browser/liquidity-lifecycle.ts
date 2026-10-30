@@ -12,7 +12,7 @@ import type {LiquidityIndexer} from '../../packages/indexer/src/liquidity-indexe
 import {accountApi} from '../../packages/indexer/src/account-api.js';
 import {json} from '../../packages/indexer/src/events.js';
 
-export async function liquidityBrowser(input:{directory:string;client:sdk.LiquidityUserClient;owner:Keypair;
+export async function liquidityBrowser(input:{directory:string;client:sdk.AccountUserClient;owner:Keypair;
   endpoint:string;indexer:LiquidityIndexer;normal():Promise<unknown>}) {
   const {directory,client,owner}=input,readApp=accountApi(input.indexer);
   const readEndpoint=await readApp.listen({host:'127.0.0.1',port:0});

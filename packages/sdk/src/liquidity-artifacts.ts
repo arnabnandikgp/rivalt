@@ -2,7 +2,7 @@ import {address,type Address} from '@solana/kit';
 import {CLEARING_PROGRAM_ADDRESS} from './generated/index.js';
 import {MAKER_A_PROGRAM_ADDRESS} from './generatedMakerA/index.js';
 import {MAKER_B_PROGRAM_ADDRESS} from './generatedMakerB/index.js';
-import {GroupArtifactVerifier} from './group-artifacts.js';
+import {ArtifactVerifier} from './artifacts.js';
 import type {UserRpc} from './wallet-client.js';
 
 // P36 candidate: clean SBF source cff1cf9; qualification is recorded in STATUS.
@@ -16,7 +16,7 @@ export const LIQUIDITY_ARTIFACTS=Object.freeze([
   {name:'oracle-fixture',program:address('A5ACpHNQHLkCQtfvRkPoR45juvuxwfi9mEWGU43eD5nj'),bytes:151_608,sha256:'d8996b99368c7edf94a812d0c58bac4bf43471d4dbbb943ec610d839769b57c4'},
 ].map(artifact=>Object.freeze(artifact)));
 export class LiquidityArtifactVerifier {
-  private readonly verifier:GroupArtifactVerifier;
-  constructor(rpc:Pick<UserRpc,'call'>) {this.verifier=new GroupArtifactVerifier(rpc,LIQUIDITY_ARTIFACTS);}
+  private readonly verifier:ArtifactVerifier;
+  constructor(rpc:Pick<UserRpc,'call'>) {this.verifier=new ArtifactVerifier(rpc,LIQUIDITY_ARTIFACTS);}
   verify(authority:Address) {return this.verifier.verify(authority);}
 }

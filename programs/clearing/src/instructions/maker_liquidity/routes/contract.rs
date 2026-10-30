@@ -73,8 +73,8 @@ pub(super) fn financial_quote(
     quote: &canonical::MakerQuoteResponse,
     market: &Market,
     clock: &Clock,
-) -> maker_interface::QuoteResponse {
-    maker_interface::QuoteResponse {
+) -> crate::engine::routes::ExecutionQuote {
+    crate::engine::routes::ExecutionQuote {
         version: 4,
         maker_id: quote.request.instance,
         side: quote.request.side,

@@ -1,9 +1,9 @@
 //! Reuse actual route maker transitions for each funding-search quantity. This
 //! must not replace financial feasibility with a prefix or free-cash estimate.
 use super::*;
-use crate::instructions::account_trading;
 use crate::engine::{self, account};
-use crate::state::v2::GroupMarketV2;
+use crate::instructions::account_trading;
+use crate::state::accounts::Market;
 use financial_core::margin::{Margin, Risk};
 
 pub(crate) struct MakerAdmission<'market> {
@@ -11,7 +11,7 @@ pub(crate) struct MakerAdmission<'market> {
     accrued: Margin,
     prepared_risk: financial_core::liquidity::PreparedMakerRisk,
     reservations: super::reservations::Reservations,
-    market: &'market GroupMarketV2,
+    market: &'market Market,
     funding: [i128; 2],
     risks: [Risk; 2],
     slot: u64,
@@ -21,14 +21,14 @@ impl<'market> MakerAdmission<'market> {
     #[inline(never)]
     pub(crate) fn new(
         capital: &'market MarginAccount,
-        market: &'market GroupMarketV2,
+        market: &'market Market,
         funding: i128,
         slot: u64,
     ) -> Result<Self> {
         require!(
             capital.role == ROLE_MAKER
                 && capital.mode == MODE_ISOLATED
-                && capital.venue == market.group
+                && capital.venue == market.venue
                 && capital.isolated_market_index == market.index
                 && market.index < 2,
             ClearingError::MakerCapital
@@ -49,13 +49,12 @@ impl<'market> MakerAdmission<'market> {
             reserved: 0,
         };
         let reservations = super::reservations::Reservations::new(&root, market, slot);
-        let prepared_risk =
-            engine::checked(financial_core::liquidity::PreparedMakerRisk::new(
-                selected,
-                market.lower,
-                market.upper,
-                funding,
-            ))?;
+        let prepared_risk = engine::checked(financial_core::liquidity::PreparedMakerRisk::new(
+            selected,
+            market.lower,
+            market.upper,
+            funding,
+        ))?;
         Ok(Self {
             capital,
             accrued,
@@ -116,23 +115,17 @@ impl<'market> MakerAdmission<'market> {
         let Ok(mut candidate) = account_trading::root_view_value(self.capital) else {
             return false;
         };
-        engine::routes::finish_maker(
-            &mut candidate,
-            model,
-            self.market,
-            self.slot,
-            self.risks,
-        )
-        .is_ok()
+        engine::routes::finish_maker(&mut candidate, model, self.market, self.slot, self.risks)
+            .is_ok()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::v2;
+    use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
-    fn environment() -> (MarginAccount, GroupMarketV2) {
+    fn environment() -> (MarginAccount, Market) {
         let venue = Pubkey::new_unique();
         let capital = MarginAccount {
             schema_version: 3,
@@ -146,19 +139,19 @@ mod tests {
             cash: 500,
             delegate_epoch: 1,
             positions: [
-                v2::Position {
+                crate::state::Position {
                     lots: 3,
                     virtual_scaled: -30_000 * financial_core::SCALE,
                     generation: 1,
                     ..Default::default()
                 },
-                v2::Position::default(),
+                crate::state::Position::default(),
             ],
             ..Default::default()
         };
-        let market = GroupMarketV2 {
-            schema_version: 2,
-            group: venue,
+        let market = Market {
+            schema_version: SCHEMA_VERSION,
+            venue,
             index: 0,
             reference_price: 10_000,
             lower: 9900,
@@ -248,8 +241,8 @@ mod tests {
                                 market.index = market_index as u8;
                                 capital.isolated_market_index = market.index;
                                 capital.cash = cash;
-                                capital.positions = [v2::Position::default(); 2];
-                                capital.positions[market_index] = v2::Position {
+                                capital.positions = [crate::state::Position::default(); 2];
+                                capital.positions[market_index] = crate::state::Position {
                                     lots: inventory,
                                     virtual_scaled: claim - i128::from(inventory) * 10000 * SCALE,
                                     generation: 1,

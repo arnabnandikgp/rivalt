@@ -2,8 +2,8 @@
 use super::*;
 
 pub(crate) struct Candidate {
-    pub target: Box<MarginAccountV2>,
-    pub receiver: Box<MarginAccountV2>,
+    pub target: Box<MarginAccount>,
+    pub receiver: Box<MarginAccount>,
     pub gross_lots: u64,
     pub fee: u64,
     pub before: i128,
@@ -12,9 +12,9 @@ pub(crate) struct Candidate {
 
 #[inline(never)]
 pub(crate) fn candidate(
-    target: &MarginAccountV2,
-    receiver: &MarginAccountV2,
-    markets: [&GroupMarketV2; 2],
+    target: &MarginAccount,
+    receiver: &MarginAccount,
+    markets: [&Market; 2],
     mode: u8,
     market_index: usize,
     lots: u64,
@@ -27,7 +27,7 @@ pub(crate) fn candidate(
     book::validate(receiver)?;
     require!(
         market_index < 2
-            && target.group == receiver.group
+            && target.venue == receiver.venue
             && target_model.allows(market_index)
             && receiver_model.allows(market_index)
             && receiver.role != ROLE_MAKER
@@ -107,7 +107,7 @@ pub(crate) fn candidate(
 }
 pub(crate) fn risks(
     mode: u8,
-    markets: [&GroupMarketV2; 2],
+    markets: [&Market; 2],
     clock: &Clock,
 ) -> Result<[math::margin::Risk; 2]> {
     let mut result = [math::margin::Risk::default(); 2];

@@ -2,7 +2,7 @@
 //! maker position. Generation, direction and position-sized protection remain
 //! per-quantity decisions. The selected legs still run the complete route path.
 use super::*;
-use crate::state::v2::{GroupMarketV2, MarginAccountV2};
+use crate::state::accounts::{MarginAccount, Market};
 use financial_core::{self as math, orders::ReservationRate};
 
 #[derive(Clone, Copy)]
@@ -19,7 +19,7 @@ pub(crate) struct Reservations {
 }
 
 impl Reservations {
-    pub(crate) fn new(root: &MarginAccountV2, market: &GroupMarketV2, slot: u64) -> Self {
+    pub(crate) fn new(root: &MarginAccount, market: &Market, slot: u64) -> Self {
         let live_delegate = root.delegate != Pubkey::default() && slot < root.delegate_expiry_slot;
         let orders = root.book.orders.map(|stored| {
             let order = stored.order;

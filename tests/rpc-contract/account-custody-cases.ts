@@ -5,7 +5,7 @@ import { getCreateAccountInstruction, getTransferSolInstruction } from '@solana-
 import { TOKEN_PROGRAM_ADDRESS, getInitializeMint2Instruction, getInitializeAccount3Instruction,
   getMintToInstruction, getTokenDecoder, getTransferCheckedInstruction } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
-import { fixtureKey, payerKey, addresses, type Harness } from './custody-cases.js';
+import { fixtureKey, payerKey, addresses, type Harness } from './harness.js';
 
 const keyBytes = getAddressEncoder();
 const u16 = (value: number) => { const bytes = Buffer.alloc(2); bytes.writeUInt16LE(value); return bytes; };
@@ -64,10 +64,10 @@ export async function accountCustodyCases(h: Harness) {
     getInitializeAccount3Instruction({ account: key.address, mint: mint.address, owner: authority }),
     getMintToInstruction({ mint: mint.address, token: key.address, mintAuthority: payer, amount })], [key]);
   }
-  await h.send('reject foreign upgrade authority', [await sdk.getInitializeVenueInstructionAsync({ ...admin, domain, authority: attacker })], [attacker], 6102);
-  await h.send('reject wrong venue collateral precision', [await sdk.getInitializeVenueInstructionAsync({ ...admin, domain, quoteMint: badMint.address })], [], 6103);
+  await h.send('reject foreign upgrade authority', [await sdk.getInitializeLiquidityVenueInstructionAsync({ ...admin, domain, authority: attacker })], [attacker], 6102);
+  await h.send('reject wrong venue collateral precision', [await sdk.getInitializeLiquidityVenueInstructionAsync({ ...admin, domain, quoteMint: badMint.address })], [], 6103);
   assert.equal(await h.read(venue), null);
-  await h.send('initialize fresh clearing venue', [await sdk.getInitializeVenueInstructionAsync({ ...admin, domain })]);
+  await h.send('initialize fresh clearing venue', [await sdk.getInitializeLiquidityVenueInstructionAsync({ ...admin, domain })]);
   await h.send('initialize complete venue registry', [await sdk.getInitializeVenueRegistryInstructionAsync(admin)]);
   await rejected('reject reversed market registration', [sdk.getInitializeMarketInstruction({ ...admin, index: 1, market: markets[1], ledger: ledgers[1] })], [], 6108);
   for (const index of [0, 1]) {

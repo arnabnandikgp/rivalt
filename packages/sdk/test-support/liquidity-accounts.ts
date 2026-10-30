@@ -3,9 +3,9 @@ import * as sdk from '../src/index.js';
 import { emptyState,testAddress } from './liquidity-fixture.js';
 
 /** Encoded adversarial-reader fixtures, never submitted or called RPC evidence. */
-export async function liquidityAccountFixture() {
-  const venue = testAddress(1),market = testAddress(2),domain = new Uint8Array(32).fill(31);
-  const snapshot = { venue,market,marketIndex: 0 as const,domain,slot: 100n,now: 100n,contextSlot: 100n };
+export async function liquidityAccountFixture(identity?:{venue:Address;market:Address;domain:Uint8Array;slot:bigint;now:bigint}) {
+  const venue = identity?.venue??testAddress(1),market = identity?.market??testAddress(2),domain = identity?.domain??new Uint8Array(32).fill(31);
+  const snapshot = { venue,market,marketIndex: 0 as const,domain,slot: identity?.slot??100n,now: identity?.now??100n,contextSlot: 100n };
   const loader = address('BPFLoaderUpgradeab1e11111111111111111111111'),keyBytes = getAddressEncoder();
   const accounts = new Map<Address,{ owner: string;executable: boolean;data: [string,string] } | null>();
   const put = (key: Address,owner: Address,bytes: ReadonlyUint8Array,executable=false) =>
@@ -20,7 +20,9 @@ export async function liquidityAccountFixture() {
     const code = Buffer.alloc(48);code.writeUInt32LE(3);code[47] = instance === 2 ? 2 : 1;
     put(program,loader,executable,true);put(programData,loader,code);
     const hash = new Uint8Array(await crypto.subtle.digest('SHA-256',code));
-    const portfolio = testAddress(30+instance),owner = testAddress(40+instance);
+    const owner = testAddress(40+instance);
+    const [portfolio,portfolioBump]=await sdk.deriveAccountPortfolio(venue,owner,0);
+    put(portfolio,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getPortfolioEncoder().encode({schemaVersion:3,venue,owner,index:0,children:2,bump:portfolioBump}));
     const [capital,capitalBump] = await sdk.deriveMarginAccount(portfolio,1);
     const [registration,bump] = await derive(sdk.CLEARING_PROGRAM_ADDRESS,'maker-v4',market,Uint8Array.of(instance));
     const [config,configBump] = await derive(program,'curve-v4',capital),[price,priceBump] = await derive(program,'price-v4',config);
@@ -36,7 +38,7 @@ export async function liquidityAccountFixture() {
     Object.assign(configState.shape,{ mode: 1,ttlSlots: 150,skewStep: 2n,skewTick: 2n,longCap: 4096n,shortCap: 4096n,bidCount: 1,askCount: 1 });
     configState.shape.bids[0] = { endLots: 4096n,offset: 10n,slope: 0n };configState.shape.asks[0] = { ...configState.shape.bids[0] };
     const priceState = { ...emptyState(sdk.makerA.getMakerPriceDecoder()).state,schemaVersion: 4,config,bump: priceBump,
-      controlEpoch: 1n,sequence: 1n,anchor: 10000n,updatedSlot: 99n,updatedTime: 99n };
+      controlEpoch: 1n,sequence: 1n,anchor: 10000n,updatedSlot: snapshot.slot-1n,updatedTime: snapshot.now-1n };
     const write = () => {
       put(capital,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getMarginAccountEncoder().encode(capitalState));
       put(registration,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getMakerRegistrationEncoder().encode(registrationState));

@@ -5,7 +5,7 @@ use crate::engine::book;
 use math::margin::{Margin, Risk};
 
 pub(crate) struct Snapshot {
-    pub markets: [v2::GroupMarketV2; 2],
+    pub markets: [Market; 2],
     pub risks: [Risk; 2],
     pub bounds: [[i128; 2]; 2],
     pub clock: Clock,
@@ -35,7 +35,7 @@ impl Snapshot {
         &self,
         root: &MarginAccount,
         require_sources: bool,
-    ) -> Result<Box<v2::MarginAccountV2>> {
+    ) -> Result<Box<MarginAccount>> {
         let mut next = trading::root_view(root)?;
         let selected = if root.mode == MODE_CROSS {
             0
@@ -51,11 +51,7 @@ impl Snapshot {
                         entry.order.active() && usize::from(entry.market_index) == index
                     })
                 {
-                    crate::engine::oracle::action(
-                        &self.markets[index],
-                        &self.clock,
-                        false,
-                    )?;
+                    crate::engine::oracle::action(&self.markets[index], &self.clock, false)?;
                 }
             }
         }
@@ -95,9 +91,9 @@ impl Snapshot {
     }
 }
 
-fn copy_model(root: &mut v2::MarginAccountV2, model: Margin) {
+fn copy_model(root: &mut MarginAccount, model: Margin) {
     root.cash = model.cash;
-    root.positions = model.positions.map(|position| v2::Position {
+    root.positions = model.positions.map(|position| crate::state::Position {
         lots: position.lots,
         virtual_scaled: position.virtual_scaled,
         funding_checkpoint_scaled: position.funding_checkpoint,
@@ -105,7 +101,7 @@ fn copy_model(root: &mut v2::MarginAccountV2, model: Margin) {
     });
 }
 
-pub(crate) fn advance(root: &mut v2::MarginAccountV2) -> Result<()> {
+pub(crate) fn advance(root: &mut MarginAccount) -> Result<()> {
     increment(&mut root.nonce)?;
     increment(&mut root.state_version)
 }
@@ -114,7 +110,7 @@ pub(crate) fn withdraw_candidate(
     root: &MarginAccount,
     snapshot: &Snapshot,
     amount: u64,
-) -> Result<Box<v2::MarginAccountV2>> {
+) -> Result<Box<MarginAccount>> {
     require!(amount > 0, ClearingError::Amount);
     let mut next = snapshot.refresh(root, true)?;
     let candidate =
@@ -129,7 +125,7 @@ pub(crate) fn receive_candidate(
     root: &MarginAccount,
     snapshot: &Snapshot,
     amount: u64,
-) -> Result<Box<v2::MarginAccountV2>> {
+) -> Result<Box<MarginAccount>> {
     require!(amount > 0, ClearingError::Amount);
     // A recipient can receive cash while unhealthy/stale. Consume its funded
     // interval without granting trading authority or requiring new credit.
@@ -146,7 +142,7 @@ pub(crate) fn claim_candidate(
     amount: u64,
     gain: bool,
     pool: u64,
-) -> Result<(Box<v2::MarginAccountV2>, u64)> {
+) -> Result<(Box<MarginAccount>, u64)> {
     require!(market < 2 && amount > 0, ClearingError::Amount);
     let mut next = snapshot.refresh(root, true)?;
     let model = crate::engine::account::model(&next)?;
@@ -186,7 +182,7 @@ pub(crate) fn net_candidate(
     source: usize,
     amount: u64,
     pools: [u64; 2],
-) -> Result<(Box<v2::MarginAccountV2>, [u64; 2])> {
+) -> Result<(Box<MarginAccount>, [u64; 2])> {
     require!(
         source < 2 && amount > 0 && root.mode == MODE_CROSS,
         ClearingError::Amount

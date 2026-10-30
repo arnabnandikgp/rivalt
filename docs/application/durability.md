@@ -30,11 +30,10 @@ is an ordinary own-cash withdrawal prerequisite.
 qualified genesis/anchor/artifact binding. Public ingress accepts one measured
 wallet action with explicit zero priority price, one wallet signer and exact
 schema-decoded venue/actor/owner accounts. It does not accept arbitrary operator
-instructions or supply sponsorship. Generated parsers avoid V2 account-index
-assumptions in V3's differently ordered instruction contexts.
+instructions or supply sponsorship. Generated parsers authenticate the exact current instruction account ordering.
 
 For inherited account actions, nonexecution proof is limited to monotone root state versions, market observation
-sequences or legacy maker-sync quote epochs, with canonical PDA/schema checks after
+sequences, with canonical PDA/schema checks after
 finalized blockhash expiry. Unchanged authority says nothing about a hidden failed
 transaction fee; its budget reservation remains until actual finalized history.
 Liquidation jobs retain the consenting receiver’s signed pre-state version:

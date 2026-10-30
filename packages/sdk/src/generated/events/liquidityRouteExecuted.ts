@@ -33,8 +33,8 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  getClearingStateLiquidityExecutedLegDecoder,
-  getClearingStateLiquidityExecutedLegEncoder,
+  getExecutedLegDecoder,
+  getExecutedLegEncoder,
   getMakerRegistrationPayloadDecoder,
   getMakerRegistrationPayloadEncoder,
   getMarginAccountSnapshotDecoder,
@@ -43,8 +43,8 @@ import {
   getMarketLedgerSnapshotEncoder,
   getMarketSnapshotDecoder,
   getMarketSnapshotEncoder,
-  type ClearingStateLiquidityExecutedLeg,
-  type ClearingStateLiquidityExecutedLegArgs,
+  type ExecutedLeg,
+  type ExecutedLegArgs,
   type MakerRegistrationPayload,
   type MakerRegistrationPayloadArgs,
   type MarginAccountSnapshot,
@@ -87,7 +87,7 @@ export type LiquidityRouteExecutedEvent = {
   makerStates: Array<MakerRegistrationPayload>;
   totalCash: bigint;
   liabilityVersions: Array<bigint>;
-  legs: Array<ClearingStateLiquidityExecutedLeg>;
+  legs: Array<ExecutedLeg>;
 };
 
 export type LiquidityRouteExecutedEventArgs = {
@@ -113,7 +113,7 @@ export type LiquidityRouteExecutedEventArgs = {
   makerStates: Array<MakerRegistrationPayloadArgs>;
   totalCash: number | bigint;
   liabilityVersions: Array<number | bigint>;
-  legs: Array<ClearingStateLiquidityExecutedLegArgs>;
+  legs: Array<ExecutedLegArgs>;
 };
 
 /** Gets the encoder for {@link LiquidityRouteExecutedEventArgs} event data. */
@@ -142,7 +142,7 @@ export function getLiquidityRouteExecutedEventEncoder(): Encoder<LiquidityRouteE
       ["makerStates", getArrayEncoder(getMakerRegistrationPayloadEncoder())],
       ["totalCash", getU64Encoder()],
       ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
-      ["legs", getArrayEncoder(getClearingStateLiquidityExecutedLegEncoder())],
+      ["legs", getArrayEncoder(getExecutedLegEncoder())],
     ]),
     [getConstantEncoder(LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR)],
   );
@@ -174,7 +174,7 @@ export function getLiquidityRouteExecutedEventDecoder(): Decoder<LiquidityRouteE
       ["makerStates", getArrayDecoder(getMakerRegistrationPayloadDecoder())],
       ["totalCash", getU64Decoder()],
       ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
-      ["legs", getArrayDecoder(getClearingStateLiquidityExecutedLegDecoder())],
+      ["legs", getArrayDecoder(getExecutedLegDecoder())],
     ]),
     [getConstantDecoder(LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR)],
   );

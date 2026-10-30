@@ -17,7 +17,7 @@ planning checkpoint `84c46d4`, and separately requested a final README PR after 
 | M11 consolidation | In progress | Component docs, canonical names, justified retirement and final README |
 | P35 component docs/handoff | Review | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50); 20 maintained docs, 93-line handoff, scoped checks pass |
 | P36 canonical names/ABI | Review | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51); renamed current API, preserved ABI and scoped compiled/RPC acceptance |
-| P37 legacy retirement/runtime | In progress | Shared engine extracted; consumer retirement, current launcher/API consolidation and fresh integrated qualification remain |
+| P37 legacy retirement/runtime | In progress | Current engine/API/launchers consolidated; native/client/reference checks pass; fresh SBF and integrated qualification remain |
 | P38 professional root README | Open | Separate final PR after P35–P37; concise product/architecture/quick-start/status entrypoint |
 | P15B independent maker validation | Open — external | Actual independent operator and economics; internal bots/assumed hedges cannot substitute |
 | P16B independent review/funded readiness | Open — external | Actual independent review, risk/reserve calibration and separate funded authorization |
@@ -90,30 +90,45 @@ PR #51 remains ready/open. The status-only head `3511e44` also passes all five j
 in [run 41003463384](https://github.com/arnabnandikgp/rivalt/actions/runs/41003463384).
 P37 is stacked on that head.
 
-P37's first source checkpoint moves the shared order/reservation, route, delegate,
-source/funding and liquidation candidates into `programs/clearing/src/engine`.
-Current callers use that module; retained group handlers delegate to the same
-definitions. The scalar V2 adapters remain temporarily and are explicitly pending
-retirement, not a completed consolidation. On the working tree based on `3511e44`,
-the current feature compiles and 117 affected native cases pass: 42 account,
-29 maker-liquidity and 46 shared/group cases. A fresh clearing IDL is byte-identical
-and the frozen three-program wire guard passes. Source comparison verifies 29 moved
-definitions plus the two book files retain their bodies apart from qualified helper
-paths. Logs are local under `.local/p37-engine-*`. No new SBF, RPC/WS/PostgreSQL,
-browser or resource acceptance is claimed for this intermediate extraction.
+P37 source checkpoint `b89768b` extracted the shared engine. The current working
+candidate on that parent now retires obsolete standalone/group/fixed-maker runtime
+families and the disabled on-chain sampler. Current accounts feed the shared
+engine directly; one SDK, indexer/service profile, wallet UI, maker kit and demo
+use canonical liquidity. Historical deployments/data/keys/evidence stay untouched;
+D81 and the plan record explicit removals and replacement coverage.
 
-With explicit user approval, only the five older shared Solana compiler caches
-v1.41/v1.43/v1.48/v1.50/v1.51 were deleted; pinned v1.52 and all Rust installations,
-project data and evidence remain. Free space afterwards: 6.4 GiB.
+Actual checks on this working candidate: 229 client tests in 55 files; 102 clearing
+native tests with the qualified feature and the same 102 in the default build;
+typecheck, generated parity and trader build pass. The retained three-program wire
+manifest matches exact pre-retirement `b89768b` records, with removals separately
+listed. Twenty-one tooling checks pass (four port tests required loopback access).
+`ops/financial.sh` passes, including 3,172 independent Rust quote vectors, 2,060 wide
+arithmetic cases, 337 collection/flow/rate cases and 549 atom/continuation comparisons.
+Both maker programs compile; their crate-native test targets contain zero cases,
+so they are not claimed as execution evidence. Logs remain `.local/p37-*`.
 
-Next exact action: finish P37's explicit consumer/ABI retirement inventory, then
-replace the historical scalar adapters and remove the obsolete group runtime.
+The initial client run found 15 failures from obsolete fixtures/default profile
+assumptions; the corrected affected tests and subsequent complete current client
+suite pass. Current frozen-proposal readers now reject retired profiles. Active
+venue pause previously reached a profile-3-only guard; the consolidated guard
+accepts the authorized profile 4. Signed pause/foreign-authority/epoch invalidation
+RPC regressions are added but have not yet run against rebuilt binaries.
+
+No P37 SBF, RPC/WS/PostgreSQL, browser or full-book resource acceptance is claimed.
+The local artifact allowlist still identifies the prior P36 binaries until a clean
+P37 build supplies measured hashes. P37 has no PR yet; source commits are an
+intermediate checkpoint, not phase completion. P38 remains the separate final
+README PR. P36's already-green CI does not qualify these changes.
+
+Next exact action: build P37's clean pinned current/default SBF artifacts, update
+the candidate artifact identity, then run current custody and publisher/execution
+RPC probes before the safety/PostgreSQL/browser/full-book acceptance matrix.
 
 ## Deployment and operational limits
 
 Current canonical trading is qualified only in its explicit local profile. Default/
-devnet remain gated. Earlier devnet and interactive-demo profiles are not current
-canonical parity. See [deployment](operations/deployment.md) and
+devnet remain gated. Earlier devnet evidence is not current canonical parity; the migrated local demo
+still needs its fresh browser/runtime acceptance. See [deployment](operations/deployment.md) and
 [measured limits](operations/validation.md): finite maker/market bounds, narrow
 latency margin, publisher trust, retained unknown-fee reservations and coordinated
 unpaid-profit certificates remain explicit. No funded pilot, paid service, outreach

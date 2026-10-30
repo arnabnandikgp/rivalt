@@ -16,7 +16,7 @@ import {
 } from "@solana/kit";
 
 export type ResolutionSeeds = {
-  market: Address | HasAddress;
+  venue: Address | HasAddress;
 };
 
 export async function findResolutionPda(
@@ -35,9 +35,11 @@ export async function findResolutionPda(
     programAddress,
     seeds: [
       getBytesEncoder().encode(
-        new Uint8Array([114, 101, 115, 111, 108, 117, 116, 105, 111, 110]),
+        new Uint8Array([
+          114, 101, 115, 111, 108, 117, 116, 105, 111, 110, 45, 118, 51,
+        ]),
       ),
-      getAddressEncoder().encode(seeds.market),
+      getAddressEncoder().encode(seeds.venue),
     ],
   });
 }

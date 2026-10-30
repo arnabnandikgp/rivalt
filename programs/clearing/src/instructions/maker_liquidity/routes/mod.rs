@@ -1,10 +1,10 @@
 //! Current-price canonical execution reuses the whole-account financial engine.
 //! No profile-4 activation path is supplied by this module.
 use super::*;
-use crate::instructions::account_trading::{self as trading, environment, market_view, root_view};
 use crate::engine::routes as candidates;
+use crate::instructions::account_trading::{self as trading, environment, market_view, root_view};
 use crate::instructions::{OrderExecution, RouteIntent, RouteLeg};
-use crate::state::v2;
+use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
 mod contract;
 use contract::*;
@@ -58,13 +58,10 @@ pub fn execute_order(
         &ctx.accounts.identity.trader,
     )?;
     let clock = Clock::get()?;
-    let domain = Box::new(v2::ClearingGroupV2 {
-        domain: ctx.accounts.identity.venue.domain,
-        ..Default::default()
-    });
+    let venue = &ctx.accounts.identity.venue;
     // The current durable order supplies authority, price/fee limits and position generation.
     let (intent, index) = candidates::stored_intent(
-        &domain,
+        venue,
         &market_view(&ctx.accounts.identity.market)?,
         &*root_view(&ctx.accounts.identity.trader)?,
         OrderExecution {
@@ -173,12 +170,9 @@ fn execute_core(
         actual_quotes.push(actual);
     }
     let roots = maker_roots(accounts, has_second)?;
-    let domain = Box::new(v2::ClearingGroupV2 {
-        domain: identity.venue.domain,
-        ..Default::default()
-    });
+    let venue = &identity.venue;
     let next = candidates::candidate_for_version(
-        &domain,
+        venue,
         &trader,
         &roots,
         &quotes,
@@ -195,11 +189,13 @@ fn execute_core(
 /// Construct large root values in their own frame and place them directly in the
 /// candidate vector. Avoid temporary boxed copies on the non-reclaiming SBF heap.
 #[inline(never)]
-fn maker_roots(accounts: &ExecuteLiquidityRoute, has_second: bool) -> Result<Vec<v2::MarginAccountV2>> {
+fn maker_roots(accounts: &ExecuteLiquidityRoute, has_second: bool) -> Result<Vec<MarginAccount>> {
     let mut roots = Vec::with_capacity(if has_second { 2 } else { 1 });
     roots.push(trading::root_view_value(&accounts.first_capital)?);
     if has_second {
-        roots.push(trading::root_view_value(accounts.second_capital.as_deref().unwrap())?);
+        roots.push(trading::root_view_value(
+            accounts.second_capital.as_deref().unwrap(),
+        )?);
     }
     Ok(roots)
 }

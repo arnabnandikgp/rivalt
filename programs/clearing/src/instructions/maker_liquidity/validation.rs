@@ -66,7 +66,7 @@ pub(crate) fn custody_base(
     market: &Market,
 ) -> Result<()> {
     require!(
-        cfg!(feature = "maker-liquidity-qualification")
+        cfg!(feature = "liquidity-execution-qualification")
             && venue.schema_version == 3
             && venue.profile_version == 4
             && venue.market_count == 2
@@ -241,8 +241,8 @@ pub(crate) fn verify_control_result(
         bytes.len() == 691 && bytes[..8] == hash(b"account:MakerCurveV4").to_bytes()[..8],
         ClearingError::MakerBinding
     );
-    let actual = CurveState::try_from_slice(&bytes[8..])
-        .map_err(|_| error!(ClearingError::MakerBinding))?;
+    let actual =
+        CurveState::try_from_slice(&bytes[8..]).map_err(|_| error!(ClearingError::MakerBinding))?;
     require!(actual == *expected, ClearingError::MakerBinding);
     Ok(())
 }
@@ -314,4 +314,11 @@ mod control_result_tests {
         assert!(check(&mut encoded.clone(), MAKER_A, true).is_err());
         assert!(check(&mut encoded[..690], MAKER_A, false).is_err());
     }
+}
+
+pub(crate) fn module_hash(data: &Account<ProgramData>) -> Result<[u8; 32]> {
+    let info = data.to_account_info();
+    let bytes = info.try_borrow_data()?;
+    require!(bytes.len() <= 1_048_576, ClearingError::MakerBinding);
+    Ok(hash(&bytes).to_bytes())
 }

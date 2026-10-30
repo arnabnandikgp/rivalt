@@ -156,31 +156,6 @@ pub struct MarketLedger {
     pub bump: u8,
 }
 
-#[account(discriminator = [178, 121, 174, 51, 57, 224, 24, 117])]
-#[derive(InitSpace, Default)]
-pub struct FixedMakerRegistration {
-    pub schema_version: u16,
-    pub venue: Pubkey,
-    pub market: Pubkey,
-    pub market_index: u8,
-    pub maker_id: u8,
-    pub capital: Pubkey,
-    pub owner: Pubkey,
-    pub pricing_program: Pubkey,
-    pub program_data: Pubkey,
-    pub config: Pubkey,
-    pub approved_hash: [u8; 32],
-    pub authority_epoch: u64,
-    pub quote_epoch: u64,
-    pub start_slot: u64,
-    pub expiry_slot: u64,
-    pub inventory_limit: u64,
-    pub buy_consumed: u64,
-    pub sell_consumed: u64,
-    pub quarantined: bool,
-    pub bump: u8,
-}
-
 #[account(discriminator = [73, 122, 190, 75, 85, 174, 37, 138])]
 #[derive(InitSpace, Default)]
 pub struct CapitalBinding {

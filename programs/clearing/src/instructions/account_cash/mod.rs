@@ -3,7 +3,7 @@ use super::account_custody::{arithmetic as checked, increment};
 use super::account_trading as trading;
 use crate::{
     error::ClearingError,
-    state::{v2, accounts::*},
+    state::{accounts::*, records::*},
 };
 use anchor_lang::prelude::*;
 use financial_core as math;
@@ -30,10 +30,10 @@ fn subtract(left: i128, right: i128) -> Result<i128> {
 
 pub(crate) fn profile(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> Result<()> {
     require!(
-        cfg!(feature = "account-cash-qualification"),
+        cfg!(feature = "liquidity-execution-qualification"),
         ClearingError::Profile
     );
-    trading::financial_activated(venue, custody, safety)
+    trading::activated(venue, custody, safety)
 }
 
 fn begin(identity: &AccountFinancialIdentity) -> Result<Snapshot> {
@@ -49,7 +49,7 @@ fn begin(identity: &AccountFinancialIdentity) -> Result<Snapshot> {
 fn commit(
     identity: &mut AccountFinancialIdentity,
     root: &mut Account<MarginAccount>,
-    candidate: &v2::MarginAccountV2,
+    candidate: &MarginAccount,
 ) -> Result<()> {
     let previous = root.positions;
     trading::commit_root(root, candidate)?;

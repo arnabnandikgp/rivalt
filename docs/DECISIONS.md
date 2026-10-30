@@ -56,3 +56,30 @@ records have one definition. Older colliding runtimes remain explicitly named un
 P37 audits their live consumers; the current adapter still uses the group engine.
 Stored journal/API event tags remain versioned schema identities, so a source
 rename does not rewrite historical rows or weaken profile checks.
+
+## D81 — current-runtime retirement boundary
+
+P37's inspected [disposition table](REPOSITORY-CONSOLIDATION.md#p37-disposition-and-compatibility-boundary)
+implements D79/D80's authorized retirement. The supported fresh local runtime is
+the account-centric financial engine with canonical maker liquidity and the
+restricted funding publisher. Earlier isolated/common-loss group and fixed-maker
+execution profiles, and the disabled on-chain liquidity sampler, leave the current
+program/API/app after their live primitives and applicable independent tests move.
+
+Retained wire expectations come from pre-retirement `b89768b`; intentional removed
+entrypoints/accounts/events are recorded separately. Current layouts, discriminators,
+metas, seeds, errors, replay domains and numeric schema identities remain pinned.
+This removes obsolete APIs; it is not a compatible binary upgrade for an old venue.
+Default/devnet financial gates remain, and no existing deployment is upgraded.
+
+Current journal tags and original signed bytes retain their exact decoding and
+recovery semantics. Historical deployments use their original pinned client and
+configuration, recoverable at the pre-consolidation revision. Local databases,
+keys and evidence remain in place. No state relabeling, automatic fund migration,
+changed loss bearer, fee, risk credit or publisher authority is authorized.
+
+The consolidated active-profile guard also restores the already-authorized venue
+pause/unpause path for profile 4; the preceding helper admitted only profile 3.
+Venue authority, reconciled custody and safety-epoch invalidation remain required.
+Fresh regression coverage must prove foreign-authority rejection, paused trading
+rejection and invalidation of pre-pause signed routes before runtime acceptance.

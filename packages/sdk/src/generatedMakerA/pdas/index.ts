@@ -6,8 +6,5 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./accountConfig.js";
-export * from "./config.js";
 export * from "./curveConfig.js";
 export * from "./curvePrice.js";
-export * from "./initializeGroupConfigConfig.js";

@@ -1,4 +1,4 @@
-import type { Store } from '../../indexer/src/store.js';
+import type {Pool} from 'pg';
 
 // Notifications only reduce scheduling delay. The durable queue and its periodic
 // scan remain authoritative after missed notifications, restarts or disconnects.
@@ -15,10 +15,10 @@ export class WakeSignal {
     });
   }
 }
-async function acquire(pool: Store['pool']) { return pool.connect(); }
+async function acquire(pool: Pool) { return pool.connect(); }
 export class ExecutorWake extends WakeSignal {
   private client?: Awaited<ReturnType<typeof acquire>>;
-  constructor(private pool: Store['pool'], private runId: string) { super(); }
+  constructor(private pool: Pool, private runId: string) { super(); }
   async connect() {
     if (this.client) return;
     const client = await this.pool.connect();

@@ -42,12 +42,3 @@ pub struct ProtectiveGroup {
     pub generation: u64,
     pub side: u8,
 }
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace)]
-pub struct LegacyOrderBook {
-    pub last_order_id: u64,
-    pub last_group_id: u64,
-    pub reserve_observation: u64,
-    pub orders: [OrderRecord; 4],
-    pub groups: [ProtectiveGroup; 2],
-}

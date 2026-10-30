@@ -33,7 +33,6 @@ fn exact_contract_sizes_and_roundtrips() {
     wire(MarginAccount::default(), 970);
     wire(Market::default(), 447);
     wire(MarketLedger::default(), 109);
-    wire(FixedMakerRegistration::default(), 326);
     wire(CapitalBinding::default(), 106);
     wire(SettlementCertificate::default(), 234);
     wire(ResolutionPage::default(), 3400);
@@ -45,11 +44,11 @@ fn exact_contract_sizes_and_roundtrips() {
 fn no_old_account_discriminator_or_seed_is_reinterpreted() {
     assert_ne!(
         MarginAccount::DISCRIMINATOR,
-        crate::state::v2::MarginAccountV2::DISCRIMINATOR
+        &[143, 109, 33, 76, 190, 108, 140, 149]
     );
     assert_ne!(
         MarginAccount::DISCRIMINATOR,
-        crate::state::Participant::DISCRIMINATOR
+        &[32, 142, 108, 79, 247, 179, 54, 6]
     );
     let owner = Pubkey::new_unique();
     let mut keys = std::collections::HashSet::new();
@@ -81,7 +80,7 @@ fn no_old_account_discriminator_or_seed_is_reinterpreted() {
     assert_eq!(keys.len(), 72);
     assert_eq!(
         TRADING_IMPLEMENTED,
-        cfg!(feature = "account-safety-qualification")
+        cfg!(feature = "liquidity-execution-qualification")
     );
     assert!(!valid_identity(
         0,
@@ -109,7 +108,7 @@ fn fractional_positions_and_wide_numerators_preserve_every_byte() {
         i128::from_le_bytes(bytes[177..193].try_into().unwrap()),
         400_000_001
     );
-    bytes[..8].copy_from_slice(crate::state::v2::MarginAccountV2::DISCRIMINATOR);
+    bytes[..8].copy_from_slice(&[143, 109, 33, 76, 190, 108, 140, 149]);
     assert!(MarginAccount::try_deserialize(&mut bytes.as_slice()).is_err());
     let mut page = ResolutionPage::default();
     page.rows[1].exact_flow_numerators[1].limbs[95] = u64::MAX;

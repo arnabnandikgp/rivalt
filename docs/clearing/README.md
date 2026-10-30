@@ -32,11 +32,11 @@ complete default. Maker execution pricing belongs to [liquidity](../liquidity/RE
   [financial core](../../crates/financial-core/src/) and
   [independent expectations](../../tests/financial/).
 
-The current runtime uses schema-3 financial accounts under immutable profile 4.
-Older profiles still exist in source. Current definitions now have canonical names and shared records live in
-`state/records.rs`. Shared reservation, route, funding and liquidation transitions
-now live in `engine/`; current and retained group handlers call those same functions.
-The in-memory adapters still use the historical scalar records until P37 retires
-the prototype runtime. This intermediate extraction does not complete retirement.
-No existing bytes acquire different economic semantics. Only the explicit
-qualified local artifact activates this implementation; default/devnet gates remain.
+The supported fresh local runtime uses schema-3 financial accounts under immutable
+profile 4. Shared records live in `state/records.rs`; the `engine/` candidates use
+current account records directly for both isolated and cross accounts. The earlier
+standalone/group/fixed-maker runtimes are retired, with historical reproduction
+pinned in [HISTORY](../HISTORY.md). This is source retirement, not a deployed-account
+migration. Only the explicit qualified local artifact activates financial actions;
+default/devnet gates remain. [STATUS](../STATUS.md) distinguishes source completion
+from qualification of rebuilt artifacts.

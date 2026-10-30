@@ -2,7 +2,7 @@
 
 ## Explicit deployment identity
 
-`LiquidityUserClient` validates version-4 local configuration, immutable artifact
+`AccountUserClient` validates version-4 local configuration, immutable artifact
 pins, genesis and the actual initialization signature/hash. Configuration includes
 RPC/WS URLs, venue, mint and domain. Never infer a deployment from a port or retained
 acceptance dump. Schema-3 financial layouts coexist with profile-4 maker/publisher
