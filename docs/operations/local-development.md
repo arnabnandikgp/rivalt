@@ -9,7 +9,7 @@
 | Agave CLI distribution | 4.1.2, source 182084b8 |
 | Bundled cargo-build-sbf | 4.1.0; its displayed default platform-tools is v1.54 |
 | Explicit SBF build | platform-tools v1.52, rustc 1.89.0-dev, SBPF v0 |
-| Surfpool | 1.6.1; RPC reports solana-core 4.2.1, feature-set 565236538 |
+| Surfpool | 1.7.0 for P40B onward; solana-core 4.3.2, feature-set 3383571666 (D85) |
 | Node / pnpm | 24.22.0 / 10.23.0 |
 | Application web3.js / Kit | 3.1.1 / 8.5.0 |
 | Wallet compatibility | wallet-adapter 3.1.1, React / React DOM 19.3.0 |

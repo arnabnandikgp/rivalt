@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-test "$(surfpool --version)" = 'surfpool 1.6.1'
+test "$(surfpool --version)" = 'surfpool 1.7.0'
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18941}"
 export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18942}"
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"

@@ -267,7 +267,9 @@ until full payload decoding, complete-block discovery and journal acceptance pas
 The schema-5 candidate now uses SQL journal format **2**, which refuses retained
 format-1 databases. `getBlocks` plus complete `getBlock` bodies establish a fixed
 finalized fence; parent slot/hash links detect omitted produced blocks, and each
-stored block preserves its ordered signatures and their digest. WS remains a hint.
+stored block preserves its ordered signatures and their digest. A separately
+requested signatures-only block must agree exactly with the full body and its
+header; missing transaction records reject. WS remains a hint.
 Projection orders whole signed transactions by scoped causal dependencies. A
 second account pass fences every entity revision before combining RPC chunks.
 Only a relevant advance permits bounded tail catch-up (three extensions).

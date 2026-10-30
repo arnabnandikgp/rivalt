@@ -158,3 +158,25 @@ footer advances the revision. The explicit ABI delta fixes 20 sequence-only cust
 meta reductions and the three zero-payload footer additions; imported financial
 types in maker IDLs advance with clearing, while maker-owned layouts stay unchanged.
 The successor is still disabled pending SDK/journal and compiled integrated acceptance.
+
+
+## D85 — qualify scoped history on Surfpool 1.7.0
+
+On 31 October 2026, the first P40B signed run reached a fill but correctly rejected
+its finalized block fence. A minimal independent RPC reproduction and the pinned
+1.6.1 source identify a runtime defect: stored blocks use relative synthetic hash
+indices, while reconstructed empty blocks use absolute slots. Adjacent finalized
+blocks therefore disagree on the previous hash. This is not a Rivalt revision gap.
+
+Use the official checksum-pinned **Surfpool 1.7.0** release for the remaining M12
+qualification. Its corrected reconstruction passes the mixed-block RPC probe;
+keep strict parent/hash checks and compare the separately requested signature
+manifest with each full block body so an omitted transaction cannot disappear
+silently. Preserve the 1.6.1 tool and historical evidence. No source-price, financial,
+fee, execution-authority or journal-completeness safeguard is relaxed. Framework,
+SBF compiler, dependency and database pins otherwise remain unchanged. P39's old
+runtime measurements remain historical inputs, not same-runtime performance proof.
+
+Primary source: [1.7.0 block reconstruction](https://github.com/solana-foundation/surfpool/blob/v1.7.0/crates/core/src/surfnet/svm.rs).
+The local reproduction is `.local/p40b-block-probe-170/blocks.json`; full P40B
+RPC/WS/PostgreSQL acceptance on this runtime is still required.

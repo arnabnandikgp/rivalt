@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import * as sdk from '@rivalt/sdk';
 import {decodeAccountInvocations,type AccountInvocation} from '../../packages/indexer/src/account-events.js';
 import {eventPayloads,hash,type JournalEvent} from '../../packages/indexer/src/events.js';
-import {decodeFinalizedBlock,validateBlockChain,type FinalizedBlock} from '../../packages/indexer/src/finalized-block.js';
+import {readFinalizedBlock,validateBlockChain,type FinalizedBlock} from '../../packages/indexer/src/finalized-block.js';
 import {orderScopedTransactions} from '../../packages/indexer/src/scoped-history.js';
 import type {LiquidityBinding} from '../../packages/indexer/src/liquidity-store.js';
 import type {WireRpc} from './wire.js';
@@ -19,7 +19,7 @@ export async function fetchScopedHistory(rpc:WireRpc,anchor:string,authority:str
   for(let start=original.slot;start<=end;start+=1000) {
     const slots=await rpc.call('getBlocks',[start,Math.min(end,start+999),{commitment:'finalized'}]);
     for(const slot of slots) {
-      const block=decodeFinalizedBlock(slot,await rpc.call('getBlock',[slot,{encoding:'json',transactionDetails:'full',rewards:false,commitment:'finalized',maxSupportedTransactionVersion:1}]));
+      const block=await readFinalizedBlock(rpc,slot,1);
       blocks.push(block);
       for(const [index,{signature,tx}] of block.transactions.entries()) {
         const keys=[...tx.transaction.message.accountKeys,...(tx.meta.loadedAddresses?.writable??[]),...(tx.meta.loadedAddresses?.readonly??[])];

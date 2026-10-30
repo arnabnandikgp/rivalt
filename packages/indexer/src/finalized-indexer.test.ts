@@ -35,7 +35,7 @@ function fixture(limit=20) {
     if(method==='getSlot')return head;
     if(method==='getBlocks')return Array.from({length:params[1]-params[0]+1},(_,index)=>params[0]+index);
     if(method==='getBlock')return {blockhash:`block${params[0]}`,parentSlot:params[0]-1,previousBlockhash:`block${params[0]-1}`,blockTime:100,
-      transactions:[{meta:{err:null},transaction:{signatures:[`tx${params[0]}`],message:{accountKeys:[CLEARING_PROGRAM_ADDRESS]}}}]};
+      signatures:[`tx${params[0]}`],transactions:[{meta:{err:null},transaction:{signatures:[`tx${params[0]}`],message:{accountKeys:[CLEARING_PROGRAM_ADDRESS]}}}]};
     throw new Error(`Unexpected RPC ${method}`);
   });
   return {indexer,store,rpc,state,setHead:(value:number)=>{head=value;}};
@@ -51,7 +51,7 @@ it('extends only finalized blocks beyond the accepted candidate and preserves th
   expect(test.store.commit).toHaveBeenCalledTimes(1);
   expect(test.store.commit.mock.calls[0][0].map(block=>block.slot)).toEqual([2,3,4]);
   expect(test.store.commit.mock.calls[0].slice(2)).toEqual([{slot:4,blockhash:'block4'},'block1']);
-  expect(test.rpc.mock.calls.filter(([method,params])=>method==='getBlock'&&(params as any)[0]===2)).toHaveLength(1);
+  expect(test.rpc.mock.calls.filter(([method,params])=>method==='getBlock'&&(params as any)[0]===2&&(params as any)[1].transactionDetails==='full')).toHaveLength(1);
   expect(test.state.cash).toBe(7);
 });
 for(const message of ['Economic mismatch','Finalized revision is behind'])it(`never retries ${message}`,async()=>{
@@ -92,4 +92,13 @@ it('does not treat a newer notification outside the block fence as a history gap
   const original=test.rpc.getMockImplementation()!;
   test.rpc.mockImplementation(async(method,params)=>method==='getSignatureStatuses'?{value:[{confirmationStatus:'finalized',slot:3}]}:original(method,params));
   await test.indexer.cycle();expect(test.indexer.healthy).toBe(true);
+});
+
+it('rejects a transaction missing from the full block even when no observed revision reveals the omission',async()=>{
+  const test=fixture(),original=test.rpc.getMockImplementation()!;
+  test.rpc.mockImplementation(async(method,params:any=[])=>{
+    const value=await original(method,params);
+    return method==='getBlock'&&params[1].transactionDetails==='signatures'?{...value,signatures:['tx2','unseen-independent-writer']}:value;
+  });
+  await expect(test.indexer.cycle()).rejects.toThrow(/signature manifest/);expect(test.store.commit).not.toHaveBeenCalled();
 });

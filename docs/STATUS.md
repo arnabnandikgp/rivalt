@@ -244,6 +244,14 @@ The previous `828fe543` binaries are preserved at their local artifact revision
 path. New measured SDK artifact hashes select only this candidate; RPC acceptance
 is still pending. Build log: `.local/p40b-build.log`.
 
+The first signed run on candidate `f576a25` reached the first real fill but failed
+the finalized parent/hash fence before SQL acceptance. Its raw evidence remains
+`.local/liquidity-execution/runs/p40b-journal-first/` and the failure log is
+`.local/p40b-journal-rpc.log`. D85 records the reproduced Surfpool 1.6.1 mixed-block
+hash defect and the checksum-pinned 1.7.0 replacement, whose minimal RPC probe
+passes. This is a runtime repair, not phase acceptance. Separate full-body and
+signature-manifest reads now reject missing transaction records as well.
+
 Next exact action: qualify the
 complete-block journal against real signed Surfpool RPC/WS/PostgreSQL history,
 including reverted effects, SQL rollback, restart, duplicate delivery and replay.

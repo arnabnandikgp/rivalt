@@ -5,6 +5,21 @@ export type FinalizedBlock={slot:number;blockhash:string;parentSlot:number;previ
   signatures:string[];signatureDigest:string;transactions:{signature:string;tx:any}[]};
 export type BlockFence={slot:number;blockhash:string};
 
+export async function readFinalizedBlock(rpc:{call(method:string,params:unknown[]):Promise<any>},slot:number,maxVersion:0|1) {
+  const configuration={encoding:'json',commitment:'finalized',rewards:false,maxSupportedTransactionVersion:maxVersion};
+  const [body,manifest]=await Promise.all([
+    rpc.call('getBlock',[slot,{...configuration,transactionDetails:'full'}]),
+    rpc.call('getBlock',[slot,{...configuration,transactionDetails:'signatures'}]),
+  ]);
+  const block=decodeFinalizedBlock(slot,body);
+  if(!manifest||manifest.blockhash!==block.blockhash||manifest.parentSlot!==block.parentSlot
+    ||manifest.previousBlockhash!==block.previousBlockhash||!Array.isArray(manifest.signatures)
+    ||manifest.signatures.length!==block.signatures.length
+    ||manifest.signatures.some((signature:unknown,index:number)=>signature!==block.signatures[index]))
+    throw new Error('Incomplete or conflicting finalized block signature manifest');
+  return block;
+}
+
 /** Full ordered block bodies are the discovery proof. Address pagination and
  * notifications are only hints; neither covers independent scoped writers. */
 export function decodeFinalizedBlock(slot:number,value:any):FinalizedBlock {

@@ -2,12 +2,8 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
 import * as sdk from '@rivalt/sdk';
-const names=['AccountCustodyChanged','AccountMakerChanged','AccountOracleChanged','AccountQualification',
-  'AccountOrderChanged','AccountAuthorityChanged','AccountRouteExecuted','AccountFinancialChanged','AccountBackingChanged',
-  'AccountLiquidated','AccountResolutionApplied','AccountResolutionCompleted','AccountResolutionFrozen',
-  'AccountResolutionOrder','AccountResolutionPlanned','AccountResolutionProgress','AccountResolutionProposal',
-  'AccountResolutionRates','AccountResolutionRounded','AccountResolutionValued','AccountRetirementProgress',
-  'AccountSafetyRecovery','AccountsRetired','RetiredReserveWithdrawn'];
+import idl from '../../packages/sdk/idl/clearing.json' with {type:'json'};
+const names=idl.events.map(event=>event.name);
 export function decodeAccountEvent(bytes:Uint8Array) {
   for(const name of names) {
     const discriminator=name.replace(/([a-z0-9])([A-Z])/g,'$1_$2').toUpperCase()+'_EVENT_DISCRIMINATOR';

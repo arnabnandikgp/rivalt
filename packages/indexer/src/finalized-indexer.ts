@@ -3,7 +3,7 @@ import * as sdk from '@rivalt/sdk';
 import { Rpc, Subscription, integer } from './rpc.js';
 import { hash, type JournalEvent } from './events.js';
 import { JournalStore, type JournalBinding, type JournalInvocation } from './store.js';
-import {decodeFinalizedBlock,validateBlockChain,type FinalizedBlock,type BlockFence} from './finalized-block.js';
+import {readFinalizedBlock,validateBlockChain,type FinalizedBlock,type BlockFence} from './finalized-block.js';
 import type {RevisionVector} from './scoped-history.js';
 import {ReconciliationAhead} from './reconciliation-progress.js';
 
@@ -84,8 +84,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
         if(!Array.isArray(slots)||slots.some((slot:unknown,index:number)=>integer(slot)<first||integer(slot)>last||(index>0&&integer(slot)<=slots[index-1])))
           throw new Error('Invalid finalized block range');
         for(const slot of slots) {
-          const block=decodeFinalizedBlock(slot,await this.rpc.call('getBlock',[slot,{encoding:'json',commitment:'finalized',
-            transactionDetails:'full',rewards:false,maxSupportedTransactionVersion:this.config.maxTransactionVersion??0}]));
+          const block=await readFinalizedBlock(this.rpc,slot,this.config.maxTransactionVersion??0);
           transactionCount+=block.transactions.length;
           if(transactionCount>(this.config.maxRecoveryTransactions??10_000))throw new Error('History recovery exceeds transaction bound');
           for(const [index,{signature,tx}] of block.transactions.entries()) {
