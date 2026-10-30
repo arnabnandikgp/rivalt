@@ -81,7 +81,9 @@ export async function fetchPrototypeHistory(rpc: WireRpc, custody: string, autho
 export async function prototypeBinding(rpc: WireRpc, history: Awaited<ReturnType<typeof fetchPrototypeHistory>>,
   venue: string, domain: string): Promise<PrototypeBinding> {
   const first = history.events[0];
-  assert.equal(first.type, 'AccountCustodyChangedV3');
+  // This test-only digest projection uses current IDL names. The production
+  // account projection separately preserves its persisted schema-tag mapping.
+  assert.equal(first.type, 'AccountCustodyChanged');
   assert.equal(first.data.schemaVersion, 3); assert.equal(first.data.profileVersion, 4);
   const transaction = history.transactions.find(item => item.signature === first.signature)!;
   return { schema: 4, scope: 'p32-journal-only', genesis: await rpc.call('getGenesisHash', []),
