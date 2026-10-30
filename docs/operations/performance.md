@@ -47,7 +47,8 @@ cannot exceed the outer message; returned events are not separate transactions.
 
 P39's original generated inventory found 50 clearing entrypoints writing custody.
 P40B reduces that to 30 by removing twenty sequence-only write privileges. The
-current JSON inventory reflects the new IDL. Both counts include setup/rare actions;
+current P42 JSON inventory records 20 custody writers after operation-specific
+contexts. These counts include setup/rare actions;
 they are not counts of frequent runtime operations. The audit below records the
 pre-redesign findings and planned dispositions; validation tracks completed work.
 
@@ -170,15 +171,15 @@ Test both protocol-only and complete signed-message sets; explicitly use distinc
 payers when proving independence. Intentional same-account/market conflicts are
 not failures. Targets apply to the completed P42 stack, not intermediate commits.
 
-| Pair/workload | Current | Target / retained reason |
+| Pair/workload | P39 dependency | P42 result / retained reason |
 |---|---|---|
-| Disjoint isolated BTC/ETH trades, distinct makers/owners | Custody, both markets, cross-ledger conflicts | No shared writable protocol dependency |
+| Disjoint isolated BTC/ETH trades, distinct makers/owners | Custody, both markets, cross-ledger conflicts | Actual distinct-owner/payer messages have no protocol or compiled W/W or W/R overlap |
 | Independent maker reprices | Protocol-independent, often common test payer | Remain independent; payer cost visible |
 | Maker A reprice with maker B-only fill | No protocol conflict | Remain independent |
 | Maker A reprice with A fill | Price W/R | Retain current-price atomic ordering |
 | Same-market fills to different makers | Custody/market/ledger | Remove venue coupling; exact market ledger/exposure ordering remains |
-| Unrelated delegate change with trade | Custody | Only touched-account/lifecycle dependencies |
-| BTC and ETH funding reports | Custody | Separate publisher/market writes; no global discovery write |
+| Unrelated delegate change with trade | Custody | Only touched-account/lifecycle dependencies; no custody |
+| BTC and ETH funding reports | Custody | Separate publisher/market writes; no custody or global discovery write |
 | Internal transfer versus actual token deposit | Shared custody/vault context | No unnecessary vault write; genuine shared root/dependency still orders |
 | Complete default versus any financial mutation | Safety/accounting dependencies | Retain global freeze barrier intentionally |
 

@@ -26,12 +26,12 @@ health, frozen membership or choose a creditor subset.
 |---|---|---|
 | Registration | Venue/mint, safety, immutable market eligibility, portfolio owner/index | Registry, portfolio/root revisions; membership version increments |
 | Deposit | Venue, safety, root, classic token accounts | Root, custody and vault; dependent liability stamps; no oracle prerequisite |
-| Withdraw/transfer | Root complete positions/book, relevant markets/sources, custody, safety | Roots, consumed relevant market prefixes, custody/vault as applicable; own nonce/state and safety. No certificate or global event sequence commitment |
-| Trade/order execution | Owner/delegate or stored order, root nonce/version, market terms, maker identity/approval/epoch/consumption, relevant sources/funding | All touched roots, markets with consumed funding, selected registrations/ledger/custody; exact signed limits. No unrelated observation or historical event counter as automatic rejection |
-| Place/replace/protection | Whole root and relevant sources, current generations/reservations, live signer authority | Root nonce/book/version and affected liability stamps |
+| Withdraw/transfer | Root complete positions/book, relevant markets/sources and safety | Roots, consumed relevant market prefixes, custody/vault as applicable; own nonce/state and safety. No certificate or global event sequence commitment |
+| Trade/order execution | Owner/delegate or stored order, root nonce/version, market terms, maker identity/approval/epoch/consumption, relevant sources/funding | All touched roots, markets with consumed funding, selected registrations/ledger and other liable-market ledger; exact signed limits. No unrelated observation or historical event counter as automatic rejection |
+| Place/replace/protection | Whole root and relevant sources, current generations/reservations, live signer authority | Root nonce/book/version and consumed relevant market prefixes; no liability-stamp change for authority alone |
 | Cancel/revoke | Root/version/current authority, safety | Root/book/epoch; no fresh source or maker quote needed outside frozen ownership |
-| Collect/pay/net | Root, selected ledger, full relevant funding/source state; pay/net certificate | Root, market ledger(s), custody and consumed funding; invalidate affected payment certificates after mutation |
-| Liquidate | Complete target/receiver roots, credible relevant bounds and current orders | Target/receiver, selected market/custody; strict whole-account post-fee MM-deficit decrease and nonflipping exposure reduction |
+| Collect/pay/net | Root, selected ledger, full relevant funding/source state; pay/net certificate | Root, relevant market ledger(s) and consumed funding; no custody/vault; invalidate affected payment certificates after mutation |
+| Liquidate | Complete target/receiver roots, credible relevant bounds and current orders | Target/receiver, relevant markets/liability ledgers; no custody/vault; strict whole-account post-fee MM-deficit decrease and nonflipping exposure reduction |
 | Freeze/resolve | Safety, complete registry, immutable source/funding/config endpoints, canonical pages | Safety, resolution/work/pages and exact financial apply; ordinary root mutations blocked |
 
 A liability version advances for a root's economic change in each market where it
@@ -44,15 +44,16 @@ Bound all checked counters and reject overflow, never wrap/recycle authority.
 
 Every financial transaction uses one on-chain Clock and actual landed write-lock
 ordering. Successful simulations/previews do not reserve state. Missing, duplicate,
-foreign or aliased roots/markets/sources reject. Shared custody, market and maker
-writes remain hot accounts; P24/P28 measure them rather than claim parallelism.
+foreign or aliased roots/markets/sources reject. Actual token gateways share custody/vault writes. Internal fills omit them, but
+selected-market accounting, cross-root dependencies and maker capital still order
+conflicting actions. Distinct-market independence is not a validator TPS claim.
 
 
 ## Exact layouts, encoding and deployment
 
 Ordered Borsh fields in [state/accounts](../../programs/clearing/src/state/accounts) are normative.
 Clearing accounts use canonical discriminator bytes, SHA-256(`account:<name>`)[0..8].
-Each begins with schema u16=6 and a scoped revision u64. D84 deliberately supersedes
+Each begins with schema u16=7 and a scoped revision u64. D84 deliberately supersedes
 P36's preserved historical discriminators for this fresh local domain. Integer seeds are little endian. Reused Position and
 OrderBook scalar records preserve 48-/680-byte encoding only, not V2 account
 identity, handlers or common-loss semantics. All public JSON integers are decimal
@@ -61,15 +62,15 @@ strings with explicit units and schema.
 | Account | PDA seeds after string prefix | Bytes including discriminator |
 |---|---|---:|
 | Venue | `venue-v3`, domain[32] | 329 |
-| Custody | `custody-v3`, venue | 83 |
+| Custody | `custody-v3`, venue | 59 |
 | VenueSafety | `safety-v3`, venue | 85 |
 | VenueRegistry | `registry-v3`, venue | 2,113 at 64 members |
 | Portfolio | `portfolio-v3`, venue, owner, u16 index | 87 |
 | MarginAccount | `margin-v3`, portfolio, u16 child | 978 |
 | Market | `market-v3`, venue, u8 registry index | 455 |
-| MarketLedger | `ledger-v3`, market | 117 |
+| MarketLedger | `ledger-v3`, market | 125 |
 | CapitalBinding | `capital-v3`, capital | 114 |
-| SettlementCertificate | `settlement-v3`, venue, u8 market | 242 |
+| SettlementCertificate | `settlement-v3`, venue, u8 market | 234 |
 | Resolution | `resolution-v3`, venue | 3,652 |
 | ResolutionPage | `resolution-page-v3`, venue, u16 page index | 3,408; two fixed rows |
 | ResolutionWork | `resolution-work-v3`, venue | 7,926 |
@@ -85,7 +86,7 @@ contract's size tests do not establish SBF stack/CU safety.
 
 ## Current-profile additions and activation
 
-Canonical maker registrations and funding publishers are clearing-owned schema 6.
+Canonical maker registrations and funding publishers are clearing-owned schema 7.
 Maker-owned curve and price accounts retain schema 4. Their exact layouts are in
 [quoting](../liquidity/quoting.md) and [funding](../liquidity/funding.md).
 The older fixed-maker registration is retired, not reinterpreted as the current
@@ -287,14 +288,15 @@ prefix checks, transfers/withdrawals/reservations/TP/SL/liquidation, ABI/SDK par
 and actual Surfpool RPC/WS/PostgreSQL reconstruction. Failed and successful paths
 must use the rebuilt schema-6 artifact; P40B evidence does not qualify it.
 
-## Custody isolation successor contract (P42, implementation pending)
+## Custody isolation contract (P42)
 
 D87 freezes this fresh local schema-7 boundary before runtime edits. P41 remains the
 accepted schema-6 predecessor at `49b95a4`; no existing deployment/database/original
 is migrated. Use a new domain/genesis, explicit `accountSchema: 7`, fresh artifact
 pins and journal binding. Profile 4, maker-owned schema 4, quote/report versions,
 canonical discriminators, PDA seeds and instruction argument encodings stay intact.
-No activation or resource qualification follows from this contract.
+Scoped rebuilt acceptance is recorded in [validation](../operations/validation.md#custody-isolation-acceptance-p42);
+the contract alone supplies no activation or resource qualification.
 
 Ordered account changes (all sizes include discriminator):
 

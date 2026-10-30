@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { createNoopSigner, getAddressDecoder, type Instruction } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 
-test('schema-3 custody bytes, roles and bounded amounts match isolated Anchor', async () => {
+test('schema-7 custody bytes, roles and bounded amounts match isolated Anchor', async () => {
   const key = (value: number) => getAddressDecoder().decode(new Uint8Array(32).fill(value));
   const owner = createNoopSigner(key(1)), authority = createNoopSigner(key(2));
   const reserveSigner = createNoopSigner(key(19));
@@ -39,19 +39,21 @@ test('schema-3 custody bytes, roles and bounded amounts match isolated Anchor', 
       instruction: name === 'depositAccount' ? sdk.getDepositAccountInstruction({ ...common, amount }) : sdk.getWithdrawAccountCustodyInstruction({ ...common, amount }),
       names: ['owner',...ledgerBase,'margin','quoteMint','vault','userToken','tokenProgram',...end] })),
     { name: 'transferAccountCustody', args: [integer(amount)], instruction: await sdk.getTransferAccountCustodyInstructionAsync({ ...common, donor: key(10), amount }),
-      names: ['owner',...ledgerBase,'donor','recipient','vault',...end] },
+      names: ['owner','venue','safety','donor','recipient',...end] },
     { name: 'pauseVenue', args: [value(true)], instruction: await sdk.getPauseVenueInstructionAsync({ ...common, paused: true }),
       names: ['authority',...ledgerBase,'vault',...end] },
     { name: 'classifyMarketSurplus', args: [value(1),integer(amount)], instruction: await sdk.getClassifyMarketSurplusInstructionAsync({ ...common, reserveAuthority: reserveSigner, marketIndex: 1, amount }),
-      names: ['reserveAuthority',...ledgerBase,'vault',...end] },
+      names: ['reserveAuthority',...base,'ledger','vault',...end] },
     { name: 'seedMarketInsurance', args: [value(1),integer(amount)], instruction: await sdk.getSeedMarketInsuranceInstructionAsync({ ...common, reserveAuthority: reserveSigner, marketIndex: 1, amount }),
-      names: ['reserveAuthority','donor',...ledgerBase,'quoteMint','vault','donorToken','tokenProgram',...end] },
+      names: ['reserveAuthority','donor',...base,'ledger','quoteMint','vault','donorToken','tokenProgram',...end] },
   ];
   const directory = mkdtempSync(join(tmpdir(), 'rivalt-account-conformance-'));
   try {
     const path = join(directory, 'input.json');
-    writeFileSync(path, JSON.stringify({ instructions: cases.map(({name,args,instruction,names}) => ({name,args,
-      accounts: Object.fromEntries(names.map((name,index) => [name,instruction.accounts![index].address])) })) }));
+    writeFileSync(path, JSON.stringify({ instructions: cases.map(({name,args,instruction,names}) => {
+      assert.equal(instruction.accounts!.length, names.length, `${name}: exact account list`);
+      return {name,args, accounts: Object.fromEntries(names.map((name,index) => [name,instruction.accounts![index].address])) };
+    }) }));
     const legacy = JSON.parse(execFileSync(process.execPath, ['tests/anchor-conformance/account-custody.cjs', path], { encoding: 'utf8' }));
     assert.equal(legacy.instructions.length, 11);
     for (const [index, result] of legacy.instructions.entries()) {

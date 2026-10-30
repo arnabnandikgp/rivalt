@@ -204,7 +204,7 @@ ready PR; keep the stack open.
 
 ## D87 — isolate token custody from internal financial accounting
 
-On 31 October 2026, P42 freezes the [custody isolation contract](clearing/accounts.md#custody-isolation-successor-contract-p42-implementation-pending)
+On 31 October 2026, P42 freezes the [custody isolation contract](clearing/accounts.md#custody-isolation-contract-p42)
 under the user's authorized P39–P44 roadmap. Remove the redundant globally updated
 cash sum and two-market liability stamps from Custody; canonical roots and market
 ledgers maintain exact local conserving transitions. Each ledger owns its liability
@@ -223,4 +223,7 @@ Schema 7 uses a fresh local domain/genesis/client/journal. Financial rates, fund
 cash versus unpaid claims, reserve ownership, strict liquidation progress, complete
 market-attributed default and default/devnet gates stay unchanged. P15B/P16B and
 deferred endurance remain separate. No activation/resource result follows from the
-contract; complete and verify this phase before its ready PR above #59.
+contract. Scoped rebuilt acceptance now verifies these changes as documented in
+[validation](operations/validation.md#custody-isolation-acceptance-p42); P43/P44 own
+further optimization/full qualification. Earlier backing pages still need a stable
+required-observation window. Keep the ready stack open above #59.

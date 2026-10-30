@@ -19,7 +19,7 @@ the integration and preceding baselines.
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
-| P42 custody/accounting isolation | In progress | D87 schema-7 source/SDK/indexer implemented; 114 native and 71 scoped client cases pass; rebuilt RPC/WS/PG, certificate progress and contention acceptance pending |
+| P42 custody/accounting isolation | Review — publication pending | D87 schema-7 acceptance passes on SBF `6aeb7d0`; signed financial, distinct-market locks, atomic settlement, gateway/treasury/default and fresh SQL replay verified |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
@@ -326,50 +326,51 @@ is ready above #58. Integration remains pending. All five hosted CI jobs pass on
 three route fixture tests also pass locally. The repair supplies omitted maker roots
 without changing runtime admission. No broad
 unrelated/browser/endurance suites are rerun; CI owns broad regression and P44 owns
-full fresh qualification. P42 is on `performance/p42-custody-isolation` above #59. D87 freezes exact
-account layouts, dependency/authority rules, partial payloads and complete acceptance
-criteria. The current unqualified schema-7 source removes shared custody from internal
-financial actions, moves liability stamps to selected ledgers, and derives complete
-cash from roots/allocated pools. Atomic final-page/payment is implemented in the worker;
-it is not yet signed-RPC evidence. Custody is 59 bytes, ledger 125 and certificate 234.
-All 114 native clearing cases pass. Typecheck, generated parity, exact D87 ABI delta
-against immutable P41, 53-entrypoint/43-context scope coverage and 71 affected client/
-projection/Anchor checks pass. Earlier fixture/manual-decoder failures were repaired;
-raw logs remain `.local/p42-*`. No unrelated suites or endurance are rerun.
-Clean schema-7 compiled source is **`6aeb7d0cf645fca889a9e3154ac01a129a72a6a8`**.
-All qualified/default SBF programs and regenerated IDLs build without oversized frames;
-D87 parity and eleven ABI guard regressions pass. SDK artifact pins now select the
-new candidate hashes; the prior P41 artifacts remain in their local revision directory.
-The scoped signed driver adds cross-liability omission rollback, separate BTC/ETH
-owners/payers, classified source-observation scan invalidation and atomic final-page/
-payment including later-instruction rollback. Typecheck passes. The first fresh run preserved 173 signed outcomes through
-cross/fractional claims and isolated BTC; the ETH fixture correctly hit the existing
-self-trade prohibition because its owner also owned the selected maker. The fixture
-now uses a third independently funded test owner; no self-trade rule is changed.
-All three compiled default gates pass and the four dependency-builder cases pass.
-Clean verifier **`569ed3e`** passes the extended RPC/WS/PostgreSQL probe:
-207 signed outcomes (196 successes, eleven expected rejections), ten market-omission
-cases, no protocol or compiled-message conflict between actual distinct-owner/payer
-BTC/ETH trades, and identical 149-event fresh SQL replay. All 75 accounts/ten members
-reconcile to allocated/actual vault **8,099,997** atoms. Atomic final-page/payment uses
-118,337 CU/604 bytes; later-instruction failure rolls both effects back. Three of
-three deliberately source-interleaved scan attempts reject; one bounded quiet-window
-scan completes. Those four constructed attempts do not estimate normal availability.
-Evidence stays in `p42-custody-distinct/` below the existing runs directory.
+full fresh qualification. P42 is on `performance/p42-custody-isolation` above #59. D87's schema-7 layouts,
+SDK, indexer and worker are implemented and scoped acceptance passes. Custody is
+59 bytes and owns only allocated tokens; selected ledgers carry liability stamps.
+Pure internal operations omit custody/vault. Full cash is derived and independently
+reconciled at complete checkpoints; economics and authority remain unchanged.
 
-The same clean verifier/SBF passes 290 safety outcomes including 23 expected
-rejections, TP/SL, full reservations, strict post-fee liquidation, eight-root complete
-default, stale-source resolved cash exit and sustained recovery/reactivation. The
-independent raw-byte Fraction audit verifies all eight payouts and rejects ten
-corruptions. Evidence: `p42-safety/`; this safety driver is not a separate SQL run.
-Clean verifier `6fbc5d6` passes selected-ledger fee allocation/exit, terminal reserve
-exits and actual SQL rollback/restart/fresh replay. The rebuilt native suite passes
-all 114 cases. The custody gateway probe correctly rejects a duplicated writable
-ledger with Anchor 2040; its old seed-error expectation (2006) is repaired without
-changing runtime checks. Failed evidence remains in `p42-custody-gateways/`.
-Next exact action: rerun that scoped gateway probe, record final acceptance and
-publish P42 ready above #59. No validator
-throughput, endurance or funded qualification is claimed.
+Clean compiled source **`6aeb7d0cf645fca889a9e3154ac01a129a72a6a8`** builds all
+qualified/default programs and generated IDLs without oversized frames. All 114
+native clearing cases, 71 affected client/projection/Anchor cases, four overlapping
+dependency-builder cases, one additional atomic-worker case, eleven ABI guard
+regressions and three compiled default gates pass. Current inventory covers 61
+entrypoints and 20 custody writers. No unrelated suites/endurance are rerun.
+
+Clean verifier `569ed3e` passes 207 dependency/custody outcomes (11 expected
+rejections), 149-event fresh PostgreSQL replay and exact 8,099,997-atom backing.
+Distinct-owner/payer BTC/ETH trades have zero protocol and full-message write
+conflicts. Atomic final-page/payment costs 118,337 CU/604 bytes and later failure
+rolls back both effects. Three deliberately observation-interleaved scan attempts
+reject; one coordinated-window attempt completes. These four constructed attempts
+do not estimate normal availability: stable relevant observations remain necessary
+for earlier pages, with no source/risk relaxation.
+
+The same verifier/SBF passes 290 safety outcomes, including 23 expected rejections,
+TP/SL, liquidation, complete default, stale-source resolved exit and recovery.
+Independent Fraction audit verifies eight exact payouts and rejects ten corruptions.
+Clean `6fbc5d6` passes 124 treasury/journal outcomes (five rejections), actual SQL
+rollback/shutdown/backfill and identical 74-event replay. It also passes 63 terminal
+retirement/reserve outcomes (seven rejections), same-slot/nested-CPI ordering and
+53-event fresh replay, with actual/allocated vault 5,999,999 atoms.
+
+Clean `72e2d18` passes all 57 signed custody gateway scenarios, independent raw-byte
+accounting/eight corruptions and legacy Anchor account/event parity. Its earlier
+failure was an obsolete negative-test error expectation: duplicated writable
+ledgers correctly reject with 2040 before a seed check. The separate dependency
+fixture's self-trade rejection was fixed with a third independently funded owner.
+Failed evidence remains; neither correction changes financial rules. One additional
+custody codec case now passes all eleven exact current instruction/meta comparisons
+against isolated Anchor, after updating its obsolete context-name fixture.
+
+[Validation](operations/validation.md#custody-isolation-acceptance-p42) records exact
+pins, counts, limits and local run paths. Prior P41 binaries remain preserved.
+Next exact action: publish P42 ready above #59, then begin P43 profiling on this
+accepted parent without waiting for merge. P44 still owns full-path measurement,
+integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
+endurance, browser or funded qualification is claimed for P42.
 
 ## Deployment and operational limits
 
