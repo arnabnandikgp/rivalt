@@ -336,10 +336,15 @@ All 114 native clearing cases pass. Typecheck, generated parity, exact D87 ABI d
 against immutable P41, 53-entrypoint/43-context scope coverage and 71 affected client/
 projection/Anchor checks pass. Earlier fixture/manual-decoder failures were repaired;
 raw logs remain `.local/p42-*`. No unrelated suites or endurance are rerun.
-Current executable artifacts remain the accepted schema-6 P41 set; no P42 deployment
-or resource acceptance is claimed. Next exact action: build clean schema-7 SBF/default
-artifacts, pin their actual hashes, then run the custody/dependency RPC/WS/PostgreSQL
-probe with atomic certificate/payment and distinct-owner/payer contention checks. No validator
+Clean schema-7 compiled source is **`6aeb7d0cf645fca889a9e3154ac01a129a72a6a8`**.
+All qualified/default SBF programs and regenerated IDLs build without oversized frames;
+D87 parity and eleven ABI guard regressions pass. SDK artifact pins now select the
+new candidate hashes; the prior P41 artifacts remain in their local revision directory.
+The scoped signed driver adds cross-liability omission rollback, separate BTC/ETH
+owners/payers, classified source-observation scan invalidation and atomic final-page/
+payment including later-instruction rollback. Typecheck passes; this driver has not
+run yet. Next exact action: execute the fresh P42 dependency/custody RPC/WS/PostgreSQL
+probe, fix actual failures, then complete the remaining safety/default/retirement gates. No validator
 throughput, endurance or funded qualification is claimed.
 
 ## Deployment and operational limits

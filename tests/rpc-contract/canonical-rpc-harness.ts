@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { getBase58Decoder, getTransactionDecoder, getCompiledTransactionMessageDecoder } from '@solana/kit';
-import { Connection, VersionedTransaction } from '@solana/web3.js';
+import { Connection, VersionedTransaction, type Keypair } from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import { payerKey } from './harness.js';
 import type { CanonicalHarness } from './canonical-maker-cases.js';
@@ -13,6 +13,7 @@ export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: 
     maxLoadedAccounts?: (label: string) => number | undefined;
     observeOutcomes?: (label: string) => boolean;
     beforeBroadcast?: (label: string) => Promise<void>;
+    payerFor?: (label: string) => Keypair | undefined;
     deferFinality?: boolean } = {}) {
 assert.equal(new URL(url).hostname, '127.0.0.1');
 const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
@@ -41,7 +42,7 @@ const h: CanonicalHarness = {
     const observeOutcome = options.observeOutcomes?.(label) ?? false;
     const computeUnitLimit = options.computeUnitLimit?.(label,instructions)
       ?? (label.startsWith('reprice ') ? 100_000 : instructions.length > 1 && label.startsWith('atomic') ? 800_000 : 400_000);
-    const { transaction, v0Bytes, wireBytes } = await sdk.signCanonicalInstructions(connection, payer, instructions,
+    const { transaction, v0Bytes, wireBytes } = await sdk.signCanonicalInstructions(connection, options.payerFor?.(label) ?? payer, instructions,
       { computeUnitLimit, loadedAccountsDataSizeLimit: 8 * 1024 * 1024 }, signers);
     const wire = transaction.serialize(), wireBase64 = Buffer.from(wire).toString('base64');
     const signedAt = performance.now();
