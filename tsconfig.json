@@ -26,6 +26,7 @@
     "apps/**/*.tsx",
     "tests/browser/**/*.ts",
     "tests/e2e/**/*.ts",
-    "tests/load/**/*.ts"
+    "tests/load/**/*.ts",
+    "tests/performance/**/*.ts"
   ]
 }

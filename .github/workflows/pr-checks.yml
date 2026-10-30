@@ -60,6 +60,7 @@ jobs:
       - run: node ops/local-keys.mjs
       - run: pnpm generate:check
       - run: pnpm typecheck
+      - run: node --import tsx tests/performance/inventory.ts
       - run: pnpm test
       - name: Canonical maker SDK against independent reference
         run: python3 tests/financial/check_maker_curve_parity.py --implementation sdk

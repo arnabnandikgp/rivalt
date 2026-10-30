@@ -13,6 +13,13 @@ the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
+| P39 dependency audit/baseline | In progress | Complete IDL inventory and signed-message lock harness; focused fresh RPC measurement and contract acceptance pending |
+| P40 scoped events/services | Planned | Verified P39 parent; atomic per-entity event reconstruction, PG replay and independent execution |
+| P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
+| P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
+| P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
+| P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
 | P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
 | P36 canonical names/ABI | Closed | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51) merged; canonical API names, preserved wire contract and passing CI |
@@ -99,9 +106,20 @@ local `main` fast-forwarded without touching unrelated research or local evidenc
 Only documentation/whitespace/evidence checks apply to this closeout. No financial,
 RPC/WS/PostgreSQL, browser, load or endurance suite is rerun for merge metadata.
 
-Next exact action: select the next product/engineering objective with the user.
-No further implementation phase, external activity or endurance run is authorized
-by this closeout.
+The user subsequently authorized P39–P44 under D82. P39 is on
+`performance/p39-contract`, based on `4f84f2b`; current program binaries are unchanged.
+The new audit inventories 61 deployed-program entrypoints, including 50 clearing
+custody writers. Scoped harness checks pass six cases and typecheck passes after
+correcting a branded blockhash fixture mismatch. The performance
+workspace reuses exact existing dependency versions; offline installation failed
+because tarball caches were absent, then normal pinned installation succeeded.
+No program rebuild or full financial/integration suite is warranted by harness/docs
+changes. Fresh scoped RPC/WS measurement and final conformance are still pending;
+no throughput or phase completion is claimed. Disk has about 1 GiB free; preserve
+all user research, keys, DBs and existing evidence and reuse verified artifacts.
+
+Next exact action: pass scoped performance/type checks, commit the P39 harness and
+contract, then run `bash ops/performance-baseline.sh` against the pinned SBF set.
 
 ## Deployment and operational limits
 
