@@ -3,11 +3,14 @@ from copy import deepcopy
 import importlib.util
 import json
 from pathlib import Path
+import sys
 import unittest
 
 spec = importlib.util.spec_from_file_location("wire_contract", "ops/wire_contract.py")
 wire = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(wire)
+sys.path.insert(0, str(Path("ops").resolve()))
+import scoped_wire_contract as scoped
 
 
 class WireContractTest(unittest.TestCase):
@@ -113,7 +116,15 @@ class WireContractTest(unittest.TestCase):
 
     def test_frozen_original_and_domains(self):
         baseline = json.loads(wire.BASELINE.read_text())
-        self.assertEqual(wire.capture(), baseline["contract"])
+        self.assertEqual(wire.source_domains(), baseline["contract"]["domains"])
+        for program in wire.PROGRAMS:
+            with self.subTest(program=program):
+                # Preserve the immutable pre-change fixture. The successor must
+                # match only the deliberately enumerated D84 delta from it.
+                self.assertEqual(wire.program_contract(scoped.predecessor_idl(program)),
+                                 baseline["contract"]["programs"][program])
+                self.assertEqual(wire.capture()["programs"][program],
+                                 wire.program_contract(scoped.expected_idl(program)))
 
 
 if __name__ == "__main__":

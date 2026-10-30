@@ -256,7 +256,12 @@ unrelated/browser/endurance suites are omitted; CI owns broad regression and P44
 owns full fresh integrated qualification. P40B acceptance content is `df042ce`; [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58)
 is ready for review above #56. The retained safety projection verifier passes at
 that same clean commit. Owned RPC/WS/PG listeners and containers are confirmed
-stopped. Integration and hosted CI remain pending; no production/throughput claim.
+stopped. Initial hosted client/financial/scope/shell jobs passed; report failed
+because its regression still compared schema-5 output directly with the immutable
+pre-change fixture. The regression now verifies both the original predecessor and
+the enumerated D84 delta, without refreshing the fixture; its CI checkout includes
+that predecessor. All 11 ABI regression cases and the explicit wire guard pass
+locally. Hosted recheck and integration remain pending; no production/throughput claim.
 P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on
 `96790ef` / `f8984e0`. No external access blocker remains.
 
