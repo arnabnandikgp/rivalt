@@ -48,7 +48,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_FINANCIAL_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([76, 103, 155, 59, 195, 212, 214, 99]);
+  new Uint8Array([43, 194, 30, 114, 255, 146, 2, 198]);
 
 export function getAccountFinancialChangedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -58,7 +58,6 @@ export function getAccountFinancialChangedEventDiscriminatorBytes(): ReadonlyUin
 
 export type AccountFinancialChangedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   actor: Address;
   /**
@@ -81,7 +80,6 @@ export type AccountFinancialChangedEvent = {
 
 export type AccountFinancialChangedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   actor: Address | HasAddress;
   /**
@@ -107,7 +105,6 @@ export function getAccountFinancialChangedEventEncoder(): Encoder<AccountFinanci
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["actor", getAddressEncoder()],
       ["kind", getU8Encoder()],
@@ -135,7 +132,6 @@ export function getAccountFinancialChangedEventDecoder(): Decoder<AccountFinanci
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["actor", getAddressDecoder()],
       ["kind", getU8Decoder()],

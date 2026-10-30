@@ -76,7 +76,7 @@ export type CheckMarketBackingInstruction<
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
       TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
+        ? ReadonlyAccount<TAccountCustody>
         : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
@@ -255,7 +255,7 @@ export async function getCheckMarketBackingInstructionAsync<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     registry: {
@@ -501,7 +501,7 @@ export function getCheckMarketBackingInstruction<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     registry: {

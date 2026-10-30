@@ -48,7 +48,7 @@ import {
 } from "@solana/kit";
 
 export const VENUE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  219, 72, 214, 104, 74, 226, 68, 202,
+  8, 155, 85, 226, 234, 173, 42, 242,
 ]);
 
 export function getVenueDiscriminatorBytes(): ReadonlyUint8Array {
@@ -58,6 +58,8 @@ export function getVenueDiscriminatorBytes(): ReadonlyUint8Array {
 export type Venue = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   profileVersion: number;
   domain: ReadonlyUint8Array;
   authority: Address;
@@ -77,6 +79,8 @@ export type Venue = {
 
 export type VenueArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   profileVersion: number;
   domain: ReadonlyUint8Array;
   authority: Address | HasAddress;
@@ -100,6 +104,7 @@ export function getVenueEncoder(): FixedSizeEncoder<VenueArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["profileVersion", getU16Encoder()],
       ["domain", fixEncoderSize(getBytesEncoder(), 32)],
       ["authority", getAddressEncoder()],
@@ -125,6 +130,7 @@ export function getVenueDecoder(): FixedSizeDecoder<Venue> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["profileVersion", getU16Decoder()],
     ["domain", fixDecoderSize(getBytesDecoder(), 32)],
     ["authority", getAddressDecoder()],
@@ -218,5 +224,5 @@ export async function fetchAllMaybeVenue(
 }
 
 export function getVenueSize(): number {
-  return 321;
+  return 329;
 }

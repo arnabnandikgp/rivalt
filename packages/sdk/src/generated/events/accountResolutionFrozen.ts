@@ -50,7 +50,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_RESOLUTION_FROZEN_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([9, 69, 237, 92, 238, 192, 233, 138]);
+  new Uint8Array([244, 180, 18, 1, 137, 154, 39, 230]);
 
 export function getAccountResolutionFrozenEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -60,7 +60,6 @@ export function getAccountResolutionFrozenEventDiscriminatorBytes(): ReadonlyUin
 
 export type AccountResolutionFrozenEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   epoch: bigint;
   stage: number;
@@ -88,7 +87,6 @@ export type AccountResolutionFrozenEvent = {
 
 export type AccountResolutionFrozenEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   epoch: number | bigint;
   stage: number;
@@ -119,7 +117,6 @@ export function getAccountResolutionFrozenEventEncoder(): FixedSizeEncoder<Accou
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["epoch", getU64Encoder()],
       ["stage", getU8Encoder()],
@@ -153,7 +150,6 @@ export function getAccountResolutionFrozenEventDecoder(): FixedSizeDecoder<Accou
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["epoch", getU64Decoder()],
       ["stage", getU8Decoder()],

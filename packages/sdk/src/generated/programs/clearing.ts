@@ -356,7 +356,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([73, 122, 190, 75, 85, 174, 37, 138]),
+        new Uint8Array([176, 183, 79, 146, 172, 158, 6, 18]),
       ),
       0,
     )
@@ -367,7 +367,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([10, 141, 69, 218, 220, 92, 189, 65]),
+        new Uint8Array([1, 184, 48, 81, 93, 131, 63, 145]),
       ),
       0,
     )
@@ -378,7 +378,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([44, 251, 162, 245, 60, 52, 128, 8]),
+        new Uint8Array([111, 5, 110, 52, 241, 227, 75, 245]),
       ),
       0,
     )
@@ -389,7 +389,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([133, 250, 116, 223, 223, 193, 72, 233]),
+        new Uint8Array([1, 86, 15, 130, 199, 52, 54, 34]),
       ),
       0,
     )
@@ -400,7 +400,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([64, 36, 102, 180, 245, 54, 123, 199]),
+        new Uint8Array([231, 196, 106, 151, 199, 213, 13, 66]),
       ),
       0,
     )
@@ -411,7 +411,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([200, 111, 5, 168, 138, 82, 246, 229]),
+        new Uint8Array([133, 220, 173, 213, 179, 211, 43, 238]),
       ),
       0,
     )
@@ -422,7 +422,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([247, 134, 112, 200, 45, 95, 27, 136]),
+        new Uint8Array([219, 190, 213, 55, 0, 227, 198, 154]),
       ),
       0,
     )
@@ -433,7 +433,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([34, 52, 130, 15, 133, 166, 1, 144]),
+        new Uint8Array([20, 74, 143, 91, 58, 131, 8, 46]),
       ),
       0,
     )
@@ -444,7 +444,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([179, 160, 245, 234, 80, 218, 219, 211]),
+        new Uint8Array([94, 158, 71, 245, 122, 102, 110, 225]),
       ),
       0,
     )
@@ -455,7 +455,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([26, 10, 63, 147, 4, 145, 63, 14]),
+        new Uint8Array([31, 13, 235, 201, 17, 66, 5, 138]),
       ),
       0,
     )
@@ -466,7 +466,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([184, 104, 232, 110, 0, 196, 59, 104]),
+        new Uint8Array([57, 63, 171, 238, 101, 11, 188, 123]),
       ),
       0,
     )
@@ -477,7 +477,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([128, 138, 12, 12, 59, 172, 62, 201]),
+        new Uint8Array([99, 47, 197, 144, 90, 27, 131, 51]),
       ),
       0,
     )
@@ -488,7 +488,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([98, 43, 199, 95, 72, 186, 80, 231]),
+        new Uint8Array([219, 215, 122, 131, 244, 149, 119, 95]),
       ),
       0,
     )
@@ -499,7 +499,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([72, 164, 54, 74, 42, 141, 146, 101]),
+        new Uint8Array([203, 191, 78, 192, 230, 33, 223, 136]),
       ),
       0,
     )
@@ -510,7 +510,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([219, 72, 214, 104, 74, 226, 68, 202]),
+        new Uint8Array([8, 155, 85, 226, 234, 173, 42, 242]),
       ),
       0,
     )
@@ -521,7 +521,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([127, 21, 158, 27, 21, 26, 190, 55]),
+        new Uint8Array([11, 151, 217, 1, 250, 79, 175, 105]),
       ),
       0,
     )
@@ -532,7 +532,7 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([42, 190, 232, 3, 147, 213, 42, 157]),
+        new Uint8Array([46, 102, 239, 71, 129, 237, 96, 72]),
       ),
       0,
     )
@@ -566,6 +566,7 @@ export enum ClearingEvent {
   AccountResolutionValued,
   AccountRetirementProgress,
   AccountSafetyRecovery,
+  AccountTransition,
   AccountsRetired,
   FundingPublisherChanged,
   FundingReportAccepted,
@@ -583,7 +584,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([251, 40, 242, 186, 173, 63, 170, 85]),
+        new Uint8Array([179, 166, 140, 50, 207, 134, 21, 108]),
       ),
       0,
     )
@@ -594,7 +595,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([66, 133, 138, 218, 88, 161, 206, 5]),
+        new Uint8Array([153, 130, 194, 9, 38, 95, 166, 119]),
       ),
       0,
     )
@@ -605,7 +606,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([116, 78, 173, 90, 240, 10, 196, 1]),
+        new Uint8Array([179, 48, 166, 248, 136, 247, 187, 170]),
       ),
       0,
     )
@@ -616,7 +617,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([76, 103, 155, 59, 195, 212, 214, 99]),
+        new Uint8Array([43, 194, 30, 114, 255, 146, 2, 198]),
       ),
       0,
     )
@@ -627,7 +628,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([35, 131, 226, 210, 153, 126, 68, 34]),
+        new Uint8Array([87, 101, 34, 236, 150, 254, 234, 209]),
       ),
       0,
     )
@@ -638,7 +639,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([110, 134, 123, 30, 250, 53, 165, 164]),
+        new Uint8Array([70, 219, 224, 254, 53, 33, 212, 22]),
       ),
       0,
     )
@@ -649,7 +650,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([138, 63, 159, 244, 107, 190, 119, 30]),
+        new Uint8Array([31, 234, 218, 110, 227, 34, 21, 117]),
       ),
       0,
     )
@@ -660,7 +661,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([78, 191, 27, 88, 192, 34, 235, 128]),
+        new Uint8Array([238, 120, 24, 68, 207, 41, 185, 231]),
       ),
       0,
     )
@@ -671,7 +672,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([235, 156, 190, 81, 243, 206, 170, 101]),
+        new Uint8Array([238, 238, 93, 42, 37, 111, 66, 54]),
       ),
       0,
     )
@@ -682,7 +683,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([227, 126, 217, 202, 34, 46, 211, 23]),
+        new Uint8Array([101, 233, 116, 73, 15, 251, 85, 36]),
       ),
       0,
     )
@@ -693,7 +694,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([9, 69, 237, 92, 238, 192, 233, 138]),
+        new Uint8Array([244, 180, 18, 1, 137, 154, 39, 230]),
       ),
       0,
     )
@@ -704,7 +705,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([255, 128, 154, 229, 22, 34, 225, 38]),
+        new Uint8Array([58, 218, 3, 89, 236, 139, 2, 138]),
       ),
       0,
     )
@@ -715,7 +716,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([104, 193, 251, 138, 199, 42, 223, 137]),
+        new Uint8Array([79, 118, 171, 24, 52, 132, 43, 153]),
       ),
       0,
     )
@@ -726,7 +727,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([95, 79, 7, 241, 6, 199, 46, 157]),
+        new Uint8Array([51, 194, 74, 72, 32, 172, 214, 90]),
       ),
       0,
     )
@@ -737,7 +738,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([143, 137, 233, 117, 27, 179, 172, 62]),
+        new Uint8Array([54, 50, 181, 234, 33, 183, 220, 86]),
       ),
       0,
     )
@@ -748,7 +749,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([91, 235, 196, 127, 1, 112, 115, 135]),
+        new Uint8Array([220, 130, 84, 74, 14, 55, 96, 151]),
       ),
       0,
     )
@@ -759,7 +760,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([1, 231, 71, 83, 144, 31, 238, 83]),
+        new Uint8Array([155, 30, 62, 98, 112, 73, 132, 127]),
       ),
       0,
     )
@@ -770,7 +771,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([50, 162, 81, 145, 11, 220, 251, 122]),
+        new Uint8Array([221, 140, 108, 20, 67, 86, 192, 5]),
       ),
       0,
     )
@@ -781,7 +782,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([51, 205, 34, 225, 187, 4, 113, 1]),
+        new Uint8Array([226, 240, 202, 110, 27, 48, 118, 40]),
       ),
       0,
     )
@@ -792,7 +793,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([171, 93, 161, 145, 184, 243, 209, 202]),
+        new Uint8Array([108, 8, 13, 214, 186, 14, 93, 225]),
       ),
       0,
     )
@@ -803,7 +804,18 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([146, 20, 112, 36, 111, 171, 202, 245]),
+        new Uint8Array([19, 20, 239, 97, 181, 177, 128, 179]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountTransition;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([115, 72, 22, 90, 30, 65, 4, 12]),
       ),
       0,
     )
@@ -814,7 +826,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([69, 250, 247, 174, 178, 243, 46, 47]),
+        new Uint8Array([132, 225, 243, 18, 105, 81, 138, 44]),
       ),
       0,
     )
@@ -825,7 +837,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([157, 0, 211, 150, 191, 4, 31, 22]),
+        new Uint8Array([27, 10, 11, 160, 119, 70, 145, 222]),
       ),
       0,
     )
@@ -836,7 +848,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([88, 64, 64, 174, 240, 198, 130, 26]),
+        new Uint8Array([93, 199, 88, 43, 57, 76, 217, 187]),
       ),
       0,
     )
@@ -847,7 +859,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([211, 73, 106, 79, 120, 190, 40, 231]),
+        new Uint8Array([141, 152, 126, 145, 41, 175, 81, 12]),
       ),
       0,
     )
@@ -858,7 +870,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([56, 145, 24, 73, 218, 166, 221, 174]),
+        new Uint8Array([169, 192, 227, 14, 13, 74, 85, 43]),
       ),
       0,
     )
@@ -869,7 +881,7 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([167, 139, 59, 103, 37, 196, 95, 47]),
+        new Uint8Array([213, 243, 125, 15, 120, 146, 238, 160]),
       ),
       0,
     )

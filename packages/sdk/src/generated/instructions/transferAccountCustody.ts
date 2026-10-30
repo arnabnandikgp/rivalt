@@ -84,7 +84,7 @@ export type TransferAccountCustodyInstruction<
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
       TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
+        ? ReadonlyAccount<TAccountCustody>
         : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
@@ -278,7 +278,7 @@ export async function getTransferAccountCustodyInstructionAsync<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btcLedger: {
@@ -542,7 +542,7 @@ export function getTransferAccountCustodyInstruction<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btcLedger: {

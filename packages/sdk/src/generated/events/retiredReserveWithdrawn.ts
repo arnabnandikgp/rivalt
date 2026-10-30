@@ -32,7 +32,7 @@ import {
 } from "@solana/kit";
 
 export const RETIRED_RESERVE_WITHDRAWN_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([167, 139, 59, 103, 37, 196, 95, 47]);
+  new Uint8Array([213, 243, 125, 15, 120, 146, 238, 160]);
 
 export function getRetiredReserveWithdrawnEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -42,7 +42,6 @@ export function getRetiredReserveWithdrawnEventDiscriminatorBytes(): ReadonlyUin
 
 export type RetiredReserveWithdrawnEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   authority: Address;
   destination: Address;
@@ -59,7 +58,6 @@ export type RetiredReserveWithdrawnEvent = {
 
 export type RetiredReserveWithdrawnEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   authority: Address | HasAddress;
   destination: Address | HasAddress;
@@ -79,7 +77,6 @@ export function getRetiredReserveWithdrawnEventEncoder(): FixedSizeEncoder<Retir
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["authority", getAddressEncoder()],
       ["destination", getAddressEncoder()],
@@ -102,7 +99,6 @@ export function getRetiredReserveWithdrawnEventDecoder(): FixedSizeDecoder<Retir
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["authority", getAddressDecoder()],
       ["destination", getAddressDecoder()],

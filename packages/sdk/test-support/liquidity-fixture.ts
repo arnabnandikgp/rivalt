@@ -7,13 +7,13 @@ export const testAddress = (value: number) => getAddressDecoder().decode(new Uin
 export const emptyState = <Value>(decoder: { fixedSize: number; decode(bytes: Uint8Array): Value }) => decoder.decode(new Uint8Array(decoder.fixedSize));
 export function liquidityFixture() {
   const venue = testAddress(1), market = testAddress(2), domain = new Uint8Array(32).fill(31);
-  const root = { ...emptyState(sdk.getMarginAccountDecoder()),schemaVersion: 3,venue,owner: testAddress(3),id: 0,
+  const root = { ...emptyState(sdk.getMarginAccountDecoder()),schemaVersion: 5,revision:1n,venue,owner: testAddress(3),id: 0,
     mode: 0,isolatedMarketIndex: 255,cash: 1_000_000_000n };
-  const markets = [0,1].map(index => ({ ...emptyState(sdk.getMarketDecoder()),schemaVersion: 3,venue,index,
+  const markets = [0,1].map(index => ({ ...emptyState(sdk.getMarketDecoder()),schemaVersion: 5,revision:1n,venue,index,
     referencePrice: 10_000n,lower: 9900n,upper: 10100n,termsEpoch: 1n,configEpoch: 1n,grossLots: 10_000n }));
   const makers = [0,1,2].map(instance => {
     const capitalKey = testAddress(10+instance), registration = testAddress(20+instance);
-    const capital = { ...emptyState(sdk.getMarginAccountDecoder()),schemaVersion: 3,venue,owner: testAddress(30+instance),
+    const capital = { ...emptyState(sdk.getMarginAccountDecoder()),schemaVersion: 5,revision:1n,venue,owner: testAddress(30+instance),
       id: instance+1,mode: 1,role: 1,isolatedMarketIndex: 0,cash: 1_000_000_000n };
     const shape: sdk.CanonicalShape = { mode: 1,ttlSlots: 150,target: 0n,skewStep: 1n,skewTick: 0n,longCap: 4096n,shortCap: 4096n,
       bids: [{ endLots: 4096n,offset: 10n,slope: 0n }], asks: [{ endLots: 4096n,offset: 10n,slope: 0n }] };

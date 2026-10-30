@@ -17,7 +17,7 @@ the integration and preceding baselines.
 | P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | In progress | Split into two cohesive PRs under D83; umbrella acceptance requires A and B |
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
-| P40B scoped event history | In progress | D84 layouts/envelopes wired through all 53 entrypoints; scoped native/IDL checks pass, SDK/journal/SBF acceptance pending |
+| P40B scoped event history | In progress | D84 layouts/envelopes wired through all 53 entrypoints; scoped native/IDL checks pass, generated SDK/ABI parity passes; journal/SBF acceptance pending |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
@@ -199,8 +199,8 @@ covered by the contract. Raw checks are `.local/p40b-native-tests.log`,
 `.local/p40b-idl/`. Clean native/layout/IDL checkpoint: **`6dad247e2daa87a36220c81fd3f195dba285f385`**,
 with all 17 scoped cases and source/ABI guards rerun in
 `.local/p40b-checkpoint-6dad247.log`.
-No qualified SBF/deployment, generated SDK migration, active journal change, RPC/WS/
-PostgreSQL, throughput or CU pass is claimed. A compile-time guard explicitly
+No qualified SBF/deployment, active journal change, RPC/WS/PostgreSQL, throughput
+or CU pass is claimed. A compile-time guard explicitly
 blocks the unfinished financial artifact. Broad financial/browser/endurance suites
 are not run for this disabled native/ABI checkpoint. No external blocker remains.
 
@@ -211,13 +211,24 @@ Both parent PRs remain open. P39's five hosted jobs pass on `96790ef` in run
 The additional schema-5 transport parser authenticates compiled-message privileges,
 loaded keys and CPI ancestry for direct/external-wrapper financial invocations.
 It rejects missing/duplicate/trailing/foreign footers, unknown critical payloads,
-revision/slot/domain/instruction mismatches and reverted effects. Six scoped
-transport fixtures and typecheck pass; these fixtures are not signed financial
-executions. Payload-body decoding and active journal integration remain pending.
+revision/slot/domain/instruction mismatches and reverted effects. The transport-only checkpoint is `5ffa09d`; its six scoped fixtures and typecheck
+passed before SDK regeneration. These fixtures are not signed financial executions.
 
-Next exact action: migrate the generated schema-5 SDK and decode full financial
-payloads under these authenticated envelopes, then wire atomic scoped history into
-the fresh PostgreSQL journal before rebuilding/qualifying the financial artifact.
+The schema-5 IDLs and generated SDK are now in the working successor. Explicit
+predecessor-delta verification and `pnpm generate:check` pass; seven transport
+cases include literal-envelope/generated-codec parity. Ten account-client tests
+pass, including explicit schema selection and coherent selected-root reads. SDK
+account checks and public config producers now select the incompatible schema.
+This is an integration checkpoint, not a runnable replacement deployment: the
+whole-project typecheck currently fails on remaining old sequence/revision uses
+in projection, reconciliation, risk-worker keys and their fixtures/RPC harnesses.
+`.local/p40b-schema-types.log` records the actual failures; no suppression or legacy
+sequence substitution is used. The active journal still needs complete migration.
+
+Next exact action: replace sequence-based payload projection and reconciliation
+with authenticated envelope revisions and an explicitly local outbox cursor, then
+wire complete-block discovery/atomic PostgreSQL replay and resolve their consumers
+before rebuilding/qualifying the financial artifact.
 
 ## Deployment and operational limits
 

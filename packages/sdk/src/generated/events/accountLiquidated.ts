@@ -46,7 +46,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_LIQUIDATED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([35, 131, 226, 210, 153, 126, 68, 34]);
+  new Uint8Array([87, 101, 34, 236, 150, 254, 234, 209]);
 
 export function getAccountLiquidatedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -56,7 +56,6 @@ export function getAccountLiquidatedEventDiscriminatorBytes(): ReadonlyUint8Arra
 
 export type AccountLiquidatedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   safetyEpoch: bigint;
   liabilityVersions: Array<bigint>;
@@ -75,7 +74,6 @@ export type AccountLiquidatedEvent = {
 
 export type AccountLiquidatedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   safetyEpoch: number | bigint;
   liabilityVersions: Array<number | bigint>;
@@ -97,7 +95,6 @@ export function getAccountLiquidatedEventEncoder(): FixedSizeEncoder<AccountLiqu
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["safetyEpoch", getU64Encoder()],
       ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
@@ -122,7 +119,6 @@ export function getAccountLiquidatedEventDecoder(): FixedSizeDecoder<AccountLiqu
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["safetyEpoch", getU64Decoder()],
       ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],

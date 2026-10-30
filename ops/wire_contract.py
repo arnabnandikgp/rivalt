@@ -1,4 +1,4 @@
-"""Name-independent IDL compatibility guard for the canonical-name refactor.
+"""Name-independent IDL guard with an explicit D84 successor delta.
 
 This pins serialization/authority metadata, not executable behavior. SBF tests,
 legacy Anchor parity and actual RPC qualification remain separate requirements.
@@ -114,14 +114,11 @@ def main():
         BASELINE.write_text(json.dumps(original, indent=2) + "\n")
         print(f"Captured original wire contract at {revision}")
     else:
-        original = json.loads(BASELINE.read_text())
-        if current != original["contract"]:
-            differences = [program for program in PROGRAMS
-                           if current["programs"][program] != original["contract"]["programs"][program]]
-            if current["domains"] != original["contract"]["domains"]:
-                differences.append("source seeds/hash domains")
-            raise SystemExit(f'Wire contract differs from {original["revision"]}: {", ".join(differences)}')
-        print(f'Wire contract matches {original["revision"]}: three programs, layouts/metas/seeds/errors/domains')
+        # D84 deliberately supersedes the account/event ABI. Verify its exact
+        # allowed delta against the retained predecessor; never recapture it.
+        from scoped_wire_contract import check
+        check(Path('packages/sdk/idl'))
+
 
 
 if __name__ == "__main__":

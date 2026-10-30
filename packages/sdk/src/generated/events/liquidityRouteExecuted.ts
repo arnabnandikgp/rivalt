@@ -56,7 +56,7 @@ import {
 } from "../types/index.js";
 
 export const LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([56, 145, 24, 73, 218, 166, 221, 174]);
+  new Uint8Array([169, 192, 227, 14, 13, 74, 85, 43]);
 
 export function getLiquidityRouteExecutedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -66,7 +66,6 @@ export function getLiquidityRouteExecutedEventDiscriminatorBytes(): ReadonlyUint
 
 export type LiquidityRouteExecutedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   market: Address;
   marketState: MarketSnapshot;
@@ -92,7 +91,6 @@ export type LiquidityRouteExecutedEvent = {
 
 export type LiquidityRouteExecutedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   market: Address | HasAddress;
   marketState: MarketSnapshotArgs;
@@ -121,7 +119,6 @@ export function getLiquidityRouteExecutedEventEncoder(): Encoder<LiquidityRouteE
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["market", getAddressEncoder()],
       ["marketState", getMarketSnapshotEncoder()],
@@ -153,7 +150,6 @@ export function getLiquidityRouteExecutedEventDecoder(): Decoder<LiquidityRouteE
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["market", getAddressDecoder()],
       ["marketState", getMarketSnapshotDecoder()],

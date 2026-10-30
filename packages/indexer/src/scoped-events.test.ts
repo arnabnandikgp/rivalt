@@ -1,6 +1,7 @@
 import {expect, it} from 'vitest';
 import {createHash} from 'node:crypto';
 import {getAddressDecoder, getBase58Decoder} from '@solana/kit';
+import {getAccountTransitionEventDecoder, getAccountTransitionEventEncoder} from '@rivalt/sdk';
 import clearingIdl from '../../sdk/idl/clearing.json' with {type: 'json'};
 import {decodeTransition, scopedInvocations} from './scoped-events.js';
 
@@ -121,4 +122,14 @@ it('checks literal envelope widths, revisions, bounded counts, aliases and compl
   ]) {const bytes = footer(); mutate(bytes); expect(() => decodeTransition(bytes)).toThrow();}
   expect(() => decodeTransition(footer().subarray(0, -1))).toThrow(/Truncated/);
   expect(() => decodeTransition(Buffer.concat([footer(), Buffer.from([0])]))).toThrow(/Trailing/);
+});
+
+it('matches the rebuilt generated SDK against the literal schema-5 envelope', () => {
+  const bytes = footer(), [value, end] = getAccountTransitionEventDecoder().read(bytes, 0);
+  expect(end).toBe(190);
+  expect(value.schemaVersion).toBe(5);
+  expect(value.venue).toBe(venue);
+  expect(value.reads).toEqual([{account: venue, kind: 0, revision: 1n}]);
+  expect(value.writes).toEqual([{account: root, kind: 5, before: 7n, after: 8n}]);
+  expect(Buffer.from(getAccountTransitionEventEncoder().encode(value))).toEqual(bytes);
 });

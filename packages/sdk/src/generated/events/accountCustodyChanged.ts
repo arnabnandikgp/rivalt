@@ -54,7 +54,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([116, 78, 173, 90, 240, 10, 196, 1]);
+  new Uint8Array([179, 48, 166, 248, 136, 247, 187, 170]);
 
 export function getAccountCustodyChangedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -67,7 +67,6 @@ export type AccountCustodyChangedEvent = {
   profileVersion: number;
   domain: ReadonlyUint8Array;
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   /**
    * 0 venue, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdrawal,
@@ -107,7 +106,6 @@ export type AccountCustodyChangedEventArgs = {
   profileVersion: number;
   domain: ReadonlyUint8Array;
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   /**
    * 0 venue, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdrawal,
@@ -150,7 +148,6 @@ export function getAccountCustodyChangedEventEncoder(): Encoder<AccountCustodyCh
       ["profileVersion", getU16Encoder()],
       ["domain", fixEncoderSize(getBytesEncoder(), 32)],
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["kind", getU8Encoder()],
       ["actor", getAddressEncoder()],
@@ -192,7 +189,6 @@ export function getAccountCustodyChangedEventDecoder(): Decoder<AccountCustodyCh
       ["profileVersion", getU16Decoder()],
       ["domain", fixDecoderSize(getBytesDecoder(), 32)],
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["kind", getU8Decoder()],
       ["actor", getAddressDecoder()],

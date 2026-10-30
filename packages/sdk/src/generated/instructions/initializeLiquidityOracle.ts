@@ -77,7 +77,7 @@ export type InitializeLiquidityOracleInstruction<
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
       TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
+        ? ReadonlyAccount<TAccountCustody>
         : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
@@ -236,7 +236,7 @@ export async function getInitializeLiquidityOracleInstructionAsync<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
@@ -426,7 +426,7 @@ export function getInitializeLiquidityOracleInstruction<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },

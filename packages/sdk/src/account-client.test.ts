@@ -18,16 +18,16 @@ it('preserves actual Clock separately from a lagging Surfpool RPC commitment con
   const snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,[fixture.margins[0]]);
   expect(snapshot.slot).toBe(101n);expect(snapshot.contextSlot).toBe(100n);
 });
-it('does not invalidate selected-account discovery when an unrelated event advances custody',async()=>{
+it('does not invalidate selected-account discovery when an unrelated invocation advances custody revision',async()=>{
   const fixture=await environment(),original=fixture.rpc.call;
   fixture.rpc.call=async(method,params)=>{
     if(fixture.batches.length===1) {
       const current=sdk.getCustodyDecoder().decode(Buffer.from(fixture.accounts.get(fixture.custody).data[0],'base64'));
-      fixture.put(fixture.custody,sdk.getCustodyEncoder().encode({...current,sequence:8n}));
+      fixture.put(fixture.custody,sdk.getCustodyEncoder().encode({...current,revision:8n}));
     }return original(method,params);
   };
   const snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,fixture.margins);
-  expect(snapshot.custodyState.sequence).toBe(8n);expect(Object.keys(snapshot.roots)).toHaveLength(2);
+  expect(snapshot.custodyState.revision).toBe(8n);expect(Object.keys(snapshot.roots)).toHaveLength(2);
   expect(fixture.batches[1]).toHaveLength(13);
 });
 it('builds one atomic funded withdrawal with only root-local authority guards',async()=>{
@@ -94,4 +94,12 @@ it('discovers only canonical children of the selected owner portfolio and reject
   const root=sdk.getMarginAccountDecoder().decode(Buffer.from(fixture.accounts.get(fixture.margins[0]).data[0],'base64'));
   fixture.put(fixture.margins[0],sdk.getMarginAccountEncoder().encode({...root,owner:fixture.config.mint}));
   await expect(client.ownerAccounts(fixture.owner,0)).rejects.toThrow('Owner account identity mismatch');
+});
+
+it('requires explicit schema-5 deployment selection independently of profile version', async () => {
+  const fixture = await environment();
+  expect(sdk.accountUserConfig(fixture.config).accountSchema).toBe(5);
+  expect(() => sdk.accountUserConfig({...fixture.config, accountSchema: 3 as 5})).toThrow(/Explicit qualified/);
+  const {accountSchema: _schema, ...missing} = fixture.config;
+  expect(() => sdk.accountUserConfig(missing as sdk.AccountUserConfig)).toThrow(/Explicit qualified/);
 });

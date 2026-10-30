@@ -13,10 +13,10 @@ import {readAccountSnapshot,readAccountTradeSnapshot,accountGuard,type AccountSn
 import {accountBalanceView} from './account-balance.js';
 import type {LiquidityRouteInput} from './liquidity-route.js';
 
-export type AccountUserConfig={version:4;chain:'solana:localnet';profile:'liquidity-execution-qualification';rpcUrl:string;wsUrl:string;
+export type AccountUserConfig={version:4;accountSchema:5;chain:'solana:localnet';profile:'liquidity-execution-qualification';rpcUrl:string;wsUrl:string;
   genesis:string;anchor:string;anchorHash:string;venue:Address;mint:Address;domain:string};
 export function accountUserConfig(value:AccountUserConfig):AccountUserConfig {
-  requireValue(value?.version===4&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
+  requireValue(value?.version===4&&value.accountSchema===5&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
   return validateAccountConfig(value);
 }
 function validateAccountConfig<Config extends AccountUserConfig>(value:Config):Config {
@@ -73,7 +73,7 @@ export class AccountUserClient extends WalletClient {
     const bytes=fromBase64(observed.value.data[0]);
     requireValue(bytes.length===protocol.getVenueSize()&&hex(bytes.slice(0,8))===hex(protocol.VENUE_DISCRIMINATOR),'Wrong venue schema.');
     const venue=protocol.getVenueDecoder().decode(bytes);
-    requireValue(venue.schemaVersion===3&&venue.profileVersion===this.config.version&&hex(venue.domain)===this.config.domain&&venue.quoteMint===this.config.mint,'Venue deployment identity mismatch.');
+    requireValue(venue.schemaVersion===5&&venue.profileVersion===this.config.version&&hex(venue.domain)===this.config.domain&&venue.quoteMint===this.config.mint,'Venue deployment identity mismatch.');
     await this.artifacts.verify(venue.authority);
   }
   async snapshot(margins:Address[],commitment:'confirmed'|'finalized'='finalized') {
@@ -116,7 +116,7 @@ export class AccountUserClient extends WalletClient {
     requireValue(response.value?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&response.value.data?.[1]==='base64','Foreign portfolio.');
     const bytes=fromBase64(response.value.data[0]);requireValue(bytes.length===protocol.getPortfolioSize()&&hex(bytes.slice(0,8))===hex(protocol.PORTFOLIO_DISCRIMINATOR),'Wrong portfolio schema.');
     const account=protocol.getPortfolioDecoder().decode(bytes);
-    requireValue(account.schemaVersion===3&&account.venue===this.config.venue&&account.owner===owner&&account.index===index&&account.bump===bump,'Portfolio identity mismatch.');
+    requireValue(account.schemaVersion===5&&account.venue===this.config.venue&&account.owner===owner&&account.index===index&&account.bump===bump,'Portfolio identity mismatch.');
     return {address:portfolio,account};
   }
   async createPortfolio(owner:Address,index=0) {
@@ -138,7 +138,7 @@ export class AccountUserClient extends WalletClient {
       const raw=response.value[offset];requireValue(raw?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&raw.data?.[1]==='base64','Foreign owner account.');
       const bytes=fromBase64(raw.data[0]);requireValue(bytes.length===protocol.getMarginAccountSize()&&hex(bytes.slice(0,8))===hex(protocol.MARGIN_ACCOUNT_DISCRIMINATOR),'Wrong owner account schema.');
       const root=protocol.getMarginAccountDecoder().decode(bytes);
-      requireValue(root.schemaVersion===3&&root.venue===this.config.venue&&root.portfolio===portfolio.address&&root.owner===owner&&root.subaccountIndex===indexes[offset]&&root.bump===bump,'Owner account identity mismatch.');
+      requireValue(root.schemaVersion===5&&root.venue===this.config.venue&&root.portfolio===portfolio.address&&root.owner===owner&&root.subaccountIndex===indexes[offset]&&root.bump===bump,'Owner account identity mismatch.');
       requireValue([0,1,2].includes(root.role)&&(root.subaccountIndex===0?root.mode===0&&root.isolatedMarketIndex===255&&root.role!==1:root.mode===1&&[0,1].includes(root.isolatedMarketIndex)),'Owner account mode mismatch.');
       return [key,root];
     });

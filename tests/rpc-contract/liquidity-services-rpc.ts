@@ -52,7 +52,7 @@ try {
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   const openingState=(await indexer.store.snapshot()).state;
   const {binding}=await indexer.store.snapshot();
-  const client=new sdk.AccountUserClient({version:4,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
+  const client=new sdk.AccountUserClient({version:4,accountSchema:5 as const,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
     genesis:binding.genesis,anchor,anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain});
   writeFileSync(`${directory}/public-deployment.json`,json(client.config));
   runtime=new AccountRuntime(databaseUrl,config.runId,config.rpcUrl,4);await runtime.open();

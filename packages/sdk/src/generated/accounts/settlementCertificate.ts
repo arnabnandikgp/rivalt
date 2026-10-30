@@ -54,7 +54,7 @@ import {
 } from "@solana/kit";
 
 export const SETTLEMENT_CERTIFICATE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([72, 164, 54, 74, 42, 141, 146, 101]);
+  new Uint8Array([203, 191, 78, 192, 230, 33, 223, 136]);
 
 export function getSettlementCertificateDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -65,6 +65,8 @@ export function getSettlementCertificateDiscriminatorBytes(): ReadonlyUint8Array
 export type SettlementCertificate = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   marketIndex: number;
   safetyEpoch: bigint;
@@ -85,6 +87,8 @@ export type SettlementCertificate = {
 
 export type SettlementCertificateArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   marketIndex: number;
   safetyEpoch: number | bigint;
@@ -109,6 +113,7 @@ export function getSettlementCertificateEncoder(): FixedSizeEncoder<SettlementCe
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["marketIndex", getU8Encoder()],
       ["safetyEpoch", getU64Encoder()],
@@ -143,6 +148,7 @@ export function getSettlementCertificateDecoder(): FixedSizeDecoder<SettlementCe
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["marketIndex", getU8Decoder()],
     ["safetyEpoch", getU64Decoder()],
@@ -264,5 +270,5 @@ export async function fetchAllMaybeSettlementCertificate(
 }
 
 export function getSettlementCertificateSize(): number {
-  return 234;
+  return 242;
 }

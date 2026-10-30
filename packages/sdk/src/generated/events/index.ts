@@ -27,6 +27,7 @@ export * from "./accountResolutionValued.js";
 export * from "./accountRetirementProgress.js";
 export * from "./accountSafetyRecovery.js";
 export * from "./accountsRetired.js";
+export * from "./accountTransition.js";
 export * from "./fundingPublisherChanged.js";
 export * from "./fundingReportAccepted.js";
 export * from "./liquidityMakerChanged.js";

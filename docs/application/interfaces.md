@@ -5,8 +5,12 @@
 `AccountUserClient` validates version-4 local configuration, immutable artifact
 pins, genesis and the actual initialization signature/hash. Configuration includes
 RPC/WS URLs, venue, mint and domain. Never infer a deployment from a port or retained
-acceptance dump. Schema-3 financial layouts coexist with profile-4 maker/publisher
-state; unknown profiles reject. [Deployment](../operations/deployment.md) owns
+acceptance dump. P40A's accepted deployment uses schema-3 financial layouts and
+schema-4 maker/publisher state. The disabled P40B successor requires explicit
+`accountSchema: 5` in addition to transport `version: 4` and the local profile;
+missing/old schema selection rejects. All clearing-owned decoders use schema 5,
+while maker-owned curve/price schemas stay 4. This is a fresh-domain/client change,
+not permission to upgrade retained state or replay old signed originals. [Deployment](../operations/deployment.md) owns
 artifact and key configuration; [routing](../liquidity/routing.md) owns snapshots.
 
 Public amounts are integer decimal strings with units; internal arithmetic uses
