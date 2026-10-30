@@ -347,8 +347,24 @@ cross/fractional claims and isolated BTC; the ETH fixture correctly hit the exis
 self-trade prohibition because its owner also owned the selected maker. The fixture
 now uses a third independently funded test owner; no self-trade rule is changed.
 All three compiled default gates pass and the four dependency-builder cases pass.
-Next exact action: execute the fresh P42 dependency/custody RPC/WS/PostgreSQL
-probe, fix actual failures, then complete the remaining safety/default/retirement gates. No validator
+Clean verifier **`569ed3e`** passes the extended RPC/WS/PostgreSQL probe:
+207 signed outcomes (196 successes, eleven expected rejections), ten market-omission
+cases, no protocol or compiled-message conflict between actual distinct-owner/payer
+BTC/ETH trades, and identical 149-event fresh SQL replay. All 75 accounts/ten members
+reconcile to allocated/actual vault **8,099,997** atoms. Atomic final-page/payment uses
+118,337 CU/604 bytes; later-instruction failure rolls both effects back. Three of
+three deliberately source-interleaved scan attempts reject; one bounded quiet-window
+scan completes. Those four constructed attempts do not estimate normal availability.
+Evidence stays in `p42-custody-distinct/` below the existing runs directory.
+
+The same clean verifier/SBF passes 290 safety outcomes including 23 expected
+rejections, TP/SL, full reservations, strict post-fee liquidation, eight-root complete
+default, stale-source resolved cash exit and sustained recovery/reactivation. The
+independent raw-byte Fraction audit verifies all eight payouts and rejects ten
+corruptions. Evidence: `p42-safety/`; this safety driver is not a separate SQL run.
+Next exact action: run selected-ledger treasury and terminal reserve exits plus real
+journal rollback/restart/fresh replay, then close out P42 acceptance and publish its
+ready stacked PR. No validator
 throughput, endurance or funded qualification is claimed.
 
 ## Deployment and operational limits

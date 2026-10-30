@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import {findAssociatedTokenPda,getCreateAssociatedTokenInstruction,getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import {JournalStore} from '../../packages/indexer/src/store.js';
 import { json } from '../../packages/indexer/src/events.js';
@@ -29,7 +30,7 @@ try {
   const history=()=>fetchScopedHistory(rpc,anchor,setup.deployment.eventAuthority,setup.venue,setup.domain.toString('hex'));
   const initial = await history(), binding = await journalBinding(rpc, anchor, initial, setup.venue, setup.domain.toString('hex'));
   store = new LiquidityStore(databaseUrl, 'p40b-journal'); await store.migrate(); await store.bind(binding);
-  const corrupt=structuredClone(initial.invocations);corrupt[0].events[0].data.totalCash='1';
+  const corrupt=structuredClone(initial.invocations);corrupt[0].events[0].data.allocatedVault={__option:'Some',value:'1'};
   await assert.rejects(()=>store!.commit(initial.blocks,corrupt,initial.head,null),/authenticated invocation/);
   // Force a real SQL error after block/transaction insertion; every journal,
   // projection, revision and outbox write must roll back in the same transaction.
@@ -49,6 +50,28 @@ try {
   await store.close(); store = undefined;
   await setup.qualify();
   await h.send('P32 route actual fill during journal shutdown', [await trade()], [owner]);
+  const [treasuryDestination]=await findAssociatedTokenPda({owner:setup.payer.address,mint:setup.mint.address,tokenProgram:TOKEN_PROGRAM_ADDRESS});
+  await h.send('P42 initialize fee authority destination',[getCreateAssociatedTokenInstruction({payer:setup.payer,ata:treasuryDestination,
+    owner:setup.payer.address,mint:setup.mint.address})]);
+  const ledgersBefore=await Promise.all(setup.ledgers.map(async key=>sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
+  // Two 60003-atom fills independently charge ceil(60003/5000)=13 each.
+  assert.deepEqual(ledgersBefore.map(value=>[value.insurance,value.fees,value.insuranceFeeRemainder]),[[6n,20n,2],[0n,0n,0]]);
+  const vaultBefore=getTokenDecoder().decode((await h.read(setup.vault))!).amount;
+  const rootCashBefore=await root(margin),otherBefore=await h.read(setup.ledgers[1]);
+  const treasury={...setup.common,ledger:setup.ledgers[0],feeAuthority:setup.payer,marketIndex:0,amount:2n};
+  const custodyBefore=await h.read(setup.custody);
+  await h.send('P42 market-only fee allocation rejects trader authority',[sdk.getAllocateMarketFeesInstruction({...treasury,feeAuthority:owner})],[owner],sdk.CLEARING_ERROR__AUTHORITY);
+  await h.send('P42 market-only fee allocation',[sdk.getAllocateMarketFeesInstruction(treasury)]);
+  assert.deepEqual(await h.read(setup.custody),custodyBefore,'Internal T-to-I allocation cannot touch token custody');
+  await h.send('P42 actual retained fee exit',[sdk.getWithdrawMarketFeesInstruction({...treasury,amount:3n,
+    quoteMint:setup.mint.address,userToken:treasuryDestination})]);
+  const ledgerAfter=sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[0]))!);
+  assert.deepEqual([ledgerAfter.insurance,ledgerAfter.fees,ledgerAfter.insuranceFeeRemainder],[8n,15n,2]);
+  assert.equal(ledgerAfter.liabilityVersion,ledgersBefore[0].liabilityVersion,'Treasury moves cannot erase debtor proof progress');
+  assert.deepEqual(await h.read(setup.ledgers[1]),otherBefore);
+  assert.deepEqual(await root(margin),rootCashBefore);
+  assert.equal(getTokenDecoder().decode((await h.read(treasuryDestination))!).amount,3n);
+  assert.equal(getTokenDecoder().decode((await h.read(setup.vault))!).amount,vaultBefore-3n);
   const withdrawal = sdk.getWithdrawFundedAccountInstruction({ ...setup.common, owner,
     btc: setup.markets[0], eth: setup.markets[1], margin, quoteMint: setup.mint.address,
     userToken: setup.traderToken.address, guard: await guard(margin), amount: 1n });
@@ -96,11 +119,11 @@ try {
       - position.lots * (markets[index].fundingIndexScaled - position.fundingCheckpointScaled); }, 0n), 0n);
   }
   const ledger = sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[0]))!);
-  assert.deepEqual([ledger.insurance, ledger.fees, ledger.insuranceFeeRemainder], [6n, 20n, 2]);
+  assert.deepEqual([ledger.insurance, ledger.fees, ledger.insuranceFeeRemainder], [8n, 15n, 2]);
   assert.equal(roots.reduce((sum, account) => sum + account.cash, 0n) + 26n, 8_000_000n);
   writeFileSync(`${runDir}/summary.json`, json({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
     build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')), checks, binding, counts,
-    state: snapshot.state, failed, roots, markets, ledger, scope:'Schema-5 complete block journal and financial projection', phaseAcceptance: false }));
+    state: snapshot.state, failed, roots, markets, ledger, scope:'Schema-7 complete block journal and financial projection', phaseAcceptance: false }));
   console.log(json({ stage:'p40b-scoped-journal-pass', counts, financialFees: '26', phaseAcceptance: false }));
 } finally { await replay?.close(); await store?.close(); try { await flush(); } finally { ws.close(); } }
