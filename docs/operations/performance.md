@@ -262,6 +262,7 @@ Commands from the repository root after `source ops/env.sh`:
 node --import tsx tests/performance/inventory.ts
 pnpm exec vitest run tests/performance/lock-model.test.ts
 bash ops/performance-baseline.sh
+node --import tsx tests/performance/summarize.ts <local-run-directory> --write
 ```
 
 The focused RPC probe uses existing verified SBF, fresh signed provisioning and
@@ -271,5 +272,48 @@ services/indexing; P40/P44 must run their actual database acceptance separately.
 
 ## Current results
 
-P39 implementation and scoped verification are in progress. No new resource,
-throughput, migration or profitability pass is claimed by this document alone.
+P39's fresh probe passed on clean harness **`0ac6511f912b7675ee5c61c9bc88a112eca0bd4c`**
+and hash-verified SBF source **`828fe5431433f19cd562a23f44c45258ddbd61aa`**.
+Surfpool 1.6.1 reports Solana core 4.2.1, feature set 565236538. All 129 signed
+outcomes were independently fetched: 117 setup and 12 measured scenarios (11
+successes and one expected stale-account rejection). RPC wire equality, WS outcome
+checks and isolated legacy Anchor parity passed: 207 instruction encodings and
+185 event decodes; no new raw account-codec parity claim.
+
+| Focused scenario | Consumed CU | Signed bytes / format |
+|---|---:|---|
+| BTC single maker | 262,729 | 1,072 / v0 |
+| ETH single maker | 264,274 | 1,072 / v0 |
+| Isolated BTC single maker | 272,416 | 1,072 / v0 |
+| Two makers, shared executable | 339,602 | 1,198 / v1 |
+| Two makers, distinct executables | 464,052 | 1,262 / v1 |
+| Stale-account rejection | 44,851 | 1,072 / v0 |
+| Place / cancel order | 52,948 / 46,594 | 669 / 619, v0 |
+| Reprice either independent maker | 18,250 | 460 / v0 |
+| BTC / ETH funding report | 31,535 / 31,536 | 871 / v0 |
+
+Each scenario has one observation, two signatures, zero priority bid and an actual
+10,000-lamport fee. These are measured inputs, not worst-case bounds. Independent
+literal checks reconcile eight roots to 7,999,917 cash atoms plus 83 fee atoms;
+BTC insurance/protocol fees are 19/57, ETH 1/6, with exact carries 0/3. Quantities
+and claims sum to zero at common funding checkpoints.
+
+Seven access comparisons distinguish protocol state from the common payer:
+independent reprices share zero protocol conflicts but one compiled payer conflict;
+BTC/ETH reports share custody plus that payer. The BTC/ETH single trades here use
+the **same cross root**, so their six declared conflicts do not establish the
+separate-owner concurrency case. The BTC-versus-isolated case uses distinct roots
+and still has four declared conflicts. P42/P44 must exercise distinct owners and
+payers for their stronger independence claims.
+
+The bounded [baseline](../../tests/performance/baselines/p39-before-redesign.json)
+records artifact hashes, metrics, reconciliation and limitations. Its generator
+checks the retained RPC receipts and signed wires before publishing a summary.
+Raw evidence stays in `.local/liquidity-execution/runs/p39-baseline-0ac6511/`;
+the launcher log is `.local/p39-baseline-0ac6511.log`. Owned RPC/WS ports are released.
+
+Six scoped access-model tests, typecheck, complete IDL inventory and bounded
+evidence-policy checks pass. No program rebuild was needed. PostgreSQL, broad
+financial suites, scheduler throughput, full 61-entrypoint CU coverage, endurance,
+Anchor v2 comparison and profitability are outside this focused P39 acceptance;
+P40/P44 own their fresh integrated and complete profiling gates.

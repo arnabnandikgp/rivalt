@@ -14,7 +14,7 @@ the integration and preceding baselines.
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
 | M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
-| P39 dependency audit/baseline | In progress | Complete IDL inventory and signed-message lock harness; focused fresh RPC measurement and contract acceptance pending |
+| P39 dependency audit/baseline | In progress — publication pending | Accepted focused RPC/WS baseline and 61-entrypoint inventory; prepare ready PR |
 | P40 scoped events/services | Planned | Verified P39 parent; atomic per-entity event reconstruction, PG replay and independent execution |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
@@ -30,7 +30,8 @@ the integration and preceding baselines.
 | Continuous 24-hour endurance | Deferred | No run scheduled or completion claimed |
 
 Review means accepted work awaiting integration; Closed requires acceptance plus
-integration. The user authorized this stack's merge on 30 October 2026.
+integration. The user authorized the consolidation stack's merge on 30 October 2026; the new
+P39–P44 stack remains open for review.
 
 ## Consolidation checkpoint
 
@@ -106,20 +107,35 @@ local `main` fast-forwarded without touching unrelated research or local evidenc
 Only documentation/whitespace/evidence checks apply to this closeout. No financial,
 RPC/WS/PostgreSQL, browser, load or endurance suite is rerun for merge metadata.
 
-The user subsequently authorized P39–P44 under D82. P39 is on
-`performance/p39-contract`, based on `4f84f2b`; current program binaries are unchanged.
-The new audit inventories 61 deployed-program entrypoints, including 50 clearing
-custody writers. Scoped harness checks pass six cases and typecheck passes after
-correcting a branded blockhash fixture mismatch. The performance
-workspace reuses exact existing dependency versions; offline installation failed
-because tarball caches were absent, then normal pinned installation succeeded.
-No program rebuild or full financial/integration suite is warranted by harness/docs
-changes. Fresh scoped RPC/WS measurement and final conformance are still pending;
-no throughput or phase completion is claimed. Disk has about 1 GiB free; preserve
-all user research, keys, DBs and existing evidence and reuse verified artifacts.
+## Performance checkpoint
 
-Next exact action: pass scoped performance/type checks, commit the P39 harness and
-contract, then run `bash ops/performance-baseline.sh` against the pinned SBF set.
+The user authorized P39–P44 under D82. P39 is on `performance/p39-contract`, based
+on `4f84f2b`; no runtime layout or program binary changed. Clean harness `0ac6511`
+passes the focused signed probe against hash-verified SBF `828fe543`: 117 setup
+outcomes and 12 measured scenarios, including one expected stale-account rejection.
+Every outcome is fetched over RPC with WS confirmation and original-wire equality.
+Independent cash/claim/fee/insurance checks reconcile all eight roots. Isolated
+legacy Anchor conformance checks 207 instruction encodings and 185 event decodes.
+See [measurements](operations/performance.md#current-results) and the bounded
+[baseline](../tests/performance/baselines/p39-before-redesign.json) for exact values,
+binary pins, conflict comparisons and limitations. Raw receipts remain at
+`.local/liquidity-execution/runs/p39-baseline-0ac6511/`; owned ports are released.
+
+The complete static access inventory covers 61 deployed entrypoints, 50 clearing
+custody writers. Six scoped lock-model tests, typecheck, inventory and evidence
+policy pass. The receipt summarizer verifies twelve retained transactions and seven
+access comparisons. Offline dependency installation initially failed due to missing
+cache tarballs; pinned normal installation succeeded without dependency upgrades.
+No SBF rebuild, broad financial suite or PostgreSQL run is warranted for these
+harness/docs changes. No full CU coverage, scheduler throughput, endurance or
+migration result is claimed. P40/P44 must supply their own integrated acceptance.
+
+Disk has about 790 MiB free; preserve research, keys, databases and evidence.
+P40's eventual SBF rebuild may need additional space; this is not a current P39
+blocker. No external access/product decision is pending.
+
+Next exact action: publish the accepted P39 baseline as a ready PR, then stack
+P40's scoped event/indexer contract and implementation on its exact parent.
 
 ## Deployment and operational limits
 
