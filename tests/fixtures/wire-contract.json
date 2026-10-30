@@ -1,0 +1,141 @@
+{
+  "revision": "72187bceb5912b0c47ad27b7c9169017be17fdc0",
+  "contract": {
+    "programs": {
+      "clearing": {
+        "address": "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
+        "instructions": {
+          "count": 133,
+          "sha256": "0163146b965aa8cd21ecf9b0fca8d87c755e97365be3c6020fc9be0bc4724374"
+        },
+        "accounts": {
+          "count": 36,
+          "sha256": "e0e120c6941d4a1e69fd3837a12de085161b5c2d814955a165f2a7d0f855d4ae"
+        },
+        "events": {
+          "count": 52,
+          "sha256": "6da9a292717852b73455545b74ef373109b19d011411492f2bfa32cc68c58edf"
+        },
+        "types": {
+          "count": 142,
+          "sha256": "afdf7d350b2aa75216a663b66bf208e8bc41586e21af7f77a2aee44f37cf3a0a"
+        },
+        "errors": {
+          "count": 33,
+          "sha256": "a119aaac09a9624fdfeb3e06b5bf589d8585966460bd3881a41456b1e761c953"
+        }
+      },
+      "maker_a": {
+        "address": "7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU",
+        "instructions": {
+          "count": 13,
+          "sha256": "3293eb069a0abf8ff6a7a29c4dd6f7fbd9ea5918a50b3df392c480d74f2a2ab6"
+        },
+        "accounts": {
+          "count": 5,
+          "sha256": "d031acd105d4a9dbce4190cfec4206fb6fcda5538edf678cf32d1ff303acabc2"
+        },
+        "events": {
+          "count": 2,
+          "sha256": "05770ffa2515e6a2de6f7c05f53ebc708faadc41922669c441a3c79b00034130"
+        },
+        "types": {
+          "count": 33,
+          "sha256": "b2adecc382dbd89a51afd6d17b677b54fdc876bd5481d29356a4b6a5a4ba06ae"
+        },
+        "errors": {
+          "count": 4,
+          "sha256": "6c1d471af517a738d5debc2fb597d3e2705b80238a4b8762362b9662ba64c9aa"
+        }
+      },
+      "maker_b": {
+        "address": "F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc",
+        "instructions": {
+          "count": 13,
+          "sha256": "3293eb069a0abf8ff6a7a29c4dd6f7fbd9ea5918a50b3df392c480d74f2a2ab6"
+        },
+        "accounts": {
+          "count": 5,
+          "sha256": "d031acd105d4a9dbce4190cfec4206fb6fcda5538edf678cf32d1ff303acabc2"
+        },
+        "events": {
+          "count": 2,
+          "sha256": "05770ffa2515e6a2de6f7c05f53ebc708faadc41922669c441a3c79b00034130"
+        },
+        "types": {
+          "count": 33,
+          "sha256": "b2adecc382dbd89a51afd6d17b677b54fdc876bd5481d29356a4b6a5a4ba06ae"
+        },
+        "errors": {
+          "count": 4,
+          "sha256": "6c1d471af517a738d5debc2fb597d3e2705b80238a4b8762362b9662ba64c9aa"
+        }
+      }
+    },
+    "domains": {
+      "rust_byte_literals": [
+        "BTC",
+        "BTC\\0\\0\\0\\0\\0",
+        "ETH\\0\\0\\0\\0\\0",
+        "__event_authority",
+        "account:MakerAccountConfig",
+        "account:MakerConfig",
+        "account:MakerCurveV4",
+        "account:MakerGroupConfig",
+        "account:MakerPriceV4",
+        "binding-v2",
+        "capital-v3",
+        "curve-v4",
+        "custody-v3",
+        "exit-guard",
+        "exit-v2",
+        "feed",
+        "funding-publisher-v4",
+        "global:control_curve_v4",
+        "global:quote",
+        "global:quote_account",
+        "global:quote_group",
+        "global:quote_v4",
+        "group-v2",
+        "ledger-v3",
+        "liquidity-control-v4",
+        "liquidity-v4",
+        "maker",
+        "maker-capital",
+        "maker-v2",
+        "maker-v3",
+        "maker-v4",
+        "margin-v2",
+        "margin-v3",
+        "market",
+        "market-v2",
+        "market-v3",
+        "participant",
+        "portfolio-v2",
+        "portfolio-v3",
+        "price-v4",
+        "probe",
+        "registration-v2",
+        "registry",
+        "registry-v2",
+        "registry-v3",
+        "resolution",
+        "resolution-page-v3",
+        "resolution-v2",
+        "resolution-v3",
+        "resolution-work-v3",
+        "retirement-v3",
+        "safety-v3",
+        "settlement-v3",
+        "test-routes",
+        "vault",
+        "vault-v2",
+        "vault-v3",
+        "venue-v3"
+      ],
+      "sdk_hash_domains": [
+        "rivalt-funding-snapshot-v1"
+      ]
+    }
+  }
+}

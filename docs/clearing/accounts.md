@@ -119,3 +119,9 @@ names and explicitly retain existing discriminators and seeds. Numeric schema,
 API and transaction versions remain. Do not introduce permissive decoding or merge
 old accounts solely because their names collide. [Deployment rules](../operations/deployment.md)
 cover fresh artifacts, retained state and migration boundaries.
+
+The consolidation wire baseline is `tests/fixtures/wire-contract.json`, captured
+from `72187bc` before source edits. `python3 ops/wire_contract.py` pins all three
+IDLs, expanded layouts, ordered fields/variants/metas, discriminator bytes, seeds,
+errors and literal domains. Only declaration ordering, docs and source labels are
+omitted. Its hashes do not replace raw codec/PDA conformance, SBF or RPC tests.

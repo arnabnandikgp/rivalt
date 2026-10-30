@@ -16,7 +16,7 @@ planning checkpoint `84c46d4`, and separately requested a final README PR after 
 |---|---|---|
 | M11 consolidation | In progress | Component docs, canonical names, justified retirement and final README |
 | P35 component docs/handoff | Review | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50); 20 maintained docs, 93-line handoff, scoped checks pass |
-| P36 canonical names/ABI | Open | Extract live records, rename current definitions and coupled IDL/SDK/consumers; preserve wire contract, rebuild/verify affected paths |
+| P36 canonical names/ABI | In progress | Extract live records, rename current definitions and coupled IDL/SDK/consumers; preserve wire contract, rebuild/verify affected paths |
 | P37 legacy retirement/runtime | Open | Consumer audit, current launcher/API consolidation, retained independent cases and fresh financial/RPC/WS/PG/browser/resources |
 | P38 professional root README | Open | Separate final PR after P35–P37; concise product/architecture/quick-start/status entrypoint |
 | P15B independent maker validation | Open — external | Actual independent operator and economics; internal bots/assumed hedges cannot substitute |
@@ -43,13 +43,20 @@ ready and remains open. This following status update does not alter those contra
 No application, financial, SBF, RPC/WS/PostgreSQL, browser, load or endurance suite
 was rerun because this phase changes Markdown only.
 
-About 500 MiB disk space remains. The subsequent SBF build requires at least 1 GiB
-before starting and more headroom for compilation/runtime. Permission to remove
-five obsolete shared Solana compiler caches (preserving pinned v1.52) is pending;
-project evidence/keys/databases and all Rust installations remain untouched.
+P36 has captured a 4 KiB wire-contract fixture from exact parent `72187bc`.
+Independent SHA-256 checks match every original account/event/instruction
+discriminator. Eleven focused guard tests cover permitted source renaming and
+rejection of layout, enum, meta, seed, discriminator, payload and error changes.
+The guard currently covers all three IDLs, including older profiles until P37
+retires them deliberately. This is preparation, not proof of renamed binaries.
 
-Next exact action: capture the current wire contract and consumer inventory for
-P36 on the exact P35 parent; resolve build headroom before compiling changed code.
+With explicit user approval, only the five older shared Solana compiler caches
+v1.41/v1.43/v1.48/v1.50/v1.51 were deleted; pinned v1.52 and all Rust installations,
+project data and evidence remain. Free space afterwards: 6.4 GiB.
+
+Next exact action: extract shared account records, rename current definitions and
+entrypoints with explicit old discriminators, regenerate clients and check the
+frozen ABI before scoped compiled/runtime qualification.
 
 ## Deployment and operational limits
 
