@@ -75,6 +75,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # ABI regression derives the approved delta from immutable Git IDLs.
+          fetch-depth: 0
           persist-credentials: false
       - run: python3 --version
       - run: python3 -m unittest discover -s tests/e2e -p 'test_*.py'
