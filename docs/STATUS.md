@@ -16,7 +16,7 @@ the integration and preceding baselines.
 | M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
 | P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | In progress | Split into two cohesive PRs under D83; umbrella acceptance requires A and B |
-| P40A bounded service execution | In progress — publication pending | Scoped RPC/WS/PG fault and fresh replay acceptance passed; prepare ready PR |
+| P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
 | P40B scoped event history | Planned | Atomic per-entity events, versioned ABI and finalized PG replay/reconciliation |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
@@ -132,11 +132,11 @@ No SBF rebuild, broad financial suite or PostgreSQL run is warranted for these
 harness/docs changes. No full CU coverage, scheduler throughput, endurance or
 migration result is claimed. P40/P44 must supply their own integrated acceptance.
 
-Disk has about 390 MiB free after pruning downloadable project package caches.
-Research, keys, databases, installed dependencies and evidence are preserved.
-P40B's SBF rebuild needs additional space. Permission is pending to remove 23
-older stopped PostgreSQL test-data copies (2.18 GiB); current P40A data and all
-interactive-demo directories are excluded. P40A verification can continue.
+The user approved deletion of exactly 23 older stopped PostgreSQL test-data copies
+(2.18 GiB). Container state was independently checked before deletion; all approved
+copies were removed. Current P40A data, every interactive demo, raw evidence, logs,
+keys, configuration and installed dependencies remain. The local manifest is
+`.local/p40-inactive-db-cleanup.json`; P40B's disk-space blocker is cleared.
 
 P39 review clarifies that compiled-message coverage applies to the focused scenarios,
 while the 61-entrypoint inventory is static. No metric or runtime changes.
@@ -172,8 +172,11 @@ review correction without rewriting either tested commit. No on-chain ABI/event 
 is claimed. Broad financial/build/browser suites are unnecessary for this service
 part; no prior evidence is presented as a new pass.
 
-Next exact action: publish the accepted P40A PR above #55, then freeze P40B's
-scoped event/account revision contract before its program/indexer changes.
+P40A is ready for review in [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56),
+stacked on #55. Accepted content is `0d124c1`; service runtime remains `9134fd6`.
+
+Next exact action: freeze P40B's scoped event/account revision contract on a new
+stack branch above #56 before program/indexer changes.
 
 ## Deployment and operational limits
 
