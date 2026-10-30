@@ -8,7 +8,12 @@ macro_rules! profile_cu {
         #[cfg(feature = "cu-profiling")]
         {
             anchor_lang::prelude::msg!(concat!("RIVALT_CU:", $label));
-            anchor_lang::solana_program::log::sol_log_compute_units();
+            // Anchor 1.2.1 exposes the syscall through its pinned compatibility
+            // module. It takes no pointers and changes no program/account state.
+            #[cfg(target_os = "solana")]
+            unsafe {
+                anchor_lang::compat::solana_define_syscall::definitions::sol_log_compute_units_();
+            }
         }
     };
 }

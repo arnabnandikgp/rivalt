@@ -382,7 +382,10 @@ program pair consume 257,045/352,022/479,272 CU in these named states. They are
 single observations, not worst-case or throughput bounds. No optimization gain is
 claimed. Typecheck and receipt/wire verification pass after adding the pinned token
 decoder dependency to the performance workspace.
-Next exact action: build the isolated diagnostic artifact and attribute measured
+The first diagnostic build exposed Anchor 1.2.1’s narrower log facade; tracing now
+uses its pinned compatibility syscall, guarded to SBF only. No diagnostic execution
+is yet claimed; the failed build log is `.local/p43-trace-build-first.log`.
+Next exact action: rebuild the isolated diagnostic artifact and attribute measured
 costs before selecting implementation changes. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
