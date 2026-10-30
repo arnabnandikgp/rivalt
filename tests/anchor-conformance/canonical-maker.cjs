@@ -42,7 +42,9 @@ const jsonValue = value => JSON.parse(JSON.stringify(value, function (key, item)
       const accountTree = value => value === null ? null : typeof value === 'string' ? new PublicKey(value)
         : Object.fromEntries(Object.entries(value).map(([key, child]) => [key, accountTree(child)]));
       const accounts = accountTree(vector.accounts);
-      const instruction = await program.methods[vector.name](...args).accountsStrict(accounts).instruction();
+      const remaining = (vector.remainingAccounts ?? []).map(meta => ({ pubkey: new PublicKey(meta.address),
+        isSigner: meta.signer, isWritable: meta.writable }));
+      const instruction = await program.methods[vector.name](...args).accountsStrict(accounts).remainingAccounts(remaining).instruction();
       instructions.push({ name: vector.name, data: instruction.data.toString('hex'),
         accounts: instruction.keys.map(key => ({ address: key.pubkey.toBase58(), signer: key.isSigner, writable: key.isWritable })) });
     }

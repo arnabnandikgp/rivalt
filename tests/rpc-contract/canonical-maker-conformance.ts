@@ -37,12 +37,18 @@ export class CanonicalConformance {
         let offset = 0;
         const accountTree = (definitions: any[]): any => Object.fromEntries(definitions.map(account => {
           if (account.accounts) return [camel(account.name), accountTree(account.accounts)];
-          const key = instruction.accounts![offset++].address;
+          const meta = instruction.accounts?.[offset++];
+          assert(meta, `${name}: missing fixed IDL account ${account.name}`);
+          const key = meta.address;
           return [camel(account.name), account.optional && key === module.address ? null : key];
         }));
         const accounts = accountTree(definition.accounts);
-        assert.equal(offset, instruction.accounts!.length, `${name}: complete nested account mapping`);
-        module.instructions.push({ name, args, accounts, expected: { name, data: Buffer.from(instruction.data!).toString('hex'),
+        // Resolution/backing pages are deliberately outside the fixed IDL context.
+        // Retain every dynamic meta and compare the full instruction through Anchor.
+        // The real program separately authenticates the complete ordered page set.
+        const remainingAccounts = instruction.accounts!.slice(offset).map(account => ({
+          address: account.address, signer: (account.role & 2) !== 0, writable: (account.role & 1) !== 0 }));
+        module.instructions.push({ name, args, accounts, remainingAccounts, expected: { name, data: Buffer.from(instruction.data!).toString('hex'),
           accounts: instruction.accounts!.map(account => ({ address: account.address, signer: (account.role & 2) !== 0, writable: (account.role & 1) !== 0 })) } });
       }
       if (!history || history.meta.err) continue; // Reverted event bytes are not committed state.

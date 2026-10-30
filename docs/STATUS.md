@@ -112,7 +112,7 @@ assumptions; the corrected affected tests and subsequent complete current client
 suite pass. Current frozen-proposal readers now reject retired profiles. Active
 venue pause previously reached a profile-3-only guard; the consolidated guard
 accepts the authorized profile 4. Signed pause/foreign-authority/epoch invalidation
-RPC regressions are added but have not yet run against rebuilt binaries.
+RPC regressions pass on the rebuilt artifacts as recorded below.
 
 The first clean P37 SBF set is built at `828fe5431433f19cd562a23f44c45258ddbd61aa`;
 artifact allowlist commit `629d44aff903d1e315f9171696ea8722f5f168b8` pins actual hashes.
@@ -128,13 +128,32 @@ SBF maker match all 3,172 independent vectors (1,547 quotes / 1,625 rejections).
 An added compiled-default probe rejects initialization for clearing and each maker
 with complete writable-account rollback; this following test commit records it.
 
-No P37 publisher/execution/safety/PostgreSQL/browser/full-book acceptance is claimed
-yet. P37 has no PR; source and artifact commits are intermediate checkpoints.
-P38 remains the separate final README PR. P36's green CI does not qualify P37.
+At clean verifier `6819b1f17a7f3678e98fee019704c9cad3841564`, publisher qualification
+passes 84 actual signed RPC/WS outcomes / 8 reports (maximum publisher 30,317 CU,
+871 bytes, 14 loaded keys). Execution passes 130 outcomes, including foreign pause
+authority rejection, active pause/unpause and signed safety-epoch invalidation.
+Maximum route: 463,965 CU / 1,262 bytes v1 / 26 loaded keys. Evidence is in
+`.local/liquidity-execution/runs/p37-{publisher-current,execution-6819b1f}/`.
+The current compiled maker lifecycle passes 123 cases / 16 rejections; independent
+allocation passes 415 cases. The local/devnet mixed maker feature combination
+rejects compilation with its explicit guard.
 
-Next exact action: run current publisher and execution RPC probes (including
-active-venue pause), then safety/PostgreSQL/browser/full-book acceptance on this
-pinned SBF set.
+The first safety run reached complete frozen valuation and proposal upload but its
+conformance recorder rejected a legitimate dynamic resolution-page account beyond
+the fixed IDL context. That run is incomplete, not safety acceptance. The recorder
+now retains every dynamic meta for independent Anchor encoding and rejects missing
+fixed metas; three focused conformance tests pass. No economic/program change is
+required by this recorder fix. Retain the failed run at
+`.local/liquidity-execution/runs/p37-safety-6819b1f/`.
+
+No P37 safety/PostgreSQL/browser/full-book acceptance is claimed yet. P37 has no PR;
+source and artifact commits remain intermediate checkpoints. P38 is the separate
+final README PR; P36's green CI does not qualify P37. No endurance, external review,
+independent maker or funded deployment is claimed.
+
+Next exact action: rerun current safety with the corrected dynamic-page conformance
+recorder, then complete PostgreSQL/service/browser and full-book qualification on
+the pinned `828fe543` SBF set.
 
 ## Deployment and operational limits
 

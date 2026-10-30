@@ -10,7 +10,16 @@ export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
 export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
 export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/liquidity-execution/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
-test -f .local/liquidity-execution/clearing.so
+python3 - <<'PYTHON'
+import hashlib,json
+from pathlib import Path
+root=Path('.local/liquidity-execution')
+manifest=json.loads((root/'build-manifest.json').read_text())
+assert manifest['trackedDirty'] is False and manifest['profile']=='liquidity-execution-qualification'
+for component in ['clearing','maker_a','maker_b','oracle_fixture']:
+    name=component+'.so'
+    assert hashlib.sha256((root/name).read_bytes()).hexdigest()==manifest['binaries'][name], name
+PYTHON
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT"
 if [[ "${RIVALT_LIQUIDITY_POSTGRES:-0}" == 1 ]]; then
   container system status >/dev/null
