@@ -19,7 +19,7 @@ the integration and preceding baselines.
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
-| P42 custody/accounting isolation | Review — publication pending | D87 schema-7 acceptance passes on SBF `6aeb7d0`; signed financial, distinct-market locks, atomic settlement, gateway/treasury/default and fresh SQL replay verified |
+| P42 custody/accounting isolation | Review | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60), stacked on #59; D87 schema-7 financial/lock/settlement/gateway/default and fresh SQL replay acceptance passes |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
@@ -367,8 +367,9 @@ against isolated Anchor, after updating its obsolete context-name fixture.
 
 [Validation](operations/validation.md#custody-isolation-acceptance-p42) records exact
 pins, counts, limits and local run paths. Prior P41 binaries remain preserved.
-Next exact action: publish P42 ready above #59, then begin P43 profiling on this
-accepted parent without waiting for merge. P44 still owns full-path measurement,
+Acceptance content is `5c9a81d`; [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60)
+is ready above #59. Integration and newly triggered hosted CI remain pending.
+Next exact action: begin P43 profiling on this accepted parent without waiting for merge. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 
