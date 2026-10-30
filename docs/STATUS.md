@@ -18,7 +18,7 @@ the integration and preceding baselines.
 | P40 scoped events/services | Review | A and B acceptance passed; awaiting stack integration |
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
-| P41 relevant market dependencies | In progress | Acceptance passed on clean `ca8bab0` / SBF `b0c5675`; ready PR publication next |
+| P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
@@ -320,10 +320,11 @@ to the authenticated footer; all 13 affected projection tests and typecheck pass
 Successful raw records stay in `p41-claims-revision/`, the failed attempt in
 `p41-claims-complete/`. Owned test listeners/containers are stopped.
 
-P41 acceptance is complete; publication/integration are still pending. No broad
+P41 acceptance content is `3415538`; [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59)
+is ready above #58. Integration and hosted CI remain pending. No broad
 unrelated/browser/endurance suites are rerun; CI owns broad regression and P44 owns
-full fresh qualification. Next exact action: publish P41 ready above #58, then
-freeze and implement P42's exact custody/accounting isolation contract. No validator
+full fresh qualification. Next exact action: freeze and implement P42's exact custody/accounting isolation
+contract above #59. No validator
 throughput, endurance or funded qualification is claimed.
 
 ## Deployment and operational limits
