@@ -255,3 +255,11 @@ implementation are not wired into the current journal until exact on-chain envel
 ABI/SDK parity, missing/duplicate/reordered/reverted cases, same-slot batches,
 RPC reconciliation, crash recovery and fresh PostgreSQL replay all pass on rebuilt
 artifacts. An ordering unit test does not qualify any of those integration layers.
+
+`scoped-events.ts` supplies the separate schema-5 transport gate: reconstruct
+financial invocation ancestry from compiled outer/inner instructions and mandatory
+stack heights, resolve loaded keys and verify write privileges. Financial payloads
+belong to their immediate clearing frame; the final footer binds that frame's
+actual instruction, slot, domain and count. Unknown payload tags and instructions
+fail closed. This gate remains disconnected from the current schema-4 runtime
+until full payload decoding, complete-block discovery and journal acceptance pass.

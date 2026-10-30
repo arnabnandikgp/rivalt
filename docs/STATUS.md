@@ -196,7 +196,9 @@ maker-owned ABIs remain unchanged, with their imported clearing types revised.
 The first check correctly exposed those three imported types, now explicitly
 covered by the contract. Raw checks are `.local/p40b-native-tests.log`,
 `.local/p40b-layout-tests.log` and `.local/p40b-idl*.log`; candidate IDLs stay in
-`.local/p40b-idl/`. Exact clean checkpoint pin follows below after verification.
+`.local/p40b-idl/`. Clean native/layout/IDL checkpoint: **`6dad247e2daa87a36220c81fd3f195dba285f385`**,
+with all 17 scoped cases and source/ABI guards rerun in
+`.local/p40b-checkpoint-6dad247.log`.
 No qualified SBF/deployment, generated SDK migration, active journal change, RPC/WS/
 PostgreSQL, throughput or CU pass is claimed. A compile-time guard explicitly
 blocks the unfinished financial artifact. Broad financial/browser/endurance suites
@@ -206,9 +208,16 @@ Both parent PRs remain open. P39's five hosted jobs pass on `96790ef` in run
 41035788407; P40A's applicable scope/client/shell jobs pass on `f8984e0` in run
 41036264509, with financial/report jobs explicitly skipped by scope.
 
-Next exact action: migrate the generated schema-5 SDK and authenticated transaction
-envelope decoding, then wire atomic scoped history into the fresh PostgreSQL journal
-before rebuilding and qualifying the financial artifact.
+The additional schema-5 transport parser authenticates compiled-message privileges,
+loaded keys and CPI ancestry for direct/external-wrapper financial invocations.
+It rejects missing/duplicate/trailing/foreign footers, unknown critical payloads,
+revision/slot/domain/instruction mismatches and reverted effects. Six scoped
+transport fixtures and typecheck pass; these fixtures are not signed financial
+executions. Payload-body decoding and active journal integration remain pending.
+
+Next exact action: migrate the generated schema-5 SDK and decode full financial
+payloads under these authenticated envelopes, then wire atomic scoped history into
+the fresh PostgreSQL journal before rebuilding/qualifying the financial artifact.
 
 ## Deployment and operational limits
 
