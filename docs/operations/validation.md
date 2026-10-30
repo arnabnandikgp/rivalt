@@ -1,7 +1,9 @@
 # Validation and measured limits
 
 A pass applies to its exact code, binaries, environment and population. The
-consolidation baseline integrates P29–P34 at `b80bb38`, with complete tree equal to
+consolidation stack integrates P35–P38 at `caa47d2`, with complete tree equal to
+accepted `9d3e15f`. Merge verification introduces no new runtime-test claim.
+The preceding baseline integrates P29–P34 at `b80bb38`, with complete tree equal to
 reviewed `9e6dd07`; documentation closeout is `1f1a5aa`. P35 changes documentation,
 not these program artifacts. P36 adds the separately scoped rebuilt-code evidence
 below; P37's fresh integrated qualification after retirement is recorded separately.

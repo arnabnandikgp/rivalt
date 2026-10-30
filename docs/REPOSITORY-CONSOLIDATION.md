@@ -6,6 +6,10 @@ and a maintenance-oriented agent handoff. The user approved execution after this
 docs/handoff; source renaming and retirement remain P36/P37. A separate final P38
 PR rewrites the root README at the user’s subsequent request.
 
+Completed: P35–P38 merged on 30 October 2026 at `caa47d2` (PRs #50, #51, #53, #54).
+This document retains the approved scope and retirement dispositions; it is not an
+active implementation queue. Current work and external gates live in [STATUS](STATUS.md).
+
 ## What the inventory establishes
 
 - `docs/` has 110 tracked files / 19,778 lines; 52 files / 3,853 lines are evidence

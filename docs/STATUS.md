@@ -4,24 +4,26 @@ Updated 30 October 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
-P01–P14, P15A/P16A, P17–P34 and M1–M5b/M7–M10 are integrated within their recorded
-engineering scopes. The canonical maker stack merged at `b80bb38b6583e41413cecd0a372548422b45554a`,
-with documentation closeout `1f1a5aa`. [Validation](operations/validation.md)
-distinguishes historical evidence from the newly rebuilt consolidation candidate.
+P01–P14, P15A/P16A, P17–P38 and M1–M5b/M7–M11 are integrated within their recorded
+engineering scopes. The consolidation stack merged at
+**`caa47d29d1dc0fe790025d21121b37617669a809`**, with complete tree identical to accepted
+tip `9d3e15f`. [Validation](operations/validation.md) distinguishes historical
+evidence from the fresh consolidation qualification; [HISTORY](HISTORY.md) records
+the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| M11 consolidation | Review | P35–P38 accepted and published; stack review/integration remain |
-| P35 component docs/handoff | Review | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50); component contracts, maintenance AGENTS and historical provenance |
-| P36 canonical names/ABI | Review | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51); current API names with preserved wire contract; hosted CI green |
-| P37 legacy retirement/runtime | Review | [PR #53](https://github.com/arnabnandikgp/rivalt/pull/53); current runtime and fresh integrated acceptance complete |
-| P38 professional root README | Review | [PR #54](https://github.com/arnabnandikgp/rivalt/pull/54); 85-line professional entrypoint with scoped docs acceptance |
+| M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
+| P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
+| P36 canonical names/ABI | Closed | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51) merged; canonical API names, preserved wire contract and passing CI |
+| P37 legacy retirement/runtime | Closed | [PR #53](https://github.com/arnabnandikgp/rivalt/pull/53) merged; consolidated runtime and fresh integrated acceptance |
+| P38 professional root README | Closed | [PR #54](https://github.com/arnabnandikgp/rivalt/pull/54) merged; professional entrypoint and scoped docs acceptance |
 | P15B independent maker validation | Open — external | Actual independent operator/economics; internal bots and assumed hedges cannot substitute |
 | P16B independent review/funded readiness | Open — external | Independent review, risk/reserve calibration and separate funded authorization |
 | Continuous 24-hour endurance | Deferred | No run scheduled or completion claimed |
 
 Review means accepted work awaiting integration; Closed requires acceptance plus
-integration. Keep this ready PR stack open until separately instructed to merge.
+integration. The user authorized this stack's merge on 30 October 2026.
 
 ## Consolidation checkpoint
 
@@ -34,7 +36,7 @@ seeds, errors, numeric schemas and signed domains. Renamed SBF source `cff1cf9`;
 final scoped RPC/Anchor verifier `53beba5`. The stale-name CI fixture repair is
 `b94381a`; all five hosted jobs pass on final head `3511e44` in
 [run 41003463384](https://github.com/arnabnandikgp/rivalt/actions/runs/41003463384).
-P37 is stacked on that exact head. No independent review approval is inferred.
+P37 included that exact parent head. No independent review approval is inferred.
 
 P37 uses one current account engine, canonical maker/publisher API, SDK, indexer,
 services, UI and demo. Obsolete isolated/group/fixed-maker runtimes and disabled
@@ -79,23 +81,27 @@ P37's scope, client, financial, report and shell jobs all pass on `159ea27` in
 [run 41016415771](https://github.com/arnabnandikgp/rivalt/actions/runs/41016415771).
 Its automated reviewer skipped the large diff; no independent review is claimed.
 
-P37's accepted content is `1494881`; PR #53 is ready above #51. Initial GitHub push
+P37's accepted content is `1494881`; PR #53 merged with its #51 parent. Initial GitHub push
 timed out; the retry succeeded without changing the content or stack relationships.
 
 P38 rewrites the root README around the current implementation and qualified local
 demo, with the component map and exact limits linked instead of duplicated phase
 history. Clean content `9a59ca8` passes 265 relative links/anchors, 112 immutable
 historical targets, 42 source/command paths, whitespace and evidence-policy checks.
-Its scope is Markdown only; runtime/build/financial suites are not rerun. PR #54 is
-ready above #53. The executable CI workflow's path filter does not run for this
+Its scope is Markdown only; runtime/build/financial suites are not rerun. PR #54
+merged with its #53 parent. The executable CI workflow's path filter does not run for this
 Markdown-only PR; its local checks are recorded, not described as a hosted pass.
 
-The ready stack is **#50 → #51 → #53 → #54**. All approved consolidation deliverables
-are complete within their recorded acceptance scopes. No merge has been requested
-for this stack.
+The stack **#50 → #51 → #53 → #54** merged atomically with no unresolved review
+threads. P54's automated review was still running; no independent approval is claimed.
+The merge was fetched, every PR's MERGED state checked and tree equality verified;
+local `main` fast-forwarded without touching unrelated research or local evidence.
+Only documentation/whitespace/evidence checks apply to this closeout. No financial,
+RPC/WS/PostgreSQL, browser, load or endurance suite is rerun for merge metadata.
 
-Next exact action: address actionable stack review feedback while keeping every
-PR open until a separate merge instruction. No new implementation phase is started.
+Next exact action: select the next product/engineering objective with the user.
+No further implementation phase, external activity or endurance run is authorized
+by this closeout.
 
 ## Deployment and operational limits
 

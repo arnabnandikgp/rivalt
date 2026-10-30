@@ -22,7 +22,7 @@ git show 84c46d4d26b23f25d6f3a7ae4bcbec591fa31503:docs/evidence/P34.md
 | M8 | Account-centric clearing | 0916b9d; market-attributed loss/insurance, funded exits and complete safety |
 | M9 | Interactive earlier-profile demo | 350e60c; user walkthrough and owned lifecycle |
 | M10 | Canonical maker liquidity/publisher/services | b80bb38; exact reviewed tree 9e6dd07, docs closeout 1f1a5aa |
-| M11 | Repository consolidation | In progress; current status and PR verification in STATUS |
+| M11 | Repository consolidation | caa47d2; P35–P38 / PRs #50, #51, #53, #54; exact accepted tree 9d3e15f, fresh SBF source 828fe543 |
 
 Original WORKLOG contains every actual tested pin, failed attempt, command and raw
 local path. Current [validation](operations/validation.md) retains the applicable
@@ -168,5 +168,23 @@ Original evidence summaries inform validation but are not new acceptance.
 | Pinned tools, launchers, budgets/keys, profile separation, exit/recovery, retained raw data | [Operations](operations/README.md) |
 | Actual pins, independent-test boundaries, CU/wire/heap limits, complete denominators and residual limitations | [Validation](operations/validation.md) |
 
-Source suffixes and legacy runtimes are still present at the documentation checkpoint;
-P36/P37 must update these contracts when the implementation actually changes.
+The documentation checkpoint preceded source consolidation. P36/P37 subsequently
+renamed current definitions and retired obsolete runtimes; their updated component
+contracts and fresh validation are integrated with P38's professional README.
+
+## Consolidation integration — 30 October 2026
+
+The user authorized merging the complete ready stack. GitHub's atomic stack merge
+integrated PRs [#50](https://github.com/arnabnandikgp/rivalt/pull/50),
+[#51](https://github.com/arnabnandikgp/rivalt/pull/51),
+[#53](https://github.com/arnabnandikgp/rivalt/pull/53) and
+[#54](https://github.com/arnabnandikgp/rivalt/pull/54) at
+`caa47d29d1dc0fe790025d21121b37617669a809`. The fetched merged tree exactly matches
+accepted stack tip `9d3e15ff8291c77d5992124cd661187cf3ebe778`; all four PRs independently
+report MERGED. P35–P38 and M11 therefore close within their recorded engineering scope.
+
+Applicable CI passed, with no unresolved review threads. P54's automated review
+was still running when the user-authorized merge proceeded; skipped/running bots
+are not independent review approval. This integration and its documentation closeout
+do not rebuild or requalify programs. Exact prior runtime pins remain in validation;
+P15B/P16B stay Open and 24-hour endurance stays Deferred.

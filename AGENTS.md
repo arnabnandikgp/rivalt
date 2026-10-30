@@ -61,9 +61,10 @@ Keep one normative document per topic; do not add a phase document for each task
 Use one cohesive ready PR per approved deliverable. Use `gh stack` for dependent
 branches and `gh stack submit --auto --open`; never draft PRs. A verified exact
 parent in Review is a development dependency; do not wait for its merge to continue
-routine authorized work. Keep this stack open until separately instructed to merge.
+routine authorized work. Keep dependent PRs open until instructed to merge.
 If publication is unavailable, leave reviewable local commits and record it honestly.
-The active approved sequence is in [the consolidation plan](docs/REPOSITORY-CONSOLIDATION.md).
+The completed [consolidation plan](docs/REPOSITORY-CONSOLIDATION.md) records the
+retirement boundaries; [STATUS](docs/STATUS.md) owns any newly authorized work.
 
 ## Verify and hand off
 
