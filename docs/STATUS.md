@@ -17,7 +17,7 @@ the integration and preceding baselines.
 | P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | Review | A and B acceptance passed; awaiting stack integration |
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
-| P40B scoped event history | Review | Scoped history, multichunk/same-slot/CPI replay and exact liquidation/default/custody acceptance pass; ready PR publication pending |
+| P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
@@ -253,13 +253,15 @@ P39; complete financial write contention remains for P41/P42.
 
 Typecheck, generated/ABI/source coverage and affected consumer tests pass. Broad
 unrelated/browser/endurance suites are omitted; CI owns broad regression and P44
-owns full fresh integrated qualification. P40B acceptance is complete locally,
-awaiting ready stacked publication/integration; no production or throughput claim.
+owns full fresh integrated qualification. P40B acceptance content is `df042ce`; [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58)
+is ready for review above #56. The retained safety projection verifier passes at
+that same clean commit. Owned RPC/WS/PG listeners and containers are confirmed
+stopped. Integration and hosted CI remain pending; no production/throughput claim.
 P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on
 `96790ef` / `f8984e0`. No external access blocker remains.
 
-Next exact action: publish P40B ready above #56, then implement P41's complete
-relevant-market dependency contract without waiting for the stack to merge.
+Next exact action: create P41 above #58 and implement its complete relevant-market
+dependency contract without waiting for the stack to merge.
 
 ## Deployment and operational limits
 
