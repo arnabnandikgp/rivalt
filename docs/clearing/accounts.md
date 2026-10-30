@@ -286,3 +286,90 @@ BTC/ETH dependency sets, cross-market coupling, held/expired/negative funding
 prefix checks, transfers/withdrawals/reservations/TP/SL/liquidation, ABI/SDK parity
 and actual Surfpool RPC/WS/PostgreSQL reconstruction. Failed and successful paths
 must use the rebuilt schema-6 artifact; P40B evidence does not qualify it.
+
+## Custody isolation successor contract (P42, implementation pending)
+
+D87 freezes this fresh local schema-7 boundary before runtime edits. P41 remains the
+accepted schema-6 predecessor at `49b95a4`; no existing deployment/database/original
+is migrated. Use a new domain/genesis, explicit `accountSchema: 7`, fresh artifact
+pins and journal binding. Profile 4, maker-owned schema 4, quote/report versions,
+canonical discriminators, PDA seeds and instruction argument encodings stay intact.
+No activation or resource qualification follows from this contract.
+
+Ordered account changes (all sizes include discriminator):
+
+| Account | Exact successor field delta | Size |
+|---|---|---:|
+| Custody | Delete `total_cash:u64` and `liability_versions:[u64;2]`; retain schema, revision, venue, allocated_vault, bump in that order | 59 |
+| MarketLedger | Insert `liability_version:u64` after `version:u64` and before bump | 125 |
+| SettlementCertificate | Replace `liability_versions:[u64;2]` in place with `liability_version:u64`, binding only its selected ledger | 234 |
+| Other clearing accounts | Numeric schema 7; no field/order/size change | unchanged |
+
+Custody records only allocated tokens. Ordinary financial rights live in canonical
+roots and selected ledgers. Full cash is derived as `allocated V - sum(P+I+T)` at
+complete frozen/admin checkpoints, then checked against the complete root scan; it
+is never an asynchronously updated spendable balance. Market liability stamps move
+to the corresponding ledger, without reusing its unrelated fee/insurance version.
+A root cash, quantity or fixed-claim change invalidates each market where it has a
+nonzero position/claim before or after; selected settlement-pool changes invalidate
+that market too. A pure nonce/delegate/order-authority change or checkpoint rewrite
+preserving the exact fixed claim does not invalidate debtor backing. Price/funding
+observation stamps remain separate and unchanged.
+
+Account-meta contract (W means declared write; omitted means absent, not readonly):
+
+| Context / operation | Required scope after change |
+|---|---|
+| Immediate/stored route | Venue/safety R; trader/makers/registrations W; relevant markets W; selected ledger W and optional other ledger W when any touched root has its claim/exposure. Omit custody/vault |
+| Manage order / delegate | Existing whole-root guard/authority; root W, relevant consumed markets W for order actions. Omit custody/vault/ledgers; delegate consumes no funding |
+| Common financial identity | Venue/safety R and canonical optional BTC/ETH W only. No token or ledger fields |
+| Funded withdrawal | Financial identity plus root W, relevant liability ledgers W, custody/vault W, canonical mint/token/destination; exact token CPI |
+| Funded transfer / liquidation | Financial identity plus touched roots W and relevant liability ledgers W. Omit custody/vault |
+| Loss/gain | Financial identity, root W, selected plus all root-dependent liability ledgers W; registry and optional gain certificate R. Omit custody/vault |
+| Flat netting | Financial identity, root and both ledgers W; registry/source certificate R. Omit custody/vault |
+| Deposit / flat custody withdrawal | Root/custody/vault W; canonical optional liability ledgers W for active deposited roots; no market/source account or fresh-price prerequisite |
+| Flat custody transfer | Venue/safety R and two roots W; omit custody/vault/ledgers |
+| Fee allocation | Separate treasury context: venue/safety R, fee-authority signer, selected ledger W only; omit mint/token/custody/vault/markets |
+| Fee withdrawal / retired reserve exit | Treasury context plus custody/vault/destination W and mint/token; selected ledger only; retain distinct authorities and terminal reserve gate |
+| Reserve seed / surplus classification | Actual token/allocated gateway plus selected ledger W, no other ledger |
+| Backing initialize/check | Omit custody; selected ledger R for check, both markets R for complete debtor classification, registry R and certificate W |
+| Maker controls / funding publication | Remove custody used solely for profile identity; retain canonical venue/safety and every code/authority/source/depth check |
+| Complete activation/default/recovery/retirement | Retain both markets/ledgers and actual allocated-vault reconciliation; freeze remains a global safety barrier |
+
+Optional ledger omission must be derived from all touched roots and selected pool
+changes; it cannot omit an obligation to preserve an old certificate. Supplied
+extra canonical ledgers retain their declared write/revision semantics. Token
+operations authenticate actual backing `actual >= allocated`, bounded allocation,
+owner/mint/destination and local entitlement debit/credit; they do not recompute
+venue-wide root cash. Missing token funds, arithmetic failure, second-instruction
+failure or event failure rolls the entire transaction back.
+
+The backing scan remains complete and conservative. Its selected ledger stamp,
+membership, safety, required observations, source deadlines and held-funding bounds
+are checked on every page and payment. Final page and payment may be two instructions
+in one atomic transaction. A root promoted writable by the later instruction remains
+a read-only dependency of the earlier scan; the scan never mutates it. No stale
+certificate, source relaxation, private subset or guaranteed completion window is
+introduced. Continuous-activity progress is measured separately.
+
+Wire payload changes are explicit: remove global `total_cash` and
+`liability_versions` from ordinary custody/route/financial/authority/order/
+liquidation payloads. `MarketLedgerSnapshot` appends `liability_version` after
+`version`; route retains selected `ledger` and adds `other_ledger:Option<...>`
+immediately after it. Financial and liquidation events carry ordered, bounded
+partial ledger vectors. `AccountFinancialChanged.allocated_vault/actual_vault`
+become options; internal actions emit neither. Custody payload `allocated_vault`
+also becomes optional for pure transfers. BackingSnapshot replaces its version
+array with the selected scalar. Complete-resolution payloads retain exact frozen
+cash and both liability stamps, now derived from ledgers. Indexer/API full cash is
+an explicitly derived complete-root value; omitted fields never zero unrelated
+state. Authenticate every changed ledger/root with its scoped footer revision.
+
+Acceptance requires actual distinct-owner/payer isolated BTC/ETH messages without
+protocol W/W or W/R overlap; retained same-market/cross coupling; independent local
+conservation, fee carries and fractional claims; complete default/retirement and
+funded token exits; full certificate invalidation and atomic final-page/payment;
+classified continuous-sampling/trading scan attempts; rebuilt ABI/SDK/SBF parity;
+actual RPC/WS/PostgreSQL crash/replay reconciliation. A temporary coordinated window
+may remain a measured limitation, never an implicit guarantee. P43/P44 cannot
+inherit resource acceptance from P41.

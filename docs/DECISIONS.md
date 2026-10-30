@@ -201,3 +201,26 @@ complete-cohort default. Custody/ledger and certificate liveness work remains P4
 Default/devnet gates and P15B/P16B remain unchanged; no activation or performance
 pass follows from this contract. Implement and qualify the full phase before its
 ready PR; keep the stack open.
+
+## D87 — isolate token custody from internal financial accounting
+
+On 31 October 2026, P42 freezes the [custody isolation contract](clearing/accounts.md#custody-isolation-successor-contract-p42-implementation-pending)
+under the user's authorized P39–P44 roadmap. Remove the redundant globally updated
+cash sum and two-market liability stamps from Custody; canonical roots and market
+ledgers maintain exact local conserving transitions. Each ledger owns its liability
+stamp. Actual token gateways retain allocated-vault backing and signed entitlement
+checks; complete frozen valuation/retirement independently checks all root cash.
+No projection or stale aggregate gains withdrawal authority.
+
+This supersedes P41's broad custody/vault/ledger ordinary-action contexts, not its
+whole-account funding/risk union. Pure internal operations omit token custody;
+selected-market fee carry/exposure ordering remains. Certificate changes preserve
+complete-debtor/observation rules and enable atomic final-page/payment without
+mistaking transaction-wide writable promotion for a scan mutation. Measure progress
+under ongoing activity and report any coordinated windows honestly.
+
+Schema 7 uses a fresh local domain/genesis/client/journal. Financial rates, funded
+cash versus unpaid claims, reserve ownership, strict liquidation progress, complete
+market-attributed default and default/devnet gates stay unchanged. P15B/P16B and
+deferred endurance remain separate. No activation/resource result follows from the
+contract; complete and verify this phase before its ready PR above #59.

@@ -19,7 +19,7 @@ the integration and preceding baselines.
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
-| P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
+| P42 custody/accounting isolation | In progress | D87 schema-7 contract frozen; exact local conservation, narrower contexts and certificate progress require implementation/acceptance |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
@@ -323,8 +323,11 @@ Successful raw records stay in `p41-claims-revision/`, the failed attempt in
 P41 acceptance content is `3415538`; [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59)
 is ready above #58. Integration and hosted CI remain pending. No broad
 unrelated/browser/endurance suites are rerun; CI owns broad regression and P44 owns
-full fresh qualification. Next exact action: freeze and implement P42's exact custody/accounting isolation
-contract above #59. No validator
+full fresh qualification. P42 is on `performance/p42-custody-isolation` above #59. D87 freezes exact
+account layouts, dependency/authority rules, partial payloads and complete acceptance
+criteria before runtime edits. Current executable artifacts remain the accepted
+schema-6 P41 set. Next exact action: implement schema-7 custody/ledger transitions
+and operation-specific contexts, then regenerate and check the explicit ABI delta. No validator
 throughput, endurance or funded qualification is claimed.
 
 ## Deployment and operational limits
