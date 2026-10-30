@@ -297,7 +297,10 @@ P41 rebuild. The first SBF build rejected the order handler at 4,336 bytes of st
 offset (240 over the limit). Borrowing its typed market accounts removes duplicate
 market snapshots; no heap/stack limit or risk check is relaxed. A targeted negative
 funding/slot-expiry materialization case verifies the consumed prefix remains 80
-scaled units without touching ETH. Rebuilt SBF acceptance remains pending. Broad unrelated/browser/endurance suites are omitted; P41's affected
+scaled units without touching ETH. Clean SBF source `b0c5675` now builds all qualified/default programs and IDLs
+without oversized frames; the explicit ABI delta and regenerated SDK match.
+The hash-measured candidate is pinned for fresh integrated qualification, still
+pending. Broad unrelated/browser/endurance suites are omitted; P41's affected
 compiled integration and P44's final qualification are still required.
 
 Next exact action: build the committed schema-6 source, pin its measured artifacts,
