@@ -58,8 +58,13 @@ collisions were corrected before these results. No financial arithmetic changed.
 Fresh SBF builds passed on clean source `cff1cf9` with no oversized stack frame.
 Clearing is 4,511,952 bytes; each maker is 382,864 bytes; the oracle hash is unchanged.
 Prior binaries/manifest remain under `.local/p36-pre-rename-artifacts`. The SDK pins
-the exact new candidate hashes. Isolated legacy Anchor raw parity, submitted
-route/publisher probes and resource measurements remain required before Review. Broad inherited
+the exact new candidate hashes. At `0e7851b`, independent SDK and both actual SBF
+makers each matched 3,172 pricing vectors (1,547 quotes / 1,625 expected rejects).
+The first publisher probe completed 84 signed RPC/WS outcomes and 8 reports, but
+its old `_v4` instruction selector captured zero instructions after renaming. Account/
+event parity passed; instruction parity was not accepted. The recorder now matches
+stable discriminators, rejects empty instruction coverage and has two focused checks.
+A corrected scoped publisher/route run remains required before Review. Broad inherited
 regression is assigned to scoped CI, not claimed as run locally.
 
 With explicit user approval, only the five older shared Solana compiler caches

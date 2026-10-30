@@ -25,8 +25,8 @@ export class CanonicalConformance {
   record(instructions: Instruction[], history?: any) {
     for (const module of this.modules) {
       for (const instruction of instructions.filter(item => item.programAddress === module.address)) {
-        const definition = module.idl.instructions.find((item: any) => item.name.endsWith('_v4')
-          && Buffer.from(item.discriminator).equals(Buffer.from(instruction.data!).subarray(0,8)));
+        const definition = module.idl.instructions.find((item: any) =>
+          Buffer.from(item.discriminator).equals(Buffer.from(instruction.data!).subarray(0,8)));
         if (!definition) continue;
         const name = camel(definition.name), implementation = module.sdk as any;
         const decoded = canonicalValue(implementation[`get${upper(name)}InstructionDataDecoder`]().decode(instruction.data));
@@ -57,6 +57,7 @@ export class CanonicalConformance {
     }
   }
   async finish(runDir: string, keys: { program: Address; name: string; key: Address }[], read: (key: Address) => Promise<Buffer | null>) {
+    assert(this.modules.some(module => module.instructions.length > 0), 'No instructions captured for Anchor conformance');
     for (const key of keys) {
       const module = this.modules.find(item => item.address === key.program)!;
       const bytes = (await read(key.key))!;
