@@ -16,7 +16,7 @@ planning checkpoint `84c46d4`, and separately requested a final README PR after 
 |---|---|---|
 | M11 consolidation | In progress | Component docs, canonical names, justified retirement and final README |
 | P35 component docs/handoff | Review | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50); 20 maintained docs, 93-line handoff, scoped checks pass |
-| P36 canonical names/ABI | In progress | Canonical names/clients and unchanged wire contract verified; ready publication pending |
+| P36 canonical names/ABI | Review | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51); renamed current API, preserved ABI and scoped compiled/RPC acceptance |
 | P37 legacy retirement/runtime | Open | Consumer audit, current launcher/API consolidation, retained independent cases and fresh financial/RPC/WS/PG/browser/resources |
 | P38 professional root README | Open | Separate final PR after P35–P37; concise product/architecture/quick-start/status entrypoint |
 | P15B independent maker validation | Open — external | Actual independent operator and economics; internal bots/assumed hedges cannot substitute |
@@ -81,8 +81,8 @@ With explicit user approval, only the five older shared Solana compiler caches
 v1.41/v1.43/v1.48/v1.50/v1.51 were deleted; pinned v1.52 and all Rust installations,
 project data and evidence remain. Free space afterwards: 6.4 GiB.
 
-Next exact action: publish the verified P36 ready PR above #50, then audit live
-legacy consumers and extract the shared engine before P37 retirement.
+Next exact action: audit P37 live legacy consumers and extract the shared engine
+before retiring old runtimes; PRs #50/#51 remain ready and open.
 
 ## Deployment and operational limits
 
