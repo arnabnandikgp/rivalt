@@ -6,7 +6,7 @@ Amounts and signed fractions are decimal strings in JSON; bytes are hex. Cash,
 market settlement pools, insurance, retained fees and fee carries remain separate.
 The registry supplies the complete stable root order. Events are authenticated CPI
 payloads, not log messages; reverted events never enter the economic projection.
-Unknown critical schemas, sequence gaps or immutable identity changes fail closed.
+Unknown critical schemas, revision gaps or immutable identity changes fail closed.
 
 Default has a compact event-derived financial view, not a fabricated copy of the
 wide arithmetic work account. Frozen rows retain original cash and claims. Partial
@@ -16,17 +16,17 @@ applied cash; only the completion event adopts the new aggregate buckets. Inspec
 the canonical resolution header/pages against the event-derived fields. Wide
 registers and DFS scratch are solver continuation state, not spendable balances.
 
-Every RPC reconciliation chunk includes custody (the global discovery sequence)
-and compares the same full custody bytes. A changing sequence requests backfill;
-it never silently compares accounts from different economic snapshots. Unsequenced
-permissionless precreation of resolution storage is not a financial transition.
+RPC reconciliation reads the complete entity revision vector and financial bodies
+twice across bounded chunks. A relevant advance requests tail catch-up; it never
+silently combines incompatible states. Storage precreation has a zero-payload
+scoped transition, so its creation remains part of authenticated history.
 Market payout certificates and terminal retirement proof remain distinct; neither
 is an ordinary own-cash withdrawal prerequisite.
 
 
 ## Durable execution boundary
 
-`AccountExecution` reuses the immutable signed-wire queue and schema-3 journal with
+`AccountExecution` reuses the immutable signed-wire queue and schema-5 journal with
 qualified genesis/anchor/artifact binding. Public ingress accepts one measured
 wallet action with explicit zero priority price, one wallet signer and exact
 schema-decoded venue/actor/owner accounts. It does not accept arbitrary operator
@@ -120,11 +120,11 @@ evidence dumps. Unit/consumer tests and actual durable worker acceptance remain 
 ## Journal, reports and checkpoints
 
 Subscribe through standard RPC/WS for discovery, then fetch original signatures
-and finalized transaction/account bytes. Paginate history, deduplicate stable
+and finalized transaction/account bytes. Discover complete finalized blocks, deduplicate stable
 signature/instruction/event identities, retain failed transaction logs but apply
 no reverted events. Projection and checkpoint commit atomically in PostgreSQL;
 crash/rollback/disconnect recovery resumes the durable checkpoint. Unknown critical
-schemas, skipped sequence, bad CPI identity, duplicates with conflicting bytes and
+schemas, skipped revisions, bad CPI identity, duplicates with conflicting bytes and
 unexplained balances fail readiness. Fresh database replay must match incremental
 reconstruction. A chain reset is a different genesis, never a continuation.
 
@@ -183,8 +183,9 @@ interfaces. Existing HTTP versions, numeric layouts and deployment checks remain
 
 ## Scoped-history successor contract (P40B)
 
-This is the frozen successor contract, not an active journal or qualification claim.
-The account kinds/layouts are in [accounts](../clearing/accounts.md#scoped-history-successor-contract-p40b-not-yet-activated).
+This is the implemented fresh-domain journal contract; exact acceptance pins and
+remaining limitations are in [validation](../operations/validation.md).
+The account kinds/layouts are in [accounts](../clearing/accounts.md#scoped-history-contract-p40b).
 New journal bindings use schema 5 and fresh databases. Public deployment configuration
 must explicitly bind account schema 5; transport/profile names alone cannot select
 an incompatible decoder. Historical schema-4 databases/originals retain their pinned
@@ -250,19 +251,18 @@ transition is reconstructed; no stale proof authorizes a payment. Source account
 and external maker prices remain separately authenticated inputs. P42/P44 own
 continuously active certificate and performance measurements.
 
-The isolated causal-order primitive in `scoped-history.ts` and clearing envelope
-implementation are not wired into the current journal until exact on-chain envelopes,
-ABI/SDK parity, missing/duplicate/reordered/reverted cases, same-slot batches,
-RPC reconciliation, crash recovery and fresh PostgreSQL replay all pass on rebuilt
-artifacts. An ordering unit test does not qualify any of those integration layers.
+The active journal uses `scoped-history.ts` with authenticated on-chain envelopes.
+Ordering unit tests supplement ABI/SDK parity, actual same-slot/nested-CPI outcomes,
+RPC reconciliation, crash recovery and fresh PostgreSQL replay; they do not
+substitute for those integration layers.
 
 `scoped-events.ts` supplies the separate schema-5 transport gate: reconstruct
 financial invocation ancestry from compiled outer/inner instructions and mandatory
 stack heights, resolve loaded keys and verify write privileges. Financial payloads
 belong to their immediate clearing frame; the final footer binds that frame's
 actual instruction, slot, domain and count. Unknown payload tags and instructions
-fail closed. This gate remains disconnected from the current schema-4 runtime
-until full payload decoding, complete-block discovery and journal acceptance pass.
+fail closed. This is the active schema-5 decoding gate; schema-4 journals remain
+bound to their historical clients.
 
 The schema-5 candidate now uses SQL journal format **2**, which refuses retained
 format-1 databases. `getBlocks` plus complete `getBlock` bodies establish a fixed
@@ -291,5 +291,5 @@ Maker economics inputs use version 5 with `opening.cursor`, `closing.cursor` and
 an explicit `cursor` alongside each SQL-derived event payload. Contiguity is a
 local journal export check; it is not a field supplied by the on-chain event or
 a substitute for the journal's complete-block and entity-revision authentication.
-These are implemented candidate contracts; fresh SBF/RPC/WS/PG acceptance remains
-required before P40B enters Review.
+These are implemented local contracts; [validation](../operations/validation.md)
+records the separate compiled, signed and database evidence.

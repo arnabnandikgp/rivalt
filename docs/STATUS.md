@@ -15,9 +15,9 @@ the integration and preceding baselines.
 |---|---|---|
 | M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
 | P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
-| P40 scoped events/services | In progress | Split into two cohesive PRs under D83; umbrella acceptance requires A and B |
+| P40 scoped events/services | Review | A and B acceptance passed; awaiting stack integration |
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
-| P40B scoped event history | In progress | Schema-5 SDK/journal/SBF and RPC/WS/PG replay pass; final financial-reader, multichunk and same-slot acceptance pending |
+| P40B scoped event history | Review | Scoped history, multichunk/same-slot/CPI replay and exact liquidation/default/custody acceptance pass; ready PR publication pending |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
@@ -224,21 +224,42 @@ custody run also passes 57 signed outcomes and eight deliberate raw-state corrup
 rejections. Seven targeted snapshot/API/economics tests, 17 affected SDK/conformance
 cases, typecheck, generated parity and all three compiled default gates pass.
 
-The affected liquidation/default run reaches the exact Apply plan but exposes a
-real 32 KiB heap exhaustion after two row payloads and before the scoped footer.
-It is not a CU or financial-admission failure. The candidate now borrows the
-resolution root snapshot and footer rows instead of allocating duplicate vectors;
-exact wire parity is checked before rebuilding. No heap/CU limit or financial rule
-is relaxed. Four borrowed-payload parity tests and seven footer/header cases pass.
-Clean SBF `304da5c` rebuilds both clearing profiles without oversized frames;
-updated measured artifact hashes are pinned for the next signed run. Evidence is retained in `p40b-safety-a44b26b/`. Complete rebuilt safety
-and journal acceptance is still pending, so P40B is not yet Review. Broad unrelated,
-browser and endurance suites are omitted; P44 owns fresh full qualification.
+The first affected liquidation/default run reached Apply but exhausted the 32 KiB
+heap after two row payloads and before the footer. Borrowing the resolution root
+snapshot and captured footer rows removes duplicate allocations; four borrowed
+payload parity tests and seven footer/header cases pass. Clean SBF **`304da5c`**
+builds default/qualified clearing without oversized frames (qualified 2,452,824
+bytes); it retains the default heap and unchanged CU ceilings/financial checks.
+Failed evidence remains in `p40b-safety-a44b26b/`.
+
+Clean verifier **`b495b386f069d55aac89e093f75f97bff078a370`** passes the rebuilt
+safety run: 290 signed outcomes (267 successes, 23 expected rejections), live
+TP/SL/reservations, strict post-fee liquidation, complete eight-root default,
+resolved cash exit and sustained recovery/reactivation. Independent raw-byte
+Fraction audit checks every exact payout and rejects ten corruptions. Maximum
+observed CU is 477,424; two-row Apply remains within the default heap and records
+at most 268,620 CU. Isolated Anchor checks 266 clearing encodings, two accounts and
+487 events plus both makers. This is scoped coverage, not P44's full resource bound.
+
+The same rebuilt artifact passes 57 actual same-slot/CPI/retirement outcomes,
+51-event PostgreSQL fresh replay and exact 5,999,999-atom exit reconciliation.
+All three compiled default gates still reject. Evidence stays in
+`.local/liquidity-execution/runs/p40b-safety-heap/` and `p40b-scoped-heap/`.
+A separate retained-receipt projection check compares the safety lifecycle at five
+boundaries; it is not a new live SQL/block-fence run. The capture omits only the
+trader portfolio, explicitly reported rather than fabricated. Current static
+inventory covers 61 entrypoints and 30 custody writers, down from 50 declared in
+P39; complete financial write contention remains for P41/P42.
+
+Typecheck, generated/ABI/source coverage and affected consumer tests pass. Broad
+unrelated/browser/endurance suites are omitted; CI owns broad regression and P44
+owns full fresh integrated qualification. P40B acceptance is complete locally,
+awaiting ready stacked publication/integration; no production or throughput claim.
 P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on
 `96790ef` / `f8984e0`. No external access blocker remains.
 
-Next exact action: complete the clean scoped-history and safety RPC checks, publish
-P40B ready above #56, then implement P41 without waiting for the stack to merge.
+Next exact action: publish P40B ready above #56, then implement P41's complete
+relevant-market dependency contract without waiting for the stack to merge.
 
 ## Deployment and operational limits
 

@@ -5,7 +5,7 @@ import {MAKER_B_PROGRAM_ADDRESS} from './generatedMakerB/index.js';
 import {ArtifactVerifier} from './artifacts.js';
 import type {UserRpc} from './wallet-client.js';
 
-// P40B candidate: clean SBF source 6123dc8; qualification is recorded in STATUS.
+// P40B candidate: clean SBF source 304da5c; qualification is recorded in STATUS.
 // Public configuration
 // selects this profile, never replacement hashes or a default/devnet executable.
 export const LIQUIDITY_ARTIFACT_SET='p40b-scoped-history-candidate-v3';

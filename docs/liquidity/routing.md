@@ -81,11 +81,11 @@ sequences and consumption prefixes; signed intents bind structural epochs instea
 The SDK preserves caller-supplied limits and returns an explicit 800k CU budget for
 the existing measured-size v0/v1 compiler. Current measured resource results are recorded in validation.
 
-Safety integration reuses schema-3 account financial instructions/layouts for
+Safety integration uses schema-5 account financial instructions/layouts for
 profile4 only under `liquidity-execution-qualification`. Order authority, cash,
 liquidation, complete-cohort resolution, recovery and terminal exits share their
-existing implementation. Legacy maker registration, route execution, sampling and
-initial activation remain profile3-only. Default/devnet/P30-only artifacts cannot
+existing implementation. Earlier runtime APIs are retired in source and remain
+reproducible at their historical revisions. Default/devnet artifacts cannot
 activate profile4 or execute its financial operations.
 
 `activate_liquidity_v4()` uses the existing `ActivateAccounts` account layout:

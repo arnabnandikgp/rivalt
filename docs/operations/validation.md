@@ -65,6 +65,54 @@ consumer tests and typecheck pass. Raw records remain under
 validator scheduler throughput, broad financial/build/browser checks and endurance
 are outside this service-only acceptance. The current global on-chain writes remain.
 
+### Scoped history acceptance (P40B)
+
+Fresh schema-5 accounts and SQL journal format 2 use no global writable discovery
+counter. Native layout/source coverage binds all 17 headers, 42 contexts and 53
+clearing entrypoints. The independent ABI delta derives from immutable P40A
+`f8984e0`; generated SDK parity and relevant legacy Anchor encodings pass. Twenty
+sequence-only custody writers become readonly; 30 economic/administrative writers
+remain. No old state/database is reinterpreted.
+
+- `02bbdec` with SBF `ba2f15f`: separate actual journal and live indexer runs, each
+  120 signed outcomes and 72-event fresh PostgreSQL replay. SQL rollback, duplicate
+  byte checks, restart, reverted-effect exclusion and 70-account/eight-root live
+  reconciliation pass. Exact initial backing is 8,000,000 atoms; fees are 26 atoms.
+- `a44b26b` with SBF `6123dc8`: independent custody/insurance/token audit passes
+  57 signed outcomes and eight corruptions. Multichunk tests use 109 encoded
+  accounts, advancing unrelated slots and relevant revision/unversioned-byte races;
+  these are transport fixtures, not additional financial executions.
+- Final clean verifier `b495b38`, SBF **`304da5c`**: 57 signed same-slot/nested-CPI/
+  retirement outcomes, including two batches of three originals in one slot,
+  later-CPI rollback, zero-payload storage, pause-epoch proof invalidation and cash
+  exit. Live PostgreSQL reconciliation covers 32 accounts/six roots, 5,999,999 atoms;
+  51-event fresh replay matches. Anchor checks 49 clearing encodings, three account
+  codecs and 97 events, plus makers.
+- The same final pins pass 290 safety outcomes (267 successes, 23 expected rejects):
+  TP/SL, reservations, whole-account liquidation, complete two-market eight-root
+  default, stale-source resolved exit and recovery/reactivation. Independent Fraction
+  audit checks all payouts and ten corruptions. Anchor checks 266 clearing encodings,
+  two account codecs and 487 events, plus makers. Max observed 477,424 CU; two-row
+  Apply max 268,620 CU. A retained-receipt projection regression separately compares
+  five raw-state boundaries, excluding one uncaptured portfolio; no new live SQL or
+  complete-block proof is attributed to that offline comparison.
+
+Final clearing is 2,452,824 bytes; makers are 261,056 each. Artifact hashes are in
+SDK pins and retained manifests. The first two-row Apply failed on 32 KiB heap;
+borrowed row/footer serialization fixes it without changing bytes, heap or CU limits.
+Four borrowed-payload parity tests and seven footer/header cases include the maximum
+32-entity footer. Default SBF initialization remains rejected in all three programs.
+The earlier retirement projection initialization bug after zero-payload storage is
+also fixed and regression-tested. Failed attempts remain alongside successful runs.
+
+D85 changes Surfpool to checksum-pinned 1.7.0 (core 4.3.2, feature 3383571666) because
+1.6.1 inconsistently reconstructed empty-block parent hashes. Full bodies also match
+separate signature manifests. P39 measurements are not a same-runtime comparison.
+Raw evidence stays under `.local/liquidity-execution/runs/p40b-*`; owned RPC/WS/PG
+processes are stopped. No browser, full P44 instruction/resource coverage, validator
+scheduler throughput, funded deployment or endurance result is claimed. Scoped
+client/typecheck/generation/source/ABI checks pass; broad regressions run in CI.
+
 ## Qualified baseline and provenance
 
 | Scope | Actual tested pin(s) | Evidence boundary |

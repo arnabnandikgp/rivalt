@@ -1,4 +1,4 @@
-/** P40B causal-order primitive. Not connected to the active schema-4 journal.
+/** Active schema-5 causal ordering for the finalized journal.
  * Input must come from authenticated, complete finalized transaction envelopes.
  * A SQL commit still owns deduplication, payload projection and checkpointing. */
 export type EntityRevision={kind:number;revision:string};

@@ -2,9 +2,9 @@
 
 ## Identity, deployment and authority
 
-- Fresh local venue/domain with `Venue.schema_version=3`, immutable
-  `profile_version=4`; financial account layouts remain schema 3. New maker
-  accounts/quote ABI use version 4. No in-place profile-3 upgrade or account rewrite.
+- Fresh local venue/domain with `Venue.schema_version=5`, immutable
+  `profile_version=4`; clearing accounts use schema 5 with scoped revisions.
+  Maker-owned accounts/quote ABI retain version 4. No in-place profile-3 upgrade or account rewrite.
   The default/devnet build rejects profile-4 financial activation. An explicit local qualification build gates execution.
 - Exactly three registry slots per market, IDs 0,1,2. All must be provisioned and
   registry sealed before funding or trading. At least two instances share a maker
@@ -16,7 +16,7 @@
   bounded release. Maker capital cannot be a trader's selected root in its route.
 - Reuse clearing's `[capital-v3, capital]` unique binding: one capital, one
   registration across programs and instance aliases. Capital must be the owner's
-  schema-3 isolated maker root for the exact venue/market. Config replicas cannot
+  schema-5 isolated maker root for the exact venue/market. Config replicas cannot
   supply additional collateral or depth. The same owner may fund distinct roots.
 - Owner + venue authority jointly admit/renew the program, ProgramData and complete
   SHA-256 code hash. Validate the actual loader/program-data relationship and full
@@ -175,8 +175,8 @@ See [the self-review evidence](https://github.com/arnabnandikgp/rivalt/blob/84c4
 
 | Account / owner / seeds | Bytes including discriminator | Ordered payload fields |
 |---|---:|---|
-| `LiquidityRegistry` / clearing / `liquidity-v4,market` | 173 | schema:u16; venue,market:keys; count:u8; sealed:bool; registrations:[key;3]; bump:u8 |
-| `MakerRegistration` / clearing / `maker-v4,market,instance:u8` | 333 | schema:u16; venue,market,capital,owner,pricing_program,program_data,config,price:keys; approved_hash:[u8;32]; instance:u8; authority_epoch,depth_epoch,buy_consumed,sell_consumed:u64; quarantined:bool; bump:u8 |
+| `LiquidityRegistry` / clearing / `liquidity-v4,market` | 181 | schema:u16=5; revision:u64; venue,market:keys; count:u8; sealed:bool; registrations:[key;3]; bump:u8 |
+| `MakerRegistration` / clearing / `maker-v4,market,instance:u8` | 341 | schema:u16=5; revision:u64; venue,market,capital,owner,pricing_program,program_data,config,price:keys; approved_hash:[u8;32]; instance:u8; authority_epoch,depth_epoch,buy_consumed,sell_consumed:u64; quarantined:bool; bump:u8 |
 | `MakerCurve` / maker / `curve-v4,capital` | 691 | schema:u16; venue,market,capital,controller,owner,updater:keys; updater_expiry_slot,control_epoch,shape_epoch:u64; domain:[u8;32]; instance:u8; capability:u16; mode:u8; ttl_slots:u16; target:i64; skew_step,skew_tick,long_cap,short_cap:u64; bid_count,ask_count:u8; bids,asks:[Region;8]; bump:u8 |
 | `MakerPrice` / maker / `price-v4,config` | 83 | schema:u16; config:key; control_epoch,sequence,anchor,updated_slot:u64; updated_time:i64; bump:u8 |
 
@@ -251,7 +251,8 @@ below cover these lists; exact generated-IDL parity is required.
 
 Maker price/shape events retain the actual config, control/sequence, anchor,
 Clock and complete shape state. Clearing registry/control events retain venue,
-custody discovery sequence, affected market snapshot and exact registration state.
+affected market snapshot and exact registration state, followed by the authenticated
+scoped revision footer; there is no global custody discovery counter.
 Execution events include changed roots/ledgers, gross fee and I/T/carry, selected
 registrations and actual price sequence/consumption before/after for each leg.
 See [event definitions](../../programs/clearing/src/events.rs) and maker source for
@@ -261,5 +262,5 @@ do not duplicate full account buffers onto the SBF stack/heap.
 Only independently fetched successful finalized effects enter financial history.
 A maker event is not a fabricated clearing fill; failed CPI rolls back both.
 Quotes return gross notional, never collateral transfers or a risk valuation.
-Current instruction/account/event names still retain suffixes until P36's verified
-rename. Compatibility details remain explicit in [accounts](../clearing/accounts.md).
+Current source names are canonical; numeric schemas and persisted journal tags
+retain explicit wire identity. Compatibility details remain explicit in [accounts](../clearing/accounts.md).

@@ -125,7 +125,7 @@ open; current global on-chain coordination persists until its dependent changes.
 ## D84 — scoped revisions and a fresh journal domain
 
 On 30 October 2026, P40B freezes the D82 successor's exact
-[account](clearing/accounts.md#scoped-history-successor-contract-p40b-not-yet-activated)
+[account](clearing/accounts.md#scoped-history-contract-p40b)
 and [event/journal](application/durability.md#scoped-history-successor-contract-p40b)
 contracts before layout edits. Clearing-owned accounts move to schema 5 with local
 revisions and canonical discriminators; old state is not reinterpreted. The existing
@@ -157,7 +157,9 @@ owned IDL payloads without duplicating large account objects. A separate final
 footer advances the revision. The explicit ABI delta fixes 20 sequence-only custody
 meta reductions and the three zero-payload footer additions; imported financial
 types in maker IDLs advance with clearing, while maker-owned layouts stay unchanged.
-The successor is still disabled pending SDK/journal and compiled integrated acceptance.
+The successor remains restricted to its explicit local qualification artifact;
+[validation](operations/validation.md) records SDK/journal and compiled acceptance.
+Default/devnet financial gates remain unchanged.
 
 
 ## D85 — qualify scoped history on Surfpool 1.7.0
