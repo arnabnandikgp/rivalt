@@ -3,6 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
+node --import tsx tests/rpc-contract/liquidity-hostile-svm.ts
 for probe in account-custody canonical-maker funding-publisher liquidity-execution liquidity-safety liquidity-indexer liquidity-journal liquidity-services liquidity-resource liquidity-operations; do
   bash "ops/$probe-smoke.sh"
 done

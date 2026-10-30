@@ -183,8 +183,24 @@ interactive demo qualification before its ready PR.
 P38 remains the separate README PR. No endurance, external review, independent
 maker or funded deployment is claimed.
 
-Next exact action: rerun operational recovery/exit with the corrected PostgreSQL
-readiness probe on the pinned P37 SBF set, then verify the interactive demo.
+The operational retry at `d62c709` passes: actual SIGKILL during proposal upload,
+complete default/recovery, ten funded root exits and identical fresh PostgreSQL
+replay. Independent Fraction audit rejects five corruptions; 84 durable originals
+resolve, with 452 vault atoms belonging only to fees and insurance. Risk-worker
+maximum is 419,054 CU / 1,196 bytes / 22 keys. Journal durability also passes 120
+signed outcomes, 72 events, SQL rollback/restart/replay and reverted-event exclusion;
+its first attempt exposed a stale test-only IDL event label, corrected in `e5b614a`.
+
+The demo now starts on a fresh retained directory after removing a rejection-only
+activation probe from interactive provisioning. Its browser walkthrough remains.
+A new compiled hostile-CPI regression passes five rejection/rollback cases on the
+working harness: unapproved replacement, wrong gross, overlong bytes, read-only
+mutation and maker rejection. All financial setup uses signed instructions; only
+the malicious replacement's admission hash is fault-injected after proving upgrade
+rejection. This proves CPI isolation, not authorized upgrade or RPC landing.
+
+Next exact action: verify the fresh interactive demo browser walkthrough and rerun
+the focused hostile-CPI harness on its committed revision, then finalize P37's PR.
 
 ## Deployment and operational limits
 
