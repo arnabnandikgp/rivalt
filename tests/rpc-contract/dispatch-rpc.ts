@@ -16,6 +16,7 @@ import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {liquidityQueueFault} from './liquidity-queue-fault.js';
 import {fixtureKey} from './harness.js';
 import {eventually} from './wire.js';
+import {dispatchDatabaseCases} from './dispatch-db-cases.js';
 
 const directory=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATABASE_URL!;
 const rpcUrl=process.env.RIVALT_RPC_URL!,wsUrl=process.env.RIVALT_WS_URL!;
@@ -171,10 +172,11 @@ try {
   const replayUrl=new URL(databaseUrl);replayUrl.pathname='/rivalt_p40a_replay';
   replay=new LiquidityIndexer({...config,databaseUrl:replayUrl.toString(),runId:'p40a-replay'});await replay.open();await replay.cycle();
   assert.deepEqual((await replay.store.snapshot()).state,state);
+  const databaseCases=await dispatchDatabaseCases(runtime.store.pool,config.runId);
   const parity=await conformance.finish(directory,[],h.read);
   writeFileSync(`${directory}/dispatch.json`,json({revision,build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),
     setupOutcomes:checks.length,parallelOriginals:2,parallelBroadcasts:2,duplicateExecutors:2,sharedPayerDeferred:deferred,
-    expired:expiredReceipt,unknownFeeReservation:'20000',originals,budgets,receipts,fault,reconciliation,parity,
+    expired:expiredReceipt,unknownFeeReservation:'20000',originals,budgets,receipts,fault,reconciliation,parity,databaseCases,
     replaySequence:state.sequence,limits:'Two service RPC lanes; not validator scheduler throughput or P40B event qualification'}));
   console.log('P40A actual RPC/WS/PostgreSQL dispatch, expiry, SIGKILL recovery and fresh replay passed');
 } finally {

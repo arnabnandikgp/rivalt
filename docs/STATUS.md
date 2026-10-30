@@ -132,9 +132,11 @@ No SBF rebuild, broad financial suite or PostgreSQL run is warranted for these
 harness/docs changes. No full CU coverage, scheduler throughput, endurance or
 migration result is claimed. P40/P44 must supply their own integrated acceptance.
 
-Disk has fallen to about 270 MiB free; preserve research, keys, databases and evidence.
-P40's eventual SBF rebuild may need additional space; this is not a current P39
-blocker. No external access/product decision is pending.
+Disk has about 390 MiB free after pruning downloadable project package caches.
+Research, keys, databases, installed dependencies and evidence are preserved.
+P40B's SBF rebuild needs additional space. Permission is pending to remove 23
+older stopped PostgreSQL test-data copies (2.18 GiB); current P40A data and all
+interactive-demo directories are excluded. P40A verification can continue.
 
 P39 is published ready for review as [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55).
 Measured harness is `0ac6511`; verified summary/acceptance content is `b810b13`.
@@ -144,13 +146,26 @@ P39 CI passes all five applicable hosted jobs on `2df1c30` in
 P40A is based on that exact parent. It adds two bounded execution lanes and durable
 signed-message conflict reservations, with an explicit drain-before-upgrade gate.
 Fourteen targeted dispatch/expiry/liquidation-authority consumer cases and typecheck
-pass. The new actual RPC/WS/PostgreSQL driver is prepared but not yet run; no P40
-acceptance, throughput gain or event-schema migration is claimed. Program artifacts
-remain unchanged. Broad financial/build/browser tests are not relevant to this
-service-only part; the scoped integration must verify actual cash exit and replay.
+pass. Actual RPC/WS/PostgreSQL acceptance passes at clean `9134fd6`: two independent
+originals concurrently broadcast once despite duplicate executors; shared-payer
+work defers without an attempt; a genuine failed original releases access and
+charges its actual fee. Real finalized expiry releases resource locks while
+retaining 20,000 lamports of unknown-fee reserve. Actual SIGKILL after upstream
+acceptance recovers the original seven-atom withdrawal exactly once; cash totals
+7,999,993 atoms and fresh 61-event PostgreSQL replay matches. Eight originals are
+six finalized successes, one landed rejection and one proven unexecuted expiry;
+operator spent fees total 60,000 lamports. Owned test ports are released. Raw
+records are in `.local/liquidity-execution/runs/p40a-dispatch-9134fd6/`.
 
-Next exact action: commit the P40A candidate and run `bash ops/dispatch-smoke.sh`
-on its recorded revision, subject to sufficient local disk for the owned database.
+Additional read/write and legacy-upgrade SQL edge checks are prepared for that
+retained owned database. Their first typecheck found an unresolvable direct `pg`
+import from the test workspace; using the existing store's public pool type fixes
+it, and typecheck passes. No on-chain ABI/event migration or validator throughput
+is claimed. Broad financial/build/browser suites are unnecessary for this service
+part; no prior evidence is presented as a new pass.
+
+Next exact action: run the scoped PostgreSQL access/upgrade edge checks on the
+retained P40A database, then publish the accepted P40A PR above #55.
 
 ## Deployment and operational limits
 
