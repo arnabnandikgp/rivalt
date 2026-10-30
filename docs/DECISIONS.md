@@ -182,3 +182,22 @@ runtime measurements remain historical inputs, not same-runtime performance proo
 Primary source: [1.7.0 block reconstruction](https://github.com/solana-foundation/surfpool/blob/v1.7.0/crates/core/src/surfnet/svm.rs).
 The local reproduction is `.local/p40b-block-probe-170/blocks.json`; full P40B
 RPC/WS/PostgreSQL acceptance on this runtime is still required.
+
+## D86 — complete relevant-market dependencies
+
+On 31 October 2026, P41 freezes D82's
+[relevant-market contract](clearing/accounts.md#relevant-market-successor-contract-p41-implementation-pending).
+Ordinary actions may omit unrelated market accounts, but clearing derives the
+required union from all touched roots, requested effects and applicable certificate
+bounds. There is no caller-selected risk universe. Persist every consumed relevant
+funding prefix; omitted empty slots retain their existing bytes. Canonical optional
+market contexts replace unconditional two-market writes, using schema 6 and fresh
+local deployment/journal binding for the changed event shapes.
+
+This deliberately supersedes P40B's mandatory ordinary-action market contexts and
+four complete-market payload shapes. It does not change source admission, funding
+rates/causality, fees, loss ownership, oracle/publisher trust, account guards or
+complete-cohort default. Custody/ledger and certificate liveness work remains P42.
+Default/devnet gates and P15B/P16B remain unchanged; no activation or performance
+pass follows from this contract. Implement and qualify the full phase before its
+ready PR; keep the stack open.
