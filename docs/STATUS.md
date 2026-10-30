@@ -81,15 +81,20 @@ P36 CI at `a189b9b` passed financial/report/shell jobs but failed three client
 conformance fixtures still looking up old `_v3` IDL names. Their canonical labels
 are corrected without changing vectors or weakening assertions. The three affected
 tests pass locally, comparing 68 instruction variants against isolated Anchor.
-The pushed fix requires a hosted rerun; no SBF/RPC rerun is needed for test-label
-changes. P37 implementation waits for this repair; its branch is still empty.
+Fix `b94381a8395d0a9b824a8c4c0aa563dc752ac311` passes hosted
+[run 41002830322](https://github.com/arnabnandikgp/rivalt/actions/runs/41002830322):
+scope, client, financial, report and shell jobs all succeeded. Generated parity,
+typecheck, the client suite and trader build pass there. No SBF/RPC rerun is needed
+for test-label changes; program source and binaries are unchanged by this repair.
+PR #51 remains ready/open. The empty P37 branch is restacked on the repaired parent.
 
 With explicit user approval, only the five older shared Solana compiler caches
 v1.41/v1.43/v1.48/v1.50/v1.51 were deleted; pinned v1.52 and all Rust installations,
 project data and evidence remain. Free space afterwards: 6.4 GiB.
 
-Next exact action: push the P36 conformance-fixture repair and confirm hosted CI,
-then restack the empty P37 branch and resume the live-consumer audit.
+Next exact action: resume P37's live-consumer audit and extract the shared financial
+engine before retiring its historical group handlers; no P37 implementation or
+qualification is claimed yet.
 
 ## Deployment and operational limits
 
