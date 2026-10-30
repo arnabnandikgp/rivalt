@@ -143,7 +143,11 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       Object.assign(custody(),pick(change,['totalCash','allocatedVault','liabilityVersions']));equal(safety().epoch,change.safetyEpoch,'financial safety epoch');break;
     case 'AccountBackingChangedV3':
       accountCheck(change.state.schemaVersion===6&&change.state.venue===venue,'backing identity');
-      state.backing[change.certificate]=accountFields<sdk.SettlementCertificate>(change.state);break;
+      // BackingSnapshot intentionally omits the journal revision. The enclosing
+      // authenticated footer supplies its predecessor, including initialization.
+      accountCheck(state.revisions[change.certificate]?.kind===9,'backing revision identity');
+      state.backing[change.certificate]={...accountFields<sdk.SettlementCertificate>(change.state),
+        revision:state.revisions[change.certificate].revision};break;
     case 'AccountLiquidatedV3':
       accountCheck(change.target!==change.receiver&&BigInt(change.deficitAfter)<BigInt(change.deficitBefore),'liquidation progress');
       root(change.targetState,change.target);root(change.receiverState,change.receiver);

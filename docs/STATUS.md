@@ -308,7 +308,11 @@ Retained-receipt projection matches five lifecycle boundaries (68 entities, one
 explicitly uncaptured portfolio); this is not a new SQL/block-fence run. Evidence:
 `p41-safety/`, `.local/p41-safety-financial.log` and `.local/p41-safety-projection.log`.
 Owned test listeners/containers have stopped. P41's ordinary claim/certificate/net
-extension typechecks but has not run yet. Broad unrelated/browser/endurance suites
+extension at `b127eca` completed all 167 signed outcomes, including normal gain
+payment and flat netting, then exposed a revision-less backing payload projection
+bug. The reader now takes that predecessor from its authenticated footer; targeted
+projection regression and a fresh integrated rerun are pending. Failed evidence stays
+in `p41-claims-complete/`. Broad unrelated/browser/endurance suites
 are omitted; P44 owns fresh full qualification.
 
 Next exact action: run the affected normal claim/certificate/net extension with

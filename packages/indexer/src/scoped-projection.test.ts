@@ -54,3 +54,23 @@ it('uses the authenticated predecessor when a zero-payload storage account first
   expect(result.retirement).toEqual({schemaVersion:6,revision:'2',venue,safetyEpoch:'2',membershipVersion:'1',cash:'0',count:0,next:0,complete:true});
   expect(result.sequence).toBe('2');expect(initial.retirement).toBeNull();
 });
+
+it('binds revision-less backing payloads to the authenticated certificate predecessor',()=>{
+  const certificate={schemaVersion:6,venue,marketIndex:0,safetyEpoch:'1',membershipVersion:'2',liabilityVersions:['3','0'],
+    observations:['7','0'],fundingBounds:[['0','1'],['0','0']],sourceDeadlines:['100','0'],requiredMarketMask:1,
+    count:2,next:0,cash:'0',lots:['0','0'],claimSum:'0',complete:false,bump:255};
+  const created={...initialization(),signature:'certificate',slot:2n,reads:[{account:venue,kind:0,revision:'1'}],
+    writes:[{account:'certificate',kind:9,before:'0',after:'1'}],
+    events:[{...initialization().events[0],type:'AccountBackingChangedV3' as const,data:{venue,slot:'2',certificate:'certificate',state:certificate}}]};
+  const first=projectScopedBatch(prepared(),[created],binding).state;
+  expect(first.backing.certificate.revision).toBe('1');expect(first.backing.certificate.next).toBe(0);
+  const checked={...created,signature:'checked',slot:3n,writes:[{account:'certificate',kind:9,before:'1',after:'2'}],
+    events:[{...created.events[0],data:{...created.events[0].data,state:{...certificate,next:2,cash:'70',complete:true}}}]};
+  const complete=projectScopedBatch(first,[checked],binding).state;
+  expect(complete.backing.certificate.revision).toBe('2');expect(complete.backing.certificate.cash).toBe('70');
+  expect(complete.backing.certificate.complete).toBe(true);expect(first.backing.certificate.revision).toBe('1');
+  expect(()=>projectScopedBatch(first,[{...checked,writes:[{account:'work',kind:12,before:'0',after:'1'}],reads:[...checked.reads,{account:'certificate',kind:9,revision:'1'}]}],binding))
+    .toThrow(/readonly entity certificate/);
+  expect(()=>projectScopedBatch(first,[{...checked,writes:[{account:'certificate',kind:9,before:'2',after:'3'}]}],binding))
+    .toThrow(/predecessor/);
+});
