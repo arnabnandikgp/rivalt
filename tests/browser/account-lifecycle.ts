@@ -63,7 +63,7 @@ export async function accountBrowser(environment:AccountQualificationEnvironment
     await wait(()=>fetch('http://127.0.0.1:18093/rivalt-config.json').then(response=>response.status).catch(()=>0),code=>code===200,'owned trader server');
     await page.goto('http://127.0.0.1:18093');await button('Select Wallet').click();await page.getByRole('button',{name:/Rivalt Test Wallet/}).click();
     await select('Portfolio','1');await action('Create portfolio');await action('Register account');
-    const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,setup.owner.address,1),[cross]=await sdk.findMarginV3Pda(portfolio,0),[isolated]=await sdk.findMarginV3Pda(portfolio,1);
+    const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,setup.owner.address,1),[cross]=await sdk.deriveMarginAccount(portfolio,0),[isolated]=await sdk.deriveMarginAccount(portfolio,1);
     setup.roots.push(cross);await action('Deposit');assert.equal((await client.snapshot([cross])).roots[cross].cash,1_000_000n);
     await wait(()=>page.getByTestId('account-cash').textContent(),value=>value==='1','exact finalized funded cash display');
     record('portfolio one discovery, immutable cross registration and actual deposit');

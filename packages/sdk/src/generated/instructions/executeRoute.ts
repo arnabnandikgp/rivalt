@@ -54,7 +54,7 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCapitalPda,
-  findMarketPda,
+  findLegacyMarketPda,
   findRouteStatePda,
   findVaultPda,
 } from "../pdas/index.js";
@@ -516,7 +516,7 @@ export async function getExecuteRouteInstructionAsync<
 
   // Resolve default values.
   if (!accounts.market.value) {
-    accounts.market.value = await findMarketPda({ programAddress });
+    accounts.market.value = await findLegacyMarketPda({ programAddress });
   }
   if (!accounts.trader.value) {
     accounts.trader.value = await findCapitalPda(

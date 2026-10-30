@@ -21,34 +21,34 @@ export async function liquidityAccountFixture() {
     put(program,loader,executable,true);put(programData,loader,code);
     const hash = new Uint8Array(await crypto.subtle.digest('SHA-256',code));
     const portfolio = testAddress(30+instance),owner = testAddress(40+instance);
-    const [capital,capitalBump] = await sdk.findMarginV3Pda(portfolio,1);
+    const [capital,capitalBump] = await sdk.deriveMarginAccount(portfolio,1);
     const [registration,bump] = await derive(sdk.CLEARING_PROGRAM_ADDRESS,'maker-v4',market,Uint8Array.of(instance));
     const [config,configBump] = await derive(program,'curve-v4',capital),[price,priceBump] = await derive(program,'price-v4',config);
-    const [controller] = await sdk.findLiquidityControllerV4Pda({ venue,capital });
+    const [controller] = await sdk.findLiquidityControllerPda({ venue,capital });
     const [binding] = await derive(sdk.CLEARING_PROGRAM_ADDRESS,'capital-v3',capital);
-    const capitalState = { ...emptyState(sdk.getMarginAccountV3Decoder()),schemaVersion: 3,venue,portfolio,owner,subaccountIndex: 1,
+    const capitalState = { ...emptyState(sdk.getMarginAccountDecoder()),schemaVersion: 3,venue,portfolio,owner,subaccountIndex: 1,
       id: instance+1,mode: 1,role: 1,isolatedMarketIndex: 0,cash: 100000n,bump: capitalBump };
-    const registrationState = { ...emptyState(sdk.getMakerRegistrationV4Decoder()),schemaVersion: 4,venue,market,owner,capital,instance,bump,
+    const registrationState = { ...emptyState(sdk.getMakerRegistrationDecoder()),schemaVersion: 4,venue,market,owner,capital,instance,bump,
       config,price,pricingProgram: program,programData,approvedHash: hash,authorityEpoch: 1n,depthEpoch: 1n };
-    const bindingState = { ...emptyState(sdk.getCapitalBindingV3Decoder()),schemaVersion: 3,venue,capital,registration };
-    const configState = { ...emptyState(sdk.makerA.getMakerCurveV4Decoder()).state,schemaVersion: 4,capability: 1,venue,market,capital,controller,
+    const bindingState = { ...emptyState(sdk.getCapitalBindingDecoder()),schemaVersion: 3,venue,capital,registration };
+    const configState = { ...emptyState(sdk.makerA.getMakerCurveDecoder()).state,schemaVersion: 4,capability: 1,venue,market,capital,controller,
       owner,instance,domain,bump: configBump,controlEpoch: 1n,shapeEpoch: 1n };
     Object.assign(configState.shape,{ mode: 1,ttlSlots: 150,skewStep: 2n,skewTick: 2n,longCap: 4096n,shortCap: 4096n,bidCount: 1,askCount: 1 });
     configState.shape.bids[0] = { endLots: 4096n,offset: 10n,slope: 0n };configState.shape.asks[0] = { ...configState.shape.bids[0] };
-    const priceState = { ...emptyState(sdk.makerA.getMakerPriceV4Decoder()).state,schemaVersion: 4,config,bump: priceBump,
+    const priceState = { ...emptyState(sdk.makerA.getMakerPriceDecoder()).state,schemaVersion: 4,config,bump: priceBump,
       controlEpoch: 1n,sequence: 1n,anchor: 10000n,updatedSlot: 99n,updatedTime: 99n };
     const write = () => {
-      put(capital,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getMarginAccountV3Encoder().encode(capitalState));
-      put(registration,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getMakerRegistrationV4Encoder().encode(registrationState));
-      put(binding,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getCapitalBindingV3Encoder().encode(bindingState));
-      put(config,program,sdk.makerA.getMakerCurveV4Encoder().encode({ state: configState }));
-      put(price,program,sdk.makerA.getMakerPriceV4Encoder().encode({ state: priceState }));
+      put(capital,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getMarginAccountEncoder().encode(capitalState));
+      put(registration,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getMakerRegistrationEncoder().encode(registrationState));
+      put(binding,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getCapitalBindingEncoder().encode(bindingState));
+      put(config,program,sdk.makerA.getMakerCurveEncoder().encode({ state: configState }));
+      put(price,program,sdk.makerA.getMakerPriceEncoder().encode({ state: priceState }));
     };
     write();states.push({ registration,capital,config,price,program,programData,binding,capitalState,registrationState,bindingState,configState,priceState,write });
   }
-  const [registry,bump] = await sdk.findLiquidityRegistryV4Pda({ market });
-  const registryState = { ...emptyState(sdk.getLiquidityRegistryV4Decoder()),schemaVersion: 4,venue,market,bump,sealed: true,count: 3,
+  const [registry,bump] = await sdk.findLiquidityRegistryPda({ market });
+  const registryState = { ...emptyState(sdk.getLiquidityRegistryDecoder()),schemaVersion: 4,venue,market,bump,sealed: true,count: 3,
     registrations: states.map(state => state.registration) };
-  const writeRegistry = () => put(registry,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getLiquidityRegistryV4Encoder().encode(registryState));
+  const writeRegistry = () => put(registry,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getLiquidityRegistryEncoder().encode(registryState));
   writeRegistry();return { snapshot,accounts,states,registryState,writeRegistry };
 }

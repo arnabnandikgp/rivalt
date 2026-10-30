@@ -90,7 +90,7 @@ export function candidates(snapshot: sdk.AccountSnapshot, profile: Profile, mark
   });
 }
 
-export function auditFill(before: sdk.MarginAccountV3, after: sdk.MarginAccountSnapshotV3,
+export function auditFill(before: sdk.MarginAccount, after: sdk.MarginAccountSnapshot,
   side: 0 | 1, lots: bigint, gross: bigint, fee: bigint, trader: boolean, marketIndex: 0 | 1 = 0) {
   const delta = side === 0 ? lots : -lots, sign = trader ? 1n : -1n;
   assert.equal(after.cash, before.cash - fee, 'Funded cash only pays actual taker fee');

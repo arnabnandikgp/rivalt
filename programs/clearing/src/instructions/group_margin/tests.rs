@@ -314,11 +314,11 @@ fn btc_order_admission_accrues_eth_funding_before_health() {
         cash: 16_519,
         ..margin_root()
     };
-    root.positions[1] = PositionV2 {
+    root.positions[1] = Position {
         lots: 2,
         virtual_scaled: -60_000 * math::SCALE,
         generation: 1,
-        ..PositionV2::default()
+        ..Position::default()
     };
     let terms = crate::instructions::OrderTerms {
         lots: 1,
@@ -390,17 +390,17 @@ fn two_market_protections_share_only_their_own_generation_and_allowance() {
         cash: 1_000_000,
         ..margin_root()
     };
-    root.positions[0] = PositionV2 {
+    root.positions[0] = Position {
         lots: 10,
         virtual_scaled: -600_000 * math::SCALE,
         generation: 7,
-        ..PositionV2::default()
+        ..Position::default()
     };
-    root.positions[1] = PositionV2 {
+    root.positions[1] = Position {
         lots: 10,
         virtual_scaled: -300_000 * math::SCALE,
         generation: 9,
-        ..PositionV2::default()
+        ..Position::default()
     };
     let protection = |market: usize, trigger| crate::instructions::OrderTerms {
         side: 1,

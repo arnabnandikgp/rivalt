@@ -18,22 +18,22 @@ pub struct RegisterAccountMaker<'info> {
     pub owner: Signer<'info>,
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(seeds = [b"margin-v3", capital.portfolio.as_ref(), &capital.subaccount_index.to_le_bytes()],
         bump = capital.bump, has_one = venue, has_one = owner)]
-    pub capital: Box<Account<'info, MarginAccountV3>>,
-    #[account(init, payer = owner, space = 8 + MakerRegistrationV3::INIT_SPACE,
+    pub capital: Box<Account<'info, MarginAccount>>,
+    #[account(init, payer = owner, space = 8 + FixedMakerRegistration::INIT_SPACE,
         seeds = [b"maker-v3", market.key().as_ref(), &[maker_id]], bump)]
-    pub registration: Box<Account<'info, MakerRegistrationV3>>,
-    #[account(init, payer = owner, space = 8 + CapitalBindingV3::INIT_SPACE,
+    pub registration: Box<Account<'info, FixedMakerRegistration>>,
+    #[account(init, payer = owner, space = 8 + CapitalBinding::INIT_SPACE,
         seeds = [b"capital-v3", capital.key().as_ref()], bump)]
-    pub capital_binding: Account<'info, CapitalBindingV3>,
+    pub capital_binding: Account<'info, CapitalBinding>,
     pub pricing_program: Program<'info>,
     #[account(constraint = pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub program_data: Box<Account<'info, ProgramData>>,
@@ -49,18 +49,18 @@ pub struct UpdateAccountMaker<'info> {
     pub actor: Signer<'info>,
     pub co_signer: Option<Signer<'info>>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(seeds = [b"margin-v3", capital.portfolio.as_ref(), &capital.subaccount_index.to_le_bytes()], bump = capital.bump, has_one = venue)]
-    pub capital: Box<Account<'info, MarginAccountV3>>,
+    pub capital: Box<Account<'info, MarginAccount>>,
     #[account(mut, seeds = [b"maker-v3", market.key().as_ref(), &[registration.maker_id]], bump = registration.bump,
         has_one = venue, has_one = market, has_one = capital, has_one = config, has_one = pricing_program, has_one = program_data)]
-    pub registration: Box<Account<'info, MakerRegistrationV3>>,
+    pub registration: Box<Account<'info, FixedMakerRegistration>>,
     pub pricing_program: Program<'info>,
     #[account(constraint = pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub program_data: Box<Account<'info, ProgramData>>,
@@ -71,18 +71,18 @@ pub struct UpdateAccountMaker<'info> {
 #[derive(Accounts)]
 pub struct PreviewAccountMaker<'info> {
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(seeds = [b"margin-v3", capital.portfolio.as_ref(), &capital.subaccount_index.to_le_bytes()], bump = capital.bump, has_one = venue)]
-    pub capital: Box<Account<'info, MarginAccountV3>>,
+    pub capital: Box<Account<'info, MarginAccount>>,
     #[account(seeds = [b"maker-v3", market.key().as_ref(), &[registration.maker_id]], bump = registration.bump,
         has_one = venue, has_one = market, has_one = capital, has_one = config, has_one = pricing_program, has_one = program_data)]
-    pub registration: Box<Account<'info, MakerRegistrationV3>>,
+    pub registration: Box<Account<'info, FixedMakerRegistration>>,
     pub pricing_program: Program<'info>,
     #[account(constraint = pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub program_data: Box<Account<'info, ProgramData>>,
@@ -94,9 +94,9 @@ pub(crate) fn config_state(
     config: &AccountInfo,
     program: Pubkey,
     maker_id: u8,
-    venue: &Account<VenueV3>,
-    market: &Account<MarketV3>,
-    capital: &Account<MarginAccountV3>,
+    venue: &Account<Venue>,
+    market: &Account<Market>,
+    capital: &Account<MarginAccount>,
 ) -> Result<MakerState> {
     require!(
         maker_id < 2 && program == if maker_id == 0 { MAKER_A } else { MAKER_B },
@@ -147,7 +147,7 @@ pub(crate) fn module_hash(data: &Account<ProgramData>) -> Result<[u8; 32]> {
     Ok(hash(&bytes).to_bytes())
 }
 
-fn capital_ready(capital: &MarginAccountV3, market: &MarketV3) -> Result<()> {
+fn capital_ready(capital: &MarginAccount, market: &Market) -> Result<()> {
     market_view(market)?;
     book::validate(&*root_view(capital)?)?;
     require!(
@@ -161,27 +161,27 @@ fn capital_ready(capital: &MarginAccountV3, market: &MarketV3) -> Result<()> {
 }
 
 fn event(
-    venue: &Account<VenueV3>,
-    custody: &mut Account<CustodyV3>,
-    safety: &SafetyV3,
-    market: &mut Account<MarketV3>,
-    registration: &Account<MakerRegistrationV3>,
+    venue: &Account<Venue>,
+    custody: &mut Account<Custody>,
+    safety: &VenueSafety,
+    market: &mut Account<Market>,
+    registration: &Account<FixedMakerRegistration>,
     operation: u8,
-) -> Result<crate::events::AccountMakerChangedV3> {
+) -> Result<crate::events::AccountMakerChanged> {
     let clock = Clock::get()?;
     let mut view = market_view(market)?;
     shared_oracle::materialize(if safety.mode == ACTIVE { 2 } else { 0 }, &mut view, &clock)?;
     commit_market(market, &view)?;
     increment(&mut custody.sequence)?;
     increment(&mut market.config_epoch)?;
-    Ok(crate::events::AccountMakerChangedV3 {
+    Ok(crate::events::AccountMakerChanged {
         venue: venue.key(),
         market: market.key(),
         sequence: custody.sequence,
         slot: clock.slot,
-        market_state: crate::events::MarketSnapshotV3::from(&**market),
+        market_state: crate::events::MarketSnapshot::from(&**market),
         registration: registration.key(),
-        state: crate::events::MakerRegistrationSnapshotV3::from(&**registration),
+        state: crate::events::MakerRegistrationSnapshot::from(&**registration),
         operation,
     })
 }
@@ -212,7 +212,7 @@ pub fn register(
         slot >= state.start_slot && slot < state.expiry_slot,
         ClearingError::MakerEpoch
     );
-    accounts.registration.set_inner(MakerRegistrationV3 {
+    accounts.registration.set_inner(FixedMakerRegistration {
         schema_version: SCHEMA_VERSION,
         venue: accounts.venue.key(),
         market: accounts.market.key(),
@@ -234,7 +234,7 @@ pub fn register(
         quarantined: false,
         bump: ctx.bumps.registration,
     });
-    accounts.capital_binding.set_inner(CapitalBindingV3 {
+    accounts.capital_binding.set_inner(CapitalBinding {
         schema_version: SCHEMA_VERSION,
         venue: accounts.venue.key(),
         capital: accounts.capital.key(),
@@ -340,8 +340,8 @@ pub fn update(ctx: Context<UpdateAccountMaker>, operation: u8) -> Result<()> {
 }
 
 pub(crate) struct View<'a, 'info> {
-    pub capital: &'a Account<'info, MarginAccountV3>,
-    pub registration: &'a Account<'info, MakerRegistrationV3>,
+    pub capital: &'a Account<'info, MarginAccount>,
+    pub registration: &'a Account<'info, FixedMakerRegistration>,
     pub program: &'a Program<'info>,
     pub data: &'a Account<'info, ProgramData>,
     pub config: &'a UncheckedAccount<'info>,
@@ -350,8 +350,8 @@ pub(crate) struct View<'a, 'info> {
 impl<'a, 'info> View<'a, 'info> {
     pub(crate) fn authenticate(
         &self,
-        venue: &Account<VenueV3>,
-        market: &Account<MarketV3>,
+        venue: &Account<Venue>,
+        market: &Account<Market>,
     ) -> Result<MakerState> {
         let registration = self.registration;
         capital_ready(self.capital, market)?;
@@ -421,8 +421,8 @@ impl<'a, 'info> View<'a, 'info> {
 
     pub(crate) fn request(
         &self,
-        venue: &Account<VenueV3>,
-        market: &Account<MarketV3>,
+        venue: &Account<Venue>,
+        market: &Account<Market>,
         side: u8,
         lots: u64,
         reference: u64,

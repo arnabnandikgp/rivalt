@@ -5,10 +5,10 @@ import {accountCheck as check, accountFields, emptyAccounts, present, type Accou
 
 type Fields<T> = ReturnType<typeof accountFields<T>>;
 export type LiquidityState = {
-  registries:Record<string,Fields<sdk.LiquidityRegistryV4>>;
-  makers:Record<string,Fields<sdk.MakerRegistrationV4>>;
-  publishers:Record<string,Fields<sdk.FundingPublisherV4>>;
-  reports:Record<string,{publisher:string;slot:string;report:Fields<sdk.FundingReportV4>}>;
+  registries:Record<string,Fields<sdk.LiquidityRegistry>>;
+  makers:Record<string,Fields<sdk.MakerRegistration>>;
+  publishers:Record<string,Fields<sdk.FundingPublisher>>;
+  reports:Record<string,{publisher:string;slot:string;report:Fields<sdk.FundingReport>}>;
 };
 export const emptyLiquidity = ():AccountState => ({...emptyAccounts(),liquidity:{registries:{},makers:{},publishers:{},reports:{}}});
 type FinancialProjection = {root(value:any,key?:string):void;market(value:any,key?:string):void;ledger(value:any):void};
@@ -33,7 +33,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
     const previous=liquidity.makers[canonical];
     if(previous)same(fields(previous,['venue','market','capital','owner','pricingProgram','programData','config','price','instance']),
       fields(value,['venue','market','capital','owner','pricingProgram','programData','config','price','instance']),'immutable canonical maker');
-    liquidity.makers[canonical]=accountFields<sdk.MakerRegistrationV4>(value);
+    liquidity.makers[canonical]=accountFields<sdk.MakerRegistration>(value);
   };
   switch(event.type) {
     case 'LiquidityRegistryChangedV4': {
@@ -47,7 +47,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
       }
       const members=value.registrations.slice(0,value.count);
       check(new Set(members).size===members.length,'distinct registry makers');
-      liquidity.registries[change.registry]=accountFields<sdk.LiquidityRegistryV4>(value);break;
+      liquidity.registries[change.registry]=accountFields<sdk.LiquidityRegistry>(value);break;
     }
     case 'LiquidityMakerChangedV4':
       check([0,1,2,3,4,5,6].includes(change.operation),'canonical maker operation');
@@ -62,7 +62,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
       same(value.lastSequence,previous?.lastSequence??'0','publisher history survives rotation');
       same(value.lastObservedSlot,change.slot,'publisher control Clock fence');
       if(previous)check(BigInt(value.lastObservedSlot)>=BigInt(previous.lastObservedSlot),'publisher control slot regression');
-      liquidity.publishers[change.configuration]=accountFields<sdk.FundingPublisherV4>(value);
+      liquidity.publishers[change.configuration]=accountFields<sdk.FundingPublisher>(value);
       financial.market(change.marketState,change.market);break;
     }
     case 'FundingReportAcceptedV4': {
@@ -74,7 +74,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
         &&BigInt(report.observedTime)>=BigInt(configuration.lastObservedTime),'monotone publisher report');
       check([0,1,2,3].includes(report.outcome),'publisher outcome');
       Object.assign(configuration,{lastSequence:report.sequence,lastObservedSlot:report.observedSlot,lastObservedTime:report.observedTime});
-      liquidity.reports[change.market]={publisher:change.publisher,slot:String(event.slot),report:accountFields<sdk.FundingReportV4>(report)};
+      liquidity.reports[change.market]={publisher:change.publisher,slot:String(event.slot),report:accountFields<sdk.FundingReport>(report)};
       financial.market(change.state,change.market);break;
     }
     case 'LiquidityRouteExecutedV4': {

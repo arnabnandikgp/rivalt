@@ -18,34 +18,34 @@ test('account safety preserves isolated Anchor bytes and every stage/optional pr
   const large=9007199254740993n,guard={safetyEpoch:large,venueTermsEpoch:1n,nonce:large+1n,stateVersion:9n};
   const cases:{program:string;name:string;args:unknown[];instruction:Instruction}[]=[];
   const add=(name:string,args:unknown[],instruction:Instruction)=>cases.push({program:'clearing',name,args,instruction});
-  add('initialize_account_resolution_v3',[],sdk.getInitializeAccountResolutionV3Instruction(common));
-  add('activate_accounts_v3',[],sdk.getActivateAccountsV3Instruction(common));
-  add('initialize_account_resolution_page_v3',[31],sdk.getInitializeAccountResolutionPageV3Instruction({...common,pageIndex:31}));
+  add('initialize_account_resolution_v3',[],sdk.getInitializeAccountResolutionInstruction(common));
+  add('activate_accounts_v3',[],sdk.getActivateAccountsInstruction(common));
+  add('initialize_account_resolution_page_v3',[31],sdk.getInitializeAccountResolutionPageInstruction({...common,pageIndex:31}));
   for(const emergency of [false,true])add('freeze_accounts_v3',[large,large+1n,emergency],
-    sdk.getFreezeAccountsV3Instruction({...common,safetyEpoch:large,resolutionEpoch:large+1n,emergency}));
-  add('value_account_resolution_v3',[large],sdk.getValueAccountResolutionV3Instruction({...common,epoch:large}));
+    sdk.getFreezeAccountsInstruction({...common,safetyEpoch:large,resolutionEpoch:large+1n,emergency}));
+  add('value_account_resolution_v3',[large],sdk.getValueAccountResolutionInstruction({...common,epoch:large}));
   for(const stage of [2,3,5,6,9,10])add('advance_account_resolution_v3',[large,stage,62,1],
-    sdk.getAdvanceAccountResolutionV3Instruction({...common,epoch:large,stage,start:62,length:1}));
+    sdk.getAdvanceAccountResolutionInstruction({...common,epoch:large,stage,start:62,length:1}));
   for(const length of [24,512]) {
     const bytes=Uint8Array.from({length},(_,index)=>index%256),proposalHash=new Uint8Array(32).fill(255);
     add('propose_account_resolution_v3',[large,2,proposalHash,1024,{$bytes:Buffer.from(bytes).toString('base64')}],
-      sdk.getProposeAccountResolutionV3Instruction({...common,epoch:large,evaluation:2,proposalHash,offset:1024,bytes}));
+      sdk.getProposeAccountResolutionInstruction({...common,epoch:large,evaluation:2,proposalHash,offset:1024,bytes}));
   }
-  add('finalize_account_resolution_rates_v3',[large],sdk.getFinalizeAccountResolutionRatesV3Instruction({...common,epoch:large}));
+  add('finalize_account_resolution_rates_v3',[large],sdk.getFinalizeAccountResolutionRatesInstruction({...common,epoch:large}));
   const orders=[Array.from({length:64},(_,id)=>id),Array.from({length:64},(_,id)=>63-id)];
-  add('order_account_resolution_v3',[large,orders],sdk.getOrderAccountResolutionV3Instruction({...common,epoch:large,orders}));
-  add('check_account_resolution_order_v3',[large,127],sdk.getCheckAccountResolutionOrderV3Instruction({...common,epoch:large,start:127}));
-  add('round_account_resolution_v3',[large,63],sdk.getRoundAccountResolutionV3Instruction({...common,epoch:large,start:63}));
-  for(const resume of [false,true])add('recover_accounts_v3',[large,resume],sdk.getRecoverAccountsV3Instruction({...common,epoch:large,resume}));
-  add('reactivate_accounts_v3',[large],sdk.getReactivateAccountsV3Instruction({...common,epoch:large}));
-  add('initialize_account_retirement_v3',[],sdk.getInitializeAccountRetirementV3Instruction(common));
-  add('check_account_retirement_v3',[62],sdk.getCheckAccountRetirementV3Instruction({...common,start:62}));
+  add('order_account_resolution_v3',[large,orders],sdk.getOrderAccountResolutionInstruction({...common,epoch:large,orders}));
+  add('check_account_resolution_order_v3',[large,127],sdk.getCheckAccountResolutionOrderInstruction({...common,epoch:large,start:127}));
+  add('round_account_resolution_v3',[large,63],sdk.getRoundAccountResolutionInstruction({...common,epoch:large,start:63}));
+  for(const resume of [false,true])add('recover_accounts_v3',[large,resume],sdk.getRecoverAccountsInstruction({...common,epoch:large,resume}));
+  add('reactivate_accounts_v3',[large],sdk.getReactivateAccountsInstruction({...common,epoch:large}));
+  add('initialize_account_retirement_v3',[],sdk.getInitializeAccountRetirementInstruction(common));
+  add('check_account_retirement_v3',[62],sdk.getCheckAccountRetirementInstruction({...common,start:62}));
   for(const certificate of [undefined,common.certificate])for(const resolution of [undefined,common.resolution])
-    add('retire_accounts_v3',[large],sdk.getRetireAccountsV3Instruction({...common,certificate,resolution,safetyEpoch:large}));
+    add('retire_accounts_v3',[large],sdk.getRetireAccountsInstruction({...common,certificate,resolution,safetyEpoch:large}));
   for(const marketIndex of [0,1]) {
-    add('withdraw_retired_reserve_v3',[marketIndex,large],sdk.getWithdrawRetiredReserveV3Instruction({...common,marketIndex,amount:large}));
+    add('withdraw_retired_reserve_v3',[marketIndex,large],sdk.getWithdrawRetiredReserveInstruction({...common,marketIndex,amount:large}));
     add('liquidate_account_v3',[guard,guard,marketIndex,large,large+1n],
-      sdk.getLiquidateAccountV3Instruction({...common,targetGuard:guard,receiverGuard:guard,marketIndex,lots:large,price:large+1n}));
+      sdk.getLiquidateAccountInstruction({...common,targetGuard:guard,receiverGuard:guard,marketIndex,lots:large,price:large+1n}));
   }
   function tagged(value:unknown):unknown {
     if(typeof value==='bigint')return {$bn:value.toString()};

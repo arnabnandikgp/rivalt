@@ -6,7 +6,7 @@ use crate::state::v2::GroupMarketV2;
 use financial_core::margin::{Margin, Risk};
 
 pub(crate) struct MakerAdmission<'market> {
-    capital: &'market MarginAccountV3,
+    capital: &'market MarginAccount,
     accrued: Margin,
     prepared_risk: financial_core::liquidity::PreparedMakerRisk,
     reservations: super::reservations::Reservations,
@@ -19,7 +19,7 @@ pub(crate) struct MakerAdmission<'market> {
 impl<'market> MakerAdmission<'market> {
     #[inline(never)]
     pub(crate) fn new(
-        capital: &'market MarginAccountV3,
+        capital: &'market MarginAccount,
         market: &'market GroupMarketV2,
         funding: i128,
         slot: u64,
@@ -131,9 +131,9 @@ mod tests {
     use super::*;
     use crate::state::v2;
 
-    fn environment() -> (MarginAccountV3, GroupMarketV2) {
+    fn environment() -> (MarginAccount, GroupMarketV2) {
         let venue = Pubkey::new_unique();
-        let capital = MarginAccountV3 {
+        let capital = MarginAccount {
             schema_version: 3,
             venue,
             owner: Pubkey::new_unique(),
@@ -145,13 +145,13 @@ mod tests {
             cash: 500,
             delegate_epoch: 1,
             positions: [
-                v2::PositionV2 {
+                v2::Position {
                     lots: 3,
                     virtual_scaled: -30_000 * financial_core::SCALE,
                     generation: 1,
                     ..Default::default()
                 },
-                v2::PositionV2::default(),
+                v2::Position::default(),
             ],
             ..Default::default()
         };
@@ -195,7 +195,7 @@ mod tests {
         let (mut capital, market) = environment();
         capital.book.last_order_id = 4;
         for (index, stored) in capital.book.orders.iter_mut().enumerate() {
-            stored.order = crate::state::StoredOrder {
+            stored.order = crate::state::OrderRecord {
                 id: index as u64 + 1,
                 version: 1,
                 state: 1,
@@ -247,8 +247,8 @@ mod tests {
                                 market.index = market_index as u8;
                                 capital.isolated_market_index = market.index;
                                 capital.cash = cash;
-                                capital.positions = [v2::PositionV2::default(); 2];
-                                capital.positions[market_index] = v2::PositionV2 {
+                                capital.positions = [v2::Position::default(); 2];
+                                capital.positions[market_index] = v2::Position {
                                     lots: inventory,
                                     virtual_scaled: claim - i128::from(inventory) * 10000 * SCALE,
                                     generation: 1,
@@ -262,7 +262,7 @@ mod tests {
                                         capital.book.orders.iter_mut().enumerate()
                                     {
                                         stored.market_index = market.index;
-                                        stored.order = crate::state::StoredOrder {
+                                        stored.order = crate::state::OrderRecord {
                                             id: index as u64 + 1,
                                             version: 1,
                                             state: 1,

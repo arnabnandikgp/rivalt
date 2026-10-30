@@ -56,7 +56,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
     [tokens, setTokens] = useState<{ address: sdk.Participant['owner']; amount: bigint }[]>([]);
   const [ownerPortfolio, setOwnerPortfolio] =
     useState<Awaited<ReturnType<sdk.AccountUserClient['ownerPortfolio']>>>();
-  const [accounts, setAccounts] = useState<[sdk.Participant['owner'], sdk.MarginAccountV3][]>([]);
+  const [accounts, setAccounts] = useState<[sdk.Participant['owner'], sdk.MarginAccount][]>([]);
   const [rpcError, setRpcError] = useState(''),
     [apiError, setApiError] = useState(''),
     [notice, setNotice] = useState(''),

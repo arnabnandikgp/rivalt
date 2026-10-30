@@ -17,7 +17,7 @@ pub struct Participant {
     pub reserved: u64,
     /// Zero means inactive; IDs never repeat when a bounded slot is reused.
     pub order_ids: [u64; 4],
-    pub book: crate::state::OrderBook,
+    pub book: crate::state::LegacyOrderBook,
     pub bump: u8,
 }
 

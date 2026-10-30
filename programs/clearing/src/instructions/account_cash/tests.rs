@@ -3,15 +3,15 @@
 use super::*;
 use math::SCALE;
 
-fn root(cash: u64, claims: [i128; 2]) -> MarginAccountV3 {
-    MarginAccountV3 {
+fn root(cash: u64, claims: [i128; 2]) -> MarginAccount {
+    MarginAccount {
         schema_version: 3,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         owner: Pubkey::new_from_array([1; 32]),
         delegate_epoch: 1,
         cash,
-        positions: claims.map(|virtual_scaled| v2::PositionV2 {
+        positions: claims.map(|virtual_scaled| v2::Position {
             virtual_scaled,
             ..Default::default()
         }),
@@ -20,7 +20,7 @@ fn root(cash: u64, claims: [i128; 2]) -> MarginAccountV3 {
 }
 
 fn fixture_snapshot() -> Snapshot {
-    let markets = [0u8, 1].map(|index| MarketV3 {
+    let markets = [0u8, 1].map(|index| Market {
         schema_version: 3,
         index,
         cross_eligible: true,
@@ -150,7 +150,7 @@ fn full_current_margin_and_orders_survive_cash_outflow() {
     account.cash = 3_000;
     account.positions[0].virtual_scaled = -10_000 * SCALE;
     account.book.last_order_id = 1;
-    account.book.orders[0].order = crate::state::StoredOrder {
+    account.book.orders[0].order = crate::state::OrderRecord {
         id: 1,
         version: 1,
         state: 1,

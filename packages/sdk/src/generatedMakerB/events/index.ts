@@ -6,5 +6,5 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./liquidityPriceV4.js";
-export * from "./liquidityShapeV4.js";
+export * from "./makerPriceUpdated.js";
+export * from "./makerShapeUpdated.js";

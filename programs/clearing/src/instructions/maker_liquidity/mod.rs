@@ -3,19 +3,19 @@
 use super::account_custody::increment;
 use super::account_trading::makers::module_hash;
 use crate::constants::makers::{MAKER_A, MAKER_B};
-use crate::state::v4::{LiquidityRegistryPayloadV4, MakerRegistrationPayloadV4};
+use crate::state::liquidity::{LiquidityRegistryPayload, MakerRegistrationPayload};
 use crate::{
     error::ClearingError,
     events::*,
     state::{
-        v3::*,
-        v4::{LiquidityRegistryV4, MakerRegistrationV4},
+        accounts::*,
+        liquidity::{LiquidityRegistry, MakerRegistration},
     },
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::{AccountMeta, Instruction};
 use anchor_lang::solana_program::program::invoke_signed;
-use maker_interface::canonical::{self, CurveControlV4, CurveStateV4, PriceStateV4};
+use maker_interface::canonical::{self, CurveControl, CurveState, PriceState};
 use solana_sha256_hasher::hash;
 
 mod contexts;
@@ -40,40 +40,40 @@ mod tests;
 
 fn registry_event(
     venue: Pubkey,
-    custody: &mut CustodyV3,
-    registry: &Account<LiquidityRegistryV4>,
-) -> Result<LiquidityRegistryChangedV4> {
+    custody: &mut Custody,
+    registry: &Account<LiquidityRegistry>,
+) -> Result<LiquidityRegistryChanged> {
     increment(&mut custody.sequence)?;
-    Ok(LiquidityRegistryChangedV4 {
+    Ok(LiquidityRegistryChanged {
         venue,
         sequence: custody.sequence,
         slot: Clock::get()?.slot,
         registry: registry.key(),
-        state: LiquidityRegistryPayloadV4::from(&**registry),
+        state: LiquidityRegistryPayload::from(&**registry),
     })
 }
 
 fn maker_event(
     venue: Pubkey,
-    custody: &mut CustodyV3,
-    market: &Account<MarketV3>,
-    registration: &Account<MakerRegistrationV4>,
+    custody: &mut Custody,
+    market: &Account<Market>,
+    registration: &Account<MakerRegistration>,
     operation: u8,
-) -> Result<LiquidityMakerChangedV4> {
+) -> Result<LiquidityMakerChanged> {
     increment(&mut custody.sequence)?;
-    Ok(LiquidityMakerChangedV4 {
+    Ok(LiquidityMakerChanged {
         venue,
         sequence: custody.sequence,
         slot: Clock::get()?.slot,
         market: market.key(),
-        market_state: MarketSnapshotV3::from(&**market),
+        market_state: MarketSnapshot::from(&**market),
         registration: registration.key(),
-        state: MakerRegistrationPayloadV4::from(&**registration),
+        state: MakerRegistrationPayload::from(&**registration),
         operation,
     })
 }
 
-fn truncate_funding(mode: u8, market: &mut Account<MarketV3>) -> Result<()> {
+fn truncate_funding(mode: u8, market: &mut Account<Market>) -> Result<()> {
     if cfg!(feature = "liquidity-execution-qualification") {
         let mut next = funding::control_candidate(mode, market, &Clock::get()?)?;
         increment(&mut next.observation_sequence)?;
@@ -82,7 +82,7 @@ fn truncate_funding(mode: u8, market: &mut Account<MarketV3>) -> Result<()> {
     Ok(())
 }
 
-pub fn initialize(ctx: Context<InitializeLiquidityV4>) -> Result<()> {
+pub fn initialize(ctx: Context<InitializeLiquidity>) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     custody_only(
         &ctx.accounts.venue,
@@ -90,7 +90,7 @@ pub fn initialize(ctx: Context<InitializeLiquidityV4>) -> Result<()> {
         &ctx.accounts.safety,
         &ctx.accounts.market,
     )?;
-    ctx.accounts.registry.set_inner(LiquidityRegistryV4 {
+    ctx.accounts.registry.set_inner(LiquidityRegistry {
         schema_version: 4,
         venue: ctx.accounts.venue.key(),
         market: ctx.accounts.market.key(),
@@ -110,7 +110,7 @@ pub fn initialize(ctx: Context<InitializeLiquidityV4>) -> Result<()> {
 
 // Keep the full decoded curve out of the registration/event frame on SBF.
 #[inline(never)]
-fn validate_registration(accounts: &RegisterLiquidityV4, instance: u8) -> Result<()> {
+fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<()> {
     custody_only(
         &accounts.venue,
         &accounts.custody,
@@ -143,11 +143,11 @@ fn validate_registration(accounts: &RegisterLiquidityV4, instance: u8) -> Result
     Ok(())
 }
 
-pub fn register(ctx: Context<RegisterLiquidityV4>, instance: u8) -> Result<()> {
+pub fn register(ctx: Context<RegisterLiquidity>, instance: u8) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
     validate_registration(accounts, instance)?;
-    accounts.registration.set_inner(MakerRegistrationV4 {
+    accounts.registration.set_inner(MakerRegistration {
         schema_version: 4,
         venue: accounts.venue.key(),
         market: accounts.market.key(),
@@ -166,7 +166,7 @@ pub fn register(ctx: Context<RegisterLiquidityV4>, instance: u8) -> Result<()> {
         quarantined: false,
         bump: ctx.bumps.registration,
     });
-    accounts.capital_binding.set_inner(CapitalBindingV3 {
+    accounts.capital_binding.set_inner(CapitalBinding {
         schema_version: SCHEMA_VERSION,
         venue: accounts.venue.key(),
         capital: accounts.capital.key(),
@@ -195,7 +195,7 @@ pub fn register(ctx: Context<RegisterLiquidityV4>, instance: u8) -> Result<()> {
     Ok(())
 }
 
-pub fn seal(ctx: Context<SealLiquidityV4>) -> Result<()> {
+pub fn seal(ctx: Context<SealLiquidity>) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
     custody_only(
@@ -240,9 +240,9 @@ pub fn seal(ctx: Context<SealLiquidityV4>) -> Result<()> {
 }
 
 fn control_cpi(
-    accounts: &ControlLiquidityV4,
-    config: &CurveStateV4,
-    action: CurveControlV4,
+    accounts: &ControlLiquidity,
+    config: &CurveState,
+    action: CurveControl,
     bump: u8,
 ) -> Result<()> {
     let expected = canonical::control(
@@ -290,11 +290,11 @@ fn control_cpi(
 }
 
 pub fn control(
-    ctx: Context<ControlLiquidityV4>,
+    ctx: Context<ControlLiquidity>,
     authority: u64,
     expected_control: u64,
     expected_shape: u64,
-    action: CurveControlV4,
+    action: CurveControl,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
@@ -326,7 +326,7 @@ pub fn control(
 }
 
 pub fn replenish(
-    ctx: Context<ControlLiquidityV4>,
+    ctx: Context<ControlLiquidity>,
     authority: u64,
     expected_depth: u64,
     sides: u8,
@@ -366,7 +366,7 @@ pub fn replenish(
     Ok(())
 }
 
-pub fn quarantine(ctx: Context<QuarantineLiquidityV4>, authority: u64) -> Result<()> {
+pub fn quarantine(ctx: Context<QuarantineLiquidity>, authority: u64) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
     control_base(
@@ -397,7 +397,7 @@ pub fn quarantine(ctx: Context<QuarantineLiquidityV4>, authority: u64) -> Result
     Ok(())
 }
 
-pub fn approve(ctx: Context<ControlLiquidityV4>, authority: u64) -> Result<()> {
+pub fn approve(ctx: Context<ControlLiquidity>, authority: u64) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
     let config = authenticated_control(accounts, authority, false)?;
@@ -418,7 +418,7 @@ pub fn approve(ctx: Context<ControlLiquidityV4>, authority: u64) -> Result<()> {
     control_cpi(
         accounts,
         &config,
-        CurveControlV4::Invalidate,
+        CurveControl::Invalidate,
         ctx.bumps.controller,
     )?;
     increment(&mut accounts.registration.authority_epoch)?;

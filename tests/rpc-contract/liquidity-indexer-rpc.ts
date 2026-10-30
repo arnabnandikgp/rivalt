@@ -28,8 +28,8 @@ try {
     const tx=await rpc.call('getTransaction',[check.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     if(!tx||tx.meta.err!==null)continue;
     const payloads=(await import('../../packages/indexer/src/events.js')).eventPayloads(String(check.signature),tx,setup.deployment.eventAuthority);
-    if(payloads.some(({payload})=>Buffer.from(payload.subarray(0,8)).equals(Buffer.from(sdk.ACCOUNT_CUSTODY_CHANGED_V3_EVENT_DISCRIMINATOR))
-      &&sdk.getAccountCustodyChangedV3EventDecoder().decode(payload).kind===0)){init=String(check.signature);break;}
+    if(payloads.some(({payload})=>Buffer.from(payload.subarray(0,8)).equals(Buffer.from(sdk.ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR))
+      &&sdk.getAccountCustodyChangedEventDecoder().decode(payload).kind===0)){init=String(check.signature);break;}
   }
   assert(init,'Actual initialization signature');
   const config:LiquidityConfig={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,
@@ -40,7 +40,7 @@ try {
   try{await assert.rejects(()=>legacy.snapshot(),/Incompatible projection schema/);}finally{await legacy.close();}
   await indexer.close();indexer=undefined;
   await setup.qualify();await h.send('P33 route fill while indexer stopped',[await trade()],[owner]);
-  const withdrawal=sdk.getWithdrawFundedAccountV3Instruction({...setup.common,owner,btc:setup.markets[0],eth:setup.markets[1],margin,
+  const withdrawal=sdk.getWithdrawFundedAccountInstruction({...setup.common,owner,btc:setup.markets[0],eth:setup.markets[1],margin,
     quoteMint:setup.mint.address,userToken:setup.traderToken.address,guard:await guard(margin),amount:1n});
   const before=await root(margin);
   await h.send('P33 reverted CPI excludes provisional withdrawal',[withdrawal,withdrawal],[owner],sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);

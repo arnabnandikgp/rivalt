@@ -27,7 +27,7 @@ export async function makerCases(h: MakerHarness) {
   const makers = await Promise.all([0, 1].map(makerAddresses));
   const market = async () => sdk.getMarketStateDecoder().decode((await h.read(makers[0].market))!);
   const state = async (id: number) => sdk.makerA.getMakerConfigDecoder().decode((await h.read(makers[id].config))!).state;
-  const registration = async (id: number) => sdk.getMakerRegistrationDecoder().decode((await h.read(makers[id].registration))!);
+  const registration = async (id: number) => sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(makers[id].registration))!);
   const domain = (await market()).domain;
   for (const [id, a] of makers.entries()) {
     await h.send(`fund maker ${id} rent and register real participant`, [

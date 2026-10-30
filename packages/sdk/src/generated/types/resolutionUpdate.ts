@@ -17,27 +17,27 @@ import {
   type FixedSizeEncoder,
 } from "@solana/kit";
 import {
-  getResolutionRowDecoder,
-  getResolutionRowEncoder,
-  type ResolutionRow,
-  type ResolutionRowArgs,
+  getLegacyResolutionRowDecoder,
+  getLegacyResolutionRowEncoder,
+  type LegacyResolutionRow,
+  type LegacyResolutionRowArgs,
 } from "./index.js";
 
-export type ResolutionUpdate = { id: number; row: ResolutionRow };
+export type ResolutionUpdate = { id: number; row: LegacyResolutionRow };
 
-export type ResolutionUpdateArgs = { id: number; row: ResolutionRowArgs };
+export type ResolutionUpdateArgs = { id: number; row: LegacyResolutionRowArgs };
 
 export function getResolutionUpdateEncoder(): FixedSizeEncoder<ResolutionUpdateArgs> {
   return getStructEncoder([
     ["id", getU16Encoder()],
-    ["row", getResolutionRowEncoder()],
+    ["row", getLegacyResolutionRowEncoder()],
   ]);
 }
 
 export function getResolutionUpdateDecoder(): FixedSizeDecoder<ResolutionUpdate> {
   return getStructDecoder([
     ["id", getU16Decoder()],
-    ["row", getResolutionRowDecoder()],
+    ["row", getLegacyResolutionRowDecoder()],
   ]);
 }
 

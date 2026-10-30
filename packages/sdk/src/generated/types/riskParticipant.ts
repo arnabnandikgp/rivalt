@@ -29,10 +29,10 @@ import {
   type HasAddress,
 } from "@solana/kit";
 import {
-  getOrderBookDecoder,
-  getOrderBookEncoder,
-  type OrderBook,
-  type OrderBookArgs,
+  getLegacyOrderBookDecoder,
+  getLegacyOrderBookEncoder,
+  type LegacyOrderBook,
+  type LegacyOrderBookArgs,
 } from "./index.js";
 
 export type RiskParticipant = {
@@ -46,7 +46,7 @@ export type RiskParticipant = {
   nonce: bigint;
   reserved: bigint;
   orderIds: Array<bigint>;
-  book: OrderBook;
+  book: LegacyOrderBook;
 };
 
 export type RiskParticipantArgs = {
@@ -60,7 +60,7 @@ export type RiskParticipantArgs = {
   nonce: number | bigint;
   reserved: number | bigint;
   orderIds: Array<number | bigint>;
-  book: OrderBookArgs;
+  book: LegacyOrderBookArgs;
 };
 
 export function getRiskParticipantEncoder(): FixedSizeEncoder<RiskParticipantArgs> {
@@ -75,7 +75,7 @@ export function getRiskParticipantEncoder(): FixedSizeEncoder<RiskParticipantArg
     ["nonce", getU64Encoder()],
     ["reserved", getU64Encoder()],
     ["orderIds", getArrayEncoder(getU64Encoder(), { size: 4 })],
-    ["book", getOrderBookEncoder()],
+    ["book", getLegacyOrderBookEncoder()],
   ]);
 }
 
@@ -91,7 +91,7 @@ export function getRiskParticipantDecoder(): FixedSizeDecoder<RiskParticipant> {
     ["nonce", getU64Decoder()],
     ["reserved", getU64Decoder()],
     ["orderIds", getArrayDecoder(getU64Decoder(), { size: 4 })],
-    ["book", getOrderBookDecoder()],
+    ["book", getLegacyOrderBookDecoder()],
   ]);
 }
 

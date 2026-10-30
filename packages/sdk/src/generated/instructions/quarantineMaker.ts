@@ -39,7 +39,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findMarketPda } from "../pdas/index.js";
+import { findLegacyMarketPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const QUARANTINE_MAKER_DISCRIMINATOR: ReadonlyUint8Array =
@@ -213,7 +213,7 @@ export async function getQuarantineMakerInstructionAsync<
 
   // Resolve default values.
   if (!accounts.market.value) {
-    accounts.market.value = await findMarketPda({ programAddress });
+    accounts.market.value = await findLegacyMarketPda({ programAddress });
   }
 
   return Object.freeze({

@@ -46,8 +46,8 @@ export async function buildAccountRoute(input:AccountAllocationInput,actor:Addre
     authorityEpoch:selected[index].registrationState.authorityEpoch,expectedConsumed:input.side===0?selected[index].registrationState.buyConsumed:selected[index].registrationState.sellConsumed}));
   const position=root.positions[marketIndex],reduceOnly=input.reduceOnly??
     ((input.side===1&&position.lots>=input.lots)||(input.side===0&&-position.lots>=input.lots));
-  const instruction=input.stored?await protocol.getExecuteAccountOrderV3InstructionAsync({...common,...input.stored,legs}):
-    await protocol.getExecuteAccountRouteV3InstructionAsync({...common,domain:snapshot.venueState.domain,termsEpoch:market.termsEpoch,configEpoch:market.configEpoch,
+  const instruction=input.stored?await protocol.getExecuteAccountOrderInstructionAsync({...common,...input.stored,legs}):
+    await protocol.getExecuteAccountRouteInstructionAsync({...common,domain:snapshot.venueState.domain,termsEpoch:market.termsEpoch,configEpoch:market.configEpoch,
       side:input.side,allInLimit:allocation.allIn,maxFee:allocation.fee,reduceOnly,generation:position.generation,legs});
   return {snapshotCommitment:snapshot.commitment,snapshotSlot:snapshot.slot,trader,marketIndex,guard:common.guard,expirySlot,allocation,
     instructions:[groupRouteComputeBudget(),instruction]};

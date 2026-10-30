@@ -118,7 +118,7 @@ export class AccountRuntime extends AccountExecution {
     }
     if(!maker.synchronized) {
       await this.enqueue(`maker-sync:${marketIndex}:${makerId}:${maker.state.quoteEpoch}`,[sdk.routeComputeBudget(),
-        sdk.getUpdateAccountMakerV3Instruction({...snapshot,...maker.registrationState,registration:maker.registration,actor:key,operation:1})],key,budget,
+        sdk.getUpdateAccountMakerInstruction({...snapshot,...maker.registrationState,registration:maker.registration,actor:key,operation:1})],key,budget,
         {kind:'accountMakerEpoch',venue:snapshot.venue,account:maker.registration,value:maker.registrationState.quoteEpoch.toString()});
       return {status:'queued',reason:'owner-epoch-sync'};
     }
@@ -136,7 +136,7 @@ export class AccountRuntime extends AccountExecution {
     if(snapshot.now-market.oracle.sampledAt<intervalSeconds)return {status:'idle',reason:'sample-not-due'};
     const [first,second]=[0,1].map(id=>snapshot.makers.find(maker=>maker.makerId===id)!);
     const firstState=first.registrationState,secondState=second.registrationState;
-    const instruction=sdk.getSampleAccountOracleV3Instruction({...snapshot,market:snapshot.markets[marketIndex],
+    const instruction=sdk.getSampleAccountOracleInstruction({...snapshot,market:snapshot.markets[marketIndex],
       primaryAsset:market.oracle.sources[0],primaryCollateral:market.oracle.sources[1],guardAsset:market.oracle.sources[2],guardCollateral:market.oracle.sources[3],
       firstCapital:firstState.capital,firstRegistration:first.registration,firstProgram:firstState.pricingProgram,firstProgramData:firstState.programData,firstConfig:firstState.config,
       secondCapital:secondState.capital,secondRegistration:second.registration,secondProgram:secondState.pricingProgram,secondProgramData:secondState.programData,secondConfig:secondState.config});

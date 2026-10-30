@@ -8,14 +8,14 @@ use crate::state::v2;
 
 mod contract;
 use contract::*;
-pub use contract::{LiquidityOrderExecutionV4, LiquidityRouteIntentV4, LiquidityRouteLegV4};
+pub use contract::{LiquidityOrderExecution, LiquidityRouteIntent, LiquidityRouteLeg};
 mod contexts;
 pub use contexts::*;
 mod commit;
 #[cfg(test)]
 mod tests;
 
-pub fn execute(ctx: Context<ExecuteLiquidityRouteV4>, args: LiquidityRouteIntentV4) -> Result<()> {
+pub fn execute(ctx: Context<ExecuteLiquidityRoute>, args: LiquidityRouteIntent) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     args.guard.check(
         &ctx.accounts.identity.venue,
@@ -48,8 +48,8 @@ pub fn execute(ctx: Context<ExecuteLiquidityRouteV4>, args: LiquidityRouteIntent
 }
 
 pub fn execute_order(
-    ctx: Context<ExecuteLiquidityRouteV4>,
-    args: LiquidityOrderExecutionV4,
+    ctx: Context<ExecuteLiquidityRoute>,
+    args: LiquidityOrderExecution,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     args.guard.check(
@@ -84,10 +84,10 @@ pub fn execute_order(
 
 #[inline(never)]
 fn execute_core(
-    accounts: &mut ExecuteLiquidityRouteV4,
+    accounts: &mut ExecuteLiquidityRoute,
     intent: RouteIntent,
     order_index: Option<usize>,
-    signed_legs: &[LiquidityRouteLegV4],
+    signed_legs: &[LiquidityRouteLeg],
     clock: &Clock,
 ) -> Result<()> {
     let identity = &accounts.identity;
@@ -195,7 +195,7 @@ fn execute_core(
 /// Construct large root values in their own frame and place them directly in the
 /// candidate vector. Avoid temporary boxed copies on the non-reclaiming SBF heap.
 #[inline(never)]
-fn maker_roots(accounts: &ExecuteLiquidityRouteV4, has_second: bool) -> Result<Vec<v2::MarginAccountV2>> {
+fn maker_roots(accounts: &ExecuteLiquidityRoute, has_second: bool) -> Result<Vec<v2::MarginAccountV2>> {
     let mut roots = Vec::with_capacity(if has_second { 2 } else { 1 });
     roots.push(trading::root_view_value(&accounts.first_capital)?);
     if has_second {
@@ -210,12 +210,12 @@ fn maker_roots(accounts: &ExecuteLiquidityRouteV4, has_second: bool) -> Result<V
 #[inline(never)]
 fn quote_current(
     view: &pricing::View,
-    accounts: &ExecuteLiquidityRouteV4,
-    leg: &LiquidityRouteLegV4,
+    accounts: &ExecuteLiquidityRoute,
+    leg: &LiquidityRouteLeg,
     side: u8,
     clock: &Clock,
     cache: &mut pricing::CodeApprovalCache,
-) -> Result<canonical::QuoteResponseV4> {
+) -> Result<canonical::MakerQuoteResponse> {
     let identity = &accounts.identity;
     let state = view.authenticate(&identity.venue, &identity.market, &accounts.registry, cache)?;
     validate_leg(leg, view.registration, &state.config)?;

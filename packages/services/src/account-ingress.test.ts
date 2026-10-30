@@ -7,16 +7,16 @@ import {accountUserAuthority} from './account-ingress.js';
 const payer=await Keypair.generate(),other=await Keypair.generate();
 const [venue]=await sdk.deriveAccountVenue(new Uint8Array(32).fill(37));
 const [portfolio]=await sdk.deriveAccountPortfolio(venue,payer.address,0);
-const [margin]=await sdk.findMarginV3Pda(portfolio,0),[donor]=await sdk.findMarginV3Pda(portfolio,1);
-const [[custody],[safety],[vault],[btc],[eth]]=await Promise.all([sdk.findVenueComponentV3Pda(venue,'custody'),sdk.findVenueComponentV3Pda(venue,'safety'),
-  sdk.findVenueComponentV3Pda(venue,'vault'),sdk.findMarketV3Pda(venue,0),sdk.findMarketV3Pda(venue,1)]);
-const [[btcLedger],[ethLedger]]=await Promise.all([sdk.findLedgerV3Pda(btc),sdk.findLedgerV3Pda(eth)]);
+const [margin]=await sdk.deriveMarginAccount(portfolio,0),[donor]=await sdk.deriveMarginAccount(portfolio,1);
+const [[custody],[safety],[vault],[btc],[eth]]=await Promise.all([sdk.deriveVenueComponent(venue,'custody'),sdk.deriveVenueComponent(venue,'safety'),
+  sdk.deriveVenueComponent(venue,'vault'),sdk.deriveAccountMarket(venue,0),sdk.deriveAccountMarket(venue,1)]);
+const [[btcLedger],[ethLedger]]=await Promise.all([sdk.deriveMarketLedger(btc),sdk.deriveMarketLedger(eth)]);
 const placeholder=address('11111111111111111111111111111111');
 const guard={safetyEpoch:2n,venueTermsEpoch:3n,nonce:7n,stateVersion:11n};
 const common={venue,custody,safety,vault,btc,eth,btcLedger,ethLedger,eventAuthority:placeholder,program:sdk.CLEARING_PROGRAM_ADDRESS};
-const withdrawal=()=>sdk.getWithdrawFundedAccountV3Instruction({...common,owner:payer,margin,quoteMint:placeholder,userToken:placeholder,guard,amount:1n});
-const transfer=()=>sdk.getTransferFundedAccountV3Instruction({...common,owner:payer,donor,recipient:margin,guard,amount:1n});
-const route=()=>sdk.getExecuteAccountRouteV3Instruction({...common,actor:payer,market:btc,otherMarket:eth,ledger:btcLedger,otherLedger:ethLedger,trader:margin,
+const withdrawal=()=>sdk.getWithdrawFundedAccountInstruction({...common,owner:payer,margin,quoteMint:placeholder,userToken:placeholder,guard,amount:1n});
+const transfer=()=>sdk.getTransferFundedAccountInstruction({...common,owner:payer,donor,recipient:margin,guard,amount:1n});
+const route=()=>sdk.getExecuteAccountRouteInstruction({...common,actor:payer,market:btc,otherMarket:eth,ledger:btcLedger,otherLedger:ethLedger,trader:margin,
   firstCapital:placeholder,firstRegistration:placeholder,firstProgram:sdk.makerA.MAKER_A_PROGRAM_ADDRESS,firstProgramData:placeholder,firstConfig:placeholder,
   guard,domain:new Uint8Array(32).fill(37),termsEpoch:1n,configEpoch:1n,startSlot:1n,expirySlot:100n,side:0,lots:1n,allInLimit:60013n,maxFee:13n,
   reduceOnly:false,generation:0n,legs:[{lots:1n,quoteEpoch:1n,authorityEpoch:1n,expectedConsumed:0n}]});
@@ -29,11 +29,11 @@ it('decodes account-local signed authority despite different generated account o
   expect(accountUserAuthority(await wire(envelope(route())),venue)).toEqual({kind:'accountStateVersion',venue,account:margin,value:'11'});
 });
 it('binds signed order/delegate changes to root state, and deposits have no invented retry proof',async()=>{
-  const delegate=sdk.getSetAccountDelegateV3Instruction({...common,owner:payer,margin,guard,delegate:other.address,expirySlot:100n});
+  const delegate=sdk.getSetAccountDelegateInstruction({...common,owner:payer,margin,guard,delegate:other.address,expirySlot:100n});
   expect(accountUserAuthority(await wire(envelope(delegate)),venue)).toMatchObject({account:margin,value:'11'});
-  const cancel=sdk.getManageAccountOrderV3Instruction({...common,actor:payer,margin,guard,marketIndex:0,operation:sdk.groupOrderAction('Cancel',{id:1n,version:2n,protectionGroup:false})});
+  const cancel=sdk.getManageAccountOrderInstruction({...common,actor:payer,margin,guard,marketIndex:0,operation:sdk.groupOrderAction('Cancel',{id:1n,version:2n,protectionGroup:false})});
   expect(accountUserAuthority(await wire(envelope(cancel)),venue)).toMatchObject({account:margin,value:'11'});
-  const deposit=await sdk.getDepositAccountV3InstructionAsync({...common,owner:payer,margin,quoteMint:placeholder,userToken:placeholder,amount:1n});
+  const deposit=await sdk.getDepositAccountInstructionAsync({...common,owner:payer,margin,quoteMint:placeholder,userToken:placeholder,amount:1n});
   expect(accountUserAuthority(await wire(envelope(deposit)),venue)).toBeNull();
 });
 it('rejects foreign venue, wrong wallet actor, unknown action and account trailers',async()=>{
@@ -44,7 +44,7 @@ it('rejects foreign venue, wrong wallet actor, unknown action and account traile
   expect(()=>accountUserAuthority('',venue)).toThrow();
   expect(()=>accountUserAuthority(signed,placeholder)).toThrow(/binding/);
   const trailing=await wire(envelope(trailer));expect(()=>accountUserAuthority(trailing,venue)).toThrow(/dependencies/);
-  const unknown=await wire([sdk.routeComputeBudget(),sdk.zeroPriorityFee(),{...instruction,data:sdk.FREEZE_ACCOUNTS_V3_DISCRIMINATOR}]);
+  const unknown=await wire([sdk.routeComputeBudget(),sdk.zeroPriorityFee(),{...instruction,data:sdk.FREEZE_ACCOUNTS_DISCRIMINATOR}]);
   expect(()=>accountUserAuthority(unknown,venue)).toThrow(/Unsupported/);
 });
 it('rejects trailing payloads and combined envelopes outside the measured SDK contract',async()=>{
@@ -71,8 +71,8 @@ it('accepts the canonical v0 cash envelope and rejects cross-profile or missing 
 });
 
 it('validates v1 header budgets, zero priority fee and the canonical action profile',async()=>{
-  const old=route(),parsed=sdk.parseExecuteAccountRouteV3Instruction(old);
-  const canonical=sdk.getExecuteLiquidityRouteV4Instruction({...common,actor:payer,market:btc,otherMarket:eth,ledger:btcLedger,otherLedger:ethLedger,trader:margin,
+  const old=route(),parsed=sdk.parseExecuteAccountRouteInstruction(old);
+  const canonical=sdk.getExecuteLiquidityRouteInstruction({...common,actor:payer,market:btc,otherMarket:eth,ledger:btcLedger,otherLedger:ethLedger,trader:margin,
     firstCapital:placeholder,firstRegistration:placeholder,firstProgram:sdk.makerA.MAKER_A_PROGRAM_ADDRESS,firstProgramData:placeholder,firstConfig:placeholder,
     firstPrice:placeholder,registry:placeholder,...parsed.data,
     legs:[{lots:1n,authorityEpoch:1n,controlEpoch:1n,shapeEpoch:1n,depthEpoch:1n}]});

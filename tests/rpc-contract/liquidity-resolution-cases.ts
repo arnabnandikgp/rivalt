@@ -13,17 +13,17 @@ export async function resolveLiquidityCohort(h: CanonicalHarness,
   setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>, roots: Address[],
   reject: (label: string, instruction: Instruction, error?: number) => Promise<void>) {
   const accounts = setup.safetyCommon;
-  const header = async () => sdk.getResolutionV3Decoder().decode((await h.read(setup.resolution))!);
+  const header = async () => sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
   const initial = await header();
   assert.equal(initial.stage, 2); assert.equal(initial.count, roots.length);
   const rows = await Promise.all(roots.map(async key => {
-    const root = sdk.getMarginAccountV3Decoder().decode((await h.read(key))!);
+    const root = sdk.getMarginAccountDecoder().decode((await h.read(key))!);
     return { cash: root.cash, claims: root.positions.map((position, index) =>
       position.lots * initial.prices[index] * 1_000_000_000n + position.virtualScaled
         - position.lots * (initial.funding[index] - position.fundingCheckpointScaled)), key };
   }));
   const advance = (stage: number, start: number, length: number, members: Address[] = []) => {
-    const instruction = sdk.getAdvanceAccountResolutionV3Instruction({ ...accounts,
+    const instruction = sdk.getAdvanceAccountResolutionInstruction({ ...accounts,
       page: setup.pages[Math.floor(start / 2)], epoch: initial.epoch, stage, start, length });
     return { ...instruction, accounts: [...instruction.accounts!, ...members.map(address => ({
       address, role: stage === 9 ? AccountRole.WRITABLE : AccountRole.READONLY }))] };
@@ -38,7 +38,7 @@ export async function resolveLiquidityCohort(h: CanonicalHarness,
   for (let start = 0; start < roots.length; start += 2) {
     await send('exact denominator pass', advance(3, start, Math.min(2, roots.length - start)));
   }
-  const finalize = () => sdk.getFinalizeAccountResolutionRatesV3Instruction({ ...accounts, epoch: initial.epoch });
+  const finalize = () => sdk.getFinalizeAccountResolutionRatesInstruction({ ...accounts, epoch: initial.epoch });
   const proofs = [];
   let expectedInsurance: bigint[] = [];
   for (let evaluation = 0; (await header()).stage === 4; evaluation++) {
@@ -59,7 +59,7 @@ export async function resolveLiquidityCohort(h: CanonicalHarness,
     encode(BigInt(proof.factor), 1536, 24);
     const proposalHash = createHash('sha256').update(proposal).digest();
     for (let offset = 0; offset < proposal.length; offset += 512) {
-      await send('upload untrusted exact rate proposal', sdk.getProposeAccountResolutionV3Instruction({ ...accounts,
+      await send('upload untrusted exact rate proposal', sdk.getProposeAccountResolutionInstruction({ ...accounts,
         epoch: initial.epoch, evaluation, proposalHash, offset, bytes: proposal.subarray(offset, Math.min(offset + 512, proposal.length)) }));
     }
     assert.equal((await header()).stage, 5);
@@ -78,9 +78,9 @@ export async function resolveLiquidityCohort(h: CanonicalHarness,
   assert.deepEqual(verified.insuranceSpent, expectedInsurance);
   for (let start = 0; start < roots.length; start++) await send('plan all atom floors', advance(6, start, 1));
   assert.equal((await header()).stage, 7);
-  const frozenRows: sdk.ResolutionRowV3[] = [];
+  const frozenRows: sdk.ResolutionRow[] = [];
   for (let index = 0; index < Math.ceil(roots.length / 2); index++) {
-    const page = sdk.getResolutionPageV3Decoder().decode((await h.read(setup.pages[index]))!);
+    const page = sdk.getResolutionPageDecoder().decode((await h.read(setup.pages[index]))!);
     frozenRows.push(...page.rows.slice(0, page.rowCount));
   }
   const wide = (limbs: readonly bigint[]) => limbs.reduceRight((total, limb) => (total << 64n) + limb, 0n);
@@ -91,21 +91,21 @@ export async function resolveLiquidityCohort(h: CanonicalHarness,
     const first = remainder(left), second = remainder(right);
     return first === second ? left - right : first > second ? -1 : 1;
   })) as [number[], number[]];
-  await reject('remainder order cannot omit or duplicate members', sdk.getOrderAccountResolutionV3Instruction({ ...accounts,
+  await reject('remainder order cannot omit or duplicate members', sdk.getOrderAccountResolutionInstruction({ ...accounts,
     epoch: initial.epoch, orders: [Array(roots.length).fill(0), orders[1]] }));
-  await send('propose complete remainder order', sdk.getOrderAccountResolutionV3Instruction({ ...accounts, epoch: initial.epoch, orders }));
+  await send('propose complete remainder order', sdk.getOrderAccountResolutionInstruction({ ...accounts, epoch: initial.epoch, orders }));
   for (let start = 0; start < roots.length * 2; start++) {
     const member = orders[Math.floor(start / roots.length)][start % roots.length];
-    await send('verify exact remainder order and stable ties', sdk.getCheckAccountResolutionOrderV3Instruction({ ...accounts,
+    await send('verify exact remainder order and stable ties', sdk.getCheckAccountResolutionOrderInstruction({ ...accounts,
       page: setup.pages[Math.floor(member / 2)], epoch: initial.epoch, start }));
   }
   for (let steps = 0; (await header()).stage === 8; steps++) {
     assert(steps < 2000, 'bounded deterministic circulation');
-    await send('deterministic conserving atom circulation', sdk.getRoundAccountResolutionV3Instruction({ ...accounts,
+    await send('deterministic conserving atom circulation', sdk.getRoundAccountResolutionInstruction({ ...accounts,
       epoch: initial.epoch, start: (await header()).cursor }));
   }
   const rounded = await header(); assert.equal(rounded.stage, 9);
-  const graph = sdk.getResolutionWorkV3Decoder().decode((await h.read(setup.work))!);
+  const graph = sdk.getResolutionWorkDecoder().decode((await h.read(setup.work))!);
   const plannedCash = frozenRows.map((row, index) => row.cashAfter + BigInt(graph.residualCapacity[2 * (2 * roots.length + index) + 1]));
   for (let market = 0; market < 2; market++) {
     const movements = frozenRows.reduce((total, row, index) => total
@@ -123,7 +123,7 @@ export async function resolveLiquidityCohort(h: CanonicalHarness,
   }
   assert.equal((await header()).stage, 10);
   for (const [index, key] of roots.entries()) {
-    const root = sdk.getMarginAccountV3Decoder().decode((await h.read(key))!);
+    const root = sdk.getMarginAccountDecoder().decode((await h.read(key))!);
     assert.equal(root.cash, plannedCash[index]);
     assert(root.positions.every(position => position.lots === 0n && position.virtualScaled === 0n));
     assert(root.book.orders.every(entry => entry.order.state === 0));
@@ -133,6 +133,6 @@ export async function resolveLiquidityCohort(h: CanonicalHarness,
     await send('complete applied-account reconciliation', advance(10, start, Math.min(2, roots.length - start), roots.slice(start, start + 2)));
   }
   assert.equal((await header()).stage, 11);
-  assert.equal(sdk.getSafetyV3Decoder().decode((await h.read(setup.safety))!).mode, 3);
+  assert.equal(sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).mode, 3);
   return { initial, verified, rounded, plannedCash, proofs, graph, frozenInputs: rows };
 }

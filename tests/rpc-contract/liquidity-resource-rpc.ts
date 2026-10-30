@@ -31,11 +31,11 @@ try {
   const setup = await liquidityExecutionSetup(h, rpc, { shape });
   const trader = setup.roots[0], owner = setup.traderOwner;
   const [first, second, empty] = [setup.instances[0], setup.instances[2], setup.instances[1]];
-  const rootState = async (key: Address) => sdk.getMarginAccountV3Decoder().decode((await h.read(key))!);
+  const rootState = async (key: Address) => sdk.getMarginAccountDecoder().decode((await h.read(key))!);
   const guard = async (key: Address) => {
     const root = await rootState(key);
-    return { safetyEpoch: sdk.getSafetyV3Decoder().decode((await h.read(setup.safety))!).epoch,
-      venueTermsEpoch: sdk.getVenueV3Decoder().decode((await h.read(setup.venue))!).termsEpoch,
+    return { safetyEpoch: sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).epoch,
+      venueTermsEpoch: sdk.getVenueDecoder().decode((await h.read(setup.venue))!).termsEpoch,
       nonce: root.nonce, stateVersion: root.stateVersion };
   };
   const route = async (makers: typeof setup.instances, lots: bigint[], side: 0 | 1 = 0, stored = false) => {
@@ -55,8 +55,8 @@ try {
           shapeEpoch: config.shapeEpoch, depthEpoch: registration.depthEpoch };
       })),
     };
-    return stored ? sdk.getExecuteLiquidityOrderV4InstructionAsync({ ...input, actor: setup.payer, id: 1n, version: 1n, filled: 0n })
-      : sdk.getExecuteLiquidityRouteV4InstructionAsync(input);
+    return stored ? sdk.getExecuteLiquidityOrderInstructionAsync({ ...input, actor: setup.payer, id: 1n, version: 1n, filled: 0n })
+      : sdk.getExecuteLiquidityRouteInstructionAsync(input);
   };
   const watched = [...setup.tracked, ...setup.roots, ...setup.configurations];
   const bytes = () => Promise.all(watched.map(h.read));
@@ -71,7 +71,7 @@ try {
   ]);
   for (const margin of [first.capital, second.capital, trader]) {
     const signer = margin === trader ? owner : setup.owner;
-    await h.send('deposit actual resource-test collateral', [await sdk.getDepositAccountV3InstructionAsync({ ...setup.common,
+    await h.send('deposit actual resource-test collateral', [await sdk.getDepositAccountInstructionAsync({ ...setup.common,
       owner: signer, margin, quoteMint: setup.mint.address,
       userToken: margin === trader ? setup.traderToken.address : setup.token.address, amount: 100_000_000n })], [signer]);
   }
@@ -94,7 +94,7 @@ try {
           terms: { side: 0, lots: bookVariant === 'stored' && margin === trader && group === 0 ? 4608n : 1n,
             limit: 66_000n, feeBudget: bookVariant === 'stored' && margin === trader && group === 0 ? 100_000n : 1000n,
             startSlot: slot, expirySlot: slot + 2000n, reduceOnly: false, generation: 0n, trigger: 0, threshold: 0n } };
-      await h.send('populate all live order and protection slots', [sdk.getManageAccountOrderV3Instruction({ ...setup.common,
+      await h.send('populate all live order and protection slots', [sdk.getManageAccountOrderInstruction({ ...setup.common,
         actor: signer, btc: setup.markets[0], eth: setup.markets[1], margin, guard: await guard(margin), marketIndex: 0,
         operation })], [signer]);
     }
@@ -103,7 +103,7 @@ try {
     assert.equal(root.book.protections.filter(entry => entry.protection.remaining > 0n).length, bookVariant === 'protected' ? 2 : 0);
   }
   await setup.sample();
-  await h.send('withdraw unused provider funded cash through actual SPL exit', [sdk.getWithdrawFundedAccountV3Instruction({
+  await h.send('withdraw unused provider funded cash through actual SPL exit', [sdk.getWithdrawFundedAccountInstruction({
     ...setup.common, owner: setup.owner, btc: setup.markets[0], eth: setup.markets[1], margin: empty.capital,
     quoteMint: setup.mint.address, userToken: setup.token.address, guard: await guard(empty.capital), amount: 1_000_000n })], [setup.owner]);
   assert.equal((await rootState(empty.capital)).cash, 0n);
@@ -130,7 +130,7 @@ try {
   const traderAfter = await rootState(trader);
   assert.equal(traderAfter.cash, traderBefore.cash - expectedFee);
   assert.equal(traderAfter.positions[0].lots, 4612n);
-  const fundingAdjusted = (before: sdk.MarginAccountV3, after: sdk.MarginAccountV3) => before.positions[0].virtualScaled
+  const fundingAdjusted = (before: sdk.MarginAccount, after: sdk.MarginAccount) => before.positions[0].virtualScaled
     - before.positions[0].lots * (after.positions[0].fundingCheckpointScaled - before.positions[0].fundingCheckpointScaled);
   assert.equal(traderAfter.positions[0].virtualScaled, fundingAdjusted(traderBefore, traderAfter) - expectedGross * 1_000_000_000n);
   for (const maker of [first, second]) {
@@ -173,7 +173,7 @@ try {
   assert.equal(afterSell.positions[0].lots, 516n);
   const prepared = await route([second], [1n], 1);
   const secondRegistration = await second.registrationState();
-  await h.send('explicit replenishment changes structural depth epoch', [sdk.getReplenishLiquidityV4Instruction({
+  await h.send('explicit replenishment changes structural depth epoch', [sdk.getReplenishLiquidityInstruction({
     ...second.controlCommon, expectedAuthority: secondRegistration.authorityEpoch,
     expectedDepth: secondRegistration.depthEpoch, sides: 2 })], [setup.owner]);
   await reject('prepared order cannot cross structural depth change', prepared, sdk.CLEARING_ERROR__MAKER_EPOCH);
@@ -188,15 +188,15 @@ try {
     }, 0n), 0n);
   }
   const totalFees = 49n + expectedFee + sellFee;
-  const ledgers = await Promise.all(setup.ledgers.map(async key => sdk.getMarketLedgerV3Decoder().decode((await h.read(key))!)));
+  const ledgers = await Promise.all(setup.ledgers.map(async key => sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
   assert.deepEqual(ledgers.map(ledger => [ledger.insurance, ledger.fees, ledger.insuranceFeeRemainder]),
     [[totalFees / 4n, totalFees - totalFees / 4n, Number(totalFees % 4n)], [0n, 0n, 0]]);
-  const custody = sdk.getCustodyV3Decoder().decode((await h.read(setup.custody))!);
+  const custody = sdk.getCustodyDecoder().decode((await h.read(setup.custody))!);
   assert.equal(allRoots.reduce((total, root) => total + root.cash, 0n), custody.totalCash);
   assert.equal(custody.totalCash + totalFees, 307_000_000n);
   const parity = await conformance.finish(runDir, [
-    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'marginAccountV3', key: trader },
-    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'makerRegistrationV4', key: first.registration },
+    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'marginAccount', key: trader },
+    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'makerRegistration', key: first.registration },
   ], h.read);
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',

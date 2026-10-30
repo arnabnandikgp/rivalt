@@ -45,14 +45,14 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
+  getLegacyResolutionRowDecoder,
+  getLegacyResolutionRowEncoder,
   getResolutionHeaderDecoder,
   getResolutionHeaderEncoder,
-  getResolutionRowDecoder,
-  getResolutionRowEncoder,
+  type LegacyResolutionRow,
+  type LegacyResolutionRowArgs,
   type ResolutionHeader,
   type ResolutionHeaderArgs,
-  type ResolutionRow,
-  type ResolutionRowArgs,
 } from "../types/index.js";
 
 export const RESOLUTION_STATE_DISCRIMINATOR: ReadonlyUint8Array =
@@ -69,7 +69,7 @@ export type ResolutionState = {
   version: number;
   market: Address;
   header: ResolutionHeader;
-  rows: Array<ResolutionRow>;
+  rows: Array<LegacyResolutionRow>;
   bump: number;
 };
 
@@ -77,7 +77,7 @@ export type ResolutionStateArgs = {
   version: number;
   market: Address | HasAddress;
   header: ResolutionHeaderArgs;
-  rows: Array<ResolutionRowArgs>;
+  rows: Array<LegacyResolutionRowArgs>;
   bump: number;
 };
 
@@ -89,7 +89,7 @@ export function getResolutionStateEncoder(): Encoder<ResolutionStateArgs> {
       ["version", getU16Encoder()],
       ["market", getAddressEncoder()],
       ["header", getResolutionHeaderEncoder()],
-      ["rows", getArrayEncoder(getResolutionRowEncoder())],
+      ["rows", getArrayEncoder(getLegacyResolutionRowEncoder())],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: RESOLUTION_STATE_DISCRIMINATOR }),
@@ -103,7 +103,7 @@ export function getResolutionStateDecoder(): Decoder<ResolutionState> {
     ["version", getU16Decoder()],
     ["market", getAddressDecoder()],
     ["header", getResolutionHeaderDecoder()],
-    ["rows", getArrayDecoder(getResolutionRowDecoder())],
+    ["rows", getArrayDecoder(getLegacyResolutionRowDecoder())],
     ["bump", getU8Decoder()],
   ]);
 }

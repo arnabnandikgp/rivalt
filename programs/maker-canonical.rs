@@ -1,22 +1,22 @@
 // Canonical implementation shared by both maker deployments. Instance != strategy.
 use maker_interface::canonical::{
-    self, CurveControlV4, CurveStateV4, PriceStateV4, QuoteRequestV4, QuoteResponseV4, ShapeV4,
+    self, CurveControl, CurveState, PriceState, MakerQuoteRequest, MakerQuoteResponse, LiquidityShape,
 };
 
-#[account]
+#[account(discriminator = [193, 186, 219, 30, 59, 114, 63, 19])]
 #[derive(InitSpace)]
-pub struct MakerCurveV4 {
-    pub state: CurveStateV4,
+pub struct MakerCurve {
+    pub state: CurveState,
 }
 
-#[account]
+#[account(discriminator = [66, 156, 238, 30, 240, 111, 194, 0])]
 #[derive(InitSpace)]
-pub struct MakerPriceV4 {
-    pub state: PriceStateV4,
+pub struct MakerPrice {
+    pub state: PriceState,
 }
 
-#[event]
-pub struct LiquidityPriceV4 {
+#[event(discriminator = [245, 185, 52, 198, 79, 168, 94, 143])]
+pub struct MakerPriceUpdated {
     pub config: Pubkey,
     pub control: u64,
     pub sequence: u64,
@@ -25,67 +25,67 @@ pub struct LiquidityPriceV4 {
     pub time: i64,
 }
 
-#[event]
-pub struct LiquidityShapeV4 {
+#[event(discriminator = [52, 132, 184, 47, 231, 114, 255, 196])]
+pub struct MakerShapeUpdated {
     pub config: Pubkey,
-    pub state: CurveStateV4,
+    pub state: CurveState,
     pub action: u8,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct InitializeCurveV4<'info> {
+pub struct InitializeCurve<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, seeds::program = CLEARING_ID)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump,
         seeds::program = CLEARING_ID, constraint = market.venue == venue.key() @ MakerError::Binding)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(seeds = [b"margin-v3", capital.portfolio.as_ref(), &capital.subaccount_index.to_le_bytes()],
         bump = capital.bump, seeds::program = CLEARING_ID,
         constraint = capital.owner == owner.key() @ MakerError::Authority,
         constraint = capital.venue == venue.key() @ MakerError::Binding)]
-    pub capital: Box<Account<'info, MarginAccountV3>>,
-    #[account(init, payer = owner, space = 8 + MakerCurveV4::INIT_SPACE,
+    pub capital: Box<Account<'info, MarginAccount>>,
+    #[account(init, payer = owner, space = 8 + MakerCurve::INIT_SPACE,
         seeds = [b"curve-v4", capital.key().as_ref()], bump)]
-    pub config: Box<Account<'info, MakerCurveV4>>,
-    #[account(init, payer = owner, space = 8 + MakerPriceV4::INIT_SPACE,
+    pub config: Box<Account<'info, MakerCurve>>,
+    #[account(init, payer = owner, space = 8 + MakerPrice::INIT_SPACE,
         seeds = [b"price-v4", config.key().as_ref()], bump)]
-    pub price: Box<Account<'info, MakerPriceV4>>,
+    pub price: Box<Account<'info, MakerPrice>>,
     pub system_program: Program<'info, System>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct RepriceCurveV4<'info> {
+pub struct RepriceCurve<'info> {
     pub actor: Signer<'info>,
     #[account(seeds = [b"curve-v4", config.state.capital.as_ref()], bump = config.state.bump)]
-    pub config: Box<Account<'info, MakerCurveV4>>,
+    pub config: Box<Account<'info, MakerCurve>>,
     #[account(mut, seeds = [b"price-v4", config.key().as_ref()], bump = price.state.bump,
         constraint = price.state.config == config.key() @ MakerError::Binding)]
-    pub price: Box<Account<'info, MakerPriceV4>>,
+    pub price: Box<Account<'info, MakerPrice>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct ControlCurveV4<'info> {
+pub struct ControlCurve<'info> {
     #[account(address = config.state.controller @ MakerError::Authority)]
     pub controller: Signer<'info>,
     #[account(mut, seeds = [b"curve-v4", config.state.capital.as_ref()], bump = config.state.bump)]
-    pub config: Box<Account<'info, MakerCurveV4>>,
+    pub config: Box<Account<'info, MakerCurve>>,
     #[account(seeds = [b"price-v4", config.key().as_ref()], bump = price.state.bump,
         constraint = price.state.config == config.key() @ MakerError::Binding)]
-    pub price: Box<Account<'info, MakerPriceV4>>,
+    pub price: Box<Account<'info, MakerPrice>>,
 }
 
 #[derive(Accounts)]
-pub struct ReadCurveV4<'info> {
+pub struct ReadCurve<'info> {
     #[account(seeds = [b"curve-v4", config.state.capital.as_ref()], bump = config.state.bump)]
-    pub config: Box<Account<'info, MakerCurveV4>>,
+    pub config: Box<Account<'info, MakerCurve>>,
     #[account(seeds = [b"price-v4", config.key().as_ref()], bump = price.state.bump,
         constraint = price.state.config == config.key() @ MakerError::Binding)]
-    pub price: Box<Account<'info, MakerPriceV4>>,
+    pub price: Box<Account<'info, MakerPrice>>,
 }
 
 fn canonical_profile() -> Result<()> {
@@ -97,8 +97,8 @@ fn canonical_profile() -> Result<()> {
 }
 
 fn initialize_curve(
-    ctx: Context<InitializeCurveV4>,
-    shape: ShapeV4,
+    ctx: Context<InitializeCurve>,
+    shape: LiquidityShape,
     updater: Pubkey,
     expiry: u64,
     instance: u8,
@@ -138,7 +138,7 @@ fn initialize_curve(
         &CLEARING_ID,
     )
     .0;
-    ctx.accounts.config.state = CurveStateV4 {
+    ctx.accounts.config.state = CurveState {
         schema_version: canonical::VERSION,
         venue: venue.key(),
         market: market.key(),
@@ -155,7 +155,7 @@ fn initialize_curve(
         shape,
         bump: ctx.bumps.config,
     };
-    ctx.accounts.price.state = PriceStateV4 {
+    ctx.accounts.price.state = PriceState {
         schema_version: canonical::VERSION,
         config: ctx.accounts.config.key(),
         control_epoch: 1,
@@ -165,7 +165,7 @@ fn initialize_curve(
         updated_time: 0,
         bump: ctx.bumps.price,
     };
-    emit_cpi!(LiquidityShapeV4 {
+    emit_cpi!(MakerShapeUpdated {
         config: ctx.accounts.config.key(),
         state: ctx.accounts.config.state.clone(),
         action: 4
@@ -177,8 +177,8 @@ fn initialize_curve(
     Ok(())
 }
 
-fn price_event(config: Pubkey, price: &PriceStateV4) -> LiquidityPriceV4 {
-    LiquidityPriceV4 {
+fn price_event(config: Pubkey, price: &PriceState) -> MakerPriceUpdated {
+    MakerPriceUpdated {
         config,
         control: price.control_epoch,
         sequence: price.sequence,
@@ -189,7 +189,7 @@ fn price_event(config: Pubkey, price: &PriceStateV4) -> LiquidityPriceV4 {
 }
 
 fn reprice_curve(
-    ctx: Context<RepriceCurveV4>,
+    ctx: Context<RepriceCurve>,
     expected_control: u64,
     expected_sequence: u64,
     anchor: u64,
@@ -218,10 +218,10 @@ fn reprice_curve(
 }
 
 fn control_curve(
-    ctx: Context<ControlCurveV4>,
+    ctx: Context<ControlCurve>,
     expected_control: u64,
     expected_shape: u64,
-    action: CurveControlV4,
+    action: CurveControl,
 ) -> Result<()> {
     canonical_profile()?;
     require!(ctx.remaining_accounts.is_empty(), MakerError::Binding);
@@ -249,7 +249,7 @@ fn control_curve(
     )
     .map_err(|_| error!(MakerError::Quote))?;
     ctx.accounts.config.state = next;
-    emit_cpi!(LiquidityShapeV4 {
+    emit_cpi!(MakerShapeUpdated {
         config: ctx.accounts.config.key(),
         state: ctx.accounts.config.state.clone(),
         action: operation
@@ -257,7 +257,7 @@ fn control_curve(
     Ok(())
 }
 
-fn read_curve(ctx: Context<ReadCurveV4>, request: QuoteRequestV4) -> Result<QuoteResponseV4> {
+fn read_curve(ctx: Context<ReadCurve>, request: MakerQuoteRequest) -> Result<MakerQuoteResponse> {
     canonical_profile()?;
     require!(ctx.remaining_accounts.is_empty(), MakerError::Binding);
     let clock = Clock::get()?;

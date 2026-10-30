@@ -107,6 +107,6 @@ and CPI account modules without glob-exporting similarly named handler helpers.
 Program state and events are re-exported at the crate root for Anchor/IDL clients.
 
 Schema-3 account-centric custody lives in `src/instructions/account_custody/`
-(contexts and handlers), with independent layouts under `src/state/v3/`.
+(contexts and handlers), with independent layouts under `src/state/accounts/`.
 [Current accounts](../../docs/clearing/accounts.md) records authority/layouts;
 [STATUS](../../docs/STATUS.md) distinguishes qualified local profiles from gated builds.

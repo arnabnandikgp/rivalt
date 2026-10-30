@@ -23,16 +23,16 @@ export async function qualificationSetup(h:CanonicalHarness,rpc:WireRpc,profile:
   if(baseline)for(const market of [0,1])makerRoots.push(await register(4+market,1,market,1,500_000_000n));
   async function deposit(margin:Address,amount:bigint) {
     await h.send('P34 mint explicit matching collateral',[getMintToInstruction({mint:setup.mint.address,token:token.address,mintAuthority:setup.payer,amount})]);
-    await h.send('P34 fund matching account',[await sdk.getDepositAccountV3InstructionAsync({...setup.common,owner,margin,quoteMint:setup.mint.address,userToken:token.address,amount})],[owner]);
+    await h.send('P34 fund matching account',[await sdk.getDepositAccountInstructionAsync({...setup.common,owner,margin,quoteMint:setup.mint.address,userToken:token.address,amount})],[owner]);
   }
   async function register(subaccountIndex:number,mode:number,isolatedMarketIndex:number,role:number,amount:bigint) {
-    const [margin]=await sdk.findMarginV3Pda(portfolio,subaccountIndex);
-    await h.send('P34 register explicit comparison account',[await sdk.getRegisterMarginV3InstructionAsync({...setup.common,owner,portfolio,margin,subaccountIndex,mode,isolatedMarketIndex,role})],[owner]);
+    const [margin]=await sdk.deriveMarginAccount(portfolio,subaccountIndex);
+    await h.send('P34 register explicit comparison account',[await sdk.getRegisterMarginInstructionAsync({...setup.common,owner,portfolio,margin,subaccountIndex,mode,isolatedMarketIndex,role})],[owner]);
     roots.push(margin);await deposit(margin,amount);return margin;
   }
   assert.equal(new Set(makerRoots).size,6);
   const read=(trader:Address,marketIndex:0|1)=>canonical?sdk.readLiquidityTradeSnapshot(rpc,setup.identity,trader,marketIndex):sdk.readAccountTradeSnapshot(rpc,setup.identity,trader,marketIndex);
-  const observedRoots=await Promise.all(roots.map(async root=>sdk.getMarginAccountV3Decoder().decode((await h.read(root))!)));
+  const observedRoots=await Promise.all(roots.map(async root=>sdk.getMarginAccountDecoder().decode((await h.read(root))!)));
   assert.equal(observedRoots.reduce((sum,root)=>sum+root.cash,0n),3_004_000_000n);
   // Refresh after provisioning, preserving consumed depth and the legacy epoch.
   for(let round=0;round<4;round++){await setup.sources();await setup.reprice(round);await setup.funding();await new Promise(resolve=>setTimeout(resolve,2000));}

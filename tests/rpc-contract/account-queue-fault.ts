@@ -70,7 +70,7 @@ export async function accountQueueFault(config:{databaseUrl:string;runId:string;
 
     const budget=await execution.budget('funding',setup.payer,0),snapshot=await client.snapshot([setup.cross]);
     const stamp=snapshot.marketStates[0].observationSequence;
-    await execution.enqueue(`funding:0:${stamp}`,[sdk.fundingComputeBudget(),sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(0))],
+    await execution.enqueue(`funding:0:${stamp}`,[sdk.fundingComputeBudget(),sdk.getSampleAccountOracleInstruction(setup.sampleAccounts(0))],
       setup.payer,budget,{kind:'accountObservation',venue:setup.venue,account:setup.markets[0],value:stamp.toString()});
     const sampled=await eventually(()=>execution.queue.get(`funding:0:${stamp}`),row=>row?.status==='finalized','budgeted original account sample');
     const fee=(await execution.store.pool.query('SELECT cap::text,committed::text,spent::text FROM service_budgets WHERE run_id=$1 AND name=$2',[config.runId,budget])).rows[0];

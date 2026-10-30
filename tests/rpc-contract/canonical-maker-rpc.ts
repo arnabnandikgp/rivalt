@@ -12,11 +12,11 @@ const serialize = (value: unknown) => JSON.stringify(value,(_,item) => typeof it
 try {
   const result = await canonicalMakerCases(h);
   const parity = await conformance.finish(runDir, [
-    ...result.registrations.map(key => ({ program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'makerRegistrationV4', key })),
+    ...result.registrations.map(key => ({ program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'makerRegistration', key })),
     ...await Promise.all(result.markets.map(async market => ({ program: sdk.CLEARING_PROGRAM_ADDRESS,
-      name: 'liquidityRegistryV4', key: (await sdk.findLiquidityRegistryV4Pda({ market }))[0] }))),
-    ...result.makerAccounts.flatMap(item => [{ program: item.program, name: 'makerCurveV4', key: item.config },
-      { program: item.program, name: 'makerPriceV4', key: item.price }]),
+      name: 'liquidityRegistry', key: (await sdk.findLiquidityRegistryPda({ market }))[0] }))),
+    ...result.makerAccounts.flatMap(item => [{ program: item.program, name: 'makerCurve', key: item.config },
+      { program: item.program, name: 'makerPrice', key: item.price }]),
   ], h.read);
   assert(checks.some(check => check.version === 1 && Number(check.bytes) > 1232), 'real oversized v1 transaction required');
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse','HEAD'], { encoding: 'utf8' }).trim(),

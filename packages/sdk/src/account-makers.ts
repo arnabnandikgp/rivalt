@@ -2,12 +2,12 @@ import {address,getAddressDecoder,getAddressEncoder,getProgramDerivedAddress,typ
 import * as protocol from './generated/index.js';
 import * as makerA from './generatedMakerA/index.js';
 import * as makerB from './generatedMakerB/index.js';
-import {findAccountMakerV3Pda,findMarginV3Pda} from './account-addresses.js';
+import {deriveFixedMakerRegistration,deriveMarginAccount} from './account-addresses.js';
 import {fromBase64,hex,requireValue} from './wallet-client.js';
 
 export type AccountMakerIdentity={registration:Address;bump:number;marketIndex:number;makerId:number;
-  discovered:protocol.MakerRegistrationV3};
-type Snapshot={venue:Address;markets:Address[];venueState:protocol.VenueV3;roots:Record<string,protocol.MarginAccountV3>};
+  discovered:protocol.FixedMakerRegistration};
+type Snapshot={venue:Address;markets:Address[];venueState:protocol.Venue;roots:Record<string,protocol.MarginAccount>};
 const LOADER=address('BPFLoaderUpgradeab1e11111111111111111111111');
 
 /** Authenticate only records from the same final financial RPC batch as the
@@ -20,15 +20,15 @@ export async function authenticateAccountMakers(snapshot:Snapshot,identities:Acc
   return Promise.all(identities.map(async identity=>{
     const {registration:registrationKey,marketIndex,makerId}=identity,market=snapshot.markets[marketIndex];
     const bytes=raw(registrationKey,protocol.CLEARING_PROGRAM_ADDRESS);
-    requireValue(bytes.length===protocol.getMakerRegistrationV3Size()&&hex(bytes.slice(0,8))===hex(protocol.MAKER_REGISTRATION_V3_DISCRIMINATOR),'Wrong account maker registration.');
-    const registration=protocol.getMakerRegistrationV3Decoder().decode(bytes),capital=snapshot.roots[registration.capital];
+    requireValue(bytes.length===protocol.getFixedMakerRegistrationSize()&&hex(bytes.slice(0,8))===hex(protocol.FIXED_MAKER_REGISTRATION_DISCRIMINATOR),'Wrong account maker registration.');
+    const registration=protocol.getFixedMakerRegistrationDecoder().decode(bytes),capital=snapshot.roots[registration.capital];
     const expectedProgram=makerId===0?makerA.MAKER_A_PROGRAM_ADDRESS:makerB.MAKER_B_PROGRAM_ADDRESS;
-    const [canonical,bump]=await findAccountMakerV3Pda(market,makerId);
+    const [canonical,bump]=await deriveFixedMakerRegistration(market,makerId);
     requireValue(registrationKey===canonical&&registration.bump===bump&&registration.schemaVersion===3&&registration.venue===snapshot.venue&&
       registration.market===market&&registration.marketIndex===marketIndex&&registration.makerId===makerId&&registration.pricingProgram===expectedProgram&&
       registration.capital===identity.discovered.capital&&registration.config===identity.discovered.config&&registration.programData===identity.discovered.programData&&
       capital?.owner===registration.owner&&capital.role===1&&capital.mode===1&&capital.isolatedMarketIndex===marketIndex,'Invalid isolated account maker binding.');
-    const [capitalKey]=await findMarginV3Pda(capital.portfolio,capital.subaccountIndex);
+    const [capitalKey]=await deriveMarginAccount(capital.portfolio,capital.subaccountIndex);
     requireValue(capitalKey===registration.capital,'Noncanonical account maker capital.');
     const [config,configBump]=await getProgramDerivedAddress({programAddress:expectedProgram,seeds:[new TextEncoder().encode('maker-v3'),getAddressEncoder().encode(registration.capital)]});
     const [programData]=await getProgramDerivedAddress({programAddress:LOADER,seeds:[getAddressEncoder().encode(expectedProgram)]});

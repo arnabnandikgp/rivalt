@@ -31,7 +31,7 @@ export async function oracleCases(h:OracleHarness){
   const sample=async(label:string)=>{const r=await risk();await h.waitTime(r.oracle.sampledAt+2n);await h.send(label,[sdk.fundingComputeBudget(),await sdk.getSampleOracleInstructionAsync(await sampleInput())]);return risk();};
   const recover=async()=>{for(let i=0;i<4;i++){await update();await sample('qualify source/maker recovery interval');}assert.equal((await risk()).oracle.status,2);};
   async function route(label:string,side:number,lots:bigint,id=0,reduceOnly=false,error?:number){
-    const m=await market(),r=await risk(),p=await participant(),x=makers[id],reg=sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!),slot=await h.slot();
+    const m=await market(),r=await risk(),p=await participant(),x=makers[id],reg=sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(x.registration))!),slot=await h.slot();
     const ix=await sdk.getExecuteRouteInstructionAsync({...a,owner,trader,firstCapital:x.capital,firstRegistration:x.registration,firstProgram:x.pricingProgram,firstProgramData:x.programData,firstConfig:x.config,domain:m.domain,termsEpoch:m.termsEpoch,configEpoch:m.configEpoch,observationSequence:r.observationSequence,nonce:p.nonce,startSlot:slot,expirySlot:slot+150n,side,lots,allInLimit:side===0?1_000_000_000n:0n,maxFee:1_000_000n,reduceOnly,generation:p.generation,legs:[{lots,quoteEpoch:reg.quoteEpoch,authorityEpoch:reg.authorityEpoch}]});
     const before=await Promise.all([a.market,routeState,trader,x.capital,x.registration].map(k=>h.read(k)));
     await h.send(label,[sdk.routeComputeBudget(),ix],[owner],error);if(error)assert.deepEqual(await Promise.all([a.market,routeState,trader,x.capital,x.registration].map(k=>h.read(k))),before);
@@ -78,7 +78,7 @@ export async function oracleCases(h:OracleHarness){
   await update({0:{price:10_000_000_000n},2:{price:10_000_000_000n}});r=await sample('maximum 600-lot authenticated reference size');
   assert.equal(r.oracle.quantity,600n);
   const referenceImpact=async(side:number)=>{
-    const regs=await Promise.all(makers.map(async x=>sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!)));
+    const regs=await Promise.all(makers.map(async x=>sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(x.registration))!)));
     const ps=await Promise.all(makers.map(x=>participant(x.capital)));let best:bigint|null=null;
     for(let n=0n;n<=512n;n++){
       let total=0n,valid=true;

@@ -14,7 +14,7 @@ export async function routeCases(h:RouteHarness) {
   const market=async()=>sdk.getMarketStateDecoder().decode((await h.read(a.market))!);
   const risk=async()=>sdk.getTestRouteStateDecoder().decode((await h.read(routeState))!);
   const balance=async(key=trader)=>sdk.getParticipantDecoder().decode((await h.read(key))!);
-  const reg=async(id:number)=>sdk.getMakerRegistrationDecoder().decode((await h.read(makers[id].registration))!);
+  const reg=async(id:number)=>sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(makers[id].registration))!);
   const keys=[a.market,routeState,a.vault,trader,...makers.flatMap(x=>[x.capital,x.registration,x.config])];
   const snapshot=()=>Promise.all(keys.map(k=>h.read(k)));
   async function rejected(label:string,ix:Instruction,error:number|'reject',signers=[owner]) {

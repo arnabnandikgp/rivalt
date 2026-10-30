@@ -93,7 +93,7 @@ pub(crate) fn commit_model(
     checked(candidate.validate())?;
     root.cash = candidate.cash;
     root.reserved = candidate.reserved;
-    root.positions = candidate.positions.map(|position| PositionV2 {
+    root.positions = candidate.positions.map(|position| Position {
         lots: position.lots,
         virtual_scaled: position.virtual_scaled,
         funding_checkpoint_scaled: position.funding_checkpoint,

@@ -21,6 +21,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  getU16Decoder,
+  getU16Encoder,
   transformEncoder,
   type Account,
   type Address,
@@ -40,7 +42,7 @@ import {
 } from "@solana/kit";
 
 export const CAPITAL_BINDING_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [176, 183, 79, 146, 172, 158, 6, 18],
+  [73, 122, 190, 75, 85, 174, 37, 138],
 );
 
 export function getCapitalBindingDiscriminatorBytes(): ReadonlyUint8Array {
@@ -51,13 +53,15 @@ export function getCapitalBindingDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type CapitalBinding = {
   discriminator: ReadonlyUint8Array;
-  market: Address;
+  schemaVersion: number;
+  venue: Address;
   capital: Address;
   registration: Address;
 };
 
 export type CapitalBindingArgs = {
-  market: Address | HasAddress;
+  schemaVersion: number;
+  venue: Address | HasAddress;
   capital: Address | HasAddress;
   registration: Address | HasAddress;
 };
@@ -67,7 +71,8 @@ export function getCapitalBindingEncoder(): FixedSizeEncoder<CapitalBindingArgs>
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["market", getAddressEncoder()],
+      ["schemaVersion", getU16Encoder()],
+      ["venue", getAddressEncoder()],
       ["capital", getAddressEncoder()],
       ["registration", getAddressEncoder()],
     ]),
@@ -79,7 +84,8 @@ export function getCapitalBindingEncoder(): FixedSizeEncoder<CapitalBindingArgs>
 export function getCapitalBindingDecoder(): FixedSizeDecoder<CapitalBinding> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["market", getAddressDecoder()],
+    ["schemaVersion", getU16Decoder()],
+    ["venue", getAddressDecoder()],
     ["capital", getAddressDecoder()],
     ["registration", getAddressDecoder()],
   ]);
@@ -171,5 +177,5 @@ export async function fetchAllMaybeCapitalBinding(
 }
 
 export function getCapitalBindingSize(): number {
-  return 104;
+  return 106;
 }

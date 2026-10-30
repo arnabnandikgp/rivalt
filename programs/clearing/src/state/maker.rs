@@ -1,9 +1,9 @@
 //! Persistent maker state and its serialized supporting types.
 use anchor_lang::prelude::*;
 
-#[account]
+#[account(discriminator = [231, 196, 106, 151, 199, 213, 13, 66])]
 #[derive(InitSpace)]
-pub struct MakerRegistration {
+pub struct LegacyMakerRegistration {
     pub version: u16,
     pub maker_id: u8,
     pub market: Pubkey,
@@ -25,9 +25,9 @@ pub struct MakerRegistration {
     pub bump: u8,
 }
 
-#[account]
+#[account(discriminator = [176, 183, 79, 146, 172, 158, 6, 18])]
 #[derive(InitSpace)]
-pub struct CapitalBinding {
+pub struct LegacyCapitalBinding {
     pub market: Pubkey,
     pub capital: Pubkey,
     pub registration: Pubkey,

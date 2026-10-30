@@ -30,7 +30,7 @@ try {
     assert.equal(result.status,'finalized',`${label}: ${result.error}`);
     const history=await transport.rpc.call('getTransaction',[intent.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:0}]);
     assert.equal(history.transaction[0],intent.wire);assert.equal(history.meta.err,null);
-    const routing=instructions.some(instruction=>sdk.hex(instruction.data?.slice(0,8)??[])===sdk.hex(sdk.EXECUTE_ACCOUNT_ROUTE_V3_DISCRIMINATOR));
+    const routing=instructions.some(instruction=>sdk.hex(instruction.data?.slice(0,8)??[])===sdk.hex(sdk.EXECUTE_ACCOUNT_ROUTE_DISCRIMINATOR));
     assert(history.meta.computeUnitsConsumed<=(routing?480_000:320_000),'20% measured compute headroom');
     outcomes.push({label,signature:intent.signature,bytes:Buffer.from(intent.wire,'base64').length,computeUnits:history.meta.computeUnitsConsumed,fee:result.fee});
     writeFileSync(`${directory}/wallet-finalized-${outcomes.length}.json`,json(history));
@@ -43,7 +43,7 @@ try {
     // restores Normal or relaxing the program's cadence/source requirements.
     for(let attempt=0;attempt<5;attempt++) {
       await transport.h.advance(2n);for(let feed=0;feed<6;feed++)await setup.publish(feed);
-      for(const marketIndex of [0,1])await transport.send('refresh source and common funding between SDK routes',[sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(marketIndex))]);
+      for(const marketIndex of [0,1])await transport.send('refresh source and common funding between SDK routes',[sdk.getSampleAccountOracleInstruction(setup.sampleAccounts(marketIndex))]);
       const snapshot=await client.snapshot([setup.cross],'confirmed');
       writeFileSync(`${directory}/latest-recovery-snapshot.json`,json(snapshot));
       if(snapshot.marketStates.every(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)==='Normal'))return;
@@ -81,7 +81,7 @@ try {
     else await wallet('SDK independently allocated owner route',quote.instructions,index===0?async()=>{
       // Advance only unrelated ETH discovery after the original has been signed.
       await transport.h.advance(2n);for(let feed=0;feed<6;feed++)await setup.publish(feed);
-      await transport.send('unrelated ETH sampler after signed BTC route',[sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(1))]);
+      await transport.send('unrelated ETH sampler after signed BTC route',[sdk.getSampleAccountOracleInstruction(setup.sampleAccounts(1))]);
     }:undefined);
     const after=await client.tradeSnapshot(setup.cross,vector.marketIndex),beforeRoot=snapshot.roots[setup.cross],afterRoot=after.roots[setup.cross];
     assert.equal(afterRoot.cash,beforeRoot.cash-vector.fee);assert.equal(after.custodyState.totalCash,snapshot.custodyState.totalCash-vector.fee);
@@ -116,8 +116,8 @@ try {
   // Real stale maker-consumption guard, without changing user authority/economics.
   await refresh();const snapshot=await client.tradeSnapshot(setup.cross,0);
   const quote=await client.route({snapshot,trader:setup.cross,marketIndex:0,side:0,lots:1n,maxFee:100n,allInLimit:100_000n},setup.owner.address);assert(quote);
-  const instruction=quote.instructions[1],data=sdk.getExecuteAccountRouteV3InstructionDataDecoder().decode(instruction.data!);
-  await setup.reject('SDK stale maker consumed prefix rejected',[{...instruction,data:sdk.getExecuteAccountRouteV3InstructionDataEncoder().encode({
+  const instruction=quote.instructions[1],data=sdk.getExecuteAccountRouteInstructionDataDecoder().decode(instruction.data!);
+  await setup.reject('SDK stale maker consumed prefix rejected',[{...instruction,data:sdk.getExecuteAccountRouteInstructionDataEncoder().encode({
     ...data,legs:data.legs.map(leg=>({...leg,expectedConsumed:leg.expectedConsumed+1n}))})}],[setup.owner],6112);
   await transport.finalize();await indexer.cycle();const final=await indexer.store.snapshot(),reconciliation=await indexer.reconcile();
   assert.equal(final.state.roots[setup.cross].cash,'1997586');assert.equal(final.state.roots[setup.cross].positions[0].lots,'0');assert(indexer.metrics.notifications>0);

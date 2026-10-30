@@ -65,7 +65,7 @@ try{
   const recover=t.recover;
   t.recover=async(price=60000n)=>{
     for(const [i,x]of makers.entries()){
-      const r=sdk.getMakerRegistrationDecoder().decode((await read(x.registration))!);
+      const r=sdk.getLegacyMakerRegistrationDecoder().decode((await read(x.registration))!);
       if(r.expirySlot-(await slot())<600n){await h.waitUntil(r.expirySlot);await send('renew actual maker epoch for long RPC race matrix',[(i===0?sdk.makerA:sdk.makerB).getPublishEpochInstruction({owner:x.owner,config:x.config,duration:3600n}),await sdk.getSyncMakerEpochInstructionAsync({...setup,...x})],[x.owner]);}
     }
     await recover(price);

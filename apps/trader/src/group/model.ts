@@ -1,5 +1,5 @@
 import type { Address } from '@solana/kit';
-import type { GroupSnapshot, MarginAccountV2, OrderTerms, StoredOrder } from '@rivalt/sdk';
+import type { GroupSnapshot, MarginAccountV2, OrderTerms, OrderRecord } from '@rivalt/sdk';
 import { units } from '../amount.js';
 export const GROUP_MARKETS = [
   { name: 'BTC', decimals: 6, lotsPerUnit: 1_000_000n },
@@ -61,7 +61,7 @@ export function groupOrderPrice(input: string, marketIndex: 0 | 1, trigger = fal
 export function groupOrderTerms(
   input: Omit<OrderTerms, 'generation'>,
   position: Pick<MarginAccountV2['positions'][number], 'lots' | 'generation'>,
-  previous?: StoredOrder,
+  previous?: OrderRecord,
 ): OrderTerms {
   const terms = { ...input, generation: input.reduceOnly ? position.generation : 0n };
   const filled = previous?.filled ?? 0n;

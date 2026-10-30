@@ -4,7 +4,7 @@ use crate::error::ClearingError;
 use crate::events::OrderChanged;
 use crate::instructions::{custody, oracle, routes};
 use crate::state::{
-    MarketState, OrderBook, Participant, ProtectiveGroup, StoredOrder, TestRouteState,
+    MarketState, LegacyOrderBook, Participant, ProtectiveGroup, OrderRecord, TestRouteState,
 };
 
 pub use crate::constants::orders::*;
@@ -169,7 +169,7 @@ fn sync(participant: &mut Participant) -> Result<()> {
     Ok(())
 }
 
-fn prune(book: &mut OrderBook, lots: i64, generation: u64, terms: u64, slot: u64) {
+fn prune(book: &mut LegacyOrderBook, lots: i64, generation: u64, terms: u64, slot: u64) {
     for order in &mut book.orders {
         if !order.active() {
             continue;
@@ -198,7 +198,7 @@ fn prune(book: &mut OrderBook, lots: i64, generation: u64, terms: u64, slot: u64
     }
 }
 
-pub fn eligible(book: &OrderBook, order: &StoredOrder, lots: i64) -> Result<u64> {
+pub fn eligible(book: &LegacyOrderBook, order: &OrderRecord, lots: i64) -> Result<u64> {
     let mut remaining_lots = order
         .lots
         .checked_sub(order.filled)
@@ -348,7 +348,7 @@ fn add(
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
     let id = participant.book.last_order_id;
-    participant.book.orders[index] = StoredOrder {
+    participant.book.orders[index] = OrderRecord {
         id,
         version: 1,
         state: OPEN,
@@ -365,7 +365,7 @@ fn add(
         generation: order_terms.generation,
         group_id,
         terms_epoch: market.terms_epoch,
-        ..StoredOrder::default()
+        ..OrderRecord::default()
     };
     sync(participant)?;
     Ok(id)
@@ -492,7 +492,7 @@ pub fn replace(
             .checked_add(1)
             .ok_or(ClearingError::Arithmetic)?;
     }
-    accounts.participant.book.orders[index] = StoredOrder {
+    accounts.participant.book.orders[index] = OrderRecord {
         version: old
             .version
             .checked_add(1)

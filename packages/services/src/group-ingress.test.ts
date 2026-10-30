@@ -7,7 +7,7 @@ import {groupUserAuthority} from './group-ingress.js';
 const payer=await Keypair.generate(), other=await Keypair.generate();
 const [group]=await sdk.findGroupPda({domain:new Uint8Array(32).fill(7)});
 const [btc]=await sdk.findGroupMarketPda(group,0),[eth]=await sdk.findGroupMarketPda(group,1);
-const [portfolio]=await sdk.findPortfolioPda({group,owner:payer.address,index:0});
+const [portfolio]=await sdk.findGroupPortfolioPda({group,owner:payer.address,index:0});
 const [margin]=await sdk.findMarginPda({portfolio,subaccountIndex:0});
 const [donor]=await sdk.findMarginPda({portfolio,subaccountIndex:1});
 const placeholder=address('11111111111111111111111111111111');

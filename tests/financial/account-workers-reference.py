@@ -47,7 +47,7 @@ def audit(report):
     for index,key in enumerate(report['roots']):
         root=actual[key];assert all(lots==virtual==0 for lots,virtual,_ in root['positions'])
         data=base64.b64decode(completed[key]);assert data[233:273]==bytes(40) and wire.integer(data,281)==0 and data[297:969]==bytes(672)
-        page=wire.account(completed,report['pages'][index//2],'ResolutionPageV3',3400);offset=53+(index%2)*1673
+        page=wire.account(completed,report['pages'][index//2],'ResolutionPage',3400);offset=53+(index%2)*1673
         assert wire.integer(page,offset+1664)==expected.cash[index] and page[offset+1672]==1
         for market in range(2):
             claim=wire.integer(page,offset+72+market*16,16,True)

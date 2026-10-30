@@ -122,7 +122,7 @@ try{
   writeFileSync(`${directory}/summary.json`,json({revision,finishedRevision,trackedDirty:startedDirty||dirty()||revision!==finishedRevision,
     scope:'P21A quote/direct routing/stored-order checkpoint; settlement/default-worker and full A26A pending',binding,wallet,intents,fills,
     orderBudget,reconciliation,freshReplay:true,ws:indexer.metrics.notifications,fixtureOutcomes:transport.checks.map(({history,...check})=>check)}));
-  console.log(json({stage:'group-trading-services-pass',walletTransactions:wallet.length,storedOrderFills:1,reconciliation}));
+  console.log(json({stage:'group-trading-services-pass',walletTransactions:wallet.length,orderRecordFills:1,reconciliation}));
 }finally{
   for(const child of children)await stop(child).catch(()=>child.kill('SIGKILL'));
   await app.close();await replay?.close();await indexer.close();await runtime.close();

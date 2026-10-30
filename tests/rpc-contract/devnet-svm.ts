@@ -60,7 +60,7 @@ let r = await risk();
 assert.equal(r.oracle.status, atomicOnly && !sourceAgeOnly ? 1 : 2);
 assert.equal(r.referencePrice, 81_649_327_449n / 999_839n);
 assert.deepEqual(r.oracle.sourceSequences.slice(0, 2), [1_792_752_688n, 1_792_752_688n]);
-const m = await market(), p = await participant(), x = a.makers[0], reg = sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!);
+const m = await market(), p = await participant(), x = a.makers[0], reg = sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(x.registration))!);
 const gross = r.referencePrice + 10n; // Independent one-lot A vector, zero inventory/prefix.
 const fee = (gross + 4_999n) / 5_000n;
 const route = await sdk.getExecuteRouteInstructionAsync({ ...a, owner: a.traderOwner,

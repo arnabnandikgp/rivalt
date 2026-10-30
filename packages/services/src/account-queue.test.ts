@@ -8,7 +8,7 @@ import {Queue} from './queue.js';
 async function fixture(changed=false) {
   const fixture=await accountFixture(),margin=fixture.margins[0];
   const original=Buffer.from(fixture.accounts.get(margin).data[0],'base64');
-  const root=sdk.getMarginAccountV3Decoder().decode(original),bytes=Buffer.from(sdk.getMarginAccountV3Encoder().encode({...root,stateVersion:changed?10n:9n}));
+  const root=sdk.getMarginAccountDecoder().decode(original),bytes=Buffer.from(sdk.getMarginAccountEncoder().encode({...root,stateVersion:changed?10n:9n}));
   const calls:{sql:string;params:any[]}[]=[],rpcCalls:{method:string;params:any[]}[]=[];
   const intent={request_id:'order:1',status:'pending',signature:'original-signature',wire:'original-committed-wire',blockhash:'original-blockhash',
     budget:'account-orders',authority:{kind:'accountStateVersion',venue:fixture.config.venue,account:margin,value:'9'}};

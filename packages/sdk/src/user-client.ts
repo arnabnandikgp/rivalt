@@ -101,7 +101,7 @@ export class UserClient extends WalletClient {
     const market = this.config.market;
     const [[canonical], [registry], [routeState], [guard], [vault], [resolution], [eventAuthority]] =
       await Promise.all([
-        c.findMarketPda(this.options),
+        c.findLegacyMarketPda(this.options),
         c.findRegistryPda({ market }, this.options),
         c.findRouteStatePda({ market }, this.options),
         c.findGuardPda({ market }, this.options),
@@ -148,7 +148,7 @@ export class UserClient extends WalletClient {
             {
               registration,
               r: decodeAccount(first.value[i + 1], this.deployment.clearing, (b) =>
-                c.getMakerRegistrationDecoder().decode(b),
+                c.getLegacyMakerRegistrationDecoder().decode(b),
               ),
             },
           ]
@@ -246,7 +246,7 @@ export class UserClient extends WalletClient {
       slot = rpcInteger(response.context.slot);
     const makers = await Promise.all(
       initialMakers.map(async (x) => {
-        const r = c.getMakerRegistrationDecoder().decode(raw(x.registration)),
+        const r = c.getLegacyMakerRegistrationDecoder().decode(raw(x.registration)),
           program = r.makerId === 0 ? this.deployment.makerA : this.deployment.makerB;
         requireValue(
           r.makerId === registrations.indexOf(x.registration) &&

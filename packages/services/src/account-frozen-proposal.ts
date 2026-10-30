@@ -11,7 +11,7 @@ import {proposeAccountRates,type AccountRateInputs} from './account-rate-proposa
  * The service's environment additionally authenticates genesis/anchor/artifacts. */
 export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:3|4=3) {
   assert(expectedProfile===3||expectedProfile===4,'Unsupported frozen proposal profile.');
-  const component=(name:Parameters<typeof sdk.findVenueComponentV3Pda>[1])=>sdk.findVenueComponentV3Pda(venue,name);
+  const component=(name:Parameters<typeof sdk.deriveVenueComponent>[1])=>sdk.deriveVenueComponent(venue,name);
   const [[resolution,resolutionBump],[safety,safetyBump],[registry,registryBump]]=await Promise.all([component('resolution'),component('safety'),component('registry')]);
   const decode=<Value>(account:any,discriminator:ReadonlyUint8Array,decoder:Decoder<Value>&{fixedSize?:number})=>{
     assert(account?.owner===sdk.CLEARING_PROGRAM_ADDRESS&&account.data?.[1]==='base64','Foreign/missing frozen proposal dependency.');
@@ -20,17 +20,17 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
     return decoder.decode(bytes);
   };
   const discovery=await rpc.call('getAccountInfo',[resolution,{encoding:'base64',commitment:'confirmed'}]);
-  const discovered=decode(discovery.value,sdk.RESOLUTION_V3_DISCRIMINATOR,sdk.getResolutionV3Decoder());
+  const discovered=decode(discovery.value,sdk.RESOLUTION_DISCRIMINATOR,sdk.getResolutionDecoder());
   assert(discovered.schemaVersion===3&&discovered.venue===venue&&discovered.epoch===epoch&&discovered.stage===4&&
     discovered.count>0&&discovered.count<=64,'No complete frozen cohort awaiting proposal.');
-  const pages=await Promise.all(Array.from({length:Math.ceil(discovered.count/2)},(_,index)=>sdk.findResolutionPageV3Pda(venue,index)));
+  const pages=await Promise.all(Array.from({length:Math.ceil(discovered.count/2)},(_,index)=>sdk.findResolutionPagePda(venue,index)));
   const keys=[venue,safety,registry,resolution,...pages.map(([key])=>key)];
   const response=await rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'confirmed',minContextSlot:integer(discovery.context.slot)}]);
   assert(response.value?.length===keys.length&&integer(response.context.slot)>=integer(discovery.context.slot),'Incomplete frozen proposal snapshot.');
-  const venueState=decode(response.value[0],sdk.VENUE_V3_DISCRIMINATOR,sdk.getVenueV3Decoder());
-  const safetyState=decode(response.value[1],sdk.SAFETY_V3_DISCRIMINATOR,sdk.getSafetyV3Decoder());
-  const registryState=decode(response.value[2],sdk.VENUE_REGISTRY_V3_DISCRIMINATOR,sdk.getVenueRegistryV3Decoder());
-  const header=decode(response.value[3],sdk.RESOLUTION_V3_DISCRIMINATOR,sdk.getResolutionV3Decoder());
+  const venueState=decode(response.value[0],sdk.VENUE_DISCRIMINATOR,sdk.getVenueDecoder());
+  const safetyState=decode(response.value[1],sdk.VENUE_SAFETY_DISCRIMINATOR,sdk.getVenueSafetyDecoder());
+  const registryState=decode(response.value[2],sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder());
+  const header=decode(response.value[3],sdk.RESOLUTION_DISCRIMINATOR,sdk.getResolutionDecoder());
   const [canonicalVenue,venueBump]=await sdk.deriveAccountVenue(Uint8Array.from(venueState.domain));
   assert(canonicalVenue===venue&&venueState.bump===venueBump&&venueState.schemaVersion===3&&venueState.profileVersion===expectedProfile&&
     venueState.marketCount===2&&venueState.insuranceFeeShareBps===2500,'Foreign proposal venue/profile.');
@@ -41,11 +41,11 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   assert(registryState.schemaVersion===3&&registryState.venue===venue&&registryState.bump===registryBump&&registryState.count===header.count&&
     registryState.members.length===header.count&&new Set(registryState.members).size===header.count&&
     registryState.members.every(member=>member!=='11111111111111111111111111111111'),'Incomplete or duplicate frozen registry.');
-  const registryHash=createHash('sha256').update(sdk.getVenueRegistryV3Encoder().encode(registryState).slice(8)).digest();
+  const registryHash=createHash('sha256').update(sdk.getVenueRegistryEncoder().encode(registryState).slice(8)).digest();
   assert(sdk.hex(registryHash)===sdk.hex(header.registryHash),'Frozen registry hash mismatch.');
   const rows:AccountRateInputs['rows']=[];
   for(const [index,[,bump]] of pages.entries()) {
-    const page=decode(response.value[4+index],sdk.RESOLUTION_PAGE_V3_DISCRIMINATOR,sdk.getResolutionPageV3Decoder());
+    const page=decode(response.value[4+index],sdk.RESOLUTION_PAGE_DISCRIMINATOR,sdk.getResolutionPageDecoder());
     const count=Math.min(2,header.count-2*index);
     assert(page.schemaVersion===3&&page.venue===venue&&page.bump===bump&&page.epoch===epoch&&page.pageIndex===index&&page.rowCount===count,
       'Incomplete or foreign frozen page.');

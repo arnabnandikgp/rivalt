@@ -3,18 +3,18 @@ use super::super::group_trading::routes::{self as candidates, GroupOrderAction};
 use super::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct AccountGuardV3 {
+pub struct AccountGuard {
     pub safety_epoch: u64,
     pub venue_terms_epoch: u64,
     pub nonce: u64,
     pub state_version: u64,
 }
-impl AccountGuardV3 {
+impl AccountGuard {
     pub(crate) fn check(
         &self,
-        venue: &VenueV3,
-        safety: &SafetyV3,
-        root: &MarginAccountV3,
+        venue: &Venue,
+        safety: &VenueSafety,
+        root: &MarginAccount,
     ) -> Result<()> {
         require!(
             self.safety_epoch == safety.epoch
@@ -29,41 +29,41 @@ impl AccountGuardV3 {
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct ManageAccountOrderV3<'info> {
+pub struct ManageAccountOrder<'info> {
     pub actor: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[0]], bump = btc.bump, has_one = venue,
         constraint = venue.markets[0] == btc.key() @ ClearingError::Profile)]
-    pub btc: Box<Account<'info, MarketV3>>,
+    pub btc: Box<Account<'info, Market>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[1]], bump = eth.bump, has_one = venue,
         constraint = venue.markets[1] == eth.key() @ ClearingError::Profile)]
-    pub eth: Box<Account<'info, MarketV3>>,
+    pub eth: Box<Account<'info, Market>>,
     #[account(mut, seeds = [b"margin-v3", margin.portfolio.as_ref(), &margin.subaccount_index.to_le_bytes()], bump = margin.bump, has_one = venue)]
-    pub margin: Box<Account<'info, MarginAccountV3>>,
+    pub margin: Box<Account<'info, MarginAccount>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct SetAccountDelegateV3<'info> {
+pub struct SetAccountDelegate<'info> {
     pub owner: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"margin-v3", margin.portfolio.as_ref(), &margin.subaccount_index.to_le_bytes()], bump = margin.bump, has_one = venue, has_one = owner)]
-    pub margin: Box<Account<'info, MarginAccountV3>>,
+    pub margin: Box<Account<'info, MarginAccount>>,
 }
 
 pub fn manage(
-    ctx: Context<ManageAccountOrderV3>,
-    guard: AccountGuardV3,
+    ctx: Context<ManageAccountOrder>,
+    guard: AccountGuard,
     market_index: u8,
     operation: GroupOrderAction,
 ) -> Result<()> {
@@ -105,16 +105,16 @@ pub fn manage(
 }
 
 #[inline(never)]
-fn emit_order(accounts: &ManageAccountOrderV3, slot: u64) -> Result<()> {
-    let emitted = Box::new(crate::events::AccountOrderChangedV3 {
+fn emit_order(accounts: &ManageAccountOrder, slot: u64) -> Result<()> {
+    let emitted = Box::new(crate::events::AccountOrderChanged {
         venue: accounts.venue.key(),
         sequence: accounts.custody.sequence,
         slot,
         margin: accounts.margin.key(),
-        state: crate::events::MarginAccountSnapshotV3::from(&**accounts.margin),
+        state: crate::events::MarginAccountSnapshot::from(&**accounts.margin),
         markets: [
-            crate::events::MarketSnapshotV3::from(&**accounts.btc),
-            crate::events::MarketSnapshotV3::from(&**accounts.eth),
+            crate::events::MarketSnapshot::from(&**accounts.btc),
+            crate::events::MarketSnapshot::from(&**accounts.eth),
         ],
         liability_versions: accounts.custody.liability_versions,
     });
@@ -122,8 +122,8 @@ fn emit_order(accounts: &ManageAccountOrderV3, slot: u64) -> Result<()> {
 }
 
 pub fn delegate(
-    ctx: Context<SetAccountDelegateV3>,
-    guard: AccountGuardV3,
+    ctx: Context<SetAccountDelegate>,
+    guard: AccountGuard,
     delegate: Pubkey,
     expiry_slot: u64,
 ) -> Result<()> {
@@ -151,12 +151,12 @@ pub fn delegate(
     commit_root(&mut accounts.margin, &next)?;
     invalidate(&mut accounts.custody, previous, accounts.margin.positions)?;
     increment(&mut accounts.custody.sequence)?;
-    let emitted = crate::events::AccountAuthorityChangedV3 {
+    let emitted = crate::events::AccountAuthorityChanged {
         venue: accounts.venue.key(),
         sequence: accounts.custody.sequence,
         slot: Clock::get()?.slot,
         margin: accounts.margin.key(),
-        state: crate::events::MarginAccountSnapshotV3::from(&**accounts.margin),
+        state: crate::events::MarginAccountSnapshot::from(&**accounts.margin),
         liability_versions: accounts.custody.liability_versions,
     };
     crate::event_cpi::emit(&emitted, accounts.event_authority.to_account_info())

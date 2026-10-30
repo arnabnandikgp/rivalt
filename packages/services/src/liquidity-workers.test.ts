@@ -32,7 +32,7 @@ it('reprices with strict epochs and a maker-owned sequence proof without repleni
   const [id,instructions,,,authority]=test.queued[0];expect(id).toBe('maker:0:2:3:9');
   expect(authority).toEqual({kind:'liquidityPriceSequence',venue:test.snapshot.venue,account:test.maker.registrationState.price,
     registration:test.maker.registration,pricingProgram:test.maker.registrationState.pricingProgram,value:'9'});
-  expect(sdk.makerA.parseRepriceV4Instruction(instructions[0]).data).toMatchObject({expectedControl:3n,expectedSequence:9n,anchor:test.snapshot.marketStates[0].referencePrice});
+  expect(sdk.makerA.parseRepriceInstruction(instructions[0]).data).toMatchObject({expectedControl:3n,expectedSequence:9n,anchor:test.snapshot.marketStates[0].referencePrice});
   expect(instructions).toHaveLength(1);
 });
 it('does not replace a pending original and respects updater expiry at the boundary',async()=>{

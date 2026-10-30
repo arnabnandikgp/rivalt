@@ -135,7 +135,7 @@ const h: CanonicalHarness = {
     assert.equal(history.meta.returnData.programId, instruction.programAddress);
     const raw = Buffer.from(history.meta.returnData.data[0], 'base64');
     assert.equal(raw.length, 204);
-    const quote = sdk.makerA.getQuoteResponseV4Decoder().decode(raw);
+    const quote = sdk.makerA.getMakerQuoteResponseDecoder().decode(raw);
     assert.equal(quote.gross, expected, label);
   },
 };

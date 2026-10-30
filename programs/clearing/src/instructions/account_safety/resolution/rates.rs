@@ -8,13 +8,13 @@ const CHUNK_BYTES: usize = 512;
 
 // Verify register contract: [0,1] incoming flows, [2] two u128 right slopes,
 // [3] L*factor, [4..8] scratch. The header owns D and both proposed numerators.
-fn slopes(work: &ResolutionWorkV3) -> [u128; 2] {
+fn slopes(work: &ResolutionWork) -> [u128; 2] {
     core::array::from_fn(|index| {
         u128::from(work.registers[2].limbs[2 * index])
             | (u128::from(work.registers[2].limbs[2 * index + 1]) << 64)
     })
 }
-fn add_slope(work: &mut ResolutionWorkV3, index: usize, value: u128) -> Result<()> {
+fn add_slope(work: &mut ResolutionWork, index: usize, value: u128) -> Result<()> {
     let total = slopes(work)[index]
         .checked_add(value)
         .ok_or(ClearingError::Arithmetic)?;
@@ -24,7 +24,7 @@ fn add_slope(work: &mut ResolutionWorkV3, index: usize, value: u128) -> Result<(
     Ok(())
 }
 
-fn reset(header: &mut ResolutionV3, work: &mut ResolutionWorkV3) {
+fn reset(header: &mut Resolution, work: &mut ResolutionWork) {
     header.stage = RATE_PROPOSAL;
     header.cursor = 0;
     header.proposal_uploaded = 0;
@@ -41,8 +41,8 @@ fn reset(header: &mut ResolutionV3, work: &mut ResolutionWorkV3) {
 /// Upload aligned little-endian limbs; restarting offset zero is allowed only
 /// before verification. Hash and evaluation bind every later chunk.
 pub(super) fn chunk(
-    header: &mut ResolutionV3,
-    work: &mut ResolutionWorkV3,
+    header: &mut Resolution,
+    work: &mut ResolutionWork,
     evaluation: u8,
     expected_hash: [u8; 32],
     offset: u16,
@@ -99,7 +99,7 @@ pub(super) fn chunk(
     Ok(0)
 }
 
-pub(super) fn prepare(header: &mut ResolutionV3, work: &mut ResolutionWorkV3) -> Result<()> {
+pub(super) fn prepare(header: &mut Resolution, work: &mut ResolutionWork) -> Result<()> {
     require!(
         header.rate_factor != [0; 3] && header.rate_factor[2] >> 58 == 0,
         ClearingError::Resolution
@@ -141,9 +141,9 @@ pub(super) fn prepare(header: &mut ResolutionV3, work: &mut ResolutionWorkV3) ->
 }
 
 pub(super) fn verify_row(
-    header: &ResolutionV3,
-    work: &mut ResolutionWorkV3,
-    row: &mut ResolutionRowV3,
+    header: &Resolution,
+    work: &mut ResolutionWork,
+    row: &mut ResolutionRow,
 ) -> Result<()> {
     let model = Row {
         cash: row.cash_before,
@@ -182,7 +182,7 @@ pub(super) fn verify_row(
     Ok(())
 }
 
-fn verify_complete(header: &ResolutionV3, work: &mut ResolutionWorkV3) -> Result<[(u64, bool); 2]> {
+fn verify_complete(header: &Resolution, work: &mut ResolutionWork) -> Result<[(u64, bool); 2]> {
     require!(
         header.cursor == header.count && header.evaluation < 3,
         ClearingError::Resolution
@@ -225,7 +225,7 @@ fn verify_complete(header: &ResolutionV3, work: &mut ResolutionWorkV3) -> Result
 }
 
 /// Result: 1 rejected/reset, 2 prescribed insurance clipping, 3 verified plan.
-pub(super) fn finish(header: &mut ResolutionV3, work: &mut ResolutionWorkV3) -> u8 {
+pub(super) fn finish(header: &mut Resolution, work: &mut ResolutionWork) -> u8 {
     let Ok(uses) = verify_complete(header, work) else {
         reset(header, work);
         return 1;
@@ -252,7 +252,7 @@ pub(super) fn finish(header: &mut ResolutionV3, work: &mut ResolutionWorkV3) -> 
 
 /// Final equations/insurance floors are separate from even the last row. A
 /// maximum-width debtor must not consume the same transaction's final budget.
-pub fn finalize(ctx: Context<ProposeAccountResolutionV3>, epoch: u64) -> Result<()> {
+pub fn finalize(ctx: Context<ProposeAccountResolution>, epoch: u64) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     frozen(
@@ -275,7 +275,7 @@ pub fn finalize(ctx: Context<ProposeAccountResolutionV3>, epoch: u64) -> Result<
     let outcome = finish(&mut accounts.resolution, &mut accounts.work);
     increment(&mut accounts.identity.custody.sequence)?;
     crate::event_cpi::emit(
-        &crate::events::AccountResolutionRatesV3 {
+        &crate::events::AccountResolutionRates {
             venue: accounts.identity.venue.key(),
             sequence: accounts.identity.custody.sequence,
             slot: Clock::get()?.slot,
@@ -293,7 +293,7 @@ pub fn finalize(ctx: Context<ProposeAccountResolutionV3>, epoch: u64) -> Result<
 }
 
 pub fn upload(
-    ctx: Context<ProposeAccountResolutionV3>,
+    ctx: Context<ProposeAccountResolution>,
     epoch: u64,
     evaluation: u8,
     proposal_hash: [u8; 32],
@@ -322,7 +322,7 @@ pub fn upload(
     )?;
     increment(&mut accounts.identity.custody.sequence)?;
     crate::event_cpi::emit(
-        &crate::events::AccountResolutionProposalV3 {
+        &crate::events::AccountResolutionProposal {
             venue: accounts.identity.venue.key(),
             sequence: accounts.identity.custody.sequence,
             slot: Clock::get()?.slot,

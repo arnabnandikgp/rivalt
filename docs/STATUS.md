@@ -43,20 +43,28 @@ ready and remains open. This following status update does not alter those contra
 No application, financial, SBF, RPC/WS/PostgreSQL, browser, load or endurance suite
 was rerun because this phase changes Markdown only.
 
-P36 has captured a 4 KiB wire-contract fixture from exact parent `72187bc`.
-Independent SHA-256 checks match every original account/event/instruction
-discriminator. Eleven focused guard tests cover permitted source renaming and
-rejection of layout, enum, meta, seed, discriminator, payload and error changes.
-The guard currently covers all three IDLs, including older profiles until P37
-retires them deliberately. This is preparation, not proof of renamed binaries.
+P36 has renamed current records, accounts, contexts, events, entrypoints and
+coupled generated/handwritten consumers. Shared identity/position/order records
+now live outside historical state modules. Current names pin the original
+account/event/instruction discriminator bytes; numeric schemas and seeds remain.
+Colliding older definitions have explicit compatibility names until P37 retirement.
+Persisted journal/API event tags remain unchanged.
+
+On the renamed working tree: all three Anchor IDLs build; the frozen 4 KiB ABI
+manifest matches parent `72187bc`; 11 mutation/compatibility guard checks, 9 native
+state/layout checks, 66 targeted SDK/indexer/UI tests and workspace typecheck pass.
+Generated-output parity and documentation link/path checks pass. Initial name/PDA
+collisions were corrected before these results. No financial arithmetic changed.
+Fresh SBF, isolated legacy Anchor raw parity, submitted route/publisher probes and
+resource measurements remain required before P36 can enter Review. Broad inherited
+regression is assigned to scoped CI, not claimed as run locally.
 
 With explicit user approval, only the five older shared Solana compiler caches
 v1.41/v1.43/v1.48/v1.50/v1.51 were deleted; pinned v1.52 and all Rust installations,
 project data and evidence remain. Free space afterwards: 6.4 GiB.
 
-Next exact action: extract shared account records, rename current definitions and
-entrypoints with explicit old discriminators, regenerate clients and check the
-frozen ABI before scoped compiled/runtime qualification.
+Next exact action: commit the renamed source/clients, rebuild the explicit local
+artifacts and qualify raw codecs plus actual route/publisher RPC resource bounds.
 
 ## Deployment and operational limits
 

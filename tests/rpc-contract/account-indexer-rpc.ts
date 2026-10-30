@@ -45,12 +45,12 @@ try {
   const legacy=new GroupStore(config!.databaseUrl,config!.runId);
   try{await assert.rejects(()=>legacy.snapshot(),/Incompatible projection schema/);}finally{await legacy.close();}
   const before=await indexer.store.snapshot(),owner=await fixtureKey('p24-trader');
-  const root=sdk.getMarginAccountV3Decoder().decode((await transport.h.read(result.roots[0]))!);
-  const safety=sdk.getSafetyV3Decoder().decode((await transport.h.read(result.safety))!);
-  const currentVenue=sdk.getVenueV3Decoder().decode((await transport.h.read(venue))!);
+  const root=sdk.getMarginAccountDecoder().decode((await transport.h.read(result.roots[0]))!);
+  const safety=sdk.getVenueSafetyDecoder().decode((await transport.h.read(result.safety))!);
+  const currentVenue=sdk.getVenueDecoder().decode((await transport.h.read(venue))!);
   assert(root.cash>1n);
   const deployment=await addresses();
-  const withdrawal=sdk.getWithdrawFundedAccountV3Instruction({venue,custody:result.custody,safety:result.safety,vault:result.vault,
+  const withdrawal=sdk.getWithdrawFundedAccountInstruction({venue,custody:result.custody,safety:result.safety,vault:result.vault,
     btc:result.markets[0],eth:result.markets[1],btcLedger:result.ledgers[0],ethLedger:result.ledgers[1],
     owner,margin:result.roots[0],quoteMint:result.mint,userToken:result.userTokens[0],eventAuthority:deployment.eventAuthority,program:deployment.program,
     amount:1n,guard:{safetyEpoch:safety.epoch,venueTermsEpoch:currentVenue.termsEpoch,nonce:root.nonce,stateVersion:root.stateVersion}});

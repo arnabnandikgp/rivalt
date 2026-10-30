@@ -30,7 +30,7 @@ export async function repriceLiquidity(runtime:AccountRuntime,marketIndex:0|1,in
     return {status:'idle',reason:'maker-reprice-not-due'};
   const module=maker.registrationState.pricingProgram===sdk.makerA.MAKER_A_PROGRAM_ADDRESS?sdk.makerA:sdk.makerB;
   const [eventAuthority]=await getProgramDerivedAddress({programAddress:maker.registrationState.pricingProgram,seeds:[Buffer.from('__event_authority')]});
-  const instruction=module.getRepriceV4Instruction({actor:key,config:maker.registrationState.config,price:maker.registrationState.price,
+  const instruction=module.getRepriceInstruction({actor:key,config:maker.registrationState.config,price:maker.registrationState.price,
     eventAuthority,program:maker.registrationState.pricingProgram,expectedControl:maker.config.controlEpoch,expectedSequence:maker.price.sequence,anchor:market.referencePrice});
   await runtime.enqueue(`maker:${marketIndex}:${instance}:${maker.config.controlEpoch}:${maker.price.sequence}`,[instruction],key,budget,
     {kind:'liquidityPriceSequence',venue:snapshot.venue,account:maker.registrationState.price,registration:maker.registration,
@@ -48,7 +48,7 @@ export async function publishLiquidityFunding(runtime:AccountRuntime,marketIndex
   if(input.configurationState.publisher!==key.address)throw new Error('Restricted funding publisher signer mismatch');
   if(input.report.observedTime-input.marketState.oracle.sampledAt<intervalSeconds)return {status:'idle',reason:'report-not-due'};
   const [eventAuthority]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('__event_authority')]});
-  const instruction=sdk.getPublishFundingReportV4Instruction({...input.instructionAccounts,publisher:key,eventAuthority,
+  const instruction=sdk.getPublishFundingReportInstruction({...input.instructionAccounts,publisher:key,eventAuthority,
     program:sdk.CLEARING_PROGRAM_ADDRESS,report:input.report});
   const original=await runtime.enqueue(`funding:${marketIndex}:${input.report.authorityEpoch}:${input.report.sequence}`,[instruction],key,budget,
     {kind:'accountObservation',venue:identity.venue,account:input.report.market,value:input.marketState.observationSequence.toString()},false,

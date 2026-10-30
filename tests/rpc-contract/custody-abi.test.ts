@@ -18,7 +18,7 @@ describe('custody IDL legacy/generated parity', () => {
     const systemProgram = address('11111111111111111111111111111111');
     const amount = '9007199254740993';
     const input = { instructions: [
-      { name: 'initializeMarket', args: [{ kind: 'bytes', value: domain }], accounts: { authority: payer.address, clearingProgram: a.program, programData: a.programData, quoteMint: mint.address, market: a.market, registry: a.registry, vault: a.vault, tokenProgram: TOKEN_PROGRAM_ADDRESS, systemProgram, ...event } },
+      { name: 'initializeLegacyMarket', args: [{ kind: 'bytes', value: domain }], accounts: { authority: payer.address, clearingProgram: a.program, programData: a.programData, quoteMint: mint.address, market: a.market, registry: a.registry, vault: a.vault, tokenProgram: TOKEN_PROGRAM_ADDRESS, systemProgram, ...event } },
       { name: 'registerParticipant', args: [], accounts: { owner: payer.address, market: a.market, registry: a.registry, participant, systemProgram, ...event } },
       ...['deposit', 'withdraw'].map(name => ({ name, args: [{ kind: 'u64', value: amount }], accounts: cash })),
       { name: 'fundInsurance', args: [{ kind: 'u64', value: amount }], accounts: { ...admin, quoteMint: mint.address, source: token.address, tokenProgram: TOKEN_PROGRAM_ADDRESS } },
@@ -28,7 +28,7 @@ describe('custody IDL legacy/generated parity', () => {
     writeFileSync('.local/custody-conformance-input.json', JSON.stringify(input));
     const legacy = JSON.parse(execFileSync(process.execPath, ['tests/anchor-conformance/custody.cjs', '.local/custody-conformance-input.json'], { encoding: 'utf8' }));
     const modern = [
-      await sdk.getInitializeMarketInstructionAsync({ ...a, authority: payer, quoteMint: mint.address, domain: Uint8Array.from(domain) }),
+      await sdk.getInitializeLegacyMarketInstructionAsync({ ...a, authority: payer, quoteMint: mint.address, domain: Uint8Array.from(domain) }),
       await sdk.getRegisterParticipantInstructionAsync({ ...a, owner: payer }),
       await sdk.getDepositInstructionAsync({ ...cash, owner: payer, amount: BigInt(amount) }),
       await sdk.getWithdrawInstructionAsync({ ...cash, owner: payer, amount: BigInt(amount) }),

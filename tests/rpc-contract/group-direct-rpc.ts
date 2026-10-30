@@ -54,7 +54,7 @@ try{
   await signed('SDK create owner portfolio',[await client.createPortfolio(fixture.owner.address,2)]);
   await signed('SDK register cross account',[await client.register(fixture.owner.address,2,0)]);
   await signed('SDK register isolated ETH account',[await client.register(fixture.owner.address,2,1,1)]);
-  const [portfolio]=await sdk.findPortfolioPda({group:fixture.group,owner:fixture.owner.address,index:2});
+  const [portfolio]=await sdk.findGroupPortfolioPda({group:fixture.group,owner:fixture.owner.address,index:2});
   const [cross]=await sdk.findMarginPda({portfolio,subaccountIndex:0}),[isolated]=await sdk.findMarginPda({portfolio,subaccountIndex:1});
   for(const margin of [cross,isolated])await signed('SDK deposit funded cash',[await client.deposit(await client.snapshot(),fixture.owner.address,margin,token,50_000n)]);
   // Fixture publishers provide real signed sources; user actions still use the direct SDK.

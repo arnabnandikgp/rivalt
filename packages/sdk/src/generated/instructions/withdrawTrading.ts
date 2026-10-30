@@ -45,7 +45,7 @@ import {
 import {
   findCapitalPda,
   findGuardPda,
-  findMarketPda,
+  findLegacyMarketPda,
   findRouteStatePda,
   findVaultPda,
 } from "../pdas/index.js";
@@ -334,7 +334,7 @@ export async function getWithdrawTradingInstructionAsync<
 
   // Resolve default values.
   if (!accounts.market.value) {
-    accounts.market.value = await findMarketPda({ programAddress });
+    accounts.market.value = await findLegacyMarketPda({ programAddress });
   }
   if (!accounts.participant.value) {
     accounts.participant.value = await findCapitalPda(

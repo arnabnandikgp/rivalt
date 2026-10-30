@@ -14,19 +14,19 @@ pub const REQUEST_BYTES: usize = 156;
 pub const RESPONSE_BYTES: usize = 204;
 
 mod ladder;
-pub use ladder::QuoteLadderV4;
+pub use ladder::QuoteLadder;
 
 #[derive(
     AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Copy, Debug, Default, PartialEq, Eq,
 )]
-pub struct RegionV4 {
+pub struct PriceRegion {
     pub end_lots: u64,
     pub offset: u64,
     pub slope: u64,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Debug, Default, PartialEq, Eq)]
-pub struct ShapeV4 {
+pub struct LiquidityShape {
     /// 0 disabled, 1 enabled, 3 enabled and maker-inventory reduce-only.
     pub mode: u8,
     pub ttl_slots: u16,
@@ -37,11 +37,11 @@ pub struct ShapeV4 {
     pub short_cap: u64,
     pub bid_count: u8,
     pub ask_count: u8,
-    pub bids: [RegionV4; MAX_REGIONS],
-    pub asks: [RegionV4; MAX_REGIONS],
+    pub bids: [PriceRegion; MAX_REGIONS],
+    pub asks: [PriceRegion; MAX_REGIONS],
 }
 
-impl ShapeV4 {
+impl LiquidityShape {
     pub fn validate(&self) -> QuoteResult<()> {
         if !matches!(self.mode, 0 | 1 | 3)
             || !(1..=MAX_TTL_SLOTS).contains(&self.ttl_slots)
@@ -58,7 +58,7 @@ impl ShapeV4 {
         validate_regions(&self.asks, self.ask_count)
     }
 
-    fn side_regions(&self, side: u8) -> QuoteResult<&[RegionV4]> {
+    fn side_regions(&self, side: u8) -> QuoteResult<&[PriceRegion]> {
         let (regions, count) = match side {
             0 => (&self.asks, self.ask_count),
             1 => (&self.bids, self.bid_count),
@@ -68,7 +68,7 @@ impl ShapeV4 {
     }
 }
 
-fn validate_regions(regions: &[RegionV4; MAX_REGIONS], count: u8) -> QuoteResult<()> {
+fn validate_regions(regions: &[PriceRegion; MAX_REGIONS], count: u8) -> QuoteResult<()> {
     if usize::from(count) > MAX_REGIONS {
         return Err(QuoteError::Bounds);
     }
@@ -76,7 +76,7 @@ fn validate_regions(regions: &[RegionV4; MAX_REGIONS], count: u8) -> QuoteResult
     let mut previous_offset = 0;
     for (index, region) in regions.iter().enumerate() {
         if index >= usize::from(count) {
-            if *region != RegionV4::default() {
+            if *region != PriceRegion::default() {
                 return Err(QuoteError::Bounds);
             }
             continue;
@@ -107,7 +107,7 @@ fn validate_regions(regions: &[RegionV4; MAX_REGIONS], count: u8) -> QuoteResult
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Debug, PartialEq, Eq)]
-pub struct CurveStateV4 {
+pub struct CurveState {
     pub schema_version: u16,
     pub venue: Pubkey,
     pub market: Pubkey,
@@ -121,12 +121,12 @@ pub struct CurveStateV4 {
     pub domain: [u8; 32],
     pub instance: u8,
     pub capability: u16,
-    pub shape: ShapeV4,
+    pub shape: LiquidityShape,
     pub bump: u8,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Debug, PartialEq, Eq)]
-pub struct PriceStateV4 {
+pub struct PriceState {
     pub schema_version: u16,
     pub config: Pubkey,
     pub control_epoch: u64,
@@ -139,14 +139,14 @@ pub struct PriceStateV4 {
 
 /// Borsh discriminants 0..3, with no extra vector-length prefix on the payload.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
-pub enum CurveControlV4 {
-    Shape(ShapeV4),
+pub enum CurveControl {
+    Shape(LiquidityShape),
     Updater { updater: Pubkey, expiry_slot: u64 },
     Mode { mode: u8 },
     Invalidate,
 }
 
-impl CurveControlV4 {
+impl CurveControl {
     pub fn operation(&self) -> u8 {
         match self {
             Self::Shape(_) => 0,
@@ -160,12 +160,12 @@ impl CurveControlV4 {
 /// Instruction caller must authenticate the dedicated clearing controller signer.
 /// Never receives or mutates clearing consumption, capital, cash or funding state.
 pub fn control(
-    config: &CurveStateV4,
+    config: &CurveState,
     expected_control: u64,
     expected_shape: u64,
-    action: CurveControlV4,
+    action: CurveControl,
     slot: u64,
-) -> QuoteResult<CurveStateV4> {
+) -> QuoteResult<CurveState> {
     if config.schema_version != VERSION
         || config.capability != CAPABILITY
         || config.control_epoch == 0
@@ -177,7 +177,7 @@ pub fn control(
     }
     let mut next = config.clone();
     match action {
-        CurveControlV4::Shape(shape) => {
+        CurveControl::Shape(shape) => {
             shape.validate()?;
             // Enabling must always use the explicit mode transition and invalidate
             // the old publication. A shape payload cannot bypass that transition.
@@ -190,7 +190,7 @@ pub fn control(
                 .checked_add(1)
                 .ok_or(QuoteError::Arithmetic)?;
         }
-        CurveControlV4::Updater {
+        CurveControl::Updater {
             updater,
             expiry_slot,
         } => {
@@ -206,7 +206,7 @@ pub fn control(
                 .checked_add(1)
                 .ok_or(QuoteError::Arithmetic)?;
         }
-        CurveControlV4::Mode { mode } => {
+        CurveControl::Mode { mode } => {
             if !matches!(mode, 0 | 1 | 3) {
                 return Err(QuoteError::Bounds);
             }
@@ -222,7 +222,7 @@ pub fn control(
                     .ok_or(QuoteError::Arithmetic)?;
             }
         }
-        CurveControlV4::Invalidate => {
+        CurveControl::Invalidate => {
             next.control_epoch = config
                 .control_epoch
                 .checked_add(1)
@@ -234,7 +234,7 @@ pub fn control(
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
-pub struct QuoteRequestV4 {
+pub struct MakerQuoteRequest {
     pub version: u16,
     pub domain: [u8; 32],
     pub market: Pubkey,
@@ -251,8 +251,8 @@ pub struct QuoteRequestV4 {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
-pub struct QuoteResponseV4 {
-    pub request: QuoteRequestV4,
+pub struct MakerQuoteResponse {
+    pub request: MakerQuoteRequest,
     pub price_sequence: u64,
     pub anchor: u64,
     pub gross: u64,
@@ -272,7 +272,7 @@ fn mul(left: i128, right: i128) -> QuoteResult<i128> {
 }
 
 /// Sum offsets at quantity indices [0, quantity), including jumps at boundaries.
-fn offset_prefix(regions: &[RegionV4], quantity: u64) -> QuoteResult<i128> {
+fn offset_prefix(regions: &[PriceRegion], quantity: u64) -> QuoteResult<i128> {
     if quantity > regions.last().map_or(0, |region| region.end_lots) {
         return Err(QuoteError::Capacity);
     }
@@ -304,7 +304,7 @@ fn offset_prefix(regions: &[RegionV4], quantity: u64) -> QuoteResult<i128> {
     Ok(i128::from(total))
 }
 
-fn potential(shape: &ShapeV4, inventory: i128) -> QuoteResult<i128> {
+fn potential(shape: &LiquidityShape, inventory: i128) -> QuoteResult<i128> {
     let distance = sub(inventory, i128::from(shape.target))?
         .checked_abs()
         .ok_or(QuoteError::Arithmetic)?;
@@ -339,7 +339,7 @@ fn potential(shape: &ShapeV4, inventory: i128) -> QuoteResult<i128> {
 
 /// Exact single-lot change of the convex potential. Endpoint validation needs
 /// this increment, not two complete prefix sums and their wide division.
-fn potential_marginal(shape: &ShapeV4, inventory: i128, direction: i128) -> QuoteResult<i128> {
+fn potential_marginal(shape: &LiquidityShape, inventory: i128, direction: i128) -> QuoteResult<i128> {
     let before = sub(inventory, i128::from(shape.target))?;
     let after = add(before, direction)?;
     let before_distance = before.checked_abs().ok_or(QuoteError::Arithmetic)?;
@@ -359,7 +359,7 @@ fn potential_marginal(shape: &ShapeV4, inventory: i128, direction: i128) -> Quot
 
 /// Direct marginal inside its region. Computing two prefixes here would visit
 /// every earlier region twice even though those terms cancel exactly.
-fn offset_marginal(regions: &[RegionV4], index: u64) -> QuoteResult<i128> {
+fn offset_marginal(regions: &[PriceRegion], index: u64) -> QuoteResult<i128> {
     let mut start = 0;
     for region in regions {
         if index < region.end_lots {
@@ -375,7 +375,7 @@ fn offset_marginal(regions: &[RegionV4], index: u64) -> QuoteResult<i128> {
 }
 
 /// This is only a quantity upper bound; it confers no financial admission.
-fn available(shape: &ShapeV4, side: u8, inventory: i64, consumed: u64) -> QuoteResult<u64> {
+fn available(shape: &LiquidityShape, side: u8, inventory: i64, consumed: u64) -> QuoteResult<u64> {
     if inventory.unsigned_abs() > MAX_LOTS as u64 || consumed > MAX_DEPTH {
         return Err(QuoteError::Bounds);
     }
@@ -405,7 +405,7 @@ fn available(shape: &ShapeV4, side: u8, inventory: i64, consumed: u64) -> QuoteR
 /// Exact quote arithmetic, used by admitted maker programs and clearing validation.
 /// Neither this function nor a direct maker quote authenticates supplied capital state.
 pub fn quote_amount(
-    shape: &ShapeV4,
+    shape: &LiquidityShape,
     anchor: u64,
     side: u8,
     lots: u64,
@@ -419,7 +419,7 @@ pub fn quote_amount(
 /// Internal only: the public amount API or validate_publication has already
 /// validated this exact immutable shape. No account or risk check is skipped.
 fn quote_validated_amount(
-    shape: &ShapeV4,
+    shape: &LiquidityShape,
     anchor: u64,
     side: u8,
     lots: u64,
@@ -469,8 +469,8 @@ fn quote_validated_amount(
 /// Complete funding coverage includes valid zero-capacity/one-sided makers.
 pub fn validate_publication(
     config_key: Pubkey,
-    config: &CurveStateV4,
-    price: &PriceStateV4,
+    config: &CurveState,
+    price: &PriceState,
     slot: u64,
     now: i64,
 ) -> QuoteResult<(u64, i64)> {
@@ -511,12 +511,12 @@ pub fn validate_publication(
 
 pub fn quote(
     config_key: Pubkey,
-    config: &CurveStateV4,
-    price: &PriceStateV4,
-    request: &QuoteRequestV4,
+    config: &CurveState,
+    price: &PriceState,
+    request: &MakerQuoteRequest,
     slot: u64,
     now: i64,
-) -> QuoteResult<QuoteResponseV4> {
+) -> QuoteResult<MakerQuoteResponse> {
     if request.version != VERSION
         || request.instance != config.instance
         || config.domain != request.domain
@@ -539,7 +539,7 @@ pub fn quote(
         request.inventory,
         request.consumed,
     )?;
-    Ok(QuoteResponseV4 {
+    Ok(MakerQuoteResponse {
         request: request.clone(),
         price_sequence: price.sequence,
         anchor: price.anchor,
@@ -554,15 +554,15 @@ pub fn quote(
 /// The instruction supplies actual Clock values and authenticates account ownership.
 pub fn reprice(
     config_key: Pubkey,
-    config: &CurveStateV4,
-    price: &PriceStateV4,
+    config: &CurveState,
+    price: &PriceState,
     actor: Pubkey,
     expected_control: u64,
     expected_sequence: u64,
     anchor: u64,
     slot: u64,
     now: i64,
-) -> QuoteResult<PriceStateV4> {
+) -> QuoteResult<PriceState> {
     config.shape.validate()?;
     if config.schema_version != VERSION
         || price.schema_version != VERSION
@@ -586,7 +586,7 @@ pub fn reprice(
         .sequence
         .checked_add(1)
         .ok_or(QuoteError::Arithmetic)?;
-    Ok(PriceStateV4 {
+    Ok(PriceState {
         control_epoch: config.control_epoch,
         sequence,
         anchor,
@@ -597,7 +597,7 @@ pub fn reprice(
 }
 
 pub fn validate_response(
-    expected: &QuoteResponseV4,
+    expected: &MakerQuoteResponse,
     program: Pubkey,
     producer: Pubkey,
     bytes: &[u8],
@@ -608,7 +608,7 @@ pub fn validate_response(
     if bytes.len() != RESPONSE_BYTES {
         return Err(QuoteError::Response);
     }
-    let actual = QuoteResponseV4::try_from_slice(bytes).map_err(|_| QuoteError::Response)?;
+    let actual = MakerQuoteResponse::try_from_slice(bytes).map_err(|_| QuoteError::Response)?;
     if actual != *expected {
         return Err(QuoteError::Response);
     }
@@ -621,7 +621,7 @@ mod tests {
 
     #[test]
     fn native_width_division_preserves_wide_potential_and_target_turn() {
-        let mut shape = ShapeV4 {
+        let mut shape = LiquidityShape {
             target: -100_000_000,
             skew_step: 1,
             skew_tick: 1000,
@@ -649,8 +649,8 @@ mod tests {
         bytes
     }
 
-    fn fixture() -> (Pubkey, CurveStateV4, PriceStateV4, QuoteRequestV4) {
-        let mut shape = ShapeV4 {
+    fn fixture() -> (Pubkey, CurveState, PriceState, MakerQuoteRequest) {
+        let mut shape = LiquidityShape {
             mode: 1,
             ttl_slots: 150,
             skew_step: 2,
@@ -659,34 +659,34 @@ mod tests {
             short_cap: MAX_LOTS as u64,
             bid_count: 2,
             ask_count: 2,
-            ..ShapeV4::default()
+            ..LiquidityShape::default()
         };
         shape.bids[..2].copy_from_slice(&[
-            RegionV4 {
+            PriceRegion {
                 end_lots: 3,
                 offset: 2,
                 slope: 1,
             },
-            RegionV4 {
+            PriceRegion {
                 end_lots: 8,
                 offset: 8,
                 slope: 0,
             },
         ]);
         shape.asks[..2].copy_from_slice(&[
-            RegionV4 {
+            PriceRegion {
                 end_lots: 3,
                 offset: 3,
                 slope: 2,
             },
-            RegionV4 {
+            PriceRegion {
                 end_lots: 8,
                 offset: 12,
                 slope: 0,
             },
         ]);
         let key = Pubkey::new_from_array([1; 32]);
-        let config = CurveStateV4 {
+        let config = CurveState {
             schema_version: VERSION,
             venue: key,
             market: key,
@@ -703,7 +703,7 @@ mod tests {
             shape,
             bump: 0,
         };
-        let price = PriceStateV4 {
+        let price = PriceState {
             schema_version: VERSION,
             config: key,
             control_epoch: 1,
@@ -713,7 +713,7 @@ mod tests {
             updated_time: 20,
             bump: 0,
         };
-        let request = QuoteRequestV4 {
+        let request = MakerQuoteRequest {
             version: VERSION,
             domain: config.domain,
             market: key,
@@ -875,12 +875,12 @@ mod tests {
     #[test]
     fn canonical_controls_require_fresh_publication_after_enable_or_revocation() {
         let (key, config, price, request) = fixture();
-        let disabled = control(&config, 1, 1, CurveControlV4::Mode { mode: 0 }, 11).unwrap();
+        let disabled = control(&config, 1, 1, CurveControl::Mode { mode: 0 }, 11).unwrap();
         assert_eq!((disabled.control_epoch, disabled.shape_epoch), (1, 2));
         let mut enabling_shape = disabled.shape.clone();
         enabling_shape.mode = 1;
-        assert!(control(&disabled, 1, 2, CurveControlV4::Shape(enabling_shape), 11).is_err());
-        let enabled = control(&disabled, 1, 2, CurveControlV4::Mode { mode: 1 }, 11).unwrap();
+        assert!(control(&disabled, 1, 2, CurveControl::Shape(enabling_shape), 11).is_err());
+        let enabled = control(&disabled, 1, 2, CurveControl::Mode { mode: 1 }, 11).unwrap();
         assert_eq!((enabled.control_epoch, enabled.shape_epoch), (2, 3));
         let mut current = request.clone();
         current.control_epoch = 2;
@@ -895,7 +895,7 @@ mod tests {
             &enabled,
             2,
             3,
-            CurveControlV4::Updater {
+            CurveControl::Updater {
                 updater: Pubkey::default(),
                 expiry_slot: 0,
             },
@@ -904,17 +904,17 @@ mod tests {
         .unwrap();
         assert_eq!(revoked.control_epoch, 3);
         assert!(reprice(key, &revoked, &fresh, config.updater, 3, 2, 100, 12, 22).is_err());
-        assert!(control(&revoked, 2, 3, CurveControlV4::Invalidate, 12).is_err());
+        assert!(control(&revoked, 2, 3, CurveControl::Invalidate, 12).is_err());
     }
 
     #[test]
     fn canonical_control_payload_is_tagged_without_a_vector_prefix() {
         let (_, config, _, _) = fixture();
-        let shape = wire(&CurveControlV4::Shape(config.shape.clone()));
+        let shape = wire(&CurveControl::Shape(config.shape.clone()));
         assert_eq!(shape.len(), 430);
         assert_eq!(shape[0], 0);
         assert_eq!(shape[1..], wire(&config.shape));
-        assert_eq!(wire(&CurveControlV4::Mode { mode: 3 }), [2, 3]);
-        assert_eq!(wire(&CurveControlV4::Invalidate), [3]);
+        assert_eq!(wire(&CurveControl::Mode { mode: 3 }), [2, 3]);
+        assert_eq!(wire(&CurveControl::Invalidate), [3]);
     }
 }

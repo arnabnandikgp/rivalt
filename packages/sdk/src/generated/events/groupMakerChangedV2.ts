@@ -31,10 +31,10 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  getMakerRegistrationSnapshotV2Decoder,
-  getMakerRegistrationSnapshotV2Encoder,
-  type MakerRegistrationSnapshotV2,
-  type MakerRegistrationSnapshotV2Args,
+  getLegacyMakerRegistrationSnapshotV2Decoder,
+  getLegacyMakerRegistrationSnapshotV2Encoder,
+  type LegacyMakerRegistrationSnapshotV2,
+  type LegacyMakerRegistrationSnapshotV2Args,
 } from "../types/index.js";
 
 export const GROUP_MAKER_CHANGED_V2_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
@@ -53,7 +53,7 @@ export type GroupMakerChangedV2Event = {
   slot: bigint;
   configEpoch: bigint;
   registration: Address;
-  state: MakerRegistrationSnapshotV2;
+  state: LegacyMakerRegistrationSnapshotV2;
   operation: number;
 };
 
@@ -64,7 +64,7 @@ export type GroupMakerChangedV2EventArgs = {
   slot: number | bigint;
   configEpoch: number | bigint;
   registration: Address | HasAddress;
-  state: MakerRegistrationSnapshotV2Args;
+  state: LegacyMakerRegistrationSnapshotV2Args;
   operation: number;
 };
 
@@ -78,7 +78,7 @@ export function getGroupMakerChangedV2EventEncoder(): FixedSizeEncoder<GroupMake
       ["slot", getU64Encoder()],
       ["configEpoch", getU64Encoder()],
       ["registration", getAddressEncoder()],
-      ["state", getMakerRegistrationSnapshotV2Encoder()],
+      ["state", getLegacyMakerRegistrationSnapshotV2Encoder()],
       ["operation", getU8Encoder()],
     ]),
     [getConstantEncoder(GROUP_MAKER_CHANGED_V2_EVENT_DISCRIMINATOR)],
@@ -95,7 +95,7 @@ export function getGroupMakerChangedV2EventDecoder(): FixedSizeDecoder<GroupMake
       ["slot", getU64Decoder()],
       ["configEpoch", getU64Decoder()],
       ["registration", getAddressDecoder()],
-      ["state", getMakerRegistrationSnapshotV2Decoder()],
+      ["state", getLegacyMakerRegistrationSnapshotV2Decoder()],
       ["operation", getU8Decoder()],
     ]),
     [getConstantDecoder(GROUP_MAKER_CHANGED_V2_EVENT_DISCRIMINATOR)],

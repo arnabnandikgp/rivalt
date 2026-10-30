@@ -15,7 +15,7 @@ import { persist } from './devnet-rpc.js';
 // No private signer, browser automation, replacement transaction or broadcast.
 const owner = address(process.argv[2]), program = sdk.testDeployment('solana:devnet').clearing;
 const options = { programAddress: program }, rpc = new Rpc(configuration(process.env).rpc);
-const [market] = await sdk.findMarketPda(options), [participant] = await sdk.findParticipantPda({ market, owner }, options);
+const [market] = await sdk.findLegacyMarketPda(options), [participant] = await sdk.findParticipantPda({ market, owner }, options);
 const [registry] = await sdk.findRegistryPda({ market }, options), [vault] = await sdk.findVaultPda({ market }, options);
 const [eventAuthority] = await getProgramDerivedAddress({ programAddress: program, seeds: [Buffer.from('__event_authority')] });
 const directory = '.local/devnet/wallet'; mkdirSync(directory, { recursive: true, mode: 0o700 });

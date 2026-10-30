@@ -47,14 +47,14 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  getOrderBookV2Decoder,
-  getOrderBookV2Encoder,
-  getPositionV2Decoder,
-  getPositionV2Encoder,
-  type OrderBookV2,
-  type OrderBookV2Args,
-  type PositionV2,
-  type PositionV2Args,
+  getOrderBookDecoder,
+  getOrderBookEncoder,
+  getPositionDecoder,
+  getPositionEncoder,
+  type OrderBook,
+  type OrderBookArgs,
+  type Position,
+  type PositionArgs,
 } from "../types/index.js";
 
 export const MARGIN_ACCOUNT_V2_DISCRIMINATOR: ReadonlyUint8Array =
@@ -79,7 +79,7 @@ export type MarginAccountV2 = {
   role: number;
   cash: bigint;
   /** Index equals the immutable group's market index, even for empty entries. */
-  positions: Array<PositionV2>;
+  positions: Array<Position>;
   nonce: bigint;
   stateVersion: bigint;
   delegate: Address;
@@ -87,7 +87,7 @@ export type MarginAccountV2 = {
   delegateEpoch: bigint;
   /** Diagnostic cache only; admission recomputes the complete order book. */
   reserved: bigint;
-  book: OrderBookV2;
+  book: OrderBook;
   bump: number;
 };
 
@@ -103,7 +103,7 @@ export type MarginAccountV2Args = {
   role: number;
   cash: number | bigint;
   /** Index equals the immutable group's market index, even for empty entries. */
-  positions: Array<PositionV2Args>;
+  positions: Array<PositionArgs>;
   nonce: number | bigint;
   stateVersion: number | bigint;
   delegate: Address | HasAddress;
@@ -111,7 +111,7 @@ export type MarginAccountV2Args = {
   delegateEpoch: number | bigint;
   /** Diagnostic cache only; admission recomputes the complete order book. */
   reserved: number | bigint;
-  book: OrderBookV2Args;
+  book: OrderBookArgs;
   bump: number;
 };
 
@@ -130,14 +130,14 @@ export function getMarginAccountV2Encoder(): FixedSizeEncoder<MarginAccountV2Arg
       ["isolatedMarketIndex", getU8Encoder()],
       ["role", getU8Encoder()],
       ["cash", getU64Encoder()],
-      ["positions", getArrayEncoder(getPositionV2Encoder(), { size: 2 })],
+      ["positions", getArrayEncoder(getPositionEncoder(), { size: 2 })],
       ["nonce", getU64Encoder()],
       ["stateVersion", getU64Encoder()],
       ["delegate", getAddressEncoder()],
       ["delegateExpirySlot", getU64Encoder()],
       ["delegateEpoch", getU64Encoder()],
       ["reserved", getU64Encoder()],
-      ["book", getOrderBookV2Encoder()],
+      ["book", getOrderBookEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: MARGIN_ACCOUNT_V2_DISCRIMINATOR }),
@@ -158,14 +158,14 @@ export function getMarginAccountV2Decoder(): FixedSizeDecoder<MarginAccountV2> {
     ["isolatedMarketIndex", getU8Decoder()],
     ["role", getU8Decoder()],
     ["cash", getU64Decoder()],
-    ["positions", getArrayDecoder(getPositionV2Decoder(), { size: 2 })],
+    ["positions", getArrayDecoder(getPositionDecoder(), { size: 2 })],
     ["nonce", getU64Decoder()],
     ["stateVersion", getU64Decoder()],
     ["delegate", getAddressDecoder()],
     ["delegateExpirySlot", getU64Decoder()],
     ["delegateEpoch", getU64Decoder()],
     ["reserved", getU64Decoder()],
-    ["book", getOrderBookV2Decoder()],
+    ["book", getOrderBookDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }

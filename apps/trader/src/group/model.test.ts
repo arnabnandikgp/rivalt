@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { address } from '@solana/kit';
-import type { GroupSnapshot, OrderTerms, StoredOrder } from '@rivalt/sdk';
+import type { GroupSnapshot, OrderTerms, OrderRecord } from '@rivalt/sdk';
 import {
   accountLabel,
   groupPrice,
@@ -139,7 +139,7 @@ it('replacement retains generation/side and charged fee prefixes, accounting for
     notional: 360000n,
     termsEpoch: 0n,
     reserve: 0n,
-  } satisfies StoredOrder;
+  } satisfies OrderRecord;
   expect(groupOrderTerms(input, { lots: 4n, generation: 3n }, previous).lots).toBe(10n);
   expect(() =>
     groupOrderTerms({ ...input, feeBudget: 79n }, { lots: 4n, generation: 3n }, previous),

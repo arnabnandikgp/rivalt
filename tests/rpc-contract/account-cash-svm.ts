@@ -28,9 +28,9 @@ const json=(value:unknown)=>JSON.stringify(value,(_,item)=>typeof item==='bigint
 async function send(label:string,instructions:Instruction[],signers:Parameters<Harness['send']>[2]=[],expectedError?:number) {
   svm.expireBlockhash();
   const sampling=instructions.some(instruction=>instruction.programAddress===deployment.program
-    && Buffer.from(instruction.data??[]).subarray(0,8).equals(Buffer.from(sdk.SAMPLE_ACCOUNT_ORACLE_V3_DISCRIMINATOR)));
+    && Buffer.from(instruction.data??[]).subarray(0,8).equals(Buffer.from(sdk.SAMPLE_ACCOUNT_ORACLE_DISCRIMINATOR)));
   const trading=instructions.some(instruction=>instruction.programAddress===deployment.program
-    && [sdk.EXECUTE_ACCOUNT_ROUTE_V3_DISCRIMINATOR,sdk.EXECUTE_ACCOUNT_ORDER_V3_DISCRIMINATOR]
+    && [sdk.EXECUTE_ACCOUNT_ROUTE_DISCRIMINATOR,sdk.EXECUTE_ACCOUNT_ORDER_DISCRIMINATOR]
       .some(tag=>Buffer.from(instruction.data??[]).subarray(0,8).equals(Buffer.from(tag))));
   const declaredComputeUnits=sampling?1_200_000:trading?600_000:400_000;
   const {transaction}=await sdk.signInstructions({async getLatestBlockhash(){return {blockhash:svm.latestBlockhash(),lastValidBlockHeight:1_000_000n};}},payer,
@@ -64,7 +64,7 @@ const h:AccountTradingHarness={
 const result=await accountCashCases(h);
 svm.addProgramFromFile(deployment.program,`${artifact}/clearing-default.so`);
 await result.reject('default build rejects funded account exit',await result.withdraw(1n),[result.owner],6108);
-await result.reject('default build rejects market backing scan',sdk.getCheckMarketBackingV3Instruction({
+await result.reject('default build rejects market backing scan',sdk.getCheckMarketBackingInstruction({
   ...result.common,ledger:result.ledgers[0],certificate:result.certificates[0],start:0}),[],6108);
 writeFileSync(`${output}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
   trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',

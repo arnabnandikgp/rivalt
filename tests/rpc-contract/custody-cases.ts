@@ -9,8 +9,8 @@ import {
   getMintToInstruction, getTokenDecoder, getTransferCheckedInstruction,
 } from '@solana-program/token';
 import {
-  CLEARING_PROGRAM_ADDRESS, findMarketPda, findParticipantPda, findRegistryPda, findVaultPda,
-  getInitializeMarketInstructionAsync, getRegisterParticipantInstructionAsync,
+  CLEARING_PROGRAM_ADDRESS, findLegacyMarketPda, findParticipantPda, findRegistryPda, findVaultPda,
+  getInitializeLegacyMarketInstructionAsync, getRegisterParticipantInstructionAsync,
   getDepositInstructionAsync, getWithdrawInstructionAsync, getFundInsuranceInstructionAsync,
   getClassifySurplusInstructionAsync, getSetCustodyPauseInstructionAsync,
   getMarketStateDecoder, getParticipantDecoder, getParticipantRegistryDecoder,
@@ -21,7 +21,7 @@ export const program = CLEARING_PROGRAM_ADDRESS;
 export const fixtureKey = (role: string) => Keypair.fromSeed(createHash('sha256').update(`rivalt/p02/local-only/${role}`).digest());
 export const payerKey = () => Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync('.local/keys/payer.json', 'utf8'))));
 export async function addresses() {
-  const [market] = await findMarketPda();
+  const [market] = await findLegacyMarketPda();
   const [registry] = await findRegistryPda({ market });
   const [vault] = await findVaultPda({ market });
   const [eventAuthority] = await getProgramDerivedAddress({ programAddress: program, seeds: [Buffer.from('__event_authority')] });
@@ -66,10 +66,10 @@ export async function custodyCases(h: Harness) {
   await createToken(wrongMintToken, badMint.address, trader.address, 0n);
   await createToken(insuranceToken, mint.address, payer.address, 1_000_000n);
   const domain = createHash('sha256').update('rivalt/local/custody-profile-1').digest();
-  await h.send('reject unauthorized initialization', [await getInitializeMarketInstructionAsync({ ...a, authority: attacker, quoteMint: mint.address, domain })], [attacker], 6102);
-  await h.send('reject wrong collateral precision', [await getInitializeMarketInstructionAsync({ ...admin, quoteMint: badMint.address, domain })], [], 6103);
+  await h.send('reject unauthorized initialization', [await getInitializeLegacyMarketInstructionAsync({ ...a, authority: attacker, quoteMint: mint.address, domain })], [attacker], 6102);
+  await h.send('reject wrong collateral precision', [await getInitializeLegacyMarketInstructionAsync({ ...admin, quoteMint: badMint.address, domain })], [], 6103);
   assert.equal(await h.read(a.market), null);
-  await h.send('initialize custody market', [await getInitializeMarketInstructionAsync({ ...admin, quoteMint: mint.address, domain })]);
+  await h.send('initialize custody market', [await getInitializeLegacyMarketInstructionAsync({ ...admin, quoteMint: mint.address, domain })]);
   await h.send('register trader', [await getRegisterParticipantInstructionAsync({ ...a, owner: trader })], [trader]);
   const tracked = [a.market, participant, a.vault, userToken.address, a.registry];
   const snapshot = async () => Promise.all(tracked.map(async k => (await h.read(k))?.toString('hex')));

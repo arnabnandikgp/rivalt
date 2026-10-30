@@ -203,8 +203,8 @@ export function useAccountController(config: AccountTraderConfig) {
     });
   const terms = (
     state: sdk.AccountSnapshot,
-    account: sdk.MarginAccountV3,
-    previous?: sdk.StoredOrder,
+    account: sdk.MarginAccount,
+    previous?: sdk.OrderRecord,
     protection?: { trigger: number; threshold: string; limit: string },
   ) => {
     const position = account.positions[marketIndex];

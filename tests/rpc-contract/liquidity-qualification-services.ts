@@ -29,8 +29,8 @@ export async function qualificationServices(setup:QualificationSetup,transport:A
   for(let index=0;index<checks.length;index++) {
     const transaction=JSON.parse(readFileSync(`${directory}/transaction-${index}.json`,'utf8'));
     if(transaction.meta.err)continue;
-    if(eventPayloads(String(checks[index].signature),transaction,setup.common.eventAuthority).some(({payload})=>sdk.hex(payload.subarray(0,8))===sdk.hex(sdk.ACCOUNT_CUSTODY_CHANGED_V3_EVENT_DISCRIMINATOR)
-      &&sdk.getAccountCustodyChangedV3EventDecoder().decode(payload).kind===0)){anchor=String(checks[index].signature);break;}
+    if(eventPayloads(String(checks[index].signature),transaction,setup.common.eventAuthority).some(({payload})=>sdk.hex(payload.subarray(0,8))===sdk.hex(sdk.ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR)
+      &&sdk.getAccountCustodyChangedEventDecoder().decode(payload).kind===0)){anchor=String(checks[index].signature);break;}
   }
   assert(anchor);
   const canonical=profile!=='baseline',runId=`p34-${profile}`,base={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl:databaseUrl.toString(),runId,venue:setup.venue,anchor,pageSize:100};

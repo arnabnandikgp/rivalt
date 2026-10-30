@@ -5,7 +5,7 @@ use crate::error::ClearingError;
 use crate::events::{ResolutionParticipant, ResolutionProgress, ResolutionUpdate};
 use crate::instructions::{custody, oracle, routes};
 use crate::state::{
-    MarketState, Participant, ParticipantRegistry, ResolutionHeader, ResolutionRow,
+    MarketState, Participant, ParticipantRegistry, ResolutionHeader, LegacyResolutionRow,
     ResolutionState, TestRouteState,
 };
 
@@ -481,7 +481,7 @@ pub fn freeze(
         ..ResolutionHeader::default()
     };
     accounts.resolution.header = header;
-    accounts.resolution.rows = vec![ResolutionRow::default(); usize::from(header.count)];
+    accounts.resolution.rows = vec![LegacyResolutionRow::default(); usize::from(header.count)];
     accounts.market.mode = 3;
     accounts.market.paused = true;
     accounts.market.terms_epoch = next(accounts.market.terms_epoch)?;

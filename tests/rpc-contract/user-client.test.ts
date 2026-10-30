@@ -22,7 +22,7 @@ const participant = (changes: Record<string, unknown> = {}) =>
     virtualScaled: 0n,
     fundingCheckpointScaled: 0n,
     generation: 0n,
-    book: sdk.emptyOrderBook(),
+    book: sdk.emptyLegacyOrderBook(),
     ...changes,
   }) as any;
 function snapshot(p: any, pool = 0n) {

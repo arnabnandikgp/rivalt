@@ -2,7 +2,7 @@
 //! attestation; independent risk sources and causal funding remain on-chain.
 use super::*;
 use crate::instructions::account_trading;
-use crate::state::v4::{FundingPublisherPayloadV4, FundingPublisherV4, FundingReportV4};
+use crate::state::liquidity::{FundingPublisherPayload, FundingPublisher, FundingReport};
 use financial_core::oracle as policy;
 
 mod contexts;
@@ -12,7 +12,7 @@ use validation::*;
 #[cfg(test)]
 mod tests;
 
-pub fn initialize(ctx: Context<InitializeFundingPublisherV4>, publisher: Pubkey) -> Result<()> {
+pub fn initialize(ctx: Context<InitializeFundingPublisher>, publisher: Pubkey) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = ctx.accounts;
     execution_profile(
@@ -38,7 +38,7 @@ pub fn initialize(ctx: Context<InitializeFundingPublisherV4>, publisher: Pubkey)
         accounts.market.key(),
     )?;
     let clock = Clock::get()?;
-    accounts.configuration.set_inner(FundingPublisherV4 {
+    accounts.configuration.set_inner(FundingPublisher {
         schema_version: 4,
         venue: accounts.venue.key(),
         market: accounts.market.key(),
@@ -52,21 +52,21 @@ pub fn initialize(ctx: Context<InitializeFundingPublisherV4>, publisher: Pubkey)
     });
     increment(&mut accounts.custody.sequence)?;
     crate::event_cpi::emit(
-        &FundingPublisherChangedV4 {
+        &FundingPublisherChanged {
             venue: accounts.venue.key(),
             sequence: accounts.custody.sequence,
             slot: clock.slot,
             market: accounts.market.key(),
             configuration: accounts.configuration.key(),
-            state: FundingPublisherPayloadV4::from(&**accounts.configuration),
-            market_state: MarketSnapshotV3::from(&**accounts.market),
+            state: FundingPublisherPayload::from(&**accounts.configuration),
+            market_state: MarketSnapshot::from(&**accounts.market),
         },
         accounts.event_authority.to_account_info(),
     )
 }
 
 pub fn configure(
-    ctx: Context<ConfigureFundingPublisherV4>,
+    ctx: Context<ConfigureFundingPublisher>,
     expected_authority: u64,
     publisher: Pubkey,
 ) -> Result<()> {
@@ -108,20 +108,20 @@ pub fn configure(
     accounts.configuration.last_observed_time = clock.unix_timestamp;
     increment(&mut accounts.custody.sequence)?;
     crate::event_cpi::emit(
-        &FundingPublisherChangedV4 {
+        &FundingPublisherChanged {
             venue: accounts.venue.key(),
             sequence: accounts.custody.sequence,
             slot: clock.slot,
             market: accounts.market.key(),
             configuration: accounts.configuration.key(),
-            state: FundingPublisherPayloadV4::from(&**accounts.configuration),
-            market_state: MarketSnapshotV3::from(&**accounts.market),
+            state: FundingPublisherPayload::from(&**accounts.configuration),
+            market_state: MarketSnapshot::from(&**accounts.market),
         },
         accounts.event_authority.to_account_info(),
     )
 }
 
-pub fn publish(ctx: Context<PublishFundingReportV4>, report: FundingReportV4) -> Result<()> {
+pub fn publish(ctx: Context<PublishFundingReport>, report: FundingReport) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = ctx.accounts;
     execution_profile(
@@ -164,14 +164,14 @@ pub fn publish(ctx: Context<PublishFundingReportV4>, report: FundingReportV4) ->
     accounts.configuration.last_observed_time = report.observed_time;
     increment(&mut accounts.custody.sequence)?;
     crate::event_cpi::emit(
-        &FundingReportAcceptedV4 {
+        &FundingReportAccepted {
             venue: accounts.venue.key(),
             sequence: accounts.custody.sequence,
             slot: clock.slot,
             market: accounts.market.key(),
             publisher: accounts.publisher.key(),
             report,
-            state: MarketSnapshotV3::from(&**accounts.market),
+            state: MarketSnapshot::from(&**accounts.market),
         },
         accounts.event_authority.to_account_info(),
     )

@@ -40,7 +40,7 @@ try {
   await store.close(); store = undefined;
   await setup.qualify();
   await h.send('P32 route actual fill during journal shutdown', [await trade()], [owner]);
-  const withdrawal = sdk.getWithdrawFundedAccountV3Instruction({ ...setup.common, owner,
+  const withdrawal = sdk.getWithdrawFundedAccountInstruction({ ...setup.common, owner,
     btc: setup.markets[0], eth: setup.markets[1], margin, quoteMint: setup.mint.address,
     userToken: setup.traderToken.address, guard: await guard(margin), amount: 1n });
   const before = await root(margin);
@@ -60,7 +60,7 @@ try {
   }
   await store.commit(recovered.transactions, recovered.events, recovered.head, previous.checkpoint);
   const snapshot = await store.snapshot(); assert.equal(snapshot.state.digest, recovered.digest);
-  assert.equal(BigInt(snapshot.state.sequence), sdk.getCustodyV3Decoder().decode((await h.read(setup.custody))!).sequence);
+  assert.equal(BigInt(snapshot.state.sequence), sdk.getCustodyDecoder().decode((await h.read(setup.custody))!).sequence);
   await store.commit(recovered.transactions, recovered.events, recovered.head, snapshot.checkpoint);
   assert.deepEqual((await store.snapshot()).state, snapshot.state, 'Idempotent finalized backfill');
   const conflict = { ...recovered.events[0], bytes: Buffer.from('different finalized payload').toString('base64') };
@@ -86,7 +86,7 @@ try {
     assert.equal(roots.reduce((sum, account) => { const position = account.positions[index]; return sum + position.virtualScaled
       - position.lots * (markets[index].fundingIndexScaled - position.fundingCheckpointScaled); }, 0n), 0n);
   }
-  const ledger = sdk.getMarketLedgerV3Decoder().decode((await h.read(setup.ledgers[0]))!);
+  const ledger = sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[0]))!);
   assert.deepEqual([ledger.insurance, ledger.fees, ledger.insuranceFeeRemainder], [6n, 20n, 2]);
   assert.equal(roots.reduce((sum, account) => sum + account.cash, 0n) + 26n, 8_000_000n);
   writeFileSync(`${runDir}/summary.json`, json({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),

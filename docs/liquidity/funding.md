@@ -50,11 +50,11 @@ risk valuation, all-or-nothing routes and funded cash versus unpaid claims.
 This is the implemented D76 report/authority contract.
 Scope remains the fresh profile4 local qualification artifact; V1–V3 are unchanged.
 
-- `FundingPublisherV4` PDA: `["funding-publisher-v4", market]`, clearing-owned,
+- `FundingPublisher` PDA: `["funding-publisher-v4", market]`, clearing-owned,
   140 bytes including the discriminator. Borsh field order: schema_version u16=4;
   venue, market, publisher Pubkeys; authority_epoch, last_sequence,
   last_observed_slot u64; last_observed_time i64; enabled bool; bump u8.
-- `FundingReportV4` instruction payload: 203 bytes. Field order: version u16=1,
+- `FundingReport` instruction payload: 203 bytes. Field order: version u16=1,
   domain [u8;32], market Pubkey; authority_epoch, sequence,
   expected_observation_sequence, expected_config_epoch, expected_terms_epoch,
   observed_slot u64; observed_time i64; valid_until_slot u64; valid_until_time i64;

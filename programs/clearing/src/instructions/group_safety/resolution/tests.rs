@@ -21,7 +21,7 @@ fn root(
         delegate_epoch: 1,
         ..Default::default()
     };
-    root.positions[index] = PositionV2 {
+    root.positions[index] = Position {
         lots,
         virtual_scaled: claim - i128::from(lots) * i128::from(price) * math::SCALE
             + i128::from(lots) * funding,

@@ -25,11 +25,11 @@ try {
   const { root, guard, route } = executionTestHelpers(h, setup);
   const owner = setup.traderOwner, cross = setup.roots[0], isolated = setup.roots[1];
   const common = { ...setup.common, btc: setup.markets[0], eth: setup.markets[1] };
-  const registry = sdk.getVenueRegistryV3Decoder().decode((await h.read(setup.registry))!);
+  const registry = sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!);
   const roots = registry.members.slice(0, registry.count);
   assert.deepEqual(roots, [...setup.instances.map(maker => maker.capital), ...setup.roots]);
-  const header = async () => sdk.getResolutionV3Decoder().decode((await h.read(setup.resolution))!);
-  const safety = async () => sdk.getSafetyV3Decoder().decode((await h.read(setup.safety))!);
+  const header = async () => sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
+  const safety = async () => sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
   const [reserveDestination] = await findAssociatedTokenPda({ owner: setup.payer.address,
     mint: setup.mint.address, tokenProgram: TOKEN_PROGRAM_ADDRESS });
   await h.send('create immutable test reserve destination', [getCreateAssociatedTokenInstruction({ payer: setup.payer,
@@ -44,9 +44,9 @@ try {
     assert.deepEqual(await raw(), before, `${label}: full state rollback`);
   };
   const withdraw = async (margin: Address, amount: bigint, signer = owner, token = setup.traderToken.address) =>
-    sdk.getWithdrawFundedAccountV3Instruction({ ...common, owner: signer, margin, quoteMint: setup.mint.address,
+    sdk.getWithdrawFundedAccountInstruction({ ...common, owner: signer, margin, quoteMint: setup.mint.address,
       userToken: token, guard: await guard(margin), amount });
-  const manage = async (margin: Address, operation: sdk.GroupOrderActionArgs) => sdk.getManageAccountOrderV3Instruction({
+  const manage = async (margin: Address, operation: sdk.GroupOrderActionArgs) => sdk.getManageAccountOrderInstruction({
     ...common, actor: owner, margin, guard: await guard(margin), marketIndex: 0, operation });
   const sendRoute = async (label: string, marketIndex: 0 | 1, trader: Address, side: 0 | 1, lots: bigint,
     options: { stored?: { id: bigint; version: bigint; filled: bigint }; reduceOnly?: boolean; generation?: bigint; pair?: boolean } = {}) => {
@@ -67,7 +67,7 @@ try {
     takeProfit: { ...protection, trigger: 1, threshold: 65_000n }, stopLoss: { ...protection, trigger: 2, threshold: 55_000n } })], [owner]);
   await reject('prepared exit cannot bypass new order authority', staleExit, sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE, [owner]);
   await reject('withdrawal cannot spend reserved margin', await withdraw(isolated, 980_000n), sdk.CLEARING_ERROR__ARITHMETIC, [owner]);
-  await h.send('same-owner funded transfer preserves active reservations', [sdk.getTransferFundedAccountV3Instruction({ ...common,
+  await h.send('same-owner funded transfer preserves active reservations', [sdk.getTransferFundedAccountInstruction({ ...common,
     owner, donor: isolated, recipient: cross, guard: await guard(isolated), amount: 100n })], [owner]);
   await setup.sample();
   await sendRoute('manual partial close clips current protective eligibility', 0, isolated, 1, 1n,
@@ -116,7 +116,7 @@ try {
   await setup.sample();
   await sendRoute('open cross ETH with whole-account funding', 1, cross, 0, 50n, { pair: true });
   await h.send('withdraw admissible funded cash before price stress', [await withdraw(cross, 400_100n)], [owner]);
-  await h.send('seed explicit ten-atom ETH insurance', [sdk.getSeedMarketInsuranceV3Instruction({ ...common,
+  await h.send('seed explicit ten-atom ETH insurance', [sdk.getSeedMarketInsuranceInstruction({ ...common,
     reserveAuthority: setup.payer, donor: owner, donorToken: setup.traderToken.address, quoteMint: setup.mint.address,
     marketIndex: 1, amount: 10n })], [owner]);
   for (const margin of [cross, isolated]) {
@@ -130,7 +130,7 @@ try {
   }
   setup.sourcePrices.btc = 52_000_000_000n;
   await setup.qualify();
-  const liquidate = async (price = 52_000n, lots = 10n) => sdk.getLiquidateAccountV3Instruction({ ...common,
+  const liquidate = async (price = 52_000n, lots = 10n) => sdk.getLiquidateAccountInstruction({ ...common,
     target: cross, receiver: isolated, receiverOwner: owner, targetGuard: await guard(cross), receiverGuard: await guard(isolated),
     marketIndex: 0, lots, price });
   await reject('liquidation rejects post-fee deficit worsening', await liquidate(46_800n), sdk.CLEARING_ERROR__ARITHMETIC, [owner]);
@@ -145,13 +145,13 @@ try {
   await reject('liquidation cannot replay either root guard', liquidation, sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE, [owner]);
   const sources = { primaryBtc: setup.feeds[0].feed, primaryCollateral: setup.feeds[1].feed,
     guardBtc: setup.feeds[2].feed, guardCollateral: setup.feeds[3].feed, primaryEth: setup.feeds[4].feed, guardEth: setup.feeds[5].feed };
-  const freeze = async () => sdk.getFreezeAccountsV3Instruction({ ...setup.safetyCommon, ...sources, caller: setup.payer,
+  const freeze = async () => sdk.getFreezeAccountsInstruction({ ...setup.safetyCommon, ...sources, caller: setup.payer,
     target: cross, safetyEpoch: (await safety()).epoch, resolutionEpoch: (await header()).epoch, emergency: false });
   const staleTerminalExit = await withdraw(roots[0], 100n, setup.owner, setup.token.address);
   setup.sourcePrices.btc = 40_000_000_000n; setup.sourcePrices.eth = 2_000_000_000n;
   await setup.fresh();
   await h.send('P32 safety permissionless bankrupt cross account freezes complete cohort', [await freeze()]);
-  await reject('frozen venue cannot accept cash mutations', await sdk.getDepositAccountV3InstructionAsync({ ...setup.common,
+  await reject('frozen venue cannot accept cash mutations', await sdk.getDepositAccountInstructionAsync({ ...setup.common,
     owner, margin: cross, quoteMint: setup.mint.address, userToken: setup.traderToken.address, amount: 1n }), sdk.CLEARING_ERROR__PROFILE, [owner]);
   const frozenAccounts = await raw();
   const resolution = await resolveLiquidityCohort(h, setup, roots, reject);
@@ -173,9 +173,9 @@ try {
   writeFileSync(`${runDir}/financial-capture.json`, serialize(capture));
   execFileSync('python3', ['tests/financial/account-safety-reference.py', `${runDir}/financial-capture.json`], { stdio: 'inherit' });
 
-  const recover = (resume: boolean) => sdk.getRecoverAccountsV3Instruction({ ...setup.safetyCommon, ...sources,
+  const recover = (resume: boolean) => sdk.getRecoverAccountsInstruction({ ...setup.safetyCommon, ...sources,
     caller: setup.payer, epoch: resolution.initial.epoch, resume });
-  const reactivate = () => sdk.getReactivateAccountsV3Instruction({ ...setup.safetyCommon, ...sources,
+  const reactivate = () => sdk.getReactivateAccountsInstruction({ ...setup.safetyCommon, ...sources,
     caller: setup.payer, epoch: resolution.initial.epoch });
   await reject('resolution does not bypass sustained source recovery', recover(true));
   await h.send('P32 safety stale source recovery grants no credit', [recover(false)]);
@@ -194,8 +194,8 @@ try {
   await reject('reactivation cannot replay', reactivate());
   await flush();
   const parity = await conformance.finish(runDir, [
-    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'marginAccountV3', key: cross },
-    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'resolutionV3', key: setup.resolution },
+    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'marginAccount', key: cross },
+    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'resolution', key: setup.resolution },
   ], h.read);
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',

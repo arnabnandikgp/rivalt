@@ -30,7 +30,7 @@ async function read(key:Address) {
 async function send(label:string,instructions:Instruction[],signers:Parameters<Harness['send']>[2]=[],expectedError?:number) {
   const has=(discriminator:ReadonlyUint8Array)=>instructions.some(instruction=>instruction.programAddress===program
     &&Buffer.from(instruction.data??[]).subarray(0,8).equals(Buffer.from(discriminator)));
-  const sampling=has(sdk.SAMPLE_ACCOUNT_ORACLE_V3_DISCRIMINATOR),routing=has(sdk.EXECUTE_ACCOUNT_ROUTE_V3_DISCRIMINATOR)||has(sdk.EXECUTE_ACCOUNT_ORDER_V3_DISCRIMINATOR);
+  const sampling=has(sdk.SAMPLE_ACCOUNT_ORACLE_DISCRIMINATOR),routing=has(sdk.EXECUTE_ACCOUNT_ROUTE_DISCRIMINATOR)||has(sdk.EXECUTE_ACCOUNT_ORDER_DISCRIMINATOR);
   const declaredComputeUnits=sampling?1_200_000:routing?sdk.GROUP_ROUTE_COMPUTE_UNITS:400_000;
   const {transaction}=await sdk.signInstructions(connection,payer,[sampling?sdk.fundingComputeBudget():routing?sdk.groupRouteComputeBudget():sdk.routeComputeBudget(),...instructions],signers);
   const wire=transaction.serialize();assert(wire.length<=1232,`${label}: packet`);
@@ -88,15 +88,15 @@ try {
   }
   await ws.notification(subscription);
   const accountEntries:{program:string;name:string;key:Address}[]=[
-    {program:'clearing',name:'venueV3',key:result.venue}, {program:'clearing',name:'venueRegistryV3',key:result.registry},
-    {program:'clearing',name:'custodyV3',key:result.custody}, {program:'clearing',name:'safetyV3',key:result.safety},
-    ...result.certificates.map(key=>({program:'clearing',name:'settlementCertificateV3',key})),
-    ...result.roots.map(key=>({program:'clearing',name:'marginAccountV3',key})),
-    ...result.markets.map(key=>({program:'clearing',name:'marketV3',key})),
-    ...result.ledgers.map(key=>({program:'clearing',name:'marketLedgerV3',key})),
+    {program:'clearing',name:'venue',key:result.venue}, {program:'clearing',name:'venueRegistry',key:result.registry},
+    {program:'clearing',name:'custody',key:result.custody}, {program:'clearing',name:'venueSafety',key:result.safety},
+    ...result.certificates.map(key=>({program:'clearing',name:'settlementCertificate',key})),
+    ...result.roots.map(key=>({program:'clearing',name:'marginAccount',key})),
+    ...result.markets.map(key=>({program:'clearing',name:'market',key})),
+    ...result.ledgers.map(key=>({program:'clearing',name:'marketLedger',key})),
     ...result.makers.flat().flatMap(maker=>[
-      {program:'clearing',name:'makerRegistrationV3',key:maker.registration},
-      {program:'clearing',name:'capitalBindingV3',key:maker.capitalBinding},
+      {program:'clearing',name:'fixedMakerRegistration',key:maker.registration},
+      {program:'clearing',name:'capitalBinding',key:maker.capitalBinding},
       {program:maker.makerId===0?'maker_a':'maker_b',name:'makerAccountConfig',key:maker.config},
     ]),
   ];

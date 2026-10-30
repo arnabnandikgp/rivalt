@@ -2,10 +2,10 @@ use super::*;
 
 /// Validate signed report identity and time independently of its claimed prices.
 pub(super) fn validate_report(
-    venue: &VenueV3,
-    market: &MarketV3,
-    configuration: &FundingPublisherV4,
-    report: &FundingReportV4,
+    venue: &Venue,
+    market: &Market,
+    configuration: &FundingPublisher,
+    report: &FundingReport,
     clock: &Clock,
 ) -> Result<()> {
     require!(
@@ -62,7 +62,7 @@ pub(super) fn validate_report(
 }
 
 pub(super) fn report_impact(
-    report: &FundingReportV4,
+    report: &FundingReport,
     bounds: Option<policy::Bounds>,
 ) -> Result<Option<impact::Impact>> {
     if report.outcome != 0 {
@@ -103,7 +103,7 @@ pub(super) fn report_impact(
 
 /// Independent source validation is retained on-chain; maker coverage is attested.
 pub(super) fn read_sources(
-    market: &MarketV3,
+    market: &Market,
     sources: [&UncheckedAccount; 4],
     clock: &Clock,
 ) -> Result<(Option<policy::Bounds>, [u64; 4])> {

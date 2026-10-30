@@ -41,7 +41,7 @@ const result = await makerCases(h);
 // Explicit deployment-metadata corruption: no successful financial state is injected.
 const x = await makerAddresses(0), module = svm.getAccount(x.programData);assert(module.exists);
 const changed = Buffer.from(module.data);changed.writeBigUInt64LE(changed.readBigUInt64LE(4) + 1n, 4);svm.setAccount({ ...module, data: changed });
-const m = sdk.getMarketStateDecoder().decode((await h.read(a.market))!), r = sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!);
+const m = sdk.getMarketStateDecoder().decode((await h.read(a.market))!), r = sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(x.registration))!);
 const ix = await sdk.getPreviewMakerInstructionAsync({ ...x, side:0,lots:10n,referencePrice:60_000n,quoteEpoch:r.quoteEpoch,authorityEpoch:r.authorityEpoch,termsEpoch:m.termsEpoch,configEpoch:m.configEpoch });
 await h.send('reject unapproved ProgramData metadata change', [ix], [], 6114);
 svm.setAccount(module);await h.quote('quote after exact deployment fixture restoration', ix);

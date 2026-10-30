@@ -31,7 +31,7 @@ try {
   await h.send('fund controlled local sources',authorities.map(authority => getTransferSolInstruction({
     source: fixture.payer,destination: authority.address,amount: 100_000_000n })));
   for (const [index,source] of sources.entries()) await h.send(`initialize source ${index}`,[await initializeFeed(index)],[source.authority]);
-  await h.send('initialize profile4 source bindings',[sdk.getInitializeLiquidityOracleV4Instruction({
+  await h.send('initialize profile4 source bindings',[sdk.getInitializeLiquidityOracleInstruction({
     ...fixture.common,authority: fixture.payer,market: fixture.markets[0],primary: authorities[0].address,guard: authorities[1].address })]);
   const sampleAccounts = { ...fixture.common,payer: fixture.payer,market: fixture.markets[0],registry: makers[0].liquidityRegistry,
     primaryAsset: sources[0].feed,primaryCollateral: sources[1].feed,guardAsset: sources[2].feed,guardCollateral: sources[3].feed,
@@ -41,12 +41,12 @@ try {
     secondProgramData: makers[1].controlCommon.programData,secondConfig: makers[1].config,secondPrice: makers[1].price,
     thirdCapital: makers[2].capital,thirdRegistration: makers[2].registration,thirdProgram: makers[2].pricingProgram,
     thirdProgramData: makers[2].controlCommon.programData,thirdConfig: makers[2].config,thirdPrice: makers[2].price };
-  const marketState = async () => sdk.getMarketV3Decoder().decode((await h.read(fixture.markets[0]))!);
+  const marketState = async () => sdk.getMarketDecoder().decode((await h.read(fixture.markets[0]))!);
   const observations: unknown[] = [];
   async function publish(anchor: bigint,count = 3) {
     const instructions = await Promise.all(makers.slice(0,count).map(async maker => {
-      const config = await maker.state(),price = maker.module.getMakerPriceV4Decoder().decode((await h.read(maker.price))!).state;
-      return maker.module.getRepriceV4Instruction({ ...maker.makerCommon,actor: fixture.updater,
+      const config = await maker.state(),price = maker.module.getMakerPriceDecoder().decode((await h.read(maker.price))!).state;
+      return maker.module.getRepriceInstruction({ ...maker.makerCommon,actor: fixture.updater,
         expectedControl: config.controlEpoch,expectedSequence: price.sequence,anchor });
     }));
     await h.send('fresh bounded maker publications',instructions,[fixture.updater]);
@@ -61,7 +61,7 @@ try {
     await waitUntil((await marketState()).oracle.sampledAt + 2n);
     const keys = makers.flatMap(maker => [maker.capital,maker.registration,maker.config,maker.price]);
     const before = await Promise.all(keys.map(h.read));
-    await h.send(`P32 sample ${label}`,[sdk.getSampleLiquidityV4Instruction(sampleAccounts)]);
+    await h.send(`P32 sample ${label}`,[sdk.getSampleLiquidityInstruction(sampleAccounts)]);
     assert.deepEqual(await Promise.all(keys.map(h.read)),before,'sample changed maker capital/orders/depth/publications');
     const market = await marketState();
     if (expected) {
@@ -69,7 +69,7 @@ try {
       assert.equal(market.oracle.bid,expected.bid);
       assert.equal(market.oracle.ask,expected.ask);
       assert.equal(market.oracle.premiumScaled,1_000_000_000n);
-      const prices = await Promise.all(makers.map(async maker => maker.module.getMakerPriceV4Decoder().decode((await h.read(maker.price))!).state));
+      const prices = await Promise.all(makers.map(async maker => maker.module.getMakerPriceDecoder().decode((await h.read(maker.price))!).state));
       assert.equal(market.oracle.heldUntil,prices.reduce((earliest,price) => earliest < price.updatedTime+6n ? earliest : price.updatedTime+6n,
         market.oracle.sampledAt+6n));
     } else {
@@ -89,15 +89,15 @@ try {
   // margin admission is a separate unchanged requirement.
   for (const maker of makers) {
     await h.send('withdraw maker cash before published-depth sample',[
-      await sdk.getWithdrawAccountCustodyV3InstructionAsync({ ...fixture.common,owner: fixture.owner,
+      await sdk.getWithdrawAccountCustodyInstructionAsync({ ...fixture.common,owner: fixture.owner,
         margin: maker.capital,quoteMint: fixture.mint.address,userToken: fixture.token.address,amount: 1_000_000n })
     ],[fixture.owner]);
-    assert.equal(sdk.getMarginAccountV3Decoder().decode((await h.read(maker.capital))!).cash,0n);
+    assert.equal(sdk.getMarginAccountDecoder().decode((await h.read(maker.capital))!).cash,0n);
   }
   await fresh(10_000n);
   await sample('zero funded margin still contributes published depth',{ quantity: 600n,bid: 5_999_400n,ask: 6_001_800n });
   const third = makers[2],thirdConfig = await third.state();
-  await h.send('zero-cap required input control',[sdk.getControlLiquidityV4Instruction({ ...third.controlCommon,
+  await h.send('zero-cap required input control',[sdk.getControlLiquidityInstruction({ ...third.controlCommon,
     expectedAuthority: 1n,expectedControl: thirdConfig.controlEpoch,expectedShape: thirdConfig.shapeEpoch,
     action: { __kind: 'Shape',fields: [{ ...shape,longCap: 0n,shortCap: 0n }] } })],[fixture.owner]);
   const controlled = await marketState();
@@ -105,12 +105,12 @@ try {
   assert.equal(controlled.oracle.validSince,0n);
   await fresh(10_000n);
   await sample('fresh zero-cap third input remains required',{ quantity: 600n,bid: 5_999_400n,ask: 6_001_800n });
-  const thirdPrice = third.module.getMakerPriceV4Decoder().decode((await h.read(third.price))!).state;
+  const thirdPrice = third.module.getMakerPriceDecoder().decode((await h.read(third.price))!).state;
   await waitUntil(thirdPrice.updatedTime+6n);
   await fresh(10_000n,2);
   await sample('expired zero-cap third input invalidates complete coverage',null);
-  const parity = await conformance.finish(runDir,[{ program: sdk.CLEARING_PROGRAM_ADDRESS,name: 'marketV3',key: fixture.markets[0] }],h.read);
-  assert.equal(sdk.getSafetyV3Decoder().decode((await h.read(fixture.safety))!).mode,0);
+  const parity = await conformance.finish(runDir,[{ program: sdk.CLEARING_PROGRAM_ADDRESS,name: 'market',key: fixture.markets[0] }],h.read);
+  assert.equal(sdk.getVenueSafetyDecoder().decode((await h.read(fixture.safety))!).mode,0);
   writeFileSync(`${runDir}/summary.json`,serialize({ revision: execFileSync('git',['rev-parse','HEAD'],{ encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git',['status','--porcelain','--untracked-files=no'],{ encoding: 'utf8' }).trim() !== '',
     build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),

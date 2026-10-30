@@ -32,10 +32,10 @@ def account(report, address, name, size):
 
 def audit(report):
     result = report['result']
-    venue = account(report, result['venue'], 'VenueV3', 321)
-    custody = account(report, result['custody'], 'CustodyV3', 83)
-    safety = account(report, result['safety'], 'SafetyV3', 77)
-    registry = account(report, result['registry'], 'VenueRegistryV3', 2105)
+    venue = account(report, result['venue'], 'Venue', 321)
+    custody = account(report, result['custody'], 'Custody', 83)
+    safety = account(report, result['safety'], 'VenueSafety', 77)
+    registry = account(report, result['registry'], 'VenueRegistry', 2105)
     assert integer(venue, 10, 2) == 3
     assert key(venue[172:204]) == result['quoteMint']
     assert key(venue[204:236]) == result['vault']
@@ -49,7 +49,7 @@ def audit(report):
     assert [key(registry[56 + index * 32:88 + index * 32]) for index in range(5)] == result['roots']
     cash_total = 0
     for index, address in enumerate(result['roots']):
-        raw = account(report, address, 'MarginAccountV3', 970)
+        raw = account(report, address, 'MarginAccount', 970)
         assert key(raw[10:42]) == result['venue']
         assert integer(raw, 108, 2) == index
         assert integer(raw, 113) == 0
@@ -60,7 +60,7 @@ def audit(report):
         cash_total += integer(raw, 113)
     reserves = []
     for index, address in enumerate(result['ledgers']):
-        raw = account(report, address, 'MarketLedgerV3', 109)
+        raw = account(report, address, 'MarketLedger', 109)
         assert key(raw[10:42]) == result['venue'] and key(raw[42:74]) == result['markets'][index]
         assert raw[74] == index and raw[99] == 0
         assert integer(raw, 75) == integer(raw, 91) == 0

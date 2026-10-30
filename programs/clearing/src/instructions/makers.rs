@@ -2,7 +2,7 @@
 
 use crate::error::ClearingError;
 use crate::events::MakerChanged;
-use crate::state::{CapitalBinding, MakerRegistration, MarketState, Participant};
+use crate::state::{LegacyCapitalBinding, LegacyMakerRegistration, MarketState, Participant};
 
 pub use crate::constants::makers::*;
 
@@ -41,19 +41,19 @@ pub struct RegisterMaker<'info> {
     #[account(
         init,
         payer = owner,
-        space = 8 + MakerRegistration::INIT_SPACE,
+        space = 8 + LegacyMakerRegistration::INIT_SPACE,
         seeds = [b"maker", market.key().as_ref(), &[maker_id]],
         bump,
     )]
-    pub registration: Box<Account<'info, MakerRegistration>>,
+    pub registration: Box<Account<'info, LegacyMakerRegistration>>,
     #[account(
         init,
         payer = owner,
-        space = 8 + CapitalBinding::INIT_SPACE,
+        space = 8 + LegacyCapitalBinding::INIT_SPACE,
         seeds = [b"maker-capital", capital.key().as_ref()],
         bump,
     )]
-    pub binding: Account<'info, CapitalBinding>,
+    pub binding: Account<'info, LegacyCapitalBinding>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
     pub program_data: Box<Account<'info, ProgramData>>,
@@ -92,7 +92,7 @@ pub struct ApproveMaker<'info> {
         has_one = program_data,
         has_one = config,
     )]
-    pub registration: Box<Account<'info, MakerRegistration>>,
+    pub registration: Box<Account<'info, LegacyMakerRegistration>>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
     pub program_data: Box<Account<'info, ProgramData>>,
@@ -125,7 +125,7 @@ pub struct SyncMaker<'info> {
         has_one = program_data,
         has_one = config,
     )]
-    pub registration: Box<Account<'info, MakerRegistration>>,
+    pub registration: Box<Account<'info, LegacyMakerRegistration>>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
     pub program_data: Box<Account<'info, ProgramData>>,
@@ -150,7 +150,7 @@ pub struct QuarantineMaker<'info> {
         bump = registration.bump,
         has_one = market,
     )]
-    pub registration: Box<Account<'info, MakerRegistration>>,
+    pub registration: Box<Account<'info, LegacyMakerRegistration>>,
 }
 
 #[derive(Accounts)]
@@ -175,7 +175,7 @@ pub struct PreviewMaker<'info> {
         has_one = program_data,
         has_one = config,
     )]
-    pub registration: Box<Account<'info, MakerRegistration>>,
+    pub registration: Box<Account<'info, LegacyMakerRegistration>>,
     #[account(constraint=pricing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::MakerBinding)]
     pub pricing_program: Program<'info>,
     pub program_data: Box<Account<'info, ProgramData>>,
@@ -260,7 +260,7 @@ fn module_hash(data: &Account<ProgramData>) -> Result<[u8; 32]> {
     Ok(hash(&bytes).to_bytes())
 }
 
-fn approved(registration: &MakerRegistration, data: &Account<ProgramData>) -> Result<()> {
+fn approved(registration: &LegacyMakerRegistration, data: &Account<ProgramData>) -> Result<()> {
     require!(
         registration.version == VERSION && !registration.quarantined,
         ClearingError::MakerQuarantined
@@ -274,7 +274,7 @@ fn approved(registration: &MakerRegistration, data: &Account<ProgramData>) -> Re
 
 fn event(
     market: &mut Account<MarketState>,
-    registration: &Account<MakerRegistration>,
+    registration: &Account<LegacyMakerRegistration>,
     kind: u8,
 ) -> Result<MakerChanged> {
     market.sequence = market
@@ -324,7 +324,7 @@ pub fn register(ctx: Context<RegisterMaker>, maker_id: u8, inventory_limit: u64)
         slot >= state.start_slot && slot < state.expiry_slot,
         ClearingError::MakerEpoch
     );
-    ctx.accounts.registration.set_inner(MakerRegistration {
+    ctx.accounts.registration.set_inner(LegacyMakerRegistration {
         version: VERSION,
         maker_id,
         market: ctx.accounts.market.key(),
@@ -344,7 +344,7 @@ pub fn register(ctx: Context<RegisterMaker>, maker_id: u8, inventory_limit: u64)
         quarantined: false,
         bump: ctx.bumps.registration,
     });
-    ctx.accounts.binding.set_inner(CapitalBinding {
+    ctx.accounts.binding.set_inner(LegacyCapitalBinding {
         market: ctx.accounts.market.key(),
         capital: ctx.accounts.capital.key(),
         registration: ctx.accounts.registration.key(),
@@ -452,7 +452,7 @@ pub fn preview(ctx: Context<PreviewMaker>, args: PreviewArgs) -> Result<QuoteRes
 pub(crate) fn quote_checked<'info>(
     market: &Account<'info, MarketState>,
     capital: &Account<'info, Participant>,
-    registration: &Account<'info, MakerRegistration>,
+    registration: &Account<'info, LegacyMakerRegistration>,
     pricing_program: &Program<'info>,
     program_data: &Account<'info, ProgramData>,
     config: &UncheckedAccount<'info>,

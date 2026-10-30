@@ -26,8 +26,8 @@ it('pays only the selected funded pool, respects full-account health and preserv
 });
 it('backing stamps follow the selected liability and only required source dependencies',async()=>{
   const {snapshot,empty,margins}=await fixture();
-  const registry:sdk.VenueRegistryV3={discriminator:sdk.VENUE_REGISTRY_V3_DISCRIMINATOR,schemaVersion:3,venue:snapshot.venue,bump:0,members:margins,count:2,membershipVersion:4n};
-  const proof={...empty(sdk.getSettlementCertificateV3Decoder()),marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2,
+  const registry:sdk.VenueRegistry={discriminator:sdk.VENUE_REGISTRY_DISCRIMINATOR,schemaVersion:3,venue:snapshot.venue,bump:0,members:margins,count:2,membershipVersion:4n};
+  const proof={...empty(sdk.getSettlementCertificateDecoder()),marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2,
     liabilityVersions:[1n,1n],requiredMarketMask:0};
   expect(accountBackingCurrent(snapshot,registry,proof)).toBe(true);
   snapshot.custodyState.liabilityVersions[1]++;snapshot.marketStates[1].observationSequence++;
@@ -38,7 +38,7 @@ it('backing stamps follow the selected liability and only required source depend
 });
 it('orders creditor remainders exactly with stable registry ties, including values beyond Number precision',async()=>{
   const {empty}=await fixture(),denominator=1n<<200n;
-  const rows=Array.from({length:4},()=>empty(sdk.getResolutionPageV3Decoder()).rows[0]);
+  const rows=Array.from({length:4},()=>empty(sdk.getResolutionPageDecoder()).rows[0]);
   const remainders=[denominator-1n,denominator-2n,denominator-1n,denominator-1n];
   for(const [index,row] of rows.entries()) {
     row.claimsScaled=[index===3?-1n:1n,index===0?0n:1n];row.roundedFlows=[2n,0n];

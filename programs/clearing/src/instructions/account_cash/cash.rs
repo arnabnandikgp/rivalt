@@ -1,10 +1,10 @@
 use super::*;
 use anchor_spl::token::{self, TransferChecked};
-use trading::authority::AccountGuardV3;
+use trading::authority::AccountGuard;
 
 pub fn withdraw(
-    ctx: Context<WithdrawFundedAccountV3>,
-    guard: AccountGuardV3,
+    ctx: Context<WithdrawFundedAccount>,
+    guard: AccountGuard,
     amount: u64,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
@@ -73,8 +73,8 @@ pub fn withdraw(
 }
 
 fn terminal_exit(
-    identity: &AccountFinancialIdentityV3,
-    root: &mut MarginAccountV3,
+    identity: &AccountFinancialIdentity,
+    root: &mut MarginAccount,
     amount: u64,
 ) -> Result<()> {
     require!(
@@ -103,8 +103,8 @@ fn terminal_exit(
 }
 
 pub fn transfer(
-    ctx: Context<TransferFundedAccountV3>,
-    guard: AccountGuardV3,
+    ctx: Context<TransferFundedAccount>,
+    guard: AccountGuard,
     amount: u64,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);

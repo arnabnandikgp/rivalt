@@ -63,8 +63,8 @@ export async function buildLiquidityRoute(input: LiquidityRouteInput, actor: Add
   const position = root.positions[marketIndex];
   const reduceOnly = input.reduceOnly ?? (input.side === 1 ? position.lots >= input.lots : -position.lots >= input.lots);
   const instruction = input.stored
-    ? await protocol.getExecuteLiquidityOrderV4InstructionAsync({ ...common, ...input.stored })
-    : await protocol.getExecuteLiquidityRouteV4InstructionAsync({ ...common, domain: snapshot.venueState.domain,
+    ? await protocol.getExecuteLiquidityOrderInstructionAsync({ ...common, ...input.stored })
+    : await protocol.getExecuteLiquidityRouteInstructionAsync({ ...common, domain: snapshot.venueState.domain,
       termsEpoch: market.termsEpoch, configEpoch: market.configEpoch, side: input.side,
       allInLimit: input.allInLimit, maxFee: input.maxFee, reduceOnly, generation: position.generation });
   return { snapshotCommitment: snapshot.commitment, snapshotSlot: snapshot.slot, trader, marketIndex,

@@ -1,20 +1,20 @@
 use super::*;
 use crate::instructions::account_trading::routes::{
-    __client_accounts_account_route_identity_v3, __cpi_client_accounts_account_route_identity_v3,
-    AccountRouteIdentityV3, AccountRouteIdentityV3Bumps,
+    __client_accounts_account_route_identity, __cpi_client_accounts_account_route_identity,
+    AccountRouteIdentity, AccountRouteIdentityBumps,
 };
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct ExecuteLiquidityRouteV4<'info> {
-    pub identity: AccountRouteIdentityV3<'info>,
+pub struct ExecuteLiquidityRoute<'info> {
+    pub identity: AccountRouteIdentity<'info>,
     #[account(seeds = [b"liquidity-v4", identity.market.key().as_ref()], bump = registry.bump,
         constraint = registry.venue == identity.venue.key() && registry.market == identity.market.key() @ ClearingError::MakerBinding)]
-    pub registry: Box<Account<'info, LiquidityRegistryV4>>,
+    pub registry: Box<Account<'info, LiquidityRegistry>>,
     #[account(mut)]
-    pub first_capital: Box<Account<'info, MarginAccountV3>>,
+    pub first_capital: Box<Account<'info, MarginAccount>>,
     #[account(mut)]
-    pub first_registration: Box<Account<'info, MakerRegistrationV4>>,
+    pub first_registration: Box<Account<'info, MakerRegistration>>,
     pub first_program: Program<'info>,
     pub first_program_data: Box<Account<'info, ProgramData>>,
     /// CHECK: fixed read-only identity, ownership, code and quote verified before CPI.
@@ -22,9 +22,9 @@ pub struct ExecuteLiquidityRouteV4<'info> {
     /// CHECK: fixed read-only publication validated against current inventory/depth.
     pub first_price: UncheckedAccount<'info>,
     #[account(mut)]
-    pub second_capital: Option<Box<Account<'info, MarginAccountV3>>>,
+    pub second_capital: Option<Box<Account<'info, MarginAccount>>>,
     #[account(mut)]
-    pub second_registration: Option<Box<Account<'info, MakerRegistrationV4>>>,
+    pub second_registration: Option<Box<Account<'info, MakerRegistration>>>,
     pub second_program: Option<Program<'info>>,
     pub second_program_data: Option<Box<Account<'info, ProgramData>>>,
     /// CHECK: same fixed read-only checks as the first leg; all-or-none optional tuple.

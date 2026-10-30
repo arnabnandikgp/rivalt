@@ -2,8 +2,8 @@ import { address, getAddressDecoder, getAddressEncoder, getProgramDerivedAddress
 import * as clearing from './generated/index.js';
 import * as canonical from './generatedMakerA/index.js';
 import { MAKER_B_PROGRAM_ADDRESS } from './generatedMakerB/index.js';
-import { quoteCanonicalV4, validateCanonicalShapeV4, type CanonicalShapeV4 } from './canonical-quote.js';
-import { findMarginV3Pda } from './account-addresses.js';
+import { quoteCanonical, validateCanonicalShape, type CanonicalShape } from './canonical-quote.js';
+import { deriveMarginAccount } from './account-addresses.js';
 import { fromBase64, hex, requireValue, rpcInteger, type UserRpc } from './wallet-client.js';
 
 const LOADER = address('BPFLoaderUpgradeab1e11111111111111111111111');
@@ -24,17 +24,17 @@ export type LiquiditySnapshotIdentity = Readonly<{
 export type LiquidityAdapter = Readonly<{
   capability: 1;
   registration: Address;
-  registrationState: clearing.MakerRegistrationV4;
-  capital: clearing.MarginAccountV3;
-  config: canonical.CurveStateV4;
-  price: canonical.PriceStateV4;
-  shape: CanonicalShapeV4;
+  registrationState: clearing.MakerRegistration;
+  capital: clearing.MarginAccount;
+  config: canonical.CurveState;
+  price: canonical.PriceState;
+  shape: CanonicalShape;
   snapshot: LiquiditySnapshotIdentity;
   unavailable: LiquidityUnavailable | null;
   validUntilSlot: bigint;
   validUntilTime: bigint;
   quote(side: 0 | 1, lots: bigint): Readonly<{ gross: bigint; remaining: bigint }>;
-  request(side: 0 | 1, lots: bigint): canonical.QuoteRequestV4Args;
+  request(side: 0 | 1, lots: bigint): canonical.MakerQuoteRequestArgs;
   /** Price-region/depth hints only. Health feasibility need not be a prefix. */
   depthHints(side: 0 | 1): readonly bigint[];
 }>;
@@ -56,7 +56,7 @@ function freezeState<Value>(value: Value): Value {
   }
   return value;
 }
-export function canonicalShapeFromAccount(state: canonical.ShapeV4): CanonicalShapeV4 {
+export function canonicalShapeFromAccount(state: canonical.LiquidityShape): CanonicalShape {
   requireValue(state.bidCount <= 8 && state.askCount <= 8 && state.bids.length === 8 && state.asks.length === 8,
     'Invalid canonical region count.');
   for (const [regions, count] of [[state.bids, state.bidCount], [state.asks, state.askCount]] as const) {
@@ -64,7 +64,7 @@ export function canonicalShapeFromAccount(state: canonical.ShapeV4): CanonicalSh
       'Nonzero unused canonical region.');
   }
   const shape = { ...state, bids: state.bids.slice(0,state.bidCount), asks: state.asks.slice(0,state.askCount) };
-  validateCanonicalShapeV4(shape);
+  validateCanonicalShape(shape);
   return shape;
 }
 
@@ -72,7 +72,7 @@ export function canonicalShapeFromAccount(state: canonical.ShapeV4): CanonicalSh
  * again in the final financial batch; discovery never supplies a quote value. */
 export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venue: Address, market: Address,
   commitment: 'confirmed' | 'finalized') {
-  const [registry] = await clearing.findLiquidityRegistryV4Pda({ market });
+  const [registry] = await clearing.findLiquidityRegistryPda({ market });
   const registrations = await Promise.all([0,1,2].map(async instance => (await getProgramDerivedAddress({
     programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
     seeds: [new TextEncoder().encode('maker-v4'), KEY.encode(market), Uint8Array.of(instance)],
@@ -82,8 +82,8 @@ export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venu
   const accounts: LiquidityAccountMap = new Map(registrations.map((key,index) => [key,discovery.value[index]]));
   const capitals: Address[] = [], dependencies: Address[] = [registry,...registrations];
   for (const [instance,key] of registrations.entries()) {
-    const state = decode(bytes(accounts,key,clearing.CLEARING_PROGRAM_ADDRESS),clearing.MAKER_REGISTRATION_V4_DISCRIMINATOR,
-      clearing.getMakerRegistrationV4Decoder());
+    const state = decode(bytes(accounts,key,clearing.CLEARING_PROGRAM_ADDRESS),clearing.MAKER_REGISTRATION_DISCRIMINATOR,
+      clearing.getMakerRegistrationDecoder());
     requireValue(state.schemaVersion === 4 && state.venue === venue && state.market === market && state.instance === instance,
       'Foreign liquidity discovery.');
     const [binding] = await getProgramDerivedAddress({ programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
@@ -101,9 +101,9 @@ export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venu
  */
 export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIdentity, accounts: LiquidityAccountMap) {
   snapshot = freezeState({ ...snapshot,domain: Uint8Array.from(snapshot.domain) });
-  const [registryKey, registryBump] = await clearing.findLiquidityRegistryV4Pda({ market: snapshot.market });
-  const registry = decode(bytes(accounts,registryKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.LIQUIDITY_REGISTRY_V4_DISCRIMINATOR,
-    clearing.getLiquidityRegistryV4Decoder());
+  const [registryKey, registryBump] = await clearing.findLiquidityRegistryPda({ market: snapshot.market });
+  const registry = decode(bytes(accounts,registryKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.LIQUIDITY_REGISTRY_DISCRIMINATOR,
+    clearing.getLiquidityRegistryDecoder());
   requireValue(registry.schemaVersion === 4 && registry.venue === snapshot.venue && registry.market === snapshot.market
     && registry.bump === registryBump && registry.sealed && registry.count === LIQUIDITY_MAKER_COUNT,
     'Liquidity registry is not complete and sealed.');
@@ -115,16 +115,16 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
   for (const [instance, registrationKey] of registry.registrations.entries()) {
     const [expectedRegistration, registrationBump] = await getProgramDerivedAddress({ programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
       seeds: [new TextEncoder().encode('maker-v4'), KEY.encode(snapshot.market), Uint8Array.of(instance)] });
-    const registration = decode(bytes(accounts,registrationKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.MAKER_REGISTRATION_V4_DISCRIMINATOR,
-      clearing.getMakerRegistrationV4Decoder());
+    const registration = decode(bytes(accounts,registrationKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.MAKER_REGISTRATION_DISCRIMINATOR,
+      clearing.getMakerRegistrationDecoder());
     requireValue(registrationKey === expectedRegistration && registration.bump === registrationBump && registration.schemaVersion === 4
       && registration.venue === snapshot.venue && registration.market === snapshot.market && registration.instance === instance
       && registration.authorityEpoch > 0n && registration.depthEpoch > 0n && registration.buyConsumed <= 4096n && registration.sellConsumed <= 4096n,
       'Invalid maker registration binding.');
     requireValue(!seenCapital.has(registration.capital), 'Aliased maker capital.'); seenCapital.add(registration.capital);
-    const capital = decode(bytes(accounts,registration.capital,clearing.CLEARING_PROGRAM_ADDRESS), clearing.MARGIN_ACCOUNT_V3_DISCRIMINATOR,
-      clearing.getMarginAccountV3Decoder());
-    const [capitalKey, capitalBump] = await findMarginV3Pda(capital.portfolio,capital.subaccountIndex);
+    const capital = decode(bytes(accounts,registration.capital,clearing.CLEARING_PROGRAM_ADDRESS), clearing.MARGIN_ACCOUNT_DISCRIMINATOR,
+      clearing.getMarginAccountDecoder());
+    const [capitalKey, capitalBump] = await deriveMarginAccount(capital.portfolio,capital.subaccountIndex);
     requireValue(capitalKey === registration.capital && capital.bump === capitalBump && capital.schemaVersion === 3
       && capital.venue === snapshot.venue && capital.owner === registration.owner && capital.role === 1 && capital.mode === 1
       && capital.isolatedMarketIndex === snapshot.marketIndex && capital.subaccountIndex >= 1 && capital.subaccountIndex <= 8
@@ -135,8 +135,8 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
       && foreignPosition.generation === 0n, 'Foreign isolated maker position.');
     const [bindingKey] = await getProgramDerivedAddress({ programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
       seeds: [new TextEncoder().encode('capital-v3'), KEY.encode(registration.capital)] });
-    const binding = decode(bytes(accounts,bindingKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.CAPITAL_BINDING_V3_DISCRIMINATOR,
-      clearing.getCapitalBindingV3Decoder());
+    const binding = decode(bytes(accounts,bindingKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.CAPITAL_BINDING_DISCRIMINATOR,
+      clearing.getCapitalBindingDecoder());
     requireValue(binding.schemaVersion === 3 && binding.venue === snapshot.venue && binding.capital === registration.capital
       && binding.registration === registrationKey, 'Maker capital is not uniquely bound.');
     const program = registration.pricingProgram;
@@ -145,7 +145,7 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
       seeds: [new TextEncoder().encode('curve-v4'), KEY.encode(registration.capital)] });
     const [priceKey, priceBump] = await getProgramDerivedAddress({ programAddress: program,
       seeds: [new TextEncoder().encode('price-v4'), KEY.encode(configKey)] });
-    const [controller] = await clearing.findLiquidityControllerV4Pda({ venue: snapshot.venue, capital: registration.capital });
+    const [controller] = await clearing.findLiquidityControllerPda({ venue: snapshot.venue, capital: registration.capital });
     const [programData] = await getProgramDerivedAddress({ programAddress: LOADER, seeds: [KEY.encode(program)] });
     requireValue(registration.config === configKey && registration.price === priceKey && registration.programData === programData,
       'Noncanonical maker dependencies.');
@@ -158,14 +158,14 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
         && new DataView(code.buffer,code.byteOffset).getUint32(0,true) === 3, 'Invalid maker ProgramData.');
       codeHashes.set(program,hex(new Uint8Array(await crypto.subtle.digest('SHA-256',Uint8Array.from(code)))));
     }
-    const config = decode(bytes(accounts,configKey,program), canonical.MAKER_CURVE_V4_DISCRIMINATOR,canonical.getMakerCurveV4Decoder()).state;
+    const config = decode(bytes(accounts,configKey,program), canonical.MAKER_CURVE_DISCRIMINATOR,canonical.getMakerCurveDecoder()).state;
     requireValue(config.capability === LIQUIDITY_CAPABILITY, 'Unsupported/noncanonical liquidity capability.');
     requireValue(config.schemaVersion === 4 && config.venue === snapshot.venue && config.market === snapshot.market
       && config.capital === registration.capital && config.controller === controller && config.owner === registration.owner
       && config.instance === instance && config.bump === configBump && hex(config.domain) === hex(snapshot.domain)
       && config.controlEpoch > 0n && config.shapeEpoch > 0n, 'Invalid canonical config identity.');
     const shape = canonicalShapeFromAccount(config.shape);
-    const price = decode(bytes(accounts,priceKey,program),canonical.MAKER_PRICE_V4_DISCRIMINATOR,canonical.getMakerPriceV4Decoder()).state;
+    const price = decode(bytes(accounts,priceKey,program),canonical.MAKER_PRICE_DISCRIMINATOR,canonical.getMakerPriceDecoder()).state;
     requireValue(price.schemaVersion === 4 && price.config === configKey && price.bump === priceBump, 'Invalid price account identity.');
     const validUntilSlot = price.updatedSlot + BigInt(shape.ttlSlots), validUntilTime = price.updatedTime + 6n;
     const validPrice = price.sequence > 0n && price.anchor >= 1n && price.anchor <= 1_000_000n
@@ -178,13 +178,13 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
     const requestDomain = Uint8Array.from(snapshot.domain);
     const inventory = capital.positions[snapshot.marketIndex].lots;
     const consumed = (side: 0|1) => side === 0 ? registration.buyConsumed : registration.sellConsumed;
-    const request = (side: 0|1, lots: bigint): canonical.QuoteRequestV4Args => ({ version: 4, domain: Uint8Array.from(requestDomain),
+    const request = (side: 0|1, lots: bigint): canonical.MakerQuoteRequestArgs => ({ version: 4, domain: Uint8Array.from(requestDomain),
       market: snapshot.market, capital: registration.capital, instance, authorityEpoch: registration.authorityEpoch,
       controlEpoch: config.controlEpoch, shapeEpoch: config.shapeEpoch, depthEpoch: registration.depthEpoch, side, lots, inventory, consumed: consumed(side) });
     adapters.push(Object.freeze({ capability: LIQUIDITY_CAPABILITY, registration: registrationKey, registrationState: registration, capital,
       config, price, shape, snapshot, unavailable, validUntilSlot, validUntilTime, request,
       quote(side: 0|1,lots: bigint) { requireValue(unavailable === null, `Maker unavailable: ${unavailable}`);
-        return quoteCanonicalV4(shape,price.anchor,side,lots,inventory,consumed(side)); },
+        return quoteCanonical(shape,price.anchor,side,lots,inventory,consumed(side)); },
       depthHints(side: 0|1) { return (side === 0 ? shape.asks : shape.bids).map(region => region.endLots-consumed(side)).filter(lots => lots>0n); },
     }));
   }

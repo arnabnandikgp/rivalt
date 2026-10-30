@@ -1,10 +1,10 @@
 use super::*;
 
 pub(crate) fn execution_base(
-    venue: &VenueV3,
-    custody: &CustodyV3,
-    safety: &SafetyV3,
-    market: &MarketV3,
+    venue: &Venue,
+    custody: &Custody,
+    safety: &VenueSafety,
+    market: &Market,
 ) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification")
@@ -23,10 +23,10 @@ pub(crate) fn execution_base(
 }
 
 pub(crate) fn execution_profile(
-    venue: &VenueV3,
-    custody: &CustodyV3,
-    safety: &SafetyV3,
-    market: &MarketV3,
+    venue: &Venue,
+    custody: &Custody,
+    safety: &VenueSafety,
+    market: &Market,
 ) -> Result<()> {
     execution_base(venue, custody, safety, market)?;
     require!(!safety.paused, ClearingError::Paused);
@@ -36,10 +36,10 @@ pub(crate) fn execution_profile(
 /// P30 binaries remain custody-only. P32's separate candidate can coordinate
 /// controls with held funding, but frozen/default resolution still rejects them.
 pub(crate) fn control_base(
-    venue: &VenueV3,
-    custody: &CustodyV3,
-    safety: &SafetyV3,
-    market: &MarketV3,
+    venue: &Venue,
+    custody: &Custody,
+    safety: &VenueSafety,
+    market: &Market,
 ) -> Result<()> {
     if cfg!(feature = "liquidity-execution-qualification") {
         execution_base(venue, custody, safety, market)
@@ -49,10 +49,10 @@ pub(crate) fn control_base(
 }
 
 pub(crate) fn custody_only(
-    venue: &VenueV3,
-    custody: &CustodyV3,
-    safety: &SafetyV3,
-    market: &MarketV3,
+    venue: &Venue,
+    custody: &Custody,
+    safety: &VenueSafety,
+    market: &Market,
 ) -> Result<()> {
     custody_base(venue, custody, safety, market)?;
     require!(!safety.paused, ClearingError::Paused);
@@ -60,10 +60,10 @@ pub(crate) fn custody_only(
 }
 
 pub(crate) fn custody_base(
-    venue: &VenueV3,
-    custody: &CustodyV3,
-    safety: &SafetyV3,
-    market: &MarketV3,
+    venue: &Venue,
+    custody: &Custody,
+    safety: &VenueSafety,
+    market: &Market,
 ) -> Result<()> {
     require!(
         cfg!(feature = "maker-liquidity-qualification")
@@ -84,7 +84,7 @@ pub(crate) fn custody_base(
     Ok(())
 }
 
-pub(crate) fn capital_identity(capital: &MarginAccountV3, market: &MarketV3) -> Result<()> {
+pub(crate) fn capital_identity(capital: &MarginAccount, market: &Market) -> Result<()> {
     require!(
         capital.schema_version == 3
             && capital.venue == market.venue
@@ -101,10 +101,10 @@ pub(crate) fn config_and_price(
     price: &AccountInfo,
     program: Pubkey,
     instance: u8,
-    venue: &Account<VenueV3>,
-    market: &Account<MarketV3>,
-    capital: &Account<MarginAccountV3>,
-) -> Result<(CurveStateV4, PriceStateV4)> {
+    venue: &Account<Venue>,
+    market: &Account<Market>,
+    capital: &Account<MarginAccount>,
+) -> Result<(CurveState, PriceState)> {
     require!(
         (program == MAKER_A || program == MAKER_B)
             && instance < 3
@@ -130,9 +130,9 @@ pub(crate) fn config_and_price(
             && price_bytes[..8] == hash(b"account:MakerPriceV4").to_bytes()[..8],
         ClearingError::MakerBinding
     );
-    let curve = CurveStateV4::try_from_slice(&config_bytes[8..])
+    let curve = CurveState::try_from_slice(&config_bytes[8..])
         .map_err(|_| error!(ClearingError::MakerBinding))?;
-    let publication = PriceStateV4::try_from_slice(&price_bytes[8..])
+    let publication = PriceState::try_from_slice(&price_bytes[8..])
         .map_err(|_| error!(ClearingError::MakerBinding))?;
     let controller = Pubkey::find_program_address(
         &[
@@ -185,10 +185,10 @@ pub(crate) fn config_and_price(
 }
 
 pub(crate) fn authenticated_control(
-    accounts: &ControlLiquidityV4,
+    accounts: &ControlLiquidity,
     authority: u64,
     check_hash: bool,
-) -> Result<CurveStateV4> {
+) -> Result<CurveState> {
     control_base(
         &accounts.venue,
         &accounts.custody,
@@ -230,7 +230,7 @@ pub(crate) fn authenticated_control(
 pub(crate) fn verify_control_result(
     config: &AccountInfo,
     program: Pubkey,
-    expected: &CurveStateV4,
+    expected: &CurveState,
 ) -> Result<()> {
     require!(
         *config.owner == program && !config.executable,
@@ -241,7 +241,7 @@ pub(crate) fn verify_control_result(
         bytes.len() == 691 && bytes[..8] == hash(b"account:MakerCurveV4").to_bytes()[..8],
         ClearingError::MakerBinding
     );
-    let actual = CurveStateV4::try_from_slice(&bytes[8..])
+    let actual = CurveState::try_from_slice(&bytes[8..])
         .map_err(|_| error!(ClearingError::MakerBinding))?;
     require!(actual == *expected, ClearingError::MakerBinding);
     Ok(())
@@ -253,7 +253,7 @@ mod control_result_tests {
 
     #[test]
     fn post_cpi_verification_rejects_every_changed_byte_and_foreign_layout_or_owner() {
-        let mut shape = canonical::ShapeV4 {
+        let mut shape = canonical::LiquidityShape {
             mode: 1,
             ttl_slots: 150,
             skew_step: 1,
@@ -263,18 +263,18 @@ mod control_result_tests {
             ask_count: 1,
             ..Default::default()
         };
-        shape.bids[0] = canonical::RegionV4 {
+        shape.bids[0] = canonical::PriceRegion {
             end_lots: 100,
             offset: 1,
             slope: 0,
         };
-        shape.asks[0] = canonical::RegionV4 {
+        shape.asks[0] = canonical::PriceRegion {
             end_lots: 100,
             offset: 2,
             slope: 0,
         };
         shape.validate().unwrap();
-        let expected = CurveStateV4 {
+        let expected = CurveState {
             schema_version: 4,
             venue: Pubkey::new_unique(),
             market: Pubkey::new_unique(),

@@ -98,7 +98,7 @@ export class GroupUserClient extends WalletClient {
   }
   async ownerPortfolio(owner:Address,index=0){
     requireValue(Number.isInteger(index)&&index>=0&&index<=3,'Portfolio index must be 0–3.');
-    const [portfolio,bump]=await protocol.findPortfolioPda({group:this.config.group,owner,index});
+    const [portfolio,bump]=await protocol.findGroupPortfolioPda({group:this.config.group,owner,index});
     const response=await this.rpc.call('getAccountInfo',[portfolio,{encoding:'base64',commitment:'finalized'}]);
     if(response.value===null)return {address:portfolio,account:null};
     requireValue(response.value?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&response.value.data?.[1]==='base64','Foreign owner portfolio.');
@@ -132,7 +132,7 @@ export class GroupUserClient extends WalletClient {
   async register(owner:Address,portfolioIndex:number,subaccountIndex:number,isolatedMarketIndex?:0|1,role:0|1|2=0){
     requireValue(Number.isInteger(portfolioIndex)&&portfolioIndex>=0&&portfolioIndex<=3&&Number.isInteger(subaccountIndex)&&subaccountIndex>=0&&subaccountIndex<=8,'Invalid account indexes.');
     requireValue([0,1,2].includes(role)&&(subaccountIndex===0?isolatedMarketIndex===undefined&&role!==1:isolatedMarketIndex===0||isolatedMarketIndex===1),'Invalid immutable margin mode/role.');
-    const [portfolio]=await protocol.findPortfolioPda({group:this.config.group,owner,index:portfolioIndex});
+    const [portfolio]=await protocol.findGroupPortfolioPda({group:this.config.group,owner,index:portfolioIndex});
     return protocol.getRegisterMarginV2InstructionAsync({...await this.common(),owner:createNoopSigner(owner),portfolio,subaccountIndex,
       mode:subaccountIndex===0?0:1,isolatedMarketIndex:isolatedMarketIndex??255,role});
   }

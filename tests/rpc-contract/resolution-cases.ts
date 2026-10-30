@@ -14,7 +14,7 @@ export async function resolutionTools(h:OracleHarness,a:Awaited<ReturnType<typeo
   const qualify=t.recover;
   t.recover=async(price=60000n)=>{
     for(const [i,x]of a.makers.entries()){
-      const r=sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!);
+      const r=sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(x.registration))!);
       if(r.expirySlot-(await h.slot())<600n){await h.waitUntil(r.expirySlot);
         await h.send('renew real maker epoch before long resolution matrix',[(i===0?sdk.makerA:sdk.makerB).getPublishEpochInstruction({owner:x.owner,config:x.config,duration:3600n}),await sdk.getSyncMakerEpochInstructionAsync({...a,...x})],[x.owner]);}
     }
@@ -32,7 +32,7 @@ export async function resolutionTools(h:OracleHarness,a:Awaited<ReturnType<typeo
   }
   async function splitOpen(){
     const m=await t.market(),r=await t.risk(),p=await t.participant(),slot=await h.slot(),[x,y]=a.makers;
-    const regs=await Promise.all(a.makers.map(async x=>sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!)));
+    const regs=await Promise.all(a.makers.map(async x=>sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(x.registration))!)));
     await h.send('owner opens five lots with each actual maker for two independent profit recipients',[sdk.routeComputeBudget(),await sdk.getExecuteRouteInstructionAsync({...a,owner:a.owner,trader:a.trader,
       firstCapital:x.capital,firstRegistration:x.registration,firstProgram:x.pricingProgram,firstProgramData:x.programData,firstConfig:x.config,
       secondCapital:y.capital,secondRegistration:y.registration,secondProgram:y.pricingProgram,secondProgramData:y.programData,secondConfig:y.config,

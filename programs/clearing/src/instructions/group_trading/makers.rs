@@ -168,7 +168,7 @@ fn event(
         slot: Clock::get()?.slot,
         config_epoch: market.config_epoch,
         registration: registration.key(),
-        state: crate::events::MakerRegistrationSnapshotV2::from(&**registration),
+        state: crate::events::LegacyMakerRegistrationSnapshotV2::from(&**registration),
         operation,
     })
 }

@@ -5,7 +5,7 @@ import * as sdk from '@rivalt/sdk';
 import { Runtime } from './runtime.js';
 
 const key = await Keypair.generate();
-const market = (await sdk.findMarketPda())[0];
+const market = (await sdk.findLegacyMarketPda())[0];
 const program = sdk.CLEARING_PROGRAM_ADDRESS;
 const eventAuthority = (await getProgramDerivedAddress({ programAddress: program, seeds: [Buffer.from('__event_authority')] }))[0];
 const ix = await sdk.getSetCustodyPauseInstructionAsync({ authority: key, paused: true, eventAuthority, program });

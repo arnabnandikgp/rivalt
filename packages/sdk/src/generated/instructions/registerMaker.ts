@@ -48,7 +48,7 @@ import {
 import {
   findBindingPda,
   findCapitalPda,
-  findMarketPda,
+  findLegacyMarketPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
@@ -355,7 +355,7 @@ export async function getRegisterMakerInstructionAsync<
 
   // Resolve default values.
   if (!accounts.market.value) {
-    accounts.market.value = await findMarketPda({ programAddress });
+    accounts.market.value = await findLegacyMarketPda({ programAddress });
   }
   if (!accounts.capital.value) {
     accounts.capital.value = await findCapitalPda(

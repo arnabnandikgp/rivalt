@@ -266,16 +266,16 @@ def funding_quote(candidates, publications, reference, slot, time):
 # Borsh field order, widths; no implicit padding. Includes account discriminator.
 # Accounts are inert specifications until P30/P32 implement them and prove parity.
 LAYOUTS = {
-    "LiquidityRegistryV4": (
+    "LiquidityRegistry": (
         ("discriminator", 8), ("schema_version", 2), ("venue", 32), ("market", 32),
         ("count", 1), ("sealed", 1), ("registrations", 96), ("bump", 1)),
-    "MakerRegistrationV4": (
+    "MakerRegistration": (
         ("discriminator", 8), ("schema_version", 2), ("venue", 32), ("market", 32),
         ("capital", 32), ("owner", 32), ("pricing_program", 32), ("program_data", 32),
         ("config", 32), ("price", 32), ("approved_hash", 32), ("instance", 1),
         ("authority_epoch", 8), ("depth_epoch", 8), ("buy_consumed", 8),
         ("sell_consumed", 8), ("quarantined", 1), ("bump", 1)),
-    "MakerCurveV4": (
+    "MakerCurve": (
         ("discriminator", 8), ("schema_version", 2), ("venue", 32), ("market", 32),
         ("capital", 32), ("controller", 32), ("owner", 32), ("updater", 32),
         ("updater_expiry_slot", 8), ("control_epoch", 8), ("shape_epoch", 8),
@@ -283,7 +283,7 @@ LAYOUTS = {
         ("ttl_slots", 2), ("target", 8), ("skew_step", 8), ("skew_tick", 8),
         ("long_cap", 8), ("short_cap", 8), ("bid_count", 1), ("ask_count", 1),
         ("bids", 192), ("asks", 192), ("bump", 1)),
-    "MakerPriceV4": (
+    "MakerPrice": (
         ("discriminator", 8), ("schema_version", 2), ("config", 32),
         ("control_epoch", 8), ("sequence", 8), ("anchor", 8), ("updated_slot", 8),
         ("updated_time", 8), ("bump", 1)),

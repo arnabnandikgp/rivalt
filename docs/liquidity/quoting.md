@@ -2,7 +2,7 @@
 
 ## Identity, deployment and authority
 
-- Fresh local venue/domain with `VenueV3.schema_version=3`, immutable
+- Fresh local venue/domain with `Venue.schema_version=3`, immutable
   `profile_version=4`; financial account layouts remain schema 3. New maker
   accounts/quote ABI use version 4. No in-place profile-3 upgrade or account rewrite.
   The default/devnet build rejects profile-4 financial activation. An explicit local qualification build gates execution.
@@ -175,21 +175,21 @@ See [the self-review evidence](https://github.com/arnabnandikgp/rivalt/blob/84c4
 
 | Account / owner / seeds | Bytes including discriminator | Ordered payload fields |
 |---|---:|---|
-| `LiquidityRegistryV4` / clearing / `liquidity-v4,market` | 173 | schema:u16; venue,market:keys; count:u8; sealed:bool; registrations:[key;3]; bump:u8 |
-| `MakerRegistrationV4` / clearing / `maker-v4,market,instance:u8` | 333 | schema:u16; venue,market,capital,owner,pricing_program,program_data,config,price:keys; approved_hash:[u8;32]; instance:u8; authority_epoch,depth_epoch,buy_consumed,sell_consumed:u64; quarantined:bool; bump:u8 |
-| `MakerCurveV4` / maker / `curve-v4,capital` | 691 | schema:u16; venue,market,capital,controller,owner,updater:keys; updater_expiry_slot,control_epoch,shape_epoch:u64; domain:[u8;32]; instance:u8; capability:u16; mode:u8; ttl_slots:u16; target:i64; skew_step,skew_tick,long_cap,short_cap:u64; bid_count,ask_count:u8; bids,asks:[Region;8]; bump:u8 |
-| `MakerPriceV4` / maker / `price-v4,config` | 83 | schema:u16; config:key; control_epoch,sequence,anchor,updated_slot:u64; updated_time:i64; bump:u8 |
+| `LiquidityRegistry` / clearing / `liquidity-v4,market` | 173 | schema:u16; venue,market:keys; count:u8; sealed:bool; registrations:[key;3]; bump:u8 |
+| `MakerRegistration` / clearing / `maker-v4,market,instance:u8` | 333 | schema:u16; venue,market,capital,owner,pricing_program,program_data,config,price:keys; approved_hash:[u8;32]; instance:u8; authority_epoch,depth_epoch,buy_consumed,sell_consumed:u64; quarantined:bool; bump:u8 |
+| `MakerCurve` / maker / `curve-v4,capital` | 691 | schema:u16; venue,market,capital,controller,owner,updater:keys; updater_expiry_slot,control_epoch,shape_epoch:u64; domain:[u8;32]; instance:u8; capability:u16; mode:u8; ttl_slots:u16; target:i64; skew_step,skew_tick,long_cap,short_cap:u64; bid_count,ask_count:u8; bids,asks:[Region;8]; bump:u8 |
+| `MakerPrice` / maker / `price-v4,config` | 83 | schema:u16; config:key; control_epoch,sequence,anchor,updated_slot:u64; updated_time:i64; bump:u8 |
 
 Config immutable fields are schema, venue, market, capital, controller, owner,
 domain, instance, capability and bump. Fixed owner transfers require a fresh
-deployment in this release. `ShapeV4` is mode,ttl,target,step,tick,long/short cap,
+deployment in this release. `LiquidityShape` is mode,ttl,target,step,tick,long/short cap,
 counts,region arrays in config order (429 bytes). Region is three u64s (24 bytes).
 All maker mutable dependencies are exactly config and price. No dynamic read list,
 external feed CPI, taker identity, router identity or funding-purpose flag.
 
-**Quote ABI:** `QuoteRequestV4` (156 bytes) is version:u16, domain:[u8;32],
+**Quote ABI:** `MakerQuoteRequest` (156 bytes) is version:u16, domain:[u8;32],
 market:key, capital:key, instance:u8, authority/control/shape/depth epochs:u64,
-side:u8 (0 buy/1 sell), lots:u64, inventory:i64, consumed:u64. `QuoteResponseV4`
+side:u8 (0 buy/1 sell), lots:u64, inventory:i64, consumed:u64. `MakerQuoteResponse`
 echoes that request followed by price_sequence, anchor, gross, remaining,
 valid_until_slot:u64 and valid_until_time:i64 (204 bytes). Remaining means available
 capacity **after** this quantity, before financial admission. CPI producer must
@@ -198,13 +198,13 @@ canonical recomputation. Clock supplies expiry checks. A direct maker quote is a
 mathematical quote over supplied inventory/consumption, not proof those inputs are
 the clearing state; clearing/SDK must authenticate them. Only clearing consumes.
 
-**Maker instructions:** `initialize_curve_v4(ShapeV4, updater:key, expiry:u64,
+**Maker instructions:** `initialize_curve_v4(LiquidityShape, updater:key, expiry:u64,
 instance:u8)` binds existing venue/market/capital/domain/controller, initializing
 config/price; `reprice_v4(expected_control:u64, expected_sequence:u64, anchor:u64)`;
 `control_curve_v4(expected_control:u64, expected_shape:u64, action:u8, payload)`;
-`quote_v4(QuoteRequestV4)`. Control actions: 0 shape(429 bytes), 1 updater(key,u64),
+`quote_v4(MakerQuoteRequest)`. Control actions: 0 shape(429 bytes), 1 updater(key,u64),
 2 mode(u8), 3 invalidate publication(no payload). These form Borsh enum
-`CurveControlV4` with discriminants0…3 and no vector-length prefix. Shape replacement
+`CurveControl` with discriminants0…3 and no vector-length prefix. Shape replacement
 must retain the current mode; re-enabling must use the mode transition and invalidate
 the old price. Only clearing controller signs
 control; action3 is the approval/revocation gateway hook. Reprice accounts in order:

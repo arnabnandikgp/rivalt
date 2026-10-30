@@ -4,14 +4,14 @@
 use super::*;
 
 #[inline(never)]
-pub(crate) fn root_view(root: &MarginAccountV3) -> Result<Box<v2::MarginAccountV2>> {
+pub(crate) fn root_view(root: &MarginAccount) -> Result<Box<v2::MarginAccountV2>> {
     Ok(Box::new(root_view_value(root)?))
 }
 
 /// The same authenticated scalar adapter without a persistent heap copy. Used
 /// for short-lived funding projections in a separate bounded SBF frame.
 #[inline(never)]
-pub(crate) fn root_view_value(root: &MarginAccountV3) -> Result<v2::MarginAccountV2> {
+pub(crate) fn root_view_value(root: &MarginAccount) -> Result<v2::MarginAccountV2> {
     require!(
         root.schema_version == SCHEMA_VERSION,
         ClearingError::Profile
@@ -42,7 +42,7 @@ pub(crate) fn root_view_value(root: &MarginAccountV3) -> Result<v2::MarginAccoun
 }
 
 pub(crate) fn commit_root(
-    root: &mut MarginAccountV3,
+    root: &mut MarginAccount,
     candidate: &v2::MarginAccountV2,
 ) -> Result<()> {
     model(root)?;
@@ -73,7 +73,7 @@ pub(crate) fn commit_root(
     Ok(())
 }
 
-pub(crate) fn market_view(market: &MarketV3) -> Result<v2::GroupMarketV2> {
+pub(crate) fn market_view(market: &Market) -> Result<v2::GroupMarketV2> {
     require!(
         market.schema_version == SCHEMA_VERSION
             && market.index < 2
@@ -103,7 +103,7 @@ pub(crate) fn market_view(market: &MarketV3) -> Result<v2::GroupMarketV2> {
     })
 }
 
-pub(crate) fn commit_market(market: &mut MarketV3, candidate: &v2::GroupMarketV2) -> Result<()> {
+pub(crate) fn commit_market(market: &mut Market, candidate: &v2::GroupMarketV2) -> Result<()> {
     require!(
         candidate.schema_version == v2::SCHEMA_VERSION
             && candidate.group == market.venue
@@ -128,7 +128,7 @@ pub(crate) fn commit_market(market: &mut MarketV3, candidate: &v2::GroupMarketV2
     Ok(())
 }
 
-pub(crate) fn model(root: &MarginAccountV3) -> Result<math::margin::Margin> {
+pub(crate) fn model(root: &MarginAccount) -> Result<math::margin::Margin> {
     require!(
         root.schema_version == SCHEMA_VERSION
             && valid_identity(
@@ -166,9 +166,9 @@ pub(crate) fn model(root: &MarginAccountV3) -> Result<math::margin::Margin> {
 /// Event order does not authorize actions. Only economic dependencies invalidate
 /// payment certificates, including cross-market cash changes with an existing debt.
 pub(crate) fn invalidate(
-    custody: &mut CustodyV3,
-    before: [v2::PositionV2; 2],
-    after: [v2::PositionV2; 2],
+    custody: &mut Custody,
+    before: [v2::Position; 2],
+    after: [v2::Position; 2],
 ) -> Result<()> {
     for index in 0..2 {
         if [before[index], after[index]]
@@ -210,7 +210,7 @@ pub(crate) fn environment<'a>(
 /// Every consumed prefix persists even if a later sample is lost or held coverage
 /// expires. Both canonical market accounts are locked; irrelevant prices need not
 /// be fresh and no observation/event counter is a signed-intent dependency.
-pub(crate) fn materialize(markets: [&mut MarketV3; 2], clock: &Clock) -> Result<()> {
+pub(crate) fn materialize(markets: [&mut Market; 2], clock: &Clock) -> Result<()> {
     for market in markets {
         let mut view = market_view(market)?;
         shared_oracle::materialize(2, &mut view, clock)?;
@@ -220,8 +220,8 @@ pub(crate) fn materialize(markets: [&mut MarketV3; 2], clock: &Clock) -> Result<
 }
 
 pub(crate) fn split_fee(
-    custody: &mut CustodyV3,
-    ledger: &mut MarketLedgerV3,
+    custody: &mut Custody,
+    ledger: &mut MarketLedger,
     fee: u64,
 ) -> Result<(u64, u64, u8)> {
     require!(

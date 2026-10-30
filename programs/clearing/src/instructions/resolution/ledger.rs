@@ -4,7 +4,7 @@ use crate::constants::orders;
 
 fn original(
     participant: &Participant,
-    row: &ResolutionRow,
+    row: &LegacyResolutionRow,
     header: &ResolutionHeader,
 ) -> Result<()> {
     require!(
@@ -30,7 +30,7 @@ fn quotient(total: u128, weight: u128, denominator: u128) -> Result<(u128, u128)
     checked(math::mul_div_rem(total, weight, denominator))
 }
 
-fn bonus(rows: &[ResolutionRow], id: usize, extra: u16) -> u128 {
+fn bonus(rows: &[LegacyResolutionRow], id: usize, extra: u16) -> u128 {
     let remainder = rows[id].remainder;
     let rank = rows
         .iter()
@@ -185,12 +185,12 @@ pub(super) fn process_row(
     match header.stage {
         VALUE => {
             let model = routes::participant_model(participant)?;
-            *row = ResolutionRow {
+            *row = LegacyResolutionRow {
                 cash_before: participant.cash,
                 lots: participant.lots,
                 generation: participant.generation,
                 claim: checked(model.unpaid(header.price, header.funding))?,
-                ..ResolutionRow::default()
+                ..LegacyResolutionRow::default()
             };
             header.scanned_cash = checked(math::cash_add(header.scanned_cash, participant.cash))?;
             header.scanned_lots = signed_sum(header.scanned_lots, i128::from(participant.lots))?;

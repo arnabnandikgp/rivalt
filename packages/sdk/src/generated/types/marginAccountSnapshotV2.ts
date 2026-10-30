@@ -27,14 +27,14 @@ import {
   type HasAddress,
 } from "@solana/kit";
 import {
-  getOrderBookV2Decoder,
-  getOrderBookV2Encoder,
-  getPositionV2Decoder,
-  getPositionV2Encoder,
-  type OrderBookV2,
-  type OrderBookV2Args,
-  type PositionV2,
-  type PositionV2Args,
+  getOrderBookDecoder,
+  getOrderBookEncoder,
+  getPositionDecoder,
+  getPositionEncoder,
+  type OrderBook,
+  type OrderBookArgs,
+  type Position,
+  type PositionArgs,
 } from "./index.js";
 
 export type MarginAccountSnapshotV2 = {
@@ -48,14 +48,14 @@ export type MarginAccountSnapshotV2 = {
   isolatedMarketIndex: number;
   role: number;
   cash: bigint;
-  positions: Array<PositionV2>;
+  positions: Array<Position>;
   nonce: bigint;
   stateVersion: bigint;
   delegate: Address;
   delegateExpirySlot: bigint;
   delegateEpoch: bigint;
   reserved: bigint;
-  book: OrderBookV2;
+  book: OrderBook;
   bump: number;
 };
 
@@ -70,14 +70,14 @@ export type MarginAccountSnapshotV2Args = {
   isolatedMarketIndex: number;
   role: number;
   cash: number | bigint;
-  positions: Array<PositionV2Args>;
+  positions: Array<PositionArgs>;
   nonce: number | bigint;
   stateVersion: number | bigint;
   delegate: Address | HasAddress;
   delegateExpirySlot: number | bigint;
   delegateEpoch: number | bigint;
   reserved: number | bigint;
-  book: OrderBookV2Args;
+  book: OrderBookArgs;
   bump: number;
 };
 
@@ -93,14 +93,14 @@ export function getMarginAccountSnapshotV2Encoder(): FixedSizeEncoder<MarginAcco
     ["isolatedMarketIndex", getU8Encoder()],
     ["role", getU8Encoder()],
     ["cash", getU64Encoder()],
-    ["positions", getArrayEncoder(getPositionV2Encoder(), { size: 2 })],
+    ["positions", getArrayEncoder(getPositionEncoder(), { size: 2 })],
     ["nonce", getU64Encoder()],
     ["stateVersion", getU64Encoder()],
     ["delegate", getAddressEncoder()],
     ["delegateExpirySlot", getU64Encoder()],
     ["delegateEpoch", getU64Encoder()],
     ["reserved", getU64Encoder()],
-    ["book", getOrderBookV2Encoder()],
+    ["book", getOrderBookEncoder()],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -117,14 +117,14 @@ export function getMarginAccountSnapshotV2Decoder(): FixedSizeDecoder<MarginAcco
     ["isolatedMarketIndex", getU8Decoder()],
     ["role", getU8Decoder()],
     ["cash", getU64Decoder()],
-    ["positions", getArrayDecoder(getPositionV2Decoder(), { size: 2 })],
+    ["positions", getArrayDecoder(getPositionDecoder(), { size: 2 })],
     ["nonce", getU64Decoder()],
     ["stateVersion", getU64Decoder()],
     ["delegate", getAddressDecoder()],
     ["delegateExpirySlot", getU64Decoder()],
     ["delegateEpoch", getU64Decoder()],
     ["reserved", getU64Decoder()],
-    ["book", getOrderBookV2Decoder()],
+    ["book", getOrderBookDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }

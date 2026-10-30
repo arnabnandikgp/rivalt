@@ -1,5 +1,5 @@
 import type {ReadonlyUint8Array} from '@solana/kit';
-import type {GroupMarketV2, MarginAccountV2, StoredOrderV2} from './generated/index.js';
+import type {GroupMarketV2, MarginAccountV2, StoredOrder} from './generated/index.js';
 import type {oracleMode} from './oracle-policy.js';
 
 /** Shared financial fields only; deployment identity/authority belongs to callers. */
@@ -17,7 +17,7 @@ const abs = (value: bigint) => value < 0n ? -value : value;
 const min = (left: bigint, right: bigint) => left < right ? left : right;
 const max = (left: bigint, right: bigint) => left > right ? left : right;
 
-export function marginOrderRemaining(root: Root, stored: MarginPreview<StoredOrderV2>, market: Market, slot: bigint): bigint {
+export function marginOrderRemaining(root: Root, stored: MarginPreview<StoredOrder>, market: Market, slot: bigint): bigint {
   const order = stored.order;
   if (![1,2].includes(order.state) || stored.marketIndex !== market.index || BigInt(order.termsEpoch) !== BigInt(market.termsEpoch) || slot >= BigInt(order.expirySlot)) return 0n;
   if (BigInt(stored.delegateEpoch) !== 0n && (root.delegate === zero || slot >= BigInt(root.delegateExpirySlot) || BigInt(stored.delegateEpoch) !== BigInt(root.delegateEpoch))) return 0n;

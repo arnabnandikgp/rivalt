@@ -26,19 +26,19 @@ svm.setAccount({...programData,data:metadata}); // Loader upgrade authority only
 const initial=svm.getClock();initial.unixTimestamp=1_800_000_000n;initial.slot=100n;svm.setClock(initial);
 const checks: {label:string;status:string;bytes:number;accounts:number;computeUnits:string;declaredComputeUnits:number;signatureHex:string}[]=[];
 const json=(value:unknown)=>JSON.stringify(value,(_,item)=>typeof item==='bigint'?item.toString():item,2)+'\n';
-const safetyTags=[sdk.INITIALIZE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.INITIALIZE_ACCOUNT_RESOLUTION_PAGE_V3_DISCRIMINATOR,
-  sdk.FREEZE_ACCOUNTS_V3_DISCRIMINATOR,sdk.VALUE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,
-  sdk.ADVANCE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.PROPOSE_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,
-  sdk.ORDER_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,sdk.CHECK_ACCOUNT_RESOLUTION_ORDER_V3_DISCRIMINATOR,sdk.ROUND_ACCOUNT_RESOLUTION_V3_DISCRIMINATOR,
-  sdk.RECOVER_ACCOUNTS_V3_DISCRIMINATOR,sdk.REACTIVATE_ACCOUNTS_V3_DISCRIMINATOR,
-  sdk.CHECK_ACCOUNT_RETIREMENT_V3_DISCRIMINATOR,sdk.RETIRE_ACCOUNTS_V3_DISCRIMINATOR];
-safetyTags.push(sdk.FINALIZE_ACCOUNT_RESOLUTION_RATES_V3_DISCRIMINATOR);
+const safetyTags=[sdk.INITIALIZE_ACCOUNT_RESOLUTION_DISCRIMINATOR,sdk.INITIALIZE_ACCOUNT_RESOLUTION_PAGE_DISCRIMINATOR,
+  sdk.FREEZE_ACCOUNTS_DISCRIMINATOR,sdk.VALUE_ACCOUNT_RESOLUTION_DISCRIMINATOR,
+  sdk.ADVANCE_ACCOUNT_RESOLUTION_DISCRIMINATOR,sdk.PROPOSE_ACCOUNT_RESOLUTION_DISCRIMINATOR,
+  sdk.ORDER_ACCOUNT_RESOLUTION_DISCRIMINATOR,sdk.CHECK_ACCOUNT_RESOLUTION_ORDER_DISCRIMINATOR,sdk.ROUND_ACCOUNT_RESOLUTION_DISCRIMINATOR,
+  sdk.RECOVER_ACCOUNTS_DISCRIMINATOR,sdk.REACTIVATE_ACCOUNTS_DISCRIMINATOR,
+  sdk.CHECK_ACCOUNT_RETIREMENT_DISCRIMINATOR,sdk.RETIRE_ACCOUNTS_DISCRIMINATOR];
+safetyTags.push(sdk.FINALIZE_ACCOUNT_RESOLUTION_RATES_DISCRIMINATOR);
 async function send(label:string,instructions:Instruction[],signers:Parameters<Harness['send']>[2]=[],expectedError?:number) {
   svm.expireBlockhash();
   const sampling=instructions.some(instruction=>instruction.programAddress===deployment.program
-    && Buffer.from(instruction.data??[]).subarray(0,8).equals(Buffer.from(sdk.SAMPLE_ACCOUNT_ORACLE_V3_DISCRIMINATOR)));
+    && Buffer.from(instruction.data??[]).subarray(0,8).equals(Buffer.from(sdk.SAMPLE_ACCOUNT_ORACLE_DISCRIMINATOR)));
   const trading=instructions.some(instruction=>instruction.programAddress===deployment.program
-    && [sdk.EXECUTE_ACCOUNT_ROUTE_V3_DISCRIMINATOR,sdk.EXECUTE_ACCOUNT_ORDER_V3_DISCRIMINATOR]
+    && [sdk.EXECUTE_ACCOUNT_ROUTE_DISCRIMINATOR,sdk.EXECUTE_ACCOUNT_ORDER_DISCRIMINATOR]
       .some(tag=>Buffer.from(instruction.data??[]).subarray(0,8).equals(Buffer.from(tag))));
   const resolution=safetyTags.some(tag=>instructions.some(instruction=>instruction.programAddress===deployment.program
     && Buffer.from(instruction.data??[]).subarray(0,8).equals(Buffer.from(tag))));

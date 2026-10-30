@@ -37,10 +37,10 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  getOrderBookDecoder,
-  getOrderBookEncoder,
-  type OrderBook,
-  type OrderBookArgs,
+  getLegacyOrderBookDecoder,
+  getLegacyOrderBookEncoder,
+  type LegacyOrderBook,
+  type LegacyOrderBookArgs,
 } from "../types/index.js";
 
 export const ORDER_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
@@ -64,7 +64,7 @@ export type OrderChangedEvent = {
   orderId: bigint;
   reserved: bigint;
   orderIds: Array<bigint>;
-  book: OrderBook;
+  book: LegacyOrderBook;
 };
 
 export type OrderChangedEventArgs = {
@@ -79,7 +79,7 @@ export type OrderChangedEventArgs = {
   orderId: number | bigint;
   reserved: number | bigint;
   orderIds: Array<number | bigint>;
-  book: OrderBookArgs;
+  book: LegacyOrderBookArgs;
 };
 
 /** Gets the encoder for {@link OrderChangedEventArgs} event data. */
@@ -96,7 +96,7 @@ export function getOrderChangedEventEncoder(): FixedSizeEncoder<OrderChangedEven
       ["orderId", getU64Encoder()],
       ["reserved", getU64Encoder()],
       ["orderIds", getArrayEncoder(getU64Encoder(), { size: 4 })],
-      ["book", getOrderBookEncoder()],
+      ["book", getLegacyOrderBookEncoder()],
     ]),
     [getConstantEncoder(ORDER_CHANGED_EVENT_DISCRIMINATOR)],
   );
@@ -116,7 +116,7 @@ export function getOrderChangedEventDecoder(): FixedSizeDecoder<OrderChangedEven
       ["orderId", getU64Decoder()],
       ["reserved", getU64Decoder()],
       ["orderIds", getArrayDecoder(getU64Decoder(), { size: 4 })],
-      ["book", getOrderBookDecoder()],
+      ["book", getLegacyOrderBookDecoder()],
     ]),
     [getConstantDecoder(ORDER_CHANGED_EVENT_DISCRIMINATOR)],
   );

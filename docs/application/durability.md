@@ -137,3 +137,11 @@ Frozen work resumes chain stage/cursors; untrusted rate proposals grant no payou
 rights. Recovery observations are bounded to eight originals per epoch.
 Authority-only resume/reactivation, emergency freeze and retirement are explicit
 operator actions, not automatically inferred from healthy observations.
+
+## Stored schema identity during source renaming
+
+Current Rust/IDL/SDK symbols have canonical names. Persisted journal/API event tags
+retain their existing `V3`/`V4` suffixes as schema identities; their source decoder
+mapping is explicit in `account-events.ts`. Do not relabel historical rows or
+original signed bytes. Generated decoder names and stored event tags are different
+interfaces. Existing HTTP versions, numeric layouts and deployment checks remain.

@@ -73,7 +73,7 @@ fn paginated_derived_headroom_and_terminal_generation_survive_every_page_size() 
             let mut route_state: TestRouteState = zero();
             route_state.gross_lots = math::MAX_GROSS_LOTS;
             let mut resolution: ResolutionState = zero();
-            resolution.rows = vec![ResolutionRow::default(); count];
+            resolution.rows = vec![LegacyResolutionRow::default(); count];
             resolution.header = ResolutionHeader {
                 epoch: 1,
                 stage: VALUE,
@@ -142,7 +142,7 @@ fn one_atom_terminal_tie_goes_to_lower_stable_id_with_zero_sum_adjustments() {
         market.allocated_vault = 1;
         let mut route_state: TestRouteState = zero();
         let mut resolution: ResolutionState = zero();
-        resolution.rows = vec![ResolutionRow::default(); 3];
+        resolution.rows = vec![LegacyResolutionRow::default(); 3];
         resolution.header = ResolutionHeader {
             epoch: 1,
             stage: VALUE,

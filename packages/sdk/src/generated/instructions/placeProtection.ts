@@ -44,7 +44,7 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCapitalPda,
-  findMarketPda,
+  findLegacyMarketPda,
   findRouteStatePda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
@@ -259,7 +259,7 @@ export async function getPlaceProtectionInstructionAsync<
 
   // Resolve default values.
   if (!accounts.market.value) {
-    accounts.market.value = await findMarketPda({ programAddress });
+    accounts.market.value = await findLegacyMarketPda({ programAddress });
   }
   if (!accounts.participant.value) {
     accounts.participant.value = await findCapitalPda(

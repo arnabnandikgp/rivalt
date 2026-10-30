@@ -1,10 +1,10 @@
-import type {MarginAccountV3,MarketV3,SafetyV3} from './generated/index.js';
+import type {MarginAccount,Market as MarketAccount,VenueSafety} from './generated/index.js';
 import {effectiveFunding,oracleMode} from './oracle-policy.js';
 import {marginBalanceView,marginOrderRemaining,type MarginPreview} from './margin-balance.js';
 
-type Root=MarginPreview<Omit<MarginAccountV3,'bump'|'discriminator'>>;
-type Market=MarginPreview<Omit<MarketV3,'bump'|'discriminator'>>;
-type Safety=MarginPreview<Pick<SafetyV3,'venue'|'mode'|'paused'>>;
+type Root=MarginPreview<Omit<MarginAccount,'bump'|'discriminator'>>;
+type Market=MarginPreview<Omit<MarketAccount,'bump'|'discriminator'>>;
+type Safety=MarginPreview<Pick<VenueSafety,'venue'|'mode'|'paused'>>;
 export {marginOrderRemaining as accountOrderRemaining};
 export function effectiveAccountFunding(safety:Safety,market:Market,now:bigint,slot:bigint) {
   return effectiveFunding({...market,mode:safety.mode===1?2:0},market,now,slot);

@@ -74,7 +74,7 @@ export class AccountExecution {
       return enqueueOperator(this,id,instructions,payer,budget,authority,preflight);
     }
     const economic=instructions.filter(instruction=>instruction.programAddress!=='ComputeBudget111111111111111111111111111111');
-    const route=economic.some(instruction=>[sdk.EXECUTE_LIQUIDITY_ROUTE_V4_DISCRIMINATOR,sdk.EXECUTE_LIQUIDITY_ORDER_V4_DISCRIMINATOR]
+    const route=economic.some(instruction=>[sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR,sdk.EXECUTE_LIQUIDITY_ORDER_DISCRIMINATOR]
       .some(discriminator=>sdk.hex(discriminator)===sdk.hex(instruction.data?.slice(0,8)??[])));
     const explicit=instructions.find(instruction=>instruction.programAddress==='ComputeBudget111111111111111111111111111111'&&instruction.data?.[0]===2);
     const computeUnitLimit=route?800_000:explicit?Buffer.from(explicit.data!).readUInt32LE(1):200_000;

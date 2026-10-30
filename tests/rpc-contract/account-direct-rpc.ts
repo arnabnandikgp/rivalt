@@ -47,7 +47,7 @@ try {
   await signed('SDK register cross account',[await client.register(setup.owner.address,2,0)]);
   await signed('SDK register isolated ETH account',[await client.register(setup.owner.address,2,1,1)]);
   const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,setup.owner.address,2);
-  const [cross]=await sdk.findMarginV3Pda(portfolio,0),[isolated]=await sdk.findMarginV3Pda(portfolio,1);
+  const [cross]=await sdk.deriveMarginAccount(portfolio,0),[isolated]=await sdk.deriveMarginAccount(portfolio,1);
   for(const margin of [cross,isolated])await signed('SDK deposit actual funded cash',[await client.deposit(await client.snapshot([margin]),setup.owner.address,margin,token,50_000n)],setup.owner,margin===cross);
   await setup.qualify();
   for(const [marketIndex,margin] of [[0,cross],[1,isolated]] as const) {
@@ -73,7 +73,7 @@ try {
   const initialSequence=snapshot.custodyState.sequence;
   // A signed ordinary sample advances discovery, but the root-local cash intent
   // remains usable. No source refresh or paused sampling is needed for flat cash.
-  await transport.send('unrelated sampler write after cash preparation',[sdk.getSampleAccountOracleV3Instruction(setup.sampleAccounts(0))]);
+  await transport.send('unrelated sampler write after cash preparation',[sdk.getSampleAccountOracleInstruction(setup.sampleAccounts(0))]);
   await signed('SDK atomic funded exit survives unrelated discovery write',firstExit.instructions);
   assert((await client.snapshot([cross])).custodyState.sequence>initialSequence);
   await signed('SDK isolated atomic funded exit with API stopped',(await client.exit(await client.snapshot([isolated]),setup.owner.address,isolated,token,5n)).instructions);

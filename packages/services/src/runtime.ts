@@ -51,7 +51,7 @@ export class Runtime {
     const pkeys=Object.keys(row.state.participants).sort((a,b)=>row.state.participants[a].id-row.state.participants[b].id).map(address),rkeys=Object.keys(row.state.makers).map(address);
     // Discover bindings, then refetch every value at the explicitly labeled commitment.
     const discovered=await this.rpc.call('getMultipleAccounts',[rkeys,{encoding:'base64',commitment}]);
-    const regs=discovered.value.map((x:any)=>{if(x?.owner!==this.deployment.clearing)throw new Error('Maker missing');return sdk.getMakerRegistrationDecoder().decode(Buffer.from(x.data[0],'base64'));}) as sdk.MakerRegistration[];
+    const regs=discovered.value.map((x:any)=>{if(x?.owner!==this.deployment.clearing)throw new Error('Maker missing');return sdk.getLegacyMakerRegistrationDecoder().decode(Buffer.from(x.data[0],'base64'));}) as sdk.LegacyMakerRegistration[];
     const clock=address('SysvarC1ock11111111111111111111111111111111');
     const keys=[clock,market,registry,routeState,guard,vault,...pkeys,...rkeys,...regs.flatMap(r=>[r.config,r.programData]),resolution];
     const response=await this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment}]);
@@ -80,7 +80,7 @@ export class Runtime {
     }
     const heartbeats=(await this.store.pool.query('SELECT *,seen_at>now()-($2::int*interval \'1 millisecond\') AS online FROM maker_heartbeats WHERE run_id=$1',[this.runId,HEARTBEAT_MS])).rows;
     const makers=rkeys.map((registration,i)=>{
-      const r=sdk.getMakerRegistrationDecoder().decode(raw(registration));assert.equal(r.config,regs[i].config);assert.equal(r.programData,regs[i].programData);
+      const r=sdk.getLegacyMakerRegistrationDecoder().decode(raw(registration));assert.equal(r.config,regs[i].config);assert.equal(r.programData,regs[i].programData);
       const state=sdk.makerA.getMakerConfigDecoder().decode(raw(r.config,r.pricingProgram)).state;
       const approved=createHash('sha256').update(raw(r.programData,'BPFLoaderUpgradeab1e11111111111111111111111')).digest().equals(Buffer.from(r.approvedHash));
       const heartbeat=heartbeats.find(h=>h.maker_id===r.makerId && h.owner===r.owner);

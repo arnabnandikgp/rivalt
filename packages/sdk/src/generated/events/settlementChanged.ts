@@ -41,10 +41,10 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  getOrderBookDecoder,
-  getOrderBookEncoder,
-  type OrderBook,
-  type OrderBookArgs,
+  getLegacyOrderBookDecoder,
+  getLegacyOrderBookEncoder,
+  type LegacyOrderBook,
+  type LegacyOrderBookArgs,
 } from "../types/index.js";
 
 export const SETTLEMENT_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
@@ -71,7 +71,7 @@ export type SettlementChangedEvent = {
   participantVirtual: bigint;
   participantReserved: bigint;
   participantOrderIds: Array<bigint>;
-  participantBook: OrderBook;
+  participantBook: LegacyOrderBook;
   fundingIndexScaled: bigint;
   fundingTime: bigint;
   totalCash: bigint;
@@ -95,7 +95,7 @@ export type SettlementChangedEventArgs = {
   participantVirtual: number | bigint;
   participantReserved: number | bigint;
   participantOrderIds: Array<number | bigint>;
-  participantBook: OrderBookArgs;
+  participantBook: LegacyOrderBookArgs;
   fundingIndexScaled: number | bigint;
   fundingTime: number | bigint;
   totalCash: number | bigint;
@@ -121,7 +121,7 @@ export function getSettlementChangedEventEncoder(): FixedSizeEncoder<SettlementC
       ["participantVirtual", getI128Encoder()],
       ["participantReserved", getU64Encoder()],
       ["participantOrderIds", getArrayEncoder(getU64Encoder(), { size: 4 })],
-      ["participantBook", getOrderBookEncoder()],
+      ["participantBook", getLegacyOrderBookEncoder()],
       ["fundingIndexScaled", getI128Encoder()],
       ["fundingTime", getI64Encoder()],
       ["totalCash", getU64Encoder()],
@@ -150,7 +150,7 @@ export function getSettlementChangedEventDecoder(): FixedSizeDecoder<SettlementC
       ["participantVirtual", getI128Decoder()],
       ["participantReserved", getU64Decoder()],
       ["participantOrderIds", getArrayDecoder(getU64Decoder(), { size: 4 })],
-      ["participantBook", getOrderBookDecoder()],
+      ["participantBook", getLegacyOrderBookDecoder()],
       ["fundingIndexScaled", getI128Decoder()],
       ["fundingTime", getI64Decoder()],
       ["totalCash", getU64Decoder()],

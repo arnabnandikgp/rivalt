@@ -32,19 +32,19 @@ try {
   await h.send('fund controlled local sources', authorities.map(authority => getTransferSolInstruction({
     source: fixture.payer, destination: authority.address, amount: 100_000_000n })));
   for (const [index, source] of sources.entries()) await h.send(`initialize source ${index}`, [await initializeFeed(index)], [source.authority]);
-  await h.send('initialize profile4 source bindings', [sdk.getInitializeLiquidityOracleV4Instruction({
+  await h.send('initialize profile4 source bindings', [sdk.getInitializeLiquidityOracleInstruction({
     ...fixture.common, authority: fixture.payer, market: fixture.markets[0], primary: authorities[0].address, guard: authorities[1].address })]);
-  const [configuration] = await sdk.findFundingPublisherV4Pda({ market: fixture.markets[0] });
+  const [configuration] = await sdk.findFundingPublisherPda({ market: fixture.markets[0] });
   const administration = { ...fixture.common, authority: fixture.payer, market: fixture.markets[0], configuration };
-  await h.send('P32 publisher initialize', [sdk.getInitializeFundingPublisherV4Instruction({
+  await h.send('P32 publisher initialize', [sdk.getInitializeFundingPublisherInstruction({
     ...administration, registry: makers[0].liquidityRegistry, publisher: fixture.updater.address })]);
-  const marketState = async () => sdk.getMarketV3Decoder().decode((await h.read(fixture.markets[0]))!);
-  const publisherState = async () => sdk.getFundingPublisherV4Decoder().decode((await h.read(configuration))!);
+  const marketState = async () => sdk.getMarketDecoder().decode((await h.read(fixture.markets[0]))!);
+  const publisherState = async () => sdk.getFundingPublisherDecoder().decode((await h.read(configuration))!);
   const makerKeys = makers.flatMap(maker => [maker.capital, maker.registration, maker.config, maker.price]);
   const unchangedKeys = [...makerKeys, fixture.markets[0], configuration, fixture.custody];
   const readAll = (keys = unchangedKeys) => Promise.all(keys.map(h.read));
   const beforeDisabled = await readAll();
-  await h.send('disabled legacy sampler cannot bypass publisher', [sdk.getSampleLiquidityV4Instruction({
+  await h.send('disabled legacy sampler cannot bypass publisher', [sdk.getSampleLiquidityInstruction({
     ...fixture.common, payer: fixture.payer, market: fixture.markets[0], registry: makers[0].liquidityRegistry,
     primaryAsset: sources[0].feed, primaryCollateral: sources[1].feed, guardAsset: sources[2].feed, guardCollateral: sources[3].feed,
     firstCapital: makers[0].capital, firstRegistration: makers[0].registration, firstProgram: makers[0].pricingProgram,
@@ -62,8 +62,8 @@ try {
     await h.send('fresh independent source observations', await Promise.all(sources.map((_, index) =>
       publishFeed(index, time, { price: index % 2 === 0 ? anchor * 1_000_000n : 1_000_000n }))), authorities);
     const instructions = await Promise.all(makers.slice(0, count).map(async maker => {
-      const config = await maker.state(), price = maker.module.getMakerPriceV4Decoder().decode((await h.read(maker.price))!).state;
-      return maker.module.getRepriceV4Instruction({ ...maker.makerCommon, actor: fixture.updater,
+      const config = await maker.state(), price = maker.module.getMakerPriceDecoder().decode((await h.read(maker.price))!).state;
+      return maker.module.getRepriceInstruction({ ...maker.makerCommon, actor: fixture.updater,
         expectedControl: config.controlEpoch, expectedSequence: price.sequence, anchor });
     }));
     await h.send('fresh bounded maker publications', instructions, [fixture.updater]);
@@ -73,9 +73,9 @@ try {
     return sdk.readFundingReport(rpc, fixture.venue, 0);
   }
   function instruction(input: Awaited<ReturnType<typeof snapshot>>, report = input.report, signer = publisher) {
-    return sdk.getPublishFundingReportV4Instruction({ ...fixture.common, ...input.instructionAccounts, publisher: signer, report });
+    return sdk.getPublishFundingReportInstruction({ ...fixture.common, ...input.instructionAccounts, publisher: signer, report });
   }
-  async function rejected(label: string, input: Awaited<ReturnType<typeof snapshot>>, report: sdk.FundingReportV4,
+  async function rejected(label: string, input: Awaited<ReturnType<typeof snapshot>>, report: sdk.FundingReport,
     error = sdk.CLEARING_ERROR__FUNDING_REPORT, signer = publisher) {
     const before = await readAll();
     await h.send(`P32 publisher rejects ${label}`, [instruction(input, report, signer)], [signer], error);
@@ -115,45 +115,45 @@ try {
   // Actual SPL withdrawals, not fixture cash mutations. Published liquidity is
   // unchanged by zero funded cash; actual execution admission remains separate.
   for (const maker of makers) {
-    await h.send('withdraw all maker funded cash', [await sdk.getWithdrawAccountCustodyV3InstructionAsync({
+    await h.send('withdraw all maker funded cash', [await sdk.getWithdrawAccountCustodyInstructionAsync({
       ...fixture.common, owner: fixture.owner, margin: maker.capital, quoteMint: fixture.mint.address,
       userToken: fixture.token.address, amount: 1_000_000n })], [fixture.owner]);
-    assert.equal(sdk.getMarginAccountV3Decoder().decode((await h.read(maker.capital))!).cash, 0n);
+    assert.equal(sdk.getMarginAccountDecoder().decode((await h.read(maker.capital))!).cash, 0n);
   }
   await fresh(10_000n); await publish('zero-cash published depth', 0, sixHundred);
   for (const [label, mutate, error] of [
-    ['foreign domain', (report: sdk.FundingReportV4) => ({ ...report, domain: new Uint8Array(32) }), sdk.CLEARING_ERROR__FUNDING_REPORT],
-    ['foreign market', (report: sdk.FundingReportV4) => ({ ...report, market: fixture.markets[1] }), sdk.CLEARING_ERROR__FUNDING_REPORT],
-    ['future observation', (report: sdk.FundingReportV4) => ({ ...report, observedTime: report.observedTime + 10n }), sdk.CLEARING_ERROR__FUNDING_REPORT],
-    ['incorrect index quantity', (report: sdk.FundingReportV4) => ({ ...report, quantity: report.quantity - 1n }), sdk.CLEARING_ERROR__ORACLE_POLICY],
+    ['foreign domain', (report: sdk.FundingReport) => ({ ...report, domain: new Uint8Array(32) }), sdk.CLEARING_ERROR__FUNDING_REPORT],
+    ['foreign market', (report: sdk.FundingReport) => ({ ...report, market: fixture.markets[1] }), sdk.CLEARING_ERROR__FUNDING_REPORT],
+    ['future observation', (report: sdk.FundingReport) => ({ ...report, observedTime: report.observedTime + 10n }), sdk.CLEARING_ERROR__FUNDING_REPORT],
+    ['incorrect index quantity', (report: sdk.FundingReport) => ({ ...report, quantity: report.quantity - 1n }), sdk.CLEARING_ERROR__ORACLE_POLICY],
   ] as const) {
     await fresh(10_000n); const input = await snapshot();
     await rejected(label, input, mutate(input.report), error);
   }
   await fresh(10_000n);
   const oldAuthorityInput = await snapshot(), oldState = await publisherState();
-  await h.send('P32 publisher rotate', [sdk.getConfigureFundingPublisherV4Instruction({
+  await h.send('P32 publisher rotate', [sdk.getConfigureFundingPublisherInstruction({
     ...administration, expectedAuthority: oldState.authorityEpoch, publisher: fixture.owner.address })]);
   assert.equal((await marketState()).oracle.quantity, 0n);
   await rejected('old signer after rotation', oldAuthorityInput, oldAuthorityInput.report, 2001);
   publisher = fixture.owner;
   await rejected('old epoch signed by new publisher', oldAuthorityInput, oldAuthorityInput.report);
   await fresh(10_000n); await publish('new authorized signer', 0, sixHundred);
-  await h.send('P32 publisher revoke', [sdk.getConfigureFundingPublisherV4Instruction({
+  await h.send('P32 publisher revoke', [sdk.getConfigureFundingPublisherInstruction({
     ...administration, expectedAuthority: (await publisherState()).authorityEpoch, publisher: address('11111111111111111111111111111111') })]);
   assert.equal((await publisherState()).enabled, false);
   assert.equal((await marketState()).oracle.quantity, 0n);
   await assert.rejects(sdk.readFundingReport(rpc, fixture.venue, 0), /not authorized/);
-  await h.send('P32 publisher reauthorize', [sdk.getConfigureFundingPublisherV4Instruction({
+  await h.send('P32 publisher reauthorize', [sdk.getConfigureFundingPublisherInstruction({
     ...administration, expectedAuthority: (await publisherState()).authorityEpoch, publisher: fixture.owner.address })]);
   const third = makers[2], thirdConfig = await third.state();
   await fresh(10_000n); const beforeControl = await snapshot();
-  await h.send('zero-cap required input control', [sdk.getControlLiquidityV4Instruction({ ...third.controlCommon,
+  await h.send('zero-cap required input control', [sdk.getControlLiquidityInstruction({ ...third.controlCommon,
     expectedAuthority: 1n, expectedControl: thirdConfig.controlEpoch, expectedShape: thirdConfig.shapeEpoch,
     action: { __kind: 'Shape', fields: [{ ...shape, longCap: 0n, shortCap: 0n }] } })], [fixture.owner]);
   await rejected('report prepared before maker control', beforeControl, beforeControl.report);
   await fresh(10_000n); await publish('fresh zero-cap input remains covered', 0, sixHundred);
-  const thirdPrice = third.module.getMakerPriceV4Decoder().decode((await h.read(third.price))!).state;
+  const thirdPrice = third.module.getMakerPriceDecoder().decode((await h.read(third.price))!).state;
   await waitUntil(thirdPrice.updatedTime + 6n);
   await fresh(10_000n, 2); await publish('expired zero-cap input invalidates full coverage', 2);
   await fresh(10_000n);
@@ -161,16 +161,16 @@ try {
   await publish('invalid independent source', 1);
   for (const maker of makers.slice(0, 2)) {
     const state = await maker.state();
-    await h.send('remove remaining declared capacity', [sdk.getControlLiquidityV4Instruction({ ...maker.controlCommon,
+    await h.send('remove remaining declared capacity', [sdk.getControlLiquidityInstruction({ ...maker.controlCommon,
       expectedAuthority: 1n, expectedControl: state.controlEpoch, expectedShape: state.shapeEpoch,
       action: { __kind: 'Shape', fields: [{ ...shape, longCap: 0n, shortCap: 0n }] } })], [fixture.owner]);
   }
   await fresh(10_000n); await publish('insufficient complete published depth', 3);
   const parity = await conformance.finish(runDir, [
-    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'marketV3', key: fixture.markets[0] },
-    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'fundingPublisherV4', key: configuration },
+    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'market', key: fixture.markets[0] },
+    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'fundingPublisher', key: configuration },
   ], h.read);
-  assert.equal(sdk.getSafetyV3Decoder().decode((await h.read(fixture.safety))!).mode, 0);
+  assert.equal(sdk.getVenueSafetyDecoder().decode((await h.read(fixture.safety))!).mode, 0);
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
     build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')),

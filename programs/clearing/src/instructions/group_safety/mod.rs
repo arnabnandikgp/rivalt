@@ -59,7 +59,7 @@ pub(crate) fn commit(root: &mut MarginAccountV2, model: math::margin::Margin) ->
     );
     checked(model.validate())?;
     root.cash = model.cash;
-    root.positions = model.positions.map(|position| PositionV2 {
+    root.positions = model.positions.map(|position| Position {
         lots: position.lots,
         virtual_scaled: position.virtual_scaled,
         funding_checkpoint_scaled: position.funding_checkpoint,

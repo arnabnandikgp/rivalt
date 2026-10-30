@@ -23,7 +23,7 @@ fn cross(
         ..Default::default()
     };
     for index in 0..2 {
-        account.positions[index] = PositionV2 {
+        account.positions[index] = Position {
             lots: lots[index],
             virtual_scaled: claims[index]
                 - i128::from(lots[index]) * i128::from(prices[index]) * math::SCALE

@@ -15,7 +15,7 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
-  options: { shape?: sdk.makerA.ShapeV4Args | ((instance: number) => sdk.makerA.ShapeV4Args); makerCash?: bigint } = {}) {
+  options: { shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint } = {}) {
   const region = (offset: bigint) => [{ endLots: 4096n, offset, slope: 0n },
     ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
   const shape = { ...goldenShape, skewTick: 0n, longCap: 4096n, shortCap: 4096n,
@@ -28,7 +28,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
     const deadline = Date.now() + 20_000;
     while (await now() < time) { assert(Date.now() < deadline, 'Clock progress'); await delay(100); }
   };
-  const marketState = async (index: number) => sdk.getMarketV3Decoder().decode((await h.read(markets[index]))!);
+  const marketState = async (index: number) => sdk.getMarketDecoder().decode((await h.read(markets[index]))!);
   // Signed test oracle values, independently converted to each market's lot
   // units. Mutating these inputs never injects account state or funding indexes.
   const sourcePrices = { btc: 60_000_000_000n, eth: 3_000_000_000n };
@@ -41,15 +41,15 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
     getInitializeAccount3Instruction({ account: traderToken.address, mint: fixture.mint.address, owner: traderOwner.address }),
     getMintToInstruction({ mint: fixture.mint.address, token: traderToken.address, mintAuthority: payer, amount: 2_000_000n })], [traderToken]);
   const [portfolio] = await sdk.deriveAccountPortfolio(venue, traderOwner.address, 0);
-  await h.send('create test trader portfolio', [await sdk.getCreatePortfolioV3InstructionAsync({
+  await h.send('create test trader portfolio', [await sdk.getCreatePortfolioInstructionAsync({
     ...common, owner: traderOwner, portfolio, index: 0 })], [traderOwner]);
   const roots: Address[] = [];
   for (const subaccountIndex of [0, 1]) {
-    const [margin] = await sdk.findMarginV3Pda(portfolio, subaccountIndex);
-    await h.send('register cross or isolated test root', [await sdk.getRegisterMarginV3InstructionAsync({ ...common,
+    const [margin] = await sdk.deriveMarginAccount(portfolio, subaccountIndex);
+    await h.send('register cross or isolated test root', [await sdk.getRegisterMarginInstructionAsync({ ...common,
       owner: traderOwner, portfolio, margin, subaccountIndex, mode: subaccountIndex === 0 ? 0 : 1,
       isolatedMarketIndex: subaccountIndex === 0 ? 255 : 0, role: 0 })], [traderOwner]);
-    await h.send('deposit actual test trader collateral', [await sdk.getDepositAccountV3InstructionAsync({ ...common,
+    await h.send('deposit actual test trader collateral', [await sdk.getDepositAccountInstructionAsync({ ...common,
       owner: traderOwner, margin, quoteMint: fixture.mint.address, userToken: traderToken.address, amount: 1_000_000n })], [traderOwner]);
     roots.push(margin);
   }
@@ -66,22 +66,22 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
   }
   const configurations = [];
   for (const index of [0, 1]) {
-    await h.send('initialize canonical source bindings', [sdk.getInitializeLiquidityOracleV4Instruction({ ...common,
+    await h.send('initialize canonical source bindings', [sdk.getInitializeLiquidityOracleInstruction({ ...common,
       authority: payer, market: markets[index], primary: primary.address, guard: guard.address })]);
-    const [configuration] = await sdk.findFundingPublisherV4Pda({ market: markets[index] });
-    await h.send('P32 publisher initialize', [sdk.getInitializeFundingPublisherV4Instruction({ ...common, authority: payer,
+    const [configuration] = await sdk.findFundingPublisherPda({ market: markets[index] });
+    await h.send('P32 publisher initialize', [sdk.getInitializeFundingPublisherInstruction({ ...common, authority: payer,
       market: markets[index], registry: instances[index * 3].liquidityRegistry, configuration, publisher: fixture.updater.address })]);
     configurations.push(configuration);
   }
-  const [resolution] = await sdk.findVenueComponentV3Pda(venue, 'resolution');
-  const [work] = await sdk.findVenueComponentV3Pda(venue, 'resolution-work');
+  const [resolution] = await sdk.deriveVenueComponent(venue, 'resolution');
+  const [work] = await sdk.deriveVenueComponent(venue, 'resolution-work');
   const safetyCommon = { ...common, authority: payer, payer, btc: markets[0], eth: markets[1], resolution, work };
-  await h.send('precreate complete resolution header and work', [sdk.getInitializeAccountResolutionV3Instruction(safetyCommon)]);
-  await h.send('activation rejects incomplete safety storage', [sdk.getActivateLiquidityV4Instruction(safetyCommon)], [], sdk.CLEARING_ERROR__RESOLUTION);
+  await h.send('precreate complete resolution header and work', [sdk.getInitializeAccountResolutionInstruction(safetyCommon)]);
+  await h.send('activation rejects incomplete safety storage', [sdk.getActivateLiquidityInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__RESOLUTION);
   const pages = [];
   for (let pageIndex = 0; pageIndex < 32; pageIndex++) {
-    const [page] = await sdk.findResolutionPageV3Pda(venue, pageIndex);
-    await h.send('precreate complete safety page', [sdk.getInitializeAccountResolutionPageV3Instruction({ ...safetyCommon, page, pageIndex })]);
+    const [page] = await sdk.findResolutionPagePda(venue, pageIndex);
+    await h.send('precreate complete safety page', [sdk.getInitializeAccountResolutionPageInstruction({ ...safetyCommon, page, pageIndex })]);
     pages.push(page);
   }
   async function sourceInstructions() {
@@ -101,8 +101,8 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
   async function fresh() {
     const sources=await sourceInstructions();
     const reprices = await Promise.all(instances.map(async (maker, index) => {
-      const config = await maker.state(), price = maker.module.getMakerPriceV4Decoder().decode((await h.read(maker.price))!).state;
-      return maker.module.getRepriceV4Instruction({ ...maker.makerCommon, actor: fixture.updater,
+      const config = await maker.state(), price = maker.module.getMakerPriceDecoder().decode((await h.read(maker.price))!).state;
+      return maker.module.getRepriceInstruction({ ...maker.makerCommon, actor: fixture.updater,
         expectedControl: config.controlEpoch, expectedSequence: price.sequence,
         anchor: index < 3 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n });
     }));
@@ -119,16 +119,16 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: WireRpc,
       const reference = index === 0 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n;
       assert.equal(input.report.referencePrice, reference);
       assert.equal(input.report.quantity, (6_000_000n + reference - 1n) / reference);
-      reports.push(sdk.getPublishFundingReportV4Instruction({ ...common,
+      reports.push(sdk.getPublishFundingReportInstruction({ ...common,
         ...input.instructionAccounts, publisher: fixture.updater, report: input.report }));
     }
     await h.send('P32 publisher available two-market reports', reports, [fixture.updater]);
   }
   const qualify = async () => { for (let round = 0; round < 4; round++) await sample(); };
   await qualify();
-  await h.send('legacy activation rejects canonical profile', [sdk.getActivateAccountsV3Instruction(safetyCommon)], [], sdk.CLEARING_ERROR__PROFILE);
-  await h.send('activate storage-ready canonical candidate', [sdk.getActivateLiquidityV4Instruction(safetyCommon)]);
-  await h.send('canonical activation cannot replay', [sdk.getActivateLiquidityV4Instruction(safetyCommon)], [], sdk.CLEARING_ERROR__PROFILE);
+  await h.send('legacy activation rejects canonical profile', [sdk.getActivateAccountsInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__PROFILE);
+  await h.send('activate storage-ready canonical candidate', [sdk.getActivateLiquidityInstruction(safetyCommon)]);
+  await h.send('canonical activation cannot replay', [sdk.getActivateLiquidityInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__PROFILE);
   await qualify();
   const identity = { venue, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
   const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readLiquidityTradeSnapshot(rpc, identity, root, marketIndex);

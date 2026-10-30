@@ -47,16 +47,16 @@ const h: CanonicalHarness = {
   },
   async quote(label, instruction, expected) {
     await h.send(label, [instruction]);
-    assert.equal(sdk.makerA.getQuoteResponseV4Decoder().decode(returned).gross, expected, label);
+    assert.equal(sdk.makerA.getMakerQuoteResponseDecoder().decode(returned).gross, expected, label);
   },
 };
 const result = await canonicalMakerCases(h);
 const parity = await conformance.finish('.local/canonical-maker', [
-  ...result.registrations.map(key => ({ program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'makerRegistrationV4', key })),
+  ...result.registrations.map(key => ({ program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'makerRegistration', key })),
   ...await Promise.all(result.markets.map(async market => ({ program: sdk.CLEARING_PROGRAM_ADDRESS,
-    name: 'liquidityRegistryV4', key: (await sdk.findLiquidityRegistryV4Pda({ market }))[0] }))),
-  ...result.makerAccounts.flatMap(item => [{ program: item.program, name: 'makerCurveV4', key: item.config },
-    { program: item.program, name: 'makerPriceV4', key: item.price }]),
+    name: 'liquidityRegistry', key: (await sdk.findLiquidityRegistryPda({ market }))[0] }))),
+  ...result.makerAccounts.flatMap(item => [{ program: item.program, name: 'makerCurve', key: item.config },
+    { program: item.program, name: 'makerPrice', key: item.price }]),
 ], h.read);
 writeFileSync('.local/canonical-maker/lifecycle-svm.json', JSON.stringify({ checks, result, parity }, null, 2)+'\n');
 console.log(`P30 compiled lifecycle: ${checks.length} cases, ${checks.filter(check => check.rejected).length} rejections.`);

@@ -35,7 +35,7 @@ it('uses whole-account losses, pending other-market funding and no positive unpa
 it('binds root/market/maker authority and consumed prefixes without observation/global sequence',async()=>{
   const {input,root,snapshot}=await environment();snapshot.makers[0].registrationState.buyConsumed=7n;
   const quote=await sdk.buildAccountRoute(input,root.owner),instruction=quote!.instructions[1];
-  const decoded=sdk.getExecuteAccountRouteV3InstructionDataDecoder().decode(instruction.data!);
+  const decoded=sdk.getExecuteAccountRouteInstructionDataDecoder().decode(instruction.data!);
   expect(decoded).toMatchObject({guard:{safetyEpoch:2n,venueTermsEpoch:1n,nonce:4n,stateVersion:9n},termsEpoch:1n,configEpoch:1n,
     side:0,lots:1n,expirySlot:250n,legs:[{quoteEpoch:1n,authorityEpoch:1n,expectedConsumed:7n}]});
   expect(decoded).not.toHaveProperty('sequence');expect(decoded).not.toHaveProperty('observationSequence');
@@ -49,7 +49,7 @@ it('validates stored authority/prefix and recomputes reservations after a full f
   expect(sdk.allocateAccountRoute(input)).toBeNull();
   const quote=await sdk.buildAccountRoute({...input,stored:{id:1n,version:2n,filled:0n}},snapshot.makers[0].state.owner);
   expect(quote!.allocation.fee).toBe(3n);
-  expect(sdk.getExecuteAccountOrderV3InstructionDataDecoder().decode(quote!.instructions[1].data!)).toMatchObject({id:1n,version:2n,filled:0n,lots:1n});
+  expect(sdk.getExecuteAccountOrderInstructionDataDecoder().decode(quote!.instructions[1].data!)).toMatchObject({id:1n,version:2n,filled:0n,lots:1n});
   stored.delegateEpoch=1n;root.delegateExpirySlot=0n;
   expect(()=>sdk.allocateAccountRoute({...input,stored:{id:1n,version:2n,filled:0n}})).toThrow(/Stored/);
 });
@@ -73,7 +73,7 @@ it('uses final-batch maker epochs and code hashes rather than discovery financia
   const fixture=await accountTradeFixture(),original=fixture.rpc.call,maker=fixture.makers[0];
   fixture.rpc.call=async(method,params)=>{
     if(fixture.batches.length===2) {
-      fixture.put(maker.registration,sdk.getMakerRegistrationV3Encoder().encode({...maker.state,buyConsumed:19n,quoteEpoch:2n}));
+      fixture.put(maker.registration,sdk.getFixedMakerRegistrationEncoder().encode({...maker.state,buyConsumed:19n,quoteEpoch:2n}));
       const code=Buffer.from(fixture.accounts.get(maker.programData).data[0],'base64');code[50]^=1;
       fixture.put(maker.programData,code,fixture.accounts.get(maker.programData).owner);
     }return original(method,params);

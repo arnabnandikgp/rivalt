@@ -154,7 +154,7 @@ try {
       // UI is separately qualified. Provision the same owner/account boundaries
       // through actual signed SDK actions for the affected workload/recovery gate.
       const owner=setup.owner.address,[portfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner,1);
-      const [cross]=await sdk.findMarginV3Pda(portfolio,0),[isolated]=await sdk.findMarginV3Pda(portfolio,1);
+      const [cross]=await sdk.deriveMarginAccount(portfolio,0),[isolated]=await sdk.deriveMarginAccount(portfolio,1);
       await wallet('fresh workload portfolio',[await client.createPortfolio(owner,1)]);
       await wallet('fresh workload cross',[await client.register(owner,1,0)]);setup.roots.push(cross);
       await wallet('fresh workload isolated ETH',[await client.register(owner,1,1,1)]);setup.roots.push(isolated);
@@ -168,8 +168,8 @@ try {
   const exitAmount=snapshot.roots[setup.cross].cash-400_000n;
   await wallet('atomic owner cash allocation before risk scenario',(await client.exit(snapshot,setup.owner.address,setup.cross,setup.operators[0].token.address,exitAmount)).instructions);
   await route(50n);feedBtc=54_000_000_000n;await normal(54_000n);
-  const [resolution]=await sdk.findVenueComponentV3Pda(setup.venue,'resolution'),[work]=await sdk.findVenueComponentV3Pda(setup.venue,'resolution-work');
-  const pages=await Promise.all(Array.from({length:32},async(_,index)=>(await sdk.findResolutionPageV3Pda(setup.venue,index))[0]));
+  const [resolution]=await sdk.deriveVenueComponent(setup.venue,'resolution'),[work]=await sdk.deriveVenueComponent(setup.venue,'resolution-work');
+  const pages=await Promise.all(Array.from({length:32},async(_,index)=>(await sdk.findResolutionPagePda(setup.venue,index))[0]));
   const rawKeys=[setup.venue,setup.custody,setup.safety,setup.vault,setup.registry,setup.mint.address,...setup.roots,...setup.markets,...setup.ledgers,
     ...setup.operators.map(operator=>operator.token.address),resolution,work,...pages];
   const raw=async()=>{
@@ -198,7 +198,7 @@ try {
   await until(async()=>{const bytes=await transport.h.read(setup.feeds[0].feed);return bytes;},bytes=>Boolean(bytes),'fresh fixture source');
   await delay(1500);
   let risk=start('risk',setup.owner);
-  const header=async()=>sdk.getResolutionV3Decoder().decode((await transport.h.read(resolution))!);
+  const header=async()=>sdk.getResolutionDecoder().decode((await transport.h.read(resolution))!);
   await until(header,value=>value.stage===2,'permissionless authenticated account default',40);
   feedPaused=true;
   const frozenAccounts=await raw();
@@ -225,14 +225,14 @@ try {
   await stop(risk);assert.deepEqual([...restartedStages].sort(),[4,5,9]);
   captures.completedAccounts=await raw();writeFileSync(`${directory}/financial-capture.json`,json(captures));
   feedPaused=false;risk=start('risk',setup.owner);
-  await until(async()=>sdk.getSafetyV3Decoder().decode((await transport.h.read(setup.safety))!),safety=>safety.recoverySince>0n&&
+  await until(async()=>sdk.getVenueSafetyDecoder().decode((await transport.h.read(setup.safety))!),safety=>safety.recoverySince>0n&&
     safety.recoveryLast-safety.recoverySince>=6n,'real sustained source recovery',35);
   await stop(risk);
   const current=await runtime.snapshot();
   // Source publication and this signed setup instruction must not race the raw
   // harness recorder. Stop only the fixture producer; production risk checks stay.
   feeding=false;await feedLoop;
-  await transport.send('explicit authority resumes completed recovery',[sdk.getRecoverAccountsV3Instruction({...current,
+  await transport.send('explicit authority resumes completed recovery',[sdk.getRecoverAccountsInstruction({...current,
     primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,guardCollateral:setup.feeds[3].feed,
     primaryEth:setup.feeds[4].feed,guardEth:setup.feeds[5].feed,caller:setup.payer,epoch:(await header()).epoch,resume:true})]);
   captures.recoveredAccounts=await raw();
@@ -249,7 +249,7 @@ try {
   // Actual unbroadcast original expires on the real validator. Its unchanged
   // finalized root proves no economic effect, never a fee refund from no history.
   const expirySnapshot=await runtime.snapshot([setup.roots[0]]),expiryRoot=expirySnapshot.roots[setup.roots[0]];
-  const expiryInstruction=sdk.getWithdrawFundedAccountV3Instruction({...expirySnapshot,owner:setup.owner,margin:setup.roots[0],
+  const expiryInstruction=sdk.getWithdrawFundedAccountInstruction({...expirySnapshot,owner:setup.owner,margin:setup.roots[0],
     quoteMint:setup.mint.address,userToken:setup.operators[0].token.address,guard:sdk.accountGuard(expirySnapshot,setup.roots[0]),amount:1n});
   const budget=await runtime.budget('risk',setup.owner),expiryId='risk:deliberately-unbroadcast-expiry';
   await runtime.enqueue(expiryId,[sdk.routeComputeBudget(),expiryInstruction],setup.owner,budget,

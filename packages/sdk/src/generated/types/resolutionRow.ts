@@ -8,76 +8,89 @@
 
 import {
   combineCodec,
+  getAddressDecoder,
+  getAddressEncoder,
+  getArrayDecoder,
+  getArrayEncoder,
+  getBooleanDecoder,
+  getBooleanEncoder,
   getI128Decoder,
   getI128Encoder,
   getI64Decoder,
   getI64Encoder,
   getStructDecoder,
   getStructEncoder,
-  getU128Decoder,
-  getU128Encoder,
   getU64Decoder,
   getU64Encoder,
+  type Address,
   type FixedSizeCodec,
   type FixedSizeDecoder,
   type FixedSizeEncoder,
+  type HasAddress,
 } from "@solana/kit";
+import {
+  getWideDecoder,
+  getWideEncoder,
+  type Wide,
+  type WideArgs,
+} from "./index.js";
 
+/** Fixed scalar inputs are enough to reconstruct every terminal exact adjustment. */
 export type ResolutionRow = {
+  member: Address;
   cashBefore: bigint;
-  lots: bigint;
-  generation: bigint;
-  /** Valued claim plus collected*SCALE. Ordinary v remains frozen until Apply. */
-  claim: bigint;
+  lots: Array<bigint>;
+  generations: Array<bigint>;
+  claimsScaled: Array<bigint>;
   collected: bigint;
-  insuredScaled: bigint;
-  impairedScaled: bigint;
-  paid: bigint;
-  roundingScaled: bigint;
-  remainder: bigint;
+  /** Magnitudes. Direction is determined by the original claim sign. */
+  exactFlowNumerators: Array<Wide>;
+  roundedFlows: Array<bigint>;
+  cashAfter: bigint;
+  applied: boolean;
 };
 
 export type ResolutionRowArgs = {
+  member: Address | HasAddress;
   cashBefore: number | bigint;
-  lots: number | bigint;
-  generation: number | bigint;
-  /** Valued claim plus collected*SCALE. Ordinary v remains frozen until Apply. */
-  claim: number | bigint;
+  lots: Array<number | bigint>;
+  generations: Array<number | bigint>;
+  claimsScaled: Array<number | bigint>;
   collected: number | bigint;
-  insuredScaled: number | bigint;
-  impairedScaled: number | bigint;
-  paid: number | bigint;
-  roundingScaled: number | bigint;
-  remainder: number | bigint;
+  /** Magnitudes. Direction is determined by the original claim sign. */
+  exactFlowNumerators: Array<WideArgs>;
+  roundedFlows: Array<number | bigint>;
+  cashAfter: number | bigint;
+  applied: boolean;
 };
 
 export function getResolutionRowEncoder(): FixedSizeEncoder<ResolutionRowArgs> {
   return getStructEncoder([
+    ["member", getAddressEncoder()],
     ["cashBefore", getU64Encoder()],
-    ["lots", getI64Encoder()],
-    ["generation", getU64Encoder()],
-    ["claim", getI128Encoder()],
+    ["lots", getArrayEncoder(getI64Encoder(), { size: 2 })],
+    ["generations", getArrayEncoder(getU64Encoder(), { size: 2 })],
+    ["claimsScaled", getArrayEncoder(getI128Encoder(), { size: 2 })],
     ["collected", getU64Encoder()],
-    ["insuredScaled", getU128Encoder()],
-    ["impairedScaled", getU128Encoder()],
-    ["paid", getU64Encoder()],
-    ["roundingScaled", getI128Encoder()],
-    ["remainder", getU128Encoder()],
+    ["exactFlowNumerators", getArrayEncoder(getWideEncoder(), { size: 2 })],
+    ["roundedFlows", getArrayEncoder(getU64Encoder(), { size: 2 })],
+    ["cashAfter", getU64Encoder()],
+    ["applied", getBooleanEncoder()],
   ]);
 }
 
 export function getResolutionRowDecoder(): FixedSizeDecoder<ResolutionRow> {
   return getStructDecoder([
+    ["member", getAddressDecoder()],
     ["cashBefore", getU64Decoder()],
-    ["lots", getI64Decoder()],
-    ["generation", getU64Decoder()],
-    ["claim", getI128Decoder()],
+    ["lots", getArrayDecoder(getI64Decoder(), { size: 2 })],
+    ["generations", getArrayDecoder(getU64Decoder(), { size: 2 })],
+    ["claimsScaled", getArrayDecoder(getI128Decoder(), { size: 2 })],
     ["collected", getU64Decoder()],
-    ["insuredScaled", getU128Decoder()],
-    ["impairedScaled", getU128Decoder()],
-    ["paid", getU64Decoder()],
-    ["roundingScaled", getI128Decoder()],
-    ["remainder", getU128Decoder()],
+    ["exactFlowNumerators", getArrayDecoder(getWideDecoder(), { size: 2 })],
+    ["roundedFlows", getArrayDecoder(getU64Decoder(), { size: 2 })],
+    ["cashAfter", getU64Decoder()],
+    ["applied", getBooleanDecoder()],
   ]);
 }
 

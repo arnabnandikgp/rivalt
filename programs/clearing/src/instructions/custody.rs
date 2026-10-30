@@ -12,7 +12,7 @@ use financial_core::{cash_add, cash_sub, MAX_PARTICIPANTS};
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct InitializeMarket<'info> {
+pub struct InitializeLegacyMarket<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(constraint = clearing_program.programdata_address()? == Some(program_data.key()) @ ClearingError::Authority)]
@@ -258,7 +258,7 @@ fn event(
     })
 }
 
-pub fn initialize(ctx: Context<InitializeMarket>, domain: [u8; 32]) -> Result<()> {
+pub fn initialize(ctx: Context<InitializeLegacyMarket>, domain: [u8; 32]) -> Result<()> {
     require!(domain != [0; 32], ClearingError::Domain);
     let market = &mut ctx.accounts.market;
     market.set_inner(MarketState {
@@ -329,7 +329,7 @@ pub fn register(ctx: Context<RegisterParticipant>) -> Result<()> {
         nonce: 0,
         reserved: 0,
         order_ids: [0; 4],
-        book: crate::state::OrderBook::default(),
+        book: crate::state::LegacyOrderBook::default(),
         bump: ctx.bumps.participant,
     });
     registry.members.push(participant.key());

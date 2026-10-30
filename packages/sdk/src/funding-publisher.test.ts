@@ -4,10 +4,10 @@ import { expect, it } from 'vitest';
 import { allocateFundingSide } from './funding-impact.js';
 import { fundingReference } from './funding-sources.js';
 import { fundingSnapshotDigest } from './funding-publisher.js';
-import { quoteCanonicalV4 } from './canonical-quote.js';
+import { quoteCanonical } from './canonical-quote.js';
 import { testAddress } from '../test-support/liquidity-fixture.js';
 import type { LiquidityAccountMap } from './liquidity-adapter.js';
-import type { MarketV3 } from './generated/index.js';
+import type { Market } from './generated/index.js';
 
 const shape = { mode: 1, ttlSlots: 150, target: 0n, skewStep: 512n, skewTick: 2n, longCap: 4096n, shortCap: 4096n,
   bids: Array.from({ length: 8 }, (_, index) => ({ endLots: BigInt((index + 1) * 512), offset: BigInt(1 + 2 * index), slope: 0n })),
@@ -17,7 +17,7 @@ it.each([
   [60_000n, 100n, 5_999_900n, 6_000_300n, [100n, 0n, 0n]],
   [10_000n, 600n, 5_999_400n, 6_001_800n, [512n, 88n, 0n]],
 ])('matches literal independent funding optimum at index %s', (reference, quantity, bid, ask, quantities) => {
-  const makers = Array.from({ length: 3 }, () => ({ quote: (side: 0 | 1, lots: bigint) => quoteCanonicalV4(shape, reference, side, lots, 0n, 0n) }));
+  const makers = Array.from({ length: 3 }, () => ({ quote: (side: 0 | 1, lots: bigint) => quoteCanonical(shape, reference, side, lots, 0n, 0n) }));
   expect(allocateFundingSide(makers, reference, quantity, 1)).toEqual({ gross: bid, quantities });
   expect(allocateFundingSide(makers, reference, quantity, 0)).toEqual({ gross: ask, quantities });
 });
@@ -55,7 +55,7 @@ function sources(index = 0) {
   const accounts = () => new Map(keys.map((key, position) => [key, { owner: fixture, executable: false,
     data: [raw[position].toString('base64'), 'base64'] as [string, string] }]));
   const market = { index, lotsPerUnit: index === 0 ? 1_000_000n : 100_000n,
-    oracle: { sources: keys, sourceSequences: [10n, 10n, 10n, 10n] } } as MarketV3;
+    oracle: { sources: keys, sourceSequences: [10n, 10n, 10n, 10n] } } as Market;
   return { raw, accounts, market };
 }
 

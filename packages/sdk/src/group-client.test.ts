@@ -14,7 +14,7 @@ async function environment(count=2){
   const members:Address[]=[],owners:Address[]=[];
   for(let index=0;index<count;index++){
     const [owner]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[new TextEncoder().encode(`sdk-owner-${index}`)]});
-    const [portfolio,portfolioBump]=await sdk.findPortfolioPda({group,owner,index:0});
+    const [portfolio,portfolioBump]=await sdk.findGroupPortfolioPda({group,owner,index:0});
     const [root,rootBump]=await sdk.findMarginPda({portfolio,subaccountIndex:0});
     members.push(root);owners.push(owner);
     put(root,sdk.getMarginAccountV2Encoder().encode({...empty(sdk.getMarginAccountV2Decoder()),schemaVersion:2,group,owner,portfolio,
@@ -117,7 +117,7 @@ it('reads owned classic collateral exactly and rejects substituted owners/mints/
 });
 it('discovers an empty owner portfolio before its first root and authenticates immutable identity',async()=>{
   const fixture=await environment(),client=new sdk.GroupUserClient(fixture.config),owner=fixture.owners[0];
-  const [portfolio,bump]=await sdk.findPortfolioPda({group:fixture.config.group,owner,index:0});
+  const [portfolio,bump]=await sdk.findGroupPortfolioPda({group:fixture.config.group,owner,index:0});
   let value:any=null;
   client.rpc.call=async(method,params)=>{expect(method).toBe('getAccountInfo');expect(params?.[0]).toBe(portfolio);return {value};};
   expect((await client.ownerPortfolio(owner)).account).toBeNull();

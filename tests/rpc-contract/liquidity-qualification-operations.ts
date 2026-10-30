@@ -43,7 +43,7 @@ try {
         RIVALT_ACCOUNT_PROFILE:'liquidity-execution-qualification',RIVALT_ACCOUNT_ROLE:'risk',RIVALT_SIGNER_PATH:signerPath,...receiver?{RIVALT_RECEIVER_MARGIN:receiver}:{}},stdio:['ignore','pipe','pipe']});
     const output=createWriteStream(`${directory}/risk-${riskChildren.length}.log`);child.stdout!.pipe(output,{end:false});child.stderr!.pipe(output,{end:false});child.once('exit',()=>output.end());riskChildren.push(child);return child;}
   async function riskResolved(){await waitFor(async()=>(await runtime.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget='liquidity-risk' AND status NOT IN ('finalized','failed')",[runtime.runId])).rows[0].count,value=>value==='0','risk originals finalized');}
-  const header=async()=>sdk.getResolutionV3Decoder().decode((await h.read(canonical.resolution))!);
+  const header=async()=>sdk.getResolutionDecoder().decode((await h.read(canonical.resolution))!);
   await normal();await withdraw(setup.cross,600_000n);await route(0,40n);await route(1,20n);
   canonical.sourcePrices.btc=52_000_000_000n;await normal(52_000n);
   const before=await raw(),beforeTarget=await root(setup.cross);
@@ -66,10 +66,10 @@ try {
     await delay(100);}
   await stop(risk);await riskResolved();assert(restarted);capture.completedAccounts=await raw();writeFileSync(`${directory}/financial-capture.json`,json(capture));
   canonical.sourcePrices.btc=60_000_000_000n;canonical.sourcePrices.eth=3_000_000_000n;risk=startRisk();
-  await waitFor(async()=>sdk.getSafetyV3Decoder().decode((await h.read(setup.safety))!),value=>value.recoverySince>0n&&value.recoveryLast-value.recoverySince>=6n,'sustained independent recovery',45);
+  await waitFor(async()=>sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!),value=>value.recoverySince>0n&&value.recoveryLast-value.recoverySince>=6n,'sustained independent recovery',45);
   await stop(risk);await riskResolved();feeding=false;await feedLoop;if(feedError)throw feedError;
   const snapshot=await runtime.snapshot();
-  await h.send('P34 resume complete recovery',[sdk.getRecoverAccountsV3Instruction({...snapshot,caller:setup.payer,epoch:(await header()).epoch,resume:true,
+  await h.send('P34 resume complete recovery',[sdk.getRecoverAccountsInstruction({...snapshot,caller:setup.payer,epoch:(await header()).epoch,resume:true,
     primaryBtc:canonical.feeds[0].feed,primaryCollateral:canonical.feeds[1].feed,guardBtc:canonical.feeds[2].feed,guardCollateral:canonical.feeds[3].feed,
     primaryEth:canonical.feeds[4].feed,guardEth:canonical.feeds[5].feed})]);
   capture.recoveredAccounts=await raw();await withdraw(setup.allRoots[0],100n);capture.finalAccounts=await raw();

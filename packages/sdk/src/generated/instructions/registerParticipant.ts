@@ -42,7 +42,7 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCapitalPda,
-  findMarketPda,
+  findLegacyMarketPda,
   findRegistryPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
@@ -252,7 +252,7 @@ export async function getRegisterParticipantInstructionAsync<
 
   // Resolve default values.
   if (!accounts.market.value) {
-    accounts.market.value = await findMarketPda({ programAddress });
+    accounts.market.value = await findLegacyMarketPda({ programAddress });
   }
   if (!accounts.registry.value) {
     accounts.registry.value = await findRegistryPda(

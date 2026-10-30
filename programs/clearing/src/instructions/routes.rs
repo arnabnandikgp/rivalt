@@ -4,7 +4,7 @@ use crate::error::ClearingError;
 use crate::events::{ExecutedLeg, RouteExecuted, TestRiskPublished};
 use crate::instructions::makers::PreviewArgs;
 use crate::instructions::{custody, makers, oracle};
-use crate::state::{MakerRegistration, MarketState, Participant, TestRouteState};
+use crate::state::{LegacyMakerRegistration, MarketState, Participant, TestRouteState};
 
 pub use crate::constants::routes::*;
 
@@ -206,7 +206,7 @@ pub struct ExecuteRoute<'info> {
     #[account(mut)]
     pub first_capital: Box<Account<'info, Participant>>,
     #[account(mut)]
-    pub first_registration: Box<Account<'info, MakerRegistration>>,
+    pub first_registration: Box<Account<'info, LegacyMakerRegistration>>,
     pub first_program: Program<'info>,
     pub first_program_data: Box<Account<'info, ProgramData>>,
     /// CHECK: Validated by bound_quote before CPI.
@@ -214,7 +214,7 @@ pub struct ExecuteRoute<'info> {
     #[account(mut)]
     pub second_capital: Option<Box<Account<'info, Participant>>>,
     #[account(mut)]
-    pub second_registration: Option<Box<Account<'info, MakerRegistration>>>,
+    pub second_registration: Option<Box<Account<'info, LegacyMakerRegistration>>>,
     pub second_program: Option<Program<'info>>,
     pub second_program_data: Option<Box<Account<'info, ProgramData>>>,
     /// CHECK: Validated by bound_quote before CPI.
@@ -256,7 +256,7 @@ pub struct ExecuteOrder<'info> {
     #[account(mut)]
     pub first_capital: Box<Account<'info, Participant>>,
     #[account(mut)]
-    pub first_registration: Box<Account<'info, MakerRegistration>>,
+    pub first_registration: Box<Account<'info, LegacyMakerRegistration>>,
     pub first_program: Program<'info>,
     pub first_program_data: Box<Account<'info, ProgramData>>,
     /// CHECK: Validated by bound_quote before CPI.
@@ -264,7 +264,7 @@ pub struct ExecuteOrder<'info> {
     #[account(mut)]
     pub second_capital: Option<Box<Account<'info, Participant>>>,
     #[account(mut)]
-    pub second_registration: Option<Box<Account<'info, MakerRegistration>>>,
+    pub second_registration: Option<Box<Account<'info, LegacyMakerRegistration>>>,
     pub second_program: Option<Program<'info>>,
     pub second_program_data: Option<Box<Account<'info, ProgramData>>>,
     /// CHECK: Validated by bound_quote before CPI.
@@ -277,12 +277,12 @@ pub struct RouteAccounts<'a, 'info> {
     pub route_state: &'a mut Account<'info, TestRouteState>,
     pub vault: &'a Account<'info, TokenAccount>,
     pub first_capital: &'a mut Account<'info, Participant>,
-    pub first_registration: &'a mut Account<'info, MakerRegistration>,
+    pub first_registration: &'a mut Account<'info, LegacyMakerRegistration>,
     pub first_program: &'a Program<'info>,
     pub first_program_data: &'a Account<'info, ProgramData>,
     pub first_config: &'a UncheckedAccount<'info>,
     pub second_capital: &'a mut Option<Box<Account<'info, Participant>>>,
-    pub second_registration: &'a mut Option<Box<Account<'info, MakerRegistration>>>,
+    pub second_registration: &'a mut Option<Box<Account<'info, LegacyMakerRegistration>>>,
     pub second_program: &'a Option<Program<'info>>,
     pub second_program_data: &'a Option<Box<Account<'info, ProgramData>>>,
     pub second_config: &'a Option<UncheckedAccount<'info>>,
@@ -378,7 +378,7 @@ pub(crate) fn commit(participant: &mut Participant, model: math::Participant) {
 fn bound_quote<'info>(
     market: &Account<'info, MarketState>,
     participant: &Account<'info, Participant>,
-    registration: &Account<'info, MakerRegistration>,
+    registration: &Account<'info, LegacyMakerRegistration>,
     program: &Program<'info>,
     data: &Account<'info, ProgramData>,
     config: &UncheckedAccount<'info>,
@@ -448,7 +448,7 @@ fn bound_quote<'info>(
 }
 
 fn consume(
-    registration: &mut MakerRegistration,
+    registration: &mut LegacyMakerRegistration,
     quote: &maker_interface::QuoteResponse,
     participant: &Participant,
 ) -> Result<ExecutedLeg> {

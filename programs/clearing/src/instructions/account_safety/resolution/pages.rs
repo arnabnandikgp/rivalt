@@ -1,8 +1,8 @@
 use super::*;
 
 pub(super) fn page_range(
-    header: &ResolutionV3,
-    page: &ResolutionPageV3,
+    header: &Resolution,
+    page: &ResolutionPage,
     stage: u8,
     start: u16,
     length: u8,
@@ -26,19 +26,19 @@ pub(super) fn page_range(
 #[inline(never)]
 pub(super) fn member(
     info: &AccountInfo,
-    registry: &VenueRegistryV3,
+    registry: &VenueRegistry,
     id: usize,
     writable: bool,
-) -> Result<Box<MarginAccountV3>> {
+) -> Result<Box<MarginAccount>> {
     require!(
         info.owner == &crate::ID
             && info.is_writable == writable
             && !info.is_signer
             && registry.members.get(id) == Some(info.key)
-            && info.data_len() == 8 + MarginAccountV3::INIT_SPACE,
+            && info.data_len() == 8 + MarginAccount::INIT_SPACE,
         ClearingError::Resolution
     );
-    let root = Box::new(MarginAccountV3::try_deserialize(
+    let root = Box::new(MarginAccount::try_deserialize(
         &mut &info.try_borrow_data()?[..],
     )?);
     require!(
@@ -63,10 +63,10 @@ pub(super) fn member(
 /// All scalars below come from an authenticated root under frozen funding/prices.
 /// No q/v or cash is written to that root during either preparation pass.
 pub(super) fn value_row(
-    header: &mut ResolutionV3,
-    row: &mut ResolutionRowV3,
+    header: &mut Resolution,
+    row: &mut ResolutionRow,
     key: Pubkey,
-    root: &MarginAccountV3,
+    root: &MarginAccount,
 ) -> Result<()> {
     let claims = checked(account_trading::model(root)?.claims(header.prices, header.funding))?;
     let model = Row {
@@ -108,7 +108,7 @@ pub(super) fn value_row(
     Ok(())
 }
 
-pub(super) fn finish_value(header: &mut ResolutionV3) -> Result<()> {
+pub(super) fn finish_value(header: &mut Resolution) -> Result<()> {
     require!(
         header.cursor == header.count
             && header.scanned_cash == header.cash_before
@@ -127,7 +127,7 @@ pub(super) fn finish_value(header: &mut ResolutionV3) -> Result<()> {
 }
 
 pub fn advance(
-    ctx: Context<AdvanceAccountResolutionV3>,
+    ctx: Context<AdvanceAccountResolution>,
     epoch: u64,
     stage: u8,
     start: u16,
@@ -223,7 +223,7 @@ pub fn advance(
                 )?;
                 increment(&mut accounts.identity.custody.sequence)?;
                 crate::event_cpi::emit(
-                    &crate::events::AccountResolutionPlannedV3 {
+                    &crate::events::AccountResolutionPlanned {
                         venue: accounts.identity.venue.key(),
                         sequence: accounts.identity.custody.sequence,
                         slot: clock.slot,
@@ -261,7 +261,7 @@ pub fn advance(
     accounts.work.row = accounts.resolution.cursor;
     increment(&mut accounts.identity.custody.sequence)?;
     crate::event_cpi::emit(
-        &crate::events::AccountResolutionProgressV3 {
+        &crate::events::AccountResolutionProgress {
             venue: accounts.identity.venue.key(),
             sequence: accounts.identity.custody.sequence,
             slot: clock.slot,
@@ -279,15 +279,15 @@ pub fn advance(
 }
 
 fn emit_value(
-    identity: &ResolutionIdentityV3,
-    header: &ResolutionV3,
+    identity: &ResolutionIdentity,
+    header: &Resolution,
     id: u16,
-    row: &ResolutionRowV3,
+    row: &ResolutionRow,
     clock: &Clock,
     authority: AccountInfo,
 ) -> Result<()> {
     crate::event_cpi::emit(
-        &crate::events::AccountResolutionValuedV3 {
+        &crate::events::AccountResolutionValued {
             venue: identity.venue.key(),
             sequence: identity.custody.sequence,
             slot: clock.slot,
@@ -306,8 +306,8 @@ fn emit_value(
 
 #[cfg(test)]
 pub(super) fn test_page_range(
-    header: &ResolutionV3,
-    page: &ResolutionPageV3,
+    header: &Resolution,
+    page: &ResolutionPage,
     stage: u8,
     start: u16,
     length: u8,

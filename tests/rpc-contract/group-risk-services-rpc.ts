@@ -24,7 +24,7 @@ await setup.certificate();await transport.send('activate qualified cross group',
 await transport.send('fund cross liquidation target',[await setup.cashInstruction(fixture.cross,1_000_000n,false)],[fixture.owner]);
 const receiverOwner=await fixtureKey('p21-risk-receiver'),receiverToken=await fixtureKey('p21-risk-receiver-token');
 await transport.send('receiver SOL rent and fee provision',[getTransferSolInstruction({source:fixture.payer,destination:receiverOwner.address,amount:1_000_000_000n})]);
-const [receiverPortfolio]=await sdk.findPortfolioPda({group:fixture.group,owner:receiverOwner.address,index:0});
+const [receiverPortfolio]=await sdk.findGroupPortfolioPda({group:fixture.group,owner:receiverOwner.address,index:0});
 const [receiver]=await sdk.findMarginPda({portfolio:receiverPortfolio,subaccountIndex:0});
 await transport.send('explicit receiver portfolio',[await sdk.getCreatePortfolioV2InstructionAsync({...fixture.common,owner:receiverOwner,index:0})],[receiverOwner]);
 await transport.send('explicit consenting cross receiver',[await sdk.getRegisterMarginV2InstructionAsync({...fixture.common,owner:receiverOwner,portfolio:receiverPortfolio,
@@ -91,7 +91,7 @@ try{
   while(fixture.roots.length<64){
     const index=fixture.roots.length,owner=await fixtureKey(`p21-risk-member-${index}`);
     await transport.send('cohort owner rent',[getTransferSolInstruction({source:fixture.payer,destination:owner.address,amount:50_000_000n})]);
-    const [portfolio]=await sdk.findPortfolioPda({group:fixture.group,owner:owner.address,index:0});
+    const [portfolio]=await sdk.findGroupPortfolioPda({group:fixture.group,owner:owner.address,index:0});
     const [margin]=await sdk.findMarginPda({portfolio,subaccountIndex:0});
     await transport.send('distinct cohort portfolio',[await sdk.getCreatePortfolioV2InstructionAsync({...fixture.common,owner,index:0})],[owner]);
     await transport.send('canonical member before default',[await sdk.getRegisterMarginV2InstructionAsync({...fixture.common,owner,portfolio,subaccountIndex:0,mode:0,isolatedMarketIndex:255,role:0})],[owner]);

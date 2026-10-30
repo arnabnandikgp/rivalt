@@ -6,7 +6,7 @@ import { Runtime } from './runtime.js';
 
 it('collects an existing flat whole-atom loss during a source outage but refuses exposed, paused and frozen cohorts', async () => {
   const program = sdk.testDeployment('solana:devnet').clearing, options = { programAddress: program };
-  const market = (await sdk.findMarketPda(options))[0];
+  const market = (await sdk.findLegacyMarketPda(options))[0];
   const participant = address('9EyFUQ1jcHMDnk1kGGs6yeamtdhzn4Us2mFwyZxCsCCU');
   const snapshot: any = { market, m: { mode: 2, paused: false, sequence: 44n },
     risk: { validFrom: 1n, validUntil: 0n, observationSequence: 22n, referencePrice: 81_900n },

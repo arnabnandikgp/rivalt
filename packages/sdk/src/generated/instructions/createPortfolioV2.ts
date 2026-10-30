@@ -43,7 +43,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findPortfolioPda } from "../pdas/index.js";
+import { findGroupPortfolioPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const CREATE_PORTFOLIO_V2_DISCRIMINATOR: ReadonlyUint8Array =
@@ -240,7 +240,7 @@ export async function getCreatePortfolioV2InstructionAsync<
 
   // Resolve default values.
   if (!accounts.portfolio.value) {
-    accounts.portfolio.value = await findPortfolioPda(
+    accounts.portfolio.value = await findGroupPortfolioPda(
       {
         group: getAddressFromResolvedInstructionAccount(
           "group",

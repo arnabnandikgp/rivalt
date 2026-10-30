@@ -1,7 +1,7 @@
 import type {Address,ReadonlyUint8Array} from '@solana/kit';
 import {allocateRoute,type RouteBalance,type RouteCandidate} from './allocate-route.js';
 import {marginBalanceView,marginOrderRemaining,type MarginFinancialRoot,type MarginFinancialMarket,type MarginSourceMode} from './margin-balance.js';
-import type {MakerRegistrationV3} from './generated/index.js';
+import type {FixedMakerRegistration} from './generated/index.js';
 import type {MakerState} from './generatedMakerA/index.js';
 import {orderTriggered} from './order-policy.js';
 import {requireValue} from './wallet-client.js';
@@ -11,7 +11,7 @@ const abs=(value:bigint)=>value<0n?-value:value;
 export type MarginStoredFill={id:bigint;version:bigint;filled:bigint};
 export type MarginRouteIntent={marketIndex:0|1;side:0|1;lots:bigint;maxFee:bigint;allInLimit:bigint;reduceOnly?:boolean;stored?:MarginStoredFill};
 export type MarginMakerCandidate={makerId:number;capital:MarginFinancialRoot;state:MakerState;approved:boolean;synchronized:boolean;
-  registrationState:Omit<MakerRegistrationV3,'venue'|'schemaVersion'|'discriminator'>};
+  registrationState:Omit<FixedMakerRegistration,'venue'|'schemaVersion'|'discriminator'>};
 type Input=MarginRouteIntent&{root:MarginFinancialRoot;markets:MarginFinancialMarket[];marketKeys:Address[];domain:ReadonlyUint8Array;
   makers:MarginMakerCandidate[];slot:bigint;now:bigint;funding:bigint[];sources:MarginSourceMode[]};
 

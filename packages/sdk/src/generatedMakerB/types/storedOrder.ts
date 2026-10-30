@@ -8,8 +8,6 @@
 
 import {
   combineCodec,
-  getBooleanDecoder,
-  getBooleanEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -20,102 +18,40 @@ import {
   type FixedSizeDecoder,
   type FixedSizeEncoder,
 } from "@solana/kit";
+import {
+  getOrderRecordDecoder,
+  getOrderRecordEncoder,
+  type OrderRecord,
+  type OrderRecordArgs,
+} from "./index.js";
 
 export type StoredOrder = {
-  id: bigint;
-  version: bigint;
-  state: number;
-  side: number;
-  originalLots: bigint;
-  lots: bigint;
-  filled: bigint;
-  notional: bigint;
-  feeCharged: bigint;
-  feeBudget: bigint;
-  limit: bigint;
-  startSlot: bigint;
-  expirySlot: bigint;
-  /** 0 none, 1 central reference >= threshold, 2 <= threshold. */
-  trigger: number;
-  threshold: bigint;
-  reduceOnly: boolean;
-  generation: bigint;
-  groupId: bigint;
-  termsEpoch: bigint;
-  reserve: bigint;
+  marketIndex: number;
+  /** Zero for owner-created authority, otherwise the root's delegate epoch. */
+  delegateEpoch: bigint;
+  order: OrderRecord;
 };
 
 export type StoredOrderArgs = {
-  id: number | bigint;
-  version: number | bigint;
-  state: number;
-  side: number;
-  originalLots: number | bigint;
-  lots: number | bigint;
-  filled: number | bigint;
-  notional: number | bigint;
-  feeCharged: number | bigint;
-  feeBudget: number | bigint;
-  limit: number | bigint;
-  startSlot: number | bigint;
-  expirySlot: number | bigint;
-  /** 0 none, 1 central reference >= threshold, 2 <= threshold. */
-  trigger: number;
-  threshold: number | bigint;
-  reduceOnly: boolean;
-  generation: number | bigint;
-  groupId: number | bigint;
-  termsEpoch: number | bigint;
-  reserve: number | bigint;
+  marketIndex: number;
+  /** Zero for owner-created authority, otherwise the root's delegate epoch. */
+  delegateEpoch: number | bigint;
+  order: OrderRecordArgs;
 };
 
 export function getStoredOrderEncoder(): FixedSizeEncoder<StoredOrderArgs> {
   return getStructEncoder([
-    ["id", getU64Encoder()],
-    ["version", getU64Encoder()],
-    ["state", getU8Encoder()],
-    ["side", getU8Encoder()],
-    ["originalLots", getU64Encoder()],
-    ["lots", getU64Encoder()],
-    ["filled", getU64Encoder()],
-    ["notional", getU64Encoder()],
-    ["feeCharged", getU64Encoder()],
-    ["feeBudget", getU64Encoder()],
-    ["limit", getU64Encoder()],
-    ["startSlot", getU64Encoder()],
-    ["expirySlot", getU64Encoder()],
-    ["trigger", getU8Encoder()],
-    ["threshold", getU64Encoder()],
-    ["reduceOnly", getBooleanEncoder()],
-    ["generation", getU64Encoder()],
-    ["groupId", getU64Encoder()],
-    ["termsEpoch", getU64Encoder()],
-    ["reserve", getU64Encoder()],
+    ["marketIndex", getU8Encoder()],
+    ["delegateEpoch", getU64Encoder()],
+    ["order", getOrderRecordEncoder()],
   ]);
 }
 
 export function getStoredOrderDecoder(): FixedSizeDecoder<StoredOrder> {
   return getStructDecoder([
-    ["id", getU64Decoder()],
-    ["version", getU64Decoder()],
-    ["state", getU8Decoder()],
-    ["side", getU8Decoder()],
-    ["originalLots", getU64Decoder()],
-    ["lots", getU64Decoder()],
-    ["filled", getU64Decoder()],
-    ["notional", getU64Decoder()],
-    ["feeCharged", getU64Decoder()],
-    ["feeBudget", getU64Decoder()],
-    ["limit", getU64Decoder()],
-    ["startSlot", getU64Decoder()],
-    ["expirySlot", getU64Decoder()],
-    ["trigger", getU8Decoder()],
-    ["threshold", getU64Decoder()],
-    ["reduceOnly", getBooleanDecoder()],
-    ["generation", getU64Decoder()],
-    ["groupId", getU64Decoder()],
-    ["termsEpoch", getU64Decoder()],
-    ["reserve", getU64Decoder()],
+    ["marketIndex", getU8Decoder()],
+    ["delegateEpoch", getU64Decoder()],
+    ["order", getOrderRecordDecoder()],
   ]);
 }
 

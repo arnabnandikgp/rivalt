@@ -4,8 +4,8 @@ use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct ManageMarketFeesV3<'info> {
-    pub identity: AccountFinancialIdentityV3<'info>,
+pub struct ManageMarketFees<'info> {
+    pub identity: AccountFinancialIdentity<'info>,
     #[account(address = identity.venue.fee_authority @ ClearingError::Authority)]
     pub fee_authority: Signer<'info>,
     #[account(address = identity.venue.quote_mint @ ClearingError::Mint)]
@@ -17,7 +17,7 @@ pub struct ManageMarketFeesV3<'info> {
 }
 
 pub fn manage(
-    ctx: Context<ManageMarketFeesV3>,
+    ctx: Context<ManageMarketFees>,
     market_index: u8,
     amount: u64,
     withdraw: bool,

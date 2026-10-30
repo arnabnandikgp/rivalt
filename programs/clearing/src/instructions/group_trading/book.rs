@@ -5,7 +5,7 @@ mod environment;
 use crate::{
     constants::orders::*,
     instructions::orders::OrderTerms,
-    state::{ProtectiveGroup, StoredOrder},
+    state::{ProtectiveGroup, OrderRecord},
 };
 pub(crate) use environment::Environment;
 
@@ -71,7 +71,7 @@ pub(crate) fn validate(root: &MarginAccountV2) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn eligible(root: &MarginAccountV2, order: &StoredOrder) -> Result<u64> {
+pub(crate) fn eligible(root: &MarginAccountV2, order: &OrderRecord) -> Result<u64> {
     let market_index = root
         .book
         .orders
@@ -242,10 +242,10 @@ fn add(
         .last_order_id
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
-    root.book.orders[index] = StoredOrderV2 {
+    root.book.orders[index] = StoredOrder {
         market_index: market.index,
         delegate_epoch,
-        order: StoredOrder {
+        order: OrderRecord {
             id: root.book.last_order_id,
             version: 1,
             state: OPEN,
@@ -262,7 +262,7 @@ fn add(
             generation: terms.generation,
             group_id,
             terms_epoch: market.terms_epoch,
-            ..StoredOrder::default()
+            ..OrderRecord::default()
         },
     };
     Ok(())
@@ -369,7 +369,7 @@ pub(crate) fn replace_with_environment(
             .ok_or(ClearingError::Arithmetic)?;
     }
     next.book.orders[index].delegate_epoch = delegate_epoch;
-    next.book.orders[index].order = StoredOrder {
+    next.book.orders[index].order = OrderRecord {
         version: old
             .version
             .checked_add(1)
@@ -449,7 +449,7 @@ pub(crate) fn protect_with_environment(
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
     let group_id = next.book.last_group_id;
-    next.book.protections[index] = ProtectionV2 {
+    next.book.protections[index] = Protection {
         market_index: market.index,
         protection: ProtectiveGroup {
             id: group_id,

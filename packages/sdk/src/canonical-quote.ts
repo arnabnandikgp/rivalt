@@ -1,11 +1,11 @@
 /** Profile-4 canonical arithmetic. A quote is not capital admission or a reservation. */
-export type CanonicalRegionV4 = Readonly<{
+export type CanonicalRegion = Readonly<{
   endLots: bigint;
   offset: bigint;
   slope: bigint;
 }>;
 
-export type CanonicalShapeV4 = Readonly<{
+export type CanonicalShape = Readonly<{
   mode: number;
   ttlSlots: number;
   target: bigint;
@@ -13,8 +13,8 @@ export type CanonicalShapeV4 = Readonly<{
   skewTick: bigint;
   longCap: bigint;
   shortCap: bigint;
-  bids: readonly CanonicalRegionV4[];
-  asks: readonly CanonicalRegionV4[];
+  bids: readonly CanonicalRegion[];
+  asks: readonly CanonicalRegion[];
 }>;
 
 const MAX_POSITION = 100_000_000n;
@@ -29,7 +29,7 @@ function bound(value: bigint, lower: bigint, upper: bigint): bigint {
   return value;
 }
 
-export function validateCanonicalShapeV4(shape: CanonicalShapeV4): void {
+export function validateCanonicalShape(shape: CanonicalShape): void {
   if (![0, 1, 3].includes(shape.mode)
       || !Number.isInteger(shape.ttlSlots) || shape.ttlSlots < 1 || shape.ttlSlots > 150
       || shape.bids.length + shape.asks.length === 0) throw new Error('canonical shape');
@@ -52,7 +52,7 @@ export function validateCanonicalShapeV4(shape: CanonicalShapeV4): void {
   }
 }
 
-function prefix(regions: readonly CanonicalRegionV4[], quantity: bigint): bigint {
+function prefix(regions: readonly CanonicalRegion[], quantity: bigint): bigint {
   bound(quantity, 0n, regions.at(-1)?.endLots ?? 0n);
   let start = 0n;
   let total = 0n;
@@ -64,7 +64,7 @@ function prefix(regions: readonly CanonicalRegionV4[], quantity: bigint): bigint
   return total;
 }
 
-function potential(shape: CanonicalShapeV4, inventory: bigint): bigint {
+function potential(shape: CanonicalShape, inventory: bigint): bigint {
   const distance = abs(inventory - shape.target);
   const quotient = distance / shape.skewStep;
   const remainder = distance % shape.skewStep;
@@ -72,15 +72,15 @@ function potential(shape: CanonicalShapeV4, inventory: bigint): bigint {
 }
 
 /** Returns exact gross quote atoms; clearing separately checks all financial rules. */
-export function quoteCanonicalV4(
-  shape: CanonicalShapeV4,
+export function quoteCanonical(
+  shape: CanonicalShape,
   anchor: bigint,
   side: number,
   lots: bigint,
   inventory: bigint,
   consumed: bigint,
 ): Readonly<{ gross: bigint; remaining: bigint }> {
-  validateCanonicalShapeV4(shape);
+  validateCanonicalShape(shape);
   if (shape.mode === 0 || (side !== 0 && side !== 1)) throw new Error('canonical side/mode');
   bound(anchor, 1n, MAX_PRICE);
   bound(inventory, -MAX_POSITION, MAX_POSITION);

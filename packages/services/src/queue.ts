@@ -120,7 +120,7 @@ export class Queue {
               const bytes=Buffer.from(a.value.data[0],'base64');
               const value=['accountStateVersion','accountMakerEpoch','accountObservation'].includes(r.authority.kind)?await accountAuthorityValue(r.authority,bytes):
                 ['marginNonce','groupSequence','groupQuoteEpoch','groupObservationSequence'].includes(r.authority.kind)?groupAuthorityValue(r.authority,bytes):r.authority.kind==='nonce'?sdk.getParticipantDecoder().decode(bytes).nonce:
-                r.authority.kind==='quoteEpoch'?sdk.getMakerRegistrationDecoder().decode(bytes).quoteEpoch:
+                r.authority.kind==='quoteEpoch'?sdk.getLegacyMakerRegistrationDecoder().decode(bytes).quoteEpoch:
                 sdk.getMarketStateDecoder().decode(bytes).sequence;
               // Unchanged authority rules out the economic effect, not a failed
               // landing/network fee hidden by incomplete history. Keep any fee

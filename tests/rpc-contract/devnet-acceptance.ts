@@ -34,7 +34,7 @@ async function executeOneLot(source: Awaited<ReturnType<typeof sources>>, atomic
   const bytes = raw.value.map((x: any) => Buffer.from(x.data[0], 'base64'));
   const m = sdk.getMarketStateDecoder().decode(bytes[0]), r = sdk.getTestRouteStateDecoder().decode(bytes[1]);
   const trader = sdk.getParticipantDecoder().decode(bytes[2]), maker = sdk.getParticipantDecoder().decode(bytes[3]);
-  const reg = sdk.getMakerRegistrationDecoder().decode(bytes[4]);
+  const reg = sdk.getLegacyMakerRegistrationDecoder().decode(bytes[4]);
   assert.equal(trader.lots, 0n); assert.equal(maker.lots, 0n);
   const currentClock = bytes[6].readBigInt64LE(32), currentSlot = BigInt(unsigned(raw.context.slot));
   if (!atomicSample) assert.equal(sdk.oracleMode(m, r, currentClock, currentSlot), 'Normal', 'Source validity ended while preparing the action; stop before signing');

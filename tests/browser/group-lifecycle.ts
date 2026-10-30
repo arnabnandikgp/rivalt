@@ -99,7 +99,7 @@ try{
   await wait(()=>fetch('http://127.0.0.1:18093/rivalt-config.json').then(response=>response.status),status=>status===200,'owned browser server');
   await page.goto('http://127.0.0.1:18093');await button('Select Wallet').click();await page.getByRole('button',{name:/Rivalt Test Wallet/}).click();
   await action('Create portfolio');await action('Register account');
-  const [portfolio]=await sdk.findPortfolioPda({group:fixture.group,owner:owner.address,index:0});
+  const [portfolio]=await sdk.findGroupPortfolioPda({group:fixture.group,owner:owner.address,index:0});
   const [cross]=await sdk.findMarginPda({portfolio,subaccountIndex:0}),[isolated]=await sdk.findMarginPda({portfolio,subaccountIndex:2});
   assert.equal((await client.ownerPortfolio(owner.address)).account?.children,1);record('empty portfolio discovery and immutable cross registration through the wallet');
   await action('Deposit');assert.equal((await client.snapshot()).roots[cross].cash,1_000_000n);

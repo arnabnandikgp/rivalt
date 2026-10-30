@@ -81,7 +81,7 @@ export async function readGroupSnapshot(rpc: Pick<UserRpc,'call'>, identity:Grou
   const portfolios:Record<string,protocol.PortfolioV2>={};
   for(const key of portfolioKeys){
     const portfolio=decode(key,protocol.PORTFOLIO_V2_DISCRIMINATOR,protocol.getPortfolioV2Decoder());
-    const [canonical,bump]=await protocol.findPortfolioPda({group,owner:portfolio.owner,index:portfolio.index});
+    const [canonical,bump]=await protocol.findGroupPortfolioPda({group,owner:portfolio.owner,index:portfolio.index});
     requireValue(portfolio.schemaVersion===2&&portfolio.group===group&&portfolio.index<=3&&key===canonical&&portfolio.bump===bump,'Invalid portfolio identity.');
     const children=Object.values(roots).filter(root=>root.portfolio===key);
     requireValue(children.every(root=>root.owner===portfolio.owner)&&portfolio.children===children.reduce((bitmap,root)=>bitmap|(1<<root.subaccountIndex),0),'Portfolio membership mismatch.');

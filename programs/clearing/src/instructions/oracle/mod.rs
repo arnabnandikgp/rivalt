@@ -3,7 +3,7 @@
 use crate::error::ClearingError;
 use crate::events::OracleObserved;
 use crate::instructions::{custody, makers};
-use crate::state::{MakerRegistration, MarketState, OracleState, Participant, TestRouteState};
+use crate::state::{LegacyMakerRegistration, MarketState, OracleState, Participant, TestRouteState};
 
 use anchor_lang::prelude::*;
 
@@ -82,7 +82,7 @@ pub struct SampleOracle<'info> {
         has_one = market,
         constraint = first_registration.capital == first_capital.key() @ ClearingError::MakerBinding,
     )]
-    pub first_registration: Box<Account<'info, MakerRegistration>>,
+    pub first_registration: Box<Account<'info, LegacyMakerRegistration>>,
     #[account(address=makers::MAKER_A)]
     pub first_program: Program<'info>,
     #[account(address=first_registration.program_data)]
@@ -102,7 +102,7 @@ pub struct SampleOracle<'info> {
         has_one = market,
         constraint = second_registration.capital == second_capital.key() @ ClearingError::MakerBinding,
     )]
-    pub second_registration: Box<Account<'info, MakerRegistration>>,
+    pub second_registration: Box<Account<'info, LegacyMakerRegistration>>,
     #[account(address=makers::MAKER_B)]
     pub second_program: Program<'info>,
     #[account(address=second_registration.program_data)]

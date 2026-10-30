@@ -33,7 +33,7 @@ export async function accountTradingSetup(h: AccountTradingHarness, options: {qu
   const markets = [await accountMarket(venue,0),await accountMarket(venue,1)];
   const ledgers = await Promise.all(markets.map(market=>accountPda('ledger-v3',encoder.encode(market))));
   const common = {venue,registry,vault,custody,safety,btcLedger:ledgers[0],ethLedger:ledgers[1],program:deployment.program,eventAuthority:deployment.eventAuthority};
-  const marketState = async (index: number) => sdk.getMarketV3Decoder().decode((await h.read(markets[index]))!);
+  const marketState = async (index: number) => sdk.getMarketDecoder().decode((await h.read(markets[index]))!);
   const roots: Address[] = [];
   const makerKeys: Address[] = [];
   const snapshot = async () => Promise.all([venue,custody,safety,vault,...markets,...ledgers,...roots,...makerKeys].map(h.read));
@@ -48,10 +48,10 @@ export async function accountTradingSetup(h: AccountTradingHarness, options: {qu
     getTransferSolInstruction({source:payer,destination:signer.address,amount:1_000_000_000n})]);
   await h.send('setup six decimal collateral',[getCreateAccountInstruction({payer,newAccount:mint,lamports:await h.rent(82),space:82n,programAddress:TOKEN_PROGRAM_ADDRESS}),
     getInitializeMint2Instruction({mint:mint.address,decimals:6,mintAuthority:payer.address})],[mint]);
-  await h.send('setup fresh clearing venue',[await sdk.getInitializeVenueV3InstructionAsync({...common,authority:payer,
+  await h.send('setup fresh clearing venue',[await sdk.getInitializeVenueInstructionAsync({...common,authority:payer,
     programData:deployment.programData,quoteMint:mint.address,domain,feeAuthority:payer.address,reserveAuthority:payer.address,reserveDestinationOwner:payer.address})]);
-  await h.send('initialize canonical venue registry',[await sdk.getInitializeVenueRegistryV3InstructionAsync({...common,authority:payer})]);
-  for (const index of [0,1]) await h.send('setup market identity',[sdk.getInitializeMarketV3Instruction({...common,authority:payer,market:markets[index],ledger:ledgers[index],index})]);
+  await h.send('initialize canonical venue registry',[await sdk.getInitializeVenueRegistryInstructionAsync({...common,authority:payer})]);
+  for (const index of [0,1]) await h.send('setup market identity',[sdk.getInitializeMarketInstruction({...common,authority:payer,market:markets[index],ledger:ledgers[index],index})]);
   const operators: {owner:Keypair;portfolio:Address;token:Keypair;capital:Address[]}[] = [];
   for (const [index,signer] of [owner,...makerOwners].entries()) {
     const portfolio = await accountPda('portfolio-v3',encoder.encode(venue),encoder.encode(signer.address),u16(0));
@@ -59,20 +59,20 @@ export async function accountTradingSetup(h: AccountTradingHarness, options: {qu
     await h.send('setup owner token account',[getCreateAccountInstruction({payer,newAccount:token,lamports:await h.rent(165),space:165n,programAddress:TOKEN_PROGRAM_ADDRESS}),
       getInitializeAccount3Instruction({account:token.address,mint:mint.address,owner:signer.address}),
       getMintToInstruction({mint:mint.address,token:token.address,mintAuthority:payer,amount:1_000_000_000n})],[token]);
-    await h.send('setup owner portfolio',[await sdk.getCreatePortfolioV3InstructionAsync({...common,owner:signer,portfolio,index:0})],[signer]);
+    await h.send('setup owner portfolio',[await sdk.getCreatePortfolioInstructionAsync({...common,owner:signer,portfolio,index:0})],[signer]);
     const capital: Address[] = [];
     for (const marketIndex of [0,1]) {
       const margin = await accountPda('margin-v3',encoder.encode(portfolio),u16(marketIndex+1));
-      await h.send('setup isolated market root',[await sdk.getRegisterMarginV3InstructionAsync({...common,owner:signer,portfolio,margin,
+      await h.send('setup isolated market root',[await sdk.getRegisterMarginInstructionAsync({...common,owner:signer,portfolio,margin,
         subaccountIndex:marketIndex+1,mode:1,isolatedMarketIndex:marketIndex,role:index===0?0:1})],[signer]);
-      await h.send('fund actual isolated capital',[await sdk.getDepositAccountV3InstructionAsync({...common,owner:signer,margin,
+      await h.send('fund actual isolated capital',[await sdk.getDepositAccountInstructionAsync({...common,owner:signer,margin,
         quoteMint:mint.address,userToken:token.address,amount:index===0?1_000_000n:500_000_000n})],[signer]);
       roots.push(margin); capital.push(margin);
     }
     operators.push({owner:signer,portfolio,token,capital});
   }
   const cross = await accountPda('margin-v3',encoder.encode(operators[0].portfolio),u16(0));
-  await h.send('setup disabled cross identity',[await sdk.getRegisterMarginV3InstructionAsync({...common,owner,portfolio:operators[0].portfolio,
+  await h.send('setup disabled cross identity',[await sdk.getRegisterMarginInstructionAsync({...common,owner,portfolio:operators[0].portfolio,
     margin:cross,subaccountIndex:0,mode:0,isolatedMarketIndex:255,role:0})],[owner]); roots.push(cross);
   type Maker = typeof common & {owner:Keypair;authority:Keypair;market:Address;capital:Address;config:Address;
     registration:Address;capitalBinding:Address;pricingProgram:Address;programData:Address;api:typeof sdk.makerA|typeof sdk.makerB;makerId:number};
@@ -100,7 +100,7 @@ export async function accountTradingSetup(h: AccountTradingHarness, options: {qu
       await setupReject('reject maker-config market mismatch',[await api.getInitializeAccountConfigInstructionAsync({...accounts,market:markets[1-marketIndex],duration:3600n})],[signer],6001);
       assert.equal(await h.read(config),null);
       await h.send('initialize owner-bound V3 maker config',[await api.getInitializeAccountConfigInstructionAsync({...accounts,duration:options.makerDuration??3600n})],[signer]);
-      await setupReject('reject maker admission by foreign venue authority',[await sdk.getRegisterAccountMakerV3InstructionAsync({...accounts,authority:owner,makerId,inventoryLimit:100_000n})],[signer,owner],2001);
+      await setupReject('reject maker admission by foreign venue authority',[await sdk.getRegisterAccountMakerInstructionAsync({...accounts,authority:owner,makerId,inventoryLimit:100_000n})],[signer,owner],2001);
       if(qualify && makerId===1){
         const existing=pair[0];
         const [aliasConfig]=await getProgramDerivedAddress({programAddress:pricingProgram,seeds:[Buffer.from('maker-v3'),encoder.encode(existing.capital)]});
@@ -108,15 +108,15 @@ export async function accountTradingSetup(h: AccountTradingHarness, options: {qu
           await api.getInitializeAccountConfigInstructionAsync({...accounts,owner:existing.owner,capital:existing.capital,config:aliasConfig,duration:3600n})],[existing.owner]);
         const bound=await h.read(existing.capitalBinding);
         await setupReject('reject reuse of one funded root across maker registrations',[
-          await sdk.getRegisterAccountMakerV3InstructionAsync({...accounts,owner:existing.owner,capital:existing.capital,
+          await sdk.getRegisterAccountMakerInstructionAsync({...accounts,owner:existing.owner,capital:existing.capital,
             config:aliasConfig,capitalBinding:existing.capitalBinding,makerId,inventoryLimit:100_000n})],[existing.owner],0);
         assert.deepEqual(await h.read(existing.capitalBinding),bound);assert.equal(await h.read(registration),null);
       }
-      await h.send('admit separately funded maker',[await sdk.getRegisterAccountMakerV3InstructionAsync({...accounts,makerId,inventoryLimit:100_000n})],[signer]);
-      const stored = sdk.getMakerRegistrationV3Decoder().decode((await h.read(registration))!);
+      await h.send('admit separately funded maker',[await sdk.getRegisterAccountMakerInstructionAsync({...accounts,makerId,inventoryLimit:100_000n})],[signer]);
+      const stored = sdk.getFixedMakerRegistrationDecoder().decode((await h.read(registration))!);
       assert.equal(stored.venue,venue); assert.equal(stored.market,market); assert.equal(stored.capital,capital);
       assert.equal(stored.marketIndex,marketIndex); assert.equal(stored.owner,signer.address);
-      assert.equal(sdk.getCapitalBindingV3Decoder().decode((await h.read(binding))!).registration,registration);
+      assert.equal(sdk.getCapitalBindingDecoder().decode((await h.read(binding))!).registration,registration);
       makerKeys.push(registration,binding,config);
       pair.push({...accounts,api,makerId});
     }
@@ -128,15 +128,15 @@ export async function accountTradingSetup(h: AccountTradingHarness, options: {qu
     for (const maker of makers[marketIndex]) {
       const args = {side:0,lots:100n,referencePrice:marketIndex===0?60_000n:30_000n,
         quoteEpoch:1n,authorityEpoch:1n,termsEpoch:1n,configEpoch:market.configEpoch};
-      const quote = await sdk.getPreviewAccountMakerV3Instruction({...maker,args});
+      const quote = await sdk.getPreviewAccountMakerInstruction({...maker,args});
       const before = await snapshot();
       const response = sdk.getQuoteResponseDecoder().decode(await h.quote('authenticated read-only venue quote',quote));
       assert.equal(response.version,3); assert.equal(response.grossQuote,(marketIndex===0?6_000_000n:3_000_000n)+(maker.makerId===0?5_950n:3_000n));
       assert.deepEqual(await snapshot(),before);
       await setupReject('reject writable quote config',[{...quote,accounts:quote.accounts.map(account=>account.address===maker.config?{...account,role:AccountRole.WRITABLE}:account)}],[],6110);
-      await setupReject('reject foreign config',[await sdk.getPreviewAccountMakerV3Instruction({...maker,config:makers[1-marketIndex][maker.makerId].config,args})],[],2001);
-      await setupReject('reject epoch reset before config publication',[await sdk.getUpdateAccountMakerV3Instruction({...maker,actor:maker.owner,coSigner:undefined,operation:1})],[maker.owner],6112);
-      await setupReject('reject unilateral code approval',[await sdk.getUpdateAccountMakerV3Instruction({...maker,actor:maker.owner,coSigner:undefined,operation:0})],[maker.owner],6102);
+      await setupReject('reject foreign config',[await sdk.getPreviewAccountMakerInstruction({...maker,config:makers[1-marketIndex][maker.makerId].config,args})],[],2001);
+      await setupReject('reject epoch reset before config publication',[await sdk.getUpdateAccountMakerInstruction({...maker,actor:maker.owner,coSigner:undefined,operation:1})],[maker.owner],6112);
+      await setupReject('reject unilateral code approval',[await sdk.getUpdateAccountMakerInstruction({...maker,actor:maker.owner,coSigner:undefined,operation:0})],[maker.owner],6102);
       const request = {venue,quote:{version:3,domain,market:maker.market,capital:maker.capital,quoteEpoch:1n,authorityEpoch:1n,
         termsEpoch:1n,marketConfigEpoch:market.configEpoch,side:0,lots:1n,inventory:0n,cash:500_000_000n,
         inventoryLimit:100_000n,consumed:0n,referencePrice:args.referencePrice,slot:await h.slot()}};
@@ -166,14 +166,14 @@ export async function accountTradingSetup(h: AccountTradingHarness, options: {qu
       firstCapital:first.capital,firstRegistration:first.registration,firstProgram:first.pricingProgram,firstProgramData:first.programData,firstConfig:first.config,
       secondCapital:second.capital,secondRegistration:second.registration,secondProgram:second.pricingProgram,secondProgramData:second.programData,secondConfig:second.config};
   };
-  for (const index of [0,1]) await h.send('bind independent market source identities',[await sdk.getInitializeAccountOracleV3Instruction({...common,
+  for (const index of [0,1]) await h.send('bind independent market source identities',[await sdk.getInitializeAccountOracleInstruction({...common,
     market:markets[index],authority:payer,primary:primary.address,guard:guard.address})]);
   for (let index=0;index<6;index++) await publish(index);
   for (let round=0;round<4;round++) {
     if (round>0) await h.advance(2n);
     for (const index of [0,1]) {
       const other = await h.read(markets[1-index]);
-      await h.send('sample complete two-maker authenticated market',[await sdk.getSampleAccountOracleV3Instruction(sampleAccounts(index))]);
+      await h.send('sample complete two-maker authenticated market',[await sdk.getSampleAccountOracleInstruction(sampleAccounts(index))]);
       assert.deepEqual(await h.read(markets[1-index]),other,'sampling changed sibling market');
       const market=await marketState(index);
       assert.equal(market.referencePrice,index===0?60_000n:30_000n); assert.equal(market.oracle.status,round===3?2:1);
@@ -183,37 +183,37 @@ export async function accountTradingSetup(h: AccountTradingHarness, options: {qu
   }
   if (qualify) {
   await h.advance(2n);
-  await reject('reject substitution of BTC source for ETH',[await sdk.getSampleAccountOracleV3Instruction({...sampleAccounts(1),primaryAsset:feeds[0].feed})],[],6123);
+  await reject('reject substitution of BTC source for ETH',[await sdk.getSampleAccountOracleInstruction({...sampleAccounts(1),primaryAsset:feeds[0].feed})],[],6123);
   await publish(4,{price:60_000_000_000n});
-  await h.send('record ETH out-of-profile raw price',[await sdk.getSampleAccountOracleV3Instruction(sampleAccounts(1))]);
+  await h.send('record ETH out-of-profile raw price',[await sdk.getSampleAccountOracleInstruction(sampleAccounts(1))]);
   assert.equal((await marketState(1)).oracle.status,0);
   assert.equal((await marketState(0)).oracle.status,2);
   await publish(4); await h.advance(2n);
-  await h.send('begin ETH recovery from bad source',[await sdk.getSampleAccountOracleV3Instruction(sampleAccounts(1))]);
+  await h.send('begin ETH recovery from bad source',[await sdk.getSampleAccountOracleInstruction(sampleAccounts(1))]);
   assert.equal((await marketState(1)).oracle.status,1);
   await h.advance(2n); await publish(5,{published:(await h.now())-21n});
-  await h.send('degrade on authenticated stale ETH guard',[await sdk.getSampleAccountOracleV3Instruction(sampleAccounts(1))]);
+  await h.send('degrade on authenticated stale ETH guard',[await sdk.getSampleAccountOracleInstruction(sampleAccounts(1))]);
   assert.equal((await marketState(1)).oracle.status,1); assert.equal((await marketState(1)).oracle.premiumScaled,0n);
   await h.advance(2n); await publish(4,{published:(await h.now())-21n});
-  await h.send('restrict on authenticated stale ETH primary',[await sdk.getSampleAccountOracleV3Instruction(sampleAccounts(1))]);
+  await h.send('restrict on authenticated stale ETH primary',[await sdk.getSampleAccountOracleInstruction(sampleAccounts(1))]);
   assert.equal((await marketState(1)).oracle.status,0);
   const first=makers[0][0];
-  await reject('reject owner unilateral quarantine',[await sdk.getUpdateAccountMakerV3Instruction({...first,actor:first.owner,coSigner:undefined,operation:2})],[first.owner],6102);
-  await h.send('authority quarantine distinct BTC maker',[await sdk.getUpdateAccountMakerV3Instruction({...first,actor:payer,coSigner:undefined,operation:2})]);
+  await reject('reject owner unilateral quarantine',[await sdk.getUpdateAccountMakerInstruction({...first,actor:first.owner,coSigner:undefined,operation:2})],[first.owner],6102);
+  await h.send('authority quarantine distinct BTC maker',[await sdk.getUpdateAccountMakerInstruction({...first,actor:payer,coSigner:undefined,operation:2})]);
   await h.advance(2n); for (let index=0;index<6;index++) await publish(index);
-  await h.send('quarantined required maker degrades funding qualification',[await sdk.getSampleAccountOracleV3Instruction(sampleAccounts(0))]);
+  await h.send('quarantined required maker degrades funding qualification',[await sdk.getSampleAccountOracleInstruction(sampleAccounts(0))]);
   assert.equal((await marketState(0)).oracle.status,1);
-  await h.send('joint approval restores unchanged code without consumption reset',[await sdk.getUpdateAccountMakerV3Instruction({...first,
+  await h.send('joint approval restores unchanged code without consumption reset',[await sdk.getUpdateAccountMakerInstruction({...first,
     actor:first.owner,coSigner:payer,operation:0})],[first.owner]);
   // Epoch expiration/rotation is signed SVM evidence; RPC does not warp time or wait three idle minutes.
   if(h.clockMode!=='realtime') {
-  const beforeEpoch = sdk.getMakerRegistrationV3Decoder().decode((await h.read(first.registration))!);
+  const beforeEpoch = sdk.getFixedMakerRegistrationDecoder().decode((await h.read(first.registration))!);
   await h.advance(2n,4000n);
   for (const maker of makers.flat()) {
     await h.send('owner publishes next maker epoch',[await maker.api.getPublishAccountEpochInstruction({owner:maker.owner,config:maker.config,duration:3600n})],[maker.owner]);
-    await h.send('owner synchronizes expired epoch',[await sdk.getUpdateAccountMakerV3Instruction({...maker,actor:maker.owner,coSigner:undefined,operation:1})],[maker.owner]);
+    await h.send('owner synchronizes expired epoch',[await sdk.getUpdateAccountMakerInstruction({...maker,actor:maker.owner,coSigner:undefined,operation:1})],[maker.owner]);
   }
-  const afterEpoch=sdk.getMakerRegistrationV3Decoder().decode((await h.read(first.registration))!);
+  const afterEpoch=sdk.getFixedMakerRegistrationDecoder().decode((await h.read(first.registration))!);
   assert.equal(afterEpoch.quoteEpoch,2n);assert.equal(afterEpoch.authorityEpoch,beforeEpoch.authorityEpoch);
   }
   // Real RPC does not execute the SVM-only epoch-expiry advance above. Both
@@ -222,17 +222,17 @@ export async function accountTradingSetup(h: AccountTradingHarness, options: {qu
   for (let index=0;index<6;index++) await publish(index);
   for(let round=0;round<4;round++) {
     if(round>0)await h.advance(2n);
-    for(const index of [0,1])await h.send('fresh epoch recovery sample',[await sdk.getSampleAccountOracleV3Instruction(sampleAccounts(index))]);
+    for(const index of [0,1])await h.send('fresh epoch recovery sample',[await sdk.getSampleAccountOracleInstruction(sampleAccounts(index))]);
   }
   }
   const finalMarkets=await Promise.all([0,1].map(marketState));
   assert(finalMarkets.every(market=>market.oracle.status===2 && market.fundingIndexScaled===0n));
-  const finalVenue=sdk.getVenueV3Decoder().decode((await h.read(venue))!);
-  const finalCustody=sdk.getCustodyV3Decoder().decode((await h.read(custody))!);
+  const finalVenue=sdk.getVenueDecoder().decode((await h.read(venue))!);
+  const finalCustody=sdk.getCustodyDecoder().decode((await h.read(custody))!);
   assert.equal(finalCustody.totalCash,2_002_000_000n);assert.equal(finalCustody.allocatedVault,2_002_000_000n);
   assert.equal(getTokenDecoder().decode((await h.read(vault))!).amount,2_002_000_000n);
   for(const root of roots) {
-    const state=sdk.getMarginAccountV3Decoder().decode((await h.read(root))!);
+    const state=sdk.getMarginAccountDecoder().decode((await h.read(root))!);
     assert.equal(state.nonce,0n);assert.equal(state.reserved,0n);
     assert(state.positions.every(position=>position.lots===0n && position.virtualScaled===0n && position.fundingCheckpointScaled===0n));
   }

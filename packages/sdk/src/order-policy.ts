@@ -1,6 +1,6 @@
-import {getOrderBookDecoder,type OrderBook} from './generated/index.js';
+import {getLegacyOrderBookDecoder,type LegacyOrderBook} from './generated/index.js';
 const abs=(n:bigint)=>n<0n?-n:n;
-export const emptyOrderBook=():OrderBook=>{const d=getOrderBookDecoder();return d.decode(new Uint8Array(d.fixedSize));};
+export const emptyLegacyOrderBook=():LegacyOrderBook=>{const d=getLegacyOrderBookDecoder();return d.decode(new Uint8Array(d.fixedSize));};
 export const activeOrder=(o:any)=>o.state===1||o.state===2;
 export function orderRemaining(p:any,o:any,terms:bigint,slot:bigint):bigint{
   if(!activeOrder(o)||BigInt(o.termsEpoch)!==terms||slot>=BigInt(o.expirySlot))return 0n;

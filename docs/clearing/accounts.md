@@ -50,29 +50,30 @@ writes remain hot accounts; P24/P28 measure them rather than claim parallelism.
 
 ## Exact layouts, encoding and deployment
 
-Ordered Borsh fields in [state/v3](../../programs/clearing/src/state/v3) are normative.
-Anchor discriminator is the first eight bytes of SHA-256 of `account:<type name>`;
-each includes schema u16=3. Integer seeds are little endian. Reused PositionV2 and
-OrderBookV2 scalar records preserve 48-/680-byte encoding only, not V2 account
+Ordered Borsh fields in [state/accounts](../../programs/clearing/src/state/accounts) are normative.
+Current accounts retain explicit discriminator bytes derived from their original
+pre-consolidation names. Do not hash the new source name to decode them. Each
+financial account includes schema u16=3. Integer seeds are little endian. Reused Position and
+OrderBook scalar records preserve 48-/680-byte encoding only, not V2 account
 identity, handlers or common-loss semantics. All public JSON integers are decimal
 strings with explicit units and schema.
 
 | Account | PDA seeds after string prefix | Bytes including discriminator |
 |---|---|---:|
-| VenueV3 | `venue-v3`, domain[32] | 321 |
-| CustodyV3 | `custody-v3`, venue | 83 |
-| SafetyV3 | `safety-v3`, venue | 77 |
-| VenueRegistryV3 | `registry-v3`, venue | 2,105 at 64 members |
-| PortfolioV3 | `portfolio-v3`, venue, owner, u16 index | 79 |
-| MarginAccountV3 | `margin-v3`, portfolio, u16 child | 970 |
-| MarketV3 | `market-v3`, venue, u8 registry index | 447 |
-| MarketLedgerV3 | `ledger-v3`, market | 109 |
-| CapitalBindingV3 | `capital-v3`, capital | 106 |
-| SettlementCertificateV3 | `settlement-v3`, venue, u8 market | 234 |
-| ResolutionV3 | `resolution-v3`, venue | 3,644 |
-| ResolutionPageV3 | `resolution-page-v3`, venue, u16 page index | 3,400; two fixed rows |
-| ResolutionWorkV3 | `resolution-work-v3`, venue | 7,918 |
-| RetirementCertificateV3 (D64 additive implementation) | `retirement-v3`, venue | 80 |
+| Venue | `venue-v3`, domain[32] | 321 |
+| Custody | `custody-v3`, venue | 83 |
+| VenueSafety | `safety-v3`, venue | 77 |
+| VenueRegistry | `registry-v3`, venue | 2,105 at 64 members |
+| Portfolio | `portfolio-v3`, venue, owner, u16 index | 79 |
+| MarginAccount | `margin-v3`, portfolio, u16 child | 970 |
+| Market | `market-v3`, venue, u8 registry index | 447 |
+| MarketLedger | `ledger-v3`, market | 109 |
+| CapitalBinding | `capital-v3`, capital | 106 |
+| SettlementCertificate | `settlement-v3`, venue, u8 market | 234 |
+| Resolution | `resolution-v3`, venue | 3,644 |
+| ResolutionPage | `resolution-page-v3`, venue, u16 page index | 3,400; two fixed rows |
+| ResolutionWork | `resolution-work-v3`, venue | 7,918 |
+| RetirementCertificate (D64 additive implementation) | `retirement-v3`, venue | 80 |
 | Classic SPL vault | `vault-v3`, venue | Token account; venue PDA is token authority |
 
 Resolution pages/work retain epoch fields and are reused only after terminal
@@ -87,7 +88,7 @@ contract's size tests do not establish SBF stack/CU safety.
 Canonical maker registrations and funding publisher accounts use schema 4 while
 financial accounts remain schema 3. Their exact layouts are in
 [quoting](../liquidity/quoting.md) and [funding](../liquidity/funding.md).
-`MakerRegistrationV3` is the older fixed-maker format, not the current canonical
+`FixedMakerRegistration` is the older fixed-maker format, not the current canonical
 registration. Unknown schema/profile combinations reject even if fields decode.
 
 Initialization is signed by the verified clearing ProgramData upgrade authority;

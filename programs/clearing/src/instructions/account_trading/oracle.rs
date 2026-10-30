@@ -7,26 +7,26 @@ use financial_core::oracle as policy;
 pub struct InitializeAccountOracle<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
 pub struct SampleAccountOracle<'info> {
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     /// CHECK: fixed source identity/owner/schema/sequence verified before sampling policy.
     pub primary_asset: UncheckedAccount<'info>,
     /// CHECK: fixed source identity/owner/schema/sequence verified before sampling policy.
@@ -35,14 +35,14 @@ pub struct SampleAccountOracle<'info> {
     pub guard_asset: UncheckedAccount<'info>,
     /// CHECK: fixed source identity/owner/schema/sequence verified before sampling policy.
     pub guard_collateral: UncheckedAccount<'info>,
-    pub first_capital: Box<Account<'info, MarginAccountV3>>,
-    pub first_registration: Box<Account<'info, MakerRegistrationV3>>,
+    pub first_capital: Box<Account<'info, MarginAccount>>,
+    pub first_registration: Box<Account<'info, FixedMakerRegistration>>,
     pub first_program: Program<'info>,
     pub first_program_data: Box<Account<'info, ProgramData>>,
     /// CHECK: complete registered module authentication and read-only CPI.
     pub first_config: UncheckedAccount<'info>,
-    pub second_capital: Box<Account<'info, MarginAccountV3>>,
-    pub second_registration: Box<Account<'info, MakerRegistrationV3>>,
+    pub second_capital: Box<Account<'info, MarginAccount>>,
+    pub second_registration: Box<Account<'info, FixedMakerRegistration>>,
     pub second_program: Program<'info>,
     pub second_program_data: Box<Account<'info, ProgramData>>,
     /// CHECK: complete registered module authentication and read-only CPI.
@@ -58,18 +58,18 @@ pub(crate) fn feed_indexes(market: u8) -> Result<[usize; 4]> {
 }
 
 fn event(
-    venue: &Account<VenueV3>,
-    custody: &mut Account<CustodyV3>,
-    market: &mut Account<MarketV3>,
-) -> Result<crate::events::AccountOracleChangedV3> {
+    venue: &Account<Venue>,
+    custody: &mut Account<Custody>,
+    market: &mut Account<Market>,
+) -> Result<crate::events::AccountOracleChanged> {
     increment(&mut custody.sequence)?;
     increment(&mut market.observation_sequence)?;
-    Ok(crate::events::AccountOracleChangedV3 {
+    Ok(crate::events::AccountOracleChanged {
         venue: venue.key(),
         sequence: custody.sequence,
         slot: Clock::get()?.slot,
         market: market.key(),
-        state: crate::events::MarketSnapshotV3::from(&**market),
+        state: crate::events::MarketSnapshot::from(&**market),
     })
 }
 
@@ -123,7 +123,7 @@ pub(crate) fn initialize_accounts(
     Ok(())
 }
 
-pub(crate) fn effective(mode: u8, market: &MarketV3, clock: &Clock) -> Result<i128> {
+pub(crate) fn effective(mode: u8, market: &Market, clock: &Clock) -> Result<i128> {
     shared_oracle::effective(
         if mode == ACTIVE { 2 } else { 0 },
         &market_view(market)?,
@@ -131,7 +131,7 @@ pub(crate) fn effective(mode: u8, market: &MarketV3, clock: &Clock) -> Result<i1
     )
 }
 
-pub(crate) fn action(market: &MarketV3, clock: &Clock, increase: bool) -> Result<()> {
+pub(crate) fn action(market: &Market, clock: &Clock, increase: bool) -> Result<()> {
     shared_oracle::action(&market_view(market)?, clock, increase)
 }
 

@@ -35,14 +35,14 @@ import {
 import {
   getGroupMarketSnapshotV2Decoder,
   getGroupMarketSnapshotV2Encoder,
-  getMakerRegistrationSnapshotV2Decoder,
-  getMakerRegistrationSnapshotV2Encoder,
+  getLegacyMakerRegistrationSnapshotV2Decoder,
+  getLegacyMakerRegistrationSnapshotV2Encoder,
   getMarginAccountSnapshotV2Decoder,
   getMarginAccountSnapshotV2Encoder,
   type GroupMarketSnapshotV2,
   type GroupMarketSnapshotV2Args,
-  type MakerRegistrationSnapshotV2,
-  type MakerRegistrationSnapshotV2Args,
+  type LegacyMakerRegistrationSnapshotV2,
+  type LegacyMakerRegistrationSnapshotV2Args,
   type MarginAccountSnapshotV2,
   type MarginAccountSnapshotV2Args,
 } from "../types/index.js";
@@ -70,7 +70,7 @@ export type MarginRouteExecutedV2Event = {
   orderId: bigint;
   orderVersion: bigint;
   rootStates: Array<MarginAccountSnapshotV2>;
-  makerStates: Array<MakerRegistrationSnapshotV2>;
+  makerStates: Array<LegacyMakerRegistrationSnapshotV2>;
   totalCash: bigint;
   fees: bigint;
   otherMarket: Address;
@@ -91,7 +91,7 @@ export type MarginRouteExecutedV2EventArgs = {
   orderId: number | bigint;
   orderVersion: number | bigint;
   rootStates: Array<MarginAccountSnapshotV2Args>;
-  makerStates: Array<MakerRegistrationSnapshotV2Args>;
+  makerStates: Array<LegacyMakerRegistrationSnapshotV2Args>;
   totalCash: number | bigint;
   fees: number | bigint;
   otherMarket: Address | HasAddress;
@@ -115,7 +115,10 @@ export function getMarginRouteExecutedV2EventEncoder(): Encoder<MarginRouteExecu
       ["orderId", getU64Encoder()],
       ["orderVersion", getU64Encoder()],
       ["rootStates", getArrayEncoder(getMarginAccountSnapshotV2Encoder())],
-      ["makerStates", getArrayEncoder(getMakerRegistrationSnapshotV2Encoder())],
+      [
+        "makerStates",
+        getArrayEncoder(getLegacyMakerRegistrationSnapshotV2Encoder()),
+      ],
       ["totalCash", getU64Encoder()],
       ["fees", getU64Encoder()],
       ["otherMarket", getAddressEncoder()],
@@ -142,7 +145,10 @@ export function getMarginRouteExecutedV2EventDecoder(): Decoder<MarginRouteExecu
       ["orderId", getU64Decoder()],
       ["orderVersion", getU64Decoder()],
       ["rootStates", getArrayDecoder(getMarginAccountSnapshotV2Decoder())],
-      ["makerStates", getArrayDecoder(getMakerRegistrationSnapshotV2Decoder())],
+      [
+        "makerStates",
+        getArrayDecoder(getLegacyMakerRegistrationSnapshotV2Decoder()),
+      ],
       ["totalCash", getU64Decoder()],
       ["fees", getU64Decoder()],
       ["otherMarket", getAddressDecoder()],

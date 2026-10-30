@@ -43,8 +43,8 @@ try {
     const tx=await rpc.call('getTransaction',[check.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     if(!tx||tx.meta.err!==null)continue;
     if(eventPayloads(String(check.signature),tx,setup.deployment.eventAuthority).some(({payload})=>
-      sdk.hex(payload.subarray(0,8))===sdk.hex(sdk.ACCOUNT_CUSTODY_CHANGED_V3_EVENT_DISCRIMINATOR)&&
-      sdk.getAccountCustodyChangedV3EventDecoder().decode(payload).kind===0)){anchor=String(check.signature);break;}
+      sdk.hex(payload.subarray(0,8))===sdk.hex(sdk.ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR)&&
+      sdk.getAccountCustodyChangedEventDecoder().decode(payload).kind===0)){anchor=String(check.signature);break;}
   }
   assert(anchor);
   const config:LiquidityConfig={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,
@@ -72,13 +72,13 @@ try {
   assert.equal(cashFault.receipt.status,'finalized');faults.push(cashFault);
   assert.equal((await client.snapshot([margin])).roots[margin].cash,cashBefore-7n);
   await setup.qualify();await indexer.cycle();
-  const beforePrice=sdk.makerA.getMakerPriceV4Decoder().decode((await h.read(setup.instances[0].price))!).state;
+  const beforePrice=sdk.makerA.getMakerPriceDecoder().decode((await h.read(setup.instances[0].price))!).state;
   await setup.waitUntil(beforePrice.updatedTime+1n);
   assert.equal((await runtime.maker(0,0,setup.updater)).status,'queued');
   const makerOriginal=(await runtime.queue.pending())[0];assert(makerOriginal);
   const makerFault=await liquidityQueueFault(runtime,{databaseUrl,rpcUrl:config.rpcUrl,directory},makerOriginal);
   assert.equal(makerFault.receipt.status,'finalized');faults.push(makerFault);
-  assert.equal(sdk.makerA.getMakerPriceV4Decoder().decode((await h.read(setup.instances[0].price))!).state.sequence,beforePrice.sequence+1n);
+  assert.equal(sdk.makerA.getMakerPriceDecoder().decode((await h.read(setup.instances[0].price))!).state.sequence,beforePrice.sequence+1n);
 
   const start=(role:'maker'|'funding'|'orders'|'settlement'|'executor',key?:Keypair,marketIndex?:number,instance?:number)=>{
     const identity=`${role}-${marketIndex??'venue'}-${instance??'none'}-${children.length}`;
@@ -176,7 +176,7 @@ try {
       const quantity=(6_000_000n+reference-1n)/reference;
       assert.equal(BigInt(report.referencePrice),reference);assert.equal(BigInt(report.quantity),quantity);
       for(const instance of setup.instances.slice(market*3,market*3+3)) {
-        const configuration=sdk.makerA.getMakerCurveV4Decoder().decode(Buffer.from(input.accounts.get(instance.config)!.data[0],'base64')).state;
+        const configuration=sdk.makerA.getMakerCurveDecoder().decode(Buffer.from(input.accounts.get(instance.config)!.data[0],'base64')).state;
         assert.equal(configuration.shape.skewTick,0n);assert.equal(configuration.shape.bids[0].offset,2n);assert.equal(configuration.shape.asks[0].offset,3n);
       }
       assert.equal(BigInt(report.bid),quantity*(reference-2n));assert.equal(BigInt(report.ask),quantity*(reference+3n));

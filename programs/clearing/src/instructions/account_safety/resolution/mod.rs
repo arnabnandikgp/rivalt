@@ -38,7 +38,7 @@ pub const RECOVERED: u8 = 12;
 pub const TERMINAL: u8 = 13;
 const PAGE_COUNT: u16 = (MAX_MEMBERS / RESOLUTION_PAGE_ROWS) as u16;
 
-fn profile(identity: &ResolutionIdentityV3) -> Result<()> {
+fn profile(identity: &ResolutionIdentity) -> Result<()> {
     require!(
         cfg!(feature = "account-safety-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
@@ -60,7 +60,7 @@ fn profile(identity: &ResolutionIdentityV3) -> Result<()> {
     )
 }
 
-fn registry_hash(registry: &VenueRegistryV3) -> Result<[u8; 32]> {
+fn registry_hash(registry: &VenueRegistry) -> Result<[u8; 32]> {
     require!(
         registry.schema_version == SCHEMA_VERSION
             && registry.count > 0
@@ -75,15 +75,15 @@ fn registry_hash(registry: &VenueRegistryV3) -> Result<[u8; 32]> {
         );
     }
     // Include membership version, not merely the public-key list.
-    let mut bytes = Vec::with_capacity(VenueRegistryV3::INIT_SPACE);
+    let mut bytes = Vec::with_capacity(VenueRegistry::INIT_SPACE);
     registry.serialize(&mut bytes)?;
     Ok(solana_sha256_hasher::hash(&bytes).to_bytes())
 }
 
 fn frozen(
-    identity: &ResolutionIdentityV3,
-    registry: &VenueRegistryV3,
-    header: &ResolutionV3,
+    identity: &ResolutionIdentity,
+    registry: &VenueRegistry,
+    header: &Resolution,
     epoch: u64,
 ) -> Result<()> {
     profile(identity)?;
@@ -140,7 +140,7 @@ fn frozen(
     Ok(())
 }
 
-pub fn initialize(ctx: Context<InitializeAccountResolutionV3>) -> Result<()> {
+pub fn initialize(ctx: Context<InitializeAccountResolution>) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty() && cfg!(feature = "account-safety-qualification"),
         ClearingError::Profile
@@ -164,7 +164,7 @@ pub fn initialize(ctx: Context<InitializeAccountResolutionV3>) -> Result<()> {
 }
 
 pub fn initialize_page(
-    ctx: Context<InitializeAccountResolutionPageV3>,
+    ctx: Context<InitializeAccountResolutionPage>,
     page_index: u16,
 ) -> Result<()> {
     require!(

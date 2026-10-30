@@ -72,7 +72,7 @@ try{
   await indexer.cycle();
   // A signed maker publication is deliberately never broadcast. Real expiry and
   // the unchanged finalized registration epoch prove absence of its effect.
-  const registration=sdk.getMakerRegistrationDecoder().decode((await read(x.registration))!);
+  const registration=sdk.getLegacyMakerRegistrationDecoder().decode((await read(x.registration))!);
   const makerId=`maker:0:${registration.quoteEpoch}`;
   await runtime.queue.budget('maker-0',x.owner.address,runtime.budgets.maker);
   const ixs=[sdk.makerA.getPublishEpochInstruction({owner:x.owner,config:x.config,duration:3600n}),await sdk.getSyncMakerEpochInstructionAsync(x)];
@@ -86,7 +86,7 @@ try{
   await runtime.close();runtime=new Runtime(database,runId,url);await runtime.open();
   await runtime.maker(0,x.owner);
   const published=await finish(`${makerId}:retry:1`,'finalized');
-  const after=sdk.getMakerRegistrationDecoder().decode((await read(x.registration))!);
+  const after=sdk.getLegacyMakerRegistrationDecoder().decode((await read(x.registration))!);
   assert.equal(after.quoteEpoch,registration.quoteEpoch+1n);
   assert.equal(sdk.makerA.getMakerConfigDecoder().decode((await read(x.config))!).state.quoteEpoch,after.quoteEpoch);
   const retained=(await runtime.store.pool.query('SELECT * FROM service_intents WHERE run_id=$1 AND request_id=$2',[runId,makerId])).rows[0];

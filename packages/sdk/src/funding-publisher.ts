@@ -1,7 +1,7 @@
 import { type Address, type FixedSizeDecoder, type ReadonlyUint8Array } from '@solana/kit';
 import * as clearing from './generated/index.js';
 import { ACCOUNT_CLOCK } from './account-snapshot.js';
-import { deriveAccountVenue, findMarketV3Pda, findVenueComponentV3Pda } from './account-addresses.js';
+import { deriveAccountVenue, deriveAccountMarket, deriveVenueComponent } from './account-addresses.js';
 import { authenticateLiquidityMarket, discoverLiquidityAccounts, type LiquidityAccountMap } from './liquidity-adapter.js';
 import { allocateFundingSide } from './funding-impact.js';
 import { fundingReference } from './funding-sources.js';
@@ -34,17 +34,17 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   commitment: 'confirmed' | 'finalized' = 'confirmed') {
   requireValue(marketIndex === 0 || marketIndex === 1, 'Unsupported funding market.');
   const [[market, marketBump], [safety, safetyBump], [custody]] = await Promise.all([
-    findMarketV3Pda(venue, marketIndex), findVenueComponentV3Pda(venue, 'safety'), findVenueComponentV3Pda(venue, 'custody'),
+    deriveAccountMarket(venue, marketIndex), deriveVenueComponent(venue, 'safety'), deriveVenueComponent(venue, 'custody'),
   ]);
-  const [configuration, configurationBump] = await clearing.findFundingPublisherV4Pda({ market });
+  const [configuration, configurationBump] = await clearing.findFundingPublisherPda({ market });
   const sourceDiscovery = await rpc.call('getMultipleAccounts', [[market], { encoding: 'base64', commitment }]);
   requireValue(sourceDiscovery.value?.length === 1, 'Incomplete funding source discovery.');
-  const discoveredMarket = decode(sourceDiscovery.value[0], clearing.MARKET_V3_DISCRIMINATOR, clearing.getMarketV3Decoder());
+  const discoveredMarket = decode(sourceDiscovery.value[0], clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
   let discovery: Awaited<ReturnType<typeof discoverLiquidityAccounts>> | null = null;
   let coverageReason: string | null = null;
   try { discovery = await discoverLiquidityAccounts(rpc, venue, market, commitment); }
   catch { coverageReason = 'invalid-maker-discovery'; }
-  const [registry] = await clearing.findLiquidityRegistryV4Pda({ market });
+  const [registry] = await clearing.findLiquidityRegistryPda({ market });
   const keys = [...new Set([venue, market, configuration, safety, ACCOUNT_CLOCK, registry,
     ...discoveredMarket.oracle.sources, ...discovery?.keys ?? [], ...discovery?.capitals ?? []])];
   requireValue(keys.length <= 48, 'Funding snapshot exceeds bounded dependency set.');
@@ -54,11 +54,11 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   const contextSlot = rpcInteger(response.context.slot);
   requireValue(response.value?.length === keys.length && contextSlot >= minContextSlot, 'Incomplete or regressed funding snapshot.');
   const accounts: LiquidityAccountMap = new Map(keys.map((key, index) => [key, response.value[index]]));
-  const venueState = decode(accounts.get(venue) ?? null, clearing.VENUE_V3_DISCRIMINATOR, clearing.getVenueV3Decoder());
-  const marketState = decode(accounts.get(market) ?? null, clearing.MARKET_V3_DISCRIMINATOR, clearing.getMarketV3Decoder());
-  const safetyState = decode(accounts.get(safety) ?? null, clearing.SAFETY_V3_DISCRIMINATOR, clearing.getSafetyV3Decoder());
-  const configurationState = decode(accounts.get(configuration) ?? null, clearing.FUNDING_PUBLISHER_V4_DISCRIMINATOR,
-    clearing.getFundingPublisherV4Decoder());
+  const venueState = decode(accounts.get(venue) ?? null, clearing.VENUE_DISCRIMINATOR, clearing.getVenueDecoder());
+  const marketState = decode(accounts.get(market) ?? null, clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
+  const safetyState = decode(accounts.get(safety) ?? null, clearing.VENUE_SAFETY_DISCRIMINATOR, clearing.getVenueSafetyDecoder());
+  const configurationState = decode(accounts.get(configuration) ?? null, clearing.FUNDING_PUBLISHER_DISCRIMINATOR,
+    clearing.getFundingPublisherDecoder());
   const [venueKey, venueBump] = await deriveAccountVenue(Uint8Array.from(venueState.domain));
   requireValue(venueKey === venue && venueState.bump === venueBump && venueState.schemaVersion === 3
     && venueState.profileVersion === 4 && venueState.marketCount === 2 && venueState.insuranceFeeShareBps === 2500
@@ -83,7 +83,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   // replace Clock with RPC metadata. Clearing still rejects future observations.
   requireValue(slot > configurationState.lastObservedSlot && now > 0n
     && now >= configurationState.lastObservedTime, 'Funding snapshot predates the publisher fence.');
-  const report: clearing.FundingReportV4 = {
+  const report: clearing.FundingReport = {
     version: 1, domain: Uint8Array.from(venueState.domain), market, authorityEpoch: configurationState.authorityEpoch,
     sequence: configurationState.lastSequence + 1n, expectedObservationSequence: marketState.observationSequence,
     expectedConfigEpoch: marketState.configEpoch, expectedTermsEpoch: marketState.termsEpoch,

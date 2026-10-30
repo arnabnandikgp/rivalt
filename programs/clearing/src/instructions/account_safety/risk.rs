@@ -1,29 +1,29 @@
 //! Consenting receiver, full two-market funding and strict post-fee risk progress.
 use super::*;
 use account_cash::*;
-use account_trading::authority::AccountGuardV3;
+use account_trading::authority::AccountGuard;
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct LiquidateAccountV3<'info> {
-    pub identity: AccountFinancialIdentityV3<'info>,
+pub struct LiquidateAccount<'info> {
+    pub identity: AccountFinancialIdentity<'info>,
     pub receiver_owner: Signer<'info>,
     #[account(mut, seeds = [b"margin-v3", target.portfolio.as_ref(), &target.subaccount_index.to_le_bytes()],
         bump = target.bump, constraint = target.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub target: Box<Account<'info, MarginAccountV3>>,
+    pub target: Box<Account<'info, MarginAccount>>,
     #[account(mut, seeds = [b"margin-v3", receiver.portfolio.as_ref(), &receiver.subaccount_index.to_le_bytes()],
         bump = receiver.bump, constraint = receiver.venue == identity.venue.key() @ ClearingError::Profile,
         constraint = receiver.owner == receiver_owner.key() @ ClearingError::Authority,
         constraint = receiver.key() != target.key() @ ClearingError::Alias)]
-    pub receiver: Box<Account<'info, MarginAccountV3>>,
+    pub receiver: Box<Account<'info, MarginAccount>>,
 }
 
 /// V3 validates its own identities before sharing the scalar risk engine.
 #[inline(never)]
 pub(crate) fn candidate(
-    target: &MarginAccountV3,
-    receiver: &MarginAccountV3,
-    markets: [&MarketV3; 2],
+    target: &MarginAccount,
+    receiver: &MarginAccount,
+    markets: [&Market; 2],
     market_index: usize,
     lots: u64,
     price: u64,
@@ -50,9 +50,9 @@ pub(crate) fn candidate(
 }
 
 pub fn liquidate(
-    ctx: Context<LiquidateAccountV3>,
-    target_guard: AccountGuardV3,
-    receiver_guard: AccountGuardV3,
+    ctx: Context<LiquidateAccount>,
+    target_guard: AccountGuard,
+    receiver_guard: AccountGuard,
     market_index: u8,
     lots: u64,
     price: u64,
@@ -142,14 +142,14 @@ struct LiquidationEventView<'a> {
     deficit_after: i128,
     target: Pubkey,
     receiver: Pubkey,
-    target_state: &'a MarginAccountV3,
-    receiver_state: &'a MarginAccountV3,
-    markets: [&'a MarketV3; 2],
+    target_state: &'a MarginAccount,
+    receiver_state: &'a MarginAccount,
+    markets: [&'a Market; 2],
 }
 
 #[inline(never)]
 fn emit(
-    accounts: &LiquidateAccountV3,
+    accounts: &LiquidateAccount,
     market_index: u8,
     lots: u64,
     price: u64,
@@ -176,7 +176,7 @@ fn emit(
         receiver_state: &accounts.receiver,
         markets: [&accounts.identity.btc, &accounts.identity.eth],
     };
-    crate::event_cpi::emit_borrowed::<crate::events::AccountLiquidatedV3, _>(
+    crate::event_cpi::emit_borrowed::<crate::events::AccountLiquidated, _>(
         &event,
         accounts.event_authority.to_account_info(),
     )
@@ -187,34 +187,34 @@ mod event_tests {
     use super::*;
     #[test]
     fn borrowed_liquidation_is_exactly_the_owned_event_wire() {
-        let target = MarginAccountV3 {
+        let target = MarginAccount {
             schema_version: 3,
             cash: 17,
             nonce: 9,
             positions: [
-                crate::state::v2::PositionV2 {
+                crate::state::v2::Position {
                     lots: -2,
                     virtual_scaled: -300_000_001,
                     funding_checkpoint_scaled: 12,
                     generation: 3,
                 },
-                crate::state::v2::PositionV2::default(),
+                crate::state::v2::Position::default(),
             ],
             ..Default::default()
         };
-        let receiver = MarginAccountV3 {
+        let receiver = MarginAccount {
             schema_version: 3,
             cash: 21,
             id: 1,
             ..Default::default()
         };
-        let market = MarketV3 {
+        let market = Market {
             schema_version: 3,
             reference_price: 20_000,
             funding_index_scaled: -17,
             ..Default::default()
         };
-        let owned = crate::events::AccountLiquidatedV3 {
+        let owned = crate::events::AccountLiquidated {
             venue: Pubkey::new_unique(),
             sequence: 8,
             slot: 42,
@@ -228,11 +228,11 @@ mod event_tests {
             deficit_after: 567,
             target: Pubkey::new_unique(),
             receiver: Pubkey::new_unique(),
-            target_state: crate::events::MarginAccountSnapshotV3::from(&target),
-            receiver_state: crate::events::MarginAccountSnapshotV3::from(&receiver),
+            target_state: crate::events::MarginAccountSnapshot::from(&target),
+            receiver_state: crate::events::MarginAccountSnapshot::from(&receiver),
             markets: [
-                crate::events::MarketSnapshotV3::from(&market),
-                crate::events::MarketSnapshotV3::from(&market),
+                crate::events::MarketSnapshot::from(&market),
+                crate::events::MarketSnapshot::from(&market),
             ],
         };
         let view = LiquidationEventView {

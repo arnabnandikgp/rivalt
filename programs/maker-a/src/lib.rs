@@ -7,16 +7,20 @@ const MAKER_ID: u8 = 0;
 #[program]
 pub mod maker_a {
     use super::*;
-    pub fn initialize_curve_v4(context: Context<InitializeCurveV4>, shape: ShapeV4, updater: Pubkey, expiry: u64, instance: u8) -> Result<()> {
-        initialize_curve(context, shape, updater, expiry, instance)
+    #[instruction(discriminator = [2, 112, 249, 167, 34, 145, 140, 171])]
+    pub fn initialize_curve(context: Context<InitializeCurve>, shape: LiquidityShape, updater: Pubkey, expiry: u64, instance: u8) -> Result<()> {
+        super::initialize_curve(context, shape, updater, expiry, instance)
     }
-    pub fn reprice_v4(context: Context<RepriceCurveV4>, expected_control: u64, expected_sequence: u64, anchor: u64) -> Result<()> {
+    #[instruction(discriminator = [104, 190, 176, 98, 109, 111, 187, 154])]
+    pub fn reprice(context: Context<RepriceCurve>, expected_control: u64, expected_sequence: u64, anchor: u64) -> Result<()> {
         reprice_curve(context, expected_control, expected_sequence, anchor)
     }
-    pub fn control_curve_v4(context: Context<ControlCurveV4>, expected_control: u64, expected_shape: u64, action: CurveControlV4) -> Result<()> {
-        control_curve(context, expected_control, expected_shape, action)
+    #[instruction(discriminator = [87, 246, 69, 138, 190, 131, 55, 141])]
+    pub fn control_curve(context: Context<ControlCurve>, expected_control: u64, expected_shape: u64, action: CurveControl) -> Result<()> {
+        super::control_curve(context, expected_control, expected_shape, action)
     }
-    pub fn quote_v4(context: Context<ReadCurveV4>, request: QuoteRequestV4) -> Result<QuoteResponseV4> {
+    #[instruction(discriminator = [186, 69, 30, 223, 191, 154, 12, 19])]
+    pub fn quote_curve(context: Context<ReadCurve>, request: MakerQuoteRequest) -> Result<MakerQuoteResponse> {
         read_curve(context, request)
     }
     pub fn initialize_config(

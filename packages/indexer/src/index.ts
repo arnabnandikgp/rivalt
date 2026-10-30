@@ -55,7 +55,7 @@ export class Indexer extends FinalizedIndexer<State, Binding, Event> {
     assert.equal(token.length,165); const actualVault=token.readBigUInt64LE(64);
     assert(actualVault >= chain.allocatedVault,'Vault deficit');
     makers.forEach((key,i) => {
-      const maker = sdk.getMakerRegistrationDecoder().decode(data(3+participants.length+i));
+      const maker = sdk.getLegacyMakerRegistrationDecoder().decode(data(3+participants.length+i));
       for (const [field,value] of Object.entries(state.makers[key])) assert.equal(json((maker as any)[field]),json(value),`Maker ${field}`);
     });
     if (state.risk) {

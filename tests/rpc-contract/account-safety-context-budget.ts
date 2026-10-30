@@ -30,9 +30,9 @@ export async function contextBudgetProbe(parent:LiteSVM,payer:Awaited<ReturnType
     const account=(key:Address)=>{const result=svm.getAccount(key);assert(result.exists);return result;};
     const read=(key:Address)=>Buffer.from(account(key).data);
     const immutable=Object.fromEntries(input.immutable.map(key=>[key,read(key)]));
-    const custodyBefore=sdk.getCustodyV3Decoder().decode(read(input.custody));
-    const header=sdk.getResolutionV3Decoder().decode(read(input.resolution));
-    const work=sdk.getResolutionWorkV3Decoder().decode(read(input.work));
+    const custodyBefore=sdk.getCustodyDecoder().decode(read(input.custody));
+    const header=sdk.getResolutionDecoder().decode(read(input.resolution));
+    const work=sdk.getResolutionWorkDecoder().decode(read(input.work));
     assert.equal(header.stage,5);assert.equal(header.cursor,0);assert.equal(work.row,0);
     const maximumClaim=100_300_000_000_000_000_000_000_000n;
     const probeDebt=2n*maximumClaim-1n;
@@ -46,9 +46,9 @@ export async function contextBudgetProbe(parent:LiteSVM,payer:Awaited<ReturnType
     assert.equal(common.toString(2).length,commonBits);assert.equal(factor.toString(2).length,186);
     const proposal=Buffer.alloc(1560);
     [...limbs(rates[0]),...limbs(rates[1]),...limbs(factor,3)].forEach((limb,index)=>proposal.writeBigUInt64LE(limb,index*8));
-    svm.setAccount({...account(input.resolution),data:Uint8Array.from(sdk.getResolutionV3Encoder().encode({...header,
+    svm.setAccount({...account(input.resolution),data:Uint8Array.from(sdk.getResolutionEncoder().encode({...header,
       common:wide(common),stage:4,cursor:0}))});
-    const rows=Array.from({length:header.count},(_,id)=>sdk.getResolutionPageV3Decoder()
+    const rows=Array.from({length:header.count},(_,id)=>sdk.getResolutionPageDecoder()
       .decode(read(input.pages[Math.floor(id/2)])).rows[id%2]);
     assert(rows.some(row=>row.claimsScaled.every(claim=>claim<0n) && row.cashBefore>0n),
       'exercise the double-debt long-division path');
@@ -81,7 +81,7 @@ export async function contextBudgetProbe(parent:LiteSVM,payer:Awaited<ReturnType
     const proposalHash=createHash('sha256').update(proposal).digest();
     for(let offset=0;offset<proposal.length;offset+=512)await send('full-context maximum-width proposal',
       input.propose(proposal.subarray(offset,Math.min(proposal.length,offset+512)),offset,proposalHash));
-    const prepared=sdk.getResolutionV3Decoder().decode(read(input.resolution));
+    const prepared=sdk.getResolutionDecoder().decode(read(input.resolution));
     assert.equal(prepared.stage,5);assert.equal(value(prepared.flowDenominator.limbs),denominator);
     // Separate scratch-only extremal inputs cover maximum cash/claim magnitudes,
     // including opposite-sign recovery. They do not match an authenticated root
@@ -90,40 +90,40 @@ export async function contextBudgetProbe(parent:LiteSVM,payer:Awaited<ReturnType
     for(const claims of [[-maximumClaim,-maximumClaim+1n],[-maximumClaim,maximumClaim]] as const) {
       const probe=LiteSVM.fromBytes(svm.toBytes()).withSigverify(true).withBlockhashCheck(true);
       const get=(key:Address)=>{const result=probe.getAccount(key);assert(result.exists);return result;};
-      const page=sdk.getResolutionPageV3Decoder().decode(get(input.pages[0]).data);
+      const page=sdk.getResolutionPageDecoder().decode(get(input.pages[0]).data);
       const cash=1_000_000_000_000_000n;
-      probe.setAccount({...get(input.pages[0]),data:Uint8Array.from(sdk.getResolutionPageV3Encoder().encode({...page,
+      probe.setAccount({...get(input.pages[0]),data:Uint8Array.from(sdk.getResolutionPageEncoder().encode({...page,
         rows:page.rows.map((row,id)=>id===0?{...row,cashBefore:cash,claimsScaled:[...claims],collected:cash}:row)}))});
       await send(`extremal scratch Verify ${claims[1]<0n?'double debt':'mixed claims'}`,input.advance(5,0,1),probe);
-      const verifiedRow=sdk.getResolutionPageV3Decoder().decode(get(input.pages[0]).data).rows[0];
+      const verifiedRow=sdk.getResolutionPageDecoder().decode(get(input.pages[0]).data).rows[0];
       const expectedFlows=claims[1]<0n?claims.map(claim=>cash*denominator*(-claim)/probeDebt):[
         cash*denominator+(maximumClaim*rates[1]< (maximumClaim-cash*1_000_000_000n)*common*factor?
           maximumClaim*rates[1]:(maximumClaim-cash*1_000_000_000n)*common*factor),maximumClaim*rates[1]];
       assert.deepEqual(verifiedRow.exactFlowNumerators.map(flow=>value(flow.limbs)),expectedFlows);
-      const current=sdk.getResolutionV3Decoder().decode(get(input.resolution).data);
-      probe.setAccount({...get(input.resolution),data:Uint8Array.from(sdk.getResolutionV3Encoder().encode({...current,stage:6,cursor:0}))});
+      const current=sdk.getResolutionDecoder().decode(get(input.resolution).data);
+      probe.setAccount({...get(input.resolution),data:Uint8Array.from(sdk.getResolutionEncoder().encode({...current,stage:6,cursor:0}))});
       await send(`extremal scratch FlowPlan ${claims[1]<0n?'double debt':'mixed claims'}`,input.advance(6,0,1),probe);
-      const planned=sdk.getResolutionPageV3Decoder().decode(get(input.pages[0]).data).rows[0];
+      const planned=sdk.getResolutionPageDecoder().decode(get(input.pages[0]).data).rows[0];
       assert.deepEqual(planned.roundedFlows,expectedFlows.map(flow=>flow/denominator));
       assert.equal(planned.cashAfter,(cash*denominator-expectedFlows[0]+(claims[1]<0n?-expectedFlows[1]:expectedFlows[1]))/denominator);
       for(const key of input.immutable)assert.deepEqual(Buffer.from(get(key).data),immutable[key]);
     }
     for(let id=0;id<header.count;id++)await send(`full-context Verify row ${id}`,input.advance(5,id,1));
     for(let id=0;id<header.count;id++) {
-      const row=sdk.getResolutionPageV3Decoder().decode(read(input.pages[Math.floor(id/2)])).rows[id%2];
+      const row=sdk.getResolutionPageDecoder().decode(read(input.pages[Math.floor(id/2)])).rows[id%2];
       assert.deepEqual(row.exactFlowNumerators.map(flow=>value(flow.limbs)),expected[id]);
     }
     await send('full-context complete rate and insurance checks',input.finalize());
-    assert.equal(sdk.getResolutionV3Decoder().decode(read(input.resolution)).stage,6);
+    assert.equal(sdk.getResolutionDecoder().decode(read(input.resolution)).stage,6);
     for(let id=0;id<header.count;id++) {
       await send(`full-context FlowPlan row ${id}`,input.advance(6,id,1));
-      const row=sdk.getResolutionPageV3Decoder().decode(read(input.pages[Math.floor(id/2)])).rows[id%2];
+      const row=sdk.getResolutionPageDecoder().decode(read(input.pages[Math.floor(id/2)])).rows[id%2];
       assert.deepEqual(row.roundedFlows,expected[id].map(flow=>flow/denominator));
       const cash=row.cashBefore*denominator+expected[id].reduce((sum,flow,market)=>
         sum+(row.claimsScaled[market]<0n?-flow:flow),0n);
       assert.equal(row.cashAfter,cash/denominator);
     }
-    assert.equal(sdk.getResolutionV3Decoder().decode(read(input.resolution)).stage,7);
+    assert.equal(sdk.getResolutionDecoder().decode(read(input.resolution)).stage,7);
     const orders=[0,1].map(market=>rows.map((_,id)=>id).sort((left,right)=>{
       const remainder=(id:number)=>rows[id].claimsScaled[market]>0n?expected[id][market]%denominator:0n;
       return remainder(left)===remainder(right)?left-right:remainder(left)>remainder(right)?-1:1;
@@ -131,13 +131,13 @@ export async function contextBudgetProbe(parent:LiteSVM,payer:Awaited<ReturnType
     await send('full-context remainder permutation',input.order(orders));
     for(let start=0;start<2*header.count;start++)await send('full-context remainder verification',
       input.checkOrder(start,orders[Math.floor(start/header.count)][start%header.count]));
-    for(let step=0;sdk.getResolutionV3Decoder().decode(read(input.resolution)).stage===8;step++) {
+    for(let step=0;sdk.getResolutionDecoder().decode(read(input.resolution)).stage===8;step++) {
       assert(step<2000);
-      await send('full-context bounded conserving circulation',input.round(sdk.getResolutionV3Decoder().decode(read(input.resolution)).cursor));
+      await send('full-context bounded conserving circulation',input.round(sdk.getResolutionDecoder().decode(read(input.resolution)).cursor));
     }
-    assert.equal(sdk.getResolutionV3Decoder().decode(read(input.resolution)).stage,9,'resource branch stops before Apply');
+    assert.equal(sdk.getResolutionDecoder().decode(read(input.resolution)).stage,9,'resource branch stops before Apply');
     for(const key of input.immutable)assert.deepEqual(read(key),immutable[key],`${key}: resource probe changed financial state`);
-    const custodyAfter=sdk.getCustodyV3Decoder().decode(read(input.custody));
+    const custodyAfter=sdk.getCustodyDecoder().decode(read(input.custody));
     assert.deepEqual({...custodyAfter,sequence:custodyBefore.sequence},custodyBefore,'only event sequence advances');
   }
   assert.deepEqual(parent.toBytes(),parentBytes,'resource fork cannot change the genuine signed parent history');

@@ -18,11 +18,11 @@ test('explicit devnet IDs match the deployed manifest and retained chain PDAs', 
   expect(deployment.makerA).toBe(manifest.programs.maker_a);
   expect(deployment.makerB).toBe(manifest.programs.maker_b);
   const client = new sdk.UserClient(config);
-  expect((await sdk.findMarketPda(client.options))[0]).toBe(market);
+  expect((await sdk.findLegacyMarketPda(client.options))[0]).toBe(market);
   expect((await sdk.findParticipantPda({ market, owner: address('Chuxukhu1DSUVHRZFPAGxTPjNK5Kz5jTkbJCesLyFjMh') }, client.options))[0])
     .toBe('9EyFUQ1jcHMDnk1kGGs6yeamtdhzn4Us2mFwyZxCsCCU');
   expect(sdk.testDeployment().clearing).toBe(sdk.CLEARING_PROGRAM_ADDRESS);
-  expect((await sdk.findMarketPda())[0]).not.toBe(market);
+  expect((await sdk.findLegacyMarketPda())[0]).not.toBe(market);
 });
 
 test('wrong cluster, arbitrary chain and browser credentials remain rejected', () => {

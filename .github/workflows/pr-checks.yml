@@ -36,6 +36,8 @@ jobs:
           persist-credentials: false
       - name: Keep raw evidence out of the tracked tree
         run: python3 ops/check-evidence-policy.py
+      - name: Preserve the pinned wire contract
+        run: python3 ops/wire_contract.py
       - id: scope
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -97,8 +99,8 @@ jobs:
           cargo test --locked -p clearing --lib instructions::account_safety --features account-safety-qualification
           cargo test --locked -p clearing --lib instructions::account_trading::activation --features account-safety-qualification
           cargo test --locked -p clearing --lib instructions::account_trading::routes::event_tests --features account-safety-qualification
-          cargo test --locked -p clearing --lib state::v3::tests --features account-safety-qualification
-          cargo test --locked -p clearing --lib state::v3::tests
+          cargo test --locked -p clearing --lib state::accounts::tests --features account-safety-qualification
+          cargo test --locked -p clearing --lib state::accounts::tests
           cargo test --locked -p clearing --lib instructions::maker_liquidity::tests --features maker-liquidity-qualification,account-safety-qualification
           cargo test --locked -p clearing --lib instructions::maker_liquidity::tests
           cargo test --locked -p clearing --lib instructions::maker_liquidity::publisher::tests --features liquidity-execution-qualification

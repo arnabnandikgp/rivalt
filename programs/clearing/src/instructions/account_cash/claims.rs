@@ -1,8 +1,8 @@
 use super::*;
-use trading::authority::AccountGuardV3;
+use trading::authority::AccountGuard;
 
 pub fn change(
-    ctx: Context<ChangeAccountClaimV3>,
+    ctx: Context<ChangeAccountClaim>,
     market_index: u8,
     amount: u64,
     gain: bool,
@@ -64,8 +64,8 @@ pub fn change(
 }
 
 pub fn net(
-    ctx: Context<NetAccountClaimsV3>,
-    guard: AccountGuardV3,
+    ctx: Context<NetAccountClaims>,
+    guard: AccountGuard,
     source_market: u8,
     amount: u64,
 ) -> Result<()> {

@@ -20,7 +20,7 @@ const serialize = (value: unknown) => JSON.stringify(value, (_, item) => typeof 
 try {
   const setup = await liquidityExecutionSetup(h, rpc);
   const root = setup.roots[0], owner = setup.traderOwner;
-  const state = async (key = root) => sdk.getMarginAccountV3Decoder().decode((await h.read(key))!);
+  const state = async (key = root) => sdk.getMarginAccountDecoder().decode((await h.read(key))!);
   const watched = [...setup.tracked, ...setup.roots, ...setup.configurations];
   const bytes = () => Promise.all(watched.map(h.read));
   const rejected = async (label: string, instruction: Instruction, error: number) => {
@@ -57,7 +57,7 @@ try {
   await setup.sample();
   const snapshot = await setup.snapshot();
   const [first, second] = [setup.instances[0], setup.instances[2]];
-  const pair = await sdk.getExecuteLiquidityRouteV4InstructionAsync({ ...setup.common, actor: owner,
+  const pair = await sdk.getExecuteLiquidityRouteInstructionAsync({ ...setup.common, actor: owner,
     market: setup.markets[0], otherMarket: setup.markets[1], ledger: setup.ledgers[0], otherLedger: setup.ledgers[1], trader: root,
     registry: first.liquidityRegistry, firstCapital: first.capital, firstRegistration: first.registration,
     firstProgram: first.pricingProgram, firstProgramData: first.controlCommon.programData, firstConfig: first.config, firstPrice: first.price,
@@ -88,7 +88,7 @@ try {
   await setup.sample();
   let orderSnapshot = await setup.snapshot(setup.roots[1]);
   const orderAccounts = { ...setup.common, actor: owner, btc: setup.markets[0], eth: setup.markets[1], margin: setup.roots[1] };
-  await h.send('place isolated durable order with reservations', [sdk.getManageAccountOrderV3Instruction({ ...orderAccounts,
+  await h.send('place isolated durable order with reservations', [sdk.getManageAccountOrderInstruction({ ...orderAccounts,
     guard: sdk.accountGuard(orderSnapshot, setup.roots[1]), marketIndex: 0, operation: { __kind: 'Place', expectedId: 1n,
       terms: { side: 0, lots: 2n, limit: 61_000n, feeBudget: 25n, startSlot: orderSnapshot.slot,
         expirySlot: orderSnapshot.slot + 500n, trigger: 0, threshold: 0n, reduceOnly: false, generation: 0n } } })], [owner]);
@@ -117,14 +117,14 @@ try {
       return total + position.virtualScaled - position.lots * (markets[index].fundingIndexScaled - position.fundingCheckpointScaled);
     }, 0n), 0n);
   }
-  const ledgers = await Promise.all(setup.ledgers.map(async key => sdk.getMarketLedgerV3Decoder().decode((await h.read(key))!)));
+  const ledgers = await Promise.all(setup.ledgers.map(async key => sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
   assert.deepEqual(ledgers.map(ledger => [ledger.insurance, ledger.fees, ledger.insuranceFeeRemainder]), [[19n, 57n, 0], [1n, 6n, 3]]);
-  const custody = sdk.getCustodyV3Decoder().decode((await h.read(setup.custody))!);
+  const custody = sdk.getCustodyDecoder().decode((await h.read(setup.custody))!);
   assert.equal(allRoots.reduce((total, margin) => total + margin.cash, 0n), custody.totalCash);
   assert.equal(custody.totalCash + 83n, 8_000_000n);
   const parity = await conformance.finish(runDir, [
-    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'marginAccountV3', key: root },
-    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'makerRegistrationV4', key: first.registration },
+    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'marginAccount', key: root },
+    { program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'makerRegistration', key: first.registration },
   ], h.read);
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',

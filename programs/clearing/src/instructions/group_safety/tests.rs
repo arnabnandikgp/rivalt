@@ -151,13 +151,13 @@ fn cross_liquidation_includes_other_market_funding_and_receiver_reservations() {
         subaccount_index: 0,
         ..root(0, 5_099)
     };
-    target.positions[0] = PositionV2 {
+    target.positions[0] = Position {
         lots: 100,
         virtual_scaled: -100_000 * math::SCALE,
         generation: 1,
         ..Default::default()
     };
-    target.positions[1] = PositionV2 {
+    target.positions[1] = Position {
         lots: 2,
         virtual_scaled: -2_000 * math::SCALE,
         generation: 1,
@@ -170,7 +170,7 @@ fn cross_liquidation_includes_other_market_funding_and_receiver_reservations() {
         role: ROLE_RECEIVER,
         ..root(1, 300)
     };
-    receiver.positions[1] = PositionV2 {
+    receiver.positions[1] = Position {
         lots: 1,
         virtual_scaled: -1_000 * math::SCALE,
         generation: 1,
@@ -216,9 +216,9 @@ fn cross_liquidation_includes_other_market_funding_and_receiver_reservations() {
     )
     .is_err());
     receiver.book.last_order_id = 1;
-    receiver.book.orders[0] = StoredOrderV2 {
+    receiver.book.orders[0] = StoredOrder {
         market_index: 1,
-        order: crate::state::StoredOrder {
+        order: crate::state::OrderRecord {
             state: crate::constants::orders::OPEN,
             id: 1,
             version: 1,
@@ -242,7 +242,7 @@ fn cross_liquidation_includes_other_market_funding_and_receiver_reservations() {
         &clock()
     )
     .is_err());
-    receiver.book = OrderBookV2::default();
+    receiver.book = OrderBook::default();
     markets[1].valid_until = 100;
     assert!(risk::candidate(
         &target,
@@ -270,7 +270,7 @@ fn cross_post_fee_golden_rejects_worsening_deficit_despite_lower_requirement() {
         ..root(0, 80)
     };
     for position in &mut before.positions {
-        *position = PositionV2 {
+        *position = Position {
             lots: 10,
             virtual_scaled: -1_000 * math::SCALE,
             generation: 1,
@@ -387,14 +387,14 @@ fn certificate_rejects_incomplete_sequence_source_and_funding_changes() {
 fn actual_liquidation_candidate_cancels_risk_orders_only_with_post_fee_progress() {
     let markets = [market(0), market(1)];
     let mut target = root(0, 4_999);
-    target.positions[0] = PositionV2 {
+    target.positions[0] = Position {
         lots: 100,
         virtual_scaled: -100_000 * math::SCALE,
         generation: 1,
         ..Default::default()
     };
     target.book.last_order_id = 1;
-    target.book.orders[0].order = crate::state::StoredOrder {
+    target.book.orders[0].order = crate::state::OrderRecord {
         state: crate::constants::orders::OPEN,
         id: 1,
         version: 1,
@@ -462,7 +462,7 @@ fn actual_liquidation_candidate_cancels_risk_orders_only_with_post_fee_progress(
 fn receiver_pending_order_reserve_and_absent_source_reject_atomically() {
     let mut markets = [market(0), market(1)];
     let mut target = root(0, 4_999);
-    target.positions[0] = PositionV2 {
+    target.positions[0] = Position {
         lots: 100,
         virtual_scaled: -100_000 * math::SCALE,
         generation: 1,
@@ -470,7 +470,7 @@ fn receiver_pending_order_reserve_and_absent_source_reject_atomically() {
     };
     let mut receiver = root(1, 100);
     receiver.book.last_order_id = 1;
-    receiver.book.orders[0].order = crate::state::StoredOrder {
+    receiver.book.orders[0].order = crate::state::OrderRecord {
         state: crate::constants::orders::OPEN,
         id: 1,
         version: 1,
@@ -493,7 +493,7 @@ fn receiver_pending_order_reserve_and_absent_source_reject_atomically() {
     )
     .is_err());
     assert_eq!(receiver.cash, 100);
-    receiver.book = OrderBookV2::default();
+    receiver.book = OrderBook::default();
     markets[0].oracle.status = 0;
     assert!(risk::candidate(
         &target,

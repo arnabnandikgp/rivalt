@@ -1,4 +1,4 @@
-import { emptyOrderBook, reconcileResolution, getResolutionRowDecoder } from '@rivalt/sdk';
+import { emptyLegacyOrderBook, reconcileResolution, getLegacyResolutionRowDecoder } from '@rivalt/sdk';
 import { json,type Event } from './events.js';
 
 export type Participant = { owner: string; id: number; cash: string; lots: string; virtualScaled: string;
@@ -31,7 +31,7 @@ export function project(state: State, event: Event, market: string, domain: stri
       const id = Object.keys(state.participants).length;
       if (id >= 64) throw new Error('Registry limit');
       state.participants[e.participant] = { owner: e.actor, id, cash: '0', lots: '0', virtualScaled: '0',
-        fundingCheckpointScaled: '0', generation: '0', nonce: '0', reserved: '0', orderIds: ['0','0','0','0'],book:JSON.parse(json(emptyOrderBook())) };
+        fundingCheckpointScaled: '0', generation: '0', nonce: '0', reserved: '0', orderIds: ['0','0','0','0'],book:JSON.parse(json(emptyLegacyOrderBook())) };
     }
     if (e.participant !== zero) requireValue(state.participants[e.participant], 'participant').cash = e.participantCash;
   } else if (event.type === 'maker') {
@@ -72,7 +72,7 @@ export function project(state: State, event: Event, market: string, domain: stri
       r.oracle=e.oracle;if(e.kind===3)r.validUntil='0';
       if(e.kind===0){
         if(e.header.count!==Object.keys(state.participants).length||e.header.epoch!==(BigInt(state.resolution?.header.epoch??0)+1n).toString())throw new Error('Resolution reset identity');
-        const decoder=getResolutionRowDecoder();
+        const decoder=getLegacyResolutionRowDecoder();
         state.resolution={header:e.header,rows:Array.from({length:e.header.count},()=>JSON.parse(json(decoder.decode(new Uint8Array(decoder.fixedSize)))))};
       } else {
         const resolution=requireValue(state.resolution,'resolution');

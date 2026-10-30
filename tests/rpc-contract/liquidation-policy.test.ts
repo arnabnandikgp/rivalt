@@ -1,8 +1,8 @@
 import {it,expect} from 'vitest';
-import {emptyOrderBook,liquidationCandidate,maintenanceDeficit} from '@rivalt/sdk';
+import {emptyLegacyOrderBook,liquidationCandidate,maintenanceDeficit} from '@rivalt/sdk';
 const S=1_000_000_000n;
-const trader={id:0,cash:20000n,lots:10n,virtualScaled:-600000n*S,generation:1n,book:emptyOrderBook()};
-const receiver={id:1,cash:100000n,lots:0n,virtualScaled:0n,generation:0n,book:emptyOrderBook()};
+const trader={id:0,cash:20000n,lots:10n,virtualScaled:-600000n*S,generation:1n,book:emptyLegacyOrderBook()};
+const receiver={id:1,cash:100000n,lots:0n,virtualScaled:0n,generation:0n,book:emptyLegacyOrderBook()};
 it('checks funded long/short liquidation previews against independent integer literals',()=>{
   expect(maintenanceDeficit(trader,57420n,58580n)).toBe(35090n*S);
   const result=liquidationCandidate(trader,receiver,4n,58000n,58000n,57420n,58580n,1n,1n,20n)!;

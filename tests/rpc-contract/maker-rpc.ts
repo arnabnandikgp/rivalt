@@ -65,7 +65,7 @@ try {
   execFileSync('solana-keygen',['new','--silent','--no-bip39-passphrase','--outfile',`${dir}/maker-upgrade-buffer.json`],{stdio:'ignore'});
   const deployment=JSON.parse(execFileSync('solana',['program','deploy','target/deploy/maker_a.so','--buffer',`${dir}/maker-upgrade-buffer.json`,'--program-id','.local/keys/maker-a.json','--keypair','.local/keys/payer.json','--url',url,'--use-rpc','--max-sign-attempts','20','--output','json'],{encoding:'utf8'}));
   const after=await eventually(()=>h.read(x.programData),v=>v!==null&&!v.equals(before),'actual maker upgrade');assert(after);
-  const m=sdk.getMarketStateDecoder().decode((await h.read(a.market))!),r=sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!);
+  const m=sdk.getMarketStateDecoder().decode((await h.read(a.market))!),r=sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(x.registration))!);
   const input={...x,side:0,lots:10n,referencePrice:60_000n,quoteEpoch:r.quoteEpoch,authorityEpoch:r.authorityEpoch,termsEpoch:m.termsEpoch,configEpoch:m.configEpoch};
   await h.send('reject actual unapproved local program upgrade',[await sdk.getPreviewMakerInstructionAsync(input)],[],6114);
   await h.send('approve actual upgraded deployment jointly',[await sdk.getApproveMakerInstructionAsync({...x,authority:payer})],[x.owner]);
@@ -74,11 +74,11 @@ try {
   await ws.notification(subscription);
   events.forEach((e,i)=>{assert.equal(e.sequence,starting+BigInt(i+1));assert.equal(e.market,a.market);});
   const accounts:any[]=[];
-  for(const id of [0,1]) {const x=await makerAddresses(id);accounts.push({program:'clearing',name:'makerRegistration',data:(await h.read(x.registration))!.toString('base64')},{program:id===0?'maker_a':'maker_b',name:'makerConfig',data:(await h.read(x.config))!.toString('base64')});}
+  for(const id of [0,1]) {const x=await makerAddresses(id);accounts.push({program:'clearing',name:'legacyMakerRegistration',data:(await h.read(x.registration))!.toString('base64')},{program:id===0?'maker_a':'maker_b',name:'makerConfig',data:(await h.read(x.config))!.toString('base64')});}
   const live={accounts,returns,events:eventBytes};writeFileSync(`${dir}/maker-conformance.json`,serial(live));
   const legacy=JSON.parse(execFileSync(process.execPath,['tests/anchor-conformance/makers.cjs',`${dir}/maker-conformance.json`],{encoding:'utf8'}));
   const canonical=(x:unknown)=>{const v=JSON.parse(serial(x));delete v.discriminator;return v;};
-  accounts.forEach((x,i)=>{const raw=Buffer.from(x.data,'base64');assert.deepEqual(legacy.accounts[i],canonical(x.program==='clearing'?sdk.getMakerRegistrationDecoder().decode(raw):sdk.makerA.getMakerConfigDecoder().decode(raw)));});
+  accounts.forEach((x,i)=>{const raw=Buffer.from(x.data,'base64');assert.deepEqual(legacy.accounts[i],canonical(x.program==='clearing'?sdk.getLegacyMakerRegistrationDecoder().decode(raw):sdk.makerA.getMakerConfigDecoder().decode(raw)));});
   returns.forEach((x,i)=>assert.deepEqual(legacy.returns[i],canonical(sdk.makerA.getQuoteResponseDecoder().decode(Buffer.from(x.data,'base64')))));
   eventBytes.forEach((x,i)=>assert.deepEqual(legacy.events[i].data,canonical(sdk.parseMakerChangedEvent(Buffer.from(x,'base64')))));
   const finalMarket=sdk.getMarketStateDecoder().decode((await h.read(a.market))!);

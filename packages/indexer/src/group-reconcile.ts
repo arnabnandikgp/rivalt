@@ -69,7 +69,7 @@ export async function reconcileGroupSnapshot(state: GroupState, binding: GroupBi
     assert.equal(value.bump, bump); compare(value, market, 'Market projection');
   }
   for (const [key, portfolio] of Object.entries(state.portfolios)) {
-    const [canonical, bump] = await sdk.findPortfolioPda({group, owner:address(portfolio.owner), index:portfolio.index}, options);
+    const [canonical, bump] = await sdk.findGroupPortfolioPda({group, owner:address(portfolio.owner), index:portfolio.index}, options);
     assert.equal(key, canonical);
     const value = sdk.getPortfolioV2Decoder().decode(raw(key, sdk.PORTFOLIO_V2_DISCRIMINATOR));
     assert.equal(value.bump, bump); compare(value, portfolio, 'Portfolio projection');

@@ -58,7 +58,7 @@ are unchanged. P15B/P16B remain Open; continuous 24-hour endurance remains Defer
 
 **Execution:** `execute_liquidity_route_v4` uses existing V3 intent order except
 each leg is `(lots,authority_epoch,control_epoch,shape_epoch,depth_epoch):[u64;5]`.
-Retain AccountGuardV3, domain, terms/config epochs, validity, side, total lots,
+Retain AccountGuard, domain, terms/config epochs, validity, side, total lots,
 all-in limit, max fee, reduce-only and optional generation. It does not sign a
 price sequence or consumption prefix. Vec length exactly1/2, sum exact, identities
 bound by signed transaction account keys. Max serialized args incl discriminator223
@@ -88,7 +88,7 @@ existing implementation. Legacy maker registration, route execution, sampling an
 initial activation remain profile3-only. Default/devnet/P30-only artifacts cannot
 activate profile4 or execute its financial operations.
 
-`activate_liquidity_v4()` uses the existing `ActivateAccountsV3` account layout:
+`activate_liquidity_v4()` uses the existing `ActivateAccounts` account layout:
 venue-authorized qualification identity plus resolution header, no extra accounts.
 It requires the explicit local qualification feature, immutable profile4, unpaused
 custody mode, all 32 precreated safety pages, a fresh zero-epoch resolution header,

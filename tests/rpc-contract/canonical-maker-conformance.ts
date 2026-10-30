@@ -49,7 +49,7 @@ export class CanonicalConformance {
       for (const instruction of (history.meta.innerInstructions ?? []).flatMap((group: any) => group.instructions)) {
         if (history.transaction.message.accountKeys[instruction.programIdIndex] !== module.address) continue;
         const bytes = Buffer.from(getBase58Encoder().encode(instruction.data)).subarray(8);
-        const definition = module.idl.events?.find((item: any) => item.name.endsWith('V4') && Buffer.from(item.discriminator).equals(bytes.subarray(0,8)));
+        const definition = module.idl.events?.find((item: any) => Buffer.from(item.discriminator).equals(bytes.subarray(0,8)));
         if (!definition) continue;
         module.events.push(bytes.toString('base64'));
         module.expectedEvents.push(canonicalValue((module.sdk as any)[`get${definition.name}EventDecoder`]().decode(bytes)));

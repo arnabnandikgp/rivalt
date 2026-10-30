@@ -27,12 +27,12 @@ const control = { actor: owner, venue, market, capital, config, price, pricingPr
   eventAuthority: deployment.eventAuthority, program: deployment.program };
 const maker = { config, price, eventAuthority: makerEventAuthority, program: pricingProgram };
 const cases = [
-  ['full-shape-control', sdk.getControlLiquidityV4Instruction({ ...control, expectedAuthority: 1n, expectedControl: 1n,
+  ['full-shape-control', sdk.getControlLiquidityInstruction({ ...control, expectedAuthority: 1n, expectedControl: 1n,
     expectedShape: 1n, action: { __kind: 'Shape', fields: [goldenShape] } }), [owner], 400_000],
-  ['curve-initialization', await sdk.makerA.getInitializeCurveV4InstructionAsync({ ...maker, owner, venue, market, capital,
+  ['curve-initialization', await sdk.makerA.getInitializeCurveInstructionAsync({ ...maker, owner, venue, market, capital,
     instance: 0, shape: goldenShape, updater: updater.address, expiry: 1_000_000n }), [owner], 400_000],
-  ['pure-reprice', sdk.makerA.getRepriceV4Instruction({ ...maker, actor: owner, expectedControl: 1n, expectedSequence: 0n, anchor: 100n }), [owner], 100_000],
-  ['joint-code-approval', sdk.getApproveLiquidityV4Instruction({ ...control, coSigner: payer, expectedAuthority: 2n }), [owner], 400_000],
+  ['pure-reprice', sdk.makerA.getRepriceInstruction({ ...maker, actor: owner, expectedControl: 1n, expectedSequence: 0n, anchor: 100n }), [owner], 100_000],
+  ['joint-code-approval', sdk.getApproveLiquidityInstruction({ ...control, coSigner: payer, expectedAuthority: 2n }), [owner], 400_000],
 ] as const;
 const results = [];
 for (const [label, instruction, signers, computeUnitLimit] of cases) {

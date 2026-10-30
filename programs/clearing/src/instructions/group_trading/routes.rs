@@ -701,14 +701,14 @@ pub(crate) fn execute_core(
         &**accounts.first_capital,
     ));
     let mut maker_states = Vec::with_capacity(if has_second { 2 } else { 1 });
-    maker_states.push(crate::events::MakerRegistrationSnapshotV2::from(
+    maker_states.push(crate::events::LegacyMakerRegistrationSnapshotV2::from(
         &**accounts.first_registration,
     ));
     if has_second {
         root_states.push(crate::events::MarginAccountSnapshotV2::from(
             &***accounts.second_capital.as_ref().unwrap(),
         ));
-        maker_states.push(crate::events::MakerRegistrationSnapshotV2::from(
+        maker_states.push(crate::events::LegacyMakerRegistrationSnapshotV2::from(
             &***accounts.second_registration.as_ref().unwrap(),
         ));
     }

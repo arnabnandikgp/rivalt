@@ -2,7 +2,7 @@
 //! CPI receives only the fixed read-only config and price, never capital or vault.
 use super::*;
 use anchor_lang::solana_program::program::{get_return_data, invoke};
-use maker_interface::canonical::{QuoteRequestV4, QuoteResponseV4};
+use maker_interface::canonical::{MakerQuoteRequest, MakerQuoteResponse};
 
 /// Full code authentication is shared across instances of the same executable in
 /// this instruction only. Every registration still compares its own approved hash.
@@ -42,7 +42,7 @@ impl CodeApprovalCache {
 }
 
 pub(crate) fn sealed_registry(
-    registry: &Account<LiquidityRegistryV4>,
+    registry: &Account<LiquidityRegistry>,
     venue: Pubkey,
     market: Pubkey,
 ) -> Result<()> {
@@ -73,8 +73,8 @@ pub(crate) fn sealed_registry(
 }
 
 pub(crate) struct View<'account, 'info> {
-    pub capital: &'account Account<'info, MarginAccountV3>,
-    pub registration: &'account Account<'info, MakerRegistrationV4>,
+    pub capital: &'account Account<'info, MarginAccount>,
+    pub registration: &'account Account<'info, MakerRegistration>,
     pub program: &'account Program<'info>,
     pub data: &'account Account<'info, ProgramData>,
     pub config: &'account UncheckedAccount<'info>,
@@ -82,8 +82,8 @@ pub(crate) struct View<'account, 'info> {
 }
 
 pub(crate) struct AuthenticatedCurve {
-    pub config: CurveStateV4,
-    pub price: PriceStateV4,
+    pub config: CurveState,
+    pub price: PriceState,
 }
 
 impl<'account, 'info> View<'account, 'info> {
@@ -91,9 +91,9 @@ impl<'account, 'info> View<'account, 'info> {
     /// authentic maker may instead produce an unqualified funding observation.
     pub(crate) fn bind(
         &self,
-        venue: &Account<VenueV3>,
-        market: &Account<MarketV3>,
-        registry: &Account<LiquidityRegistryV4>,
+        venue: &Account<Venue>,
+        market: &Account<Market>,
+        registry: &Account<LiquidityRegistry>,
     ) -> Result<()> {
         sealed_registry(registry, venue.key(), market.key())?;
         capital_identity(self.capital, market)?;
@@ -155,9 +155,9 @@ impl<'account, 'info> View<'account, 'info> {
     #[inline(never)]
     pub(crate) fn authenticate(
         &self,
-        venue: &Account<VenueV3>,
-        market: &Account<MarketV3>,
-        registry: &Account<LiquidityRegistryV4>,
+        venue: &Account<Venue>,
+        market: &Account<Market>,
+        registry: &Account<LiquidityRegistry>,
         cache: &mut CodeApprovalCache,
     ) -> Result<AuthenticatedCurve> {
         self.bind(venue, market, registry)?;
@@ -181,13 +181,13 @@ impl<'account, 'info> View<'account, 'info> {
 
     pub(crate) fn request(
         &self,
-        venue: &Account<VenueV3>,
-        market: &Account<MarketV3>,
+        venue: &Account<Venue>,
+        market: &Account<Market>,
         state: &AuthenticatedCurve,
         side: u8,
         lots: u64,
-    ) -> QuoteRequestV4 {
-        QuoteRequestV4 {
+    ) -> MakerQuoteRequest {
+        MakerQuoteRequest {
             version: canonical::VERSION,
             domain: venue.domain,
             market: market.key(),
@@ -211,9 +211,9 @@ impl<'account, 'info> View<'account, 'info> {
     pub(crate) fn quote(
         &self,
         state: &AuthenticatedCurve,
-        request: &QuoteRequestV4,
+        request: &MakerQuoteRequest,
         clock: &Clock,
-    ) -> Result<QuoteResponseV4> {
+    ) -> Result<MakerQuoteResponse> {
         let expected = canonical::quote(
             self.config.key(),
             &state.config,

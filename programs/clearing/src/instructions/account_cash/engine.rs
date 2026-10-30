@@ -12,7 +12,7 @@ pub(crate) struct Snapshot {
 }
 
 impl Snapshot {
-    pub(crate) fn new(markets: [&MarketV3; 2], clock: &Clock) -> Result<Self> {
+    pub(crate) fn new(markets: [&Market; 2], clock: &Clock) -> Result<Self> {
         let views = [
             trading::market_view(markets[0])?,
             trading::market_view(markets[1])?,
@@ -33,7 +33,7 @@ impl Snapshot {
 
     pub(crate) fn refresh(
         &self,
-        root: &MarginAccountV3,
+        root: &MarginAccount,
         require_sources: bool,
     ) -> Result<Box<v2::MarginAccountV2>> {
         let mut next = trading::root_view(root)?;
@@ -97,7 +97,7 @@ impl Snapshot {
 
 fn copy_model(root: &mut v2::MarginAccountV2, model: Margin) {
     root.cash = model.cash;
-    root.positions = model.positions.map(|position| v2::PositionV2 {
+    root.positions = model.positions.map(|position| v2::Position {
         lots: position.lots,
         virtual_scaled: position.virtual_scaled,
         funding_checkpoint_scaled: position.funding_checkpoint,
@@ -111,7 +111,7 @@ pub(crate) fn advance(root: &mut v2::MarginAccountV2) -> Result<()> {
 }
 
 pub(crate) fn withdraw_candidate(
-    root: &MarginAccountV3,
+    root: &MarginAccount,
     snapshot: &Snapshot,
     amount: u64,
 ) -> Result<Box<v2::MarginAccountV2>> {
@@ -126,7 +126,7 @@ pub(crate) fn withdraw_candidate(
 }
 
 pub(crate) fn receive_candidate(
-    root: &MarginAccountV3,
+    root: &MarginAccount,
     snapshot: &Snapshot,
     amount: u64,
 ) -> Result<Box<v2::MarginAccountV2>> {
@@ -140,7 +140,7 @@ pub(crate) fn receive_candidate(
 }
 
 pub(crate) fn claim_candidate(
-    root: &MarginAccountV3,
+    root: &MarginAccount,
     snapshot: &Snapshot,
     market: usize,
     amount: u64,
@@ -181,7 +181,7 @@ pub(crate) fn claim_candidate(
 }
 
 pub(crate) fn net_candidate(
-    root: &MarginAccountV3,
+    root: &MarginAccount,
     snapshot: &Snapshot,
     source: usize,
     amount: u64,

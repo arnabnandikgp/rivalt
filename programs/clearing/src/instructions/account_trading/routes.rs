@@ -1,53 +1,53 @@
 //! Atomic one/two-maker execution with root/safety authority and current relevant risk.
 use super::super::group_trading::routes as candidates;
 use super::super::{OrderExecution, RouteIntent, RouteLeg};
-use super::authority::AccountGuardV3;
+use super::authority::AccountGuard;
 use super::*;
 use anchor_spl::token::TokenAccount;
 use maker_interface::QuoteResponse;
 
 #[derive(Accounts)]
-pub struct AccountRouteIdentityV3<'info> {
+pub struct AccountRouteIdentity<'info> {
     pub actor: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = vault)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, CustodyV3>>,
+    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[other_market.index]], bump = other_market.bump,
         has_one = venue, constraint = other_market.key() != market.key() @ ClearingError::Alias)]
-    pub other_market: Box<Account<'info, MarketV3>>,
+    pub other_market: Box<Account<'info, Market>>,
     #[account(mut, seeds = [b"ledger-v3", market.key().as_ref()], bump = ledger.bump, has_one = venue, has_one = market)]
-    pub ledger: Box<Account<'info, MarketLedgerV3>>,
+    pub ledger: Box<Account<'info, MarketLedger>>,
     #[account(seeds = [b"ledger-v3", other_market.key().as_ref()], bump = other_ledger.bump, has_one = venue,
         constraint = other_ledger.market == other_market.key() @ ClearingError::Profile)]
-    pub other_ledger: Box<Account<'info, MarketLedgerV3>>,
+    pub other_ledger: Box<Account<'info, MarketLedger>>,
     #[account(seeds = [b"vault-v3", venue.key().as_ref()], bump = venue.vault_bump,
         constraint = vault.owner == venue.key() && vault.mint == venue.quote_mint @ ClearingError::Reconciliation)]
     pub vault: Box<Account<'info, TokenAccount>>,
     #[account(mut, seeds = [b"margin-v3", trader.portfolio.as_ref(), &trader.subaccount_index.to_le_bytes()], bump = trader.bump, has_one = venue)]
-    pub trader: Box<Account<'info, MarginAccountV3>>,
+    pub trader: Box<Account<'info, MarginAccount>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct ExecuteAccountRouteV3<'info> {
-    pub identity: AccountRouteIdentityV3<'info>,
+pub struct ExecuteAccountRoute<'info> {
+    pub identity: AccountRouteIdentity<'info>,
     #[account(mut)]
-    pub first_capital: Box<Account<'info, MarginAccountV3>>,
+    pub first_capital: Box<Account<'info, MarginAccount>>,
     #[account(mut)]
-    pub first_registration: Box<Account<'info, MakerRegistrationV3>>,
+    pub first_registration: Box<Account<'info, FixedMakerRegistration>>,
     pub first_program: Program<'info>,
     pub first_program_data: Box<Account<'info, ProgramData>>,
     /// CHECK: authenticated read-only config is the sole maker CPI account.
     pub first_config: UncheckedAccount<'info>,
     #[account(mut)]
-    pub second_capital: Option<Box<Account<'info, MarginAccountV3>>>,
+    pub second_capital: Option<Box<Account<'info, MarginAccount>>>,
     #[account(mut)]
-    pub second_registration: Option<Box<Account<'info, MakerRegistrationV3>>>,
+    pub second_registration: Option<Box<Account<'info, FixedMakerRegistration>>>,
     pub second_program: Option<Program<'info>>,
     pub second_program_data: Option<Box<Account<'info, ProgramData>>>,
     /// CHECK: authenticated read-only config is the sole maker CPI account.
@@ -55,13 +55,13 @@ pub struct ExecuteAccountRouteV3<'info> {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct AccountRouteLegV3 {
+pub struct AccountRouteLeg {
     pub lots: u64,
     pub quote_epoch: u64,
     pub authority_epoch: u64,
     pub expected_consumed: u64,
 }
-fn shared_legs(legs: &[AccountRouteLegV3]) -> Vec<RouteLeg> {
+fn shared_legs(legs: &[AccountRouteLeg]) -> Vec<RouteLeg> {
     legs.iter()
         .map(|leg| RouteLeg {
             lots: leg.lots,
@@ -74,8 +74,8 @@ fn shared_legs(legs: &[AccountRouteLegV3]) -> Vec<RouteLeg> {
 /// No historical observation or venue event sequence is signed. Landed relevant
 /// sources, account health, maker epochs and every user limit are checked afresh.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct AccountRouteIntentV3 {
-    pub guard: AccountGuardV3,
+pub struct AccountRouteIntent {
+    pub guard: AccountGuard,
     pub domain: [u8; 32],
     pub terms_epoch: u64,
     pub config_epoch: u64,
@@ -87,21 +87,21 @@ pub struct AccountRouteIntentV3 {
     pub max_fee: u64,
     pub reduce_only: bool,
     pub generation: Option<u64>,
-    pub legs: Vec<AccountRouteLegV3>,
+    pub legs: Vec<AccountRouteLeg>,
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct AccountOrderExecutionV3 {
-    pub guard: AccountGuardV3,
+pub struct AccountOrderExecution {
+    pub guard: AccountGuard,
     pub id: u64,
     pub version: u64,
     pub filled: u64,
     pub start_slot: u64,
     pub expiry_slot: u64,
     pub lots: u64,
-    pub legs: Vec<AccountRouteLegV3>,
+    pub legs: Vec<AccountRouteLeg>,
 }
 
-pub fn execute(ctx: Context<ExecuteAccountRouteV3>, args: AccountRouteIntentV3) -> Result<()> {
+pub fn execute(ctx: Context<ExecuteAccountRoute>, args: AccountRouteIntent) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     args.guard.check(
         &ctx.accounts.identity.venue,
@@ -134,8 +134,8 @@ pub fn execute(ctx: Context<ExecuteAccountRouteV3>, args: AccountRouteIntentV3) 
 }
 
 pub fn execute_order(
-    ctx: Context<ExecuteAccountRouteV3>,
-    args: AccountOrderExecutionV3,
+    ctx: Context<ExecuteAccountRoute>,
+    args: AccountOrderExecution,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     args.guard.check(
@@ -170,11 +170,11 @@ pub fn execute_order(
 }
 
 fn execute_core(
-    accounts: &mut ExecuteAccountRouteV3,
+    accounts: &mut ExecuteAccountRoute,
     intent: RouteIntent,
     order_index: Option<usize>,
     clock: &Clock,
-    signed_legs: &[AccountRouteLegV3],
+    signed_legs: &[AccountRouteLeg],
 ) -> Result<()> {
     activated(
         &accounts.identity.venue,
@@ -294,7 +294,7 @@ fn execute_core(
 
 #[inline(never)]
 fn commit_route(
-    accounts: &mut ExecuteAccountRouteV3,
+    accounts: &mut ExecuteAccountRoute,
     intent: &RouteIntent,
     order_index: Option<usize>,
     clock: &Clock,
@@ -302,7 +302,7 @@ fn commit_route(
     quotes: &[QuoteResponse],
 ) -> Result<()> {
     let has_second = quotes.len() == 2;
-    let consume = |registration: &mut MakerRegistrationV3, quote: &QuoteResponse| -> Result<()> {
+    let consume = |registration: &mut FixedMakerRegistration, quote: &QuoteResponse| -> Result<()> {
         let consumed = if intent.side == 0 {
             &mut registration.buy_consumed
         } else {
@@ -367,7 +367,7 @@ fn commit_route(
     )
 }
 
-/// Wire-identical to AccountRouteExecutedV3; references serialize only the scalar
+/// Wire-identical to AccountRouteExecuted; references serialize only the scalar
 /// account fields, without account discriminators. Verified by a byte-parity test.
 #[derive(AnchorSerialize)]
 struct RouteEventView<'a> {
@@ -375,8 +375,8 @@ struct RouteEventView<'a> {
     sequence: u64,
     slot: u64,
     market: Pubkey,
-    market_state: &'a MarketV3,
-    other_market_state: &'a MarketV3,
+    market_state: &'a Market,
+    other_market_state: &'a Market,
     nonce: u64,
     side: u8,
     lots: u64,
@@ -386,20 +386,20 @@ struct RouteEventView<'a> {
     retained_fee: u64,
     carry_before: u8,
     carry_after: u8,
-    ledger: crate::events::MarketLedgerSnapshotV3,
+    ledger: crate::events::MarketLedgerSnapshot,
     order_id: u64,
     order_version: u64,
-    root_states: Vec<&'a MarginAccountV3>,
-    maker_states: Vec<&'a MakerRegistrationV3>,
+    root_states: Vec<&'a MarginAccount>,
+    maker_states: Vec<&'a FixedMakerRegistration>,
     total_cash: u64,
     liability_versions: [u64; 2],
 }
 
 #[inline(never)]
 fn emit_route(
-    accounts: &ExecuteAccountRouteV3,
+    accounts: &ExecuteAccountRoute,
     intent: &RouteIntent,
-    order: Option<crate::state::StoredOrder>,
+    order: Option<crate::state::OrderRecord>,
     gross: u64,
     fee: u64,
     insurance_credit: u64,
@@ -408,10 +408,10 @@ fn emit_route(
     slot: u64,
 ) -> Result<()> {
     let has_second = accounts.second_capital.is_some();
-    let mut root_states: Vec<&MarginAccountV3> = Vec::with_capacity(if has_second { 3 } else { 2 });
+    let mut root_states: Vec<&MarginAccount> = Vec::with_capacity(if has_second { 3 } else { 2 });
     root_states.push(&accounts.identity.trader);
     root_states.push(&accounts.first_capital);
-    let mut maker_states: Vec<&MakerRegistrationV3> =
+    let mut maker_states: Vec<&FixedMakerRegistration> =
         Vec::with_capacity(if has_second { 2 } else { 1 });
     maker_states.push(&accounts.first_registration);
     if has_second {
@@ -434,7 +434,7 @@ fn emit_route(
         retained_fee,
         carry_before,
         carry_after: accounts.identity.ledger.insurance_fee_remainder,
-        ledger: crate::events::MarketLedgerSnapshotV3 {
+        ledger: crate::events::MarketLedgerSnapshot {
             ledger: accounts.identity.ledger.key(),
             market: accounts.identity.market.key(),
             market_index: accounts.identity.market.index,
@@ -451,7 +451,7 @@ fn emit_route(
         total_cash: accounts.identity.custody.total_cash,
         liability_versions: accounts.identity.custody.liability_versions,
     };
-    crate::event_cpi::emit_borrowed::<crate::events::AccountRouteExecutedV3, _>(
+    crate::event_cpi::emit_borrowed::<crate::events::AccountRouteExecuted, _>(
         &emitted,
         accounts.event_authority.to_account_info(),
     )
@@ -472,8 +472,8 @@ mod event_tests {
         fn byte(&mut self) -> u8 {
             u8::try_from(self.next()).unwrap()
         }
-        fn root(&mut self) -> MarginAccountV3 {
-            MarginAccountV3 {
+        fn root(&mut self) -> MarginAccount {
+            MarginAccount {
                 schema_version: self.next() as u16,
                 venue: Pubkey::new_unique(),
                 portfolio: Pubkey::new_unique(),
@@ -484,7 +484,7 @@ mod event_tests {
                 isolated_market_index: self.byte(),
                 role: self.byte(),
                 cash: self.next(),
-                positions: std::array::from_fn(|_| v2::PositionV2 {
+                positions: std::array::from_fn(|_| v2::Position {
                     lots: -(self.next() as i64),
                     virtual_scaled: self.next() as i128,
                     funding_checkpoint_scaled: -(self.next() as i128),
@@ -496,14 +496,14 @@ mod event_tests {
                 delegate_expiry_slot: self.next(),
                 delegate_epoch: self.next(),
                 reserved: self.next(),
-                book: v2::OrderBookV2 {
+                book: v2::OrderBook {
                     last_order_id: self.next(),
                     last_group_id: self.next(),
                     reserve_observations: std::array::from_fn(|_| self.next()),
-                    orders: std::array::from_fn(|_| v2::StoredOrderV2 {
+                    orders: std::array::from_fn(|_| v2::StoredOrder {
                         market_index: self.byte(),
                         delegate_epoch: self.next(),
-                        order: crate::state::StoredOrder {
+                        order: crate::state::OrderRecord {
                             id: self.next(),
                             version: self.next(),
                             state: self.byte(),
@@ -526,7 +526,7 @@ mod event_tests {
                             reserve: self.next(),
                         },
                     }),
-                    protections: std::array::from_fn(|_| v2::ProtectionV2 {
+                    protections: std::array::from_fn(|_| v2::Protection {
                         market_index: self.byte(),
                         protection: crate::state::ProtectiveGroup {
                             id: self.next(),
@@ -541,8 +541,8 @@ mod event_tests {
                 bump: self.byte(),
             }
         }
-        fn market(&mut self) -> MarketV3 {
-            MarketV3 {
+        fn market(&mut self) -> Market {
+            Market {
                 schema_version: self.next() as u16,
                 venue: Pubkey::new_unique(),
                 index: self.byte(),
@@ -583,8 +583,8 @@ mod event_tests {
                 bump: self.byte(),
             }
         }
-        fn maker(&mut self) -> MakerRegistrationV3 {
-            MakerRegistrationV3 {
+        fn maker(&mut self) -> FixedMakerRegistration {
+            FixedMakerRegistration {
                 schema_version: self.next() as u16,
                 venue: Pubkey::new_unique(),
                 market: Pubkey::new_unique(),
@@ -615,7 +615,7 @@ mod event_tests {
         let market = markers.market();
         let other_market = markers.market();
         let maker = markers.maker();
-        let ledger = crate::events::MarketLedgerSnapshotV3 {
+        let ledger = crate::events::MarketLedgerSnapshot {
             ledger: Pubkey::new_unique(),
             market: Pubkey::new_unique(),
             market_index: 0,
@@ -625,13 +625,13 @@ mod event_tests {
             insurance_fee_remainder: 1,
             version: 2,
         };
-        let owned = crate::events::AccountRouteExecutedV3 {
+        let owned = crate::events::AccountRouteExecuted {
             venue: root.venue,
             sequence: 12,
             slot: 56,
             market: ledger.market,
-            market_state: crate::events::MarketSnapshotV3::from(&market),
-            other_market_state: crate::events::MarketSnapshotV3::from(&other_market),
+            market_state: crate::events::MarketSnapshot::from(&market),
+            other_market_state: crate::events::MarketSnapshot::from(&other_market),
             nonce: 8,
             side: 1,
             lots: 2,
@@ -644,8 +644,8 @@ mod event_tests {
             ledger: ledger.clone(),
             order_id: 8,
             order_version: 3,
-            root_states: vec![crate::events::MarginAccountSnapshotV3::from(&root); 3],
-            maker_states: vec![crate::events::MakerRegistrationSnapshotV3::from(&maker); 2],
+            root_states: vec![crate::events::MarginAccountSnapshot::from(&root); 3],
+            maker_states: vec![crate::events::MakerRegistrationSnapshot::from(&maker); 2],
             total_cash: 90,
             liability_versions: [12, 13],
         };

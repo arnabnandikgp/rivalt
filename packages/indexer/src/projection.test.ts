@@ -1,9 +1,9 @@
-import {emptyOrderBook} from '@rivalt/sdk';
+import {emptyLegacyOrderBook} from '@rivalt/sdk';
 import {json} from './events.js';
 import { describe, expect, it } from 'vitest';
 import { balance, empty, project, type Participant } from './projection.js';
 import type { Event } from './events.js';
-const participant=(changes:Partial<Participant>={}):Participant=>({owner:'owner',id:0,cash:'1000000',lots:'0',virtualScaled:'0',fundingCheckpointScaled:'0',generation:'0',nonce:'0',reserved:'0',orderIds:['0','0','0','0'],book:JSON.parse(json(emptyOrderBook())),...changes});
+const participant=(changes:Partial<Participant>={}):Participant=>({owner:'owner',id:0,cash:'1000000',lots:'0',virtualScaled:'0',fundingCheckpointScaled:'0',generation:'0',nonce:'0',reserved:'0',orderIds:['0','0','0','0'],book:JSON.parse(json(emptyLegacyOrderBook())),...changes});
 describe('independent financial read vectors',()=>{
   it('distinguishes cash, marked unpaid profit, adverse loss, margin and disabled withdrawals',()=>{
     const state=empty();state.market={mode:1,paused:false};
@@ -45,7 +45,7 @@ it('keeps canonical order payloads immutable across candidate cleanup and journa
   const state=empty();
   state.market={mode:2,totalCash:'1000000',settlement:'0',insurance:'0',fees:'0',allocatedVault:'1000000'};
   state.participants.trader=participant();
-  const book=JSON.parse(json(emptyOrderBook()));book.lastOrderId='7';
+  const book=JSON.parse(json(emptyLegacyOrderBook()));book.lastOrderId='7';
   Object.assign(book.orders[0],{id:'7',state:1,lots:'10',filled:'0',notional:'0',feeCharged:'0',reserve:'100'});
   const event:Event={type:'order',signature:'order',outer:0,inner:0,ordinal:0,slot:1,blockTime:1,bytes:'canonical-order-bytes',
     data:{market:'market',domain:'domain',sequence:'1',kind:0,participant:'trader',reserved:'100',orderIds:['7','0','0','0'],book}};

@@ -39,7 +39,7 @@ try{
   await page.goto('http://127.0.0.1:18083');await button('Select Wallet').click();await page.getByRole('button',{name:/Rivalt Local Demo/}).click();
   await button('Get test funds').click();await page.getByText('Sent 1 local SOL and 1,000 test USD. Wait for finalized balances, then create your portfolio.',{exact:true}).waitFor();
   await delay(2000);await action('Create portfolio');const registration=await action('Register account');
-  const owner=registration.owner,[portfolio]=await sdk.deriveAccountPortfolio(config.venue,owner,0),[cross]=await sdk.findMarginV3Pda(portfolio,0),[isolated]=await sdk.findMarginV3Pda(portfolio,1);
+  const owner=registration.owner,[portfolio]=await sdk.deriveAccountPortfolio(config.venue,owner,0),[cross]=await sdk.deriveMarginAccount(portfolio,0),[isolated]=await sdk.deriveMarginAccount(portfolio,1);
   await page.getByLabel('Collateral amount',{exact:true}).fill('10');await action('Deposit');
   assert.equal((await client.snapshot([cross])).roots[cross].cash,10_000_000n);
   // Declining the actual demo wallet confirmation creates no saved original.

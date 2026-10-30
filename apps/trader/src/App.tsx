@@ -351,7 +351,7 @@ export function App({ config }: { config: TraderConfig }) {
         ],
       };
     });
-  const edit = (o: sdk.StoredOrder) => {
+  const edit = (o: sdk.OrderRecord) => {
     setEditing(o.id);
     setOrderSide(o.side);
     setOrderSize(fixed(o.lots, 6).replaceAll(',', ''));
@@ -363,7 +363,7 @@ export function App({ config }: { config: TraderConfig }) {
     v.invalidate();
     document.getElementById('order-size')?.focus();
   };
-  const cancel = (o: sdk.StoredOrder) =>
+  const cancel = (o: sdk.OrderRecord) =>
     prepare(
       `Cancel order ${o.id}`,
       async (snap, owner) => {

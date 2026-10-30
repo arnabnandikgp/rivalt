@@ -60,7 +60,7 @@ token accounts, funds, upgrades and independent admissions are outside this kit.
 - Owner: create/fund an isolated capital account, approve the reviewed program,
   register its instance, set shape/updater permissions and explicitly replenish
   declared depth. Admission and code approval retain their joint authority checks.
-- Updater: only `RepriceV4` under current control epoch and expected price sequence.
+- Updater: only `Reprice` under current control epoch and expected price sequence.
   It cannot replenish consumed depth, alter shapes/permissions or withdraw cash.
   This reference strategy reanchors to the admitted independent index. It is not a
   profitability model. Reads and quotes have no protocol tariff.

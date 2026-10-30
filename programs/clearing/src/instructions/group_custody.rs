@@ -204,7 +204,7 @@ pub(crate) fn reconciled(group: &ClearingGroupV2, actual: u64) -> Result<()> {
 }
 
 fn empty_financial_state(margin: &MarginAccountV2) -> Result<()> {
-    let mut book_bytes = Vec::with_capacity(OrderBookV2::INIT_SPACE);
+    let mut book_bytes = Vec::with_capacity(OrderBook::INIT_SPACE);
     margin.book.serialize(&mut book_bytes)?;
     require!(
         margin.schema_version == SCHEMA_VERSION

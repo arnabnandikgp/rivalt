@@ -196,7 +196,7 @@ export function useGroupController(config: GroupTraderConfig) {
   const terms = (
     state: sdk.GroupSnapshot,
     account: sdk.MarginAccountV2,
-    previous?: sdk.StoredOrder,
+    previous?: sdk.OrderRecord,
     protection?: { trigger: number; threshold: string; limit: string },
   ) => {
     const position = account.positions[marketIndex];

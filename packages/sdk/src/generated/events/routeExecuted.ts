@@ -41,14 +41,14 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  getExecutedLegDecoder,
-  getExecutedLegEncoder,
-  getOrderBookDecoder,
-  getOrderBookEncoder,
-  type ExecutedLeg,
-  type ExecutedLegArgs,
-  type OrderBook,
-  type OrderBookArgs,
+  getClearingEventsExecutedLegDecoder,
+  getClearingEventsExecutedLegEncoder,
+  getLegacyOrderBookDecoder,
+  getLegacyOrderBookEncoder,
+  type ClearingEventsExecutedLeg,
+  type ClearingEventsExecutedLegArgs,
+  type LegacyOrderBook,
+  type LegacyOrderBookArgs,
 } from "../types/index.js";
 
 export const ROUTE_EXECUTED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
@@ -81,7 +81,7 @@ export type RouteExecutedEvent = {
   traderGeneration: bigint;
   traderReserved: bigint;
   traderOrderIds: Array<bigint>;
-  traderBook: OrderBook;
+  traderBook: LegacyOrderBook;
   orderId: bigint;
   orderVersion: bigint;
   fundingIndexScaled: bigint;
@@ -89,7 +89,7 @@ export type RouteExecutedEvent = {
   totalCash: bigint;
   totalFees: bigint;
   grossLots: bigint;
-  legs: Array<ExecutedLeg>;
+  legs: Array<ClearingEventsExecutedLeg>;
 };
 
 export type RouteExecutedEventArgs = {
@@ -113,7 +113,7 @@ export type RouteExecutedEventArgs = {
   traderGeneration: number | bigint;
   traderReserved: number | bigint;
   traderOrderIds: Array<number | bigint>;
-  traderBook: OrderBookArgs;
+  traderBook: LegacyOrderBookArgs;
   orderId: number | bigint;
   orderVersion: number | bigint;
   fundingIndexScaled: number | bigint;
@@ -121,7 +121,7 @@ export type RouteExecutedEventArgs = {
   totalCash: number | bigint;
   totalFees: number | bigint;
   grossLots: number | bigint;
-  legs: Array<ExecutedLegArgs>;
+  legs: Array<ClearingEventsExecutedLegArgs>;
 };
 
 /** Gets the encoder for {@link RouteExecutedEventArgs} event data. */
@@ -148,7 +148,7 @@ export function getRouteExecutedEventEncoder(): Encoder<RouteExecutedEventArgs> 
       ["traderGeneration", getU64Encoder()],
       ["traderReserved", getU64Encoder()],
       ["traderOrderIds", getArrayEncoder(getU64Encoder(), { size: 4 })],
-      ["traderBook", getOrderBookEncoder()],
+      ["traderBook", getLegacyOrderBookEncoder()],
       ["orderId", getU64Encoder()],
       ["orderVersion", getU64Encoder()],
       ["fundingIndexScaled", getI128Encoder()],
@@ -156,7 +156,7 @@ export function getRouteExecutedEventEncoder(): Encoder<RouteExecutedEventArgs> 
       ["totalCash", getU64Encoder()],
       ["totalFees", getU64Encoder()],
       ["grossLots", getU64Encoder()],
-      ["legs", getArrayEncoder(getExecutedLegEncoder())],
+      ["legs", getArrayEncoder(getClearingEventsExecutedLegEncoder())],
     ]),
     [getConstantEncoder(ROUTE_EXECUTED_EVENT_DISCRIMINATOR)],
   );
@@ -186,7 +186,7 @@ export function getRouteExecutedEventDecoder(): Decoder<RouteExecutedEvent> {
       ["traderGeneration", getU64Decoder()],
       ["traderReserved", getU64Decoder()],
       ["traderOrderIds", getArrayDecoder(getU64Decoder(), { size: 4 })],
-      ["traderBook", getOrderBookDecoder()],
+      ["traderBook", getLegacyOrderBookDecoder()],
       ["orderId", getU64Decoder()],
       ["orderVersion", getU64Decoder()],
       ["fundingIndexScaled", getI128Decoder()],
@@ -194,7 +194,7 @@ export function getRouteExecutedEventDecoder(): Decoder<RouteExecutedEvent> {
       ["totalCash", getU64Decoder()],
       ["totalFees", getU64Decoder()],
       ["grossLots", getU64Decoder()],
-      ["legs", getArrayDecoder(getExecutedLegDecoder())],
+      ["legs", getArrayDecoder(getClearingEventsExecutedLegDecoder())],
     ]),
     [getConstantDecoder(ROUTE_EXECUTED_EVENT_DISCRIMINATOR)],
   );

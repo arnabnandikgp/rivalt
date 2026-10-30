@@ -21,8 +21,13 @@ pub use settlement::*;
 /// Successor layout contract; no V2 financial entrypoint is enabled by these types.
 pub mod v2;
 
-/// Fresh account-centric contract layouts; financial activation remains disabled.
-pub mod v3;
+/// Current financial layouts; activation still requires the explicit local profile.
+pub mod accounts;
 
-/// Canonical maker registry; profile-4 financial execution is not activated here.
-pub mod v4;
+/// Current maker/publisher identity and consumption layouts.
+pub mod liquidity;
+
+/// Shared records do not inherit an earlier deployment's economic semantics.
+pub mod identity;
+pub mod records;
+pub use records::*;

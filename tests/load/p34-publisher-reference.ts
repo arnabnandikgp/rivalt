@@ -24,13 +24,13 @@ for(const input of inputs) {
   const instructions=transaction.message.compiledInstructions.filter(instruction=>
     transaction.message.staticAccountKeys[instruction.programIdIndex].address===sdk.CLEARING_PROGRAM_ADDRESS);
   assert.equal(instructions.length,1);
-  assert.deepEqual(Buffer.from(instructions[0].data.subarray(0,8)),Buffer.from(sdk.PUBLISH_FUNDING_REPORT_V4_DISCRIMINATOR));
-  const [signed,end]=sdk.getPublishFundingReportV4InstructionDataDecoder().read(instructions[0].data,0);
+  assert.deepEqual(Buffer.from(instructions[0].data.subarray(0,8)),Buffer.from(sdk.PUBLISH_FUNDING_REPORT_DISCRIMINATOR));
+  const [signed,end]=sdk.getPublishFundingReportInstructionDataDecoder().read(instructions[0].data,0);
   assert.equal(end,instructions[0].data.length);
   assert.deepEqual(JSON.parse(JSON.stringify(signed.report,(_key,value)=>typeof value==='bigint'?value.toString():
     ArrayBuffer.isView(value)?Buffer.from(value as Uint8Array).toString('hex'):value)),report,'Independent calculation is bound to the persisted signed original');
   const raw=(key:string)=>{const value=accounts.get(key);assert(value&&!value.executable&&value.data[1]==='base64');return Buffer.from(value.data[0],'base64');};
-  const market=sdk.getMarketV3Decoder().decode(raw(report.market)),marketIndex=market.index as 0|1;
+  const market=sdk.getMarketDecoder().decode(raw(report.market)),marketIndex=market.index as 0|1;
   const now=BigInt(report.observedTime),slot=BigInt(report.observedSlot),reference=marketIndex===0?60_000n:30_000n,quantity=(6_000_000n+reference-1n)/reference;
   assert.equal(raw(sdk.ACCOUNT_CLOCK).readBigInt64LE(32),now);assert.equal(raw(sdk.ACCOUNT_CLOCK).readBigUInt64LE(0),slot);
   const sourceValid=market.oracle.sources.every((key,position)=>{
@@ -41,14 +41,14 @@ for(const input of inputs) {
     return published>0n&&published<=now+2n&&now-published<=20n&&data.readBigUInt64LE(72)>=market.oracle.sourceSequences[position];
   });
   const registrations=[...accounts].filter(([,value])=>value?.owner===sdk.CLEARING_PROGRAM_ADDRESS&&
-    Buffer.from(value.data[0],'base64').subarray(0,8).equals(Buffer.from(sdk.MAKER_REGISTRATION_V4_DISCRIMINATOR)))
-    .map(([key])=>sdk.getMakerRegistrationV4Decoder().decode(raw(key))).sort((left,right)=>left.instance-right.instance);
+    Buffer.from(value.data[0],'base64').subarray(0,8).equals(Buffer.from(sdk.MAKER_REGISTRATION_DISCRIMINATOR)))
+    .map(([key])=>sdk.getMakerRegistrationDecoder().decode(raw(key))).sort((left,right)=>left.instance-right.instance);
   assert.deepEqual(registrations.map(value=>value.instance),[0,1,2]);
   const makers=registrations.map(registration=>{
     assert.equal(registration.market,report.market);
-    const config=sdk.makerA.getMakerCurveV4Decoder().decode(raw(registration.config)).state;
-    const price=sdk.makerA.getMakerPriceV4Decoder().decode(raw(registration.price)).state;
-    const capital=sdk.getMarginAccountV3Decoder().decode(raw(registration.capital));
+    const config=sdk.makerA.getMakerCurveDecoder().decode(raw(registration.config)).state;
+    const price=sdk.makerA.getMakerPriceDecoder().decode(raw(registration.price)).state;
+    const capital=sdk.getMarginAccountDecoder().decode(raw(registration.capital));
     assert.equal(config.capital,registration.capital);assert.equal(price.config,registration.config);
     const code=accounts.get(registration.programData);assert(code&&!code.executable);
     const codeValid=digest(Buffer.from(code.data[0],'base64'))===Buffer.from(registration.approvedHash).toString('hex');

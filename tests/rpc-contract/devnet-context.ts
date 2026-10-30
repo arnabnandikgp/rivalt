@@ -27,7 +27,7 @@ export async function devnetContext(localKeys = false) {
   const key = (role: string) => privateKey(role, localKeys ? '.local/devnet-svm/keys' : '.local/devnet/keys');
   const payer = await key('deployer'); if (!localKeys) assert.equal(payer.address, profile.deployer);
   const program = address(profile.programs.clearing), options = { programAddress: program };
-  const [market] = await sdk.findMarketPda(options), [registry] = await sdk.findRegistryPda({ market }, options);
+  const [market] = await sdk.findLegacyMarketPda(options), [registry] = await sdk.findRegistryPda({ market }, options);
   const [vault] = await sdk.findVaultPda({ market }, options), [routeState] = await sdk.findRouteStatePda({ market }, options);
   const [exitGuard] = await sdk.findGuardPda({ market }, options);
   const [eventAuthority] = await getProgramDerivedAddress({ programAddress: program, seeds: [Buffer.from('__event_authority')] });
@@ -68,7 +68,7 @@ export async function setupDevnet(h: DevnetHarness, a: DevnetContext) {
   const allocatedAtEntry = await h.read(a.routeState);
   await h.send('create-test-mint', [getCreateAccountInstruction({ payer, newAccount: a.mint, lamports: await h.rent(82), space: 82n, programAddress: TOKEN_PROGRAM_ADDRESS }),
     getInitializeMint2Instruction({ mint: a.mint.address, decimals: 6, mintAuthority: payer.address })], [a.mint]);
-  await h.send('initialize-market', [await sdk.getInitializeMarketInstructionAsync({ ...a, clearingProgram: a.program, authority: payer, quoteMint: a.mint.address }, options)]);
+  await h.send('initialize-market', [await sdk.getInitializeLegacyMarketInstructionAsync({ ...a, clearingProgram: a.program, authority: payer, quoteMint: a.mint.address }, options)]);
   for (const [i, participant] of [
     { owner: a.traderOwner, token: a.traderToken, capital: a.trader, amount: 100_000_000n },
     ...a.makers.map(m => ({ ...m, amount: 500_000_000n })),

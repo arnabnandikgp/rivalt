@@ -351,11 +351,11 @@ fn partial_order_reserves_fees_and_versioned_replacement() {
 
 fn long() -> MarginAccountV2 {
     let mut trader = root(0, 1, 0);
-    trader.positions[1] = PositionV2 {
+    trader.positions[1] = Position {
         lots: 5,
         virtual_scaled: -150_000 * math::SCALE,
         generation: 1,
-        ..PositionV2::default()
+        ..Position::default()
     };
     trader
 }
@@ -411,11 +411,11 @@ fn tpsl_is_existing_position_bound_and_shared_quantity_survives_partial_fill() {
     )
     .unwrap();
     let mut maker = root(1, 1, 1);
-    maker.positions[1] = PositionV2 {
+    maker.positions[1] = Position {
         lots: -5,
         virtual_scaled: 150_000 * math::SCALE,
         generation: 1,
-        ..PositionV2::default()
+        ..Position::default()
     };
     let first = routes::candidate(
         &group(),
@@ -721,7 +721,7 @@ fn event_snapshots_preserve_account_payload_without_discriminator() {
     };
     assert_eq!(
         serialized(&registration),
-        serialized(&crate::events::MakerRegistrationSnapshotV2::from(
+        serialized(&crate::events::LegacyMakerRegistrationSnapshotV2::from(
             &registration
         ))
     );

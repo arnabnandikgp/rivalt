@@ -137,7 +137,7 @@ fn fill(
 #[test]
 fn btc_route_materializes_eth_debit_and_keeps_maker_capital_isolated() {
     let mut trader = root();
-    trader.positions[1] = PositionV2 {
+    trader.positions[1] = Position {
         lots: 2,
         virtual_scaled: -60_000 * math::SCALE,
         generation: 1,
@@ -205,7 +205,7 @@ fn relevant_other_market_requires_normal_but_empty_unrelated_slot_does_not() {
     markets[1].valid_until = 100;
     assert!(fill(&root(), &markets, &intent()).is_ok());
     let mut trader = root();
-    trader.positions[1] = PositionV2 {
+    trader.positions[1] = Position {
         lots: 1,
         virtual_scaled: -30_000 * math::SCALE,
         generation: 1,
@@ -261,7 +261,7 @@ fn flat_netting_is_owner_and_group_bound_and_preserves_exact_fraction() {
     }
     let mut active = account.clone();
     active.book.last_order_id = 1;
-    active.book.orders[0].order = crate::state::StoredOrder {
+    active.book.orders[0].order = crate::state::OrderRecord {
         id: 1,
         version: 1,
         lots: 1,
@@ -292,7 +292,7 @@ fn materialized_both_market_prefix_survives_expired_hold_without_reverse_funding
     let pending = oracle::effective(2, &markets[1], &later).unwrap();
     assert_eq!(pending, 555_555); // trunc(1e9 scaled premium * 2 seconds / 3,600).
     let mut trader = root();
-    trader.positions[1] = PositionV2 {
+    trader.positions[1] = Position {
         lots: 3,
         virtual_scaled: -90_000 * math::SCALE,
         generation: 1,
@@ -350,13 +350,13 @@ fn triggered_cross_protection_uses_real_route_and_consumes_only_its_market_allow
     markets[0].gross_lots = 10;
     let mut trader = root();
     trader.cash = 1_000_000;
-    trader.positions[0] = PositionV2 {
+    trader.positions[0] = Position {
         lots: 10,
         virtual_scaled: -600_000 * math::SCALE,
         generation: 7,
         ..Default::default()
     };
-    trader.positions[1] = PositionV2 {
+    trader.positions[1] = Position {
         lots: 10,
         virtual_scaled: -300_000 * math::SCALE,
         generation: 9,

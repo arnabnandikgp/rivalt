@@ -2,59 +2,59 @@
 //! prerequisite for a funded owner exit. No reserve can leave a live identity.
 use super::*;
 use account_cash::{
-    __client_accounts_account_financial_identity_v3,
-    __cpi_client_accounts_account_financial_identity_v3, AccountFinancialIdentityV3,
-    AccountFinancialIdentityV3Bumps,
+    __client_accounts_account_financial_identity,
+    __cpi_client_accounts_account_financial_identity, AccountFinancialIdentity,
+    AccountFinancialIdentityBumps,
 };
 use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
 #[derive(Accounts)]
-pub struct InitializeAccountRetirementV3<'info> {
+pub struct InitializeAccountRetirement<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, SafetyV3>>,
-    #[account(init, payer = payer, space = 8 + RetirementCertificateV3::INIT_SPACE,
+    pub safety: Box<Account<'info, VenueSafety>>,
+    #[account(init, payer = payer, space = 8 + RetirementCertificate::INIT_SPACE,
         seeds = [b"retirement-v3", venue.key().as_ref()], bump)]
-    pub certificate: Box<Account<'info, RetirementCertificateV3>>,
+    pub certificate: Box<Account<'info, RetirementCertificate>>,
     pub system_program: Program<'info, System>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct CheckAccountRetirementV3<'info> {
-    pub identity: ResolutionIdentityV3<'info>,
+pub struct CheckAccountRetirement<'info> {
+    pub identity: ResolutionIdentity<'info>,
     #[account(seeds = [b"registry-v3", identity.venue.key().as_ref()], bump = registry.bump,
         constraint = registry.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub registry: Box<Account<'info, VenueRegistryV3>>,
+    pub registry: Box<Account<'info, VenueRegistry>>,
     #[account(mut, seeds = [b"retirement-v3", identity.venue.key().as_ref()], bump = certificate.bump,
         constraint = certificate.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub certificate: Box<Account<'info, RetirementCertificateV3>>,
+    pub certificate: Box<Account<'info, RetirementCertificate>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct RetireAccountsV3<'info> {
-    pub identity: ResolutionIdentityV3<'info>,
+pub struct RetireAccounts<'info> {
+    pub identity: ResolutionIdentity<'info>,
     #[account(address = identity.venue.authority @ ClearingError::Authority)]
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry-v3", identity.venue.key().as_ref()], bump = registry.bump,
         constraint = registry.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub registry: Box<Account<'info, VenueRegistryV3>>,
+    pub registry: Box<Account<'info, VenueRegistry>>,
     #[account(seeds = [b"retirement-v3", identity.venue.key().as_ref()], bump = certificate.bump,
         constraint = certificate.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub certificate: Option<Box<Account<'info, RetirementCertificateV3>>>,
+    pub certificate: Option<Box<Account<'info, RetirementCertificate>>>,
     #[account(mut, seeds = [b"resolution-v3", identity.venue.key().as_ref()], bump = resolution.bump,
         constraint = resolution.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub resolution: Option<Box<Account<'info, ResolutionV3>>>,
+    pub resolution: Option<Box<Account<'info, Resolution>>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct WithdrawRetiredReserveV3<'info> {
-    pub identity: AccountFinancialIdentityV3<'info>,
+pub struct WithdrawRetiredReserve<'info> {
+    pub identity: AccountFinancialIdentity<'info>,
     #[account(address = identity.venue.reserve_authority @ ClearingError::Authority)]
     pub reserve_authority: Signer<'info>,
     #[account(address = identity.venue.quote_mint @ ClearingError::Mint)]
@@ -67,7 +67,7 @@ pub struct WithdrawRetiredReserveV3<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-fn reserve_destination(venue: &VenueV3) -> Pubkey {
+fn reserve_destination(venue: &Venue) -> Pubkey {
     Pubkey::find_program_address(
         &[
             venue.reserve_destination_owner.as_ref(),
@@ -79,7 +79,7 @@ fn reserve_destination(venue: &VenueV3) -> Pubkey {
     .0
 }
 
-fn registry_valid(registry: &VenueRegistryV3) -> Result<()> {
+fn registry_valid(registry: &VenueRegistry) -> Result<()> {
     require!(
         registry.schema_version == SCHEMA_VERSION
             && usize::from(registry.count) == registry.members.len()
@@ -93,10 +93,10 @@ fn registry_valid(registry: &VenueRegistryV3) -> Result<()> {
 }
 
 fn matches(
-    certificate: &RetirementCertificateV3,
-    safety: &SafetyV3,
-    custody: &CustodyV3,
-    registry: &VenueRegistryV3,
+    certificate: &RetirementCertificate,
+    safety: &VenueSafety,
+    custody: &Custody,
+    registry: &VenueRegistry,
 ) -> bool {
     certificate.schema_version == SCHEMA_VERSION
         && certificate.safety_epoch == safety.epoch
@@ -105,7 +105,7 @@ fn matches(
         && certificate.count == registry.count
 }
 
-fn global_flat(identity: &ResolutionIdentityV3) -> Result<()> {
+fn global_flat(identity: &ResolutionIdentity) -> Result<()> {
     profile(identity)?;
     require!(
         identity.btc.gross_lots == 0
@@ -117,7 +117,7 @@ fn global_flat(identity: &ResolutionIdentityV3) -> Result<()> {
     Ok(())
 }
 
-pub fn initialize(ctx: Context<InitializeAccountRetirementV3>) -> Result<()> {
+pub fn initialize(ctx: Context<InitializeAccountRetirement>) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty()
             && cfg!(feature = "account-safety-qualification")
@@ -127,7 +127,7 @@ pub fn initialize(ctx: Context<InitializeAccountRetirementV3>) -> Result<()> {
             && matches!(ctx.accounts.safety.mode, CUSTODY | ACTIVE | RESOLVED),
         ClearingError::Profile
     );
-    ctx.accounts.certificate.set_inner(RetirementCertificateV3 {
+    ctx.accounts.certificate.set_inner(RetirementCertificate {
         schema_version: SCHEMA_VERSION,
         venue: ctx.accounts.venue.key(),
         bump: ctx.bumps.certificate,
@@ -136,7 +136,7 @@ pub fn initialize(ctx: Context<InitializeAccountRetirementV3>) -> Result<()> {
     Ok(())
 }
 
-pub fn check(ctx: Context<CheckAccountRetirementV3>, start: u16) -> Result<()> {
+pub fn check(ctx: Context<CheckAccountRetirement>, start: u16) -> Result<()> {
     let accounts = &mut *ctx.accounts;
     global_flat(&accounts.identity)?;
     require!(
@@ -192,7 +192,7 @@ pub fn check(ctx: Context<CheckAccountRetirementV3>, start: u16) -> Result<()> {
     increment(&mut accounts.identity.custody.sequence)?;
     certificate.custody_sequence = accounts.identity.custody.sequence;
     crate::event_cpi::emit(
-        &crate::events::AccountRetirementProgressV3 {
+        &crate::events::AccountRetirementProgress {
             venue: accounts.identity.venue.key(),
             sequence: accounts.identity.custody.sequence,
             slot: Clock::get()?.slot,
@@ -207,7 +207,7 @@ pub fn check(ctx: Context<CheckAccountRetirementV3>, start: u16) -> Result<()> {
     )
 }
 
-pub fn retire(ctx: Context<RetireAccountsV3>, safety_epoch: u64) -> Result<()> {
+pub fn retire(ctx: Context<RetireAccounts>, safety_epoch: u64) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     global_flat(&accounts.identity)?;
@@ -260,7 +260,7 @@ pub fn retire(ctx: Context<RetireAccountsV3>, safety_epoch: u64) -> Result<()> {
     increment(&mut accounts.identity.venue.terms_epoch)?;
     increment(&mut accounts.identity.custody.sequence)?;
     crate::event_cpi::emit(
-        &crate::events::AccountsRetiredV3 {
+        &crate::events::AccountsRetired {
             venue: accounts.identity.venue.key(),
             sequence: accounts.identity.custody.sequence,
             slot: Clock::get()?.slot,
@@ -276,7 +276,7 @@ pub fn retire(ctx: Context<RetireAccountsV3>, safety_epoch: u64) -> Result<()> {
 }
 
 pub fn withdraw(
-    ctx: Context<WithdrawRetiredReserveV3>,
+    ctx: Context<WithdrawRetiredReserve>,
     market_index: u8,
     amount: u64,
 ) -> Result<()> {
@@ -339,7 +339,7 @@ pub fn withdraw(
         &identity.eth_ledger
     };
     crate::event_cpi::emit(
-        &crate::events::RetiredReserveWithdrawnV3 {
+        &crate::events::RetiredReserveWithdrawn {
             venue: identity.venue.key(),
             sequence: identity.custody.sequence,
             slot: Clock::get()?.slot,
@@ -364,7 +364,7 @@ mod tests {
     use super::*;
     #[test]
     fn certificate_binds_all_mutation_and_membership_stamps() {
-        let mut proof = RetirementCertificateV3 {
+        let mut proof = RetirementCertificate {
             schema_version: SCHEMA_VERSION,
             safety_epoch: 2,
             membership_version: 3,
@@ -372,15 +372,15 @@ mod tests {
             count: 2,
             ..Default::default()
         };
-        let safety = SafetyV3 {
+        let safety = VenueSafety {
             epoch: 2,
             ..Default::default()
         };
-        let custody = CustodyV3 {
+        let custody = Custody {
             sequence: 17,
             ..Default::default()
         };
-        let registry = VenueRegistryV3 {
+        let registry = VenueRegistry {
             membership_version: 3,
             count: 2,
             ..Default::default()

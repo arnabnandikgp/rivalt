@@ -24,7 +24,7 @@ const has = (instructions: readonly unknown[], discriminator: ReadonlyUint8Array
   .some(instruction => Buffer.from(instruction.data ?? []).subarray(0, 8).equals(Buffer.from(discriminator)));
 const transport = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, runDir, {
   deferFinality: true, observeOutcomes: label => label.startsWith('offered route ') || label === 'continuation publisher reports',
-  computeUnitLimit: (label, instructions) => has(instructions, sdk.SAMPLE_ACCOUNT_ORACLE_V3_DISCRIMINATOR) ? 1_200_000
+  computeUnitLimit: (label, instructions) => has(instructions, sdk.SAMPLE_ACCOUNT_ORACLE_DISCRIMINATOR) ? 1_200_000
     : label.startsWith('offered route ') || label === 'supplement stale structural route' || label.startsWith('supplement route ') ? (profile === 'baseline' ? 600_000 : 800_000)
     : label.includes('publisher') ? 200_000 : label === 'continuation reprice batch' ? 600_000 : 400_000,
   maxLoadedAccounts: label => label.includes('publisher') ? 20 : 32,
@@ -36,7 +36,7 @@ type Offer = {
   trader: import('@solana/kit').Address; marketIndex:0|1; mode:'isolated'|'cross'; sourceModes:string[]; requiredMarkets:number[]; buildMs:number; side: 0 | 1; lots: bigint; source: string; eligible: boolean; quoted: boolean; attempted: boolean;
   reason: string | null; makers: Candidate[]; roots: sdk.AccountSnapshot['roots'];
   allocation?: { grossQuote: bigint; fee: bigint; allIn: bigint; legs: { instance: number; lots: bigint }[] };
-  markouts?:{horizonSeconds:number;observedAfterMs:number;referencePrice:bigint;sourceMode:string}[]; landedGross?:bigint; quoteDriftAtoms?:bigint; after?: sdk.MarginAccountV3[]; finalError?: unknown; signedToConfirmedMs?: unknown;
+  markouts?:{horizonSeconds:number;observedAfterMs:number;referencePrice:bigint;sourceMode:string}[]; landedGross?:bigint; quoteDriftAtoms?:bigint; after?: sdk.MarginAccount[]; finalError?: unknown; signedToConfirmedMs?: unknown;
 };
 const offers: Offer[] = [], schedules: { task: string; tick: number; dueMs: number; lagMs: number }[] = [];
 const horizonReads:Promise<void>[]=[];
@@ -44,7 +44,7 @@ let backgroundError: unknown;
 try {
   const setup = await qualificationSetup(h, rpc, profile);
   await flush();
-  const initial = await Promise.all(setup.allRoots.map(async key => sdk.getMarginAccountV3Decoder().decode((await h.read(key))!)));
+  const initial = await Promise.all(setup.allRoots.map(async key => sdk.getMarginAccountDecoder().decode((await h.read(key))!)));
   services=await qualificationServices(setup,transport,profile,runDir);
   const start = performance.now() + 250;
   const inWindow = (time: number, lower: number, upper: number) => time >= lower && time < upper;
@@ -102,7 +102,7 @@ try {
           offer.markouts!.push({horizonSeconds,observedAfterMs:performance.now()-landedAt,referencePrice:snapshot.marketStates[marketIndex].referencePrice,
             sourceMode:sdk.accountSourceMode(snapshot.safetyState,snapshot.marketStates[marketIndex],snapshot.now,snapshot.slot)});})().catch(error=>{backgroundError??=error;}));
         offer.after = await Promise.all([trader, ...model.map(maker => maker.capital as typeof setup.trader)]
-          .map(async key => sdk.getMarginAccountV3Decoder().decode((await h.read(key))!)));
+          .map(async key => sdk.getMarginAccountDecoder().decode((await h.read(key))!)));
       }
       appendFileSync(`${runDir}/offers.ndjson`, JSON.stringify(offer, (_, item) => typeof item === 'bigint' ? item.toString() : item) + '\n');
     }),
@@ -134,8 +134,8 @@ try {
     if (!setup.canonical || transaction.meta.err) continue;
     for (const maker of [setup.canonical.instances[0], setup.canonical.instances[2]]) {
       for (const { payload } of eventPayloads(String(checks[index].signature), transaction, maker.makerCommon.eventAuthority, maker.pricingProgram)) {
-        if (!payload.subarray(0, 8).equals(Buffer.from(sdk.makerA.LIQUIDITY_PRICE_V4_EVENT_DISCRIMINATOR))) continue;
-        const value = sdk.makerA.getLiquidityPriceV4EventDecoder().decode(payload);
+        if (!payload.subarray(0, 8).equals(Buffer.from(sdk.makerA.MAKER_PRICE_UPDATED_EVENT_DISCRIMINATOR))) continue;
+        const value = sdk.makerA.getMakerPriceUpdatedEventDecoder().decode(payload);
         anchors.set(`${value.config}/${value.sequence}`, value.anchor);
       }
     }
@@ -150,17 +150,17 @@ try {
       offer.reason = `onchain:${JSON.stringify(transaction.meta.err)}`;
       for (const after of offer.after!) {
         const before = Object.values(offer.roots).find(root => root.id === after.id)!;
-        assert.deepEqual(sdk.getMarginAccountV3Encoder().encode(after), sdk.getMarginAccountV3Encoder().encode(before), 'Rejected timed route is financially atomic');
+        assert.deepEqual(sdk.getMarginAccountEncoder().encode(after), sdk.getMarginAccountEncoder().encode(before), 'Rejected timed route is financially atomic');
       }
       continue;
     }
     finalized++;
     const payloads = eventPayloads(String(check.signature), transaction, setup.common.eventAuthority);
     const event = profile === 'baseline'
-      ? payloads.map(value => value.payload).find(payload => payload.subarray(0, 8).equals(Buffer.from(sdk.ACCOUNT_ROUTE_EXECUTED_V3_EVENT_DISCRIMINATOR)))
-      : payloads.map(value => value.payload).find(payload => payload.subarray(0, 8).equals(Buffer.from(sdk.LIQUIDITY_ROUTE_EXECUTED_V4_EVENT_DISCRIMINATOR)));
+      ? payloads.map(value => value.payload).find(payload => payload.subarray(0, 8).equals(Buffer.from(sdk.ACCOUNT_ROUTE_EXECUTED_EVENT_DISCRIMINATOR)))
+      : payloads.map(value => value.payload).find(payload => payload.subarray(0, 8).equals(Buffer.from(sdk.LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR)));
     assert(event);
-    const decoded = profile === 'baseline' ? sdk.getAccountRouteExecutedV3EventDecoder().decode(event) : sdk.getLiquidityRouteExecutedV4EventDecoder().decode(event);
+    const decoded = profile === 'baseline' ? sdk.getAccountRouteExecutedEventDecoder().decode(event) : sdk.getLiquidityRouteExecutedEventDecoder().decode(event);
     const actualLegs = 'legs' in decoded ? decoded.legs.map(leg => {
       const maker = offer.makers.find(candidate => candidate.instance === leg.instance)!;
       const anchor = anchors.get(`${maker.config}/${leg.priceSequence}`); assert(anchor !== undefined);
@@ -180,8 +180,8 @@ try {
       auditFill(before, decoded.rootStates.find(root => root.id === before.id)!, offer.side, leg.lots, leg.gross, 0n, false,offer.marketIndex);
     }
   }
-  const finalRoots = await Promise.all(setup.allRoots.map(async key => sdk.getMarginAccountV3Decoder().decode((await h.read(key))!)));
-  const markets = await Promise.all(setup.markets.map(async key => sdk.getMarketV3Decoder().decode((await h.read(key))!)));
+  const finalRoots = await Promise.all(setup.allRoots.map(async key => sdk.getMarginAccountDecoder().decode((await h.read(key))!)));
+  const markets = await Promise.all(setup.markets.map(async key => sdk.getMarketDecoder().decode((await h.read(key))!)));
   for (const marketIndex of [0, 1]) {
     assert.equal(finalRoots.reduce((sum, root) => sum + root.positions[marketIndex].lots, 0n), 0n);
     assert.equal(finalRoots.reduce((sum, root) => { const position = root.positions[marketIndex];
@@ -193,7 +193,7 @@ try {
     const marketIndex=setup.markets.indexOf(event.payload.market);assert(marketIndex===0||marketIndex===1);journalFees[marketIndex]+=BigInt(event.payload.fee);
   }
   assert.equal(cash+journalFees[0]+journalFees[1]+2n,initial.reduce((sum,root)=>sum+root.cash,0n));
-  const ledgers=await Promise.all(setup.ledgers.map(async key=>sdk.getMarketLedgerV3Decoder().decode((await h.read(key))!)));
+  const ledgers=await Promise.all(setup.ledgers.map(async key=>sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
   ledgers.forEach((ledger,index)=>{assert.equal(ledger.insurance,journalFees[index]/4n);assert.equal(ledger.fees,journalFees[index]-journalFees[index]/4n);assert.equal(BigInt(ledger.insuranceFeeRemainder),journalFees[index]%4n);});
   assert.equal(journalFees[1],marketFees[1]);assert(journalFees[0]>marketFees[0],'Actual order-worker fills contribute separate fees');
   if(setup.canonical)await setup.canonical.qualify();

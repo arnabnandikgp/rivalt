@@ -11,21 +11,21 @@ import { candidates, referenceQuote, auditFill } from './liquidity-continuation-
 
 export async function depletionSupplement(h: CanonicalHarness, setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>, cohort?:Address[]) {
   const helpers = executionTestHelpers(h, setup), trader = setup.roots[1], results = [];
-  const initialCash = sdk.getCustodyV3Decoder().decode((await h.read(setup.custody))!).totalCash;
-  const initialLedger = sdk.getMarketLedgerV3Decoder().decode((await h.read(setup.ledgers[0]))!);
+  const initialCash = sdk.getCustodyDecoder().decode((await h.read(setup.custody))!).totalCash;
+  const initialLedger = sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[0]))!);
   for (const [instance, maker] of setup.instances.slice(0, 3).entries()) {
     const original = comparisonShape('treatment', instance);
     const shallow = { ...original, askCount: 1,
       asks: [{ endLots: 1n, offset: 20n, slope: 0n }, ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))] };
-    const shape = async (value: sdk.makerA.ShapeV4Args) => {
+    const shape = async (value: sdk.makerA.LiquidityShapeArgs) => {
       const config = await maker.state(), registration = await maker.registrationState();
-      await h.send('supplement treatment shape', [sdk.getControlLiquidityV4Instruction({ ...maker.controlCommon,
+      await h.send('supplement treatment shape', [sdk.getControlLiquidityInstruction({ ...maker.controlCommon,
         expectedAuthority: registration.authorityEpoch, expectedControl: config.controlEpoch, expectedShape: config.shapeEpoch,
         action: { __kind: 'Shape', fields: [value] } })], [setup.owner]);
     };
     const replenish = async () => {
       const registration = await maker.registrationState();
-      await h.send('supplement explicit treatment replenishment', [sdk.getReplenishLiquidityV4Instruction({ ...maker.controlCommon,
+      await h.send('supplement explicit treatment replenishment', [sdk.getReplenishLiquidityInstruction({ ...maker.controlCommon,
         expectedAuthority: registration.authorityEpoch, expectedDepth: registration.depthEpoch, sides: 1 })], [setup.owner]);
     };
     await replenish(); await shape(shallow); await setup.qualify();
@@ -54,8 +54,8 @@ export async function depletionSupplement(h: CanonicalHarness, setup: Awaited<Re
       afterDepth: restored.depthEpoch, depleted: true, repricePreservedDepletion: true });
   }
   const fees = results.reduce((sum, result) => sum + result.expectedFee, 0n);
-  const custody = sdk.getCustodyV3Decoder().decode((await h.read(setup.custody))!);
-  const ledger = sdk.getMarketLedgerV3Decoder().decode((await h.read(setup.ledgers[0]))!);
+  const custody = sdk.getCustodyDecoder().decode((await h.read(setup.custody))!);
+  const ledger = sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[0]))!);
   assert.equal(custody.totalCash, initialCash - fees);
   assert.equal(ledger.insurance + ledger.fees, initialLedger.insurance + initialLedger.fees + fees);
   const roots = await Promise.all((cohort??[...setup.instances.map(maker => maker.capital), ...setup.roots]).map(helpers.root));

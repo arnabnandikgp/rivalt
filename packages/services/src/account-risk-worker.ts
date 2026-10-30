@@ -19,25 +19,25 @@ export async function accountResolutionInstruction(runtime:AccountRuntime,snapsh
     const matches=sdk.hex(current.proposalHash)===sdk.hex(proposal.hash);
     const offset=matches?current.proposalUploaded:0;
     assert(offset>=0&&offset<proposal.bytes.length&&offset%8===0,'Invalid rate upload cursor');
-    return sdk.getProposeAccountResolutionV3Instruction({...common,evaluation:current.evaluation,proposalHash:proposal.hash,offset,
+    return sdk.getProposeAccountResolutionInstruction({...common,evaluation:current.evaluation,proposalHash:proposal.hash,offset,
       bytes:proposal.bytes.subarray(offset,Math.min(proposal.bytes.length,offset+512))});
   }
-  if(header.stage===5&&start===header.count)return sdk.getFinalizeAccountResolutionRatesV3Instruction(common);
+  if(header.stage===5&&start===header.count)return sdk.getFinalizeAccountResolutionRatesInstruction(common);
   if(header.stage===7) {
     if(workState.limbCursor===0) {
       assert(start===0,'Uncommitted remainder ordering');
       const denominator=header.flowDenominator.limbs.reduceRight((total,limb)=>(total<<64n)+limb,0n);
-      return sdk.getOrderAccountResolutionV3Instruction({...common,orders:accountRemainderOrders(rows,denominator)});
+      return sdk.getOrderAccountResolutionInstruction({...common,orders:accountRemainderOrders(rows,denominator)});
     }
     assert(start<2*header.count,'Invalid order verification cursor');
     const id=workState.marketEdgeOrder[Math.floor(start/header.count)][start%header.count];
     assert(id<header.count,'Invalid proposed member');
-    return sdk.getCheckAccountResolutionOrderV3Instruction({...common,page:pages[Math.floor(id/2)],start});
+    return sdk.getCheckAccountResolutionOrderInstruction({...common,page:pages[Math.floor(id/2)],start});
   }
-  if(header.stage===8)return sdk.getRoundAccountResolutionV3Instruction({...common,start});
+  if(header.stage===8)return sdk.getRoundAccountResolutionInstruction({...common,start});
   assert([2,3,5,6,9,10].includes(header.stage)&&start<header.count,'No bounded resolution page due');
   const length=[5,6].includes(header.stage)?1:Math.min(2-start%2,header.count-start);
-  const instruction=sdk.getAdvanceAccountResolutionV3Instruction({...common,page:pages[Math.floor(start/2)],stage:header.stage,start,length});
+  const instruction=sdk.getAdvanceAccountResolutionInstruction({...common,page:pages[Math.floor(start/2)],stage:header.stage,start,length});
   const members=[2,9,10].includes(header.stage)?registryState.members.slice(start,start+length):[];
   return {...instruction,accounts:[...instruction.accounts,...members.map(address=>({address,
     role:header.stage===9?AccountRole.WRITABLE:AccountRole.READONLY}))]};
@@ -58,7 +58,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   };
   const common={...snapshot,...continuation,...accountRiskSources(snapshot)};
   if(snapshot.safetyState.mode===2) {
-    if(header.stage===1)return await submit(`value:${header.epoch}`,sdk.getValueAccountResolutionV3Instruction({...common,epoch:header.epoch}),true)?
+    if(header.stage===1)return await submit(`value:${header.epoch}`,sdk.getValueAccountResolutionInstruction({...common,epoch:header.epoch}),true)?
       {status:'queued',reason:'awaited-complete-cohort-valuation'}:{status:'blocked',reason:'closeout-sources-unavailable'};
     if(header.stage>=2&&header.stage<=10) {
       const instruction=await accountResolutionInstruction(runtime,snapshot,continuation);
@@ -77,7 +77,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
     const attempts=await runtime.store.pool.query('SELECT count(*)::int AS count FROM service_intents WHERE run_id=$1 AND starts_with(request_id,$2)',
       [runtime.runId,`risk:check:${header.epoch}:`]);
     if(attempts.rows[0].count>=8)return {status:'blocked',reason:'bounded-recovery-checks-exhausted'};
-    return await submit(`check:${header.epoch}:${safety.recoveryLast}`,sdk.getRecoverAccountsV3Instruction({...common,caller:key,epoch:header.epoch,resume:false}),true)?
+    return await submit(`check:${header.epoch}:${safety.recoveryLast}`,sdk.getRecoverAccountsInstruction({...common,caller:key,epoch:header.epoch,resume:false}),true)?
       {status:'queued',reason:'permissionless-account-recovery-check'}:{status:'blocked',reason:'fresh-recovery-sources-unavailable'};
   }
   if(snapshot.safetyState.mode!==1)return {status:'blocked',reason:'venue-mode'};
@@ -85,7 +85,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   const probes=candidates.length?Array.from({length:Math.min(2,candidates.length)},(_,offset)=>address(candidates[(runtime.riskProbeCursor+offset)%candidates.length])):[];
   runtime.riskProbeCursor=candidates.length?(runtime.riskProbeCursor+probes.length)%candidates.length:0;
   for(const target of probes) {
-    const instruction=sdk.getFreezeAccountsV3Instruction({...common,caller:key,target,safetyEpoch:snapshot.safetyState.epoch,
+    const instruction=sdk.getFreezeAccountsInstruction({...common,caller:key,target,safetyEpoch:snapshot.safetyState.epoch,
       resolutionEpoch:header.epoch,emergency:false});
     if(await submit(`freeze:${header.epoch}:${target}:${snapshot.custodyState.sequence}`,instruction))return {status:'queued',reason:'authenticated-net-insolvency'};
   }
@@ -101,7 +101,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
       if(capital.mode===1&&capital.isolatedMarketIndex!==marketIndex)continue;
       const quantity=root.positions[marketIndex].lots,absolute=quantity<0n?-quantity:quantity;
       for(let lots=absolute<64n?absolute:64n;lots>0n;lots/=2n) {
-        const instruction=sdk.getLiquidateAccountV3Instruction({...current,receiverOwner:key,target,receiver,
+        const instruction=sdk.getLiquidateAccountInstruction({...current,receiverOwner:key,target,receiver,
           targetGuard:sdk.accountGuard(current,target),receiverGuard:sdk.accountGuard(current,receiver),marketIndex,lots,price:current.marketStates[marketIndex].referencePrice});
         // Execution checks and advances this consenting receiver's version. At
         // finalized expiry an unchanged canonical version proves no economic

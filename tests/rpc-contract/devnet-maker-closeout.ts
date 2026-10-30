@@ -100,7 +100,7 @@ try {
       assert.equal(config.market, context.market); assert.equal(config.makerId, index);
       assert.deepEqual(Buffer.from(config.domain), Buffer.from(domain));
     });
-    const initialRegistration = sdk.getMakerRegistrationDecoder().decode(original(maker.registration));
+    const initialRegistration = sdk.getLegacyMakerRegistrationDecoder().decode(original(maker.registration));
     const deployedHash = hash((await harness.read(maker.programData))!);
     // A separate ownership-only rerun must not repeat a completed upgrade or
     // manufacture another approval merely to exercise the old-hash rejection.
@@ -110,8 +110,8 @@ try {
     });
     await step(`maker-${index}-jointly-approve`, async () => {
       await harness.send(`maker-${index}-jointly-approve`, [await sdk.getApproveMakerInstructionAsync({ ...context, ...maker, authority: context.payer }, context.options)], [maker.owner]);
-      const registration = sdk.getMakerRegistrationDecoder().decode((await harness.read(maker.registration))!);
-      const before = sdk.getMakerRegistrationDecoder().decode(original(maker.registration));
+      const registration = sdk.getLegacyMakerRegistrationDecoder().decode((await harness.read(maker.registration))!);
+      const before = sdk.getLegacyMakerRegistrationDecoder().decode(original(maker.registration));
       assert.equal(Buffer.from(registration.approvedHash).toString('hex'), hash((await harness.read(maker.programData))!));
       assert.equal(registration.authorityEpoch, before.authorityEpoch + 1n);
       assert.equal(registration.quarantined, false);
@@ -129,8 +129,8 @@ try {
     assert.equal(config.owner, owner.address); assert.equal(config.capital, capital);
     assert.equal(config.market, context.market); assert.equal(config.makerId, index);
     assert.deepEqual(Buffer.from(config.domain), Buffer.from(domain));
-    const before = sdk.getMakerRegistrationDecoder().decode(original(maker.registration));
-    const registration = sdk.getMakerRegistrationDecoder().decode(data(report.accounts[maker.registration]));
+    const before = sdk.getLegacyMakerRegistrationDecoder().decode(original(maker.registration));
+    const registration = sdk.getLegacyMakerRegistrationDecoder().decode(data(report.accounts[maker.registration]));
     const currentHash = hash((await harness.read(maker.programData))!);
     assert.equal(currentHash, report.programs.find((program: any) => program.program === maker.pricingProgram).accountSha256);
     const changedApproval = Buffer.from(before.approvedHash).toString('hex') !== currentHash;

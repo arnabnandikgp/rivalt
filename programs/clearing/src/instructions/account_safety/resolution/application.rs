@@ -3,7 +3,7 @@
 //! mixed live roots are never added to those frozen aggregates a second time.
 use super::*;
 
-fn empty_position(position: &crate::state::v2::PositionV2) -> bool {
+fn empty_position(position: &crate::state::v2::Position) -> bool {
     position.lots == 0
         && position.virtual_scaled == 0
         && position.funding_checkpoint_scaled == 0
@@ -11,10 +11,10 @@ fn empty_position(position: &crate::state::v2::PositionV2) -> bool {
 }
 
 pub(super) fn apply_row(
-    header: &mut ResolutionV3,
-    work: &ResolutionWorkV3,
-    row: &mut ResolutionRowV3,
-    root: &mut MarginAccountV3,
+    header: &mut Resolution,
+    work: &ResolutionWork,
+    row: &mut ResolutionRow,
+    root: &mut MarginAccount,
     id: usize,
 ) -> Result<()> {
     require!(
@@ -107,7 +107,7 @@ fn increment_counter(counter: &mut u64) -> Result<()> {
     increment(counter)
 }
 
-pub(super) fn check_complete_plan(header: &ResolutionV3) -> Result<()> {
+pub(super) fn check_complete_plan(header: &Resolution) -> Result<()> {
     let mut expected_cash = u128::from(header.cash_before);
     for market in 0..2 {
         let supply =
@@ -133,9 +133,9 @@ pub(super) fn check_complete_plan(header: &ResolutionV3) -> Result<()> {
 }
 
 pub(super) fn reconcile_row(
-    header: &mut ResolutionV3,
-    row: &ResolutionRowV3,
-    root: &MarginAccountV3,
+    header: &mut Resolution,
+    row: &ResolutionRow,
+    root: &MarginAccount,
 ) -> Result<()> {
     require!(
         row.applied
@@ -170,7 +170,7 @@ pub(super) fn reconcile_row(
 }
 
 pub fn advance(
-    ctx: Context<AdvanceAccountResolutionV3>,
+    ctx: Context<AdvanceAccountResolution>,
     epoch: u64,
     stage: u8,
     start: u16,
@@ -276,7 +276,7 @@ pub fn advance(
     accounts.work.row = accounts.resolution.cursor;
     increment(&mut accounts.identity.custody.sequence)?;
     crate::event_cpi::emit(
-        &crate::events::AccountResolutionProgressV3 {
+        &crate::events::AccountResolutionProgress {
             venue: accounts.identity.venue.key(),
             sequence: accounts.identity.custody.sequence,
             slot: clock.slot,
@@ -295,15 +295,15 @@ pub fn advance(
 
 #[inline(never)]
 fn emit_applied(
-    identity: &ResolutionIdentityV3,
-    header: &ResolutionV3,
-    row: &ResolutionRowV3,
-    root: &MarginAccountV3,
+    identity: &ResolutionIdentity,
+    header: &Resolution,
+    row: &ResolutionRow,
+    root: &MarginAccount,
     id: u16,
     clock: &Clock,
     authority: AccountInfo,
 ) -> Result<()> {
-    let event = Box::new(crate::events::AccountResolutionAppliedV3 {
+    let event = Box::new(crate::events::AccountResolutionApplied {
         venue: identity.venue.key(),
         sequence: identity.custody.sequence,
         slot: clock.slot,
@@ -318,19 +318,19 @@ fn emit_applied(
         remaining_lots: header.remaining_lots,
         remaining_gross: header.remaining_gross,
         remaining_claims: header.remaining_claims,
-        state: crate::events::MarginAccountSnapshotV3::from(root),
+        state: crate::events::MarginAccountSnapshot::from(root),
     });
     crate::event_cpi::emit(&*event, authority)
 }
 
 fn emit_complete(
-    identity: &ResolutionIdentityV3,
-    header: &ResolutionV3,
+    identity: &ResolutionIdentity,
+    header: &Resolution,
     clock: &Clock,
     authority: AccountInfo,
 ) -> Result<()> {
     crate::event_cpi::emit(
-        &crate::events::AccountResolutionCompletedV3 {
+        &crate::events::AccountResolutionCompleted {
             venue: identity.venue.key(),
             sequence: identity.custody.sequence,
             slot: clock.slot,

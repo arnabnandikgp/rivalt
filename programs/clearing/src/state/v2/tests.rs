@@ -136,13 +136,13 @@ fn v2_two_slot_wire_retains_fraction_and_generation_independently() {
     let mut margin = MarginAccountV2::default();
     margin.schema_version = 2;
     margin.cash = 99;
-    margin.positions[0] = PositionV2 {
+    margin.positions[0] = Position {
         lots: 0,
         virtual_scaled: -300_000_000,
         funding_checkpoint_scaled: 100_000_000,
         generation: 7,
     };
-    margin.positions[1] = PositionV2 {
+    margin.positions[1] = Position {
         lots: -3,
         virtual_scaled: 400_000_001,
         funding_checkpoint_scaled: -100_000_000,

@@ -30,19 +30,20 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
   // when new group instructions precede V1 instructions in Anchor's sorted IDL.
   {
     const preferred = new Map(Object.entries(program === 'clearing' ? {
+      'margin-v2': 'margin', market: 'legacyMarket', 'portfolio-v2': 'groupPortfolio', 'capital-v3': 'capitalBinding',
       registry: 'registry', 'registry-v2': 'initializeGroupV2Registry',
       vault: 'vault', 'vault-v2': 'classifyGroupSurplusV2Vault',
       resolution: 'resolution', 'resolution-v2': 'groupResolution',
       'exit-guard': 'guard', 'exit-v2': 'groupExitGuard',
-      'venue-v3': 'venueV3', 'custody-v3': 'custodyV3', 'safety-v3': 'safetyV3',
-      'registry-v3': 'venueRegistryV3', 'portfolio-v3': 'portfolioV3',
-      'margin-v3': 'marginAccountV3', 'vault-v3': 'venueVaultV3',
-      'market-v3': 'marketV3', 'ledger-v3': 'marketLedgerV3',
-      'liquidity-v4': 'liquidityRegistryV4', 'maker-v4': 'makerRegistrationV4',
-      'liquidity-control-v4': 'liquidityControllerV4',
-      'funding-publisher-v4': 'fundingPublisherV4',
+      'venue-v3': 'venue', 'custody-v3': 'custody', 'safety-v3': 'venueSafety',
+      'registry-v3': 'venueRegistry', 'portfolio-v3': 'portfolio',
+      'margin-v3': 'marginAccount', 'vault-v3': 'venueVault',
+      'market-v3': 'market', 'ledger-v3': 'marketLedger',
+      'liquidity-v4': 'liquidityRegistry', 'maker-v4': 'makerRegistration',
+      'liquidity-control-v4': 'liquidityController',
+      'funding-publisher-v4': 'fundingPublisher',
     } : {maker: 'config', 'maker-v2': 'initializeGroupConfigConfig', 'maker-v3': 'accountConfig',
-      'curve-v4': 'curveConfigV4', 'price-v4': 'curvePriceV4'})
+      'curve-v4': 'curveConfig', 'price-v4': 'curvePrice'})
       .map(([label, name]) => [seedIdentity(label), name]));
     const aliases = new Map();
     for (const pda of codama.getRoot().program.pdas ?? []) {
@@ -52,10 +53,10 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
       // The same ledger PDA can be expressed with selected/other/BTC/ETH inputs.
       // Keep its published `market` helper and distinct seed parameter names;
       // aliasing all four AST nodes to one name creates invalid generated calls.
-      if (name === 'marketLedgerV3') {
+      if (name === 'marketLedger') {
         const marketSeed = pda.seeds?.[1];
         assert(isNode(marketSeed, 'variablePdaSeedNode'));
-        if (marketSeed.name !== 'market') name = `${marketSeed.name}LedgerV3`;
+        if (marketSeed.name !== 'market') name = `${marketSeed.name}Ledger`;
       }
       if (name) aliases.set(pda.name, camelCase(name));
     }

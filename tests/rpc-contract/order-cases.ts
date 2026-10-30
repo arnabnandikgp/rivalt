@@ -26,7 +26,7 @@ export async function orderTools(h:OracleHarness,a:OrderSetup){
   async function cancelIx(id:bigint,version?:bigint,owner=a.owner){return sdk.getCancelOrderInstructionAsync({...a,owner,participant:a.trader,id,version:version??(await order(id)).version});}
   async function cancel(id:bigint,label='owner cancellation releases remaining reservation'){await h.send(label,[await cancelIx(id)],[a.owner]);}
   async function fillIx(id:bigint,lots:bigint,maker=0,keeper=a.payer,overrides:Record<string,any>={}){
-    const o=await order(id),r=await risk(),slot=await h.slot(),x=a.makers[maker],reg=sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!);
+    const o=await order(id),r=await risk(),slot=await h.slot(),x=a.makers[maker],reg=sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(x.registration))!);
     return sdk.getExecuteOrderInstructionAsync({...a,keeper,trader:a.trader,firstCapital:x.capital,firstRegistration:x.registration,firstProgram:x.pricingProgram,firstProgramData:x.programData,firstConfig:x.config,
       id,version:o.version,filled:o.filled,observationSequence:r.observationSequence,startSlot:slot,expirySlot:slot+150n,lots,legs:[{lots,quoteEpoch:reg.quoteEpoch,authorityEpoch:reg.authorityEpoch}],...overrides});
   }
@@ -37,7 +37,7 @@ export async function orderTools(h:OracleHarness,a:OrderSetup){
     assert.deepEqual(await Promise.all(financialKeys.map(k=>h.read(k))),before,`${label}: no state residue`);
   }
   async function fill(id:bigint,lots:bigint,label='permissionless keeper executes exact stored partial',maker=0){
-    const before=await participant(),o=await order(id),x=a.makers[maker],capital=await participant(x.capital),reg=sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!),r=await risk();
+    const before=await participant(),o=await order(id),x=a.makers[maker],capital=await participant(x.capital),reg=sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(x.registration))!),r=await risk();
     let gross=0n;const consumed=o.side===0?reg.buyConsumed:reg.sellConsumed;
     for(let k=0n;k<lots;k++){
       const offset=consumed+k,spread=maker===0?10n+offset:30n+(offset>256n?offset-256n:0n);
@@ -52,7 +52,7 @@ export async function orderTools(h:OracleHarness,a:OrderSetup){
     assert.equal(done.notional,o.notional+gross);assert.equal(done.feeCharged,o.feeCharged+fee);assert.equal(done.filled,o.filled+lots);assert.equal(done.version,o.version);
     return {gross,fee};
   }
-  async function manual(side:number,lots:bigint,reduceOnly=false){const m=await market(),r=await risk(),p=await participant(),x=a.makers[1],reg=sdk.getMakerRegistrationDecoder().decode((await h.read(x.registration))!),slot=await h.slot();
+  async function manual(side:number,lots:bigint,reduceOnly=false){const m=await market(),r=await risk(),p=await participant(),x=a.makers[1],reg=sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(x.registration))!),slot=await h.slot();
     await h.send('wallet immediate trade preserves existing order constraints',[sdk.routeComputeBudget(),await sdk.getExecuteRouteInstructionAsync({...a,owner:a.owner,trader:a.trader,firstCapital:x.capital,firstRegistration:x.registration,firstProgram:x.pricingProgram,firstProgramData:x.programData,firstConfig:x.config,
       domain:m.domain,termsEpoch:m.termsEpoch,configEpoch:m.configEpoch,observationSequence:r.observationSequence,nonce:p.nonce,startSlot:slot,expirySlot:slot+150n,side,lots,maxFee:1_000_000n,allInLimit:side===0?1_000_000_000n:0n,reduceOnly,generation:p.generation,legs:[{lots,quoteEpoch:reg.quoteEpoch,authorityEpoch:reg.authorityEpoch}]})],[a.owner]);}
   async function flat(){const p=await participant();if(p.lots!==0n)await manual(p.lots>0n?1:0,p.lots<0n?-p.lots:p.lots,true);}
@@ -108,7 +108,7 @@ export async function orderCases(h:OracleHarness,a:OrderSetup){
   for(const maker of a.makers)for(let i=0;i<4;i++){const p=await t.participant(maker.capital),id=p.book.lastOrderId+1n;resourceMakerOrders.push({maker,id});
     await h.send('populate maker order resource fixture',[await sdk.getPlaceOrderInstructionAsync({...a,owner:maker.owner,participant:maker.capital,expectedId:id,terms:await t.terms({lots:1n})})],[maker.owner]);}
   n=await t.place('persisted exact 600-lot split authority',{lots:600n,feeBudget:20000n});
-  const secondMaker=a.makers[1],secondReg=sdk.getMakerRegistrationDecoder().decode((await h.read(secondMaker.registration))!),firstReg=sdk.getMakerRegistrationDecoder().decode((await h.read(a.makers[0].registration))!);
+  const secondMaker=a.makers[1],secondReg=sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(secondMaker.registration))!),firstReg=sdk.getLegacyMakerRegistrationDecoder().decode((await h.read(a.makers[0].registration))!);
   const split={secondCapital:secondMaker.capital,secondRegistration:secondMaker.registration,secondProgram:secondMaker.pricingProgram,secondProgramData:secondMaker.programData,secondConfig:secondMaker.config,
     legs:[{lots:100n,quoteEpoch:firstReg.quoteEpoch,authorityEpoch:firstReg.authorityEpoch},{lots:500n,quoteEpoch:secondReg.quoteEpoch,authorityEpoch:secondReg.authorityEpoch}]};
   await t.rejected('failed second leg leaves stored prefix and both makers unchanged',await t.fillIx(n,600n,0,a.payer,{...split,legs:[split.legs[0],{...split.legs[1],quoteEpoch:secondReg.quoteEpoch+1n}]}),[],6112);

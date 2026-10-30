@@ -12,8 +12,8 @@ export function assertLiquidityInputWire(wire:string,inputDigest:string,calculat
   const transaction=VersionedTransaction.deserialize(Buffer.from(wire,'base64')),keys=transaction.message.staticAccountKeys;
   const economic=transaction.message.compiledInstructions.filter(instruction=>keys[instruction.programIdIndex].address!=='ComputeBudget111111111111111111111111111111');
   if(economic.length!==1||keys[economic[0].programIdIndex].address!==sdk.CLEARING_PROGRAM_ADDRESS||
-    sdk.hex(economic[0].data.slice(0,8))!==sdk.hex(sdk.PUBLISH_FUNDING_REPORT_V4_DISCRIMINATOR))throw new Error('Publisher provenance requires its exact report instruction');
-  const [value,end]=sdk.getPublishFundingReportV4InstructionDataDecoder().read(economic[0].data,0);
+    sdk.hex(economic[0].data.slice(0,8))!==sdk.hex(sdk.PUBLISH_FUNDING_REPORT_DISCRIMINATOR))throw new Error('Publisher provenance requires its exact report instruction');
+  const [value,end]=sdk.getPublishFundingReportInstructionDataDecoder().read(economic[0].data,0);
   if(end!==economic[0].data.length||sdk.hex(value.report.inputDigest)!==inputDigest||calculation?.kind!=='funding-report-v1'||
     JSON.stringify(canonical(JSON.parse(json(value.report))))!==JSON.stringify(canonical(JSON.parse(json(calculation.report)))))
     throw new Error('Publisher calculation differs from signed report');

@@ -51,10 +51,10 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  getOrderBookDecoder,
-  getOrderBookEncoder,
-  type OrderBook,
-  type OrderBookArgs,
+  getLegacyOrderBookDecoder,
+  getLegacyOrderBookEncoder,
+  type LegacyOrderBook,
+  type LegacyOrderBookArgs,
 } from "../types/index.js";
 
 export const PARTICIPANT_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
@@ -80,7 +80,7 @@ export type Participant = {
   reserved: bigint;
   /** Zero means inactive; IDs never repeat when a bounded slot is reused. */
   orderIds: Array<bigint>;
-  book: OrderBook;
+  book: LegacyOrderBook;
   bump: number;
 };
 
@@ -98,7 +98,7 @@ export type ParticipantArgs = {
   reserved: number | bigint;
   /** Zero means inactive; IDs never repeat when a bounded slot is reused. */
   orderIds: Array<number | bigint>;
-  book: OrderBookArgs;
+  book: LegacyOrderBookArgs;
   bump: number;
 };
 
@@ -119,7 +119,7 @@ export function getParticipantEncoder(): FixedSizeEncoder<ParticipantArgs> {
       ["nonce", getU64Encoder()],
       ["reserved", getU64Encoder()],
       ["orderIds", getArrayEncoder(getU64Encoder(), { size: 4 })],
-      ["book", getOrderBookEncoder()],
+      ["book", getLegacyOrderBookEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: PARTICIPANT_DISCRIMINATOR }),
@@ -142,7 +142,7 @@ export function getParticipantDecoder(): FixedSizeDecoder<Participant> {
     ["nonce", getU64Decoder()],
     ["reserved", getU64Decoder()],
     ["orderIds", getArrayDecoder(getU64Decoder(), { size: 4 })],
-    ["book", getOrderBookDecoder()],
+    ["book", getLegacyOrderBookDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }

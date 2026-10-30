@@ -17,7 +17,7 @@ import {
 } from "@solana/kit";
 
 export type PortfolioSeeds = {
-  group: Address | HasAddress;
+  venue: Address | HasAddress;
   owner: Address | HasAddress;
   index: number;
 };
@@ -39,10 +39,10 @@ export async function findPortfolioPda(
     seeds: [
       getBytesEncoder().encode(
         new Uint8Array([
-          112, 111, 114, 116, 102, 111, 108, 105, 111, 45, 118, 50,
+          112, 111, 114, 116, 102, 111, 108, 105, 111, 45, 118, 51,
         ]),
       ),
-      getAddressEncoder().encode(seeds.group),
+      getAddressEncoder().encode(seeds.venue),
       getAddressEncoder().encode(seeds.owner),
       getU16Encoder().encode(seeds.index),
     ],

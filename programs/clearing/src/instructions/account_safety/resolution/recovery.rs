@@ -3,7 +3,7 @@
 use super::*;
 use math::oracle as policy;
 
-pub(super) fn observe(safety: &mut SafetyV3, now: i64, normal: bool, resume: bool) -> Result<()> {
+pub(super) fn observe(safety: &mut VenueSafety, now: i64, normal: bool, resume: bool) -> Result<()> {
     require!(
         now > 0 && now >= safety.recovery_last,
         ClearingError::Resolution
@@ -40,8 +40,8 @@ pub(super) fn observe(safety: &mut SafetyV3, now: i64, normal: bool, resume: boo
 }
 
 fn no_liabilities(
-    identity: &ResolutionIdentityV3,
-    header: &ResolutionV3,
+    identity: &ResolutionIdentity,
+    header: &Resolution,
     epoch: u64,
 ) -> Result<()> {
     profile(identity)?;
@@ -62,7 +62,7 @@ fn no_liabilities(
     Ok(())
 }
 
-pub fn recover(ctx: Context<RecoverAccountsV3>, epoch: u64, resume: bool) -> Result<()> {
+pub fn recover(ctx: Context<RecoverAccounts>, epoch: u64, resume: bool) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     no_liabilities(&accounts.identity, &accounts.resolution, epoch)?;
@@ -134,7 +134,7 @@ pub fn recover(ctx: Context<RecoverAccountsV3>, epoch: u64, resume: bool) -> Res
     )
 }
 
-pub fn reactivate(ctx: Context<RecoverAccountsV3>, epoch: u64) -> Result<()> {
+pub fn reactivate(ctx: Context<RecoverAccounts>, epoch: u64) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     no_liabilities(&accounts.identity, &accounts.resolution, epoch)?;
@@ -188,13 +188,13 @@ pub fn reactivate(ctx: Context<RecoverAccountsV3>, epoch: u64) -> Result<()> {
 
 #[inline(never)]
 fn emit(
-    identity: &ResolutionIdentityV3,
-    header: &ResolutionV3,
+    identity: &ResolutionIdentity,
+    header: &Resolution,
     kind: u8,
     clock: &Clock,
     authority: AccountInfo,
 ) -> Result<()> {
-    let event = Box::new(crate::events::AccountSafetyRecoveryV3 {
+    let event = Box::new(crate::events::AccountSafetyRecovery {
         venue: identity.venue.key(),
         sequence: identity.custody.sequence,
         slot: clock.slot,
@@ -212,8 +212,8 @@ fn emit(
         allocated_vault: identity.custody.allocated_vault,
         actual_vault: identity.vault.amount,
         markets: [
-            crate::events::MarketSnapshotV3::from(&**identity.btc),
-            crate::events::MarketSnapshotV3::from(&**identity.eth),
+            crate::events::MarketSnapshot::from(&**identity.btc),
+            crate::events::MarketSnapshot::from(&**identity.eth),
         ],
     });
     crate::event_cpi::emit(&*event, authority)
@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn recovery_requires_sustained_samples_and_recent_final_observation() {
-        let mut safety = SafetyV3::default();
+        let mut safety = VenueSafety::default();
         assert!(observe(&mut safety, 100, true, true).is_err());
         observe(&mut safety, 100, true, false).unwrap();
         assert!(observe(&mut safety, 101, true, false).is_err());
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn invalid_source_and_observation_gap_restart_the_full_recovery_window() {
-        let mut safety = SafetyV3::default();
+        let mut safety = VenueSafety::default();
         observe(&mut safety, 100, true, false).unwrap();
         observe(&mut safety, 102, false, false).unwrap();
         assert_eq!(safety.recovery_since, 0);
@@ -258,7 +258,7 @@ mod tests {
 
     #[test]
     fn historical_account_generations_are_not_live_liabilities() {
-        let mut root = MarginAccountV3 {
+        let mut root = MarginAccount {
             schema_version: SCHEMA_VERSION,
             mode: MODE_CROSS,
             isolated_market_index: CROSS_MARKET_SENTINEL,

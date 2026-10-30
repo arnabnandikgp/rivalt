@@ -1,5 +1,5 @@
 // Included by each first-party maker. V3 capital is explicitly isolated to one market.
-use clearing::state::v3::{MarginAccountV3, MarketV3, SafetyV3, VenueV3};
+use clearing::state::accounts::{MarginAccount, Market, VenueSafety, Venue};
 
 #[account]
 #[derive(InitSpace)]
@@ -13,18 +13,18 @@ pub struct InitializeAccountConfig<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, seeds::program = CLEARING_ID)]
-    pub venue: Box<Account<'info, VenueV3>>,
+    pub venue: Box<Account<'info, Venue>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, seeds::program = CLEARING_ID,
         constraint = safety.venue == venue.key() @ MakerError::Binding)]
-    pub safety: Box<Account<'info, SafetyV3>>,
+    pub safety: Box<Account<'info, VenueSafety>>,
     #[account(seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump,
         seeds::program = CLEARING_ID, constraint = market.venue == venue.key() @ MakerError::Binding)]
-    pub market: Box<Account<'info, MarketV3>>,
+    pub market: Box<Account<'info, Market>>,
     #[account(seeds = [b"margin-v3", capital.portfolio.as_ref(), &capital.subaccount_index.to_le_bytes()],
         bump = capital.bump, seeds::program = CLEARING_ID,
         constraint = capital.owner == owner.key() @ MakerError::Authority,
         constraint = capital.venue == venue.key() @ MakerError::Binding)]
-    pub capital: Box<Account<'info, MarginAccountV3>>,
+    pub capital: Box<Account<'info, MarginAccount>>,
     #[account(init, payer = owner, space = 8 + MakerAccountConfig::INIT_SPACE,
         seeds = [b"maker-v3", capital.key().as_ref()], bump)]
     pub config: Account<'info, MakerAccountConfig>,

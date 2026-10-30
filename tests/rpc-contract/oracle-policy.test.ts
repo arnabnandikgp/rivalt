@@ -1,4 +1,4 @@
-import {emptyOrderBook} from '@rivalt/sdk';
+import {emptyLegacyOrderBook} from '@rivalt/sdk';
 import {json} from '../../packages/indexer/src/events.js';
 import {it,expect} from 'vitest';
 import {effectiveFunding,oracleMode,accruedBalance} from '@rivalt/sdk';
@@ -17,7 +17,7 @@ it('derives current modes and funding without extending invalid gaps or transfer
 });
 it('rebuilds exact checkpoint-adjusted claims when the stored virtual balances do not sum to P',()=>{
   const state=empty();state.sequence='1';state.market={mode:2,totalCash:'2000000',allocatedVault:'2000000',settlement:'0',insurance:'0',fees:'0',fundingIndexScaled:'0'};
-  const common={owner:'owner',cash:'1000000',generation:'1',nonce:'1',reserved:'0',orderIds:['0','0','0','0'],book:JSON.parse(json(emptyOrderBook()))};
+  const common={owner:'owner',cash:'1000000',generation:'1',nonce:'1',reserved:'0',orderIds:['0','0','0','0'],book:JSON.parse(json(emptyLegacyOrderBook()))};
   state.participants={long:{...common,id:0,lots:'3',virtualScaled:'-180000300000000',fundingCheckpointScaled:'100000000'},short:{...common,id:1,lots:'-3',virtualScaled:'180000000000000',fundingCheckpointScaled:'0'}};
   const event={type:'oracle',signature:'s',outer:0,inner:0,ordinal:0,slot:1,blockTime:100,bytes:'',data:{domain:'domain',market:'market',sequence:'2',termsEpoch:'1',configEpoch:'2',fundingIndexScaled:'100000000',fundingTime:'100',referencePrice:'60000',lower:'59400',upper:'60600',validFrom:'0',validUntil:'1000',oracle:{sampledAt:'100',heldUntil:'100',heldEpoch:'2',heldSlot:'900',status:2,sourceDeadline:'120',lastQualified:'100'}}}as Event;
   expect(()=>project(state,event,'market','domain')).not.toThrow();

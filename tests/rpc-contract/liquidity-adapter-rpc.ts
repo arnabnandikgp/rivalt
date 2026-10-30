@@ -34,7 +34,7 @@ try {
       const adapter = snapshot.liquidity!.adapters.find(candidate => candidate.registration === maker.registration)!;
       assert.equal(adapter.unavailable,null);
       const rawCapital = (await h.read(maker.capital))!;
-      assert.deepEqual(Buffer.from(sdk.getMarginAccountV3Encoder().encode(adapter.capital)),rawCapital);
+      assert.deepEqual(Buffer.from(sdk.getMarginAccountEncoder().encode(adapter.capital)),rawCapital);
       assert.equal(adapter.capital.cash,1_000_000n);
       for (const lots of [1n,3n]) {
         const quoted = adapter.quote(side,lots);
@@ -43,7 +43,7 @@ try {
         const expected = side === 0 ? (lots === 1n ? 10003n : 30017n) : (lots === 1n ? 9998n : 29989n);
         assert.equal(quoted.gross,expected);
         await h.quote(`P31 authenticated ${marketIndex}/${adapter.config.instance}/${side}/${lots}`,
-          maker.module.getQuoteV4Instruction({ config: maker.config,price: maker.price,request: adapter.request(side,lots) }),quoted.gross);
+          maker.module.getQuoteCurveInstruction({ config: maker.config,price: maker.price,request: adapter.request(side,lots) }),quoted.gross);
         observations.push({ marketIndex,instance: adapter.config.instance,program: maker.pricingProgram,side,lots,
           quote: quoted,contextSlot: snapshot.contextSlot,slot: snapshot.slot,depthHints: adapter.depthHints(side) });
       }

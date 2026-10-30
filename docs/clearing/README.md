@@ -23,7 +23,7 @@ complete default. Maker execution pricing belongs to [liquidity](../liquidity/RE
 
 ## Source map
 
-- [State](../../programs/clearing/src/state/v3/) and [maker/publisher state](../../programs/clearing/src/state/v4.rs).
+- [State](../../programs/clearing/src/state/accounts/) and [maker/publisher state](../../programs/clearing/src/state/liquidity.rs).
 - [Custody](../../programs/clearing/src/instructions/account_custody/),
   [orders/engine](../../programs/clearing/src/instructions/account_trading/),
   [cash/claims](../../programs/clearing/src/instructions/account_cash/),
@@ -32,6 +32,8 @@ complete default. Maker execution pricing belongs to [liquidity](../liquidity/RE
   [independent expectations](../../tests/financial/).
 
 The current runtime uses schema-3 financial accounts under immutable profile 4.
-Older profiles still exist in source. Their removal and canonical naming are
-pending work, not a different interpretation of existing bytes. Only the explicit
+Older profiles still exist in source. Current definitions now have canonical names and shared records live in
+`state/records.rs`. The current reservation/funding adapter still uses the older
+group engine internally; P37 must extract that live dependency before retiring
+its prototype handlers. No existing bytes acquire different economic semantics. Only the explicit
 qualified local artifact activates this implementation; default/devnet gates remain.

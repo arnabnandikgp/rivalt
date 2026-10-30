@@ -43,7 +43,7 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import {
-  findMarketPda,
+  findLegacyMarketPda,
   findReceiverBindingPda,
   findReceiverPda,
   findRouteStatePda,
@@ -308,7 +308,7 @@ export async function getLiquidateInstructionAsync<
 
   // Resolve default values.
   if (!accounts.market.value) {
-    accounts.market.value = await findMarketPda({ programAddress });
+    accounts.market.value = await findLegacyMarketPda({ programAddress });
   }
   if (!accounts.receiver.value) {
     accounts.receiver.value = await findReceiverPda(

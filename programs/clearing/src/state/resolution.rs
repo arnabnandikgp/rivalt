@@ -37,7 +37,7 @@ pub struct ResolutionHeader {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace)]
-pub struct ResolutionRow {
+pub struct LegacyResolutionRow {
     pub cash_before: u64,
     pub lots: i64,
     pub generation: u64,
@@ -58,6 +58,6 @@ pub struct ResolutionState {
     pub market: Pubkey,
     pub header: ResolutionHeader,
     #[max_len(64)]
-    pub rows: Vec<ResolutionRow>,
+    pub rows: Vec<LegacyResolutionRow>,
     pub bump: u8,
 }
