@@ -261,7 +261,12 @@ because its regression still compared schema-5 output directly with the immutabl
 pre-change fixture. The regression now verifies both the original predecessor and
 the enumerated D84 delta, without refreshing the fixture; its CI checkout includes
 that predecessor. All 11 ABI regression cases and the explicit wire guard pass
-locally. Hosted recheck and integration remain pending; no production/throughput claim.
+locally. The hosted recheck passed the ABI tests, then exposed the report fixture
+still embedding its cursor inside the financial payload. Moving the fixture cursor
+to its journal envelope preserves the literal cash/claim/fee expectations; all
+three report/availability reader tests now pass locally, including five financial
+corruption rejections. Hosted recheck and integration remain pending; no
+production/throughput claim.
 P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on
 `96790ef` / `f8984e0`. No external access blocker remains.
 
