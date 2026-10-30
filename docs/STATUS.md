@@ -229,7 +229,9 @@ real 32 KiB heap exhaustion after two row payloads and before the scoped footer.
 It is not a CU or financial-admission failure. The candidate now borrows the
 resolution root snapshot and footer rows instead of allocating duplicate vectors;
 exact wire parity is checked before rebuilding. No heap/CU limit or financial rule
-is relaxed. Evidence is retained in `p40b-safety-a44b26b/`. Complete rebuilt safety
+is relaxed. Four borrowed-payload parity tests and seven footer/header cases pass.
+Clean SBF `304da5c` rebuilds both clearing profiles without oversized frames;
+updated measured artifact hashes are pinned for the next signed run. Evidence is retained in `p40b-safety-a44b26b/`. Complete rebuilt safety
 and journal acceptance is still pending, so P40B is not yet Review. Broad unrelated,
 browser and endurance suites are omitted; P44 owns fresh full qualification.
 P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on

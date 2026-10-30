@@ -2,16 +2,15 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "651cc29ad7038d614f83b572932b349bb9d8a4c4c739593233518f189f81d31c",
-    "maker_a": "a410248febd8332bdcb7842ddbdda33ef8cba9e0a0f31dc3a0a06c14195077ce",
-    "maker_b": "6cc466d349027ed6a89571d172e0779dd15eed576f2c5844103ebda8653a8ea3"
+    "clearing": "8e00e3d05e20e94a58c5c6c591625a08bda7a5953f1f6f8bf635c937eca1a868",
+    "maker_a": "e1ff26a02f22416ed33bd545f4ddb1dc1140fe495d6963a8b8a39332e4e80679",
+    "maker_b": "b2c70b3958835ebe428496efc4eb915ee2b4964165c610af3f1aa96a239ad126"
   },
   "instructions": [
     {
       "program": "clearing",
       "name": "activate_liquidity",
       "write": [
-        "qualification.custody",
         "qualification.safety",
         "qualification.btc",
         "qualification.eth"
@@ -19,6 +18,7 @@
       "read": [
         "qualification.authority",
         "qualification.venue",
+        "qualification.custody",
         "qualification.btc_ledger",
         "qualification.eth_ledger",
         "qualification.vault",
@@ -87,7 +87,6 @@
       "program": "clearing",
       "name": "approve_liquidity",
       "write": [
-        "custody",
         "market",
         "registration",
         "config"
@@ -95,6 +94,7 @@
       "read": [
         "actor",
         "venue",
+        "custody",
         "safety",
         "capital",
         "price",
@@ -164,11 +164,11 @@
       "program": "clearing",
       "name": "check_market_backing",
       "write": [
-        "custody",
         "certificate"
       ],
       "read": [
         "venue",
+        "custody",
         "safety",
         "registry",
         "btc",
@@ -233,13 +233,13 @@
       "program": "clearing",
       "name": "configure_funding_publisher",
       "write": [
-        "custody",
         "market",
         "configuration"
       ],
       "read": [
         "authority",
         "venue",
+        "custody",
         "safety",
         "event_authority",
         "program"
@@ -253,7 +253,6 @@
       "program": "clearing",
       "name": "control_liquidity",
       "write": [
-        "custody",
         "market",
         "registration",
         "config"
@@ -261,6 +260,7 @@
       "read": [
         "actor",
         "venue",
+        "custody",
         "safety",
         "capital",
         "price",
@@ -285,11 +285,11 @@
       "name": "create_portfolio",
       "write": [
         "owner",
-        "custody",
         "portfolio"
       ],
       "read": [
         "venue",
+        "custody",
         "safety",
         "system_program",
         "event_authority",
@@ -481,7 +481,9 @@
         "venue",
         "custody",
         "safety",
-        "system_program"
+        "system_program",
+        "event_authority",
+        "program"
       ],
       "signers": [
         "payer"
@@ -500,7 +502,9 @@
         "venue",
         "custody",
         "safety",
-        "system_program"
+        "system_program",
+        "event_authority",
+        "program"
       ],
       "signers": [
         "payer"
@@ -517,7 +521,9 @@
       "read": [
         "venue",
         "safety",
-        "system_program"
+        "system_program",
+        "event_authority",
+        "program"
       ],
       "signers": [
         "payer"
@@ -529,12 +535,12 @@
       "name": "initialize_funding_publisher",
       "write": [
         "authority",
-        "custody",
         "market",
         "configuration"
       ],
       "read": [
         "venue",
+        "custody",
         "safety",
         "registry",
         "system_program",
@@ -551,11 +557,11 @@
       "name": "initialize_liquidity",
       "write": [
         "authority",
-        "custody",
         "registry"
       ],
       "read": [
         "venue",
+        "custody",
         "market",
         "safety",
         "system_program",
@@ -571,12 +577,12 @@
       "program": "clearing",
       "name": "initialize_liquidity_oracle",
       "write": [
-        "custody",
         "market"
       ],
       "read": [
         "authority",
         "venue",
+        "custody",
         "safety",
         "event_authority",
         "program"
@@ -616,11 +622,11 @@
       "write": [
         "authority",
         "venue",
-        "custody",
         "market",
         "ledger"
       ],
       "read": [
+        "custody",
         "safety",
         "system_program",
         "event_authority",
@@ -636,11 +642,11 @@
       "name": "initialize_market_backing",
       "write": [
         "payer",
-        "custody",
         "certificate"
       ],
       "read": [
         "venue",
+        "custody",
         "safety",
         "system_program",
         "event_authority",
@@ -656,11 +662,11 @@
       "name": "initialize_venue_registry",
       "write": [
         "authority",
-        "custody",
         "registry"
       ],
       "read": [
         "venue",
+        "custody",
         "safety",
         "system_program",
         "event_authority",
@@ -770,12 +776,12 @@
       "program": "clearing",
       "name": "pause_venue",
       "write": [
-        "custody",
         "safety"
       ],
       "read": [
         "authority",
         "venue",
+        "custody",
         "btc_ledger",
         "eth_ledger",
         "vault",
@@ -842,13 +848,13 @@
       "program": "clearing",
       "name": "publish_funding_report",
       "write": [
-        "custody",
         "market",
         "configuration"
       ],
       "read": [
         "publisher",
         "venue",
+        "custody",
         "safety",
         "primary_asset",
         "primary_collateral",
@@ -866,13 +872,13 @@
       "program": "clearing",
       "name": "quarantine_liquidity",
       "write": [
-        "custody",
         "market",
         "registration"
       ],
       "read": [
         "authority",
         "venue",
+        "custody",
         "safety",
         "capital",
         "event_authority",
@@ -950,7 +956,6 @@
       "name": "register_liquidity",
       "write": [
         "owner",
-        "custody",
         "registry",
         "registration",
         "capital_binding"
@@ -958,6 +963,7 @@
       "read": [
         "authority",
         "venue",
+        "custody",
         "safety",
         "market",
         "capital",
@@ -980,13 +986,13 @@
       "name": "register_margin",
       "write": [
         "owner",
-        "custody",
         "registry",
         "portfolio",
         "margin"
       ],
       "read": [
         "venue",
+        "custody",
         "safety",
         "system_program",
         "event_authority",
@@ -1001,7 +1007,6 @@
       "program": "clearing",
       "name": "replenish_liquidity",
       "write": [
-        "custody",
         "market",
         "registration",
         "config"
@@ -1009,6 +1014,7 @@
       "read": [
         "actor",
         "venue",
+        "custody",
         "safety",
         "capital",
         "price",
@@ -1084,12 +1090,12 @@
       "program": "clearing",
       "name": "seal_liquidity",
       "write": [
-        "custody",
         "registry"
       ],
       "read": [
         "authority",
         "venue",
+        "custody",
         "market",
         "safety",
         "first",
@@ -1152,13 +1158,13 @@
       "program": "clearing",
       "name": "transfer_account_custody",
       "write": [
-        "custody",
         "donor",
         "recipient"
       ],
       "read": [
         "owner",
         "venue",
+        "custody",
         "safety",
         "btc_ledger",
         "eth_ledger",
