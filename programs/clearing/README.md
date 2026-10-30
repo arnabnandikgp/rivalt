@@ -1,5 +1,8 @@
 # Clearing program source map
 
+Start with the [current clearing guide](../../docs/clearing/README.md). The source
+map below includes older still-present profiles; their retirement is pending P37.
+
 The clearing program owns collateral, participant accounting, execution authority,
 funding, orders and risk transitions. `financial-core` supplies checked arithmetic;
 off-chain services submit transactions but cannot override these rules.
@@ -105,5 +108,5 @@ Program state and events are re-exported at the crate root for Anchor/IDL client
 
 Schema-3 account-centric custody lives in `src/instructions/account_custody/`
 (contexts and handlers), with independent layouts under `src/state/v3/`.
-[P23](../../docs/P23-ACCOUNT-CUSTODY.md) records its additive ABI/authority gates;
-financial trading remains disabled until its own safety acceptance.
+[Current accounts](../../docs/clearing/accounts.md) records authority/layouts;
+[STATUS](../../docs/STATUS.md) distinguishes qualified local profiles from gated builds.

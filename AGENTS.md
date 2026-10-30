@@ -1,102 +1,93 @@
-# Rivalt implementation instructions
+# Working on Rivalt
 
-## Read and orient
+Rivalt is common clearing with competing margined maker programs. The current
+bounded local implementation supports BTC/ETH, one collateral mint and isolated/
+cross accounts. Start with the current contracts, not historical phase proposals.
 
-1. Read README.md and docs/WORKLOG.md at the start of every session.
-2. Read docs/01-PRODUCT.md, docs/DECISIONS.md and the current phase in docs/05-DELIVERY-PLAN.md.
-3. Read docs/02-PROTOCOL.md before any economic/account/order/risk change; docs/03-COMPONENTS.md for interfaces; docs/04-STACK-AND-VALIDATION.md for stack and verification.
-4. Inspect the repository and existing work before editing. The supplied kit is documentation, not proof that its described code exists.
+## Orient and choose the relevant contract
 
-Later explicit user instructions take precedence. The documents divide authority by topic; they should agree. If a genuine contradiction changes economics or authority, record and resolve it rather than selecting a convenient sentence. Historical research does not override this baseline. SOURCE-AUDIT is provenance, not a requirement to fetch its links.
+1. Read [README](README.md), [the documentation map](docs/README.md) and [STATUS](docs/STATUS.md).
+2. Inspect Git state and existing code; preserve unrelated user work and secrets.
+3. Read the component overview and exact reference for the area being changed:
 
-## Preserve the selected design
+| Code / task | Required references |
+|---|---|
+| `programs/clearing`, `crates/financial-core`, account/risk SDK | [Clearing](docs/clearing/README.md), [accounts](docs/clearing/accounts.md), [accounting](docs/clearing/accounting.md), [risk/default](docs/clearing/risk-and-resolution.md) |
+| Maker programs, `crates/maker-interface`, pricing/router/publisher | [Liquidity](docs/liquidity/README.md), [quoting](docs/liquidity/quoting.md), [routing](docs/liquidity/routing.md), [funding](docs/liquidity/funding.md) |
+| SDK/API, services, indexer, maker kit, trader UI | [Application](docs/application/README.md), [interfaces](docs/application/interfaces.md), [durability](docs/application/durability.md) |
+| Build/test/runtime/config/deployment | [Operations](docs/operations/README.md), [local setup](docs/operations/local-development.md), [deployment](docs/operations/deployment.md), [validation](docs/operations/validation.md) |
 
-- New common-clearing perp venue; not Cinder and not external-venue routing.
-- One BTC market, classic SPL six-decimal test collateral, isolated accounts.
-- Three first-party programs: clearing, maker A and maker B. Route execution is inside clearing.
-- Off-chain allocation, at most two distinct makers, all-or-nothing submitted route.
-- Funded cash is distinct from unpaid P&L; zero positive unpaid-P&L margin credit.
-- 2 bps taker fee, 0 bps provider-side maker fee, no quote/cancel protocol tariff, token, airdrop, volume tiers or automatic rebates.
-- Existing-position reduce-only TP/SL; no entry-linked brackets, trailing stops or general IOC in MVP.
-- Independent index-derived risk valuation; actual-fill candles; authenticated common funding.
-- Complete-cohort exceptional resolution. No keeper-selected haircut.
-- Participant PDAs, durable on-chain order authority and explicit shared market coordination.
-- Never give maker CPI the vault signer or arbitrary writable clearing accounts.
+Cross-component changes read each affected contract. Financial/authority changes
+always read clearing, even when the edit is in a client or worker. Use [DECISIONS](docs/DECISIONS.md)
+for rationale and [HISTORY](docs/HISTORY.md) for targeted provenance. Do not read
+all old phases or fetch research archives as routine preparation.
 
-The authorized schema-2 successor supersedes the one-market/isolated-only and
-market-local settlement/default boundaries only for its fresh bounded test group.
-Read docs/P17-MARGIN-CONTRACT.md and D45–D48 before successor work. Preserve V1,
-two-market/one-mint scope, no positive unpaid margin credit, isolated maker capital,
-and disabled cross trading until P20 acceptance. P15B/P16B stay external gates.
+Later explicit user instructions take precedence. Resolve a material contradiction
+between current specifications and implementation explicitly; never choose a
+convenient historical rule or silently change economics. Describe existing code,
+intended changes and actual verified results separately.
 
-D56 authorizes the next account-centric redesign in a fresh bounded local profile.
-Read docs/P22-ACCOUNT-CENTRIC-CLEARING.md before P22–P28 work. P22A records the
-roadmap; P22B must resolve the exact financial contract, including loss ownership
-and cross-market netting, before dependent implementation. Preserve V1/V2; new
-financial activation remains disabled until P26 safety acceptance. Do not infer
-permission for changed loss bearers or positive unpaid-profit credit from a UI or
-account-layout change. P15B/P16B and deferred 24-hour endurance are unchanged.
+## Protected boundaries
 
-D57 selects market-attributed loss ownership for that fresh profile. D58 approves
-seed-plus-fee insurance funding and a 25% share of collected taker fees for the
-originating market's reserve, retaining 75% in protocol fees. Read P22B section 7
-for exact carry/authority rules; preserve total 2 bps/zero-provider fees and V1/V2.
+- One collateral mint, BTC/ETH, isolated maker capital; no implicit sibling backing,
+  positive unpaid-profit margin credit, correlation discounts or live mode conversion.
+- Funded cash and unpaid/fractional claims stay separate. Preserve whole-account
+  funding, reservations and held-window checks for transfers/withdrawals.
+- 2 bps aggregate taker/zero provider fee; 25% of collected fees to the originating
+  market's insurance with exact carry. No token, tiers or automatic rebates.
+- At most two distinct maker capitals per atomic route; actual execution retains
+  full financial admission, signed user limits and exact authority/epoch checks.
+- Maker CPI gets only its bounded approved dependencies, never the vault signer or
+  arbitrary writable clearing accounts. Updater authority only reprices.
+- Independent index-derived risk. Funding uses restricted attested published depth;
+  no hypothetical maker-margin admission there and no claim of guaranteed liquidity.
+- Existing-position reduce-only TP/SL; complete-cohort market-attributed default,
+  consenting funded liquidation receiver and strict progress after fees.
+- Preserve numeric schema/domain/replay checks and explicit default/devnet gates.
+  Unsupported/unfinished paths reject; no success-returning financial stubs.
 
-## Work phase by phase
+## Make changes reviewable
 
-Use P01–P34 as the delivery units, retaining existing IDs and the documented successor suffixes. Each normally produces one cohesive PR or equivalent reviewable local branch/commit set, with its own runnable acceptance evidence. A phase may span several runs. Do not split it into dozens of task PRs or combine several phases into an unreviewable change. If implementation evidence requires splitting a phase, preserve its original ID, add a justified suffix and update plan/worklog.
+Use checked integer/fixed-point arithmetic and decimal-string JSON. Do not infer
+wire compatibility from a type rename: discriminators, layouts, PDA seeds, account
+metas, error numbers and signed domains need explicit verification. Generate IDL/SDK
+outputs from source; keep legacy Anchor conformance dependencies isolated.
 
-D69 records the maker-liquidity roadmap; D70 records subsequent user authorization
-to implement P29B–P34 sequentially. Read docs/P29-MAKER-LIQUIDITY-ROADMAP.md and
-docs/P29B-MAKER-CONTRACT.md before this work. P29B freezes the quote/update/routing/
-funding contract before implementation; new execution stays disabled until P32
-safety acceptance. Preserve the two-maker atomic execution limit,
-financial engine, external gates and deferred endurance. Keep the new ready PR
-stack open until separately instructed to merge.
+Update the affected current spec in the same PR when behavior, interfaces, commands
+or supported limits change. Add a dated decision for a material authority/economic/
+architectural choice, preserving its previous rationale through Git provenance.
+Keep one normative document per topic; do not add a phase document for each task.
 
-D74 supersedes maker financial admission inside profile-4 funding sampling only:
-use authenticated published depth, preserving price/source/coverage safeguards.
-Actual execution keeps complete financial admission. Temporary failure-based
-maker exclusion is deferred; do not describe published funding depth as guaranteed
-executable liquidity. Requalify the changed sampler before claiming resource fit.
+Use one cohesive ready PR per approved deliverable. Use `gh stack` for dependent
+branches and `gh stack submit --auto --open`; never draft PRs. A verified exact
+parent in Review is a development dependency; do not wait for its merge to continue
+routine authorized work. Keep this stack open until separately instructed to merge.
+If publication is unavailable, leave reviewable local commits and record it honestly.
+The active approved sequence is in [the consolidation plan](docs/REPOSITORY-CONSOLIDATION.md).
 
-D75 selects a restricted off-chain funding publisher within P32–P34; read
-docs/P32-FUNDING-PUBLISHER.md. This supersedes per-sample on-chain maker hashing,
-CPI and allocation verification for the fresh profile's funding path. The backend
-attests complete fresh published liquidity; clearing retains report authorization,
-independent source/bounds checks and causal funding accounting. Exact layouts and
-transitions must be frozen before implementation; no activation or resource pass
-follows from the accepted design. Execution financial admission stays unchanged.
+## Verify and hand off
 
-Proceed through authorized routine implementation without asking to start each run. Finish and verify each deliverable before moving on, then continue its dependent phase without waiting for the previous PR to merge. A verified predecessor in Review satisfies the implementation dependency when its exact commits are included in the new branch. Use `gh stack` to manage these branches and their parent/base relationships. Submit ready-to-review PRs with `gh stack submit --auto --open`; never create draft PRs. If remote access is unavailable, leave reviewable local commits and mark publication pending. Keep unmerged phases in Review, not Closed; do not claim a PR exists or is merged when it does not.
+Choose checks using [validation](docs/operations/validation.md). Run affected tests
+and acceptance requirements, not every inherited suite before every PR. Broad
+regression belongs in appropriate CI; never claim unobserved CI results. Financial
+expected vectors must be independently derived, not the implementation called twice.
+Use actual signed deployed programs, Surfpool RPC/WS and PostgreSQL for integration.
+Fixtures may provision state, never fabricate successful financial effects.
 
-Production/funded deployments, paid services, outreach, recruiting and external hedging require their own authorization. Request a devnet RPC credential through secure configuration only when P13 needs it. An independent review or user pilot is an external gate, not something to fabricate.
+Keep raw logs/transactions/evidence at existing ignored local paths. Track only
+concise validation claims and bounded regression fixtures. No required archive,
+upload or per-run evidence document. Runtime configuration is explicit, never an
+acceptance dump. Do not delete active DBs, keys, evidence or user research for space.
 
-## Implementation discipline
+Before ending substantive work, commit the coherent change and update STATUS with
+current progress, tested revision, actual results/omissions, blockers and one exact
+next action. Put detailed checks in the PR. Update validation when its claims
+change and HISTORY for meaningful integration; do not append a permanent run diary.
+Review means accepted work awaiting integration; Closed requires acceptance plus
+integration. Never invent a test, deployment, soak, PR, merge or external review.
 
-- Establish exact lockfiles and verify actual installed package versions in P01; do not assume Anchor's TS client uses the modern web3.js transport.
-- Keep legacy conformance dependencies isolated. No workspace override that makes them appear compatible.
-- Use integer/fixed-point checked arithmetic; explicit units and decimal strings in JSON. No floating-point settlement.
-- Write an independent economic reference/expected vectors; tests cannot merely call the implementation twice.
-- Scope PR verification to changed behavior and the phase's acceptance gates. Do not rerun unrelated inherited suites before every PR. Put broad regression in CI when a supported runner exists; P11's integrated matrix and P12's D35 bounded qualification/large-history replay remain explicit phase deliverables. Record skipped checks and the reason without claiming CI ran when it did not.
-- Source restoration is optional targeted reuse. Do not download all research or block P01 on missing archives. Never claim old test counts validate new code.
-- Use real deployed local programs, PostgreSQL and standard RPC/WS for service E2E. Fixtures may provision the environment, not fabricate successful deposits/fills/settlements.
-- Critical events, database checkpoints, failed transaction logs and ambiguous retries must follow the indexing contract.
-- Keep unfinished financial instructions disabled; no success-returning stubs. Early phases operate only within their implemented test profile.
-- Do not replace the user's container setup or install Docker Desktop as an assumption. A reproducible native/Apple Containers path is acceptable; verify its actual capabilities.
-- Secrets and production credentials stay out of source, logs and evidence.
-
-
-- Keep raw run evidence at its existing local paths, untracked and ignored. Track concise Markdown summaries and bounded regression fixtures; no archive or upload is required. Runtime launchers must use explicit deployment configuration, not retained acceptance dumps.
-
-## Required run closeout
-
-Before ending every substantive run:
-1. Update milestone and phase status in docs/WORKLOG.md.
-2. Append a run entry: phase, delivered changes, actual commands/checks, outcomes, evidence paths/commit/PR, blockers and exact next action.
-3. Update current specs/DECISIONS in the same change when behavior changes. Append supersession records; do not silently erase rationale.
-4. Record tests not run and why. Mark Closed only after the phase acceptance criteria are met on recorded code and the changes are integrated into the intended baseline. A PR awaiting integration is Review.
-5. Commit the coherent change when operating in a Git repository. Never invent hashes, benchmark results or review approvals.
-
-A milestone closes only when all its phases close and its cross-phase exit check passes. Documentation preparation does not close P01. Do not create a scheduled automation merely because the plan includes soak tests or recurring CI.
-
+P15B/P16B remain independent external gates; 24-hour endurance remains Deferred.
+Production/funded deployment, paid services, outreach/recruitment and external
+hedging require separate authorization. Do not create scheduled automation merely
+because a plan mentions recurring qualification. Continue routine authorized work;
+escalate genuine access/credential/participant blockers or material economic changes.

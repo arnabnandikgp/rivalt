@@ -2,8 +2,9 @@
 
 Planning baseline: `1f1a5aac4c47844517c1cc190e2bdcd578bc346b` (30 October 2026).
 The user requests one readable current implementation, component documentation,
-and a maintenance-oriented agent handoff. This document plans that work; no
-account rename, legacy removal, migration or new qualification is already complete.
+and a maintenance-oriented agent handoff. The user approved execution after this planning checkpoint. P35 consolidates the
+docs/handoff; source renaming and retirement remain P36/P37. A separate final P38
+PR rewrites the root README at the user’s subsequent request.
 
 ## What the inventory establishes
 
@@ -134,7 +135,8 @@ docs/
     validation.md               Scoped check map, verified pins and measured limits
 ```
 
-README at the repository root becomes a short product/repository entrypoint.
+P38 makes the root README a short professional product/repository entrypoint.
+P35 repairs its links and reading directions only.
 Program/package READMEs remain useful code maps, linking to their owning contract.
 The consolidation plan itself is temporary active work; fold its lasting rules
 into these documents when it completes.
@@ -196,7 +198,7 @@ an agent to reconstruct the old one-market scope through a chain of amendments.
 
 ## Practical PR sequence
 
-Use P35–P37 only as work tracking IDs; lasting docs use component names. Each PR
+Use P35–P38 only as work tracking IDs; lasting docs use component names. Each PR
 must compile/run on its own, include required consumer changes, and stay reviewable.
 
 | PR | Cohesive deliverable | Required verification |
@@ -204,6 +206,7 @@ must compile/run on its own, include required consumer changes, and stay reviewa
 | P35 — documentation and handoff | This inventory/plan, source-to-doc mapping, consolidated current guides, concise status/history/decisions, new AGENTS; remove superseded phase/evidence prose after mapping | Every original tracked doc has a destination/history disposition; current invariants/limits mapped; relative links/anchors and code paths valid; referenced commands exist; no executable changes or runtime reruns |
 | P36 — canonical names and ABI | Extract shared primitives; rename current Rust accounts/records/contexts/events/entrypoints and generated clients, update affected consumers; temporarily isolate colliding old implementations | Pinned old/new wire manifest equality for current paths; raw encoding/decoding/PDA negatives; IDL/generated and isolated legacy Anchor parity; affected builds/typechecks; fresh compiled route/publisher probes and resource checks |
 | P37 — legacy retirement and consolidated runtime | Remove consumers/build paths/harnesses proven obsolete; make launchers, SDK exports and current app use one implementation; preserve required history decoding and port invariant coverage | Fresh current-profile custody/trading/orders/TP-SL/funding/exits and liquidation/default checks, independent financial cases, actual RPC/WS/PostgreSQL rebuild/recovery, targeted browser signing and full-book resource limits on rebuilt artifacts |
+| P38 — professional README | Concise project purpose, architecture, truthful implementation status and validated quick start after the preceding work | Link/command/status checks; no unrelated runtime reruns |
 
 Generated changes are reviewed separately from handwritten changes, but land with
 the source that generates them. If the dependency audit requires dividing a large
