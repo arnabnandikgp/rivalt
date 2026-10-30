@@ -52,8 +52,9 @@ remain Open and endurance Deferred; no external/funded activity is authorized.
 
 P36 implements this with explicit original discriminator attributes and a small
 name-independent wire manifest, not aliases over old current definitions. Shared
-records have one definition. Older colliding runtimes remain explicitly named until
-P37 audits their live consumers; the current adapter still uses the group engine.
+records have one definition. At the P36 checkpoint, older colliding runtimes remained
+explicitly named and the current adapter still used the group engine. P37 extracts
+that live engine and retires its obsolete consumers under D81 below.
 Stored journal/API event tags remain versioned schema identities, so a source
 rename does not rewrite historical rows or weaken profile checks.
 

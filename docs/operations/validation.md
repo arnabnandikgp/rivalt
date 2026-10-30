@@ -4,7 +4,7 @@ A pass applies to its exact code, binaries, environment and population. The
 consolidation baseline integrates P29–P34 at `b80bb38`, with complete tree equal to
 reviewed `9e6dd07`; documentation closeout is `1f1a5aa`. P35 changes documentation,
 not these program artifacts. P36 adds the separately scoped rebuilt-code evidence
-below; P37 still requires fresh integrated qualification after retirement.
+below; P37's fresh integrated qualification after retirement is recorded separately.
 [Original reports](../HISTORY.md) retain complete commands, failed attempts and pins.
 
 ## Checks by change
@@ -44,9 +44,9 @@ checks; current workflow selection lives in `ops/ci-scope.py`.
 | Stack review remediation | `791fb8d` | Real expiry/nonapplication/retry, 370 service originals, 174-event fresh PG replay and per-trader audit |
 | Self-review of skipped large PRs | `608f73c` | Unchanged final SBF artifacts; independent price vectors, compiled lifecycle and fresh publisher/execution RPC probes; not independent security approval |
 
-The historical canonical SBF set was built at `6437f7d`. The current P36 candidate
-is rebuilt from clean `cff1cf9`; SDK artifact definitions and local manifests pin
-its actual hashes. P35 adds no build/deployment/soak claim.
+The historical canonical SBF set was built at `6437f7d`; P36 rebuilt at `cff1cf9`.
+The current P37 candidate is built from clean `828fe543`; SDK artifact definitions
+and local manifests pin actual hashes. P35 adds no build/deployment/soak claim.
 Original P13/P14 devnet evidence is earlier behavior; neither the current profile
 nor v1 external-wallet compatibility inherits it.
 
@@ -150,4 +150,85 @@ instruction-parity evidence. The harness now uses discriminator identity and fai
 empty coverage. Both runs remain local. P36 additionally checks native wire sizes,
 PDA/schema negatives, generated parity, typecheck and affected consumer projections.
 No PostgreSQL replay, new external wallet, endurance or external approval follows
-from these scoped tests. P37 must qualify its changed integrated implementation.
+from these scoped P36 tests. P37's changed implementation is qualified below.
+
+## Current-runtime consolidation qualification
+
+P37's clean SBF source is `828fe5431433f19cd562a23f44c45258ddbd61aa`; allowlist
+`629d44a` records measured binaries. Later commits change consumers, launchers,
+verification or documentation; no program/IDL change follows that build. Retained
+wire hashes match the exact pre-retirement `b89768b` interface. Removed APIs are
+listed explicitly in `tests/fixtures/wire-contract.json`; old deployments are not
+upgraded or migrated. Clearing is 2,290,224 bytes, each maker 260,560; oracle fixture
+unchanged. Qualified/default builds and stack diagnostics pass.
+
+| Fresh scope | Verifier / evidence under `.local/` | Actual result |
+|---|---|---|
+| Custody | `629d44a`; `liquidity-execution/runs/p37-custody-629d44a/` | 57 signed outcomes, 25 events; raw token/cash audit and eight corruptions rejected |
+| Publisher | `6819b1f`; `liquidity-execution/runs/p37-publisher-current/` | 84 outcomes / eight reports; 87 instruction, two account, 88 event Anchor comparisons |
+| Execution | `6819b1f`; `liquidity-execution/runs/p37-execution-6819b1f/` | 130 outcomes; cash/claims/fees/depth plus foreign pause authority, active pause/unpause and epoch invalidation |
+| Safety/default | `6fd5d02` transaction harness; corrected auditor `9703039`, final captured-byte conformance `a9878a0`; `liquidity-execution/runs/p37-safety-pages/` | 290 signed outcomes; liquidation, complete default, stale-source terminal exit, recovery/reactivation; eight exact Fraction payouts and ten audit corruptions rejected |
+| Full books | `liquidity-execution/runs/p37-resources-{protected,entry,stored}/` | 147 / 165 / 165 outcomes; all three book variants, eight regions, maximum quantity, two-maker rollback and stale depth authority |
+| Services/browser | `a9878a0`; `liquidity-execution/runs/p37-services-a9878a0/` | 343 durable originals, 84 reports, ten browser and two CLI actions, three real SIGKILL/lost-ack recoveries; identical 169-event fresh PostgreSQL replay |
+| SQL journal | final recorder `f6b84a0`; `liquidity-execution/runs/p37-journal-canonical/` | 120 outcomes, 89 stored transactions / three failed, 72 events; SQL rollback, restart, immutable conflicts, reverted-event exclusion and fresh replay |
+| Operational recovery/exit | runtime `d62c709`; `liquidity-execution/qualification/p37-operations-tcp/operations/` | 343 harness outcomes; 84 worker originals, restart during proposal upload, ten-root default/recovery/full funded exit, identical fresh PG replay; 452 vault atoms remain as insurance/fees only |
+| Interactive demo | `a0a3651`; `demo-checks/p37-current-receipts/` and `p37-interactive-demo-current/` | 13 actual local-wallet originals; both modes, allocation, BTC/ETH, TP/SL/cancel, closes, withdrawal and reload; owned runtime stopped and ports released |
+| Compiled hostile CPI | `15ee603`; `liquidity-execution/hostile-svm.json` | Five rejection/rollback cases across 114 signed VM transactions; wrong price/length, read-only write, maker error and unapproved replacement |
+
+Full-book verifiers are respectively `7816aa4`, `9703039`, `a9878a0`. The first was
+recorded before a local amend of the independent safety auditor; its current
+counterpart `9703039` changes only that unrelated auditor, with identical program
+and resource harness. Raw provenance is retained verbatim. Operational and journal
+source stays identical during later unrelated harness/demo commits; their recorded
+runtime/final-recorder pins remain distinct from the SBF pin.
+
+Independent `p33_services_reference.py` reconciles each trader's cash, funding,
+claims and fee carries, all six internal maker reports and exactly 267/61 fee atoms.
+Independent `p34_operations_report.py` reproduces ten Fraction payouts, rejects five
+corruptions and verifies each worker original's actual receipt/resources. All ten
+roots finish flat, claim-free and with zero cash. No hedge or external maker result
+is inferred. Demo signatures/bytes are independently fetched from finalized RPC.
+
+| Fresh measured operation | Maximum CU | Complete wire / loaded keys |
+|---|---:|---|
+| Publisher/control scoped cases | 30,317 | 871 bytes / 14 |
+| Ordinary execution probe | 463,965 | 1,262 bytes v1 / 26 |
+| Full protected / entry / stored book routes | 489,571 / 488,255 / 489,401 | Maximum pair route 1,165 bytes v0; other pair cases 1,262 bytes v1 / 26 |
+| Operational publisher reports | 31,535 | 775 bytes v0 / 13 |
+| Operational risk/default worker | 419,054 | 1,196 bytes v0 / 22 |
+
+The maximum route leaves 38.80% of its 800,000-CU budget. These are bounded scenario
+measurements, not a new throughput, production priority-fee or latency qualification.
+No lookup table is required. Published funding depth remains an attestation.
+
+Current client suite passes 229 cases in 55 files; subsequent scoped conformance/
+demo checks pass 19 cases (overlapping, not an additional aggregate count). Clearing
+passes 102 native tests in each qualified/default build. Both maker crate targets
+compile but contain zero native cases; actual compiled lifecycle has 123 cases /16
+rejections. Independent Rust/SDK/SBF A/SBF B pricing each agrees on 3,172 vectors;
+allocation has 415 independent cases. Financial reference checks include 2,060 wide
+arithmetic, 337 collection/flow/rate and 549 atom/continuation comparisons. Three
+compiled defaults reject valid provisioning with rollback; mixed local/devnet maker
+features reject compilation. Typecheck, generated parity, wire guard, 21 tooling
+checks, UI build and docs/evidence checks pass.
+
+The hostile VM first rejects an unapproved binary replacement. It then deliberately
+replaces only that registration's approval hash to reach malicious CPI behavior;
+all financial state came from signed instructions. This tests isolation even from
+an admitted malicious maker; it is not authorized-upgrade or RPC-landing evidence.
+
+Failed attempts remain local: obsolete publisher launcher path; dynamic resolution
+metas and variable-byte handling in isolated Anchor conformance; the safety raw
+auditor's original discriminator; PostgreSQL's temporary init-server readiness;
+a stale test-only journal label; and demo rejection-only provisioning/old receipt
+prefix. The safety lifecycle completed before its final conformance error; corrected
+post-run comparison of captured original bytes passes 560 instructions / two accounts /
+543 events. Do not describe its original shell exit as successful. Every other
+failed integrated attempt was followed by the scoped fresh pass recorded above.
+
+The separate indexer smoke is not repeated: services/operations already exercise
+the current projection and fresh database reconstruction, with journal-specific SQL
+faults separately checked. Retired-profile suites, new comparative load, 24-hour
+endurance, external wallet/devnet and independent/funded gates are not rerun or
+claimed. Hosted CI supplies broad supported client/native regression after PR
+publication; local acceptance does not imply an unobserved CI result.

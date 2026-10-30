@@ -35,9 +35,10 @@ flowchart LR
 [STATUS](STATUS.md) owns current work and limits. [DECISIONS](DECISIONS.md) explains
 material choices. [HISTORY](HISTORY.md) preserves original reports and superseded
 contracts at immutable Git revisions. Read current component contracts before
-historical references. Source still contains version-suffixed names and earlier
-profiles; the active [consolidation plan](REPOSITORY-CONSOLIDATION.md) records their
-pending refactor. Documentation does not claim those renames are already done.
+historical references. Current source has canonical domain names and one supported
+local runtime; numeric wire schemas and persisted journal tags remain explicit.
+The [consolidation plan](REPOSITORY-CONSOLIDATION.md) records retirement dispositions;
+STATUS distinguishes accepted open PRs from the integrated baseline.
 
 ## Product boundaries
 

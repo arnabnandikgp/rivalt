@@ -117,10 +117,10 @@ scope; STATUS, rather than this inventory, records which changes are implemented
 | Earlier group/indexer/UI/demo/build harnesses | Retire obsolete launch paths after extracting live helpers; launch one current profile | Port still-applicable independent checks; current signed RPC/WS/PostgreSQL/browser and full-book qualification must pass |
 | Old devnet deployments, databases, signed transactions, keys and raw evidence | Preserve in place; no migration, upgrade, rewrite or deletion | Use the old deployment's exact historical client/configuration for old accounts or unresolved originals, not the new local profile |
 
-The planned retained public program interface contains 53 clearing instructions,
+The retained public program interface contains 53 clearing instructions,
 17 clearing accounts and 27 clearing events; each maker retains four instructions,
-two accounts and two events. These are dependency-derived targets, not acceptance
-results. Their expanded ABI hashes were derived from `b89768b` before retirement.
+two accounts and two events. These dependency-derived targets now match rebuilt
+IDLs. Their expanded ABI hashes were derived from `b89768b` before retirement.
 The small wire fixture must record deliberate removals and its previous baseline;
 an old account discriminator or an unsupported profile must still reject.
 
