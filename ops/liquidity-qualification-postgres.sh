@@ -27,7 +27,7 @@ PY
     > "$RIVALT_RUN_DIR/postgres-container.txt"
   ready=0
   for _ in {1..60}; do
-    if container exec "$RIVALT_PG_CONTAINER" pg_isready -U rivalt -d rivalt >/dev/null 2>&1; then ready=1;break;fi
+    if container exec "$RIVALT_PG_CONTAINER" pg_isready -h 127.0.0.1 -U rivalt -d rivalt >/dev/null 2>&1; then ready=1;break;fi
     sleep 0.5
   done
   test "$ready" == 1

@@ -17,7 +17,7 @@ planning checkpoint `84c46d4`, and separately requested a final README PR after 
 | M11 consolidation | In progress | Component docs, canonical names, justified retirement and final README |
 | P35 component docs/handoff | Review | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50); 20 maintained docs, 93-line handoff, scoped checks pass |
 | P36 canonical names/ABI | Review | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51); renamed current API, preserved ABI and scoped compiled/RPC acceptance |
-| P37 legacy retirement/runtime | In progress | Current engine/API/launchers consolidated; native/client/reference checks pass; fresh SBF and integrated qualification remain |
+| P37 legacy retirement/runtime | In progress | Current engine/API/launchers consolidated; rebuilt SBF, safety, full-book and services/browser acceptance pass; operational recovery and demo remain |
 | P38 professional root README | Open | Separate final PR after P35–P37; concise product/architecture/quick-start/status entrypoint |
 | P15B independent maker validation | Open — external | Actual independent operator and economics; internal bots/assumed hedges cannot substitute |
 | P16B independent review/funded readiness | Open — external | Actual independent review, risk/reserve calibration and separate funded authorization |
@@ -165,14 +165,26 @@ verifier hashes are retained in their summaries; no source/program change occurr
 between the resource runs and the safety-auditor correction. Evidence directories:
 `.local/liquidity-execution/runs/p37-resources-{protected,entry}/`.
 
-P37 still requires the stored-order resource case, PostgreSQL rebuild/recovery,
-service/browser/demo and operational exit qualification before its ready PR.
+Stored-order full-book qualification also passes 165 outcomes (489,401 CU maximum
+route). At clean `a9878a0`, services/browser qualification passes 343 durable
+originals, 84 published funding reports, ten browser actions and two CLI wallet
+actions. Three actual lost-ack/SIGKILL recoveries reuse their signed originals;
+publisher rotation retains fee budgets. Fresh PostgreSQL reconstruction matches
+all 169 events, with no unresolved jobs or unexplained vault balance. Independent
+per-trader/economics replay passes for eight roots and six internal makers. Raw
+evidence: `.local/liquidity-execution/runs/p37-services-a9878a0/`.
+
+The first operational run stopped before deployment: PostgreSQL's temporary
+socket-only initialization server satisfied the readiness probe, then shut down.
+Launchers now wait for TCP readiness on the final server. Its original database
+is retained for a supported owned-cluster retry; this is a launcher race, not a
+financial failure. P37 still requires operational recovery/exit and the migrated
+interactive demo qualification before its ready PR.
 P38 remains the separate README PR. No endurance, external review, independent
 maker or funded deployment is claimed.
 
-Next exact action: complete the current PostgreSQL/services/browser qualification
-and stored-order resource case on the pinned P37 SBF set, then operational recovery
-and demo acceptance.
+Next exact action: rerun operational recovery/exit with the corrected PostgreSQL
+readiness probe on the pinned P37 SBF set, then verify the interactive demo.
 
 ## Deployment and operational limits
 

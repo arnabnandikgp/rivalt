@@ -119,7 +119,8 @@ try {
   writeFileSync(RUNTIME+'/postgres.env',`POSTGRES_USER=rivalt\nPOSTGRES_DB=rivalt\nPOSTGRES_PASSWORD=${password}\n`,{mode:0o600});
   await processes.run('postgres-launch','container',['run','--detach','--name',CONTAINER,'--platform','linux/arm64','--cpus','2','--memory','512M',
     '--publish','127.0.0.1:15443:5432','--env-file',RUNTIME+'/postgres.env','--volume',`${RUNTIME}/postgres-data:/var/lib/postgresql`,IMAGE]);
-  await until(async()=>{try{execFileSync('container',['exec',CONTAINER,'pg_isready','-U','rivalt','-d','rivalt'],{stdio:'pipe',timeout:2000});return true;}catch{return false;}},Boolean,'PostgreSQL');
+  // Do not mistake the image's temporary socket-only init server for readiness.
+  await until(async()=>{try{execFileSync('container',['exec',CONTAINER,'pg_isready','-h','127.0.0.1','-U','rivalt','-d','rivalt'],{stdio:'pipe',timeout:2000});return true;}catch{return false;}},Boolean,'PostgreSQL');
   const databaseUrl=`postgresql://rivalt:${password}@127.0.0.1:15443/rivalt`;
   stage='signed venue provisioning';setup=await liquidityExecutionSetup(transport.h,transport.rpc,{verifyRejections:false,makerCash:500_000_000n});
   const anchor=transport.anchor();await until(()=>transport!.rpc.call('getTransaction',[anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:0}]),Boolean,'initialization finality');

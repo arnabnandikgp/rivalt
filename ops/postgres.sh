@@ -27,7 +27,9 @@ container run --detach --name "$RIVALT_PG_CONTAINER" --platform linux/arm64 --cp
   > "$RIVALT_RUN_DIR/postgres-container.txt"
 ready=0
 for _ in {1..60}; do
-  if container exec "$RIVALT_PG_CONTAINER" pg_isready -U rivalt -d rivalt >/dev/null 2>&1; then ready=1;break;fi
+  # The image's temporary initialization server accepts Unix sockets before it
+  # shuts down. TCP becomes ready only on the final server used by our clients.
+  if container exec "$RIVALT_PG_CONTAINER" pg_isready -h 127.0.0.1 -U rivalt -d rivalt >/dev/null 2>&1; then ready=1;break;fi
   sleep 0.5
 done
 if [[ "$ready" != 1 ]]; then container logs "$RIVALT_PG_CONTAINER" > "$RIVALT_RUN_DIR/postgres.log" 2>&1;exit 1;fi
