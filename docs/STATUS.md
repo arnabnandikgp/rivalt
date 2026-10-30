@@ -17,7 +17,7 @@ the integration and preceding baselines.
 | P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | In progress | Split into two cohesive PRs under D83; umbrella acceptance requires A and B |
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
-| P40B scoped event history | Planned | Atomic per-entity events, versioned ABI and finalized PG replay/reconciliation |
+| P40B scoped event history | In progress | D84 freezes scoped account/event layouts; isolated atomic ordering primitive implemented, runtime/journal integration pending |
 | P41 relevant market dependencies | Planned | Preserve all consumed funding and complete risk dependencies |
 | P42 custody/accounting isolation | Planned | Exact cash/fees/insurance, narrower contexts, measured certificate progress |
 | P43 targeted CU optimization | Planned | Profile the redesigned financial paths without weakening admission |
@@ -175,8 +175,16 @@ part; no prior evidence is presented as a new pass.
 P40A is ready for review in [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56),
 stacked on #55. Accepted content is `0d124c1`; service runtime remains `9134fd6`.
 
-Next exact action: freeze P40B's scoped event/account revision contract on a new
-stack branch above #56 before program/indexer changes.
+P40B is on `performance/p40-scoped-history`, based on accepted P40A `f8984e0`.
+D84 freezes schema-5 account revisions, bounded envelopes, transaction-atomic
+read/write ordering, a fresh journal domain and the terminal retirement pause
+barrier replacing its old global sequence dependency. Six independent ordering
+cases pass; this primitive is not connected to the active journal and does not
+claim any program/SDK/database migration. No runtime layout has changed yet.
+
+Next exact action: implement scoped account revisions/envelopes under D84, including
+all mutable/readonly context and remaining-account coverage, then regenerate and
+verify the explicit successor ABI before wiring the journal.
 
 ## Deployment and operational limits
 

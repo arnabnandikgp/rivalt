@@ -121,3 +121,32 @@ because the latter spans 27 event decoders and all 53 clearing entrypoints. A's
 acceptance cannot close B, and P41 depends on B. This is an implementation split
 within the authorized sequence, not new product scope. Both PRs remain stacked and
 open; current global on-chain coordination persists until its dependent changes.
+
+## D84 — scoped revisions and a fresh journal domain
+
+On 30 October 2026, P40B freezes the D82 successor's exact
+[account](clearing/accounts.md#scoped-history-successor-contract-p40b-not-yet-activated)
+and [event/journal](application/durability.md#scoped-history-successor-contract-p40b)
+contracts before layout edits. Clearing-owned accounts move to schema 5 with local
+revisions and canonical discriminators; old state is not reinterpreted. The existing
+bounded profile/quote economics remain. Maker-owned quote accounts retain schema 4.
+Fresh local domain/genesis, explicit schema-bound clients and a fresh journal are
+required. Historical binaries, databases, signed originals and source remain intact.
+
+This supersedes custody-global event sequencing and its reconciliation fence, not
+cash/fee/liability/source/funding authority. Transaction-atomic read/write revision
+dependencies and complete finalized block fences replace it. No new globally
+writable discovery account is permitted. Pure sequence writers can become readonly;
+economic custody/market writers remain until their later accepted redesign.
+
+The terminal retirement scan currently depends on that global sequence. Replace
+this incidental dependency with an explicit existing-authority pause window bound
+to safety epoch and complete membership, preserving every liability/cash/reserve
+check. Permissionless scan calls cannot pause the venue. Ordinary own-cash exits
+acquire no new certificate. Audit all allowed paused mutations before acceptance.
+The complete resolved-header retirement branch remains separate.
+
+The P40B contract and isolated ordering tests do not activate new accounts/events.
+Require rebuilt ABI/SDK/SBF and actual RPC/WS/PostgreSQL acceptance; P40A, P16A and
+historical results cannot qualify the changed journal. External gates and deferred
+endurance are unchanged.

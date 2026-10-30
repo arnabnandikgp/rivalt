@@ -180,3 +180,78 @@ retain their existing `V3`/`V4` suffixes as schema identities; their source deco
 mapping is explicit in `account-events.ts`. Do not relabel historical rows or
 original signed bytes. Generated decoder names and stored event tags are different
 interfaces. Existing HTTP versions, numeric layouts and deployment checks remain.
+
+## Scoped-history successor contract (P40B)
+
+This is the frozen successor contract, not an active journal or qualification claim.
+The account kinds/layouts are in [accounts](../clearing/accounts.md#scoped-history-successor-contract-p40b-not-yet-activated).
+New journal bindings use schema 5 and fresh databases. Public deployment configuration
+must explicitly bind account schema 5; transport/profile names alone cannot select
+an incompatible decoder. Historical schema-4 databases/originals retain their pinned
+client and are never relabeled by startup.
+
+Every successful clearing invocation emits one final `AccountTransition` CPI envelope.
+Its discriminator is SHA-256(`event:AccountTransition`)[0..8]. Ordered Borsh fields:
+`schema_version:u16=5, venue:Pubkey, domain:[u8;32], slot:u64,
+instruction:[u8;8], payload_count:u16, reads:Vec<ScopedRead>, writes:Vec<ScopedWrite>`.
+`instruction` is the executed public entrypoint's discriminator, not caller input.
+`ScopedRead` is `account:Pubkey, kind:u8, revision:u64` (41 bytes).
+`ScopedWrite` is `account:Pubkey, kind:u8, before:u64, after:u64` (49 bytes).
+The envelope is 100 bytes plus its rows, at most 32 entities and 1,668 bytes; keys
+are unique across both vectors, and at least one write is required. Read revisions
+are positive; writes are checked consecutive increments. Creation is 0→1 only.
+
+Financial payload events remove their global `sequence` field and use canonical
+`event:<source name>` discriminators. Their ordering within a clearing invocation
+comes from authenticated CPI positions, not a writable account. Count all actual
+payload emissions, including resolution row/completion/progress combinations;
+require exact `payload_count` (0–4 currently). Storage precreation now has an
+envelope with zero financial payloads. Missing, duplicate, trailing, unknown or
+foreign-frame payloads reject the whole candidate. The self-event instruction is
+not a second financial invocation. Authenticate the program/event PDA and invocation
+tree before decoding; failed transactions retain raw logs but produce no effects.
+
+The transport identity is `(genesis, signature, outer instruction, clearing invocation,
+payload ordinal)`. An envelope and its financial payloads are one transition; all
+transitions in one signed transaction apply atomically, including multiple instructions.
+Whole transactions, not individual account changes, are the ordering units.
+
+For each entity, a writer follows its predecessor revision; a reader at r follows
+the writer producing r and precedes the writer consuming r. These read-before-write
+edges prevent a snapshot reader from being reordered after its inputs change.
+No external reader may interleave intermediate revisions of one atomic transaction.
+Canonical block/transaction position breaks independent ties; slot alone is not a
+total order. Competing writers, missing predecessors, cross-entity cycles and an
+edge from a future finalized slot fail closed. Reordered delivery is acceptable
+only when this exact dependency graph reconstructs a valid complete prefix.
+
+Use a fixed finalized block fence and complete ordered transaction lists with
+recorded block hashes, parent links and signature-list digests. WS/address histories
+remain discovery hints; neither a repeated page nor a stable head signature proves
+that an independent entity was not omitted. Resolve actual loaded account keys when
+filtering venue transactions, and authenticate all relevant CPI invocations. A
+missing advertised block/transaction or inconsistent same-slot discovery cannot
+advance the checkpoint. Bound each recovery batch to 4,096 envelopes and expose
+backlog/limit failures. This is a local engineering limit, not a venue TPS claim.
+
+PostgreSQL stores immutable blocks, transactions, envelopes/payload bytes and entity
+revisions. Projection, local outbox cursor and complete-block checkpoint commit in
+one SQL transaction. The cursor is explicitly off-chain progress, not an on-chain
+financial sequence or signing guard. Duplicates require byte-identical originals;
+conflicting bytes or failed-effect attempts roll back the candidate. Recovery and
+fresh replay must produce identical projections and revision vectors.
+
+Reconciliation compares account kinds/revisions and their financial values, with
+membership fenced for complete discovery. A relevant advancing revision requests
+bounded tail catch-up; an unrelated entity must not restart all historical discovery.
+No mixed RPC chunk is presented as one simultaneous financial snapshot. Any sampled
+comparison ahead of the journal remains pending until the corresponding atomic
+transition is reconstructed; no stale proof authorizes a payment. Source accounts
+and external maker prices remain separately authenticated inputs. P42/P44 own
+continuously active certificate and performance measurements.
+
+Implementation begins with the isolated causal-order primitive in `scoped-history.ts`.
+It is deliberately not wired into the current journal until exact on-chain envelopes,
+ABI/SDK parity, missing/duplicate/reordered/reverted cases, same-slot batches,
+RPC reconciliation, crash recovery and fresh PostgreSQL replay all pass on rebuilt
+artifacts. An ordering unit test does not qualify any of those integration layers.

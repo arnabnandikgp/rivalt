@@ -128,3 +128,84 @@ are not recaptured from changed layouts. `python3 ops/wire_contract.py` pins all
 IDLs, expanded layouts, ordered fields/variants/metas, discriminator bytes, seeds,
 errors and literal domains. Only declaration ordering, docs and source labels are
 omitted. Its hashes do not replace raw codec/PDA conformance, SBF or RPC tests.
+
+## Scoped-history successor contract (P40B, not yet activated)
+
+D84 freezes this fresh local wire change before runtime edits. Current accepted
+accounts above remain the P40A deployment. The successor has clearing-owned account
+schema **5**; profile 4 still selects the bounded liquidity behavior, and maker-owned
+curve/price schemas and quote/report payload versions remain 4. Source names stay
+canonical. No account, database or unresolved original is migrated in place.
+
+Each of the 17 clearing-owned account types inserts `revision:u64` immediately after
+`schema_version:u16`, at byte offset 10 including the eight-byte discriminator.
+All other fields retain their existing relative order, except `Custody.sequence`
+and `RetirementCertificate.custody_sequence`, which are removed. Account
+discriminators become the first eight SHA-256 bytes of `account:<canonical name>`;
+this is an intentional incompatible layout boundary, not P36-style ABI preservation.
+Existing PDA seed bytes and indices are retained under a **new mandatory domain
+and fresh local genesis**. Strict discriminator/schema/size/artifact checks reject
+old state; the unchanged seed strings do not authorize its reinterpretation.
+
+| Kind | Account | Successor allocated bytes, including discriminator |
+|---:|---|---:|
+| 0 | Venue | 329 |
+| 1 | Custody | 83 |
+| 2 | VenueSafety | 85 |
+| 3 | VenueRegistry | 2,113 at 64 members |
+| 4 | Portfolio | 87 |
+| 5 | MarginAccount | 978 |
+| 6 | Market | 455 |
+| 7 | MarketLedger | 117 |
+| 8 | CapitalBinding | 114 |
+| 9 | SettlementCertificate | 242 |
+| 10 | Resolution | 3,652 |
+| 11 | ResolutionPage | 3,408 |
+| 12 | ResolutionWork | 7,926 |
+| 13 | RetirementCertificate | 80 |
+| 14 | LiquidityRegistry | 181 |
+| 15 | MakerRegistration | 341 |
+| 16 | FundingPublisher | 148 |
+
+Revisions identify journal transitions, never signed order authority or risk equity.
+A newly initialized account goes 0→1. Each declared mutable clearing-owned account
+advances exactly once per successful clearing invocation, including a financial
+no-op. Readonly context fields do not advance merely because another instruction
+promotes the same key writable in the complete message. Declared nested/optional
+accounts and stage-authorized writable remaining accounts are covered. Duplicate
+scope keys, unsupported types and checked-u64 exhaustion reject atomically.
+
+Capture revisions before the handler. After all ordinary financial checks and event
+emission succeed, check that the handler did not reset its revision and increment
+it. Finalize typed accounts before Anchor serializes them; finalize remaining-account
+bytes only after their handler's explicit writes. A failed handler, envelope CPI or
+later transaction instruction rolls back revisions and financial effects together.
+A read-only dependency records its unchanged revision. No revision account, shared
+journal counter or readonly-account mutation is introduced.
+
+The event contract and transaction-atomic reconstruction are owned by
+[durability](../application/durability.md#scoped-history-successor-contract-p40b).
+Account financial snapshots remain payloads; the final envelope owns revision
+advancement. If a payload includes a revision field, it must equal the envelope's
+predecessor; its candidate financial values are applied before that final revision.
+Economic nonces, liability versions, membership, source sequences and safety epochs
+retain their separate purposes. Source funding prefixes still materialize under
+P40B; P41 owns their dependency reduction.
+
+### Terminal retirement without a global discovery stamp
+
+A global sequence is currently also used to invalidate the administrative retirement
+scan. It cannot simply be deleted from that check. In the successor, the existing
+venue authority must explicitly pause an Active/Custody venue before the scan.
+Every page and final retirement require the same paused safety epoch and membership
+version, complete liability-free roots and the existing exact cash/pool/vault checks.
+Unpause invalidates the proof. This is a terminal administrative window, not an
+ordinary withdrawal/payment prerequisite and not a permissionless way to pause users.
+
+Audit every permitted paused transition: delegation/revocation and cancellation may
+not introduce liabilities or spend/move cash; precreated storage and direct token
+donations cannot alter allocated entitlements. Any mutator that can invalidate the
+proof must reject during the pause or advance its bound safety/membership epoch.
+The already-resolved complete-header retirement path remains distinct. Retirement
+still clears pause into irreversible Retired mode, preserving eligible user cash
+and separately authorized reserve exits. No reserve ownership or payout rule changes.
