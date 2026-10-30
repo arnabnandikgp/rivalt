@@ -238,7 +238,13 @@ and endurance are not run. The temporary build prohibition is removed solely to
 build and qualify fresh local artifacts; default/devnet activation gates remain.
 P40B remains In progress, with P41–P44 dependent on its actual acceptance.
 
-Next exact action: pin the current candidate, rebuild fresh SBF and qualify the
+Clean SBF source **`ba2f15fe545380edc4211abe8b7912278970f046`** builds all three
+programs in default and explicit local profiles with no oversized-frame diagnostic.
+The previous `828fe543` binaries are preserved at their local artifact revision
+path. New measured SDK artifact hashes select only this candidate; RPC acceptance
+is still pending. Build log: `.local/p40b-build.log`.
+
+Next exact action: qualify the
 complete-block journal against real signed Surfpool RPC/WS/PostgreSQL history,
 including reverted effects, SQL rollback, restart, duplicate delivery and replay.
 
