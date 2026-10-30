@@ -23,8 +23,11 @@ integer, root, SCALE = wire.integer, wire.root, wire.SCALE
 
 
 def account(raw, key, name, size):
+    # Source names changed; the independently derived original wire names did not.
+    assert name in {'Resolution','ResolutionPage','ResolutionWork','MarginAccount','Market','MarketLedger','Custody','VenueSafety'}
+    original = 'SafetyV3' if name == 'VenueSafety' else name + 'V3'
     data = base64.b64decode(raw[key])
-    assert len(data) == size and data[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
+    assert len(data) == size and data[:8] == hashlib.sha256(f'account:{original}'.encode()).digest()[:8]
     assert integer(data, 8, 2) == 3
     return data
 
