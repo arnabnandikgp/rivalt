@@ -219,8 +219,9 @@ predecessor-delta verification and `pnpm generate:check` pass; seven transport
 cases include literal-envelope/generated-codec parity. Ten account-client tests
 pass, including explicit schema selection and coherent selected-root reads. SDK
 account checks and public config producers now select the incompatible schema.
-This is an integration checkpoint, not a runnable replacement deployment: the
-whole-project typecheck currently fails on remaining old sequence/revision uses
+SDK/consumer checkpoint: **`3b7d8eb`**. This is not a runnable replacement
+deployment: the whole-project typecheck currently reports 27 diagnostics from
+remaining old sequence/revision uses
 in projection, reconciliation, risk-worker keys and their fixtures/RPC harnesses.
 `.local/p40b-schema-types.log` records the actual failures; no suppression or legacy
 sequence substitution is used. The active journal still needs complete migration.
