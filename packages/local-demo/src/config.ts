@@ -1,5 +1,5 @@
 import {resolve} from 'node:path';
-export const DEMO_ROOT=resolve('.local/interactive-demo');
+export const DEMO_ROOT=resolve(process.env.RIVALT_DEMO_ROOT??'.local/interactive-demo');
 export const RUNTIME=resolve(DEMO_ROOT,'runtime');
 export const CONTROL='http://127.0.0.1:18094';
 export const UI='http://127.0.0.1:18083';

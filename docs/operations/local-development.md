@@ -82,6 +82,12 @@ one SOL/1,000 test USD and 16 wallets per session, bound to origin and genesis.
 Uncertain funding originals keep their allowance; success waits for finality.
 The instrumented wallet is not Phantom compatibility evidence.
 
+To qualify a fresh session while retaining an earlier stopped runtime, set
+`RIVALT_DEMO_ROOT` to a new ignored directory under `.local/`. Use that same value
+for start/status/stop and browser verification. Ports remain fixed, so only one
+interactive demo can run at a time. PostgreSQL startup waits for the final TCP
+listener, not the image's temporary initialization server.
+
 Sessions last <=60 minutes. Startup needs >1 GiB free; runtime stops below 768 MiB.
 Stop before sleep/lid close. Start after a stopped chain refuses reuse: Surfpool's
 SQLite restart changes genesis/slot clock despite retaining accounts. Use reset

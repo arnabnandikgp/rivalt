@@ -3,11 +3,15 @@ import assert from 'node:assert/strict';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {resolve} from 'node:path';
+import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
 import {address} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
+import {RUNTIME} from '../../packages/local-demo/src/config.js';
 const directory=resolve(process.env.RIVALT_DEMO_EVIDENCE??`.local/demo-checks/${Date.now()}`);mkdirSync(directory,{recursive:true});
-const config=JSON.parse(readFileSync('.local/interactive-demo/runtime/deployment.json','utf8'));
+const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
+const config=JSON.parse(readFileSync(`${RUNTIME}/deployment.json`,'utf8'));
 const client=new sdk.AccountUserClient(config),outcomes:unknown[]=[],errors:string[]=[];
 const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,
   args:['--disable-background-networking','--disable-component-update','--no-first-run']});
@@ -69,7 +73,8 @@ try{
   const fills=page.locator('section').filter({has:page.getByRole('heading',{name:'Recent finalized fills',exact:true})});
   await wait(()=>fills.locator('tbody tr').count(),count=>count>=4,'indexed finalized fills after reload');
   assert.equal(errors.length,0,errors.join('\n'));await page.screenshot({path:`${directory}/demo-ui.png`,fullPage:true});
-  const summary={status:'pass',walletOriginals:outcomes.length,owner,portfolio,cross,isolated,errors,
+  const summary={status:'pass',revision,trackedDirty:false,build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),
+    walletOriginals:outcomes.length,owner,portfolio,cross,isolated,errors,
     checks:['local-origin faucet denial','unauthorized stop denial','fresh browser-generated wallet and real faucet','portfolio and both account modes',
       'deposits and explicit sibling allocation','actual wallet decline','BTC and ETH fills','TP/SL and cancellation','reduce-only closes','token-reconciled funded withdrawal','reload and saved originals','reconciled indexed fill display']};
   writeFileSync(`${directory}/summary.json`,JSON.stringify(summary,null,2));console.log(JSON.stringify(summary));
