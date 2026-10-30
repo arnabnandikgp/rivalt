@@ -147,7 +147,7 @@ export async function qualificationServices(setup: QualificationSetup, transport
             await replay.close();
         }
         const intents = (await runtime.store.pool.query('SELECT request_id,signature,wire,status,budget,result,created_at,updated_at FROM service_intents WHERE run_id=$1 ORDER BY created_at', [runId])).rows;
-        const journal = (await indexer.store.pool.query('SELECT signature,kind,payload FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence', [runId, opening.sequence])).rows;
+        const journal = (await indexer.store.pool.query('SELECT sequence::text AS cursor,signature,kind,payload FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence', [runId, opening.sequence])).rows;
         const transactions = [];
         for (const intent of intents) {
             const payload = await rpc.call('getTransaction', [intent.signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]);

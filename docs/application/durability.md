@@ -283,5 +283,9 @@ cursor** only; no such field is injected into canonical event data. Zero-payload
 storage transitions advance revisions without creating a financial payload.
 The public API labels this `asOf.cursor` and `cursorScope: local-payload-stream`,
 and exposes the finalized `blockhash`; it does not label a block hash a signature.
+Maker economics inputs use version 5 with `opening.cursor`, `closing.cursor` and
+an explicit `cursor` alongside each SQL-derived event payload. Contiguity is a
+local journal export check; it is not a field supplied by the on-chain event or
+a substitute for the journal's complete-block and entity-revision authentication.
 These are implemented candidate contracts; fresh SBF/RPC/WS/PG acceptance remains
 required before P40B enters Review.

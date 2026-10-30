@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Independent schema-3 wire audit. No SDK, program, or production math imports."""
+"""Independent schema-5 wire audit. No SDK, program, or production math imports."""
 import base64
 import copy
 import json
+import hashlib
 import sys
 
 SCALE = 10**9
@@ -10,33 +11,38 @@ SCALE = 10**9
 def integer(data, offset, width=8, signed=False):
     return int.from_bytes(data[offset:offset+width], 'little', signed=signed)
 
+def checked(data, name, size):
+    assert len(data) == size and data[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
+    assert integer(data,8,2) == 5 and integer(data,10) > 0
+    return data
+
 def root(data):
-    assert len(data) == 970 and integer(data,8,2) == 3
+    checked(data, 'MarginAccount', 978)
     positions=[]
     for index in range(2):
-        offset=121+48*index
+        offset=129+48*index
         positions.append((integer(data,offset,signed=True),integer(data,offset+8,16,True),integer(data,offset+24,16,True)))
     orders=[]
     for index in range(4):
-        offset=321+141*index+9
+        offset=329+141*index+9
         orders.append({'id':integer(data,offset),'filled':integer(data,offset+34),'notional':integer(data,offset+42),'fee':integer(data,offset+50)})
-    return {'cash':integer(data,113),'role':data[112],'positions':positions,'orders':orders}
+    return {'cash':integer(data,121),'role':data[120],'positions':positions,'orders':orders}
 
 def decode(report, raw):
     data={key:base64.b64decode(value) for key,value in raw.items()}
     roots={key:root(data[key]) for key in report['roots']}
-    markets=[{'funding':integer(data[key],76,16,True),'gross':integer(data[key],100)} for key in report['markets']]
+    markets=[{'funding':integer(checked(data[key], 'Market', 455),84,16,True),'gross':integer(data[key],108)} for key in report['markets']]
     ledgers=[]
     for index,key in enumerate(report['ledgers']):
-        ledger=data[key]
-        assert len(ledger)==109 and integer(ledger,8,2)==3 and ledger[74]==index
-        ledgers.append({'pool':integer(ledger,75),'insurance':integer(ledger,83),'fees':integer(ledger,91),'carry':ledger[99]})
-        assert ledger[99]<4
-    custody=data[report['custody']]
+        ledger=checked(data[key], 'MarketLedger', 117)
+        assert ledger[82]==index
+        ledgers.append({'pool':integer(ledger,83),'insurance':integer(ledger,91),'fees':integer(ledger,99),'carry':ledger[107]})
+        assert ledger[107]<4
+    custody=checked(data[report['custody']], 'Custody', 83)
     cash=sum(account['cash'] for account in roots.values())
-    assert cash==integer(custody,42), 'root cash versus custody'
+    assert cash==integer(custody,50), 'root cash versus custody'
     allocated=cash+sum(ledger['pool']+ledger['insurance']+ledger['fees'] for ledger in ledgers)
-    assert allocated==integer(custody,50)==integer(data[report['vault']],64), 'exact allocated vault'
+    assert allocated==integer(custody,58)==integer(data[report['vault']],64), 'exact allocated vault'
     for index,market in enumerate(markets):
         assert sum(account['positions'][index][0] for account in roots.values())==0, 'paired quantity'
         assert sum(abs(account['positions'][index][0]) for account in roots.values())==market['gross'], 'gross exposure'
@@ -91,8 +97,8 @@ def audit(report):
 
 def mutations(report):
     rejected=0
-    targets=[(report['roots'][0],113),(report['roots'][0],129),(report['roots'][0],121),
-        (report['ledgers'][0],75),(report['ledgers'][0],83),(report['ledgers'][0],91),(report['custody'],50)]
+    targets=[(report['roots'][0],121),(report['roots'][0],137),(report['roots'][0],129),
+        (report['ledgers'][0],83),(report['ledgers'][0],91),(report['ledgers'][0],99),(report['custody'],58)]
     for key,offset in targets:
         broken=copy.deepcopy(report);data=bytearray(base64.b64decode(broken['rawAccounts'][key]));data[offset]^=1
         broken['rawAccounts'][key]=base64.b64encode(data).decode()
@@ -101,7 +107,7 @@ def mutations(report):
         else:raise AssertionError(('audit accepted financial mutation',key,offset))
     broken=copy.deepcopy(report)
     step=next(step for step in broken['financialSteps'] if 'fill' in step['label'])
-    key=report['ledgers'][0];data=bytearray(base64.b64decode(step['after'][key]));data[99]=(data[99]+1)%4
+    key=report['ledgers'][0];data=bytearray(base64.b64decode(step['after'][key]));data[107]=(data[107]+1)%4
     step['after'][key]=base64.b64encode(data).decode()
     try:audit(broken)
     except AssertionError:rejected+=1

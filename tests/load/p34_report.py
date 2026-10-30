@@ -72,7 +72,7 @@ def audit_finances(run):
     for event in record['journal']:
         change, kind = event['payload'], event['kind']
         sequence += 1
-        assert int(change['sequence']) == sequence, 'Missing custody history'
+        assert int(event['cursor']) == sequence, 'Missing local journal payload'
         for value in [change.get('marketState'), change.get('otherMarketState'), change.get('state'), *change.get('markets', [])]:
             if isinstance(value, dict) and 'fundingIndexScaled' in value:
                 indexes[value['index']] = int(value['fundingIndexScaled'])

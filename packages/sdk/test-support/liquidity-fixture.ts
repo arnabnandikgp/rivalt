@@ -17,7 +17,7 @@ export function liquidityFixture() {
       id: instance+1,mode: 1,role: 1,isolatedMarketIndex: 0,cash: 1_000_000_000n };
     const shape: sdk.CanonicalShape = { mode: 1,ttlSlots: 150,target: 0n,skewStep: 1n,skewTick: 0n,longCap: 4096n,shortCap: 4096n,
       bids: [{ endLots: 4096n,offset: 10n,slope: 0n }], asks: [{ endLots: 4096n,offset: 10n,slope: 0n }] };
-    const registrationState = { ...emptyState(sdk.getMakerRegistrationDecoder()),schemaVersion: 4,venue,market,capital: capitalKey,
+    const registrationState = { ...emptyState(sdk.getMakerRegistrationDecoder()),schemaVersion: 5,revision:1n,venue,market,capital: capitalKey,
       owner: capital.owner,instance,authorityEpoch: 1n,depthEpoch: 1n,
       pricingProgram: instance === 2 ? sdk.makerB.MAKER_B_PROGRAM_ADDRESS : sdk.makerA.MAKER_A_PROGRAM_ADDRESS };
     const config = { ...emptyState(sdk.makerA.getMakerCurveDecoder()).state,schemaVersion: 4,capability: 1,venue,market,

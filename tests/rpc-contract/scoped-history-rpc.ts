@@ -16,7 +16,13 @@ import {ORACLE_FIXTURE} from './oracle-fixture.js';
 
 const directory=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATABASE_URL!;
 assert(databaseUrl);
-const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,computeUnitLimit:()=>500_000});
+let batchArrivals=0,releaseBatch:()=>void;
+let batchReady=new Promise<void>(resolve=>{releaseBatch=resolve;});
+const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{
+  deferFinality:true,computeUnitLimit:()=>500_000,beforeBroadcast:async label=>{
+    if(!label.startsWith('P40B same-slot'))return;
+    if(++batchArrivals===3)releaseBatch();await batchReady;
+  }});
 let indexer:LiquidityIndexer|undefined,replay:LiquidityIndexer|undefined;
 const u32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 try {
@@ -26,6 +32,26 @@ try {
   const safetyState=async()=>sdk.getVenueSafetyDecoder().decode((await h.read(safety))!);
   const state=async()=>Promise.all([...roots,venue,custody,safety,certificate].map(async key=>(await h.read(key))?.toString('base64')??null));
   const transfer=(amount:bigint)=>sdk.getTransferAccountCustodyInstruction({...common,owner,donor:roots[0],recipient:roots[1],amount});
+  await flush();
+  const sameSlot:{slot:number;signatures:string[]}[]=[];
+  // A bounded broadcast barrier is a journal ordering probe, not scheduler TPS.
+  // Return each atom before the nested-CPI/retirement financial expectations.
+  for(let attempt=0;attempt<3&&sameSlot.length===0;attempt++) {
+    for(const reverse of [false,true]) {
+      batchArrivals=0;batchReady=new Promise<void>(resolve=>{releaseBatch=resolve;});
+      const start=checks.length;
+      await Promise.all([0,2,4].map(index=>h.send(`P40B same-slot ${attempt}/${reverse}/${index}`,[
+        sdk.getTransferAccountCustodyInstruction({...common,owner,donor:roots[index+(reverse?1:0)],
+          recipient:roots[index+(reverse?0:1)],amount:1n})],[owner])));
+      await flush();
+      const group=checks.slice(start),statuses=await rpc.call('getSignatureStatuses',[group.map(value=>value.signature),{searchTransactionHistory:true}]);
+      const slots=new Map<number,string[]>();
+      statuses.value.forEach((value:{slot:number},index:number)=>slots.set(value.slot,[...slots.get(value.slot)??[],String(group[index].signature)]));
+      for(const [slot,signatures] of slots)if(signatures.length>1)sameSlot.push({slot,signatures});
+    }
+  }
+  assert(sameSlot.length>0,'Bounded probe did not observe multiple finalized originals in one slot');
+  assert((await Promise.all(roots.map(key=>root(key)))).every(value=>value.cash===1_000_000n));
   const forward=(instructions:Instruction[]):Instruction=>{
     assert(instructions.length>0);for(const instruction of instructions)assert.deepEqual(instruction.accounts,instructions[0].accounts);
     return {programAddress:ORACLE_FIXTURE,accounts:[{address:sdk.CLEARING_PROGRAM_ADDRESS,role:AccountRole.READONLY},...instructions[0].accounts!],
@@ -77,6 +103,11 @@ try {
   const sql=await indexer.store.pool.query(`SELECT count(*) FILTER (WHERE jsonb_array_length(payload->'events')=0) AS empty,
     count(*) FILTER (WHERE invocation=1) AS nested_second FROM envelopes WHERE run_id=$1`,[config.runId]);
   assert(Number(sql.rows[0].empty)>0);assert.equal(Number(sql.rows[0].nested_second),1);
+  for(const group of sameSlot) {
+    const positions:{rows:{signature:string;transaction_index:number}[]}=await indexer.store.pool.query('SELECT signature, transaction_index FROM transactions WHERE run_id=$1 AND slot=$2 ORDER BY transaction_index',[config.runId,group.slot]);
+    assert(group.signatures.every(signature=>positions.rows.some(value=>value.signature===signature)));
+    assert.equal(new Set(positions.rows.map(value=>value.transaction_index)).size,positions.rows.length);
+  }
   await indexer.store.pool.query('CREATE DATABASE rivalt_p40b_scoped_replay');const replayUrl=new URL(databaseUrl);replayUrl.pathname='/rivalt_p40b_scoped_replay';
   replay=new LiquidityIndexer({...config,runId:'p40b-scoped-replay',databaseUrl:replayUrl.toString()});await replay.open();await replay.cycle();
   assert.deepEqual((await replay.store.snapshot()).state,snapshot.state);
@@ -84,6 +115,6 @@ try {
     {program:common.program,name:'marginAccount',key:roots[0]},{program:common.program,name:'custody',key:custody}],h.read);
   writeFileSync(`${directory}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
-    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,reconciliation,parity,envelopes,sql:sql.rows[0]}));
+    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,reconciliation,parity,envelopes,sameSlot,sql:sql.rows[0]}));
   console.log(json({stage:'p40b-scoped-history-pass',reconciliation,parity}));
 }finally{await replay?.close();await indexer?.close();try{await flush();}finally{ws.close();}}

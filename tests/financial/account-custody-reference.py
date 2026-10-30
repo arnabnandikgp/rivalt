@@ -25,46 +25,46 @@ def integer(raw, offset, size=8, signed=False):
 def account(report, address, name, size):
     raw = base64.b64decode(report['rawAccounts'][address])
     assert len(raw) == size, (name, len(raw))
-    assert raw[:8] == hashlib.sha256(f"account:{ {'Venue':'VenueV3','Custody':'CustodyV3','VenueSafety':'SafetyV3','VenueRegistry':'VenueRegistryV3','MarginAccount':'MarginAccountV3','MarketLedger':'MarketLedgerV3'}[name]}".encode()).digest()[:8]
-    assert integer(raw, 8, 2) == 3
+    assert raw[:8] == hashlib.sha256(f'account:{name}'.encode()).digest()[:8]
+    assert integer(raw, 8, 2) == 5 and integer(raw, 10) > 0
     return raw
 
 
 def audit(report):
     result = report['result']
-    venue = account(report, result['venue'], 'Venue', 321)
+    venue = account(report, result['venue'], 'Venue', 329)
     custody = account(report, result['custody'], 'Custody', 83)
-    safety = account(report, result['safety'], 'VenueSafety', 77)
-    registry = account(report, result['registry'], 'VenueRegistry', 2105)
-    assert integer(venue, 10, 2) == 4
-    assert key(venue[172:204]) == result['quoteMint']
-    assert key(venue[204:236]) == result['vault']
-    assert [key(venue[236 + index * 32:268 + index * 32]) for index in range(2)] == result['markets']
-    assert venue[300] == 2 and integer(venue, 317, 2) == 2500
-    assert all(key(raw[10:42]) == result['venue'] for raw in (custody, safety, registry))
-    assert safety[42:44] == bytes([0, 0]), 'new trading or paused custody remains active'
-    assert integer(custody, 42) == 0 and integer(custody, 50) == 18
+    safety = account(report, result['safety'], 'VenueSafety', 85)
+    registry = account(report, result['registry'], 'VenueRegistry', 2113)
+    assert integer(venue, 18, 2) == 4
+    assert key(venue[180:212]) == result['quoteMint']
+    assert key(venue[212:244]) == result['vault']
+    assert [key(venue[244 + index * 32:276 + index * 32]) for index in range(2)] == result['markets']
+    assert venue[308] == 2 and integer(venue, 325, 2) == 2500
+    assert all(key(raw[18:50]) == result['venue'] for raw in (custody, safety, registry))
+    assert safety[50:52] == bytes([0, 0]), 'new trading or paused custody remains active'
+    assert integer(custody, 50) == 0 and integer(custody, 58) == 18
     assert integer(custody, 66) == integer(custody, 74) == 0
-    assert integer(registry, 50, 2) == integer(registry, 52, 4) == len(result['roots']) == 5
-    assert [key(registry[56 + index * 32:88 + index * 32]) for index in range(5)] == result['roots']
+    assert integer(registry, 58, 2) == integer(registry, 60, 4) == len(result['roots']) == 5
+    assert [key(registry[64 + index * 32:96 + index * 32]) for index in range(5)] == result['roots']
     cash_total = 0
     for index, address in enumerate(result['roots']):
-        raw = account(report, address, 'MarginAccount', 970)
-        assert key(raw[10:42]) == result['venue']
-        assert integer(raw, 108, 2) == index
-        assert integer(raw, 113) == 0
-        assert raw[121:217] == bytes(96), 'position/claim/funding mutation in custody profile'
-        assert integer(raw, 217) == 0 and integer(raw, 281) == 0
-        assert raw[289:969] == bytes(680), 'order authority in custody profile'
-        assert integer(raw, 273) == 1
-        cash_total += integer(raw, 113)
+        raw = account(report, address, 'MarginAccount', 978)
+        assert key(raw[18:50]) == result['venue']
+        assert integer(raw, 116, 2) == index
+        assert integer(raw, 121) == 0
+        assert raw[129:225] == bytes(96), 'position/claim/funding mutation in custody profile'
+        assert integer(raw, 225) == 0 and integer(raw, 289) == 0
+        assert raw[297:977] == bytes(680), 'order authority in custody profile'
+        assert integer(raw, 281) == 1
+        cash_total += integer(raw, 121)
     reserves = []
     for index, address in enumerate(result['ledgers']):
-        raw = account(report, address, 'MarketLedger', 109)
-        assert key(raw[10:42]) == result['venue'] and key(raw[42:74]) == result['markets'][index]
-        assert raw[74] == index and raw[99] == 0
-        assert integer(raw, 75) == integer(raw, 91) == 0
-        reserves.append(integer(raw, 83))
+        raw = account(report, address, 'MarketLedger', 117)
+        assert key(raw[18:50]) == result['venue'] and key(raw[50:82]) == result['markets'][index]
+        assert raw[82] == index and raw[107] == 0
+        assert integer(raw, 83) == integer(raw, 99) == 0
+        reserves.append(integer(raw, 91))
     assert reserves == [7, 11]
     vault = base64.b64decode(report['rawAccounts'][result['vault']])
     user = base64.b64decode(report['rawAccounts'][result['userToken']])
@@ -92,9 +92,9 @@ if __name__ == '__main__':
     report = json.loads(Path(sys.argv[1]).read_text())
     count = audit(report)
     result = report['result']
-    mutations = [(result['custody'], 50), (result['roots'][0], 129), (result['ledgers'][0], 83),
-                 (result['ledgers'][1], 99), (result['vault'], 64), (result['venue'], 317),
-                 (result['registry'], 56), (result['safety'], 42)]
+    mutations = [(result['custody'], 58), (result['roots'][0], 137), (result['ledgers'][0], 91),
+                 (result['ledgers'][1], 107), (result['vault'], 64), (result['venue'], 325),
+                 (result['registry'], 64), (result['safety'], 50)]
     for address, offset in mutations:
         try:
             audit(mutated(report, address, offset))

@@ -12,6 +12,7 @@ export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: 
   options: { computeUnitLimit?: (label: string,instructions: readonly unknown[]) => number;
     maxLoadedAccounts?: (label: string) => number | undefined;
     observeOutcomes?: (label: string) => boolean;
+    beforeBroadcast?: (label: string) => Promise<void>;
     deferFinality?: boolean } = {}) {
 assert.equal(new URL(url).hostname, '127.0.0.1');
 const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
@@ -59,6 +60,7 @@ const h: CanonicalHarness = {
     const signatureSubscription = await ws.call('signatureSubscribe', [expectedSignature,
       { commitment: 'finalized', enableReceivedNotification: false }]);
     const notificationOffset = ws.notifications.length;
+    await options.beforeBroadcast?.(label);
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
     assert.equal(signature, expectedSignature);
     const verify = async () => {
