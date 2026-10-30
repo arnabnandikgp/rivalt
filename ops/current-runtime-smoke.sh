@@ -59,6 +59,7 @@ case "${RIVALT_LIQUIDITY_PROBE:?explicit probe required}" in
   performance) node --import tsx tests/performance/profile-rpc.ts ;;
   dispatch) node --import tsx tests/rpc-contract/dispatch-rpc.ts ;;
   safety) node --import tsx tests/rpc-contract/liquidity-safety-rpc.ts ;;
+  scoped-history) node --import tsx tests/rpc-contract/scoped-history-rpc.ts ;;
   journal) node --import tsx tests/rpc-contract/liquidity-journal-rpc.ts ;;
   indexer) node --import tsx tests/rpc-contract/liquidity-indexer-rpc.ts ;;
   services) node --import tsx tests/rpc-contract/liquidity-services-rpc.ts ;;

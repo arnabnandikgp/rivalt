@@ -252,9 +252,27 @@ hash defect and the checksum-pinned 1.7.0 replacement, whose minimal RPC probe
 passes. This is a runtime repair, not phase acceptance. Separate full-body and
 signature-manifest reads now reject missing transaction records as well.
 
-Next exact action: qualify the
-complete-block journal against real signed Surfpool RPC/WS/PostgreSQL history,
-including reverted effects, SQL rollback, restart, duplicate delivery and replay.
+Clean verifier **`02bbdec15a04b8cfea64ea63b4f8a098bfca7f56`** passes both journal
+and live indexer RPC/WS/PostgreSQL probes on Surfpool 1.7.0 (core 4.3.2,
+feature-set 3383571666), using SBF `ba2f15f`. Each fresh run verifies 120 signed
+outcomes and identical 72-event PostgreSQL replay; four failed originals remain
+recorded without financial effects. Journal acceptance includes injected SQL
+rollback, byte-checked duplicate delivery and restart. Live reconciliation checks
+70 actual accounts/eight roots against scoped revisions and 8,000,000 vault atoms;
+independent cash/fee checks retain the exact 26-atom fee partition. Evidence stays
+in `.local/liquidity-execution/runs/p40b-journal-170/` and
+`.local/liquidity-execution/runs/p40b-indexer-02bbdec/`.
+
+A final focused fixture adds real external-CPI ancestry/atomic rollback and the
+new paused terminal-proof lifecycle, including funded cash exit and fresh replay.
+It is test-only and supplies no PDA signer; devnet rejects the forwarder. Native
+fixture check and typecheck pass; its compiled signed qualification is pending.
+P40B is not yet in Review. Broader financial/default schema-reader integration and
+multichunk revision checks remain to audit before phase closeout.
+
+Next exact action: build and run the focused external-CPI/retirement qualification,
+then complete P40B's remaining acceptance and publish its ready stacked PR before
+starting P41.
 
 ## Deployment and operational limits
 

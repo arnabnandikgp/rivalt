@@ -20,6 +20,58 @@ pub mod oracle_fixture {
         f.value = value;
         Ok(())
     }
+
+    /// Local transport fixture: retain the transaction's real signer privileges
+    /// while making one or two clearing calls beneath an external CPI frame.
+    /// It supplies no PDA signer and cannot authorize an owner's financial act.
+    pub fn forward_clearing(
+        ctx: Context<ForwardClearing>,
+        instructions: Vec<Vec<u8>>,
+    ) -> Result<()> {
+        require!(
+            !cfg!(feature = "devnet-test-profile")
+                && (1..=2).contains(&instructions.len())
+                && ctx.remaining_accounts.len() <= 24
+                && instructions
+                    .iter()
+                    .all(|data| (8..=1024).contains(&data.len())),
+            FixtureError::ForwardBounds
+        );
+        let metas: Vec<_> = ctx
+            .remaining_accounts
+            .iter()
+            .map(|account| {
+                if account.is_writable {
+                    anchor_lang::solana_program::instruction::AccountMeta::new(
+                        *account.key,
+                        account.is_signer,
+                    )
+                } else {
+                    anchor_lang::solana_program::instruction::AccountMeta::new_readonly(
+                        *account.key,
+                        account.is_signer,
+                    )
+                }
+            })
+            .collect();
+        for data in instructions {
+            anchor_lang::solana_program::program::invoke(
+                &anchor_lang::solana_program::instruction::Instruction {
+                    program_id: ctx.accounts.clearing.key(),
+                    accounts: metas.clone(),
+                    data,
+                },
+                ctx.remaining_accounts,
+            )?;
+        }
+        Ok(())
+    }
+}
+#[derive(Accounts)]
+pub struct ForwardClearing<'info> {
+    /// CHECK: fixed executable; each nested instruction authenticates its owner.
+    #[account(executable, address = pubkey!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo"))]
+    pub clearing: UncheckedAccount<'info>,
 }
 #[derive(Accounts)]
 #[instruction(feed_id:[u8;32])]
@@ -57,4 +109,5 @@ pub struct Value {
 #[error_code]
 pub enum FixtureError {
     Overflow,
+    ForwardBounds,
 }
