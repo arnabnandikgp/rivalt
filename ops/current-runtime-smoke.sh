@@ -10,10 +10,11 @@ export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
 export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
 export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/liquidity-execution/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
+export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/liquidity-execution}"
 python3 - <<'PYTHON'
-import hashlib,json
+import hashlib,json,os
 from pathlib import Path
-root=Path('.local/liquidity-execution')
+root=Path(os.environ['RIVALT_ARTIFACT_DIR'])
 manifest=json.loads((root/'build-manifest.json').read_text())
 assert manifest['trackedDirty'] is False and manifest['profile']=='liquidity-execution-qualification'
 for component in ['clearing','maker_a','maker_b','oracle_fixture']:
@@ -43,7 +44,7 @@ done
 for component in clearing maker_a maker_b oracle_fixture; do
   key_name="${component//_/-}"
   solana-keygen new --silent --no-bip39-passphrase --outfile "$RIVALT_RUN_DIR/$component-buffer.json" >/dev/null
-  solana program deploy ".local/liquidity-execution/$component.so" --buffer "$RIVALT_RUN_DIR/$component-buffer.json" \
+  solana program deploy "$RIVALT_ARTIFACT_DIR/$component.so" --buffer "$RIVALT_RUN_DIR/$component-buffer.json" \
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done

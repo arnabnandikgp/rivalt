@@ -196,6 +196,7 @@ fn execute_core(
     }
     let roots = maker_roots(accounts, has_second)?;
     let venue = &identity.venue;
+    profile_cu!("financial-candidate-enter");
     let next = candidates::candidate_for_version(
         venue,
         &trader,
@@ -207,7 +208,9 @@ fn execute_core(
         clock,
         4,
     )?;
+    profile_cu!("financial-candidate-exit");
     drop(views);
+    profile_cu!("route-commit-enter");
     commit::apply(
         accounts,
         events,

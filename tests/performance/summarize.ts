@@ -54,7 +54,7 @@ const accessChecks = report.accessChecks.map((pair: any) => {
     declaredConflicts: pair.protocol.length, compiledConflicts: pair.compiled.length };
 });
 const artifacts = Object.fromEntries(['clearing', 'maker_a', 'maker_b', 'oracle_fixture'].map(name => {
-  const bytes = readFileSync(`.local/liquidity-execution/${name}.so`);
+  const bytes = readFileSync(`${report.artifactDirectory ?? '.local/liquidity-execution'}/${name}.so`);
   assert.equal(hash(bytes), report.build.binaries[`${name}.so`]);
   return [name, { sha256: hash(bytes), bytes: bytes.length }];
 }));

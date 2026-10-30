@@ -271,9 +271,17 @@ Commands from the repository root after `source ops/env.sh`:
 ```sh
 node --import tsx tests/performance/inventory.ts
 pnpm exec vitest run tests/performance/lock-model.test.ts
-bash ops/performance-baseline.sh
+RIVALT_PROFILE_STAGE=p43-before bash ops/performance-baseline.sh
 node --import tsx tests/performance/summarize.ts <local-run-directory> --write
 ```
+
+The current focused RPC probe requires an explicit P43 before/after checkpoint;
+P39 reproduction uses its original pinned source. Its immutable baseline is never
+refreshed by a current run. `bash ops/build-cu-profile.sh` builds diagnostic-only
+clearing with `cu-profiling` into `.local/cu-profiling/`, preserving accepted
+binaries. Select that directory explicitly with `RIVALT_ARTIFACT_DIR` and
+`RIVALT_PROFILE_STAGE=p43-trace` for attribution. Trace markers compile out of
+normal artifacts; reported gains require uninstrumented before/after receipts.
 
 The focused RPC probe uses existing verified SBF, fresh signed provisioning and
 standard RPC/WS plus isolated Anchor conformance. It has independent literal

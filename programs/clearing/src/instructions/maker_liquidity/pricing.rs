@@ -160,6 +160,7 @@ impl<'account, 'info> View<'account, 'info> {
         registry: &Account<LiquidityRegistry>,
         cache: &mut CodeApprovalCache,
     ) -> Result<AuthenticatedCurve> {
+        profile_cu!("maker-auth-enter");
         self.bind(venue, market, registry)?;
         require!(!self.registration.quarantined, ClearingError::MakerBinding);
         let (config, price) = config_and_price(
@@ -176,6 +177,7 @@ impl<'account, 'info> View<'account, 'info> {
             self.data,
             self.registration.approved_hash,
         )?;
+        profile_cu!("maker-auth-exit");
         Ok(AuthenticatedCurve { config, price })
     }
 
@@ -214,6 +216,7 @@ impl<'account, 'info> View<'account, 'info> {
         request: &MakerQuoteRequest,
         clock: &Clock,
     ) -> Result<MakerQuoteResponse> {
+        profile_cu!("canonical-quote-enter");
         let expected = canonical::quote(
             self.config.key(),
             &state.config,
@@ -223,9 +226,11 @@ impl<'account, 'info> View<'account, 'info> {
             clock.unix_timestamp,
         )
         .map_err(|_| error!(ClearingError::MakerQuote))?;
+        profile_cu!("canonical-quote-exit");
         let mut bytes = Vec::with_capacity(8 + canonical::REQUEST_BYTES);
         bytes.extend_from_slice(&hash(b"global:quote_v4").to_bytes()[..8]);
         request.serialize(&mut bytes)?;
+        profile_cu!("maker-cpi-enter");
         invoke(
             &Instruction {
                 program_id: self.program.key(),
@@ -241,9 +246,11 @@ impl<'account, 'info> View<'account, 'info> {
                 self.program.to_account_info(),
             ],
         )?;
+        profile_cu!("maker-cpi-exit");
         let (producer, bytes) = get_return_data().ok_or(ClearingError::MakerResponse)?;
         canonical::validate_response(&expected, self.program.key(), producer, &bytes)
             .map_err(|_| error!(ClearingError::MakerResponse))?;
+        profile_cu!("maker-response-validated");
         Ok(expected)
     }
 }

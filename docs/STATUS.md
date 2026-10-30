@@ -368,12 +368,22 @@ against isolated Anchor, after updating its obsolete context-name fixture.
 [Validation](operations/validation.md#custody-isolation-acceptance-p42) records exact
 pins, counts, limits and local run paths. Prior P41 binaries remain preserved.
 Acceptance content is `5c9a81d`; [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60)
-is ready above #59. Integration and newly triggered hosted CI remain pending.
+is ready above #59. Integration remains pending; all five applicable hosted jobs pass on `aae9090`
+in [run 41134366713](https://github.com/arnabnandikgp/rivalt/actions/runs/41134366713).
 P43 is on `performance/p43-cu-optimization` above exact P42 `aae9090`. The focused
 profiler now builds minimum required dependencies and records explicit before/after
 checkpoints, runtime/IDL/SBF pins and real vault conservation. Historical P39 metrics
-remain immutable. Next exact action: run the clean before-optimization RPC/WS profile,
-then attribute measured costs before selecting implementation changes. P44 still owns full-path measurement,
+remain immutable. Clean harness `1c9c931` passes twelve focused before-optimization outcomes on
+accepted P42 SBF `6aeb7d0`, plus 117 actual setup outcomes, seven compiled-access
+comparisons and exact complete-root/fee/vault reconciliation. Bounded baseline is
+`tests/performance/baselines/p43-before.json`; raw receipts stay in
+`.local/liquidity-execution/runs/p43-before/`. BTC single/shared-program pair/distinct-
+program pair consume 257,045/352,022/479,272 CU in these named states. They are
+single observations, not worst-case or throughput bounds. No optimization gain is
+claimed. Typecheck and receipt/wire verification pass after adding the pinned token
+decoder dependency to the performance workspace.
+Next exact action: build the isolated diagnostic artifact and attribute measured
+costs before selecting implementation changes. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 

@@ -1,6 +1,24 @@
 //! Rivalt common clearing: public entrypoints delegate to instruction modules.
 use anchor_lang::prelude::*;
 
+// Erased completely from ordinary artifacts. Diagnostic markers attribute costs;
+// they do not replace uninstrumented before/after transaction measurements.
+macro_rules! profile_cu {
+    ($label:literal) => {
+        #[cfg(feature = "cu-profiling")]
+        {
+            anchor_lang::prelude::msg!(concat!("RIVALT_CU:", $label));
+            anchor_lang::solana_program::log::sol_log_compute_units();
+        }
+    };
+}
+
+#[cfg(all(
+    feature = "cu-profiling",
+    not(feature = "liquidity-execution-qualification")
+))]
+compile_error!("CU tracing requires the explicit bounded local qualification profile");
+
 pub mod constants;
 pub mod engine;
 pub mod error;

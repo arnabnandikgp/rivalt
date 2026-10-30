@@ -57,12 +57,15 @@ impl std::io::Write for PayloadSize {
     }
 }
 fn payload<T: AnchorSerialize>(event: &T, discriminator: &[u8]) -> Result<Vec<u8>> {
+    profile_cu!("payload-size-enter");
     let mut size = PayloadSize(anchor_lang::event::EVENT_IX_TAG_LE.len() + discriminator.len());
     event.serialize(&mut size)?;
+    profile_cu!("payload-size-exit");
     let mut bytes = Vec::with_capacity(size.0);
     bytes.extend_from_slice(anchor_lang::event::EVENT_IX_TAG_LE);
     bytes.extend_from_slice(discriminator);
     event.serialize(&mut bytes)?;
+    profile_cu!("payload-encoded");
     Ok(bytes)
 }
 

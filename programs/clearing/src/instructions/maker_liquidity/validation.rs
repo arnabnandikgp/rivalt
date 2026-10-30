@@ -292,5 +292,8 @@ pub(crate) fn module_hash(data: &Account<ProgramData>) -> Result<[u8; 32]> {
     let info = data.to_account_info();
     let bytes = info.try_borrow_data()?;
     require!(bytes.len() <= 1_048_576, ClearingError::MakerBinding);
-    Ok(hash(&bytes).to_bytes())
+    profile_cu!("code-hash-enter");
+    let digest = hash(&bytes).to_bytes();
+    profile_cu!("code-hash-exit");
+    Ok(digest)
 }

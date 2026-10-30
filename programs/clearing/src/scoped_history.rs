@@ -265,11 +265,14 @@ pub(crate) fn run<'context, 'info, T: ScopedContext<'info>>(
     remaining_writable: bool,
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
 ) -> Result<()> {
+    profile_cu!("scope-enter");
     let mut scope = Scope::new();
     context.accounts.visit(&mut scope)?;
     scope.remaining(context.remaining_accounts, remaining_writable)?;
     let mut payloads = event_cpi::Payloads::default();
+    profile_cu!("handler-enter");
     handler(&mut context, &mut payloads)?;
+    profile_cu!("handler-exit");
     scope.cursor = Some(0);
     context.accounts.visit(&mut scope)?;
     scope.remaining(context.remaining_accounts, remaining_writable)?;
@@ -281,7 +284,10 @@ pub(crate) fn run<'context, 'info, T: ScopedContext<'info>>(
         payloads.count(),
         Clock::get()?.slot,
     )?;
-    event_cpi::emit_borrowed::<AccountTransition, _>(&event, context.accounts.event_authority())
+    profile_cu!("footer-enter");
+    event_cpi::emit_borrowed::<AccountTransition, _>(&event, context.accounts.event_authority())?;
+    profile_cu!("scope-exit");
+    Ok(())
 }
 
 #[cfg(test)]
