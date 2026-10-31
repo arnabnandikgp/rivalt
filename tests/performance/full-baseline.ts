@@ -7,7 +7,9 @@ import { receiptMetrics, observedDistribution, type ProgramContract, type Receip
 
 const hash = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
 const json = (path: string) => JSON.parse(readFileSync(path, 'utf8'));
-const directories = process.argv.slice(2).filter(value => !value.startsWith('--'));
+const directories: string[] = process.argv.includes('--replay')
+  ? json('tests/performance/baselines/p44-pre-v2.json').runs.map((run: { directory: string }) => run.directory)
+  : process.argv.slice(2).filter(value => !value.startsWith('--'));
 assert(directories.length, 'Usage: full-baseline.ts <run>... [--write | --partial]');
 const contracts: ProgramContract[] = ['clearing', 'maker_a', 'maker_b'].map(name => ({ ...json(`packages/sdk/idl/${name}.json`), name }));
 const idls = Object.fromEntries(contracts.map(({ name }) => [name, hash(readFileSync(`packages/sdk/idl/${name}.json`))]));
@@ -80,7 +82,7 @@ const result = { schema: 1, checkpoint: 'B-pre-Anchor-v2', complete: missing.len
     'Finite observed states, not worst-case CU, independent statistical samples, validator TPS or funded acceptance',
     'Priority fee is decoded from requested v0 limit/rate or explicit v1 lamports, never calculated from consumed CU',
     'Loaded account-data bytes are unavailable when RPC omits the metric; static key count is not bytes'] };
-const output = JSON.stringify(result, null, 2) + '\n';
+const output = JSON.stringify(result, null, 1) + '\n';
 if (process.argv.includes('--partial')) {
   writeFileSync('.local/p44-partial-inventory.json', output);
 } else {

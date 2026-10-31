@@ -237,7 +237,10 @@ Clean before harness **`1c9c931`** / P42 SBF `6aeb7d0` and after harness
 **`1e86661`** / P43 SBF `fb5d0c5` each pass 117 actual setup outcomes and twelve
 focused signed RPC/WS cases. Receipt/wire verification and legacy Anchor parity
 pass. Workload, Surfpool 1.7.0 runtime/features, IDL hashes, message shapes, requested
-CU, fees, seven lock comparisons and independent full-root/fee/vault totals match.
+CU, fees and seven lock comparisons match. Each run independently checks every
+root's lot/claim conservation, exact fee/insurance carry and actual token-vault
+backing. The cross-run summary comparator matches fee totals, aggregate root cash
+and root count; it does not compare individual root positions or vault bytes.
 The bounded [before](../../tests/performance/baselines/p43-before.json) and
 [after](../../tests/performance/baselines/p43-after.json) summaries are reproducible
 with `tests/performance/summarize.ts` and `tests/performance/compare.ts`.

@@ -4,6 +4,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
 test "$(surfpool --version)" = 'surfpool 1.7.0'
+# Browser qualification must consume this checkout's schema/SDK, never a stale
+# ignored dist directory left by an older phase.
+if [[ "${RIVALT_LIQUIDITY_PROBE:-}" == services ]]; then pnpm build:trader; fi
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18941}"
 export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18942}"
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"

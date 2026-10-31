@@ -498,8 +498,21 @@ stopping each workload's ramp on declared success/latency/backpressure threshold
 It independently replays each root's actual fills and exact fee/claim/custody totals
 and requires live indexing plus fresh PostgreSQL replay. Typecheck passes; no live
 load result is claimed yet.
-Next exact action: qualify separate maker/publisher keys with installed Chrome and
-run the bounded load driver,
+Clean `7e8d042` passes bounded offered load: 752 offers, 401 signed/finalized
+transactions, 377 successful economic transitions, 24 rejected stale account
+versions and 351 generator in-flight-limit rejections. Each of eight windows retains
+its denominator; ramps stop on the declared thresholds. Independent per-root replay,
+fee/claim/custody conservation and identical 524-event PostgreSQL replay pass over
+72 accounts/nine members; vault is exactly 9,000,000 atoms. Evidence:
+`p44-load-first/`. A service qualification shared this host during part of the run;
+these timings are application observations, not isolated capacity or validator TPS.
+Its browser run correctly rejects the old ignored UI bundle's schema. The launcher
+now rebuilds the trader before service qualification. This is a fixture build
+provenance repair; no schema or freshness guard changes. P43's automated review
+also identified overly broad comparison wording: documentation now distinguishes
+each run's independent conservation from the narrower aggregate cross-run check.
+Next exact action: finish service/browser/recovery qualification with the current
+UI bundle,
 then finish frozen instruction/resource/cost and bounded load reporting. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
