@@ -6,14 +6,14 @@ import {dispatchWire,dispatchMockRows} from '../test-support/dispatch-fixture.js
 
 /** Consumer fault cases. Actual database/process recovery remains a separate
  * fresh RPC/WS/PostgreSQL acceptance gate; no financial success is fabricated. */
-async function fixture(changed=false) {
+async function fixture(changed=false,conflict=false) {
   const fixture=await accountFixture(),margin=fixture.margins[0];
   const original=Buffer.from(fixture.accounts.get(margin).data[0],'base64');
   const root=sdk.getMarginAccountDecoder().decode(original),bytes=Buffer.from(sdk.getMarginAccountEncoder().encode({...root,stateVersion:changed?10n:9n}));
   const calls:{sql:string;params:any[]}[]=[],rpcCalls:{method:string;params:any[]}[]=[];
   const intent={request_id:'order:1',status:'pending',signature:'original-signature',wire:dispatchWire(),blockhash:'original-blockhash',blockhash_finalized_slot:'100' as string|null,
     budget:'account-orders',authority:{kind:'accountStateVersion',venue:fixture.config.venue,account:margin,value:'9'}};
-  const query=async(sql:string,params:any[]=[])=>{calls.push({sql,params});return {rows:dispatchMockRows(sql,intent)};};
+  const query=async(sql:string,params:any[]=[])=>{calls.push({sql,params});return {rows:conflict&&sql.startsWith('SELECT 1 FROM service_dispatch_access')?[{}]:dispatchMockRows(sql,intent)};};
   const rpc={call:async(method:string,params:any[]=[]):Promise<any>=>{
     rpcCalls.push({method,params});
     if(method==='getSignatureStatuses')return {value:[null]};
@@ -90,4 +90,14 @@ it('persists finalized hash observation and never regresses its fence',async()=>
       :method==='sendTransaction'?'original-signature':original(method,params);
     await test.queue.step('order:1');expect(test.update().params[4]).toBe(seen??'123');
   }
+});
+it('records finalized validity while a conflicting original prevents dispatch',async()=>{
+  const test=await fixture(false,true),original=test.rpc.call;
+  test.intent.blockhash_finalized_slot=null;
+  test.rpc.call=async(method,params=[])=>method==='isBlockhashValid'?{context:{slot:123},value:true}:original(method,params);
+  await test.queue.step('order:1');
+  expect(test.update().sql).toContain('next_attempt=');
+  expect(test.update().sql).not.toContain('attempts=attempts+1');
+  expect(test.update().params[2]).toBe('123');
+  expect(test.rpcCalls.some(call=>call.method==='getSignatureStatuses'||call.method==='sendTransaction')).toBe(false);
 });

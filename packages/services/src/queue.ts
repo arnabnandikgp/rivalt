@@ -71,13 +71,22 @@ export class Queue {
       await c.query('BEGIN');
       const r=(await c.query(`SELECT * FROM service_intents WHERE run_id=$1 AND request_id=$2 AND status IN ('pending','unresolved','expired-unexecuted') FOR UPDATE SKIP LOCKED`,[this.store.runId,id])).rows[0];
       if(!r){await c.query('COMMIT');return;}
+      let blockhashFinalizedSlot:string|null=r.blockhash_finalized_slot??null;
+      let observedValidity:{context:{slot:unknown};value:boolean}|undefined;
       if(r.status!=='expired-unexecuted') {
+        // Observe lifetime even while another original holds the payer/account
+        // reservation. Otherwise a queued hash can mature and expire entirely
+        // behind that lock, losing the witness needed for safe retry progress.
+        observedValidity=await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'finalized'}]);
+        const observedSlot=integer(observedValidity!.context.slot);
+        if(observedValidity!.value===true&&(blockhashFinalizedSlot===null||observedSlot>BigInt(blockhashFinalizedSlot)))
+          blockhashFinalizedSlot=observedSlot.toString();
         await c.query('SAVEPOINT admission');
         if(!await reserveDispatch(c,this.store.runId,id,r.wire)) {
           await c.query('ROLLBACK TO SAVEPOINT admission');
           // Let later independent work enter the bounded due-work list. This is
           // scheduling deferral, not an RPC attempt or a new economic outcome.
-          await c.query("UPDATE service_intents SET next_attempt=now()+interval '1 second' WHERE run_id=$1 AND request_id=$2",[this.store.runId,id]);
+          await c.query("UPDATE service_intents SET next_attempt=now()+interval '1 second',blockhash_finalized_slot=$3 WHERE run_id=$1 AND request_id=$2",[this.store.runId,id,blockhashFinalizedSlot]);
           await c.query('COMMIT');return;
         }
       }
@@ -86,7 +95,6 @@ export class Queue {
       await c.query('COMMIT');
       await c.query('BEGIN');
       let status=r.status==='expired-unexecuted'?r.status:'unresolved',result:any=r.status==='expired-unexecuted'?r.result:null,release=false;
-      let blockhashFinalizedSlot:string|null=r.blockhash_finalized_slot??null;
       try{
         const s=(await this.rpc.call('getSignatureStatuses',[[r.signature],{searchTransactionHistory:true}])).value[0];
         if(this.maxVersion===1&&s&&['confirmed','finalized'].includes(s.confirmationStatus))
@@ -98,7 +106,7 @@ export class Queue {
             status=tx.meta.err===null?'finalized':'failed';result={slot:integer(tx.slot).toString(),fee:integer(tx.meta.fee).toString(),error:tx.meta.err};release=true;
           }
         }else if(!s){
-          const valid=await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'finalized'}]);
+          const valid=observedValidity??await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'finalized'}]);
           const finalizedSlot=integer(valid.context.slot);
           if(valid.value===true&&(blockhashFinalizedSlot===null||finalizedSlot>BigInt(blockhashFinalizedSlot)))
             blockhashFinalizedSlot=finalizedSlot.toString();

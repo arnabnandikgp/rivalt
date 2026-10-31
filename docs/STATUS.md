@@ -445,13 +445,27 @@ that quiet boundary and retries only `ReconciliationAhead` at a live restart.
 No revision/completeness safeguard changes. Service acceptance remains pending.
 The pinned-binary inventory currently verifies 854 outcomes and successful coverage
 of 43/61 entrypoints; missing cases are explicit in the ignored partial report.
-A new actual 64-member source-emergency/valuation/resolution driver is ready for
-execution; no maximum-cohort result is claimed yet. The new receipt profiler verifies
+Clean `cbc132b` completes the actual 64-member source-emergency/valuation/default
+run: 712 signed outcomes, eleven expected rejections, 64 independently verified
+Fraction payouts and ten corruption rejections. Peak observed CU is 364,614
+(FlowPlan); all 56 added members receive actual one-atom deposits. Evidence:
+`.local/liquidity-execution/runs/p44-complete-cohort/`.
+The service run at that revision passes both wallet/maker SIGKILL faults but
+then exposes queued hashes expiring behind shared payer reservations before their
+first finalized-valid observation. The witness is now sampled before dispatch
+conflict admission and persisted even on deferral; unknown outcomes stay reserved.
+Twenty scoped metric/queue tests and typecheck pass for the follow-up.
+The 57-outcome custody run passes actual financial/Anchor checks, but its legacy
+report incorrectly hashes an obsolete artifact path. Its metadata is not admitted
+to the frozen baseline; the driver now verifies deployed hashes and records the
+selected build plus individual WS/signed-wire evidence before a clean rerun.
+The extremal-width compiled resource fixture is prepared separately and explicitly
+cannot count as a reachable financial lifecycle. The new receipt profiler verifies
 signed message bodies and complete CPI logs, separates inclusive instruction CU from
 transaction costs, and refuses reverted calls as successful coverage.
-Next exact action: run the corrected service harness and the actual 64-member
-source-emergency driver, then fill the remaining custody/treasury/claim coverage
-and freeze the cost/resource envelope. P44 still owns full-path measurement,
+Next exact action: run the queue witness fix through services/dispatch, execute
+the scratch-only width probe and corrected custody capture, then finish remaining
+treasury/claim coverage and the frozen cost/resource envelope. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 

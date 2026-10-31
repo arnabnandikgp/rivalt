@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { getBase58Encoder } from '@solana/kit';
+import { getBase58Encoder, getBase58Decoder } from '@solana/kit';
 import { Connection } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
@@ -15,11 +15,13 @@ assert.equal(new URL(url).hostname, '127.0.0.1');
 const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
 const ws = new WireSubscriptions(process.env.RIVALT_WS_URL!);
 const payer = await payerKey(), base58 = getBase58Encoder();
+const artifacts=await new sdk.LiquidityArtifactVerifier(rpc).verify(payer.address);
+const build=JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/liquidity-execution'}/build-manifest.json`,'utf8'));
 const checks: Record<string, unknown>[] = [], committed: ReturnType<typeof sdk.parseAccountCustodyChangedEvent>[] = [];
 const eventBytes: string[] = [];
 const serialize = (value: unknown) => JSON.stringify(value, (_, item) => typeof item === 'bigint' ? item.toString() : item, 2)+'\n';
 await ws.ready();
-const subscription = await ws.call('logsSubscribe', [{ mentions: [program] }, { commitment: 'confirmed' }]);
+const subscription = await ws.call('logsSubscribe', ['all', { commitment: 'confirmed' }]);
 const h: Harness = {
   async rent(size) { return BigInt(await rpc.call('getMinimumBalanceForRentExemption', [size])); },
   async read(key) {
@@ -31,16 +33,23 @@ const h: Harness = {
     const { transaction } = await sdk.signInstructions(connection, payer, [sdk.routeComputeBudget(), ...instructions], signers);
     const wire = transaction.serialize(); assert(wire.length <= 1232);
     const wireBase64 = Buffer.from(wire).toString('base64');
-    writeFileSync(`${runDir}/wire-${checks.length}.json`, serialize({ label, wireBase64 }));
+    const expectedSignature=getBase58Decoder().decode(transaction.signatures[0]);
+    writeFileSync(`${runDir}/wire-${checks.length}.json`, serialize({ label, wireBase64,signature:expectedSignature }));
     const simulation = await rpc.call('simulateTransaction', [wireBase64, { encoding: 'base64', sigVerify: true, commitment: 'confirmed' }]);
     if (expectedError === undefined) assert.equal(simulation.value.err, null, `${label}: ${simulation.value.logs?.join('\n')}`);
     else assert.equal(simulation.value.err?.InstructionError?.[1]?.Custom, expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
+    const subscriptionId=await ws.call('signatureSubscribe',[expectedSignature,{commitment:'finalized',enableReceivedNotification:false}]);
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
+    assert.equal(signature,expectedSignature);
     await eventually(() => rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
       response => response.value[0]?.confirmationStatus === 'finalized', label);
     const history = await eventually(() => rpc.call('getTransaction', [signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]),
       value => Boolean(value), `fetch ${label}`);
     assert.equal(history.transaction.signatures[0], signature);
+    const fetched=await rpc.call('getTransaction',[signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:0}]);
+    assert.equal(fetched.transaction[0],wireBase64);
+    const notification=await ws.notification(subscriptionId);
+    writeFileSync(`${runDir}/ws-${checks.length}.json`,serialize(notification));
     if (expectedError === undefined) assert.equal(history.meta.err, null, label);
     else assert.equal(history.meta.err?.InstructionError?.[1]?.Custom, expectedError, label);
     assert(history.meta.computeUnitsConsumed <= 320_000, `${label}: CU headroom`);
@@ -58,7 +67,7 @@ const h: Harness = {
     if ((checks.length + 1) % 10 === 0) console.log(`P23 RPC: ${checks.length + 1} outcomes fetched and decoded`);
     checks.push({ label, signature, status: expectedError === undefined ? 'pass' : 'rejected',
       error: history.meta.err, bytes: wire.length, accounts: history.transaction.message.accountKeys.length,
-      computeUnits: history.meta.computeUnitsConsumed, feeLamports: String(history.meta.fee), decodedEvents: events.length });
+      computeUnits: history.meta.computeUnitsConsumed,computeUnitLimit:400000,ws:true, feeLamports: String(history.meta.fee), decodedEvents: events.length });
   },
 };
 try {
@@ -108,7 +117,8 @@ try {
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse','HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status','--porcelain','--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
     runtime: await rpc.call('getVersion'), genesis: await rpc.call('getGenesisHash'),
-    binarySha256: createHash('sha256').update(readFileSync('.local/account-centric/clearing.so')).digest('hex'),
+    build,artifacts,
+    binarySha256: createHash('sha256').update(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/liquidity-execution'}/clearing.so`)).digest('hex'),
     idlSha256: createHash('sha256').update(readFileSync('packages/sdk/idl/clearing.json')).digest('hex'),
     checks, committedEvents: committed, wsNotifications: ws.notifications.length, legacyAccounts: Object.keys(accounts), rawAccounts, result }));
   console.log(`P23 RPC: ${checks.length} finalized signed scenarios; ${committed.length} committed events; legacy account/event parity.`);

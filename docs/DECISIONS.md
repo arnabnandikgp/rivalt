@@ -244,3 +244,10 @@ actual receipts release unknown fees. Confirmed-valid originals may transmit the
 unchanged bytes. This corrects D83's expiry premise without changing dispatch locks,
 on-chain authority or economics. The additive SQL field does not retroactively
 validate prior expiry classifications. Fresh restart/expiry acceptance is required.
+
+P44 follow-up: `cbc132b`'s live eight-worker run shows that recording the witness
+only after resource admission can miss a hash's entire validity window behind a
+shared payer. Sample finalized validity before conflict admission and persist that
+observation on a deferral without consuming an RPC-send attempt, releasing locks
+or granting financial authority. The retained queue diagnosis is
+`.local/p44-services-fenced-diagnostic.txt`; full service acceptance is still pending.
