@@ -519,8 +519,17 @@ allowlist drops mandatory `accountSchema`. The field is now forwarded and the
 browser harness checks every required deployment field at the actual HTTP endpoint
 before connecting. Evidence stays in `p44-services-current-ui/` and
 `p44-dispatch-final/`; the former is not service acceptance.
-Next exact action: finish service/browser/recovery qualification with the corrected
-public deployment endpoint,
+Clean `574d564` fixes the public endpoint and reaches actual wallet signing. It
+then exposes dispatch starvation: the wallet original remains pending with zero
+broadcast attempts for thirty seconds while fresh operator jobs keep entering.
+D89 adds immutable signed-access declarations and oldest-conflicting-first admission
+without releasing active/ambiguous reservations. Nineteen scoped dispatch/expiry/
+consumer tests pass; actual SQL, service/browser and recovery acceptance is pending.
+The load probe also records limited live read-API progress (one successful cycle
+versus 27 revision-ahead retries); its exact final/replay checks pass after activity
+stops. This remains an explicit measured limitation, not sustained live readiness.
+Next exact action: qualify D89 ordering on actual PostgreSQL and the live
+service/browser lifecycle,
 then finish frozen instruction/resource/cost and bounded load reporting. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.

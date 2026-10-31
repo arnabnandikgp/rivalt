@@ -251,3 +251,28 @@ shared payer. Sample finalized validity before conflict admission and persist th
 observation on a deferral without consuming an RPC-send attempt, releasing locks
 or granting financial authority. The retained queue diagnosis is
 `.local/p44-services-fenced-diagnostic.txt`; full service acceptance is still pending.
+
+## D89 — prevent newer conflicting originals from starving a committed waiter
+
+On 1 November 2026, P44's current UI successfully signs a trade, but continuous
+maker/publisher updates repeatedly overtake it. Retained PostgreSQL evidence shows
+the wallet original still pending with zero send attempts after thirty seconds,
+while each operator completes seventeen or more updates. The finalized blockhash
+witness exists; this is dispatch starvation, not lost acknowledgement or a source
+policy failure. Evidence: `.local/p44-http-schema-queue-diagnostic.txt` and
+`p44-services-http-schema/` under the existing local run directory.
+
+Dispatcher version 2 persists complete static access declarations with each signed
+original, then orders conflicting new admissions by immutable creation time and
+request ID. An older committed pending/unresolved request blocks younger conflicting
+admissions even between due-work polls. Already-held reservations still reconcile,
+unrelated/read-only-sharing work progresses, and terminal originals cease blocking.
+Conflict deferral is 250 ms; send retry policy, exact-byte originals, fee accounting,
+expiry proof and durable locks through definitive outcome remain unchanged.
+
+This supersedes D83's opportunistic reservation admission, not on-chain locks or
+economic authority. Existing version-1 runs must stop producers/executors and drain
+pending/unknown originals with the pinned previous executor before upgrading;
+unknown fees remain reserved. No live schema/account migration or risk safeguard
+relaxation is authorized. New SQL ordering and actual browser/service/expiry/fault
+acceptance are required before claiming this resolves the observed starvation.

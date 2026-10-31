@@ -8,7 +8,7 @@ import { json } from '../../indexer/src/events.js';
 import {accountAuthorityValue, type AccountAuthority} from './account-authority.js';
 import {persistLiquidityInputs,type LiquidityInputs} from './liquidity-inputs.js';
 import {liquidityPriceSequence,type LiquidityPriceAuthority} from './liquidity-authority.js';
-import {prepareDispatch,reserveDispatch} from './dispatch.js';
+import {declareDispatch,prepareDispatch,reserveDispatch} from './dispatch.js';
 
 export const RESERVATION=20_000n;
 export type Authority=AccountAuthority | LiquidityPriceAuthority;
@@ -53,6 +53,7 @@ export class Queue {
         if(fee.value===null || BigInt(integer(fee.value))>RESERVATION)throw new Error('Operator fee exceeds reserved budget');
       }
       const r=(await c.query(`INSERT INTO service_intents(run_id,request_id,signature,wire,blockhash,authority,budget) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`,[this.store.runId,id,signed.signature,wire,signed.blockhash,authority?json(authority):null,budget])).rows[0];
+      await declareDispatch(c,this.store.runId,id,wire);
       if(inputs){if(this.maxVersion!==1)throw new Error('Input provenance requires the canonical queue');await persistLiquidityInputs(c,this.store.runId,id,inputs,wire);}
       // PostgreSQL delivers this hint only after the signed bytes are committed.
       await c.query("SELECT pg_notify('rivalt_intents',$1)",[this.store.runId]);
@@ -86,7 +87,7 @@ export class Queue {
           await c.query('ROLLBACK TO SAVEPOINT admission');
           // Let later independent work enter the bounded due-work list. This is
           // scheduling deferral, not an RPC attempt or a new economic outcome.
-          await c.query("UPDATE service_intents SET next_attempt=now()+interval '1 second',blockhash_finalized_slot=$3 WHERE run_id=$1 AND request_id=$2",[this.store.runId,id,blockhashFinalizedSlot]);
+          await c.query("UPDATE service_intents SET next_attempt=now()+interval '250 milliseconds',blockhash_finalized_slot=$3 WHERE run_id=$1 AND request_id=$2",[this.store.runId,id,blockhashFinalizedSlot]);
           await c.query('COMMIT');return;
         }
       }

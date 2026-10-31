@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import type {LiquidityStore} from '../../packages/indexer/src/liquidity-store.js';
 import {AccountRole,address,type Instruction} from '@solana/kit';
 import {PublicKey,TransactionMessage,VersionedTransaction} from '@solana/web3.js';
-import {prepareDispatch,reserveDispatch} from '../../packages/services/src/dispatch.js';
+import {declareDispatch,prepareDispatch,reserveDispatch} from '../../packages/services/src/dispatch.js';
+import {dispatchWire} from '../../packages/services/test-support/dispatch-fixture.js';
 
 /** SQL scheduling tests only. Encoded readonly variants are never broadcast or
  * treated as financial effects; economic receipts come from the separate RPC run. */
@@ -49,6 +50,36 @@ export async function dispatchDatabaseCases(pool:LiquidityStore['pool'],sourceRu
   }finally{await reader.query('ROLLBACK');reader.release();}
   await pool.query('DELETE FROM service_dispatch_access WHERE run_id=$1',[runId]);
 
+  // Persisted waiting declarations are distinct from held reservations. These
+  // unsigned scheduling variants are never admitted by Queue.put or broadcast.
+  const fair=`${sourceRun}-fair`;
+  await pool.query(`INSERT INTO runs(run_id,binding,state) SELECT $2,binding,state FROM runs WHERE run_id=$1`,[sourceRun,fair]);
+  const client=await pool.connect();
+  try {
+    const fixtures=[['a-older',dispatchWire(31,32,33)],['b-younger',dispatchWire(41,42,32)],['c-unrelated',dispatchWire(51,52,53)]];
+    for(const [id,wire] of fixtures) {
+      await client.query('BEGIN');
+      await client.query(`INSERT INTO service_intents(run_id,request_id,signature,wire,blockhash) VALUES($1,$2,$2,$3,$4)`,[fair,id,wire,first.message.recentBlockhash]);
+      await declareDispatch(client,fair,id,wire);await client.query('COMMIT');
+    }
+    await client.query('BEGIN');
+    assert.equal(await reserveDispatch(client,fair,'b-younger',fixtures[1][1]),false,'Older waiting writer blocks newer reader before either broadcasts');
+    assert(await reserveDispatch(client,fair,'c-unrelated',fixtures[2][1]),'Independent work still enters');
+    await client.query('ROLLBACK');
+    await client.query('BEGIN');assert(await reserveDispatch(client,fair,'a-older',fixtures[0][1]));await client.query('COMMIT');
+    await client.query('BEGIN');assert(await reserveDispatch(client,fair,'a-older',fixtures[0][1]),'Held original can reconcile');await client.query('ROLLBACK');
+    await client.query('BEGIN');
+    await client.query("UPDATE service_intents SET status='expired-unexecuted' WHERE run_id=$1 AND request_id='a-older'",[fair]);
+    await client.query("DELETE FROM service_dispatch_access WHERE run_id=$1 AND request_id='a-older'",[fair]);
+    assert(await reserveDispatch(client,fair,'b-younger',fixtures[1][1]),'Terminal waiter no longer blocks');await client.query('ROLLBACK');
+    await client.query('BEGIN');
+    await assert.rejects(()=>client.query("UPDATE service_intents SET created_at=created_at-interval '1 second' WHERE run_id=$1",[fair]),/immutable signed intent/);
+    await client.query('ROLLBACK');
+    await client.query('BEGIN');
+    await assert.rejects(()=>client.query('UPDATE service_intent_access SET writable=NOT writable WHERE run_id=$1',[fair]),/immutable signed access declaration/);
+    await client.query('ROLLBACK');
+  }finally{client.release();}
+
   // Recreate a legacy pending journal row from an actual known original, without
   // giving it a dispatcher marker. Startup must refuse ambiguity. Drain it using
   // the already fetched original receipt, then activate; never invent a receipt.
@@ -62,7 +93,14 @@ export async function dispatchDatabaseCases(pool:LiquidityStore['pool'],sourceRu
   await pool.query('UPDATE service_intents SET status=$3,result=$4 WHERE run_id=$1 AND request_id=$2',
     [legacy,original.request_id,original.status,original.result]);
   await prepareDispatch(pool,legacy);await prepareDispatch(pool,legacy);
-  assert.equal((await pool.query('SELECT version FROM service_dispatch_contract WHERE run_id=$1',[legacy])).rows[0].version,1);
+  assert.equal((await pool.query('SELECT version FROM service_dispatch_contract WHERE run_id=$1',[legacy])).rows[0].version,2);
+  await pool.query('UPDATE service_dispatch_contract SET version=1 WHERE run_id=$1',[legacy]);
+  await pool.query("UPDATE service_intents SET status='pending' WHERE run_id=$1",[legacy]);
+  await assert.rejects(()=>prepareDispatch(pool,legacy),/Drain existing ambiguous originals/);
+  await pool.query('UPDATE service_intents SET status=$2,result=$3 WHERE run_id=$1',[legacy,original.status,original.result]);
+  await prepareDispatch(pool,legacy);
   return {readWriteCases:cases.map(({label,allowed})=>({label,allowed})),committedLeaseSurvivesConnection:true,
-    legacyAmbiguityRejected:true,drainedActivationIdempotent:true,scope:'SQL access fixtures, no additional economic execution'};
+    legacyAmbiguityRejected:true,drainedActivationIdempotent:true,waitingWriterPreventsOvertaking:true,unrelatedWaiterProgress:true,
+    terminalWaiterReleasesOrdering:true,immutableArrivalOrder:true,versionOneDrainedBeforeUpgrade:true,
+    scope:'SQL access fixtures, no additional economic execution'};
 }

@@ -62,7 +62,15 @@ allowed; W/W and both W/R directions conflict. Authority metadata is not a subst
 for the signed message's resource set. This is service scheduling, not a validator
 throughput or on-chain financial admission change.
 
-`service_dispatch_contract` binds each run to dispatcher version 1.
+`service_dispatch_contract` now binds each run to dispatcher version 2 (D89).
+`service_intent_access` records each original's complete static signed access set
+atomically with its wire. These immutable declarations are scheduling metadata,
+not active locks. A new reservation cannot overtake an older committed conflicting
+pending/unresolved original, ordered by immutable `(created_at, request_id)`.
+Read/read sharing and unrelated work still progress. Already-held originals always
+retain their ability to reconcile; terminal declarations do not block new work.
+Conflict deferral polls after 250 ms without consuming a send attempt; it does not
+relax active reservations or authorize replacement signatures.
 `service_dispatch_access` stores `(run_id, request_id, address, writable)` with a
 foreign key to its immutable original. The same request cannot have two workers:
 a per-original PostgreSQL session advisory lock spans the pre-send commit and RPC
@@ -82,9 +90,10 @@ Reservations apply within one run/database. Direct submissions or separate queue
 deployments remain governed by on-chain locks and checks. Two executor processes do not each get to send the same active original.
 
 Deployment is additive SQL, with no account/event/financial wire change. Stop old
-executors first. An existing run without dispatcher version 1 is admitted only if
+executors first. An existing run without dispatcher version 2 is admitted only if
 it has no pending/unresolved originals; drain those with its previous pinned
-executor. Never manufacture leases or assume old ambiguous originals were not sent.
+executor. Version-1 runs also require this drain; old binaries reject version 2.
+Never manufacture leases or assume old ambiguous originals were not sent.
 Expired-proven originals retain their unknown fees. Existing journal identities and
 original wires are preserved; P40B owns the separate fresh event-domain migration.
 

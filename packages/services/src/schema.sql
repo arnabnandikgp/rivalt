@@ -21,8 +21,26 @@ CREATE TABLE IF NOT EXISTS service_budgets (
   PRIMARY KEY(run_id,name), CHECK(committed+spent<=cap)
 );
 CREATE TABLE IF NOT EXISTS service_dispatch_contract (
-  run_id text PRIMARY KEY REFERENCES runs, version integer NOT NULL CHECK(version=1)
+  run_id text PRIMARY KEY REFERENCES runs, version integer NOT NULL CHECK(version IN (1,2))
 );
+ALTER TABLE service_dispatch_contract DROP CONSTRAINT IF EXISTS service_dispatch_contract_version_check;
+ALTER TABLE service_dispatch_contract ADD CONSTRAINT service_dispatch_contract_version_check CHECK(version IN (1,2));
+-- Signed-message scheduling declarations; these are not active reservations.
+CREATE TABLE IF NOT EXISTS service_intent_access (
+  run_id text NOT NULL, request_id text NOT NULL, address text NOT NULL,
+  writable boolean NOT NULL,
+  PRIMARY KEY(run_id,request_id,address),
+  FOREIGN KEY(run_id,request_id) REFERENCES service_intents(run_id,request_id)
+);
+CREATE INDEX IF NOT EXISTS service_intent_resource ON service_intent_access(run_id,address);
+CREATE OR REPLACE FUNCTION immutable_intent_access() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION 'immutable signed access declaration'; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='service_intent_access_immutable') THEN
+    CREATE TRIGGER service_intent_access_immutable BEFORE UPDATE OR DELETE ON service_intent_access
+      FOR EACH ROW EXECUTE FUNCTION immutable_intent_access();
+  END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS service_dispatch_access (
   run_id text NOT NULL, request_id text NOT NULL, address text NOT NULL,
   writable boolean NOT NULL,
@@ -37,8 +55,8 @@ CREATE TABLE IF NOT EXISTS maker_heartbeats (
 );
 CREATE OR REPLACE FUNCTION immutable_intent() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF (NEW.run_id,NEW.request_id,NEW.signature,NEW.wire,NEW.blockhash,NEW.authority,NEW.budget)
-    IS DISTINCT FROM (OLD.run_id,OLD.request_id,OLD.signature,OLD.wire,OLD.blockhash,OLD.authority,OLD.budget)
+  IF (NEW.run_id,NEW.request_id,NEW.signature,NEW.wire,NEW.blockhash,NEW.authority,NEW.budget,NEW.created_at)
+    IS DISTINCT FROM (OLD.run_id,OLD.request_id,OLD.signature,OLD.wire,OLD.blockhash,OLD.authority,OLD.budget,OLD.created_at)
   THEN RAISE EXCEPTION 'immutable signed intent'; END IF;
   RETURN NEW;
 END $$;

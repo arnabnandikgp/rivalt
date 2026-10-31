@@ -48,3 +48,16 @@ it('does not persist an admission when a lock or durable conflicting original bl
     expect(statements.some(sql=>sql.startsWith('INSERT'))).toBe(false);
   }
 });
+
+it('defers behind an older waiting conflict while allowing held originals to reconcile',async()=>{
+  for(const held of [false,true]) {
+    const statements:string[]=[];
+    const client={query:async(sql:string)=>{
+      statements.push(sql);
+      return {rows:sql.includes(' AS acquired')?[{acquired:true}]:sql.includes('FROM service_intent_access AS access')?[{}]
+        :sql.includes('request_id=$2 LIMIT 1')&&held?[{}]:[]};
+    }} as unknown as PoolClient;
+    expect(await reserveDispatch(client,'run','request',dispatchWire())).toBe(held);
+    expect(statements.some(sql=>sql.startsWith('INSERT'))).toBe(held);
+  }
+});
