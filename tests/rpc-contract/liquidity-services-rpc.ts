@@ -157,10 +157,22 @@ try {
   const replacement=start('maker',makerSigners[0],0,0);
   await until(()=>runtime!.heartbeats(),rows=>rows.some(row=>row.market_index===0&&row.instance===0&&row.process_id===replacement.pid),'actual maker restart');
   await normal();
-  const browser=await (await import('../browser/liquidity-lifecycle.js')).liquidityBrowser({directory,client,owner,endpoint,indexer,normal});
+  const browserEnabled=process.env.RIVALT_SERVICE_BROWSER!=='0';
+  const browser=browserEnabled?await (await import('../browser/liquidity-lifecycle.js')).liquidityBrowser({directory,client,owner,endpoint,indexer,normal}):[];
   // An actual stored order is discovered and filled by its separate worker.
-  let snapshot=await client.tradeSnapshot(margin,0);
-  const quote=await client.route({snapshot,trader:margin,marketIndex:0,side:0,lots:1n,maxFee:1000n,allInLimit:100_000n},owner.address);assert(quote);
+  let prepareAttempts=0;
+  const quote=await until(async()=>{
+    prepareAttempts++;
+    try {
+      const snapshot=await client.tradeSnapshot(margin,0);
+      const prepared=await client.route({snapshot,trader:margin,marketIndex:0,side:0,lots:1n,maxFee:1000n,allInLimit:100_000n},owner.address);
+      observations.push({stage:'order-worker-prepare',attempt:prepareAttempts,available:Boolean(prepared)});return prepared;
+    }catch(error){
+      if(!(error instanceof Error)||error.message!=='Required liquidity market source unavailable.')throw error;
+      observations.push({stage:'order-worker-prepare',attempt:prepareAttempts,available:false,reason:error.message});return null;
+    }
+  },Boolean,'admissible unsigned order-worker opening',60);assert(quote);
+  let snapshot;
   await wallet('open for actual order worker',quote.instructions);snapshot=await client.snapshot([margin],'confirmed');
   await wallet('triggered existing-position order',[await client.manageOrder(snapshot,owner.address,margin,0,
     sdk.orderAction('Place',{expectedId:snapshot.roots[margin].book.lastOrderId+1n,terms:{side:1,lots:1n,limit:50_000n,feeBudget:1000n,
@@ -257,7 +269,8 @@ try {
     (SELECT count(*) FROM jobs WHERE run_id=$1 AND status IN ('pending','unresolved')) AS unresolved`,[config.runId])).rows[0];
   assert.equal(counts.events,state.sequence);assert.equal(counts.outbox,counts.events);assert.equal(counts.unresolved,'0');
   const summary={revision,trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
-    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,faults,wallets,browser,observations,intents,
+    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,faults,wallets,browser,
+    browserScope:browserEnabled?'actual browser actions in this run':'omitted; any browser qualification must be cited separately',observations,intents,
     inputReplay:{reports:records.length,available,independentFlatPriceArithmetic:true},economics,counts,reconciliation,state,metrics:indexer.metrics,replayMetrics:replay.metrics,
     phaseAcceptance:false,remaining:'maker kit and full phase closeout; P34 comparative workload separate'};
   writeFileSync(`${directory}/summary.json`,json(summary));console.log(json({stage:'p33-services-pass',intents:intents.length,reports:records.length,reconciliation}));

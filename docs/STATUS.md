@@ -528,8 +528,17 @@ consumer tests pass; actual SQL, service/browser and recovery acceptance is pend
 The load probe also records limited live read-API progress (one successful cycle
 versus 27 revision-ahead retries); its exact final/replay checks pass after activity
 stops. This remains an explicit measured limitation, not sustained live readiness.
-Next exact action: qualify D89 ordering on actual PostgreSQL and the live
-service/browser lifecycle,
+Clean `f4490e9` passes the D89 actual SQL/dispatch/expiry/SIGKILL regression, including
+older-waiter ordering, unrelated progress, immutable arrival/access metadata and
+version-1 drain gating. Its browser now completes all ten signed actions, saved
+receipt reload and direct cash exits with both APIs blocked; raw browser receipts
+are in `p44-services-fair/`. The later service preparation stops on a transient
+source-unavailable response before signing. The harness now bounds and records
+every unsigned preparation retry. The next run omits the unchanged, separately
+passed browser actions and finishes the remaining service lifecycle; it must not
+claim a new browser run or hide those unavailable preparations.
+Next exact action: finish the remaining service lifecycle with classified unsigned
+preparation waits,
 then finish frozen instruction/resource/cost and bounded load reporting. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
