@@ -20,7 +20,7 @@ the integration and preceding baselines.
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
 | P42 custody/accounting isolation | Review | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60), stacked on #59; D87 schema-7 financial/lock/settlement/gateway/default and fresh SQL replay acceptance passes |
-| P43 targeted CU optimization | Review — publication pending | Same-workload CU comparison, 147/165 full-book outcomes and 290 safety outcomes pass on uninstrumented SBF `fb5d0c5`; gains and limitations recorded |
+| P43 targeted CU optimization | Review | [PR #61](https://github.com/arnabnandikgp/rivalt/pull/61), ready above #60; Same-workload CU comparison, 147/165 full-book outcomes and 290 safety outcomes pass on uninstrumented SBF `fb5d0c5`; gains and limitations recorded |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
 | P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
@@ -419,8 +419,12 @@ payouts and rejects ten corruptions; retained-receipt projection matches five
 boundaries/68 entities with one explicitly uncaptured portfolio. This is not a new
 SQL/block-fence run. [Validation](operations/validation.md#targeted-cu-acceptance-p43)
 records exact pins, counts, diagnostics, limitations and local evidence paths.
-Next exact action: publish P43 ready above #60, then start P44's complete supported-
-instruction/variant resource inventory and actual service/SQL qualification. P44 still owns full-path measurement,
+P43 accepted content is `595b85e`; [PR #61](https://github.com/arnabnandikgp/rivalt/pull/61)
+is ready above #60. Its four applicable hosted checks pass in
+[run 41244111564](https://github.com/arnabnandikgp/rivalt/actions/runs/41244111564);
+the report job is skipped and automated review remains pending.
+Next exact action: start P44's complete supported-instruction/variant resource
+inventory and actual service/SQL qualification. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 
