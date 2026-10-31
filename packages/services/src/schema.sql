@@ -10,6 +10,10 @@ CREATE TABLE IF NOT EXISTS service_intents (
   next_attempt timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY(run_id,request_id), UNIQUE(run_id,signature)
 );
+-- A recent confirmed blockhash can be absent from the finalized bank. Only a
+-- persisted finalized-valid observation can later establish expiry of that hash.
+ALTER TABLE service_intents ADD COLUMN IF NOT EXISTS blockhash_finalized_slot bigint
+  CHECK(blockhash_finalized_slot >= 0);
 CREATE TABLE IF NOT EXISTS service_budgets (
   run_id text NOT NULL REFERENCES runs, name text NOT NULL, wallet text NOT NULL,
   cap bigint NOT NULL CHECK(cap>0), committed bigint NOT NULL DEFAULT 0 CHECK(committed>=0),

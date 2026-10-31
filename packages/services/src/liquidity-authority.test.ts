@@ -9,7 +9,7 @@ async function fixture(instance=0) {
   const input=await liquidityAccountFixture(),maker=input.states[instance];
   const authority:LiquidityPriceAuthority={kind:'liquidityPriceSequence',venue:input.snapshot.venue,
     account:maker.price,registration:maker.registration,pricingProgram:maker.program,value:'1'};
-  const intent={status:'pending',signature:'original-signature',wire:dispatchWire(),blockhash:'original-blockhash',
+  const intent={status:'pending',signature:'original-signature',wire:dispatchWire(),blockhash:'original-blockhash',blockhash_finalized_slot:'100' as string|null,
     budget:'liquidity-maker',authority};
   const writes:{sql:string;params:any[]}[]=[],reads:{method:string;params:any[]}[]=[];
   const query=async(sql:string,params:any[]=[])=>{writes.push({sql,params});return {rows:dispatchMockRows(sql,intent)};};

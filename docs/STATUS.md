@@ -21,7 +21,7 @@ the integration and preceding baselines.
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
 | P42 custody/accounting isolation | Review | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60), stacked on #59; D87 schema-7 financial/lock/settlement/gateway/default and fresh SQL replay acceptance passes |
 | P43 targeted CU optimization | Review | [PR #61](https://github.com/arnabnandikgp/rivalt/pull/61), ready above #60; Same-workload CU comparison, 147/165 full-book outcomes and 290 safety outcomes pass on uninstrumented SBF `fb5d0c5`; gains and limitations recorded |
-| P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
+| P44 frozen pre-v2 qualification | In progress | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
 | P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
 | P36 canonical names/ABI | Closed | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51) merged; canonical API names, preserved wire contract and passing CI |
@@ -423,8 +423,21 @@ P43 accepted content is `595b85e`; [PR #61](https://github.com/arnabnandikgp/riv
 is ready above #60. Its four applicable hosted checks pass in
 [run 41244111564](https://github.com/arnabnandikgp/rivalt/actions/runs/41244111564);
 the report job is skipped and automated review remains pending.
-Next exact action: start P44's complete supported-instruction/variant resource
-inventory and actual service/SQL qualification. P44 still owns full-path measurement,
+P44 is on `performance/p44-pre-v2-baseline` above exact P43 `f9d29f6`.
+Fresh maker RPC/WS acceptance at that revision passes 123 signed outcomes on the
+same `fb5d0c5` binaries. Its raw evidence is `.local/liquidity-execution/runs/p44-makers/`.
+The first service run stops at the lost-ack fault before any wallet broadcast: the
+queue wrongly interprets a new confirmed hash absent from finalized state as expired.
+Retained SQL shows `expired-unexecuted`, 13 attempts and no dispatch rows; a separate
+actual RPC probe reproduces confirmed-valid/finalized-absent in all four samples.
+D88 adds a persisted finalized-valid fence before expiry proof; unseen hashes remain
+ambiguous, exact-byte retry/fee reservations and on-chain economics stay unchanged.
+Nineteen scoped consumer/metric cases and typecheck pass. Fresh service and dispatch
+acceptance of this correction remains pending. The new receipt profiler verifies
+signed message bodies and complete CPI logs, separates inclusive instruction CU from
+transaction costs, and refuses reverted calls as successful coverage.
+Next exact action: rerun the real service recovery and dispatch checks on the pinned
+correction, then complete missing instruction/resource cases and the cost envelope. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 

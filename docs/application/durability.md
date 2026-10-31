@@ -91,7 +91,7 @@ original wires are preserved; P40B owns the separate fresh event-domain migratio
 ## Maker expiry proof
 
 New profile-4 reprice originals retain the registered maker program, registration,
-price PDA and expected sequence. After finalized blockhash expiry, one finalized
+price PDA and expected sequence. After proven finalized blockhash expiry, one finalized
 RPC batch at or after that expiry fence must authenticate both account owners,
 exact schema/discriminators/sizes, registration/venue/program bindings and canonical
 registration/config/price addresses. Only an unchanged monotone price sequence
@@ -332,3 +332,21 @@ Only complete Apply updates the ledger buckets; actual allocated custody stays
 constant. RPC reconstruction checks complete roots, pools and the actual SPL vault.
 The signed treasury/retirement/journal tests verify omitted-state preservation,
 real token exits, SQL rollback, disconnect/backfill and identical fresh replay.
+
+## Finalized blockhash validity fence (P44)
+
+A newly signed confirmed blockhash can be absent from the finalized bank. A false
+`isBlockhashValid(finalized)` alone is not expiry. The durable original now records
+`blockhash_finalized_slot` only after that exact hash returns finalized-valid. A
+later false observation at or beyond that slot, plus confirmed-invalid, permits
+the existing authenticated unchanged-account nonexecution proof. Missing earlier
+validity or an older finality context keeps the original unresolved and resources
+reserved. Confirmed-valid originals can broadcast the same bytes while awaiting
+finality. Never rebroadcast an already proven-unexecuted original or release its
+unknown fee without an independently fetched landed receipt.
+
+This is an additive nullable SQL column, with no on-chain or signed-wire change.
+Stop older executors before upgrading. Existing unknown originals start without a
+validity witness; do not invent one or relabel historical expired records as newly
+verified. Such records retain their original provenance and require independent
+receipt reconciliation before a deployment relying on them is qualified.

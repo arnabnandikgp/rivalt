@@ -125,7 +125,11 @@ try {
   // locks. Real finalized blockhash expiry plus authenticated price state later
   // frees access, while the unknown network fee remains reserved.
   const expired=await reprice('maker:expiry',0,0);dropBefore=expired.original.wire;
+  await eventually(()=>rpc.call('isBlockhashValid',[expired.original.blockhash,{commitment:'finalized'}]),
+    value=>value.value===true,'expiry fixture hash first becomes finalized-valid');
   await executors[0].queue.step(expired.original.request_id);dropBefore=undefined;
+  assert((await runtime.store.pool.query('SELECT blockhash_finalized_slot FROM service_intents WHERE run_id=$1 AND request_id=$2',
+    [config.runId,expired.original.request_id])).rows[0].blockhash_finalized_slot!==null,'Durable finalized validity precedes actual expiry');
   assert.equal((await runtime.queue.get(expired.original.request_id)).status,'unresolved');
   assert(Number((await runtime.store.pool.query('SELECT count(*) FROM service_dispatch_access WHERE run_id=$1 AND request_id=$2',
     [config.runId,expired.original.request_id])).rows[0].count)>0);

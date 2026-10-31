@@ -11,7 +11,7 @@ async function fixture(changed=false) {
   const original=Buffer.from(fixture.accounts.get(margin).data[0],'base64');
   const root=sdk.getMarginAccountDecoder().decode(original),bytes=Buffer.from(sdk.getMarginAccountEncoder().encode({...root,stateVersion:changed?10n:9n}));
   const calls:{sql:string;params:any[]}[]=[],rpcCalls:{method:string;params:any[]}[]=[];
-  const intent={request_id:'order:1',status:'pending',signature:'original-signature',wire:dispatchWire(),blockhash:'original-blockhash',
+  const intent={request_id:'order:1',status:'pending',signature:'original-signature',wire:dispatchWire(),blockhash:'original-blockhash',blockhash_finalized_slot:'100' as string|null,
     budget:'account-orders',authority:{kind:'accountStateVersion',venue:fixture.config.venue,account:margin,value:'9'}};
   const query=async(sql:string,params:any[]=[])=>{calls.push({sql,params});return {rows:dispatchMockRows(sql,intent)};};
   const rpc={call:async(method:string,params:any[]=[]):Promise<any>=>{
@@ -60,4 +60,34 @@ it('releases access after proven nonexecution but never rebroadcasts it or relea
   expect(test.rpcCalls.some(call=>call.method==='sendTransaction')).toBe(false);
   expect(test.calls.some(call=>call.sql.startsWith('DELETE FROM service_dispatch_access'))).toBe(true);
   expect(test.calls.some(call=>call.sql.startsWith('UPDATE service_budgets'))).toBe(false);
+});
+it('broadcasts a confirmed-valid new hash without misclassifying finalized absence as expiry',async()=>{
+  const test=await fixture(),original=test.rpc.call,broadcasts:string[]=[];
+  test.intent.blockhash_finalized_slot=null;
+  test.rpc.call=async(method,params=[])=>{
+    if(method==='isBlockhashValid')return {context:{slot:123},value:params[1].commitment==='confirmed'};
+    if(method==='sendTransaction'){broadcasts.push(params[0]);return 'original-signature';}
+    return original(method,params);
+  };
+  await test.queue.step('order:1');
+  expect(broadcasts).toEqual([test.intent.wire]);expect(test.update().params[2]).toBe('pending');
+  expect(test.update().params[4]).toBe(null);
+  expect(test.rpcCalls.some(call=>call.method==='getAccountInfo')).toBe(false);
+  expect(test.calls.some(call=>call.sql.startsWith('DELETE FROM service_dispatch_access'))).toBe(false);
+});
+it('keeps an unseen or older-finality hash ambiguous even with unchanged authority',async()=>{
+  for(const seen of [null,'124']) {
+    const test=await fixture();test.intent.blockhash_finalized_slot=seen;
+    await test.queue.step('order:1');expect(test.update().params[2]).toBe('unresolved');
+    expect(test.rpcCalls.some(call=>call.method==='getAccountInfo')).toBe(false);
+    expect(test.calls.some(call=>call.sql.startsWith('DELETE FROM service_dispatch_access'))).toBe(false);
+  }
+});
+it('persists finalized hash observation and never regresses its fence',async()=>{
+  for(const seen of [null,'124']) {
+    const test=await fixture(),original=test.rpc.call;test.intent.blockhash_finalized_slot=seen;
+    test.rpc.call=async(method,params=[])=>method==='isBlockhashValid'?{context:{slot:123},value:true}
+      :method==='sendTransaction'?'original-signature':original(method,params);
+    await test.queue.step('order:1');expect(test.update().params[4]).toBe(seen??'123');
+  }
 });

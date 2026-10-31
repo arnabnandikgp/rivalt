@@ -48,7 +48,7 @@ it('attaches the signed receiver version to liquidation and proves only finalize
   // reimplementation of its decision. No unseen fee can be released.
   for(const state of ['unchanged','advanced','missing'] as const) {
     const calls:{sql:string;params:any[]}[]=[];
-    const intent={request_id:'liquidation',status:'pending',signature:'lost-original',wire:dispatchWire(),blockhash:'expired',budget:'risk-budget',authority:liquidation.authority};
+    const intent={request_id:'liquidation',status:'pending',signature:'lost-original',wire:dispatchWire(),blockhash:'expired',blockhash_finalized_slot:'100',budget:'risk-budget',authority:liquidation.authority};
     const query=async(sql:string,params:any[]=[])=>{calls.push({sql,params});return {rows:dispatchMockRows(sql,intent)};};
     const root=sdk.getMarginAccountDecoder().decode(Buffer.from(test.accounts.get(test.receiver).data[0],'base64'));
     const bytes=sdk.getMarginAccountEncoder().encode({...root,stateVersion:state==='advanced'?28n:27n});

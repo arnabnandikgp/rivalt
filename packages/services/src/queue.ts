@@ -86,6 +86,7 @@ export class Queue {
       await c.query('COMMIT');
       await c.query('BEGIN');
       let status=r.status==='expired-unexecuted'?r.status:'unresolved',result:any=r.status==='expired-unexecuted'?r.result:null,release=false;
+      let blockhashFinalizedSlot:string|null=r.blockhash_finalized_slot??null;
       try{
         const s=(await this.rpc.call('getSignatureStatuses',[[r.signature],{searchTransactionHistory:true}])).value[0];
         if(this.maxVersion===1&&s&&['confirmed','finalized'].includes(s.confirmationStatus))
@@ -98,7 +99,15 @@ export class Queue {
           }
         }else if(!s){
           const valid=await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'finalized'}]);
-          if(valid.value===false && r.authority){
+          const finalizedSlot=integer(valid.context.slot);
+          if(valid.value===true&&(blockhashFinalizedSlot===null||finalizedSlot>BigInt(blockhashFinalizedSlot)))
+            blockhashFinalizedSlot=finalizedSlot.toString();
+          // false at finalized can mean "too new", not expired. A hash that was
+          // never observed finalized-valid remains ambiguous after disappearance.
+          const confirmed=valid.value===true?valid:await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'confirmed'}]);
+          const expired=valid.value===false&&confirmed.value===false&&blockhashFinalizedSlot!==null
+            &&finalizedSlot>=BigInt(blockhashFinalizedSlot);
+          if(expired && r.authority){
             if(r.authority.kind==='liquidityPriceSequence') {
               if(this.maxVersion!==1)throw new Error('Canonical authority requires profile 4');
               const proof=await liquidityPriceSequence(this.rpc,r.authority,integer(valid.context.slot));
@@ -116,7 +125,7 @@ export class Queue {
               if(value.toString()===r.authority.value){status='expired-unexecuted';result={slot:integer(a.context.slot).toString(),fee:null,error:null,economicEffect:'not-applied'};}
             }
             }
-          }else if(valid.value===true&&r.status!=='expired-unexecuted'){
+          }else if(confirmed.value===true&&r.status!=='expired-unexecuted'){
             // The INSERT was committed before this worker can broadcast. Lost
             // acknowledgements and process death only cause identical-byte retries.
             console.log(JSON.stringify({event:'executor-broadcast',runId:this.store.runId,requestId:id,signature:r.signature,at:Date.now()}));
@@ -130,7 +139,7 @@ export class Queue {
       }
       if(release||status==='expired-unexecuted')
         await c.query('DELETE FROM service_dispatch_access WHERE run_id=$1 AND request_id=$2',[this.store.runId,id]);
-      await c.query("UPDATE service_intents SET status=$3,result=$4,attempts=attempts+1,updated_at=now(),next_attempt=now()+interval '1 second' WHERE run_id=$1 AND request_id=$2",[this.store.runId,id,status,result?json(result):null]);
+      await c.query("UPDATE service_intents SET status=$3,result=$4,attempts=attempts+1,updated_at=now(),next_attempt=now()+interval '1 second',blockhash_finalized_slot=$5 WHERE run_id=$1 AND request_id=$2",[this.store.runId,id,status,result?json(result):null,blockhashFinalizedSlot]);
       await c.query('COMMIT');
     }catch(e){await c.query('ROLLBACK');throw e;}finally{
       if(owned)try{await c.query('SELECT pg_advisory_unlock(hashtextextended($1,0))',[requestLock]);}catch{destroy=true;}

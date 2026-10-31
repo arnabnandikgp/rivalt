@@ -227,3 +227,20 @@ contract. Scoped rebuilt acceptance now verifies these changes as documented in
 [validation](operations/validation.md#custody-isolation-acceptance-p42); P43/P44 own
 further optimization/full qualification. Earlier backing pages still need a stable
 required-observation window. Keep the ready stack open above #59.
+
+## D88 — distinguish not-yet-finalized blockhashes from expired originals
+
+On 1 November 2026, P44's fresh service fault run exposed a false expiry inference.
+The wallet original had not broadcast: its confirmed blockhash was absent from the
+finalized bank. A four-sample independent Surfpool RPC probe reproduces this state
+at `.local/p44-blockhash-probe/result.json`; retained failed-run database diagnosis
+is `.local/p44-service-fault-diagnostic.txt`. No successful recovery is inferred.
+
+Persist a finalized-valid slot for each immutable original before using later
+finalized-invalid plus confirmed-invalid as expiry evidence. Reject older finality
+contexts; retain ambiguity if the hash was never witnessed finalized-valid. The
+existing unchanged-authority proof still controls economic nonexecution, and only
+actual receipts release unknown fees. Confirmed-valid originals may transmit their
+unchanged bytes. This corrects D83's expiry premise without changing dispatch locks,
+on-chain authority or economics. The additive SQL field does not retroactively
+validate prior expiry classifications. Fresh restart/expiry acceptance is required.
