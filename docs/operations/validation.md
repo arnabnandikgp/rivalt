@@ -219,6 +219,80 @@ No broad unrelated, browser, full-cohort resource or endurance suite is rerun fo
 P42. CI owns broad regression; P43/P44 own targeted optimization and fresh complete
 qualification. Default/devnet and external/funded gates remain unchanged.
 
+## Targeted CU acceptance (P43)
+
+The optimization consolidates checked whole-account accrual/admission and reuses an
+unchanged book-binding model. It preserves input/output/position bounds, per-market
+IM rounding, reservations, funding and negative-claim admission. No positive unpaid
+credit, changed code trust, ABI/layout, risk setting or compiler migration is added.
+
+Clean uninstrumented SBF source **`fb5d0c546a417796ce615e0d3d3575545c96c178`** builds
+qualified/default programs without oversized frames. Clearing is 2,484,144 bytes,
+SHA-256 `a9a8f59e5e5fa93c4657ed25313f99199827d1e1ecf56e2f8b8ebb2caa6305f4`;
+its size increases by 1,800 bytes. Maker and oracle hashes remain exactly P42's.
+Regenerated IDL/SDK and the explicit wire contract are unchanged. All three compiled
+default gates still reject valid initialization with rollback.
+
+Clean before harness **`1c9c931`** / P42 SBF `6aeb7d0` and after harness
+**`1e86661`** / P43 SBF `fb5d0c5` each pass 117 actual setup outcomes and twelve
+focused signed RPC/WS cases. Receipt/wire verification and legacy Anchor parity
+pass. Workload, Surfpool 1.7.0 runtime/features, IDL hashes, message shapes, requested
+CU, fees, seven lock comparisons and independent full-root/fee/vault totals match.
+The bounded [before](../../tests/performance/baselines/p43-before.json) and
+[after](../../tests/performance/baselines/p43-after.json) summaries are reproducible
+with `tests/performance/summarize.ts` and `tests/performance/compare.ts`.
+
+| Named state | Before CU | After CU | Reduction |
+|---|---:|---:|---:|
+| BTC single maker | 257,045 | 256,160 | 885 |
+| ETH single maker, same cross root after BTC | 274,817 | 273,918 | 899 |
+| Isolated BTC single maker | 265,335 | 264,666 | 669 |
+| Two makers, same program | 352,022 | 350,792 | 1,230 |
+| Two makers, distinct programs | 479,272 | 478,042 | 1,230 |
+| Place / cancel order | 46,968 / 39,203 | 46,352 / 38,925 | 616 / 278 |
+
+These are **small savings, one observation per named state**, not statistical or
+worst-case improvements. Repricing stays 18,250 CU and stale-account rejection
+33,313 CU. The two report observations each increase by one CU. Observed fees stay
+10,000 lamports with two signatures and zero priority bid; requested limits are
+unchanged, so no actual lamport saving is claimed.
+
+Diagnostic source **`132e086`** also passes that workload in an isolated artifact.
+Five authenticated trade receipts attribute about 131k CU to each distinct full
+maker-code hash, about 20k to the singleton financial candidate and 18k to maker CPI.
+The [attribution](../../tests/performance/baselines/p43-attribution.json) includes
+marker/compiler overhead and nested overlapping intervals; it is not headline CU.
+Two broader compiler-size experiments produced oversized frames and were rejected
+without deployment or SDK pinning. The full-code check and original compiler flags
+remain. Trace code is absent from ordinary builds; accepted artifacts are preserved.
+
+On clean verifier **`1e86661`**, the same uninstrumented source additionally passes:
+
+- 147 full protected-book RPC/WS outcomes and 165 full entry/stored-book outcomes,
+  each including six expected rejections. Three full books, two protections per
+  root where applicable, eight regions, 4,608-lot aggregate routes, 4,096-lot single
+  routes, skew crossing, unfunded-provider rollback and structural invalidation
+  retain independent per-lot gross/fee/claim checks. Maximum observations are
+  504,141 CU/1,196 bytes/v1 and 503,938 CU/1,099 bytes/v0 respectively. These cases
+  deliberately retain broad canonical market dependencies; they are conservative
+  resource cases, not minimum-packet production-router measurements.
+- 290 safety outcomes, 267 successes/23 expected rejections: full reservations,
+  post-fee liquidation, complete eight-root default, stale-source cash exit and
+  recovery/reactivation. The raw-byte Fraction audit verifies all eight payouts,
+  two augmentations and ten corruption rejections. Maximum observed CU is 477,798.
+  Retained-receipt projection matches five boundaries/68 entities, with one
+  explicitly uncaptured portfolio; this is not new SQL/block-fence evidence.
+- 38 affected financial-core cases, including 108 independently calculated
+  admission/accrual combinations and invalid-bound cases, plus all 114 clearing
+  native cases. Typecheck, generation/ABI, bounded evidence and documentation checks
+  pass. No broader unrelated client/browser/endurance suite is rerun locally.
+
+Raw receipts stay in `.local/liquidity-execution/runs/p43-{before,trace,after,safety,resources,resources-stored}/`;
+logs use `.local/p43-*`. All owned listeners stop after each run. SQL, service faults,
+complete entrypoint/variant coverage, latency/cost scenarios and full frozen
+qualification remain P44; inherited P42 or P16A results do not claim them complete.
+P15B/P16B, default/devnet gates and deferred endurance are unchanged.
+
 ## Qualified baseline and provenance
 
 | Scope | Actual tested pin(s) | Evidence boundary |

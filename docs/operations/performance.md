@@ -293,6 +293,12 @@ services/indexing; P40/P44 must run their actual database acceptance separately.
 
 ## Current results
 
+P43’s [fresh scoped comparison](validation.md#targeted-cu-acceptance-p43) records
+small arithmetic savings (669–1,230 CU per tested route), unchanged observed fees
+and a dominant full maker-code hashing cost. The compiler-size experiments were
+rejected for oversized frames. P44 owns full current instruction coverage and
+operating-cost scenarios. The original P39 comparison point below stays immutable.
+
 P39's fresh probe passed on clean harness **`0ac6511f912b7675ee5c61c9bc88a112eca0bd4c`**
 and hash-verified SBF source **`828fe5431433f19cd562a23f44c45258ddbd61aa`**.
 Surfpool 1.6.1 reports Solana core 4.2.1, feature set 565236538. All 129 signed

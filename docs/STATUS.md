@@ -20,7 +20,7 @@ the integration and preceding baselines.
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
 | P42 custody/accounting isolation | Review | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60), stacked on #59; D87 schema-7 financial/lock/settlement/gateway/default and fresh SQL replay acceptance passes |
-| P43 targeted CU optimization | In progress | Before/diagnostic profiles pass; checked accrual/admission optimization passes 38 affected native financial cases; rebuilt before/after and integrated checks pending |
+| P43 targeted CU optimization | Review — publication pending | Same-workload CU comparison, 147/165 full-book outcomes and 290 safety outcomes pass on uninstrumented SBF `fb5d0c5`; gains and limitations recorded |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
 | P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
@@ -405,9 +405,22 @@ independently calculated admission/accrual combinations and invalid-bound reject
 All 114 clearing native cases, typecheck and receipt attribution pass. Clean source
 `fb5d0c5` rebuilds qualified/default SBF and identical IDL/SDK without oversized
 frames. Clearing is 2,484,144 bytes; maker and oracle binaries are unchanged.
-SDK pins select that actual uninstrumented candidate. No measured CU improvement
-or integrated safety result is claimed yet. Next exact action: run the identical
-after workload, compiled default gates and affected signed safety/resource cases. P44 still owns full-path measurement,
+Clean verifier **`1e86661`** passes the identical after workload: trade savings are
+669–1,230 CU, order placement/cancellation 616/278 CU. Repricing/stale rejection
+stay unchanged; reports differ by +1 CU. These are small single-observation gains;
+actual fees and requested CU remain unchanged. All three compiled default gates pass.
+
+That verifier also passes 147 protected-book and 165 entry/stored-book signed
+outcomes, six expected rejections each, with independent per-lot/fee/claim checks.
+Peak observations are 504,141 and 503,938 CU. All 290 safety outcomes pass (23
+expected rejections), including liquidation, complete default, source-independent
+resolved cash exit and recovery. The independent Fraction audit verifies eight
+payouts and rejects ten corruptions; retained-receipt projection matches five
+boundaries/68 entities with one explicitly uncaptured portfolio. This is not a new
+SQL/block-fence run. [Validation](operations/validation.md#targeted-cu-acceptance-p43)
+records exact pins, counts, diagnostics, limitations and local evidence paths.
+Next exact action: publish P43 ready above #60, then start P44's complete supported-
+instruction/variant resource inventory and actual service/SQL qualification. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 

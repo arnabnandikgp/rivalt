@@ -5,7 +5,7 @@ import {MAKER_B_PROGRAM_ADDRESS} from './generatedMakerB/index.js';
 import {ArtifactVerifier} from './artifacts.js';
 import type {UserRpc} from './wallet-client.js';
 
-// P43 candidate: clean SBF source fb5d0c5; integrated qualification pending.
+// P43: clean SBF source fb5d0c5; scoped acceptance passed, full P44 qualification pending.
 // Public configuration never supplies replacement hashes or default/devnet code.
 export const LIQUIDITY_ARTIFACT_SET='p43-cu-optimization-candidate-v1';
 export const LIQUIDITY_ARTIFACTS=Object.freeze([
