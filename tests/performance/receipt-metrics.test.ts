@@ -21,10 +21,10 @@ async function sample(failed = false) {
   const keys = message.staticAccountKeys.map(key => key.toBase58());
   const receipt: Receipt = { slot: 1, transaction: { signatures: transaction.signatures.map(value => base58.decode(value)),
     message: { accountKeys: keys, instructions: message.compiledInstructions.map(value => ({ programIdIndex: value.programIdIndex,
-      data: base58.decode(value.data) })) } },
+      accounts: [...value.accountKeyIndexes], data: base58.decode(value.data) })) } },
     meta: { err: failed ? { InstructionError: [2, { Custom: 6000 }] } : null, computeUnitsConsumed: 25_300, fee: 5002,
       innerInstructions: [{ index: 2, instructions: [{ programIdIndex: keys.indexOf(maker.toBase58()),
-        data: base58.decode(Uint8Array.from(contracts[1].instructions[0].discriminator)), stackHeight: 2 }] }],
+        accounts: [], data: base58.decode(Uint8Array.from(contracts[1].instructions[0].discriminator)), stackHeight: 2 }] }],
       logMessages: [`Program ${clearing} invoke [1]`, `Program ${maker} invoke [2]`,
         `Program ${maker} consumed 5000 of 95000 compute units`, `Program ${maker} success`,
         `Program ${clearing} consumed 25000 of 99700 compute units`, `Program ${clearing} ${failed ? 'failed: custom program error: 0x1770' : 'success'}`] } };

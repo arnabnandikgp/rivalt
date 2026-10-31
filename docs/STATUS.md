@@ -432,12 +432,26 @@ Retained SQL shows `expired-unexecuted`, 13 attempts and no dispatch rows; a sep
 actual RPC probe reproduces confirmed-valid/finalized-absent in all four samples.
 D88 adds a persisted finalized-valid fence before expiry proof; unseen hashes remain
 ambiguous, exact-byte retry/fee reservations and on-chain economics stay unchanged.
-Nineteen scoped consumer/metric cases and typecheck pass. Fresh service and dispatch
-acceptance of this correction remains pending. The new receipt profiler verifies
+Nineteen scoped consumer/metric cases pass. The first metric typecheck found a
+readonly-byte typing error; it is corrected and the fresh typecheck/eight metric
+cases pass. Clean `71d51d9` passes actual dispatch/expiry/SIGKILL recovery: eight
+durable originals, one correctly expired original retaining its 20,000-lamport
+unknown-fee reserve, and identical 61-event PostgreSQL replay over 70 accounts.
+Actual and allocated vault both equal 7,999,993 atoms. Evidence:
+`.local/liquidity-execution/runs/p44-dispatch-finality/`.
+The broader service retry passes the wallet fault but stops at a one-shot indexer
+check ahead of its finalized history. The harness now flushes setup finality at
+that quiet boundary and retries only `ReconciliationAhead` at a live restart.
+No revision/completeness safeguard changes. Service acceptance remains pending.
+The pinned-binary inventory currently verifies 854 outcomes and successful coverage
+of 43/61 entrypoints; missing cases are explicit in the ignored partial report.
+A new actual 64-member source-emergency/valuation/resolution driver is ready for
+execution; no maximum-cohort result is claimed yet. The new receipt profiler verifies
 signed message bodies and complete CPI logs, separates inclusive instruction CU from
 transaction costs, and refuses reverted calls as successful coverage.
-Next exact action: rerun the real service recovery and dispatch checks on the pinned
-correction, then complete missing instruction/resource cases and the cost envelope. P44 still owns full-path measurement,
+Next exact action: run the corrected service harness and the actual 64-member
+source-emergency driver, then fill the remaining custody/treasury/claim coverage
+and freeze the cost/resource envelope. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 

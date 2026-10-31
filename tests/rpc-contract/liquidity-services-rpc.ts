@@ -71,7 +71,9 @@ try {
   const cashFault=await liquidityQueueFault(runtime,{databaseUrl,rpcUrl:config.rpcUrl,directory},original.requestId);
   assert.equal(cashFault.receipt.status,'finalized');faults.push(cashFault);
   assert.equal((await client.snapshot([margin])).roots[margin].cash,cashBefore-7n);
-  await setup.qualify();await indexer.cycle();
+  // Producer is paused here. Fence its confirmed setup publications before a
+  // one-shot finalized reconciliation; live loops handle bounded tail retries.
+  await setup.qualify();await flush();await indexer.cycle();
   const beforePrice=sdk.makerA.getMakerPriceDecoder().decode((await h.read(setup.instances[0].price))!).state;
   await setup.waitUntil(beforePrice.updatedTime+1n);
   assert.equal((await runtime.maker(0,0,setup.updater)).status,'queued');
@@ -155,7 +157,10 @@ try {
   observations.push({stage:'source-outage',code:outage.statusCode,body:outage.json()});
   paused=false;await normal();
   // Restart the finalized indexer while all workers retain their signed queue.
-  indexing=false;await indexLoop;await indexer.close();indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();beginIndex();
+  indexing=false;await indexLoop;await indexer.close();indexer=new LiquidityIndexer(config);await indexer.open();
+  await until(async()=>{try{await indexer!.cycle();return true;}catch(error){
+    if(!(error instanceof ReconciliationAhead))throw error;return false;
+  }},Boolean,'restarted indexer reaches a coherent finalized fence');beginIndex();
   await until(()=>count('liquidity-funding-%'),value=>value>=8,'publisher recovery history');
   for(const child of children.filter(child=>child!==executor))await stop(child);
   // pending() is the executor's due-work list, not an unresolved-history count.

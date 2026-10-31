@@ -6,7 +6,7 @@ import { VersionedTransaction } from '@solana/web3.js';
 import { transactionLocks } from './lock-model.js';
 
 export type ProgramContract = { address: string; name: string; instructions: { name: string; discriminator: number[] }[] };
-type CompiledInstruction = { programIdIndex: number; data: string; stackHeight?: number | null };
+type CompiledInstruction = { programIdIndex: number; accounts: number[]; data: string; stackHeight?: number | null };
 export type Receipt = {
   slot: number;
   transaction: { signatures: string[]; message: { accountKeys: string[]; instructions: CompiledInstruction[] } };
@@ -31,6 +31,7 @@ export function receiptMetrics(receipt: Receipt, wire: Uint8Array, contracts: Pr
   for (const [index, instruction] of message.compiledInstructions.entries()) {
     const fetched = receipt.transaction.message.instructions[index];
     assert.equal(instruction.programIdIndex, fetched.programIdIndex);
+    assert.deepEqual([...instruction.accountKeyIndexes], fetched.accounts, 'Fetched privileges use the signed account indices');
     assert.deepEqual(Buffer.from(instruction.data), Buffer.from(getBase58Encoder().encode(fetched.data)), 'Fetched instruction matches signed wire');
   }
   assert(Number.isSafeInteger(receipt.meta.computeUnitsConsumed) && receipt.meta.computeUnitsConsumed > 0);
@@ -66,7 +67,7 @@ export function receiptMetrics(receipt: Receipt, wire: Uint8Array, contracts: Pr
       const program = keys[row.programIdIndex], contract = contractsByAddress.get(program);
       if (!contract) continue;
       assert(Number.isInteger(row.stackHeight) && row.stackHeight! > 0, 'Explicit CPI stack height required');
-      const data = getBase58Encoder().encode(row.data);
+      const data = new Uint8Array(getBase58Encoder().encode(row.data));
       const entry = contract.instructions.find(entry => Buffer.from(entry.discriminator).equals(Buffer.from(data.subarray(0, 8))));
       compiled.push({ program, name: entry ? `${contract.name}.${entry.name}` : undefined, depth: row.stackHeight!, outer, data });
     }
