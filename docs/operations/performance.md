@@ -355,10 +355,12 @@ slot schedule. This is an operational conflict, not evidence of excessive on-cha
 market locks or permission to release ambiguous originals.
 
 The next service qualification configures each internal maker's existing updater
-authority as a distinct signer and fee payer, funded with test SOL, while retaining
-its owner/capital identity and the existing two publisher roles. Per-maker operator
-keys are already supported by the kit; no new authority or source-age relaxation is
-introduced. Qualification results and limitations remain pending in STATUS.
+authority and each market publisher as distinct signers and fee payers, funded with
+test SOL, while retaining owner/capital identities. The intermediate maker-only key
+split still leaves publisher starvation: finalized reservations on their shared
+payer delay one market while the other's fresh originals progress. Separate role
+keys are already supported; no new authority or source-age relaxation is introduced.
+Qualification results and limitations remain pending in STATUS.
 
 `tests/performance/operating-cost.ts` computes integer fee/cadence scenarios. It
 separates maker costs from venue costs, requested-CU v0 bids from explicit v1 bids,

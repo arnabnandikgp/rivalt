@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync,createWriteStream} from 'node:fs';
 import {execFileSync,spawn,type ChildProcess} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
-import type {Instruction} from '@solana/kit';
+import {address,type Instruction} from '@solana/kit';
 import {getTransferSolInstruction} from '@solana-program/system';
 import {fixtureKey} from './harness.js';
 import type {Keypair} from '@solana/web3.js';
@@ -59,6 +59,14 @@ try {
   writeFileSync(`${directory}/public-deployment.json`,json(client.config));
   runtime=new AccountRuntime(databaseUrl,config.runId,config.rpcUrl,4);await runtime.open();
   const margin=setup.roots[0],owner=setup.traderOwner;
+  for(const delegate of [setup.owner.address,address('11111111111111111111111111111111')]) {
+    const snapshot=await client.snapshot([margin],'confirmed');
+    await h.send('P44 owner sets or revokes root-local delegate',[
+      await client.setDelegate(snapshot,owner.address,margin,delegate,delegate===setup.owner.address?snapshot.slot+1000n:0n)], [owner]);
+    const after=(await client.snapshot([margin],'confirmed')).roots[margin];
+    assert.equal(after.delegate,delegate);assert.equal(after.cash,snapshot.roots[margin].cash);
+    assert.equal(after.delegateEpoch,snapshot.roots[margin].delegateEpoch+1n);
+  }
   let walletCounter=0;
   async function prepare(label:string,instructions:Instruction[]) {
     const prepared=await client.prepare(label,owner.address,instructions);await prepared.transaction.sign([owner]);
@@ -79,13 +87,20 @@ try {
   // Independent maker operators must not all promote the same updater key into
   // a writable fee payer. The shared-payer failure remains a measured limitation.
   const makerSigners=await Promise.all(setup.instances.map((_,index)=>fixtureKey(`p44-maker-updater-${index}`)));
-  await h.send('P44 fund independent maker fee payers',makerSigners.map(key=>getTransferSolInstruction({
+  const publisherSigners=await Promise.all([0,1].map(index=>fixtureKey(`p44-publisher-${index}`)));
+  await h.send('P44 fund independent operator fee payers',[...makerSigners,...publisherSigners].map(key=>getTransferSolInstruction({
     source:setup.payer,destination:key.address,amount:100_000_000n})));
   for(const [index,maker] of setup.instances.entries()) {
     const state=await maker.state(),registration=await maker.registrationState();
     await h.send('P44 authorize separate maker updater and payer',[sdk.getControlLiquidityInstruction({...maker.controlCommon,
       expectedAuthority:registration.authorityEpoch,expectedControl:state.controlEpoch,expectedShape:state.shapeEpoch,
       action:{__kind:'Updater',updater:makerSigners[index].address,expirySlot:1_000_000n}})],[setup.owner]);
+  }
+  for(const marketIndex of [0,1]) {
+    const configuration=sdk.getFundingPublisherDecoder().decode((await h.read(setup.configurations[marketIndex]))!);
+    await h.send('P44 authorize separate market publisher and payer',[sdk.getConfigureFundingPublisherInstruction({
+      ...setup.common,authority:setup.payer,market:setup.markets[marketIndex],configuration:setup.configurations[marketIndex],
+      expectedAuthority:configuration.authorityEpoch,publisher:publisherSigners[marketIndex].address})]);
   }
   await flush();await indexer.cycle();
   const beforePrice=sdk.makerA.getMakerPriceDecoder().decode((await h.read(setup.instances[0].price))!).state;
@@ -119,7 +134,7 @@ try {
   beginIndex();feeding=true;feedLoop=(async()=>{while(feeding){if(!paused)await setup.freshSources();await delay(1000);}})();
   let executor=start('executor');const makers:ChildProcess[]=[],publishers:ChildProcess[]=[];
   for(const market of [0,1])for(const instance of [0,1,2])makers.push(start('maker',makerSigners[market*3+instance],market,instance));
-  for(const market of [0,1])publishers.push(start('funding',setup.updater,market));
+  for(const market of [0,1])publishers.push(start('funding',publisherSigners[market],market));
   await until(()=>runtime!.heartbeats(),rows=>rows.length===6&&rows.every(row=>row.online),'six live canonical maker workers');
   const count=(pattern:string)=>runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget LIKE $2 AND status='finalized'",[config.runId,pattern]).then(result=>Number(result.rows[0].count));
   await until(()=>count('liquidity-maker-%'),value=>value>=7,'all canonical repricers publish');
@@ -157,9 +172,9 @@ try {
   for(const publisher of publishers)await stop(publisher);
   await until(async()=>(await runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget LIKE 'liquidity-funding-%' AND status NOT IN ('finalized','failed')",[config.runId])).rows[0].count,
     value=>value==='0','old publisher originals resolved');await stop(executor);
-  const handover=await (await import('./liquidity-publisher-handover.js')).publisherHandover(runtime,setup,transport,databaseUrl,directory);
+  const handover=await (await import('./liquidity-publisher-handover.js')).publisherHandover(runtime,setup,transport,databaseUrl,directory,publisherSigners[0]);
   writeFileSync(`${directory}/publisher-handover.json`,json(handover));faults.push(handover);
-  executor=start('executor');for(const market of [0,1])publishers.push(start('funding',setup.updater,market));await normal();
+  executor=start('executor');for(const market of [0,1])publishers.push(start('funding',publisherSigners[market],market));await normal();
 
   // Stop sources until the real independent source deadline fails. No fixture
   // changes clocks/mode and no safeguard is relaxed to make recovery pass.

@@ -65,9 +65,11 @@ const h: CanonicalHarness = {
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
     assert.equal(signature, expectedSignature);
     const verify = async () => {
+    let finalizedAt: number;
     try {
       await eventually(() => rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
         response => response.value[0]?.confirmationStatus === 'finalized', label);
+      finalizedAt = performance.now();
     } catch (error) {
       // Preserve the actual commitment/expiry state when a local runtime stalls;
       // neither a timeout nor a successful simulation proves final execution.
@@ -82,6 +84,7 @@ const h: CanonicalHarness = {
     }
     const history = await eventually(() => rpc.call('getTransaction', [signature,
       { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]), value => Boolean(value), `fetch ${label}`);
+    const receiptFetchedAt = performance.now();
     // Preserve a landed result even when a later resource or parity check fails.
     writeFileSync(`${runDir}/transaction-${transactionIndex}.json`, serialize(history));
     const loadedAccounts = new Set([...history.transaction.message.accountKeys,
@@ -112,6 +115,8 @@ const h: CanonicalHarness = {
     checks[transactionIndex] = { label, signature, version: transaction.version, v0Bytes, bytes: wireBytes,
       error: history.meta.err, confirmationMs: performance.now() - started, computeUnits: history.meta.computeUnitsConsumed, computeUnitLimit,
       buildSignMs: signedAt - started, signedToConfirmedMs: confirmedMs, simulationError: simulation.value.err,
+      signedToFinalizedMs: finalizedAt - signedAt, finalizedReceiptFetchMs: receiptFetchedAt - finalizedAt,
+      finalizedToWsAuditMs: performance.now() - finalizedAt,
       loadedAccounts, feeLamports: String(history.meta.fee), signatures: transaction.signatures.length, ws: true, wsErrorMatchesFinalized, wsError: notification.params.result.value.err, signatureWsError: signatureNotification.params.result.value.err };
     conformance.record(instructions, history);
     latestHistory = history;

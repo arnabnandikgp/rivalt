@@ -480,8 +480,17 @@ separate fee payers, retaining the two publishers' own shared role key. No quote
 source, funding or dispatch-reservation guard is relaxed. Shared-payer results stay
 retained as a limitation, not excluded successful offers. Four independent integer
 cost-model tests and typecheck pass; this is scenario tooling, not profitability.
-Next exact action: qualify the independent-maker-key service run, terminal retirement
-and corrected custody capture, then finish frozen instruction/resource/cost reporting. P44 still owns full-path measurement,
+Clean `9470101` passes corrected custody capture (57 signed outcomes, 25 committed
+events, eight independent corruption rejections) and terminal retirement (63 signed
+outcomes, seven rejections, identical 53-event PostgreSQL replay). Their actual SBF
+provenance is now checked. The combined same-SBF inventory covers 60/61 successful
+entrypoints over 2,017 outcomes; root delegation remains explicitly unmeasured.
+That revision's separate-maker-key service run still fails Normal recovery: the two
+publishers retain a shared payer and one market's fresh originals repeatedly wait
+behind the other. The next fixture also assigns each publisher its existing separate
+authorized key; the failed run remains at `p44-services-operators/`.
+Next exact action: qualify separate maker/publisher keys and the delegation lifecycle,
+then finish frozen instruction/resource/cost and bounded load reporting. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 
