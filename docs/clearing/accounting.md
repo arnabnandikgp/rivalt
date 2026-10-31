@@ -155,7 +155,10 @@ index magnitude at 10^15; funded cash at 10^15 atoms. Check the actual
 For signed quantity q, virtual claim v and checkpoint F_i, accrued scaled claim
 is `q*M*S + v - q*(F-F_i)`. Accrue before changing quantity or evaluating cash
 rights. A flat close/reopen retains its fraction; new entrants acquire no old
-fraction. Persist consumed relevant market prefixes in the same transaction.
+fraction. Persist consumed relevant market prefixes in the same transaction. Accrual validates
+the complete input and output plus each changed position; admission evaluates
+per-market rounded IM and negative claims in one traversal. Reusing those checks
+never credits positive claims or omits an isolated-slot/bound check.
 Reconciliation uses checkpoint-adjusted claims, not the sum of stored v alone.
 
 The held index uses `base + trunc(premiumScaled * elapsed / 3600)` with elapsed

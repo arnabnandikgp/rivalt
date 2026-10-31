@@ -222,3 +222,75 @@ fn cumulative_fee_rounding_does_not_change_with_position_adapter() {
         route_candidate(first, &makers, 1, &[(1, 30_001)], 0, [0, 0], 30_001).unwrap();
     assert_eq!((first_fee, second_fee, second.cash), (7, 6, 99_987));
 }
+
+#[test]
+fn whole_account_admission_and_accrual_match_independent_integer_cases() {
+    // Literal protocol scale and 10% IM. Expected values do not call risk_equity,
+    // requirement, Participant or another production candidate.
+    const UNIT: i128 = 1_000_000_000;
+    let vectors = [
+        ([3, -2], [-297 * UNIT, 190 * UNIT], [UNIT / 3, -UNIT / 7], [-UNIT, UNIT / 2]),
+        ([0, 0], [500 * UNIT, -50 * UNIT - 1], [0, 0], [UNIT, -UNIT]),
+        ([-7, 5], [710 * UNIT + 7, -490 * UNIT - 3], [-UNIT, UNIT], [2 * UNIT, -2 * UNIT]),
+        ([1, 1], [-90 * UNIT, -95 * UNIT], [UNIT - 1, -UNIT + 1], [UNIT + 1, -UNIT - 1]),
+    ];
+    let bounds = [(99_u64, 103_u64), (97, 101)];
+    for mode in [Mode::Cross, Mode::Isolated(0), Mode::Isolated(1)] {
+        for (lots, virtuals, checkpoints, funding) in vectors {
+            let positions = std::array::from_fn(|market| {
+                if matches!(mode, Mode::Isolated(selected) if selected != market) {
+                    Position::default()
+                } else {
+                    Position { lots: lots[market], virtual_scaled: virtuals[market],
+                        funding_checkpoint: checkpoints[market], generation: 4 }
+                }
+            });
+            let risks = std::array::from_fn(|market| Risk {
+                lower: bounds[market].0, upper: bounds[market].1, funding: funding[market] });
+            for reserved in [0_u64, 7, 131] {
+                let mut requirement = reserved;
+                let mut debt = 0_i128;
+                let mut expected_positions = positions;
+                for market in 0..2 {
+                    if matches!(mode, Mode::Isolated(selected) if selected != market) { continue; }
+                    let position = positions[market];
+                    let accrued = position.virtual_scaled
+                        - i128::from(position.lots) * (funding[market] - position.funding_checkpoint);
+                    let price = if position.lots < 0 { bounds[market].1 } else { bounds[market].0 };
+                    let claim = accrued + i128::from(position.lots) * i128::from(price) * UNIT;
+                    debt += (-claim).max(0);
+                    requirement += (position.lots.unsigned_abs() * bounds[market].1).div_ceil(10);
+                    expected_positions[market].virtual_scaled = accrued;
+                    expected_positions[market].funding_checkpoint = funding[market];
+                }
+                let minimum_cash = requirement + u64::try_from((debt + UNIT - 1) / UNIT).unwrap();
+                for cash in [minimum_cash.saturating_sub(1), minimum_cash, minimum_cash + 1] {
+                    let account = Margin { id: 3, mode, cash, reserved, positions };
+                    let expected = if cash >= minimum_cash { Ok(()) } else { Err(Error::Health) };
+                    assert_eq!(account.admissible(risks), expected, "{account:?}, {risks:?}");
+                    assert_eq!(account.accrued(funding).unwrap(), Margin { positions: expected_positions, ..account });
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn combined_admission_retains_invalid_bounds_and_forbidden_slot_rejection() {
+    let base = isolated(0, 0, 100);
+    for invalid in [Risk { lower: 0, upper: 1, funding: 0 },
+        Risk { lower: 2, upper: 1, funding: 0 },
+        Risk { lower: 1, upper: MAX_PRICE + 1, funding: 0 },
+        Risk { lower: 1, upper: 1, funding: MAX_FUNDING + 1 }] {
+        assert_eq!(base.admissible([invalid, Risk::default()]), Err(Error::Bounds));
+    }
+    let mut foreign = base;
+    foreign.positions[1].virtual_scaled = 1;
+    assert_eq!(foreign.admissible(risks(0, 1, 1, 0)), Err(Error::Invariant));
+    assert_eq!(foreign.accrued([0, 0]), Err(Error::Invariant));
+    let mut exhausted = base;
+    exhausted.positions[0].lots = 1;
+    exhausted.positions[0].virtual_scaled = MAX_SCALED;
+    assert_eq!(exhausted.accrued([-1, 0]), Err(Error::Bounds));
+    assert_eq!(base.accrued([MAX_FUNDING + 1, 0]), Err(Error::Bounds));
+}

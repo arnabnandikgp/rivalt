@@ -10,11 +10,11 @@ use crate::{
 pub(crate) use environment::Environment;
 
 fn bound(root: &MarginAccount, market: &Market) -> Result<()> {
-    model(root)?;
+    let account = model(root)?;
     require!(
         market.schema_version == SCHEMA_VERSION
             && market.venue == root.venue
-            && model(root)?.allows(usize::from(market.index)),
+            && account.allows(usize::from(market.index)),
         ClearingError::OrderState
     );
     Ok(())

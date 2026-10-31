@@ -1,6 +1,6 @@
 # Current status
 
-Updated 31 October 2026. This is the live handoff, not a cumulative run diary.
+Updated 1 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -20,7 +20,7 @@ the integration and preceding baselines.
 | P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
 | P42 custody/accounting isolation | Review | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60), stacked on #59; D87 schema-7 financial/lock/settlement/gateway/default and fresh SQL replay acceptance passes |
-| P43 targeted CU optimization | In progress | Fresh same-runtime profiling of the accepted P42 paths; no admission/ABI/framework changes yet |
+| P43 targeted CU optimization | In progress | Before/diagnostic profiles pass; checked accrual/admission optimization passes 38 affected native financial cases; rebuilt before/after and integrated checks pending |
 | P44 frozen pre-v2 qualification | Planned | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
 | P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
@@ -383,10 +383,28 @@ single observations, not worst-case or throughput bounds. No optimization gain i
 claimed. Typecheck and receipt/wire verification pass after adding the pinned token
 decoder dependency to the performance workspace.
 The first diagnostic build exposed Anchor 1.2.1’s narrower log facade; tracing now
-uses its pinned compatibility syscall, guarded to SBF only. No diagnostic execution
-is yet claimed; the failed build log is `.local/p43-trace-build-first.log`.
-Next exact action: rebuild the isolated diagnostic artifact and attribute measured
-costs before selecting implementation changes. P44 still owns full-path measurement,
+uses its pinned compatibility syscall, guarded to SBF only. Clean diagnostic source
+`132e086` builds without oversized frames and passes the same twelve RPC/WS
+outcomes, financial reconciliation and legacy Anchor parity. Five successful trade
+receipts supply paired CU attribution. Full maker-code hashing is about 131k CU per
+unique program; the single-maker financial candidate is about 20k CU, maker CPI
+about 18k. Diagnostic intervals include marker overhead and are not headline gains.
+
+Two broader size-optimization compiler experiments generated oversized frames and
+are rejected, with logs retained at `.local/p43-maker-size/`. No candidate binary
+from either experiment was deployed or pinned. The accepted compiler flags and
+full approved-code hashing remain. P42 binaries/manifests are preserved at their
+existing local revision directory before rebuilding.
+
+The source candidate now validates the complete accrued account once after its
+individually checked position updates, combines admission's IM/negative-equity
+traversal, and reuses an unchanged root model in book binding. All bounds, checked
+arithmetic, isolated-slot rules, per-market rounding and zero positive credit remain.
+Thirty-eight affected financial cases pass, including two new cases with 108
+independently calculated admission/accrual combinations and invalid-bound rejection.
+Typecheck and receipt attribution pass; no SBF improvement or integrated safety
+result is claimed yet. Next exact action: rebuild uninstrumented default/qualified
+programs, measure the identical after workload and requalify affected safety paths. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 

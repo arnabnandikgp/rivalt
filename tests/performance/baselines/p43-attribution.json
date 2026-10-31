@@ -1,0 +1,294 @@
+{
+  "schema": 1,
+  "harnessRevision": "132e086aa4f8462e0374c27dabd839756fe559a3",
+  "build": {
+    "revision": "132e086aa4f8462e0374c27dabd839756fe559a3",
+    "trackedDirty": false,
+    "profile": "liquidity-execution-qualification",
+    "instrumented": true,
+    "features": [
+      "liquidity-execution-qualification",
+      "cu-profiling"
+    ],
+    "unchangedComponentsSource": "6aeb7d0cf645fca889a9e3154ac01a129a72a6a8",
+    "binaries": {
+      "clearing.so": "54bc68cf6f5a42e3e0996cb215dddd3951813f97ada1f74d3ea332bee33cfa1f",
+      "maker_a.so": "4a600b298340928f962f6d28e13d6aef209233bff8b5d403713f35d5f898d9a6",
+      "maker_b.so": "10340ac7f5a9c4bfe5dbf0adee62232daf6829962413d5e9dab726f387a8e9b2",
+      "oracle_fixture.so": "85a4369ebf563f77d01c77b3a363750839b8799622fc99db2fff78bfebce46c7"
+    }
+  },
+  "rawEvidenceDirectory": ".local/liquidity-execution/runs/p43-trace",
+  "cases": [
+    {
+      "id": "trade btc-single",
+      "receipt": "transaction-106.json",
+      "receiptSha256": "f79f82263cd9812096af99d8f378c697df7c7e826f00a74569ba9fcad03cc5eb",
+      "instrumentedTransactionCu": 261741,
+      "sections": [
+        {
+          "name": "maker authentication including hash",
+          "calls": 1,
+          "computeUnits": 147283
+        },
+        {
+          "name": "full approved code hash",
+          "calls": 1,
+          "computeUnits": 130849
+        },
+        {
+          "name": "canonical quote arithmetic",
+          "calls": 1,
+          "computeUnits": 3672
+        },
+        {
+          "name": "maker CPI including dispatch",
+          "calls": 1,
+          "computeUnits": 18149
+        },
+        {
+          "name": "whole-account financial candidate",
+          "calls": 1,
+          "computeUnits": 20117
+        },
+        {
+          "name": "financial commit including event",
+          "calls": 1,
+          "computeUnits": 12484
+        },
+        {
+          "name": "event sizing",
+          "calls": 2,
+          "computeUnits": 3052
+        },
+        {
+          "name": "event encoding",
+          "calls": 2,
+          "computeUnits": 5152
+        },
+        {
+          "name": "scoped footer including event",
+          "calls": 1,
+          "computeUnits": 4295
+        }
+      ]
+    },
+    {
+      "id": "trade eth-single",
+      "receipt": "transaction-109.json",
+      "receiptSha256": "32376f264bb9a7310b60ba7a41960b29186f851f102de0d7a41737a1eab2da1b",
+      "instrumentedTransactionCu": 279513,
+      "sections": [
+        {
+          "name": "maker authentication including hash",
+          "calls": 1,
+          "computeUnits": 150283
+        },
+        {
+          "name": "full approved code hash",
+          "calls": 1,
+          "computeUnits": 130849
+        },
+        {
+          "name": "canonical quote arithmetic",
+          "calls": 1,
+          "computeUnits": 3672
+        },
+        {
+          "name": "maker CPI including dispatch",
+          "calls": 1,
+          "computeUnits": 18149
+        },
+        {
+          "name": "whole-account financial candidate",
+          "calls": 1,
+          "computeUnits": 20240
+        },
+        {
+          "name": "financial commit including event",
+          "calls": 1,
+          "computeUnits": 14556
+        },
+        {
+          "name": "event sizing",
+          "calls": 2,
+          "computeUnits": 3905
+        },
+        {
+          "name": "event encoding",
+          "calls": 2,
+          "computeUnits": 5895
+        },
+        {
+          "name": "scoped footer including event",
+          "calls": 1,
+          "computeUnits": 4654
+        }
+      ]
+    },
+    {
+      "id": "trade isolated-single",
+      "receipt": "transaction-112.json",
+      "receiptSha256": "a6ab096805c6cbcb8074704a2636b2f9b2a317f6e706872844bcea88da325686",
+      "instrumentedTransactionCu": 270031,
+      "sections": [
+        {
+          "name": "maker authentication including hash",
+          "calls": 1,
+          "computeUnits": 156283
+        },
+        {
+          "name": "full approved code hash",
+          "calls": 1,
+          "computeUnits": 130849
+        },
+        {
+          "name": "canonical quote arithmetic",
+          "calls": 1,
+          "computeUnits": 3672
+        },
+        {
+          "name": "maker CPI including dispatch",
+          "calls": 1,
+          "computeUnits": 18149
+        },
+        {
+          "name": "whole-account financial candidate",
+          "calls": 1,
+          "computeUnits": 19294
+        },
+        {
+          "name": "financial commit including event",
+          "calls": 1,
+          "computeUnits": 12526
+        },
+        {
+          "name": "event sizing",
+          "calls": 2,
+          "computeUnits": 3052
+        },
+        {
+          "name": "event encoding",
+          "calls": 2,
+          "computeUnits": 5152
+        },
+        {
+          "name": "scoped footer including event",
+          "calls": 1,
+          "computeUnits": 4295
+        }
+      ]
+    },
+    {
+      "id": "trade btc-pair-shared-program",
+      "receipt": "transaction-115.json",
+      "receiptSha256": "86aa81f46a41621a1c96ce065a15dbede706f6492a7945cf40473bcc969d4901",
+      "instrumentedTransactionCu": 358147,
+      "sections": [
+        {
+          "name": "maker authentication including hash",
+          "calls": 2,
+          "computeUnits": 172414
+        },
+        {
+          "name": "full approved code hash",
+          "calls": 1,
+          "computeUnits": 130849
+        },
+        {
+          "name": "canonical quote arithmetic",
+          "calls": 2,
+          "computeUnits": 8714
+        },
+        {
+          "name": "maker CPI including dispatch",
+          "calls": 2,
+          "computeUnits": 37668
+        },
+        {
+          "name": "whole-account financial candidate",
+          "calls": 1,
+          "computeUnits": 28798
+        },
+        {
+          "name": "financial commit including event",
+          "calls": 1,
+          "computeUnits": 18279
+        },
+        {
+          "name": "event sizing",
+          "calls": 2,
+          "computeUnits": 4582
+        },
+        {
+          "name": "event encoding",
+          "calls": 2,
+          "computeUnits": 7779
+        },
+        {
+          "name": "scoped footer including event",
+          "calls": 1,
+          "computeUnits": 5012
+        }
+      ]
+    },
+    {
+      "id": "trade btc-pair-distinct-programs",
+      "receipt": "transaction-118.json",
+      "receiptSha256": "249e106af157458aa39c2f80e49718cfca306fd6248209a6fa5bf8b2500e352c",
+      "instrumentedTransactionCu": 485806,
+      "sections": [
+        {
+          "name": "maker authentication including hash",
+          "calls": 2,
+          "computeUnits": 300575
+        },
+        {
+          "name": "full approved code hash",
+          "calls": 2,
+          "computeUnits": 261698
+        },
+        {
+          "name": "canonical quote arithmetic",
+          "calls": 2,
+          "computeUnits": 8469
+        },
+        {
+          "name": "maker CPI including dispatch",
+          "calls": 2,
+          "computeUnits": 37423
+        },
+        {
+          "name": "whole-account financial candidate",
+          "calls": 1,
+          "computeUnits": 28787
+        },
+        {
+          "name": "financial commit including event",
+          "calls": 1,
+          "computeUnits": 18285
+        },
+        {
+          "name": "event sizing",
+          "calls": 2,
+          "computeUnits": 4582
+        },
+        {
+          "name": "event encoding",
+          "calls": 2,
+          "computeUnits": 7779
+        },
+        {
+          "name": "scoped footer including event",
+          "calls": 1,
+          "computeUnits": 5012
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Instrumented intervals include diagnostic marker overhead and compiler effects",
+    "Nested categories overlap; do not sum these as transaction consumption",
+    "Full code authentication remains mandatory; no changed trust model or production TPS claim"
+  ]
+}

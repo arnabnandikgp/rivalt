@@ -282,6 +282,9 @@ clearing with `cu-profiling` into `.local/cu-profiling/`, preserving accepted
 binaries. Select that directory explicitly with `RIVALT_ARTIFACT_DIR` and
 `RIVALT_PROFILE_STAGE=p43-trace` for attribution. Trace markers compile out of
 normal artifacts; reported gains require uninstrumented before/after receipts.
+`node --import tsx tests/performance/attribution.ts <instrumented-run-directory>`
+checks actual clearing invocation markers against signed receipts. Its nested
+intervals overlap and include marker overhead; never sum them as transaction CU.
 
 The focused RPC probe uses existing verified SBF, fresh signed provisioning and
 standard RPC/WS plus isolated Anchor conformance. It has independent literal
