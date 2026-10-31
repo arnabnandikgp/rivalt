@@ -463,9 +463,25 @@ The extremal-width compiled resource fixture is prepared separately and explicit
 cannot count as a reachable financial lifecycle. The new receipt profiler verifies
 signed message bodies and complete CPI logs, separates inclusive instruction CU from
 transaction costs, and refuses reverted calls as successful coverage.
-Next exact action: run the queue witness fix through services/dispatch, execute
-the scratch-only width probe and corrected custody capture, then finish remaining
-treasury/claim coverage and the frozen cost/resource envelope. P44 still owns full-path measurement,
+Clean `f3b73c2` passes 207 current dependency/claim outcomes and identical 149-event
+PostgreSQL replay, with actual/allocated vault 8,099,997 atoms. Its treasury/journal
+run passes 124 outcomes (five expected failures), actual SQL rollback/shutdown/
+backfill and identical 74-event fresh replay with no unresolved journal rows.
+Eight full-context scratch-only width cases also pass (2,796/5,632-bit common
+factor, 186-bit rate factor); peak Verify is 782,453 CU and FlowPlan 749,225 CU.
+These LiteSVM fixtures perform no Apply or payout and do not enlarge the supported
+financial contract. Evidence is `.local/p44-width-probe/` and current run directories
+`p44-market-dependencies/`, `p44-journal/`.
+The shared-updater service retry now advances repricers but cannot sustain full
+source/publisher recovery. Its six maker workers and both publishers all promote
+the same signer to a writable fee payer, forcing sequential finalized reservations.
+The next qualification uses existing owner-authorized per-maker updater keys and
+separate fee payers, retaining the two publishers' own shared role key. No quote,
+source, funding or dispatch-reservation guard is relaxed. Shared-payer results stay
+retained as a limitation, not excluded successful offers. Four independent integer
+cost-model tests and typecheck pass; this is scenario tooling, not profitability.
+Next exact action: qualify the independent-maker-key service run, terminal retirement
+and corrected custody capture, then finish frozen instruction/resource/cost reporting. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 

@@ -344,3 +344,23 @@ evidence-policy checks pass. No program rebuild was needed. PostgreSQL, broad
 financial suites, scheduler throughput, full 61-entrypoint CU coverage, endurance,
 Anchor v2 comparison and profitability are outside this focused P39 acceptance;
 P40/P44 own their fresh integrated and complete profiling gates.
+
+### Operator signer configuration
+
+The live P44 shared-key probe uses six maker repricers and two publishers with one
+updater/fee payer. Durable reservations retain that payer until finalized outcome,
+so every original serializes even when its protocol accounts are independent.
+The probe cannot sustain fresh complete publication/recovery under the 50 ms local
+slot schedule. This is an operational conflict, not evidence of excessive on-chain
+market locks or permission to release ambiguous originals.
+
+The next service qualification configures each internal maker's existing updater
+authority as a distinct signer and fee payer, funded with test SOL, while retaining
+its owner/capital identity and the existing two publisher roles. Per-maker operator
+keys are already supported by the kit; no new authority or source-age relaxation is
+introduced. Qualification results and limitations remain pending in STATUS.
+
+`tests/performance/operating-cost.ts` computes integer fee/cadence scenarios. It
+separates maker costs from venue costs, requested-CU v0 bids from explicit v1 bids,
+and retained protocol revenue from insurance. Inputs are assumptions; use measured
+receipts to choose a base case. It does not forecast landing, hedge cost or revenue.

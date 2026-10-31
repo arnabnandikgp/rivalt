@@ -3,6 +3,8 @@ import {readFileSync,writeFileSync,createWriteStream} from 'node:fs';
 import {execFileSync,spawn,type ChildProcess} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import type {Instruction} from '@solana/kit';
+import {getTransferSolInstruction} from '@solana-program/system';
+import {fixtureKey} from './harness.js';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {LiquidityIndexer,type LiquidityConfig} from '../../packages/indexer/src/liquidity-indexer.js';
@@ -74,9 +76,21 @@ try {
   // Producer is paused here. Fence its confirmed setup publications before a
   // one-shot finalized reconciliation; live loops handle bounded tail retries.
   await setup.qualify();await flush();await indexer.cycle();
+  // Independent maker operators must not all promote the same updater key into
+  // a writable fee payer. The shared-payer failure remains a measured limitation.
+  const makerSigners=await Promise.all(setup.instances.map((_,index)=>fixtureKey(`p44-maker-updater-${index}`)));
+  await h.send('P44 fund independent maker fee payers',makerSigners.map(key=>getTransferSolInstruction({
+    source:setup.payer,destination:key.address,amount:100_000_000n})));
+  for(const [index,maker] of setup.instances.entries()) {
+    const state=await maker.state(),registration=await maker.registrationState();
+    await h.send('P44 authorize separate maker updater and payer',[sdk.getControlLiquidityInstruction({...maker.controlCommon,
+      expectedAuthority:registration.authorityEpoch,expectedControl:state.controlEpoch,expectedShape:state.shapeEpoch,
+      action:{__kind:'Updater',updater:makerSigners[index].address,expirySlot:1_000_000n}})],[setup.owner]);
+  }
+  await flush();await indexer.cycle();
   const beforePrice=sdk.makerA.getMakerPriceDecoder().decode((await h.read(setup.instances[0].price))!).state;
   await setup.waitUntil(beforePrice.updatedTime+1n);
-  assert.equal((await runtime.maker(0,0,setup.updater)).status,'queued');
+  assert.equal((await runtime.maker(0,0,makerSigners[0])).status,'queued');
   const makerOriginal=(await runtime.queue.pending())[0];assert(makerOriginal);
   const makerFault=await liquidityQueueFault(runtime,{databaseUrl,rpcUrl:config.rpcUrl,directory},makerOriginal);
   assert.equal(makerFault.receipt.status,'finalized');faults.push(makerFault);
@@ -104,7 +118,7 @@ try {
   }await delay(250);}})();};
   beginIndex();feeding=true;feedLoop=(async()=>{while(feeding){if(!paused)await setup.freshSources();await delay(1000);}})();
   let executor=start('executor');const makers:ChildProcess[]=[],publishers:ChildProcess[]=[];
-  for(const market of [0,1])for(const instance of [0,1,2])makers.push(start('maker',setup.updater,market,instance));
+  for(const market of [0,1])for(const instance of [0,1,2])makers.push(start('maker',makerSigners[market*3+instance],market,instance));
   for(const market of [0,1])publishers.push(start('funding',setup.updater,market));
   await until(()=>runtime!.heartbeats(),rows=>rows.length===6&&rows.every(row=>row.online),'six live canonical maker workers');
   const count=(pattern:string)=>runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget LIKE $2 AND status='finalized'",[config.runId,pattern]).then(result=>Number(result.rows[0].count));
@@ -125,7 +139,7 @@ try {
   assert.equal(response.statusCode,200,response.body);assert(response.json().available,response.body);
   assert.equal((await api.inject({url:'/v3/operators'})).statusCode,404);
   makers[0].kill('SIGKILL');await until(async()=>makers[0].signalCode==='SIGKILL',Boolean,'maker process killed');
-  const replacement=start('maker',setup.updater,0,0);
+  const replacement=start('maker',makerSigners[0],0,0);
   await until(()=>runtime!.heartbeats(),rows=>rows.some(row=>row.market_index===0&&row.instance===0&&row.process_id===replacement.pid),'actual maker restart');
   await normal();
   const browser=await (await import('../browser/liquidity-lifecycle.js')).liquidityBrowser({directory,client,owner,endpoint,indexer,normal});
@@ -202,6 +216,10 @@ try {
     const payload=await rpc.call('getTransaction',[intent.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     assert(payload);transactions.push({signature:intent.signature,failed:payload.meta.err!==null,payload});
   }
+  const originalWires=(await runtime.store.pool.query('SELECT request_id,signature,wire,budget,status,created_at,updated_at FROM service_intents WHERE run_id=$1 ORDER BY created_at',[config.runId])).rows;
+  writeFileSync(`${directory}/operator-receipts.json`,json({revision,originals:originalWires.map(original=>({ ...original,
+    transaction:transactions.find(tx=>tx.signature===original.signature)!.payload,
+    ws:ws.notifications.filter(notice=>notice.params?.result?.value?.signature===original.signature) }))}));
   const economics=setup.instances.map((instance,offset)=>{
     const marketIndex=(offset<3?0:1) as 0|1,market=setup.markets[marketIndex],budget=`liquidity-maker-${marketIndex}-${offset%3}`;
     const boundary=(projection:typeof state)=>({cursor:projection.sequence,root:projection.roots[instance.capital],
