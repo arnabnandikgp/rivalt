@@ -489,7 +489,17 @@ That revision's separate-maker-key service run still fails Normal recovery: the 
 publishers retain a shared payer and one market's fresh originals repeatedly wait
 behind the other. The next fixture also assigns each publisher its existing separate
 authorized key; the failed run remains at `p44-services-operators/`.
-Next exact action: qualify separate maker/publisher keys and the delegation lifecycle,
+The `76586dc` service run passes separate-key Normal recovery and delegation but
+stops at browser startup because this machine has no Playwright-downloaded browser.
+The installed Chrome will be selected explicitly for the rerun; no browser download
+or application profile change is needed. A separate bounded load driver is prepared:
+2/8/32 offers per second in eight-second windows, four in-flight constructions,
+stopping each workload's ramp on declared success/latency/backpressure thresholds.
+It independently replays each root's actual fills and exact fee/claim/custody totals
+and requires live indexing plus fresh PostgreSQL replay. Typecheck passes; no live
+load result is claimed yet.
+Next exact action: qualify separate maker/publisher keys with installed Chrome and
+run the bounded load driver,
 then finish frozen instruction/resource/cost and bounded load reporting. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
