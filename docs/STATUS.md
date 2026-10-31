@@ -511,8 +511,16 @@ now rebuilds the trader before service qualification. This is a fixture build
 provenance repair; no schema or freshness guard changes. P43's automated review
 also identified overly broad comparison wording: documentation now distinguishes
 each run's independent conservation from the narrower aggregate cross-run check.
-Next exact action: finish service/browser/recovery qualification with the current
-UI bundle,
+Clean `fd7d0f4` also passes the final changed-queue dispatch regression: two RPC
+lanes, duplicate executors, shared-payer deferral, finalized expiry, exact original
+SIGKILL recovery and identical 61-event fresh PostgreSQL replay. Its browser reaches
+the current bundle but exposes a real configuration omission: Vite's public-field
+allowlist drops mandatory `accountSchema`. The field is now forwarded and the
+browser harness checks every required deployment field at the actual HTTP endpoint
+before connecting. Evidence stays in `p44-services-current-ui/` and
+`p44-dispatch-final/`; the former is not service acceptance.
+Next exact action: finish service/browser/recovery qualification with the corrected
+public deployment endpoint,
 then finish frozen instruction/resource/cost and bounded load reporting. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.

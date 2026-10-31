@@ -66,6 +66,8 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Accoun
     const source=stripTypeScriptTypes(readFileSync('tests/browser/wallet.ts','utf8').replace('export function installWallet','function installWallet'));
     await context.addInitScript({content:source+'\ninstallWallet('+JSON.stringify([{address:owner.address,publicKey:[...owner.publicKey.toBytes()]}])+',[0,1]);'});
     await wait(()=>fetch('http://127.0.0.1:18093/rivalt-config.json').then(response=>response.status).catch(()=>0),status=>status===200,'owned browser server');
+    const served=await fetch('http://127.0.0.1:18093/rivalt-config.json').then(response=>response.json());
+    for(const [key,value] of Object.entries(client.config))assert.deepEqual(served[key],value,`HTTP deployment preserves ${key}`);
     await page.goto('http://127.0.0.1:18093');await button('Select Wallet').click();await page.getByRole('button',{name:/Rivalt Test Wallet/}).click();
     await wait(()=>button('Withdraw').isEnabled(),Boolean,'actual owner account discovery');
     await input.normal();await action('Review atomic trade');
