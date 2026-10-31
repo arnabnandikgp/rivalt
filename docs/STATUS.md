@@ -402,9 +402,12 @@ traversal, and reuses an unchanged root model in book binding. All bounds, check
 arithmetic, isolated-slot rules, per-market rounding and zero positive credit remain.
 Thirty-eight affected financial cases pass, including two new cases with 108
 independently calculated admission/accrual combinations and invalid-bound rejection.
-Typecheck and receipt attribution pass; no SBF improvement or integrated safety
-result is claimed yet. Next exact action: rebuild uninstrumented default/qualified
-programs, measure the identical after workload and requalify affected safety paths. P44 still owns full-path measurement,
+All 114 clearing native cases, typecheck and receipt attribution pass. Clean source
+`fb5d0c5` rebuilds qualified/default SBF and identical IDL/SDK without oversized
+frames. Clearing is 2,484,144 bytes; maker and oracle binaries are unchanged.
+SDK pins select that actual uninstrumented candidate. No measured CU improvement
+or integrated safety result is claimed yet. Next exact action: run the identical
+after workload, compiled default gates and affected signed safety/resource cases. P44 still owns full-path measurement,
 integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
 endurance, browser or funded qualification is claimed for P42.
 

@@ -6,7 +6,7 @@ import { resolve, relative } from 'node:path';
 import { transactionLocks, conflicts } from './lock-model.js';
 
 const run = process.argv[2];
-assert(run, 'Usage: node --import tsx tests/performance/summarize.ts <local-run-directory> [--write]');
+assert(run, 'Usage: node --import tsx tests/performance/summarize.ts <local-run-directory> [--write] [--artifacts <directory>]');
 const hash = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
 const raw = readFileSync(resolve(run, 'performance.json'));
 const report = JSON.parse(raw.toString());
@@ -53,8 +53,11 @@ const accessChecks = report.accessChecks.map((pair: any) => {
   return { left: pair.left.slice(prefix.length), right: pair.right.slice(prefix.length),
     declaredConflicts: pair.protocol.length, compiledConflicts: pair.compiled.length };
 });
+const artifactOption = process.argv.indexOf('--artifacts');
+const artifactDirectory = artifactOption < 0 ? report.artifactDirectory ?? '.local/liquidity-execution' : process.argv[artifactOption + 1];
+assert(artifactDirectory && !artifactDirectory.startsWith('--'), 'Explicit artifact directory required');
 const artifacts = Object.fromEntries(['clearing', 'maker_a', 'maker_b', 'oracle_fixture'].map(name => {
-  const bytes = readFileSync(`${report.artifactDirectory ?? '.local/liquidity-execution'}/${name}.so`);
+  const bytes = readFileSync(`${artifactDirectory}/${name}.so`);
   assert.equal(hash(bytes), report.build.binaries[`${name}.so`]);
   return [name, { sha256: hash(bytes), bytes: bytes.length }];
 }));
