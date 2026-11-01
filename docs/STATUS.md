@@ -13,7 +13,7 @@ the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| M12 performance and contention | In progress | Authorized P39–P44; [contract](operations/performance.md), fresh pre-v2 baseline before any framework migration |
+| M12 performance and contention | Review | P39–P44 acceptance complete; open seven-PR stack awaits review/integration; no framework migration |
 | P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | Review | A and B acceptance passed; awaiting stack integration |
 | P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
@@ -21,7 +21,7 @@ the integration and preceding baselines.
 | P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
 | P42 custody/accounting isolation | Review | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60), stacked on #59; D87 schema-7 financial/lock/settlement/gateway/default and fresh SQL replay acceptance passes |
 | P43 targeted CU optimization | Review | [PR #61](https://github.com/arnabnandikgp/rivalt/pull/61), ready above #60; Same-workload CU comparison, 147/165 full-book outcomes and 290 safety outcomes pass on uninstrumented SBF `fb5d0c5`; gains and limitations recorded |
-| P44 frozen pre-v2 qualification | In progress | Fresh complete supported-path profiling, integrated reconciliation, cost and capacity envelope |
+| P44 frozen pre-v2 qualification | Review | [PR #62](https://github.com/arnabnandikgp/rivalt/pull/62), ready above #61; frozen 61-entrypoint baseline, integrated recovery/replay and measured cost/load envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
 | P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
 | P36 canonical names/ABI | Closed | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51) merged; canonical API names, preserved wire contract and passing CI |
@@ -99,9 +99,14 @@ regressions and typecheck pass. Raw originals, failed attempts and databases sta
 local/ignored. No new SBF build, unrelated local native suites, endurance, devnet,
 external wallet, funded deployment or Anchor v2 migration is run. Broad supported
 regression belongs to CI. The 53,089-byte frozen baseline reproduces from its pinned
-originals; typecheck, documentation links and shell syntax pass.
-Next exact action: check the staged evidence budget, commit acceptance and publish
-the ready P44 PR above #61; observe scoped CI and keep the stack open.
+originals; typecheck, documentation links, shell syntax, whitespace and the staged
+128 KiB aggregate evidence budget pass. Acceptance content is `ade628d`.
+[PR #62](https://github.com/arnabnandikgp/rivalt/pull/62) is verified ready/open above
+#61; all seven stack PRs remain open. Hosted checks and review are visible on the
+PR and are separate from the recorded local acceptance.
+Next exact action: inspect P44's hosted checks/review feedback and address any
+findings; await stack integration authorization before merging. P39–P44 engineering
+work is complete within these measured bounds; no Anchor v2 migration is started.
 
 ## Deployment and operational limits
 
