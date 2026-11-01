@@ -9,6 +9,51 @@ not these program artifacts. P36 adds the separately scoped rebuilt-code evidenc
 below; P37's fresh integrated qualification after retirement is recorded separately.
 [Original reports](../HISTORY.md) retain complete commands, failed attempts and pins.
 
+## Anchor RC2 qualification checkpoint (P47)
+
+P47 remains **In progress**; normal runtime promotion is disabled. The unchanged
+C0 artifacts and clean verifiers are recorded in the bounded
+[coverage summary](../../tests/performance/baselines/p47-c0.json). Its **61/61**
+entrypoints are coverage, not proof of the remaining service/load/default matrix.
+
+Clean `a01da5d` passes the 12-case focused RPC/WS profile; 123 maker and 84
+publisher outcomes; 207 dependency/settlement and 63 retirement outcomes with
+149/53-event PostgreSQL replays; 147/165/165 full protected/entry/stored-book
+outcomes; and 712 complete-cohort outcomes. Independent arithmetic verifies 64
+exact payouts (56 added members are flat), one augmentation and ten corruption
+rejections. Eight separate wide-scratch compiled cases pass; they do not execute
+payout history. P46's original 57 custody/290 safety/124 journal outcomes remain
+separate constituents. All use C0 SBF `366c7ab`.
+
+Clean **`b0b62ff`** completes the services/browser constituent with real
+Surfpool/RPC/WS/PostgreSQL in `.local/anchor-rc2/p47-services-jsonb/`: **254 harness
+outcomes, 468 durable originals (457 successful / 11 rejected), ten signed browser
+actions**, three actual SIGKILL/lost-ack recoveries, stored-order execution,
+publisher rotation/revocation, source outage/recovery and live indexer restart.
+Fresh replay matches **187 events, 70 accounts/eight members**, zero unresolved
+jobs. The independent `p33_services_reference.py` audit verifies **7,999,993 vault
+atoms, 7,999,665 funded root cash, fees [267,61], insurance [66,15]**, flat inventory
+and zero aggregate unpaid claims. Six makers are internal; hedge assumptions stay
+labelled and no hedge was executed. Browser evidence uses installed Chrome and an
+instrumented local wallet, not a new external-wallet compatibility claim.
+
+Failed attempts remain local: missing Playwright cache; six browser actions then
+an unsigned source-window refusal; and ten browser actions followed by the order
+worker timeout. The last failure traced to JSONB key ordering in the readonly
+projection comparison, reproduced from nine actual finalized custody events with
+identical venue values. Structural comparison fixes that false rejection while
+retaining complete field/array/revision guards; the new regression first fails
+on old code and then rejects actual metadata changes. Twenty affected indexer
+cases and typecheck pass; the clean integrated rerun above supplies runtime proof.
+
+[Performance](performance.md#rc2-qualification-measurements-in-progress-p47)
+records the paired B/C observations, full financial state comparison and explicit
+clock/digest mismatch limits. Fourteen affected measurement/provenance cases pass.
+Raw wires/logs/database copies stay ignored. No unrelated full host suite, new
+program build, funded/devnet deployment, external review or endurance is inferred.
+Separate admission-crash/expiry dispatch, operational default/exit, bounded load,
+final resource/fee reporting and normal-runtime promotion remain to qualify P47.
+
 ## Anchor RC2 serialized port (P46)
 
 This is scoped implementation acceptance, **not P47 qualification or normal demo

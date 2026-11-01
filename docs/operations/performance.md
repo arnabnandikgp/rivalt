@@ -7,6 +7,67 @@ layouts. The baseline-A audit below preserves the pre-redesign snapshot. Integra
 is not a public deployment. Anchor v2 migration is a
 separate evaluation after the pre-migration baseline, not part of these phases.
 
+## RC2 qualification measurements in progress (P47)
+
+These are paired workload observations, **not complete P47 acceptance**. The
+[bounded C0 inventory](../../tests/performance/baselines/p47-c0.json) covers all
+61 public entrypoints on uninstrumented SBF source `366c7ab`; it separates
+2,520 observed executions from 2,493 unique signed originals. Inclusive instruction
+CU contains child CPIs; do not sum parent and child. Per-entrypoint quantiles are
+heterogeneous observed populations, not repeated identical trials or worst cases.
+
+The [focused comparison](../../tests/performance/baselines/p47-comparison.json)
+compares immutable B `fb5d0c5` / verifier `1e86661` with C0 / verifier `a01da5d`.
+Compiler, SBPF architecture, Surfpool, scripted workload, signed access, requested
+budgets and fees agree. Authenticated event replay compares **33,682 field values
+across 22 before/after states**: roots, cash, unpaid/fractional claims, positions,
+funding checkpoints, books, ledgers, carries, permissions and revisions all match
+under the explicit fresh schema/domain/address mapping. Unix timestamps share one
+uniform origin offset. **330 slot and 176 code/input-digest witnesses differ** and
+remain in the local detailed report; these are not exact input matches or a pure
+Anchor microbenchmark. No C1 zero-copy conversion is present. Smaller authenticated
+maker binaries contribute to route savings alongside framework/codec/CPI changes.
+
+| Focused transaction | B CU | C0 CU | Observed reduction |
+|---|---:|---:|---:|
+| trade btc-single | 256,160 | 154,261 | 39.8% |
+| trade eth-single | 273,918 | 158,955 | 42.0% |
+| trade isolated-single | 264,666 | 155,072 | 41.4% |
+| trade btc-pair-shared-program | 350,792 | 197,730 | 43.6% |
+| trade btc-pair-distinct-programs | 478,042 | 278,984 | 41.6% |
+| trade stale-account-rejection | 33,313 | 9,494 | 71.5% |
+| order place | 46,352 | 30,115 | 35.0% |
+| order cancel | 38,925 | 22,898 | 41.2% |
+| reprice 0 | 18,250 | 10,002 | 45.2% |
+| reprice 1 | 18,250 | 10,002 | 45.2% |
+| funding 0 | 32,523 | 21,953 | 32.5% |
+| funding 1 | 32,524 | 21,955 | 32.5% |
+
+Each row is one observation. The rejected stale-account row is not a successful
+fill. Trade budgets remain 800,000 CU and other focused budgets 400,000 CU; all
+rows retain two signatures, zero priority bid and **10,000 actual fee lamports**.
+Reduced consumption alone saves no paid fee at those unchanged bids. The current
+service/browser population uses separate role payers and usually one signature;
+its fees must not be conflated with this two-signature harness population.
+
+Reproduce after retaining the named local runs and artifacts:
+
+```sh
+source ops/env.sh
+RIVALT_ARTIFACT_DIR=.local/anchor-rc2/c0-366c7ab node --import tsx \
+  tests/performance/migration-comparison.ts \
+  .local/liquidity-execution/runs/p43-after .local/anchor-rc2/p47-profile-a01da5d
+```
+
+The reader loads B's immutable schema-7 projection modules in an ignored isolated
+reader; it never relaxes the current schema-8 journal. Five mutation regressions
+reject changed cash, claims, carries, relative time, funding checkpoint, order
+ordering and field shape. The C0 wrapper initially mislabeled its summary as
+instrumented; the reader permits that metadata correction only at exact `a01da5d`,
+then checks the unchanged uninstrumented C0 source and actual admitted binary hashes.
+Frozen B is never rewritten. Full load/worker resource envelope and final operating
+cost tables remain pending; [STATUS](../STATUS.md) records remaining acceptance.
+
 ## Scope and comparison points
 
 Keep BTC/ETH, one collateral mint, three maker instances per market, at most two

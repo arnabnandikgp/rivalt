@@ -133,12 +133,33 @@ still required; no complete service pass is claimed for this attempt. Evidence i
 under `.local/anchor-rc2/p47-services-ready/`; logs/databases remain retained and
 no financial safeguard, hash format or resource limit changed.
 
-Services/browser/fault/load acceptance and the matched resource/fee report still
-remain, along with normal-runtime promotion and P47's ready PR. Comparisons must
-distinguish matched financial states from wall-clock/slot differences and consumed
-CU from paid fees. No C1, funded/external gate or endurance run is claimed.
-Next exact action: rerun services/browser on the committed structural-projection
-fix with installed Chrome, then finish bounded load/recovery and the comparison.
+Clean **`b0b62ff`** passes the affected integrated rerun in
+`.local/anchor-rc2/p47-services-jsonb/`: 254 harness outcomes, 468 durable originals
+(457 successful / 11 failed), all ten browser actions, actual stored-order fill,
+three SIGKILL/lost-ack recoveries, publisher rotation/revocation, source outage/
+recovery and indexer restart. Fresh PostgreSQL replay matches 187 events over
+70 accounts/eight members with zero unresolved jobs. Independent Python arithmetic
+verifies 7,999,993 vault atoms, 7,999,665 funded root cash, fees [267,61], insurance
+[66,15], flat inventory and zero aggregate unpaid claims. Internal makers remain
+labelled; no hedge is executed. Complete service acceptance is now supported.
+
+The bounded C0 entrypoint summary covers **61/61**, with **2,520 executions /
+2,493 unique signed originals / 27 cross-run reexecutions**. Browser/operator
+originals are separate populations, not silently added to that harness count.
+The B/C reader compares 33,682 leaves across 22 reconstructed before/after states
+for 11 successful focused cases. All financial fields and relative Unix times
+match; 330 slot and 176 deployment-digest witnesses remain explicit differences.
+Twelve paired CU observations therefore are not exact-input/pure-framework gains.
+The initial C0 wrapper's incorrect `instrumented:true` metadata is explicitly
+identified; actual pinned SBF hashes/manifests prove uninstrumented C0. Future
+wrapper output is corrected without changing or rerunning those originals.
+Fourteen affected comparison/provenance tests and typecheck pass.
+
+Separate admission-crash/expiry dispatch, operational default/exit and bounded
+load acceptance remain, plus final resource/fee report, normal-runtime promotion
+and P47's ready PR. No C1, funded/external gate or endurance run is claimed.
+Next exact action: run fresh dispatch RPC/WS/PostgreSQL qualification on this
+committed checkpoint, followed by the bounded P44-matched load workload.
 
 ## Accepted performance stack
 

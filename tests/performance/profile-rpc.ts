@@ -134,7 +134,7 @@ try {
   const build = JSON.parse(readFileSync(`${artifactDirectory}/build-manifest.json`, 'utf8'));
   assert.equal(Boolean(build.instrumented), checkpoint === 'p43-trace');
   const summary = { schema: 2, checkpoint, revision, artifactDirectory,
-    instrumented: checkpoint === 'p43-trace' || checkpoint === 'p47-c0',
+    instrumented: checkpoint === 'p43-trace',
     workload: { schema: 8, profile: 4, markets: 2, makersPerMarket: 3,
       lotsPerLeg: '1', quantities: [1, 1, 1, 2, 2], orderBook: 'one live order, then cancel',
       dependencies: 'on-chain-required root union, no unused market/ledger',
