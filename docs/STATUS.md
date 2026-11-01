@@ -103,9 +103,13 @@ originals; typecheck, documentation links, shell syntax, whitespace and the stag
 128 KiB aggregate evidence budget pass. Acceptance content is `ade628d`.
 [PR #62](https://github.com/arnabnandikgp/rivalt/pull/62) is verified ready/open above
 #61; all seven stack PRs remain open. Hosted checks and review are visible on the
-PR and are separate from the recorded local acceptance.
-Next exact action: inspect P44's hosted checks/review feedback and address any
-findings; await stack integration authorization before merging. P39–P44 engineering
+PR and are separate from the recorded local acceptance. All four applicable hosted
+jobs (scope, shell, client and financial) pass on acceptance content `ade628d` in
+[run 41276941491](https://github.com/arnabnandikgp/rivalt/actions/runs/41276941491);
+the report job is correctly skipped. Later commits update handoff documentation
+only; this does not claim a new code run or independent review approval.
+Next exact action: address P44 review feedback when it arrives; await stack
+integration authorization before merging. P39–P44 engineering
 work is complete within these measured bounds; no Anchor v2 migration is started.
 
 ## Deployment and operational limits
