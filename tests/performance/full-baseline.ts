@@ -3,16 +3,19 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve, relative } from 'node:path';
-import { receiptMetrics, observedDistribution, type ProgramContract, type Receipt } from './receipt-metrics.js';
+import { receiptMetrics, observedDistribution, type Receipt } from './receipt-metrics.js';
 
+import {profileContracts, FROZEN_B_SOURCE} from './profile-contracts.js';
+
+assert(!process.argv.includes('--write'), 'Frozen B cannot be rewritten; use the separate candidate collector');
 const hash = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
 const json = (path: string) => JSON.parse(readFileSync(path, 'utf8'));
 const directories: string[] = process.argv.includes('--replay')
   ? json('tests/performance/baselines/p44-pre-v2.json').runs.map((run: { directory: string }) => run.directory)
   : process.argv.slice(2).filter(value => !value.startsWith('--'));
 assert(directories.length, 'Usage: full-baseline.ts <run>... [--write | --partial]');
-const contracts: ProgramContract[] = ['clearing', 'maker_a', 'maker_b'].map(name => ({ ...json(`packages/sdk/idl/${name}.json`), name }));
-const idls = Object.fromEntries(contracts.map(({ name }) => [name, hash(readFileSync(`packages/sdk/idl/${name}.json`))]));
+const {contracts, idls} = profileContracts(FROZEN_B_SOURCE);
+assert.deepEqual(idls, json('tests/performance/baselines/p44-pre-v2.json').idls, 'Frozen B IDLs');
 const build = json('.local/liquidity-execution/build-manifest.json');
 assert.equal(build.trackedDirty, false); assert.equal(build.instrumented, undefined);
 assert.equal(build.revision, 'fb5d0c546a417796ce615e0d3d3575545c96c178', 'Frozen B uses its exact accepted programs');
@@ -77,7 +80,7 @@ assert(loadRun, 'Frozen B requires the accepted current indexer/load constituent
 const load = json(`${loadRun.directory}/summary.json`);
 const quantiles = (value: {p50:number;p95:number;p99:number}) => [value.p50,value.p95,value.p99].map(item => Math.round(item*1000)/1000);
 const environment = { anchor: '1.2.1', hostRust: '1.97.1', platformTools: '1.52', sbfRust: '1.89.0-dev', sbpf: 'v0',
-  buildScript: 'ops/build-liquidity-execution.sh', locked: true, instrumented: false, accountSchema: 8,
+  buildScript: 'ops/build-liquidity-execution.sh', locked: true, instrumented: false, accountSchema: 7,
   node: '24.22.0', pnpm: '10.23.0', kit: '8.5.0', web3: '3.1.1', postgres: '18.6', liteSvm: '1.6.1',
   isolatedConformance: {anchor:'1.2.1',web3:'1.99.0'}, syntheticSlotMs:50,
   priorityFees: 'Every captured harness bid is zero; worker receipts are reported separately',

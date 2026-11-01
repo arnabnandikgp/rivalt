@@ -13,10 +13,10 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| M13 Anchor RC2 migration | Active | P45 plan accepted; P46 serialized C0 acceptance passed locally, P47 fresh qualification follows |
+| M13 Anchor RC2 migration | Active | P45 plan accepted; P46 in Review with green CI; P47 fresh qualification in progress |
 | P45 migration contract | Review | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) ready; architecture/release research, exact RC2 pins, ABI choice, code gap map and measurement/acceptance plan |
 | P46 RC2 implementation | Review | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) ready above #63; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
-| P47 post-migration qualification | Planned — depends on P46 | Complete compiled financial/service/browser/load matrix and matched cost report; no inherited qualification |
+| P47 post-migration qualification | In progress | Separate frozen B/C0 readers reproduce actual coverage; remaining full matrix, resource/fee comparison and normal-runtime promotion |
 | M12 performance and contention | Closed | P39–P44 accepted and integrated; measured pre-migration baseline frozen; no framework migration |
 | P39 dependency audit/baseline | Closed | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55) merged; focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | Closed | A and B acceptance passed and integrated |
@@ -66,16 +66,42 @@ Compiled maker lifecycle, default gates and five hostile-maker rollback cases
 pass. Both actual maker binaries match 3,172 independent pricing vectors each.
 Native adapter/financial tests and affected SDK/conformance checks passed at the
 pins recorded in validation. Typecheck, ABI/generated checks and documentation
-checks are scoped. Hosted scope passes on `44d1251`; client/report/financial/shell
-checks are still running, not assumed passing. All evidence remains local.
+checks are scoped. All five hosted jobs (scope/client/report/financial/shell) pass
+on `360a247` in [run 41289514760](https://github.com/arnabnandikgp/rivalt/actions/runs/41289514760). All evidence remains local.
 The initial failed allowlist and boxed native token CPI attempts remain recorded;
 the fresh signed custody pass proves the forwarding-handle fix.
 
 P47 is still required for full entrypoint/full-book/64-member coverage, services,
 browser, fault/load replay and the matched resource/fee comparison. Normal demo
 promotion remains gated. P15B/P16B and deferred endurance are unchanged. No access
-blocker is present. Next exact action: add the P47 qualification branch above
-ready #64 and build the candidate coverage/comparison reader against frozen B.
+blocker is present. P47 continues on the accepted exact parent without merging #64.
+
+## P47 qualification checkpoint
+
+`implementation/p47-rc2-qualification` is stacked above #64 at `360a247`. The
+separate baseline reader now loads immutable B IDLs and its schema-7 metadata;
+replaying all **2,871** retained originals reproduces the unchanged **53,089-byte**
+B summary exactly. It refuses baseline rewrites. The separate C0 collector checks
+admitted binary hashes, exact source/IDL pins, signatures, RPC/WS, fees and CPI
+ancestry. The three clean P46 runs currently establish **43/61** successful
+entrypoints across **471** outcomes; their retained rejections cannot inflate
+coverage. No new transaction or qualification is inferred from rereading evidence.
+
+Six provenance regression cases reject changed/dirty/instrumented sources and
+self-consistent but unadmitted binaries; four evidence-policy cases, typecheck and
+documentation checks pass. Broad host suites are not rerun locally.
+
+The approved bounded performance-summary budget moves to 256 KiB aggregate while
+retaining 64 KiB per file; raw evidence stays ignored. Continuation/operational
+launchers now require explicit RC2 candidate selection instead of selecting old
+binaries beneath the new SDK. P47 has not promoted normal demo/operator artifacts.
+The full-book, remaining authority/settlement/retirement, 64-member, operational,
+browser and load gates remain. Comparisons must distinguish matched scenarios
+from independently aggregated ranges and consumed CU from actual fees. No C1,
+new funded/external gate or endurance run is authorized or claimed by these checks.
+
+Next exact action: commit the measurement/launcher checkpoint, then run the pinned
+C0 focused profile and missing scenario constituents with real RPC/WS/PostgreSQL.
 
 ## Accepted performance stack
 

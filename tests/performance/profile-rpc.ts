@@ -15,7 +15,7 @@ import { conflicts, instructionLocks, transactionLocks, type LockSet } from './l
 const runDir = process.env.RIVALT_RUN_DIR!;
 const artifactDirectory = process.env.RIVALT_ARTIFACT_DIR ?? '.local/anchor-rc2/candidate';
 const checkpoint = process.env.RIVALT_PROFILE_STAGE;
-assert(checkpoint === 'p43-before' || checkpoint === 'p43-after' || checkpoint === 'p43-trace',
+assert(checkpoint === 'p43-before' || checkpoint === 'p43-after' || checkpoint === 'p43-trace' || checkpoint === 'p47-c0',
   'Select an explicit CU comparison checkpoint');
 const json = (value: unknown) => JSON.stringify(value, (_, item) => typeof item === 'bigint' ? item.toString() : item, 2) + '\n';
 const runtime = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, runDir, {
@@ -134,7 +134,7 @@ try {
   const build = JSON.parse(readFileSync(`${artifactDirectory}/build-manifest.json`, 'utf8'));
   assert.equal(Boolean(build.instrumented), checkpoint === 'p43-trace');
   const summary = { schema: 2, checkpoint, revision, artifactDirectory,
-    instrumented: checkpoint === 'p43-trace',
+    instrumented: checkpoint === 'p43-trace' || checkpoint === 'p47-c0',
     workload: { schema: 8, profile: 4, markets: 2, makersPerMarket: 3,
       lotsPerLeg: '1', quantities: [1, 1, 1, 2, 2], orderBook: 'one live order, then cancel',
       dependencies: 'on-chain-required root union, no unused market/ledger',

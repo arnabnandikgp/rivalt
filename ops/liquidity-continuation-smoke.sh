@@ -5,9 +5,11 @@ cd "$(dirname "$0")/.."
 source ops/env.sh
 export RIVALT_CONTINUATION_PROFILE="${RIVALT_CONTINUATION_PROFILE:?control or treatment required}"
 case "$RIVALT_CONTINUATION_PROFILE" in
-  control|treatment) export RIVALT_ARTIFACT_DIR=.local/liquidity-execution ;;
+  control|treatment) : ;;
   *) echo 'Unknown comparison profile' >&2; exit 1 ;;
 esac
+[[ "${RIVALT_ALLOW_RC2_CANDIDATE:-0}" == 1 ]] || { echo 'RC2 qualification requires explicit candidate authorization' >&2; exit 1; }
+: "${RIVALT_ARTIFACT_DIR:?Explicit RC2 candidate artifact directory required}"
 # Retained binaries are explicit pinned build artifacts, never retained runtime
 # state. Every deployment starts empty and proves actual hashes before use.
 python3 - <<'PY'
@@ -15,6 +17,7 @@ import hashlib,json,os,pathlib
 root=pathlib.Path(os.environ['RIVALT_ARTIFACT_DIR'])
 manifest=json.loads((root/'build-manifest.json').read_text())
 assert manifest['trackedDirty'] is False
+assert manifest.get('framework') == 'anchor-2.0.0-rc.2' and manifest.get('accountSchema') == 8
 for component in ['clearing','maker_a','maker_b','oracle_fixture']:
     name=component+'.so'
     assert hashlib.sha256((root/name).read_bytes()).hexdigest()==manifest['binaries'][name],name

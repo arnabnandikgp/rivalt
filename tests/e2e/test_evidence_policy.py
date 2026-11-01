@@ -21,4 +21,5 @@ class EvidencePolicy(unittest.TestCase):
         prefix = 'tests/performance/baselines/'
         self.assertEqual(policy.violations([(prefix + 'metrics.json', 64 * 1024)]), [])
         self.assertEqual(len(policy.violations([(prefix + 'trace.json', 64 * 1024 + 1)])), 1)
-        self.assertEqual(len(policy.violations([(prefix + f'{i}.json', 64 * 1024) for i in range(3)])), 1)
+        self.assertEqual(policy.violations([(prefix + f'{i}.json', 64 * 1024) for i in range(4)]), [])
+        self.assertEqual(len(policy.violations([(prefix + f'{i}.json', 64 * 1024) for i in range(5)])), 1)
