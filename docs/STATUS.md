@@ -553,8 +553,18 @@ The independent financial auditor now selects the explicitly declared service-on
 case, retaining literal fee/fill vectors and per-root funding/claim checks. The
 changed indexer needs one scoped offered-load rerun; future load samples now copy
 telemetry counters instead of retaining a mutable reference.
-Next exact action: audit service finances, remeasure the changed live indexer/load
-path, then freeze the complete instruction/cost baseline and publish the P44 PR.
+Independent service replay passes all eight roots: BTC taker fees 25 atoms,
+insurance six, cash 7,999,968 and vault 7,999,993, with flat positions and zero
+aggregate unpaid claims. Five compiled hostile-maker cases reject with complete
+rollback across 114 signed VM transactions at clean `1cc2d6a`.
+The changed-indexer load attempt reaches higher construction concurrency and
+exposes identical signed offers sharing a blockhash/pre-state. Surfpool correctly
+rejects the duplicate as already processed. The generator now records such offers
+as duplicate originals before transmission, preserving their offered denominator,
+original signature and one actual economic/fee effect. No nonce, memo, financial
+rule or program behavior changes. The failed run remains `p44-load-parallel-history/`.
+Next exact action: complete the scoped load rerun with explicit duplicate-original
+classification, then freeze the complete instruction/cost baseline and publish P44.
 
 ## Deployment and operational limits
 

@@ -13,6 +13,7 @@ export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: 
     maxLoadedAccounts?: (label: string) => number | undefined;
     observeOutcomes?: (label: string) => boolean;
     beforeBroadcast?: (label: string) => Promise<void>;
+    signedOriginal?: (label: string, signature: string) => void;
     payerFor?: (label: string) => Keypair | undefined;
     deferFinality?: boolean } = {}) {
 assert.equal(new URL(url).hostname, '127.0.0.1');
@@ -37,7 +38,6 @@ const h: CanonicalHarness = {
   },
   async send(label, instructions, signers = [], expectedError) {
     if (verificationError) throw verificationError;
-    const transactionIndex = nextTransaction++;
     const started = performance.now();
     const observeOutcome = options.observeOutcomes?.(label) ?? false;
     const computeUnitLimit = options.computeUnitLimit?.(label,instructions)
@@ -48,6 +48,10 @@ const h: CanonicalHarness = {
     const signedAt = performance.now();
     let confirmedMs: number | undefined;
     const expectedSignature = getBase58Decoder().decode(transaction.signatures[0]);
+    // A load generator can classify identical signed offers before they create
+    // a second receipt/fee observation. Ordinary acceptance rejects duplicates.
+    options.signedOriginal?.(label, expectedSignature);
+    const transactionIndex = nextTransaction++;
     const saved = { label, wireBase64, signature: expectedSignature, version: transaction.version, v0Bytes, wireBytes };
     writeFileSync(`${runDir}/wire-${transactionIndex}.json`, serialize(saved));
     console.log(`${transactionIndex}: ${label}: v${transaction.version} ${wireBytes} bytes (v0 ${v0Bytes})`);

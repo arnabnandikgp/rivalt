@@ -25,12 +25,23 @@ assert(databaseUrl,'Actual PostgreSQL required');
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const payers=new Map<string,Keypair>();
+class DuplicateOriginal extends Error {
+  constructor(readonly signature:string,readonly originalLabel:string){super('duplicate-signed-original');}
+}
+const originals=new Map<string,string>();
 const {h,rpc,ws,checks,flush,conformance}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{
   deferFinality:true,computeUnitLimit:label=>label.startsWith('load offer ')?800_000:400_000,
   observeOutcomes:label=>label.startsWith('load offer '),payerFor:label=>payers.get(label),
+  signedOriginal:(label,signature)=>{
+    if(!label.startsWith('load offer '))return;
+    const originalLabel=originals.get(signature);
+    if(originalLabel)throw new DuplicateOriginal(signature,originalLabel);
+    originals.set(signature,label);
+  },
 });
 type Offer={id:number;workload:string;rate:number;dueMs:number;lagMs:number;trader:Address;marketIndex:0|1;side:0|1;lots:bigint;maker:number;
-  eligible:boolean;constructed:boolean;submitted:boolean;reason:string|null;buildMs?:number;sourceModes?:string[];label:string};
+  eligible:boolean;constructed:boolean;submitted:boolean;reason:string|null;buildMs?:number;sourceModes?:string[];label:string;
+  duplicateOf?:{signature:string;label:string}};
 const offers:Offer[]=[],ramps:unknown[]=[],indexSamples:unknown[]=[],producerSamples:unknown[]=[];
 let indexer:LiquidityIndexer|undefined,replay:LiquidityIndexer|undefined,running=false,producer:Promise<void>|undefined,indexing:Promise<void>|undefined;
 let backgroundError:unknown;
@@ -85,7 +96,9 @@ try {
           side:(Math.floor(index/2)%2) as 0|1,lots:1n+BigInt(Math.floor(index/4)%2),maker:workload==='same-market-spread'?index%3:0,
           eligible:false,constructed:false,submitted:false,reason:null};offers.push(offer);
         if(pending.size>=4){offer.reason='generator-inflight-limit';continue;}
-        let task:Promise<void>;task=execute(offer,marketIndex===1?ethOwner:setup.traderOwner).catch(error=>{offer.reason=`unexpected:${String(error)}`;backgroundError??=error;})
+        let task:Promise<void>;task=execute(offer,marketIndex===1?ethOwner:setup.traderOwner).catch(error=>{
+          if(error instanceof DuplicateOriginal){offer.reason=error.message;offer.duplicateOf={signature:error.signature,label:error.originalLabel};return;}
+          offer.reason=`unexpected:${String(error)}`;backgroundError??=error;})
           .finally(()=>{pending.delete(task);appendFileSync(`${directory}/offers.ndjson`,json(offer));});pending.add(task);
       }
       await delay(Math.max(0,start+8000-performance.now()));await Promise.all(pending);await flush();if(backgroundError)throw backgroundError;
