@@ -15,7 +15,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 |---|---|---|
 | M13 Anchor RC2 migration | Active | P45 plan accepted; P46 serialized C0 acceptance passed locally, P47 fresh qualification follows |
 | P45 migration contract | Review | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) ready; architecture/release research, exact RC2 pins, ABI choice, code gap map and measurement/acceptance plan |
-| P46 RC2 implementation | In progress — acceptance passed, publication pending | Serialized C0 port and scoped signed RPC/WS/PostgreSQL financial gates pass; publish ready PR above #63 |
+| P46 RC2 implementation | Review | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) ready above #63; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
 | P47 post-migration qualification | Planned — depends on P46 | Complete compiled financial/service/browser/load matrix and matched cost report; no inherited qualification |
 | M12 performance and contention | Closed | P39–P44 accepted and integrated; measured pre-migration baseline frozen; no framework migration |
 | P39 dependency audit/baseline | Closed | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55) merged; focused RPC/WS baseline and 61-entrypoint inventory |
@@ -42,7 +42,8 @@ integration. The user authorized the performance stack's review fixes and merge 
 ## P46 serialized port checkpoint
 
 Work is on `implementation/p46-anchor-rc2` above ready PR #63 (`696851e`). The
-serialized port's scoped acceptance passes; its ready PR is not published yet.
+serialized port's scoped acceptance passes; [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64)
+is open and ready with accepted content `44d1251`.
 [Validation](operations/validation.md#anchor-rc2-serialized-port-p46) records the
 actual checks and exact pins. Frozen P44 artifacts remain untouched.
 
@@ -65,15 +66,16 @@ Compiled maker lifecycle, default gates and five hostile-maker rollback cases
 pass. Both actual maker binaries match 3,172 independent pricing vectors each.
 Native adapter/financial tests and affected SDK/conformance checks passed at the
 pins recorded in validation. Typecheck, ABI/generated checks and documentation
-checks are scoped; no hosted CI result is claimed yet. All evidence remains local.
+checks are scoped. Hosted scope passes on `44d1251`; client/report/financial/shell
+checks are still running, not assumed passing. All evidence remains local.
 The initial failed allowlist and boxed native token CPI attempts remain recorded;
 the fresh signed custody pass proves the forwarding-handle fix.
 
 P47 is still required for full entrypoint/full-book/64-member coverage, services,
 browser, fault/load replay and the matched resource/fee comparison. Normal demo
 promotion remains gated. P15B/P16B and deferred endurance are unchanged. No access
-blocker is present. Next exact action: publish the ready P46 PR using `gh stack`,
-then start P47 on that exact accepted parent without waiting for merge.
+blocker is present. Next exact action: add the P47 qualification branch above
+ready #64 and build the candidate coverage/comparison reader against frozen B.
 
 ## Accepted performance stack
 
