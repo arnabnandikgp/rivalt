@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { getBase58Encoder, getBase58Decoder } from '@solana/kit';
 import { VersionedTransaction } from '@solana/web3.js';
 import { transactionLocks } from './lock-model.js';
+import { signedResourcePolicy } from './resource-policy.js';
 
 export type ProgramContract = { address: string; name: string; instructions: { name: string; discriminator: number[] }[] };
 type CompiledInstruction = { programIdIndex: number; accounts: number[]; data: string; stackHeight?: number | null };
@@ -103,7 +104,7 @@ export function receiptMetrics(receipt: Receipt, wire: Uint8Array, contracts: Pr
     computeUnits: receipt.meta.computeUnitsConsumed, requestedCu, feeLamports: String(receipt.meta.fee),
     priorityLamports: String(priorityLamports), version: message.version, wireBytes: wire.length,
     signatures: transaction.signatures.length, loadedAccounts: keys.length,
-    loadedDataBytes: receipt.meta.loadedAccountsDataSize ?? null, locks,
+    loadedDataBytes: receipt.meta.loadedAccountsDataSize ?? null, ...signedResourcePolicy(message), locks,
     wireSha256: digest(wire), invocations };
 }
 

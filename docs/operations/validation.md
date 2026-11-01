@@ -51,8 +51,22 @@ records the paired B/C observations, full financial state comparison and explici
 clock/digest mismatch limits. Fourteen affected measurement/provenance cases pass.
 Raw wires/logs/database copies stay ignored. No unrelated full host suite, new
 program build, funded/devnet deployment, external review or endurance is inferred.
-Separate admission-crash/expiry dispatch, operational default/exit, bounded load,
-final resource/fee reporting and normal-runtime promotion remain to qualify P47.
+Clean `1a893ed` adds fresh dispatch, load and operational constituents. Dispatch
+passes pre-broadcast and post-send SIGKILL, actual expiry proof with seven durable
+access rows and retained 20,000-lamport unknown-fee reserve, SQL ordering/fairness
+cases and identical 61-event replay. The bounded load records 1,008 offers, 466
+submitted originals, 433 fills, 33 stale-version rejections and 542 unsubmitted
+(537 generator-inflight / five duplicate originals), zero expired/unresolved.
+Live indexing obtains two coherent cycles and 33 revision-ahead retries; final
+and fresh replay match 588 events / nine members / 9,000,000 vault atoms.
+Operational workers pass liquidation, complete default with proposal-upload
+SIGKILL/restart, six-second recovery and all funded account exits. Independent
+arithmetic verifies ten exact Fraction payouts, one augmentation and five rejected
+corruptions. Identical 192-event replay over ten members leaves **452 atoms** of
+insurance/protocol fees only. Evidence is retained under
+`.local/anchor-rc2/p47-{dispatch,load,operations}-1a893ed/`.
+Compiled devnet-feature refusal, final resource/fee reporting and normal runtime
+promotion remain; these runtime passes alone do not close P47.
 
 ## Anchor RC2 serialized port (P46)
 

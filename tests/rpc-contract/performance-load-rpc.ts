@@ -99,7 +99,7 @@ try {
         let task:Promise<void>;task=execute(offer,marketIndex===1?ethOwner:setup.traderOwner).catch(error=>{
           if(error instanceof DuplicateOriginal){offer.reason=error.message;offer.duplicateOf={signature:error.signature,label:error.originalLabel};return;}
           offer.reason=`unexpected:${String(error)}`;backgroundError??=error;})
-          .finally(()=>{pending.delete(task);appendFileSync(`${directory}/offers.ndjson`,json(offer));});pending.add(task);
+          .finally(()=>{pending.delete(task);appendFileSync(`${directory}/offers.ndjson`,json(offer)+'\n');});pending.add(task);
       }
       await delay(Math.max(0,start+8000-performance.now()));await Promise.all(pending);await flush();if(backgroundError)throw backgroundError;
       const cohort=offers.slice(first),landed=cohort.flatMap(offer=>checks.filter(check=>check.label===offer.label));

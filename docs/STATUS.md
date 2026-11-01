@@ -155,11 +155,31 @@ identified; actual pinned SBF hashes/manifests prove uninstrumented C0. Future
 wrapper output is corrected without changing or rerunning those originals.
 Fourteen affected comparison/provenance tests and typecheck pass.
 
-Separate admission-crash/expiry dispatch, operational default/exit and bounded
-load acceptance remain, plus final resource/fee report, normal-runtime promotion
-and P47's ready PR. No C1, funded/external gate or endurance run is claimed.
-Next exact action: run fresh dispatch RPC/WS/PostgreSQL qualification on this
-committed checkpoint, followed by the bounded P44-matched load workload.
+Clean **`1a893ed`** now passes all three remaining RPC constituents. Dispatch
+preserves seven access rows and a finalized-valid witness through pre-broadcast
+SIGKILL, proves nonexecution after actual expiry, retains 20,000 unknown-fee
+lamports, and passes post-send recovery plus identical 61-event PG replay.
+The matched bounded load offers 1,008 actions: 466 submitted originals, 433 fills,
+33 on-chain stale-version rejections, and 542 unsubmitted (537 generator limits /
+five duplicate originals). Expired/unresolved are zero. Live indexing has two
+coherent cycles / 33 revision-ahead retries; final/fresh replay matches 588 events
+and 9,000,000 vault atoms. This does not establish sustained read readiness or TPS.
+The operational worker completes liquidation, default with proposal-upload SIGKILL,
+independent six-second recovery and all funded cash exits. Independent arithmetic
+verifies ten Fraction payouts / one augmentation and rejects five corruptions;
+192-event replay leaves only 452 insurance/protocol-fee atoms across ten members.
+Evidence directories are `.local/anchor-rc2/p47-{dispatch,load,operations}-1a893ed/`.
+
+The resource reader now records signed heap/data limits explicitly; absent requests
+and missing observed heap/data metrics remain absent. Twelve affected parser tests
+pass. Frozen B remains immutable. The only outstanding acceptance is compiled
+devnet-feature negative gates / mixed-feature refusal, final report and normal
+runtime promotion, then P47's ready PR. Disposable inactive Cargo targets under
+`.local/anchor-v2-build/{cli,check,idl}` were removed after verifying no compiler
+was running, recovering about 1.7 GiB; installed tools, SBF, logs, keys and databases
+are preserved. No C1, funded/external gate or endurance run is claimed.
+Next exact action: commit the scoped negative-gate/resource tooling, compile and
+execute the local devnet-feature refusal checks, then finish P47 closeout.
 
 ## Accepted performance stack
 

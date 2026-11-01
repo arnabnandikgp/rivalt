@@ -72,6 +72,8 @@ const entrypoints = contracts.flatMap(contract => contract.instructions.map(inst
     revertedInclusiveCu: range(rejected.map(value => value.invocation.inclusiveCu)),
     transactionCu: range(success.map(value => value.sample.computeUnits)),
     requestedCu: range(success.map(value => value.sample.requestedCu)),
+    explicitHeapBytes: range(success.flatMap(value => value.sample.heapBytes === null ? [] : [value.sample.heapBytes])),
+    loadedDataLimitBytes: range(success.flatMap(value => value.sample.loadedDataLimitBytes === null ? [] : [value.sample.loadedDataLimitBytes])),
     wireBytes: range(success.map(value => value.sample.wireBytes)),
     signatures: range(success.map(value => value.sample.signatures)),
     fees: range(success.map(value => Number(value.sample.feeLamports))),
