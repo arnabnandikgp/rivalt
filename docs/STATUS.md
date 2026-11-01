@@ -46,7 +46,8 @@ The user accepted P45's plan on 1 November 2026. Work is on
 qualification is claimed yet. The accepted P44 artifacts remain untouched under
 `.local/liquidity-execution`; candidate artifacts use `.local/anchor-rc2/candidate`.
 
-Delivered in this working checkpoint: exact RC2 crates/lockfile and isolated CLI;
+Source checkpoint **`10b4d98966ed43b4146f6b77770c2d57bc869b01`** is committed locally.
+Delivered: exact RC2 crates/lockfile and isolated CLI;
 serialized account/context/CPI port; bounded registry codec; foreign-loader metadata
 validation; scoped borrowed event codecs; explicit canonical instruction/maker IDs;
 clearing schema/journal binding 8 and maker account schema 5; real generated IDLs/SDK;
@@ -64,13 +65,17 @@ exceptions. TypeScript checking and SDK generation pass. Scoped client tests fir
 reported 18 stale-schema-fixture/decoder failures; affected rerun passes **45/45**,
 with the other **200** preceding checks passing. Five scoped conformance tests pass
 with both isolated clients. These are current observations, not full qualification.
-Local logs are under `.local/anchor-v2-build/`; source is not yet pinned for RPC.
+Local logs are under `.local/anchor-v2-build/`. Clean default/qualification artifacts
+are pinned to `10b4d98`. First Surfpool attempt deployed all four programs but the
+client correctly rejected its old P44 executable allowlist before financial actions
+(`custody-10b4d98`). The candidate allowlist now pins the actual C0 hashes/lengths;
+fresh test domains distinguish schema 8. This is an explicit candidate selection,
+not an artifact qualification claim.
 
 No signed candidate transaction, actual RPC/WS/PostgreSQL replay, hostile runtime
 acceptance, browser/load matrix or B/C cost comparison has passed. Broad regression
 is delegated to CI; no hosted result is claimed. P15B/P16B and deferred endurance
-are unchanged. No access blocker is present. Next exact action: record the coherent
-C0 checkpoint, rebuild with its clean revision manifest, and run the explicit
+are unchanged. No access blocker is present. Next exact action: commit the candidate allowlist and run the explicit
 candidate custody probe against fresh Surfpool before route/safety/journal acceptance.
 
 ## Accepted performance stack
