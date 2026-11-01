@@ -3,9 +3,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-# P46 candidates are explicit only; P47 has not qualified normal runtime selection.
-[[ "${RIVALT_ALLOW_RC2_CANDIDATE:-0}" == 1 ]] || { echo 'RC2 qualification requires RIVALT_ALLOW_RC2_CANDIDATE=1 and a candidate artifact directory' >&2; exit 1; }
-: "${RIVALT_ARTIFACT_DIR:?Explicit RC2 candidate artifact directory required}"
+# P47 qualifies the exact C0 hashes; retained P44 artifacts remain separate.
+export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 test "$(surfpool --version)" = 'surfpool 1.7.0'
 # Browser qualification must consume this checkout's schema/SDK, never a stale
 # ignored dist directory left by an older phase.
@@ -16,7 +15,6 @@ export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
 export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
 export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/liquidity-execution/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
-export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/liquidity-execution}"
 python3 - <<'PYTHON'
 import hashlib,json,os
 from pathlib import Path

@@ -5,7 +5,8 @@ import {MAKER_B_PROGRAM_ADDRESS} from './generatedMakerB/index.js';
 import {ArtifactVerifier} from './artifacts.js';
 import type {UserRpc} from './wallet-client.js';
 
-// P46 serialized C0: clean SBF source 366c7ab; candidate runtime acceptance pending.
+// P47-qualified serialized C0: clean SBF source 366c7ab. Preserve the binding ID
+// used by qualification originals; promotion does not rewrite persisted journals.
 // Public configuration never supplies replacement hashes or default/devnet code.
 export const LIQUIDITY_ARTIFACT_SET='p46-anchor-rc2-c0-candidate-v1';
 export const LIQUIDITY_ARTIFACTS=Object.freeze([

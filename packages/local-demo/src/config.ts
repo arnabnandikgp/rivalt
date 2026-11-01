@@ -1,6 +1,7 @@
 import {resolve} from 'node:path';
 export const DEMO_ROOT=resolve(process.env.RIVALT_DEMO_ROOT??'.local/interactive-demo');
 export const RUNTIME=resolve(DEMO_ROOT,'runtime');
+export const ARTIFACT_DIRECTORY=resolve(process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/current');
 export const CONTROL='http://127.0.0.1:18094';
 export const UI='http://127.0.0.1:18083';
 export const PORTS=[18931,18932,15443,18092,18093,18094,18083];

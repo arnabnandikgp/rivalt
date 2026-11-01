@@ -7,7 +7,7 @@ export PATH="$PWD/.tools/anchor-v2-rc2/bin:$PATH"
 test "$(anchor --version)" = 'anchor-cli 2.0.0-rc.2'
 export CARGO_PROFILE_TEST_DEBUG=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
 node ops/local-keys.mjs
-export RIVALT_LIQUIDITY_ARTIFACTS="${RIVALT_LIQUIDITY_ARTIFACTS:-.local/anchor-rc2/candidate}"
+export RIVALT_LIQUIDITY_ARTIFACTS="${RIVALT_LIQUIDITY_ARTIFACTS:-.local/anchor-rc2/current}"
 python3 - <<'PY'
 from pathlib import Path
 import os

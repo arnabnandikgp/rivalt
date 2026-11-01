@@ -11,7 +11,8 @@ below; P37's fresh integrated qualification after retirement is recorded separat
 
 ## Anchor RC2 qualification checkpoint (P47)
 
-P47 remains **In progress**; normal runtime promotion is disabled. The unchanged
+P47 remains **In progress**; normal artifact selection is implemented and its
+final demo startup/lifecycle check is pending. The unchanged
 C0 artifacts and clean verifiers are recorded in the bounded
 [coverage summary](../../tests/performance/baselines/p47-c0.json). Its **61/61**
 entrypoints are coverage, not proof of the remaining service/load/default matrix.
@@ -65,8 +66,15 @@ arithmetic verifies ten exact Fraction payouts, one augmentation and five reject
 corruptions. Identical 192-event replay over ten members leaves **452 atoms** of
 insurance/protocol fees only. Evidence is retained under
 `.local/anchor-rc2/p47-{dispatch,load,operations}-1a893ed/`.
-Compiled devnet-feature refusal, final resource/fee reporting and normal runtime
-promotion remain; these runtime passes alone do not close P47.
+Clean `eac3755` compiles all three devnet-feature binaries without unsafe stack
+diagnostics. All three reject valid-context initialization with full rollback;
+maker contexts are explicitly injected negative fixtures because clearing cannot
+initialize this profile. All three local/devnet feature combinations fail
+compilation at the intended mutual-exclusion guard. No devnet network is used.
+Evidence: `.local/anchor-rc2/devnet-gates-eac3755/`, reproduced with
+`RIVALT_DEVNET_GATE_ARTIFACTS=<fresh-directory> bash ops/build-devnet-gates.sh`.
+Fifteen affected local-demo configuration/process/transport tests pass. Final
+reporting and the normal launcher check remain; these passes do not integrate P47.
 
 ## Anchor RC2 serialized port (P46)
 

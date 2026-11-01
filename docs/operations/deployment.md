@@ -2,7 +2,7 @@
 
 ## Supported boundary
 
-The retained P44 qualified profile is explicit local `liquidity-execution-qualification`.
+The P47-qualified RC2 profile is explicit local `liquidity-execution-qualification`.
 Pin actual clearing/maker A/maker B/oracle-fixture binaries, IDLs, domain/mint/venue,
 registry, genesis, initialization signature/hash and resource settings in an explicit
 manifest. Public configuration cannot replace the SDK's executable allowlist.
@@ -34,11 +34,13 @@ Old-to-new migration requires actual admissible withdrawal/deposit; open positio
 unpaid claims/fractions, orders, fees/reserves and signed originals never migrate
 by relabeling database rows. Keep any needed compatibility reader explicitly scoped.
 
-P46 adds a separate, not-yet-qualified RC2 candidate with clearing/binding schema 8,
+P46 introduces, and P47 qualifies, a separate RC2 deployment with clearing/binding schema 8,
 maker account schema 5 and unchanged SQL journal format 2. It requires new
 instruction/maker discriminators, genesis, domain, mint and empty database. Existing
-schema-7 originals and journals stay with the previous executor. Candidate probes
-require explicit selection; no normal demo/operator promotion occurs before P47.
+schema-7 originals and journals stay with the previous executor. Normal builds/probes/demo select `.local/anchor-rc2/current`; their executable
+allowlist remains the exact qualified C0 hashes. Retained P44 binaries and journals
+remain separate. This promotion does not change the persisted artifact-set ID
+used by the qualification originals.
 
 ## Running an operator against an explicit deployment
 

@@ -72,8 +72,8 @@ The initial failed allowlist and boxed native token CPI attempts remain recorded
 the fresh signed custody pass proves the forwarding-handle fix.
 
 P47 is still required for full entrypoint/full-book/64-member coverage, services,
-browser, fault/load replay and the matched resource/fee comparison. Normal demo
-promotion remains gated. P15B/P16B and deferred endurance are unchanged. No access
+browser, fault/load replay and the matched resource/fee comparison. Normal local artifact promotion is implemented after P47’s financial/service
+qualification; the final launcher check and P47 PR remain below. P15B/P16B and deferred endurance are unchanged. No access
 blocker is present. P47 continues on the accepted exact parent without merging #64.
 
 ## P47 qualification checkpoint
@@ -172,14 +172,20 @@ Evidence directories are `.local/anchor-rc2/p47-{dispatch,load,operations}-1a893
 
 The resource reader now records signed heap/data limits explicitly; absent requests
 and missing observed heap/data metrics remain absent. Twelve affected parser tests
-pass. Frozen B remains immutable. The only outstanding acceptance is compiled
-devnet-feature negative gates / mixed-feature refusal, final report and normal
-runtime promotion, then P47's ready PR. Disposable inactive Cargo targets under
+pass. Frozen B remains immutable. Clean `eac3755` also passes three actual devnet-feature initialization refusals
+with full rollback and three incompatible-feature compile rejections, entirely
+locally. Maker negative-gate contexts are explicitly injected fixtures, never
+financial acceptance. The compiled gate artifacts are retained separately in
+`.local/anchor-rc2/devnet-gates-eac3755/`. Fifteen affected demo configuration,
+process and transport tests pass. Normal local artifact selection now uses
+`.local/anchor-rc2/current`, preserving frozen B/C0 and the admitted hashes. The
+demo pin is corrected from stale Surfpool 1.6.1 to qualified 1.7.0; its fresh startup
+and local-wallet confirmation are the final integration check before P47’s PR. Disposable inactive Cargo targets under
 `.local/anchor-v2-build/{cli,check,idl}` were removed after verifying no compiler
 was running, recovering about 1.7 GiB; installed tools, SBF, logs, keys and databases
 are preserved. No C1, funded/external gate or endurance run is claimed.
-Next exact action: commit the scoped negative-gate/resource tooling, compile and
-execute the local devnet-feature refusal checks, then finish P47 closeout.
+Next exact action: commit normal-runtime selection, verify fresh demo startup and
+its local-wallet lifecycle in an isolated test directory, stop it, then publish P47.
 
 ## Accepted performance stack
 

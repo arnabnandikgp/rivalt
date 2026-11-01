@@ -17,7 +17,7 @@ import {liquidityExecutionSetup} from '../../../tests/rpc-contract/liquidity-exe
 import {DemoProcesses} from './processes.js';
 import {demoTransport,until} from './transport.js';
 import {DemoFaucet,FaucetUnavailable} from './faucet.js';
-import {CONTAINER,IMAGE,RUNTIME,DEMO_ROOT,UI,json,publicRequest} from './config.js';
+import {CONTAINER,IMAGE,RUNTIME,DEMO_ROOT,UI,json,publicRequest,ARTIFACT_DIRECTORY} from './config.js';
 
 process.umask(0o077);
 const session=new Date().toISOString().replaceAll(/[^0-9]/g,'')+'-'+randomBytes(4).toString('hex');
@@ -94,7 +94,7 @@ function child(name:string,script:string,environment:NodeJS.ProcessEnv){
 }
 try {
   for(const artifact of sdk.LIQUIDITY_ARTIFACTS){
-    const file=readFileSync(`.local/liquidity-execution/${artifact.name.replaceAll('-','_')}.so`);
+    const file=readFileSync(`${ARTIFACT_DIRECTORY}/${artifact.name.replaceAll('-','_')}.so`);
     assert.equal(file.length,artifact.bytes);assert.equal(createHash('sha256').update(file).digest('hex'),artifact.sha256,`Unqualified ${artifact.name}`);
   }
   const disk=statfsSync(DEMO_ROOT);assert(disk.bavail*disk.bsize>1024**3,'At least 1 GiB free disk is required');
@@ -112,7 +112,7 @@ try {
   for(const program of ['clearing','maker_a','maker_b','oracle_fixture']){
     const key=program.replaceAll('_','-'),buffer=`${RUNTIME}/buffer-${key}.json`;
     await processes.run(`buffer-${key}`,'solana-keygen',['new','--silent','--no-bip39-passphrase','--outfile',buffer]);
-    await processes.run(`deploy-${key}`,'solana',['program','deploy',`.local/liquidity-execution/${program}.so`,'--buffer',buffer,
+    await processes.run(`deploy-${key}`,'solana',['program','deploy',`${ARTIFACT_DIRECTORY}/${program}.so`,'--buffer',buffer,
       '--program-id',`.local/keys/${key}.json`,'--keypair','.local/keys/payer.json','--url',rpcUrl,'--use-rpc','--max-sign-attempts','20','--output','json']);
   }
   stage='PostgreSQL';mkdirSync(RUNTIME+'/postgres-data',{mode:0o700});
@@ -123,7 +123,7 @@ try {
   await until(async()=>{try{execFileSync('container',['exec',CONTAINER,'pg_isready','-h','127.0.0.1','-U','rivalt','-d','rivalt'],{stdio:'pipe',timeout:2000});return true;}catch{return false;}},Boolean,'PostgreSQL');
   const databaseUrl=`postgresql://rivalt:${password}@127.0.0.1:15443/rivalt`;
   stage='signed venue provisioning';setup=await liquidityExecutionSetup(transport.h,transport.rpc,{verifyRejections:false,makerCash:500_000_000n});
-  const anchor=transport.anchor();await until(()=>transport!.rpc.call('getTransaction',[anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:0}]),Boolean,'initialization finality');
+  const anchor=transport.anchor();await until(()=>transport!.rpc.call('getTransaction',[anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]),Boolean,'initialization finality');
   stage='finalized indexer';
   const config={rpcUrl,wsUrl,databaseUrl,runId:'interactive-'+session,venue:setup.venue,anchor,profile:'liquidity-execution-qualification' as const};
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();

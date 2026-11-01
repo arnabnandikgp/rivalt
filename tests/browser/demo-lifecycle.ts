@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
 import {address} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
-import {RUNTIME} from '../../packages/local-demo/src/config.js';
+import {RUNTIME,ARTIFACT_DIRECTORY} from '../../packages/local-demo/src/config.js';
 const directory=resolve(process.env.RIVALT_DEMO_EVIDENCE??`.local/demo-checks/${Date.now()}`);mkdirSync(directory,{recursive:true});
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
@@ -29,7 +29,7 @@ async function action(name:string){
   await button('Sign transaction').click();
   const saved=await wait(receipts,items=>items.length===before.size+1&&items.some(item=>!before.has(item.signature)&&['finalized','failed'].includes(item.status)),`${name} finality`);
   const receipt=saved.find(item=>!before.has(item.signature))!;assert.equal(receipt.status,'finalized',JSON.stringify(receipt.error));
-  const history=await client.rpc.call('getTransaction',[receipt.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:0}]);
+  const history=await client.rpc.call('getTransaction',[receipt.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
   assert.equal(history.transaction[0],receipt.wire);assert.equal(history.meta.err,null);
   outcomes.push({label:receipt.label,signature:receipt.signature,wire:receipt.wire,fee:history.meta.fee});
   writeFileSync(`${directory}/wallet-transactions.json`,JSON.stringify(outcomes,null,2));
@@ -73,7 +73,7 @@ try{
   const fills=page.locator('section').filter({has:page.getByRole('heading',{name:'Recent finalized fills',exact:true})});
   await wait(()=>fills.locator('tbody tr').count(),count=>count>=4,'indexed finalized fills after reload');
   assert.equal(errors.length,0,errors.join('\n'));await page.screenshot({path:`${directory}/demo-ui.png`,fullPage:true});
-  const summary={status:'pass',revision,trackedDirty:false,build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),
+  const summary={status:'pass',revision,trackedDirty:false,build:JSON.parse(readFileSync(`${ARTIFACT_DIRECTORY}/build-manifest.json`,'utf8')),
     walletOriginals:outcomes.length,owner,portfolio,cross,isolated,errors,
     checks:['local-origin faucet denial','unauthorized stop denial','fresh browser-generated wallet and real faucet','portfolio and both account modes',
       'deposits and explicit sibling allocation','actual wallet decline','BTC and ETH fills','TP/SL and cancellation','reduce-only closes','token-reconciled funded withdrawal','reload and saved originals','reconciled indexed fill display']};

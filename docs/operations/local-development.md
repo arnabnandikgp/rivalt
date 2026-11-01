@@ -26,14 +26,17 @@ Rust, SBF compiler, runtime version and transaction format are different identit
 Legacy Anchor/web3.js 1.x lives only in `tests/anchor-conformance`; no runtime
 imports or workspace overrides make it appear compatible with the modern client.
 
-P46's unqualified candidate uses `bash ops/install-anchor-rc2.sh`, followed by
-`bash ops/build.sh`. It preserves `.tools/bin/anchor` and frozen P44 binaries;
-`.tools/anchor-v2-rc2/bin/anchor` is selected only by migration build scripts.
-Install the isolated client with
+The RC2 toolchain uses `bash ops/install-anchor-rc2.sh`, followed by
+`bash ops/build.sh`. P47 qualifies serialized C0 and selects
+`.local/anchor-rc2/current` for builds, probes and the local demo. Actual files
+must match the SDK's admitted hashes; changing a manifest does not qualify code.
+`RIVALT_ARTIFACT_DIR` may explicitly select another directory containing those
+same qualified artifacts. `RIVALT_LIQUIDITY_ARTIFACTS` changes a build destination.
+The frozen P44 directory and `.tools/bin/anchor` remain untouched; RC2 build scripts
+select `.tools/anchor-v2-rc2/bin/anchor`. Install the isolated test client with
 `pnpm --dir tests/anchor-rc2-conformance install --frozen-lockfile`.
-Runtime probes additionally require `RIVALT_ALLOW_RC2_CANDIDATE=1` and explicit
-`RIVALT_ARTIFACT_DIR=.local/anchor-rc2/candidate`. Do not run the normal demo with
-unqualified candidate artifacts. [STATUS](../STATUS.md) records the remaining gates.
+Fresh schema-8 domains/databases are required; no old accounts or signed originals
+are relabeled. [STATUS](../STATUS.md) distinguishes qualification and PR integration.
 
 From the repository root, bootstrap only missing baseline tools:
 

@@ -23,9 +23,8 @@ recovery. [Operator setup](../operations/deployment.md) gives actual entrypoints
 | Wallet, review, positions and receipts | [Trader application](../../apps/trader/src/) |
 | Local demo supervisor | [Local demo](../../packages/local-demo/src/) |
 
-The P46 candidate uses `/v4` interfaces and profile 4 with schema-8 clearing accounts.
-The SDK, services, indexer and app bind this candidate explicitly; normal demo
-promotion waits for P47;
+The P47-qualified local runtime uses `/v4` interfaces and profile 4 with schema-8 clearing accounts.
+The SDK, services, indexer and app bind this deployment explicitly;
 unknown or historical profiles reject. Transport API version 4 remains; explicit account schema/projection binding 8
 requires a fresh domain/genesis/database. Historical clients remain at the immutable pre-retirement
 revision; [STATUS](../STATUS.md) records fresh runtime acceptance separately.
