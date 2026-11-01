@@ -37,6 +37,9 @@ select `.tools/anchor-v2-rc2/bin/anchor`. Install the isolated test client with
 `pnpm --dir tests/anchor-rc2-conformance install --frozen-lockfile`.
 Fresh schema-8 domains/databases are required; no old accounts or signed originals
 are relabeled. [STATUS](../STATUS.md) distinguishes qualification and PR integration.
+The demo starts workers only after a coherent finalized provisioning journal.
+It retries typed revision-ahead catch-up for at most 30 seconds; other initial
+projection/reconciliation errors fail startup and preserve the local records.
 
 From the repository root, bootstrap only missing baseline tools:
 

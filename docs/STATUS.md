@@ -179,8 +179,13 @@ financial acceptance. The compiled gate artifacts are retained separately in
 `.local/anchor-rc2/devnet-gates-eac3755/`. Fifteen affected demo configuration,
 process and transport tests pass. Normal local artifact selection now uses
 `.local/anchor-rc2/current`, preserving frozen B/C0 and the admitted hashes. The
-demo pin is corrected from stale Surfpool 1.6.1 to qualified 1.7.0; its fresh startup
-and local-wallet confirmation are the final integration check before P47’s PR. Disposable inactive Cargo targets under
+demo pin is corrected from stale Surfpool 1.6.1 to qualified 1.7.0. Clean `0591f10`
+then exposed initial-indexer finality advancing during confirmed provisioning;
+startup safely failed with `ReconciliationAhead`. The launcher now waits up to
+30 seconds for a coherent finalized fence before starting producers, retrying only
+that typed condition. Other errors still fail startup. The failed test directory
+is preserved; a fresh startup/local-wallet rerun remains the final integration check.
+Disposable inactive Cargo targets under
 `.local/anchor-v2-build/{cli,check,idl}` were removed after verifying no compiler
 was running, recovering about 1.7 GiB; installed tools, SBF, logs, keys and databases
 are preserved. No C1, funded/external gate or endurance run is claimed.

@@ -10,6 +10,7 @@ import {getCreateAccountInstruction,getTransferSolInstruction} from '@solana-pro
 import {TOKEN_PROGRAM_ADDRESS,getInitializeAccount3Instruction,getMintToInstruction} from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import {LiquidityIndexer} from '../../indexer/src/liquidity-indexer.js';
+import {ReconciliationAhead} from '../../indexer/src/reconciliation-progress.js';
 import {accountApi} from '../../indexer/src/account-api.js';
 import {AccountRuntime} from '../../services/src/account-runtime.js';
 import {accountServiceApi} from '../../services/src/account-service-api.js';
@@ -126,7 +127,13 @@ try {
   const anchor=transport.anchor();await until(()=>transport!.rpc.call('getTransaction',[anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]),Boolean,'initialization finality');
   stage='finalized indexer';
   const config={rpcUrl,wsUrl,databaseUrl,runId:'interactive-'+session,venue:setup.venue,anchor,profile:'liquidity-execution-qualification' as const};
-  indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
+  indexer=new LiquidityIndexer(config);await indexer.open();
+  // Provisioning sends confirm independently. Its final transactions can become
+  // finalized while the initial history scan is in progress. Wait for a coherent
+  // finalized fence before starting producers; every other failure stays fatal.
+  await until(async()=>{try{await indexer!.cycle();return true;}catch(error){
+    if(!(error instanceof ReconciliationAhead))throw error;return false;
+  }},Boolean,'finalized provisioning fence');
   const {binding}=await indexer.store.snapshot();
   publicConfig={version:4,accountSchema:8 as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,genesis:binding.genesis,anchor,
     anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain};
