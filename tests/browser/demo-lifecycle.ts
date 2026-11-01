@@ -5,7 +5,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {resolve} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
-import {address} from '@solana/kit';
+import {address,type Address} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {RUNTIME,ARTIFACT_DIRECTORY} from '../../packages/local-demo/src/config.js';
 const directory=resolve(process.env.RIVALT_DEMO_EVIDENCE??`.local/demo-checks/${Date.now()}`);mkdirSync(directory,{recursive:true});
@@ -23,13 +23,14 @@ const receipts=()=>page.evaluate(()=>Object.entries(localStorage).filter(([key])
 async function wait<Value>(read:()=>Promise<Value>,accept:(value:Value)=>boolean,label:string){
   for(let attempt=0;attempt<160;attempt++){const value=await read();if(accept(value))return value;await delay(200);}throw new Error(label);
 }
-async function action(name:string){
+async function action(name:string,sourceMargin?:Address){
   const before=new Set((await receipts()).map(item=>item.signature));
   // Wait for actual live source recovery. Only explicitly refused, unsigned
   // preparations may retry; a signed or ambiguous original never enters this loop.
   for(let attempt=1;attempt<=3;attempt++){
     if(name==='Review atomic trade')await wait(async()=>{
-      const snapshot=await client.snapshot([],'confirmed');
+      assert(sourceMargin,'Trade preparation needs its actual margin account');
+      const snapshot=await client.snapshot([sourceMargin],'confirmed');
       return snapshot.marketStates.map(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot));
     },modes=>modes.every(mode=>mode==='Normal'),'live Normal sources before trade');
     await button(name).first().click();
@@ -73,14 +74,14 @@ try{
   await page.getByLabel('Collateral amount',{exact:true}).fill('0.5');await select('Allocate to account',cross);await action('Allocate collateral');
   const allocated=await client.snapshot([cross,isolated]);assert.equal(allocated.roots[cross].cash,10_500_000n);assert.equal(allocated.roots[isolated].cash,9_500_000n);
   assert.equal(allocated.roots[isolated].isolatedMarketIndex,1);
-  await select('Margin account','0');await select('Market','0');await action('Review atomic trade');
-  await select('Market','1');await action('Review atomic trade');
+  await select('Margin account','0');await select('Market','0');await action('Review atomic trade',cross);
+  await select('Market','1');await action('Review atomic trade',cross);
   const opened=(await client.snapshot([cross])).roots[cross];assert.deepEqual(opened.positions.map(position=>position.lots),[5n,5n]);
   await page.getByText('Protect existing position',{exact:true}).click();await action('Review TP/SL');
   assert.equal((await client.snapshot([cross])).roots[cross].book.orders.filter(entry=>[1,2].includes(entry.order.state)).length,2);
   await action('Cancel pair');
   await select('Side','1');await page.getByLabel('Minimum all-in proceeds (test USD)',{exact:true}).fill('0.000001');await page.getByLabel('Reduce only',{exact:true}).check();
-  await action('Review atomic trade');await select('Market','0');await action('Review atomic trade');
+  await action('Review atomic trade',cross);await select('Market','0');await action('Review atomic trade',cross);
   assert((await client.snapshot([cross])).roots[cross].positions.every(position=>position.lots===0n));
   const tokensBefore=await client.walletTokens(owner),token=address(await page.getByLabel('Wallet collateral account',{exact:true}).inputValue());
   await page.getByLabel('Collateral amount',{exact:true}).fill('1');await action('Withdraw');
