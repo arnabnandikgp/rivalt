@@ -1,9 +1,10 @@
 # Performance contract and reproducible measurements
 
-P39–P44 are authorized engineering work following P38. This document owns the
-audit, comparison methodology and delivery gates; the clearing/liquidity/application
-documents continue to own financial rules. Proposed layouts below are a successor
-contract, not a description of already deployed code. Anchor v2 migration is a
+P39–P44 are integrated at `6b14e8a` within their bounded engineering scope. This
+document owns the audit, comparison methodology and recorded delivery gates;
+the clearing/liquidity/application documents own current financial rules and
+layouts. The baseline-A audit below preserves the pre-redesign snapshot. Integration
+is not a public deployment. Anchor v2 migration is a
 separate evaluation after the pre-migration baseline, not part of these phases.
 
 ## Scope and comparison points
@@ -15,7 +16,7 @@ guards, funded cash versus exact unpaid claims, complete default, 2 bps taker an
 reserve borrowing, fee tier, public listing or paid/funded deployment is authorized.
 Default/devnet gates and P15B/P16B remain; continuous 24-hour endurance is Deferred.
 
-- **A: pre-redesign checkpoint.** Current `4f84f2b` source; hash-verified P37 SBF
+- **A: pre-redesign checkpoint.** Historical `4f84f2b` source; hash-verified P37 SBF
   source `828fe543`. P39 adds focused fresh measurements and complete static access
   coverage. Historical CU captures remain historical, not a new full benchmark.
 - **B: pre-Anchor-v2 baseline.** Exact accepted P44 revision, after contention and

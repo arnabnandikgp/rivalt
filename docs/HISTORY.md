@@ -23,6 +23,7 @@ git show 84c46d4d26b23f25d6f3a7ae4bcbec591fa31503:docs/evidence/P34.md
 | M9 | Interactive earlier-profile demo | 350e60c; user walkthrough and owned lifecycle |
 | M10 | Canonical maker liquidity/publisher/services | b80bb38; exact reviewed tree 9e6dd07, docs closeout 1f1a5aa |
 | M11 | Repository consolidation | caa47d2; P35–P38 / PRs #50, #51, #53, #54; exact accepted tree 9d3e15f, fresh SBF source 828fe543 |
+| M12 | Contention and pre-migration performance | 6b14e8a; P39–P44 / PRs #55, #56, #58–#62; exact reviewed/tested tree da99664, accepted SBF source fb5d0c5 |
 
 Original WORKLOG contains every actual tested pin, failed attempt, command and raw
 local path. Current [validation](operations/validation.md) retains the applicable
@@ -188,3 +189,33 @@ was still running when the user-authorized merge proceeded; skipped/running bots
 are not independent review approval. This integration and its documentation closeout
 do not rebuild or requalify programs. Exact prior runtime pins remain in validation;
 P15B/P16B stay Open and 24-hour endurance stays Deferred.
+
+## Performance integration — 1 November 2026
+
+The user authorized addressing the open stack's reviews and merging it. GitHub's
+atomic merge integrated PRs [#55](https://github.com/arnabnandikgp/rivalt/pull/55),
+[#56](https://github.com/arnabnandikgp/rivalt/pull/56),
+[#58](https://github.com/arnabnandikgp/rivalt/pull/58),
+[#59](https://github.com/arnabnandikgp/rivalt/pull/59),
+[#60](https://github.com/arnabnandikgp/rivalt/pull/60),
+[#61](https://github.com/arnabnandikgp/rivalt/pull/61) and
+[#62](https://github.com/arnabnandikgp/rivalt/pull/62) at
+`6b14e8a4447729a6b55d38c22166c60a23083250`. All seven independently report MERGED;
+the fetched tree is identical to accepted tip
+`da9966401027a6cb92893db29251a2c696ae0fce`, which remains its ancestor.
+P39–P44 and M12 therefore close within their measured engineering scope.
+
+Review fixed a real queue crash window: successful dispatch admission now commits
+the finalized-valid blockhash witness with its access reservation. Fresh actual
+RPC/WS/PostgreSQL process-death/expiry recovery and 61-event replay pass at that
+clean tip, alongside 19 focused service tests, typecheck and all four applicable
+hosted checks. The P43 aggregate-comparison claim and service transaction-CU labels
+were clarified. [Validation](operations/validation.md) records the exact checks,
+local evidence and omissions; frozen program/CU captures remain at their own pins.
+
+All review threads were resolved before merge. Rate/file limits skipped reviews
+on #56/#58/#59/#60 and the latest #62 update; these are not independent approvals.
+The merge introduces no funded deployment or framework migration. Existing live
+indexing/throughput limits remain measured limitations; P15B/P16B stay Open and
+24-hour endurance stays Deferred. Unrelated research and all raw evidence remain
+untouched.

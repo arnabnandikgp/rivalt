@@ -328,6 +328,7 @@ only its approval hash to test the admitted malicious CPI boundary.
 | Current load / parallel indexing | `8b8c33f`; `p44-load-final/` | 1,008 offers, 465 unique signed outcomes, 430 fills, 2 live coherent cycles / 33 revision-ahead retries; exact independent root/fee/claim audit and identical 585-event fresh PG replay |
 | Initial direct offered load | `7e8d042`; `p44-load-first/` | 752 offers, 401 signed outcomes, 377 economic successes; exact per-root replay and identical 524-event fresh PG replay, 9,000,000 vault atoms |
 | Dispatch / SQL ordering | `f4490e9`; `p44-dispatch-fair/` | Two lanes, duplicate executors, shared-payer deferral, immutable oldest-waiter ordering, version-1 drain gate, real lost-ack/SIGKILL, expiry; identical 61-event fresh PG replay |
+| Review: admission crash window | `da99664`; `p44-review-dispatch/` | 106 harness outcomes, eight durable originals; real SIGKILL immediately after admission, restart after actual expiry, retained 20,000-lamport unknown-fee reserve, post-send recovery and identical 61-event fresh PG replay |
 | Services and independent economics | `a5afbc9`; `p44-services-parallel-history/` | 188 harness outcomes, 239 durable originals (236 success / three report rejections), all three actual SIGKILL recoveries, stored-order fill, rotation/revocation/budget handover, source outage/recovery and live indexer restart; identical 137-event fresh PG replay, 7,999,993 vault atoms |
 | Compiled hostile maker | `1cc2d6a`; `.local/liquidity-execution/hostile-svm.json` | Five rejected replacement/malicious-CPI cases with complete rollback across 114 signed VM transactions; all financial state provisioned by real instructions |
 | Current browser | `f4490e9`; `p44-services-fair/` | Ten finalized internal-wallet actions, BTC/ETH and both account modes, TP/SL/cancel, saved-receipt reload, direct withdrawal/deposit while both APIs blocked |
@@ -337,6 +338,19 @@ acceptance is bounded to its saved receipts and `browser-summary.json`; that run
 later fails unsigned order preparation and is **not** a complete service pass.
 The dispatch probe's one proven-unexecuted expired original retains its actual
 20,000-lamport unknown-fee reservation; it is not classified as fee-free.
+
+Review qualification at clean `da9966401027a6cb92893db29251a2c696ae0fce`
+also verifies the finalized-valid witness is committed with successful admission,
+before the first status response or broadcast. SIGKILL leaves witness slot 1522,
+seven access rows and zero attempts durable. Restart after real expiry proves
+unchanged economic authority at slot 1644 and releases access, retaining the
+unknown fee. The second process fault recovers the exact landed cash-exit original;
+fresh replay matches eight members/70 accounts and 7,999,993 vault atoms. Nineteen
+focused service tests and typecheck pass; all four applicable hosted jobs pass in
+[run 41280117782](https://github.com/arnabnandikgp/rivalt/actions/runs/41280117782).
+This requalifies the changed queue boundary only: no SBF rebuild or repeat of the
+unaffected load, browser, default or endurance populations. Frozen B data remains
+at its original pins. Integration `6b14e8a` has the exact tested stack tree.
 
 The separate width fixture at clean `f3b73c2`, `.local/p44-width-probe/`, verifies
 eight compiled cases on a copy of the captured full 64-row context: 2,796/5,632-bit

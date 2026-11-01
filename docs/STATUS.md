@@ -4,24 +4,24 @@ Updated 1 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
-P01–P14, P15A/P16A, P17–P38 and M1–M5b/M7–M11 are integrated within their recorded
-engineering scopes. The consolidation stack merged at
-**`caa47d29d1dc0fe790025d21121b37617669a809`**, with complete tree identical to accepted
-tip `9d3e15f`. [Validation](operations/validation.md) distinguishes historical
-evidence from the fresh consolidation qualification; [HISTORY](HISTORY.md) records
-the integration and preceding baselines.
+P01–P14, P15A/P16A, P17–P44 and M1–M5b/M7–M12 are integrated within their
+recorded engineering scopes. The seven-PR performance stack merged at
+**`6b14e8a4447729a6b55d38c22166c60a23083250`**, with the complete tree identical to
+reviewed/tested tip `da9966401027a6cb92893db29251a2c696ae0fce`.
+[Validation](operations/validation.md) records the exact qualification pins and
+limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| M12 performance and contention | Review | P39–P44 acceptance complete; open seven-PR stack awaits review/integration; no framework migration |
-| P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
-| P40 scoped events/services | Review | A and B acceptance passed; awaiting stack integration |
-| P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
-| P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
-| P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
-| P42 custody/accounting isolation | Review | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60), stacked on #59; D87 schema-7 financial/lock/settlement/gateway/default and fresh SQL replay acceptance passes |
-| P43 targeted CU optimization | Review | [PR #61](https://github.com/arnabnandikgp/rivalt/pull/61), ready above #60; Same-workload CU comparison, 147/165 full-book outcomes and 290 safety outcomes pass on uninstrumented SBF `fb5d0c5`; gains and limitations recorded |
-| P44 frozen pre-v2 qualification | Review | [PR #62](https://github.com/arnabnandikgp/rivalt/pull/62), ready above #61; frozen 61-entrypoint baseline, integrated recovery/replay and measured cost/load envelope |
+| M12 performance and contention | Closed | P39–P44 accepted and integrated; measured pre-migration baseline frozen; no framework migration |
+| P39 dependency audit/baseline | Closed | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55) merged; focused RPC/WS baseline and 61-entrypoint inventory |
+| P40 scoped events/services | Closed | A and B acceptance passed and integrated |
+| P40A bounded service execution | Closed | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56) merged; scoped RPC/WS/PG fault and fresh replay acceptance |
+| P40B scoped event history | Closed | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58) merged; authenticated scoped history and exact financial acceptance |
+| P41 relevant market dependencies | Closed | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59) merged; accepted clean `ca8bab0` / SBF `b0c5675` |
+| P42 custody/accounting isolation | Closed | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60) merged; D87 schema-7 financial/lock/settlement/gateway/default and SQL replay acceptance |
+| P43 targeted CU optimization | Closed | [PR #61](https://github.com/arnabnandikgp/rivalt/pull/61) merged; matched CU comparison, 147/165 full-book and 290 safety outcomes on SBF `fb5d0c5` |
+| P44 frozen pre-v2 qualification | Closed | [PR #62](https://github.com/arnabnandikgp/rivalt/pull/62) merged; 61-entrypoint baseline, integrated recovery/replay, measured cost/load envelope and admission-crash review fix |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
 | P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
 | P36 canonical names/ABI | Closed | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51) merged; canonical API names, preserved wire contract and passing CI |
@@ -32,12 +32,12 @@ the integration and preceding baselines.
 | Continuous 24-hour endurance | Deferred | No run scheduled or completion claimed |
 
 Review means accepted work awaiting integration; Closed requires acceptance plus
-integration. The user authorized the consolidation stack's merge on 30 October 2026; the new
-P39–P44 stack remains open for review.
+integration. The user authorized the performance stack's review fixes and merge on
+1 November 2026; all seven PRs independently report MERGED.
 
 ## Accepted performance stack
 
-P39–P44 follow D82. The integrated baseline remains unchanged until stack merge.
+P39–P44 follow D82 and are now the integrated baseline.
 P39's immutable focused A baseline uses SBF `828fe543`; P40A adds durable bounded
 service lanes, P40B scoped authenticated history, P41 relevant market dependencies,
 and P42 schema-7 token custody/internal-accounting separation. Their exact accepted
@@ -101,23 +101,29 @@ external wallet, funded deployment or Anchor v2 migration is run. Broad supporte
 regression belongs to CI. The 53,089-byte frozen baseline reproduces from its pinned
 originals; typecheck, documentation links, shell syntax, whitespace and the staged
 128 KiB aggregate evidence budget pass. Acceptance content is `ade628d`.
-[PR #62](https://github.com/arnabnandikgp/rivalt/pull/62) is verified ready/open above
-#61; all seven stack PRs remain open. Hosted checks and review are visible on the
-PR and are separate from the recorded local acceptance. All four applicable hosted
-jobs (scope, shell, client and financial) pass on acceptance content `ade628d` in
-[run 41276941491](https://github.com/arnabnandikgp/rivalt/actions/runs/41276941491);
-the report job is correctly skipped. Later commits update handoff documentation
-only; this does not claim a new code run or independent review approval.
-The user authorized review fixes and merging the complete stack on 1 November.
-Review found an admission crash window: the finalized-valid witness must commit
-with the resource reservation, before status RPC or broadcast. The fix and a real
-SIGKILL-before-status regression are being verified; the P43 comparison wording
-already distinguishes aggregate comparison from each run's independent checks,
-and service-role CU labels now explicitly identify transaction CU. PRs #56/#58/
-#59/#60 have skipped/rate-limited automated reviews, not approval.
-Next exact action: run the focused queue/dispatch tests and actual RPC/WS/PG crash
-regression on the committed fix, resolve feedback, verify CI and merge the stack.
-No new program build, load/endurance campaign or Anchor v2 migration is needed.
+All four applicable hosted checks (scope, shell, client and financial) pass on
+review fix `da99664` in [run 41280117782](https://github.com/arnabnandikgp/rivalt/actions/runs/41280117782).
+
+The review fix commits the finalized-valid blockhash witness with dispatch
+admission, closing a process-death window before status RPC or broadcast. Nineteen
+focused queue/dispatch/risk-authority tests and typecheck pass. Fresh actual
+RPC/WS/PG qualification at clean `da99664` kills an executor immediately after
+admission: witness slot 1522 and seven access rows survive with zero attempts.
+Restart after real expiry proves nonexecution, releases access and retains the
+20,000-lamport unknown-fee reserve. The run also passes post-send SIGKILL recovery,
+SQL fairness/drain cases and identical 61-event fresh replay, with eight members,
+70 accounts and 7,999,993 vault atoms. Evidence remains in
+`.local/liquidity-execution/runs/p44-review-dispatch/`.
+
+All review threads were resolved before merge. The P43 cross-run comparison claim
+was narrowed to its recorded aggregates; service-role CU is explicitly labelled
+transaction CU. Automated reviews skipped/rate-limited on #56/#58/#59/#60 and the
+latest #62 update are not independent approval. No additional program build,
+load/endurance run or external qualification was needed for this queue/docs fix.
+The fetched merge has identical tree and includes the tested fix as an ancestor.
+No implementation blocker remains within this completed scope.
+Next exact action: use the frozen B baseline to scope any separately authorized
+framework-migration evaluation; no Anchor v2 migration is started.
 
 ## Deployment and operational limits
 

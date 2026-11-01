@@ -260,6 +260,13 @@ outcome, leaving a crash window. This corrects persistence timing without granti
 new expiry authority or releasing unknown fees. Acceptance must kill the actual
 executor immediately after admission and restart only after real hash expiry.
 
+That acceptance passes at clean `da99664`: a real SIGKILL preserves witness slot
+1522 with zero attempts; restart after expiry proves nonexecution, releases access
+and retains the 20,000-lamport unknown-fee reserve. Post-send original recovery and
+identical 61-event fresh PostgreSQL replay also pass. The reviewed stack is
+integrated at `6b14e8a`; [validation](operations/validation.md) retains the exact
+revision, local evidence and scoped omissions.
+
 ## D89 — prevent newer conflicting originals from starving a committed waiter
 
 On 1 November 2026, P44's current UI successfully signs a trade, but continuous
