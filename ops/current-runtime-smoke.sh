@@ -3,17 +3,21 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-test "$(surfpool --version)" = 'surfpool 1.6.1'
+test "$(surfpool --version)" = 'surfpool 1.7.0'
+# Browser qualification must consume this checkout's schema/SDK, never a stale
+# ignored dist directory left by an older phase.
+if [[ "${RIVALT_LIQUIDITY_PROBE:-}" == services ]]; then pnpm build:trader; fi
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18941}"
 export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18942}"
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
 export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
 export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/liquidity-execution/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
+export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/liquidity-execution}"
 python3 - <<'PYTHON'
-import hashlib,json
+import hashlib,json,os
 from pathlib import Path
-root=Path('.local/liquidity-execution')
+root=Path(os.environ['RIVALT_ARTIFACT_DIR'])
 manifest=json.loads((root/'build-manifest.json').read_text())
 assert manifest['trackedDirty'] is False and manifest['profile']=='liquidity-execution-qualification'
 for component in ['clearing','maker_a','maker_b','oracle_fixture']:
@@ -43,7 +47,7 @@ done
 for component in clearing maker_a maker_b oracle_fixture; do
   key_name="${component//_/-}"
   solana-keygen new --silent --no-bip39-passphrase --outfile "$RIVALT_RUN_DIR/$component-buffer.json" >/dev/null
-  solana program deploy ".local/liquidity-execution/$component.so" --buffer "$RIVALT_RUN_DIR/$component-buffer.json" \
+  solana program deploy "$RIVALT_ARTIFACT_DIR/$component.so" --buffer "$RIVALT_RUN_DIR/$component-buffer.json" \
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
@@ -56,7 +60,13 @@ case "${RIVALT_LIQUIDITY_PROBE:?explicit probe required}" in
   funding-publisher) node --import tsx tests/rpc-contract/funding-publisher-rpc.ts ;;
   execution) node --import tsx tests/rpc-contract/liquidity-execution-rpc.ts ;;
   resources) node --import tsx tests/rpc-contract/liquidity-resource-rpc.ts ;;
+  market-dependencies) node --import tsx tests/rpc-contract/market-dependencies-rpc.ts ;;
+  performance) node --import tsx tests/performance/profile-rpc.ts ;;
+  performance-load) node --import tsx tests/rpc-contract/performance-load-rpc.ts ;;
+  dispatch) node --import tsx tests/rpc-contract/dispatch-rpc.ts ;;
+  complete-cohort) node --import tsx tests/rpc-contract/complete-cohort-rpc.ts ;;
   safety) node --import tsx tests/rpc-contract/liquidity-safety-rpc.ts ;;
+  scoped-history) node --import tsx tests/rpc-contract/scoped-history-rpc.ts ;;
   journal) node --import tsx tests/rpc-contract/liquidity-journal-rpc.ts ;;
   indexer) node --import tsx tests/rpc-contract/liquidity-indexer-rpc.ts ;;
   services) node --import tsx tests/rpc-contract/liquidity-services-rpc.ts ;;

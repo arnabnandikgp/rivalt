@@ -16,3 +16,9 @@ class EvidencePolicy(unittest.TestCase):
 
     def test_splitting_a_dump_cannot_bypass_the_total_budget(self):
         self.assertEqual(len(policy.violations([(f'tests/fixtures/{i}.json', 80_000) for i in range(3)])), 1)
+
+    def test_performance_summaries_have_separate_individual_and_total_bounds(self):
+        prefix = 'tests/performance/baselines/'
+        self.assertEqual(policy.violations([(prefix + 'metrics.json', 64 * 1024)]), [])
+        self.assertEqual(len(policy.violations([(prefix + 'trace.json', 64 * 1024 + 1)])), 1)
+        self.assertEqual(len(policy.violations([(prefix + f'{i}.json', 64 * 1024) for i in range(3)])), 1)

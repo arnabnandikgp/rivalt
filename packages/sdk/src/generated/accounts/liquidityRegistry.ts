@@ -27,6 +27,8 @@ import {
   getStructEncoder,
   getU16Decoder,
   getU16Encoder,
+  getU64Decoder,
+  getU64Encoder,
   getU8Decoder,
   getU8Encoder,
   transformEncoder,
@@ -48,7 +50,7 @@ import {
 } from "@solana/kit";
 
 export const LIQUIDITY_REGISTRY_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([133, 250, 116, 223, 223, 193, 72, 233]);
+  new Uint8Array([1, 86, 15, 130, 199, 52, 54, 34]);
 
 export function getLiquidityRegistryDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -59,6 +61,8 @@ export function getLiquidityRegistryDiscriminatorBytes(): ReadonlyUint8Array {
 export type LiquidityRegistry = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   market: Address;
   count: number;
@@ -69,6 +73,8 @@ export type LiquidityRegistry = {
 
 export type LiquidityRegistryArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   market: Address | HasAddress;
   count: number;
@@ -83,6 +89,7 @@ export function getLiquidityRegistryEncoder(): FixedSizeEncoder<LiquidityRegistr
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["market", getAddressEncoder()],
       ["count", getU8Encoder()],
@@ -99,6 +106,7 @@ export function getLiquidityRegistryDecoder(): FixedSizeDecoder<LiquidityRegistr
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["market", getAddressDecoder()],
     ["count", getU8Decoder()],
@@ -199,5 +207,5 @@ export async function fetchAllMaybeLiquidityRegistry(
 }
 
 export function getLiquidityRegistrySize(): number {
-  return 173;
+  return 181;
 }

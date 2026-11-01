@@ -1,0 +1,11 @@
+{
+  "name": "@rivalt/performance",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@rivalt/sdk": "workspace:*",
+    "@solana-program/token": "0.18.0",
+    "@solana/kit": "8.5.0",
+    "@solana/web3.js": "3.1.1"
+  }
+}

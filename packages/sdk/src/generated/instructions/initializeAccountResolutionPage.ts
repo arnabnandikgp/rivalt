@@ -70,6 +70,8 @@ export type InitializeAccountResolutionPageInstruction<
   TAccountPage extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
+  TAccountEventAuthority extends string | AccountMeta<string> = string,
+  TAccountProgram extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -97,6 +99,12 @@ export type InitializeAccountResolutionPageInstruction<
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
+      TAccountEventAuthority extends string
+        ? ReadonlyAccount<TAccountEventAuthority>
+        : TAccountEventAuthority,
+      TAccountProgram extends string
+        ? ReadonlyAccount<TAccountProgram>
+        : TAccountProgram,
       ...TRemainingAccounts,
     ]
   >;
@@ -149,6 +157,9 @@ export type InitializeAccountResolutionPageAsyncInput<
   TAccountPage extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
+  TAccountEventAuthority extends InstructionAccountInput =
+    InstructionAccountInput,
+  TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   payer: TAccountPayer;
   venue: TAccountVenue;
@@ -157,6 +168,8 @@ export type InitializeAccountResolutionPageAsyncInput<
   resolution?: TAccountResolution;
   page?: TAccountPage;
   systemProgram?: TAccountSystemProgram;
+  eventAuthority: TAccountEventAuthority;
+  program: TAccountProgram;
   pageIndex: InitializeAccountResolutionPageInstructionDataArgs["pageIndex"];
 };
 
@@ -168,6 +181,8 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
   TAccountResolution extends InstructionAccountInput,
   TAccountPage extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
+  TAccountEventAuthority extends InstructionAccountInput,
+  TAccountProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
   input: InitializeAccountResolutionPageAsyncInput<
@@ -177,7 +192,9 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
     TAccountSafety,
     TAccountResolution,
     TAccountPage,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountEventAuthority,
+    TAccountProgram
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
@@ -212,6 +229,14 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
       InstructionAccountInputAddress<TAccountSystemProgram>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountEventAuthority,
+      InstructionAccountInputAddress<TAccountEventAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountProgram,
+      InstructionAccountInputAddress<TAccountProgram>
     >
   >
 > {
@@ -244,6 +269,16 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
     page: { value: input.page ?? null, isSigner: false, isWritable: true },
     systemProgram: {
       value: input.systemProgram ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    eventAuthority: {
+      value: input.eventAuthority ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    program: {
+      value: input.program ?? null,
       isSigner: false,
       isWritable: false,
     },
@@ -319,6 +354,8 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
       getAccountMeta("resolution", accounts.resolution),
       getAccountMeta("page", accounts.page),
       getAccountMeta("systemProgram", accounts.systemProgram),
+      getAccountMeta("eventAuthority", accounts.eventAuthority),
+      getAccountMeta("program", accounts.program),
     ],
     data: getInitializeAccountResolutionPageInstructionDataEncoder().encode(
       args as InitializeAccountResolutionPageInstructionDataArgs,
@@ -353,6 +390,14 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
       InstructionAccountInputAddress<TAccountSystemProgram>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountEventAuthority,
+      InstructionAccountInputAddress<TAccountEventAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountProgram,
+      InstructionAccountInputAddress<TAccountProgram>
     >
   >);
 }
@@ -366,6 +411,9 @@ export type InitializeAccountResolutionPageInput<
   TAccountPage extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
+  TAccountEventAuthority extends InstructionAccountInput =
+    InstructionAccountInput,
+  TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   payer: TAccountPayer;
   venue: TAccountVenue;
@@ -374,6 +422,8 @@ export type InitializeAccountResolutionPageInput<
   resolution: TAccountResolution;
   page: TAccountPage;
   systemProgram?: TAccountSystemProgram;
+  eventAuthority: TAccountEventAuthority;
+  program: TAccountProgram;
   pageIndex: InitializeAccountResolutionPageInstructionDataArgs["pageIndex"];
 };
 
@@ -385,6 +435,8 @@ export function getInitializeAccountResolutionPageInstruction<
   TAccountResolution extends InstructionAccountInput,
   TAccountPage extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
+  TAccountEventAuthority extends InstructionAccountInput,
+  TAccountProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
   input: InitializeAccountResolutionPageInput<
@@ -394,7 +446,9 @@ export function getInitializeAccountResolutionPageInstruction<
     TAccountSafety,
     TAccountResolution,
     TAccountPage,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountEventAuthority,
+    TAccountProgram
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
@@ -428,6 +482,14 @@ export function getInitializeAccountResolutionPageInstruction<
   ResolvedInstructionAccountMeta<
     TAccountSystemProgram,
     InstructionAccountInputAddress<TAccountSystemProgram>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountEventAuthority,
+    InstructionAccountInputAddress<TAccountEventAuthority>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountProgram,
+    InstructionAccountInputAddress<TAccountProgram>
   >
 > {
   // Program address.
@@ -462,6 +524,16 @@ export function getInitializeAccountResolutionPageInstruction<
       isSigner: false,
       isWritable: false,
     },
+    eventAuthority: {
+      value: input.eventAuthority ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    program: {
+      value: input.program ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -486,6 +558,8 @@ export function getInitializeAccountResolutionPageInstruction<
       getAccountMeta("resolution", accounts.resolution),
       getAccountMeta("page", accounts.page),
       getAccountMeta("systemProgram", accounts.systemProgram),
+      getAccountMeta("eventAuthority", accounts.eventAuthority),
+      getAccountMeta("program", accounts.program),
     ],
     data: getInitializeAccountResolutionPageInstructionDataEncoder().encode(
       args as InitializeAccountResolutionPageInstructionDataArgs,
@@ -520,6 +594,14 @@ export function getInitializeAccountResolutionPageInstruction<
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
       InstructionAccountInputAddress<TAccountSystemProgram>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountEventAuthority,
+      InstructionAccountInputAddress<TAccountEventAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountProgram,
+      InstructionAccountInputAddress<TAccountProgram>
     >
   >);
 }
@@ -537,6 +619,8 @@ export type ParsedInitializeAccountResolutionPageInstruction<
     resolution: TAccountMetas[4];
     page: TAccountMetas[5];
     systemProgram: TAccountMetas[6];
+    eventAuthority: TAccountMetas[7];
+    program: TAccountMetas[8];
   };
   data: InitializeAccountResolutionPageInstructionData;
 };
@@ -549,12 +633,12 @@ export function parseInitializeAccountResolutionPageInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedInitializeAccountResolutionPageInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 7) {
+  if (instruction.accounts.length < 9) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 7,
+        expectedAccountMetas: 9,
       },
     );
   }
@@ -574,6 +658,8 @@ export function parseInitializeAccountResolutionPageInstruction<
       resolution: getNextAccount(),
       page: getNextAccount(),
       systemProgram: getNextAccount(),
+      eventAuthority: getNextAccount(),
+      program: getNextAccount(),
     },
     data: getInitializeAccountResolutionPageInstructionDataDecoder().decode(
       instruction.data,

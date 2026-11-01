@@ -21,6 +21,20 @@ pub(crate) fn candidate(
     price: u64,
     clock: &Clock,
 ) -> Result<Candidate> {
+    candidate_optional(target, receiver, markets.map(Some), mode, market_index, lots, price, clock)
+}
+
+#[inline(never)]
+pub(crate) fn candidate_optional(
+    target: &MarginAccount,
+    receiver: &MarginAccount,
+    markets: [Option<&Market>; 2],
+    mode: u8,
+    market_index: usize,
+    lots: u64,
+    price: u64,
+    clock: &Clock,
+) -> Result<Candidate> {
     let target_model = account::model(target)?;
     let receiver_model = account::model(receiver)?;
     book::validate(target)?;
@@ -34,21 +48,30 @@ pub(crate) fn candidate(
             && receiver.cash > 0,
         ClearingError::Liquidation
     );
-    let market = markets[market_index];
+    super::markets::validate(markets, &[target, receiver], 1 << market_index)?;
+    let market = markets[market_index].ok_or(ClearingError::OrderState)?;
     oracle::action(market, clock, false)?;
-    let risks = risks(mode, markets, clock)?;
+    let mut risks = [super::markets::empty_risk(); 2];
+    for (index, market) in markets.iter().enumerate() {
+        if let Some(market) = market {
+            risks[index] = math::margin::Risk {
+                lower: market.lower.max(1), upper: market.upper.max(1),
+                funding: oracle::effective(mode, market, clock)?,
+            };
+        }
+    }
     let environment = book::Environment {
-        markets: markets.map(Some),
+        markets,
         selected: market_index,
         funding: risks.map(|risk| risk.funding),
         slot: clock.slot,
-        credible: markets.map(|market| oracle::action(market, clock, false).is_ok()),
+        credible: markets.map(|market| market.is_some_and(|market| oracle::action(market, clock, false).is_ok())),
     };
     // Target risk orders are cancelled by this candidate. They cannot force an
     // otherwise irrelevant stale market into the exposure valuation universe.
     for (index, position) in target.positions.iter().enumerate() {
         if position.lots != 0 {
-            oracle::action(markets[index], clock, false)?;
+            oracle::action(environment.market(index)?, clock, false)?;
         }
     }
     environment.admit_sources(receiver, clock, false)?;
@@ -81,8 +104,8 @@ pub(crate) fn candidate(
     );
     let mut target = Box::new(target.clone());
     let mut receiver = Box::new(receiver.clone());
-    account::commit_model(&mut target, next_target)?;
-    account::commit_model(&mut receiver, next_receiver)?;
+    super::markets::commit_model(&mut target, next_target, markets)?;
+    super::markets::commit_model(&mut receiver, next_receiver, markets)?;
     for entry in &mut target.book.orders {
         if entry.order.active() && !entry.order.reduce_only {
             entry.order.state = crate::constants::orders::INVALIDATED;

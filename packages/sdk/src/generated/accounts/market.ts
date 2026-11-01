@@ -58,7 +58,7 @@ import {
 } from "../types/index.js";
 
 export const MARKET_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  247, 134, 112, 200, 45, 95, 27, 136,
+  219, 190, 213, 55, 0, 227, 198, 154,
 ]);
 
 export function getMarketDiscriminatorBytes(): ReadonlyUint8Array {
@@ -68,6 +68,8 @@ export function getMarketDiscriminatorBytes(): ReadonlyUint8Array {
 export type Market = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   index: number;
   symbol: ReadonlyUint8Array;
@@ -90,6 +92,8 @@ export type Market = {
 
 export type MarketArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   index: number;
   symbol: ReadonlyUint8Array;
@@ -116,6 +120,7 @@ export function getMarketEncoder(): FixedSizeEncoder<MarketArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["index", getU8Encoder()],
       ["symbol", fixEncoderSize(getBytesEncoder(), 8)],
@@ -144,6 +149,7 @@ export function getMarketDecoder(): FixedSizeDecoder<Market> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["index", getU8Decoder()],
     ["symbol", fixDecoderSize(getBytesDecoder(), 8)],
@@ -240,5 +246,5 @@ export async function fetchAllMaybeMarket(
 }
 
 export function getMarketSize(): number {
-  return 447;
+  return 455;
 }

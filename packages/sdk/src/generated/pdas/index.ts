@@ -17,7 +17,6 @@ export * from "./liquidityRegistry.js";
 export * from "./makerEventAuthority.js";
 export * from "./marginAccount.js";
 export * from "./marketLedger.js";
-export * from "./otherMarketLedger.js";
 export * from "./page.js";
 export * from "./portfolio.js";
 export * from "./resolution.js";

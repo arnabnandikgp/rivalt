@@ -22,13 +22,13 @@ def fixture():
         roots['root6']['cash']=str(int(roots['root6']['cash'])-fee)
         carry=0 if index==0 else 1
         credit=(fee+carry)//4
-        journal.append(dict(kind='LiquidityRouteExecutedV4',payload=dict(sequence=str(index+1),market='btc',marketState=markets['btc'],
+        journal.append(dict(cursor=str(index+1),kind='LiquidityRouteExecutedV4',payload=dict(market='btc',marketState=markets['btc'],
                        side=side,lots='1',grossQuote=str(price),fee=str(fee),carryBefore=carry,carryAfter=(fee+carry)%4,
                        insuranceCredit=str(credit),retainedFee=str(fee-credit),
                        legs=[dict(capital='root0',lots='1',gross=str(price))],rootStates=copy.deepcopy([roots['root6'],roots['root0']]))))
     for index in range(2):
         roots['root9']['cash']=str(int(roots['root9']['cash'])-1)
-        journal.append(dict(kind='AccountFinancialChangedV3',payload=dict(sequence=str(index+3),kind=0,amount='1',roots=['root9'],rootStates=[copy.deepcopy(roots['root9'])])))
+        journal.append(dict(cursor=str(index+3),kind='AccountFinancialChangedV3',payload=dict(kind=0,amount='1',roots=['root9'],rootStates=[copy.deepcopy(roots['root9'])])))
     final=dict(sequence='4',roots=roots,markets=markets,custody=dict(totalCash='3003999973'),
                ledgers={'btc-ledger':dict(market='btc',insurance='6',fees='19',insuranceFeeRemainder=1),
                         'eth-ledger':dict(market='eth',insurance='0',fees='0',insuranceFeeRemainder=0)})

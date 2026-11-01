@@ -1,0 +1,3433 @@
+{
+ "schema": 1,
+ "checkpoint": "B-pre-Anchor-v2",
+ "complete": true,
+ "sbfSource": "fb5d0c546a417796ce615e0d3d3575545c96c178",
+ "environment": {
+  "anchor": "1.2.1",
+  "hostRust": "1.97.1",
+  "platformTools": "1.52",
+  "sbfRust": "1.89.0-dev",
+  "sbpf": "v0",
+  "buildScript": "ops/build-liquidity-execution.sh",
+  "locked": true,
+  "instrumented": false,
+  "accountSchema": 7,
+  "node": "24.22.0",
+  "pnpm": "10.23.0",
+  "kit": "8.5.0",
+  "web3": "3.1.1",
+  "postgres": "18.6",
+  "liteSvm": "1.6.1",
+  "isolatedConformance": {
+   "anchor": "1.2.1",
+   "web3": "1.99.0"
+  },
+  "syntheticSlotMs": 50,
+  "priorityFees": "Every captured harness bid is zero; worker receipts are reported separately",
+  "loadedDataBytes": "Not returned by this RPC; null in local per-transaction output"
+ },
+ "loadEnvelope": {
+  "run": 10,
+  "host": {
+   "cpu": "Apple M3",
+   "cores": 8,
+   "os": "25.5.0",
+   "node": "v24.22.0"
+  },
+  "policy": {
+   "rates": [
+    2,
+    8,
+    32
+   ],
+   "windowSeconds": 8,
+   "maxInflight": 4,
+   "stop": "offered success below 90%, confirmed p95 over 500 ms, or generator lag over 250 ms; each workload stops independently",
+   "fullBooksAndWideResources": "separate pinned acceptance constituents"
+  },
+  "timing": "p50/p95/p99 observed milliseconds, rounded to three decimals; WS audit completion is not exact notification arrival",
+  "windows": [
+   {
+    "workload": "same-cross-concentrated",
+    "offeredPerSecond": 2,
+    "offered": 16,
+    "eligible": 16,
+    "constructed": 16,
+    "simulated": 16,
+    "submitted": 16,
+    "finalizedSuccess": 16,
+    "rejected": 0,
+    "expired": 0,
+    "unresolved": 0,
+    "unsubmitted": 0,
+    "reasons": {},
+    "confirmedMs": [
+     131.747,
+     184.502,
+     184.502
+    ],
+    "finalizedMs": [
+     1737.287,
+     1797.917,
+     1797.917
+    ],
+    "buildMs": [
+     38.097,
+     98.248,
+     98.248
+    ],
+    "receiptFetchMs": [
+     12.828,
+     18.592,
+     18.592
+    ],
+    "wsAuditMs": [
+     28.386,
+     38.622,
+     38.622
+    ],
+    "generatorLagMs": [
+     0.507,
+     15.578,
+     15.578
+    ]
+   },
+   {
+    "workload": "same-cross-concentrated",
+    "offeredPerSecond": 8,
+    "offered": 64,
+    "eligible": 63,
+    "constructed": 63,
+    "simulated": 63,
+    "submitted": 63,
+    "finalizedSuccess": 62,
+    "rejected": 1,
+    "expired": 0,
+    "unresolved": 0,
+    "unsubmitted": 1,
+    "reasons": {
+     "onchain:{\"InstructionError\":[3,{\"Custom\":6122}]}": 1,
+     "generator-inflight-limit": 1
+    },
+    "confirmedMs": [
+     164.602,
+     222.407,
+     242.785
+    ],
+    "finalizedMs": [
+     1731.383,
+     1825.293,
+     1852.836
+    ],
+    "buildMs": [
+     106.344,
+     273.573,
+     357.264
+    ],
+    "receiptFetchMs": [
+     16.359,
+     26.897,
+     31.127
+    ],
+    "wsAuditMs": [
+     37.989,
+     55.209,
+     138.31
+    ],
+    "generatorLagMs": [
+     0.262,
+     11.887,
+     22.833
+    ]
+   },
+   {
+    "workload": "same-cross-concentrated",
+    "offeredPerSecond": 32,
+    "offered": 256,
+    "eligible": 86,
+    "constructed": 86,
+    "simulated": 83,
+    "submitted": 83,
+    "finalizedSuccess": 64,
+    "rejected": 19,
+    "expired": 0,
+    "unresolved": 0,
+    "unsubmitted": 173,
+    "reasons": {
+     "onchain:{\"InstructionError\":[3,{\"Custom\":6122}]}": 19,
+     "generator-inflight-limit": 170,
+     "duplicate-signed-original": 3
+    },
+    "confirmedMs": [
+     166.148,
+     235.43,
+     244.198
+    ],
+    "finalizedMs": [
+     1734.82,
+     1820.709,
+     1865.795
+    ],
+    "buildMs": [
+     186.854,
+     378.1,
+     424.836
+    ],
+    "receiptFetchMs": [
+     16.106,
+     34.337,
+     78.284
+    ],
+    "wsAuditMs": [
+     42.229,
+     113.484,
+     142.99
+    ],
+    "generatorLagMs": [
+     2.205,
+     15.536,
+     40.621
+    ]
+   },
+   {
+    "workload": "same-market-spread",
+    "offeredPerSecond": 2,
+    "offered": 16,
+    "eligible": 16,
+    "constructed": 16,
+    "simulated": 16,
+    "submitted": 16,
+    "finalizedSuccess": 16,
+    "rejected": 0,
+    "expired": 0,
+    "unresolved": 0,
+    "unsubmitted": 0,
+    "reasons": {},
+    "confirmedMs": [
+     160.47,
+     181.707,
+     181.707
+    ],
+    "finalizedMs": [
+     1745.052,
+     1807.769,
+     1807.769
+    ],
+    "buildMs": [
+     75.851,
+     157.795,
+     157.795
+    ],
+    "receiptFetchMs": [
+     14.938,
+     23.7,
+     23.7
+    ],
+    "wsAuditMs": [
+     30.859,
+     40.116,
+     40.116
+    ],
+    "generatorLagMs": [
+     0.814,
+     37.618,
+     37.618
+    ]
+   },
+   {
+    "workload": "same-market-spread",
+    "offeredPerSecond": 8,
+    "offered": 64,
+    "eligible": 64,
+    "constructed": 64,
+    "simulated": 64,
+    "submitted": 64,
+    "finalizedSuccess": 64,
+    "rejected": 0,
+    "expired": 0,
+    "unresolved": 0,
+    "unsubmitted": 0,
+    "reasons": {},
+    "confirmedMs": [
+     170.698,
+     216.283,
+     259.677
+    ],
+    "finalizedMs": [
+     1748.24,
+     1812.086,
+     1846.302
+    ],
+    "buildMs": [
+     145.701,
+     225.211,
+     279.3
+    ],
+    "receiptFetchMs": [
+     18.887,
+     34.934,
+     103.031
+    ],
+    "wsAuditMs": [
+     42.222,
+     61.574,
+     119.332
+    ],
+    "generatorLagMs": [
+     5.139,
+     22.461,
+     51.438
+    ]
+   },
+   {
+    "workload": "same-market-spread",
+    "offeredPerSecond": 32,
+    "offered": 256,
+    "eligible": 75,
+    "constructed": 75,
+    "simulated": 75,
+    "submitted": 75,
+    "finalizedSuccess": 67,
+    "rejected": 8,
+    "expired": 0,
+    "unresolved": 0,
+    "unsubmitted": 181,
+    "reasons": {
+     "generator-inflight-limit": 181,
+     "onchain:{\"InstructionError\":[3,{\"Custom\":6122}]}": 8
+    },
+    "confirmedMs": [
+     179.356,
+     267.902,
+     355.733
+    ],
+    "finalizedMs": [
+     1772.637,
+     1846.691,
+     1924.424
+    ],
+    "buildMs": [
+     229.046,
+     356.303,
+     400.055
+    ],
+    "receiptFetchMs": [
+     17.882,
+     30.906,
+     44.155
+    ],
+    "wsAuditMs": [
+     45.84,
+     105.409,
+     131.025
+    ],
+    "generatorLagMs": [
+     3.602,
+     14.29,
+     35.506
+    ]
+   },
+   {
+    "workload": "disjoint-isolated",
+    "offeredPerSecond": 2,
+    "offered": 16,
+    "eligible": 16,
+    "constructed": 16,
+    "simulated": 16,
+    "submitted": 16,
+    "finalizedSuccess": 16,
+    "rejected": 0,
+    "expired": 0,
+    "unresolved": 0,
+    "unsubmitted": 0,
+    "reasons": {},
+    "confirmedMs": [
+     160.147,
+     188.041,
+     188.041
+    ],
+    "finalizedMs": [
+     1735.927,
+     1834.768,
+     1834.768
+    ],
+    "buildMs": [
+     82.911,
+     127.281,
+     127.281
+    ],
+    "receiptFetchMs": [
+     15.208,
+     27.203,
+     27.203
+    ],
+    "wsAuditMs": [
+     32.482,
+     150.538,
+     150.538
+    ],
+    "generatorLagMs": [
+     0.473,
+     105.503,
+     105.503
+    ]
+   },
+   {
+    "workload": "disjoint-isolated",
+    "offeredPerSecond": 8,
+    "offered": 64,
+    "eligible": 59,
+    "constructed": 59,
+    "simulated": 59,
+    "submitted": 59,
+    "finalizedSuccess": 59,
+    "rejected": 0,
+    "expired": 0,
+    "unresolved": 0,
+    "unsubmitted": 5,
+    "reasons": {
+     "generator-inflight-limit": 5
+    },
+    "confirmedMs": [
+     187.127,
+     249.364,
+     296.758
+    ],
+    "finalizedMs": [
+     1756.317,
+     1868.256,
+     1879.845
+    ],
+    "buildMs": [
+     231.538,
+     334.857,
+     353.847
+    ],
+    "receiptFetchMs": [
+     18.74,
+     36.72,
+     46.672
+    ],
+    "wsAuditMs": [
+     45.697,
+     60.058,
+     75.021
+    ],
+    "generatorLagMs": [
+     2.221,
+     12.104,
+     21.294
+    ]
+   },
+   {
+    "workload": "disjoint-isolated",
+    "offeredPerSecond": 32,
+    "offered": 256,
+    "eligible": 73,
+    "constructed": 73,
+    "simulated": 73,
+    "submitted": 73,
+    "finalizedSuccess": 66,
+    "rejected": 7,
+    "expired": 0,
+    "unresolved": 0,
+    "unsubmitted": 183,
+    "reasons": {
+     "onchain:{\"InstructionError\":[3,{\"Custom\":6122}]}": 7,
+     "generator-inflight-limit": 183
+    },
+    "confirmedMs": [
+     176.638,
+     250.796,
+     308.337
+    ],
+    "finalizedMs": [
+     1776.611,
+     1844.54,
+     1904.069
+    ],
+    "buildMs": [
+     240.704,
+     433.678,
+     484.482
+    ],
+    "receiptFetchMs": [
+     17.134,
+     38.654,
+     53.067
+    ],
+    "wsAuditMs": [
+     42.818,
+     72.695,
+     129.827
+    ],
+    "generatorLagMs": [
+     2.808,
+     17.664,
+     72.633
+    ]
+   }
+  ],
+  "indexerCycles": {
+   "coherent": 2,
+   "rejected": 33
+  },
+  "financial": {
+   "cursor": "585",
+   "minSlot": "3440",
+   "maxSlot": "3440",
+   "accounts": 72,
+   "members": 9,
+   "actualVault": "9000000",
+   "allocatedVault": "9000000",
+   "unallocatedSurplus": "0",
+   "resolutionStage": null
+  },
+  "parentProcess": {
+   "userCpuUs": 103614167,
+   "systemCpuUs": 3816359,
+   "endRssBytes": 564117504
+  }
+ },
+ "profile": "liquidity-execution-qualification",
+ "idls": {
+  "clearing": "690042fc54510ee316e70f2fe7096f3a97802eca734ce8d7f8dca18d2bbd79c2",
+  "maker_a": "e1ff26a02f22416ed33bd545f4ddb1dc1140fe495d6963a8b8a39332e4e80679",
+  "maker_b": "b2c70b3958835ebe428496efc4eb915ee2b4964165c610af3f1aa96a239ad126"
+ },
+ "artifacts": {
+  "clearing": {
+   "sha256": "a9a8f59e5e5fa93c4657ed25313f99199827d1e1ecf56e2f8b8ebb2caa6305f4",
+   "bytes": 2484144
+  },
+  "maker_a": {
+   "sha256": "4a600b298340928f962f6d28e13d6aef209233bff8b5d403713f35d5f898d9a6",
+   "bytes": 261056
+  },
+  "maker_b": {
+   "sha256": "10340ac7f5a9c4bfe5dbf0adee62232daf6829962413d5e9dab726f387a8e9b2",
+   "bytes": 261056
+  },
+  "oracle_fixture": {
+   "sha256": "85a4369ebf563f77d01c77b3a363750839b8799622fc99db2fff78bfebce46c7",
+   "bytes": 168720
+  }
+ },
+ "runs": [
+  {
+   "directory": ".local/liquidity-execution/runs/p43-after",
+   "summary": "performance.json",
+   "sha256": "9a7abfabf6542c6c879df7c9dfd913fdd101c19957bfa55b3d10cf94d3b7a4f0",
+   "harnessRevision": "1e8666107e01f3ab97b29e922195a397e9daf9a9",
+   "outcomes": 129,
+   "runtime": {
+    "surfnet-version": "1.7.0",
+    "solana-core": "4.3.2",
+    "feature-set": 3383571666
+   }
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p43-safety",
+   "summary": "summary.json",
+   "sha256": "ab5a6cb25fb76a50652fd4bce6d0bb07cfbcc0f1d580bcf046ccb89a0f90747d",
+   "harnessRevision": "1e8666107e01f3ab97b29e922195a397e9daf9a9",
+   "outcomes": 290,
+   "runtime": null
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p43-resources",
+   "summary": "summary.json",
+   "sha256": "38422d247f22b2479b794a6eca23f251568e0f52fd213412c813cdafd25c8625",
+   "harnessRevision": "1e8666107e01f3ab97b29e922195a397e9daf9a9",
+   "outcomes": 147,
+   "runtime": null
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p43-resources-stored",
+   "summary": "summary.json",
+   "sha256": "cef9f49029390e6decfe40edb7875552fc21cb1d5f1544ac0137c58e151888ee",
+   "harnessRevision": "1e8666107e01f3ab97b29e922195a397e9daf9a9",
+   "outcomes": 165,
+   "runtime": null
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p44-makers",
+   "summary": "summary.json",
+   "sha256": "b024a65e6a0b8ddb677ee0bc335a4ebb3c5747aee40b947057cf05a62fd26316",
+   "harnessRevision": "f9d29f680b7f9b2adf4bce21ad46a02cd098b6cf",
+   "outcomes": 123,
+   "runtime": {
+    "surfnet-version": "1.7.0",
+    "solana-core": "4.3.2",
+    "feature-set": 3383571666
+   }
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p44-complete-cohort",
+   "summary": "summary.json",
+   "sha256": "9d43de72fac71049a6962f53ab5f427c80bbeb1a53315b67f0c2be377080d900",
+   "harnessRevision": "cbc132bd0b4eda1097b9e7d34e7f60fa5ecb9754",
+   "outcomes": 712,
+   "runtime": null
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p44-market-dependencies",
+   "summary": "summary.json",
+   "sha256": "3970f3242ce6957103724b06d99c2ef22b0611ae1e3e94813ae73c52ce75aae5",
+   "harnessRevision": "f3b73c2fd57b0390c8b6d011e9fb68fe9cfe543a",
+   "outcomes": 207,
+   "runtime": null
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p44-journal",
+   "summary": "summary.json",
+   "sha256": "ce0b91a21c0e872650eb15730e6f58fd8b695b3d8676dab945b5b6dfc68b6c90",
+   "harnessRevision": "f3b73c2fd57b0390c8b6d011e9fb68fe9cfe543a",
+   "outcomes": 124,
+   "runtime": null
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p44-retirement",
+   "summary": "summary.json",
+   "sha256": "e9569bdca39e9a23ffb442bfec3e7caad23d597490c98e6666b01d7ca2498f25",
+   "harnessRevision": "94701014e714700a6d7a8377c8e5324ee7260f4b",
+   "outcomes": 63,
+   "runtime": null
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p44-custody-pinned",
+   "summary": "summary.json",
+   "sha256": "0e820f25d9d2d3bbb3e6c6b6f30889548a89f542a276e968dbc0d135da8c8190",
+   "harnessRevision": "94701014e714700a6d7a8377c8e5324ee7260f4b",
+   "outcomes": 57,
+   "runtime": {
+    "surfnet-version": "1.7.0",
+    "solana-core": "4.3.2",
+    "feature-set": 3383571666
+   }
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p44-load-final",
+   "summary": "summary.json",
+   "sha256": "d8e25f256804628f82a8d852427446503cb4d5ca1a22110255ffc01a01166f6a",
+   "harnessRevision": "8b8c33fc1b4555b07c32da24b17a09fe5659d7ca",
+   "outcomes": 666,
+   "runtime": {
+    "surfnet-version": "1.7.0",
+    "solana-core": "4.3.2",
+    "feature-set": 3383571666
+   }
+  },
+  {
+   "directory": ".local/liquidity-execution/runs/p44-services-parallel-history",
+   "summary": "summary.json",
+   "sha256": "d534ec5e63ede2537a36b01a4ebd47a9c8197b21fa5c3ef20865de8b64daa79f",
+   "harnessRevision": "a5afbc9476b901e0dac42bbe1fda7458dac91ff0",
+   "outcomes": 188,
+   "runtime": null
+  }
+ ],
+ "outcomes": {
+  "offeredHarness": 2871,
+  "finalizedSuccess": 2721,
+  "finalizedRejection": 150
+ },
+ "entrypoints": [
+  {
+   "name": "clearing.activate_liquidity",
+   "successfulInvocations": 9,
+   "revertedInvocations": 10,
+   "inclusiveCu": [
+    49936,
+    49936
+   ],
+   "revertedInclusiveCu": [
+    37235,
+    37270
+   ],
+   "transactionCu": [
+    50386,
+    50386
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    571,
+    571
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    13,
+    13
+   ],
+   "writable": [
+    4,
+    4
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-95.json",
+    "label": "activate storage-ready canonical candidate",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.advance_account_resolution",
+   "successfulInvocations": 354,
+   "revertedInvocations": 11,
+   "inclusiveCu": [
+    235585,
+    392895
+   ],
+   "revertedInclusiveCu": [
+    96742,
+    120171
+   ],
+   "transactionCu": [
+    236035,
+    393345
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    681,
+    747
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    16,
+    18
+   ],
+   "writable": [
+    11,
+    13
+   ],
+   "max": {
+    "run": 1,
+    "receipt": "transaction-230.json",
+    "label": "P32 safety plan all atom floors",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.allocate_market_fees",
+   "successfulInvocations": 1,
+   "revertedInvocations": 1,
+   "inclusiveCu": [
+    16833,
+    16833
+   ],
+   "revertedInclusiveCu": [
+    11408,
+    11408
+   ],
+   "transactionCu": [
+    17283,
+    17283
+   ],
+   "requestedCu": [
+    400000,
+    400000
+   ],
+   "wireBytes": [
+    382,
+    382
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    7,
+    7
+   ],
+   "writable": [
+    2,
+    2
+   ],
+   "max": {
+    "run": 7,
+    "receipt": "transaction-121.json",
+    "label": "P42 market-only fee allocation",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.approve_liquidity",
+   "successfulInvocations": 1,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    221092,
+    221092
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    221542,
+    221542
+   ],
+   "requestedCu": [
+    400000,
+    400000
+   ],
+   "wireBytes": [
+    742,
+    742
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    16,
+    16
+   ],
+   "writable": [
+    4,
+    4
+   ],
+   "max": {
+    "run": 4,
+    "receipt": "transaction-104.json",
+    "label": "joint code approval invalidates old publication",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.check_account_resolution_order",
+   "successfulInvocations": 144,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    236342,
+    280734
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    236792,
+    281184
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    679,
+    679
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    16,
+    16
+   ],
+   "writable": [
+    11,
+    11
+   ],
+   "max": {
+    "run": 5,
+    "receipt": "transaction-642.json",
+    "label": "P32 safety verify exact remainder order and stable ties",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.check_account_retirement",
+   "successfulInvocations": 4,
+   "revertedInvocations": 2,
+   "inclusiveCu": [
+    65626,
+    65712
+   ],
+   "revertedInclusiveCu": [
+    42865,
+    43576
+   ],
+   "transactionCu": [
+    66076,
+    66162
+   ],
+   "requestedCu": [
+    500000,
+    500000
+   ],
+   "wireBytes": [
+    671,
+    671
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    16,
+    16
+   ],
+   "writable": [
+    9,
+    9
+   ],
+   "max": {
+    "run": 8,
+    "receipt": "transaction-57.json",
+    "label": "P40B fresh complete-member page 4",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.check_market_backing",
+   "successfulInvocations": 21,
+   "revertedInvocations": 4,
+   "inclusiveCu": [
+    41241,
+    54687
+   ],
+   "revertedInclusiveCu": [
+    28447,
+    49034
+   ],
+   "transactionCu": [
+    41691,
+    117949
+   ],
+   "requestedCu": [
+    800000,
+    800000
+   ],
+   "wireBytes": [
+    539,
+    604
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    12,
+    13
+   ],
+   "writable": [
+    2,
+    6
+   ],
+   "max": {
+    "run": 6,
+    "receipt": "transaction-204.json",
+    "label": "P42 backing continuation",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.classify_market_surplus",
+   "successfulInvocations": 1,
+   "revertedInvocations": 2,
+   "inclusiveCu": [
+    22385,
+    22385
+   ],
+   "revertedInclusiveCu": [
+    16012,
+    16452
+   ],
+   "transactionCu": [
+    22535,
+    22535
+   ],
+   "requestedCu": [
+    400000,
+    400000
+   ],
+   "wireBytes": [
+    524,
+    524
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    10,
+    10
+   ],
+   "writable": [
+    3,
+    3
+   ],
+   "max": {
+    "run": 9,
+    "receipt": "transaction-43.json",
+    "label": "classify BTC surplus as insurance only",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.collect_account_loss",
+   "successfulInvocations": 2,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    57417,
+    68504
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    57867,
+    68954
+   ],
+   "requestedCu": [
+    800000,
+    800000
+   ],
+   "wireBytes": [
+    612,
+    644
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    12,
+    13
+   ],
+   "writable": [
+    5,
+    6
+   ],
+   "max": {
+    "run": 6,
+    "receipt": "transaction-146.json",
+    "label": "P41 collect four whole ETH loss atoms",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.configure_funding_publisher",
+   "successfulInvocations": 7,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    23001,
+    23610
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    23451,
+    24060
+   ],
+   "requestedCu": [
+    200000,
+    800000
+   ],
+   "wireBytes": [
+    446,
+    446
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    8,
+    8
+   ],
+   "writable": [
+    3,
+    3
+   ],
+   "max": {
+    "run": 11,
+    "receipt": "transaction-164.json",
+    "label": "P33 revoke restricted publisher",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.control_liquidity",
+   "successfulInvocations": 13,
+   "revertedInvocations": 2,
+   "inclusiveCu": [
+    210784,
+    248563
+   ],
+   "revertedInclusiveCu": [
+    173647,
+    173747
+   ],
+   "transactionCu": [
+    211234,
+    470126
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    760,
+    1820
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    16,
+    21
+   ],
+   "writable": [
+    4,
+    7
+   ],
+   "max": {
+    "run": 4,
+    "receipt": "transaction-92.json",
+    "label": "atomic two-market full shape update",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.create_portfolio",
+   "successfulInvocations": 41,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    21435,
+    30438
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    21585,
+    30888
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    517,
+    537
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    10,
+    10
+   ],
+   "writable": [
+    3,
+    3
+   ],
+   "max": {
+    "run": 10,
+    "receipt": "transaction-106.json",
+    "label": "load create independent ETH portfolio",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.deposit_account",
+   "successfulInvocations": 149,
+   "revertedInvocations": 5,
+   "inclusiveCu": [
+    36559,
+    48533
+   ],
+   "revertedInclusiveCu": [
+    12010,
+    32068
+   ],
+   "transactionCu": [
+    37009,
+    48983
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    644,
+    723
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    13,
+    15
+   ],
+   "writable": [
+    5,
+    8
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-10.json",
+    "label": "fund isolated capital 0/0",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.execute_liquidity_order",
+   "successfulInvocations": 3,
+   "revertedInvocations": 3,
+   "inclusiveCu": [
+    274125,
+    503488
+   ],
+   "revertedInclusiveCu": [
+    41374,
+    43455
+   ],
+   "transactionCu": [
+    274575,
+    503938
+   ],
+   "requestedCu": [
+    800000,
+    800000
+   ],
+   "wireBytes": [
+    867,
+    1099
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    18,
+    24
+   ],
+   "writable": [
+    8,
+    10
+   ],
+   "max": {
+    "run": 3,
+    "receipt": "transaction-159.json",
+    "label": "P32 route maximum quantity eight regions and three full books",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.execute_liquidity_route",
+   "successfulInvocations": 458,
+   "revertedInvocations": 44,
+   "inclusiveCu": [
+    255216,
+    504141
+   ],
+   "revertedInclusiveCu": [
+    32862,
+    419095
+   ],
+   "transactionCu": [
+    255666,
+    504141
+   ],
+   "requestedCu": [
+    800000,
+    800000
+   ],
+   "wireBytes": [
+    846,
+    1196
+   ],
+   "signatures": [
+    1,
+    2
+   ],
+   "fees": [
+    5000,
+    10000
+   ],
+   "keys": [
+    16,
+    24
+   ],
+   "writable": [
+    6,
+    10
+   ],
+   "max": {
+    "run": 2,
+    "receipt": "transaction-141.json",
+    "label": "P32 route maximum quantity eight regions and three full books",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.finalize_account_resolution_rates",
+   "successfulInvocations": 3,
+   "revertedInvocations": 3,
+   "inclusiveCu": [
+    260384,
+    298447
+   ],
+   "revertedInclusiveCu": [
+    85800,
+    107864
+   ],
+   "transactionCu": [
+    260834,
+    298897
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    644,
+    644
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    15,
+    15
+   ],
+   "writable": [
+    10,
+    10
+   ],
+   "max": {
+    "run": 1,
+    "receipt": "transaction-227.json",
+    "label": "P32 safety verify complete equations and insurance floors",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.freeze_accounts",
+   "successfulInvocations": 2,
+   "revertedInvocations": 1,
+   "inclusiveCu": [
+    228903,
+    261785
+   ],
+   "revertedInclusiveCu": [
+    126747,
+    126747
+   ],
+   "transactionCu": [
+    229353,
+    262235
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    885,
+    885
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    22,
+    22
+   ],
+   "writable": [
+    10,
+    10
+   ],
+   "max": {
+    "run": 5,
+    "receipt": "transaction-237.json",
+    "label": "P44 safety authority freezes after actual source outage",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.initialize_account_resolution",
+   "successfulInvocations": 9,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    167419,
+    167419
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    167869,
+    167869
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    472,
+    472
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    10,
+    10
+   ],
+   "writable": [
+    3,
+    3
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-54.json",
+    "label": "precreate complete resolution header and work",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.initialize_account_resolution_page",
+   "successfulInvocations": 288,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    80446,
+    92446
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    80896,
+    92896
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    474,
+    474
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    10,
+    10
+   ],
+   "writable": [
+    3,
+    3
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-65.json",
+    "label": "precreate complete safety page",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.initialize_account_retirement",
+   "successfulInvocations": 1,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    17535,
+    17535
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    17985,
+    17985
+   ],
+   "requestedCu": [
+    500000,
+    500000
+   ],
+   "wireBytes": [
+    406,
+    406
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    8,
+    8
+   ],
+   "writable": [
+    2,
+    2
+   ],
+   "max": {
+    "run": 8,
+    "receipt": "transaction-48.json",
+    "label": "P40B zero-payload retirement storage",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.initialize_funding_publisher",
+   "successfulInvocations": 18,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    30166,
+    33166
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    30616,
+    33616
+   ],
+   "requestedCu": [
+    200000,
+    800000
+   ],
+   "wireBytes": [
+    504,
+    504
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    10,
+    10
+   ],
+   "writable": [
+    3,
+    3
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-51.json",
+    "label": "P32 publisher initialize",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.initialize_liquidity",
+   "successfulInvocations": 22,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    21883,
+    21883
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    22333,
+    22333
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    439,
+    439
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    9,
+    9
+   ],
+   "writable": [
+    2,
+    2
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-7.json",
+    "label": "initialize maker registry 0",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.initialize_liquidity_oracle",
+   "successfulInvocations": 18,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    29036,
+    33534
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    29486,
+    33984
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    470,
+    470
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    8,
+    8
+   ],
+   "writable": [
+    2,
+    2
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-50.json",
+    "label": "initialize canonical source bindings",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.initialize_liquidity_venue",
+   "successfulInvocations": 12,
+   "revertedInvocations": 2,
+   "inclusiveCu": [
+    39365,
+    39365
+   ],
+   "revertedInclusiveCu": [
+    31898,
+    32068
+   ],
+   "transactionCu": [
+    39515,
+    39815
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    648,
+    668
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    12,
+    12
+   ],
+   "writable": [
+    5,
+    5
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-3.json",
+    "label": "initialize fresh profile4 custody",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.initialize_market",
+   "successfulInvocations": 24,
+   "revertedInvocations": 2,
+   "inclusiveCu": [
+    32160,
+    41160
+   ],
+   "revertedInclusiveCu": [
+    30450,
+    33448
+   ],
+   "transactionCu": [
+    32310,
+    41610
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    453,
+    473
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    10,
+    10
+   ],
+   "writable": [
+    4,
+    4
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-5.json",
+    "label": "initialize market 0",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.initialize_market_backing",
+   "successfulInvocations": 2,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    19720,
+    24220
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    20170,
+    24670
+   ],
+   "requestedCu": [
+    800000,
+    800000
+   ],
+   "wireBytes": [
+    407,
+    407
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    8,
+    8
+   ],
+   "writable": [
+    2,
+    2
+   ],
+   "max": {
+    "run": 6,
+    "receipt": "transaction-159.json",
+    "label": "P41 initialize backing certificate",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.initialize_venue_registry",
+   "successfulInvocations": 12,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    22941,
+    22941
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    23091,
+    23391
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    419,
+    439
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    9,
+    9
+   ],
+   "writable": [
+    2,
+    2
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-4.json",
+    "label": "initialize venue registry",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.liquidate_account",
+   "successfulInvocations": 1,
+   "revertedInvocations": 3,
+   "inclusiveCu": [
+    98590,
+    98590
+   ],
+   "revertedInclusiveCu": [
+    32664,
+    54121
+   ],
+   "transactionCu": [
+    99040,
+    99040
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    715,
+    715
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    13,
+    13
+   ],
+   "writable": [
+    7,
+    7
+   ],
+   "max": {
+    "run": 1,
+    "receipt": "transaction-198.json",
+    "label": "P32 safety whole-account liquidation with live receiver reservations",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.manage_account_order",
+   "successfulInvocations": 34,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    37490,
+    60684
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    37940,
+    61134
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    554,
+    696
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    9,
+    10
+   ],
+   "writable": [
+    3,
+    4
+   ],
+   "max": {
+    "run": 1,
+    "receipt": "transaction-175.json",
+    "label": "populate liquidation target and receiver live books",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.net_account_claims",
+   "successfulInvocations": 1,
+   "revertedInvocations": 1,
+   "inclusiveCu": [
+    70182,
+    70182
+   ],
+   "revertedInclusiveCu": [
+    32641,
+    32641
+   ],
+   "transactionCu": [
+    70632,
+    70632
+   ],
+   "requestedCu": [
+    800000,
+    800000
+   ],
+   "wireBytes": [
+    708,
+    708
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    14,
+    14
+   ],
+   "writable": [
+    6,
+    6
+   ],
+   "max": {
+    "run": 6,
+    "receipt": "transaction-166.json",
+    "label": "P41 explicit one-atom flat closed-claim net",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.order_account_resolution",
+   "successfulInvocations": 2,
+   "revertedInvocations": 2,
+   "inclusiveCu": [
+    203414,
+    231247
+   ],
+   "revertedInclusiveCu": [
+    86334,
+    110358
+   ],
+   "transactionCu": [
+    203864,
+    231697
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    684,
+    909
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    15,
+    15
+   ],
+   "writable": [
+    10,
+    10
+   ],
+   "max": {
+    "run": 5,
+    "receipt": "transaction-514.json",
+    "label": "P32 safety propose complete remainder order",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.pause_venue",
+   "successfulInvocations": 5,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    24422,
+    24424
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    24572,
+    49296
+   ],
+   "requestedCu": [
+    400000,
+    500000
+   ],
+   "wireBytes": [
+    453,
+    494
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    10,
+    10
+   ],
+   "writable": [
+    2,
+    2
+   ],
+   "max": {
+    "run": 8,
+    "receipt": "transaction-52.json",
+    "label": "P40B unpause and repause invalidate the earlier proof",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.pay_account_gain",
+   "successfulInvocations": 2,
+   "revertedInvocations": 3,
+   "inclusiveCu": [
+    68473,
+    72331
+   ],
+   "revertedInclusiveCu": [
+    32540,
+    68489
+   ],
+   "transactionCu": [
+    72781,
+    117949
+   ],
+   "requestedCu": [
+    800000,
+    800000
+   ],
+   "wireBytes": [
+    604,
+    676
+   ],
+   "signatures": [
+    1,
+    2
+   ],
+   "fees": [
+    5000,
+    10000
+   ],
+   "keys": [
+    13,
+    14
+   ],
+   "writable": [
+    6,
+    6
+   ],
+   "max": {
+    "run": 6,
+    "receipt": "transaction-154.json",
+    "label": "P41 pay ETH gain with complete certificate union",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.propose_account_resolution",
+   "successfulInvocations": 12,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    204024,
+    232803
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    204474,
+    233253
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    707,
+    1196
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    15,
+    15
+   ],
+   "writable": [
+    10,
+    10
+   ],
+   "max": {
+    "run": 5,
+    "receipt": "transaction-381.json",
+    "label": "P32 safety upload untrusted exact rate proposal",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.publish_funding_report",
+   "successfulInvocations": 435,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    30777,
+    32075
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    32523,
+    64598
+   ],
+   "requestedCu": [
+    200000,
+    800000
+   ],
+   "wireBytes": [
+    838,
+    1192
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    13,
+    17
+   ],
+   "writable": [
+    3,
+    5
+   ],
+   "max": {
+    "run": 6,
+    "receipt": "transaction-132.json",
+    "label": "P41 publish negative premium",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.quarantine_liquidity",
+   "successfulInvocations": 1,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    28529,
+    28529
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    28979,
+    28979
+   ],
+   "requestedCu": [
+    400000,
+    400000
+   ],
+   "wireBytes": [
+    447,
+    447
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    9,
+    9
+   ],
+   "writable": [
+    3,
+    3
+   ],
+   "max": {
+    "run": 4,
+    "receipt": "transaction-102.json",
+    "label": "authority quarantines without module dependency",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.reactivate_accounts",
+   "successfulInvocations": 1,
+   "revertedInvocations": 2,
+   "inclusiveCu": [
+    101979,
+    101979
+   ],
+   "revertedInclusiveCu": [
+    52695,
+    64350
+   ],
+   "transactionCu": [
+    102429,
+    102429
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    810,
+    810
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    20,
+    20
+   ],
+   "writable": [
+    9,
+    9
+   ],
+   "max": {
+    "run": 1,
+    "receipt": "transaction-288.json",
+    "label": "P32 safety explicit reactivation after source and publisher qualification",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.recover_accounts",
+   "successfulInvocations": 6,
+   "revertedInvocations": 1,
+   "inclusiveCu": [
+    96379,
+    101868
+   ],
+   "revertedInclusiveCu": [
+    59447,
+    59447
+   ],
+   "transactionCu": [
+    96829,
+    102318
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    811,
+    811
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    20,
+    20
+   ],
+   "writable": [
+    9,
+    9
+   ],
+   "max": {
+    "run": 1,
+    "receipt": "transaction-278.json",
+    "label": "P32 safety explicit recovery returns only to custody",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.register_liquidity",
+   "successfulInvocations": 66,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    183913,
+    198418
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    184363,
+    198868
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    768,
+    768
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    17,
+    17
+   ],
+   "writable": [
+    5,
+    5
+   ],
+   "max": {
+    "run": 2,
+    "receipt": "transaction-27.json",
+    "label": "register canonical maker 1/0",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.register_margin",
+   "successfulInvocations": 148,
+   "revertedInvocations": 6,
+   "inclusiveCu": [
+    36800,
+    51719
+   ],
+   "revertedInclusiveCu": [
+    23994,
+    25497
+   ],
+   "transactionCu": [
+    36954,
+    52169
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    586,
+    606
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    12,
+    12
+   ],
+   "writable": [
+    5,
+    5
+   ],
+   "max": {
+    "run": 5,
+    "receipt": "transaction-214.json",
+    "label": "P44 register complete-cohort member",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.replenish_liquidity",
+   "successfulInvocations": 3,
+   "revertedInvocations": 2,
+   "inclusiveCu": [
+    182736,
+    187275
+   ],
+   "revertedInclusiveCu": [
+    173189,
+    173192
+   ],
+   "transactionCu": [
+    183186,
+    187725
+   ],
+   "requestedCu": [
+    400000,
+    400000
+   ],
+   "wireBytes": [
+    751,
+    751
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    16,
+    16
+   ],
+   "writable": [
+    4,
+    4
+   ],
+   "max": {
+    "run": 2,
+    "receipt": "transaction-145.json",
+    "label": "explicit replenishment changes structural depth epoch",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.retire_accounts",
+   "successfulInvocations": 1,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    52189,
+    52189
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    52639,
+    52639
+   ],
+   "requestedCu": [
+    500000,
+    500000
+   ],
+   "wireBytes": [
+    613,
+    613
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    14,
+    14
+   ],
+   "writable": [
+    8,
+    8
+   ],
+   "max": {
+    "run": 8,
+    "receipt": "transaction-58.json",
+    "label": "P40B retire only the completed same-epoch proof",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.round_account_resolution",
+   "successfulInvocations": 2,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    210736,
+    236930
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    211186,
+    237380
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    646,
+    646
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    15,
+    15
+   ],
+   "writable": [
+    10,
+    10
+   ],
+   "max": {
+    "run": 5,
+    "receipt": "transaction-643.json",
+    "label": "P32 safety deterministic conserving atom circulation",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.seal_liquidity",
+   "successfulInvocations": 22,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    23440,
+    23440
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    23890,
+    23890
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    505,
+    505
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    11,
+    11
+   ],
+   "writable": [
+    2,
+    2
+   ],
+   "max": {
+    "run": 0,
+    "receipt": "transaction-21.json",
+    "label": "seal complete three-maker registry 0",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.seed_market_insurance",
+   "successfulInvocations": 3,
+   "revertedInvocations": 1,
+   "inclusiveCu": [
+    29300,
+    29304
+   ],
+   "revertedInclusiveCu": [
+    21056,
+    21056
+   ],
+   "transactionCu": [
+    29452,
+    29869
+   ],
+   "requestedCu": [
+    400000,
+    500000
+   ],
+   "wireBytes": [
+    644,
+    720
+   ],
+   "signatures": [
+    2,
+    3
+   ],
+   "fees": [
+    10000,
+    15000
+   ],
+   "keys": [
+    13,
+    14
+   ],
+   "writable": [
+    5,
+    6
+   ],
+   "max": {
+    "run": 1,
+    "receipt": "transaction-163.json",
+    "label": "seed explicit ten-atom ETH insurance",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.set_account_delegate",
+   "successfulInvocations": 2,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    27456,
+    27478
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    27906,
+    27928
+   ],
+   "requestedCu": [
+    400000,
+    400000
+   ],
+   "wireBytes": [
+    541,
+    541
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    8,
+    8
+   ],
+   "writable": [
+    2,
+    2
+   ],
+   "max": {
+    "run": 11,
+    "receipt": "transaction-107.json",
+    "label": "P44 owner sets or revokes root-local delegate",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.transfer_account_custody",
+   "successfulInvocations": 11,
+   "revertedInvocations": 7,
+   "inclusiveCu": [
+    43817,
+    43821
+   ],
+   "revertedInclusiveCu": [
+    9854,
+    43821
+   ],
+   "transactionCu": [
+    43967,
+    96556
+   ],
+   "requestedCu": [
+    400000,
+    500000
+   ],
+   "wireBytes": [
+    490,
+    579
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    9,
+    10
+   ],
+   "writable": [
+    3,
+    3
+   ],
+   "max": {
+    "run": 9,
+    "receipt": "transaction-28.json",
+    "label": "allocate isolated BTC cash",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.transfer_funded_account",
+   "successfulInvocations": 4,
+   "revertedInvocations": 2,
+   "inclusiveCu": [
+    82263,
+    93523
+   ],
+   "revertedInclusiveCu": [
+    41172,
+    56765
+   ],
+   "transactionCu": [
+    82713,
+    93973
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    642,
+    674
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    12,
+    13
+   ],
+   "writable": [
+    6,
+    7
+   ],
+   "max": {
+    "run": 6,
+    "receipt": "transaction-177.json",
+    "label": "P42 cross cash invalidates both market backing stamps",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.value_account_resolution",
+   "successfulInvocations": 1,
+   "revertedInvocations": 1,
+   "inclusiveCu": [
+    143837,
+    143837
+   ],
+   "revertedInclusiveCu": [
+    81303,
+    81303
+   ],
+   "transactionCu": [
+    144287,
+    144287
+   ],
+   "requestedCu": [
+    1200000,
+    1200000
+   ],
+   "wireBytes": [
+    809,
+    809
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    20,
+    20
+   ],
+   "writable": [
+    9,
+    9
+   ],
+   "max": {
+    "run": 5,
+    "receipt": "transaction-240.json",
+    "label": "P44 safety recovered credible sources value all markets",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.withdraw_account_custody",
+   "successfulInvocations": 5,
+   "revertedInvocations": 6,
+   "inclusiveCu": [
+    48621,
+    48625
+   ],
+   "revertedInclusiveCu": [
+    5872,
+    32175
+   ],
+   "transactionCu": [
+    48771,
+    48775
+   ],
+   "requestedCu": [
+    400000,
+    400000
+   ],
+   "wireBytes": [
+    688,
+    688
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    15,
+    15
+   ],
+   "writable": [
+    7,
+    7
+   ],
+   "max": {
+    "run": 9,
+    "receipt": "transaction-53.json",
+    "label": "exit funded root 0",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.withdraw_funded_account",
+   "successfulInvocations": 9,
+   "revertedInvocations": 6,
+   "inclusiveCu": [
+    46327,
+    86783
+   ],
+   "revertedInclusiveCu": [
+    35549,
+    86687
+   ],
+   "transactionCu": [
+    46777,
+    87233
+   ],
+   "requestedCu": [
+    400000,
+    1200000
+   ],
+   "wireBytes": [
+    742,
+    806
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    15,
+    17
+   ],
+   "writable": [
+    7,
+    9
+   ],
+   "max": {
+    "run": 1,
+    "receipt": "transaction-162.json",
+    "label": "withdraw admissible funded cash before price stress",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.withdraw_market_fees",
+   "successfulInvocations": 1,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    30016,
+    30016
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    30466,
+    30466
+   ],
+   "requestedCu": [
+    400000,
+    400000
+   ],
+   "wireBytes": [
+    547,
+    547
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    12,
+    12
+   ],
+   "writable": [
+    5,
+    5
+   ],
+   "max": {
+    "run": 7,
+    "receipt": "transaction-122.json",
+    "label": "P42 actual retained fee exit",
+    "depth": 1
+   }
+  },
+  {
+   "name": "clearing.withdraw_retired_reserve",
+   "successfulInvocations": 1,
+   "revertedInvocations": 3,
+   "inclusiveCu": [
+    33044,
+    33044
+   ],
+   "revertedInclusiveCu": [
+    20952,
+    25465
+   ],
+   "transactionCu": [
+    33494,
+    33494
+   ],
+   "requestedCu": [
+    500000,
+    500000
+   ],
+   "wireBytes": [
+    547,
+    547
+   ],
+   "signatures": [
+    1,
+    1
+   ],
+   "fees": [
+    5000,
+    5000
+   ],
+   "keys": [
+    12,
+    12
+   ],
+   "writable": [
+    5,
+    5
+   ],
+   "max": {
+    "run": 8,
+    "receipt": "transaction-62.json",
+    "label": "P42 terminal reserve exits through selected ledger only",
+    "depth": 1
+   }
+  },
+  {
+   "name": "maker_a.control_curve",
+   "successfulInvocations": 11,
+   "revertedInvocations": 1,
+   "inclusiveCu": [
+    32435,
+    44152
+   ],
+   "revertedInclusiveCu": [
+    11944,
+    11944
+   ],
+   "transactionCu": [
+    215729,
+    470126
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    742,
+    1820
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    16,
+    21
+   ],
+   "writable": [
+    4,
+    7
+   ],
+   "max": {
+    "run": 4,
+    "receipt": "transaction-92.json",
+    "label": "atomic two-market full shape update",
+    "depth": 2
+   }
+  },
+  {
+   "name": "maker_a.initialize_curve",
+   "successfulInvocations": 44,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    56078,
+    69088
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    56528,
+    69538
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    1039,
+    1039
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    11,
+    11
+   ],
+   "writable": [
+    4,
+    4
+   ],
+   "max": {
+    "run": 2,
+    "receipt": "transaction-15.json",
+    "label": "initialize canonical curve 0/1",
+    "depth": 1
+   }
+  },
+  {
+   "name": "maker_a.quote_curve",
+   "successfulInvocations": 428,
+   "revertedInvocations": 13,
+   "inclusiveCu": [
+    16600,
+    20047
+   ],
+   "revertedInclusiveCu": [
+    13658,
+    19840
+   ],
+   "transactionCu": [
+    17605,
+    504141
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    462,
+    1196
+   ],
+   "signatures": [
+    1,
+    2
+   ],
+   "fees": [
+    5000,
+    10000
+   ],
+   "keys": [
+    5,
+    24
+   ],
+   "writable": [
+    1,
+    10
+   ],
+   "max": {
+    "run": 2,
+    "receipt": "transaction-144.json",
+    "label": "P32 route maximum singleton full books with skew target crossing",
+    "depth": 2
+   }
+  },
+  {
+   "name": "maker_a.reprice",
+   "successfulInvocations": 936,
+   "revertedInvocations": 3,
+   "inclusiveCu": [
+    17800,
+    18810
+   ],
+   "revertedInclusiveCu": [
+    15356,
+    15370
+   ],
+   "transactionCu": [
+    18250,
+    138432
+   ],
+   "requestedCu": [
+    100000,
+    800000
+   ],
+   "wireBytes": [
+    460,
+    1874
+   ],
+   "signatures": [
+    2,
+    4
+   ],
+   "fees": [
+    10000,
+    20000
+   ],
+   "keys": [
+    7,
+    27
+   ],
+   "writable": [
+    2,
+    13
+   ],
+   "max": {
+    "run": 2,
+    "receipt": "transaction-88.json",
+    "label": "refresh independent sources and six maker publications",
+    "depth": 1
+   }
+  },
+  {
+   "name": "maker_b.control_curve",
+   "successfulInvocations": 3,
+   "revertedInvocations": 1,
+   "inclusiveCu": [
+    32435,
+    38386
+   ],
+   "revertedInclusiveCu": [
+    11944,
+    11944
+   ],
+   "transactionCu": [
+    211234,
+    226234
+   ],
+   "requestedCu": [
+    400000,
+    400000
+   ],
+   "wireBytes": [
+    799,
+    1189
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    16,
+    16
+   ],
+   "writable": [
+    4,
+    4
+   ],
+   "max": {
+    "run": 4,
+    "receipt": "transaction-85.json",
+    "label": "maximum eight-region shape control",
+    "depth": 2
+   }
+  },
+  {
+   "name": "maker_b.initialize_curve",
+   "successfulInvocations": 22,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    56078,
+    66088
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    56528,
+    66538
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    1039,
+    1039
+   ],
+   "signatures": [
+    2,
+    2
+   ],
+   "fees": [
+    10000,
+    10000
+   ],
+   "keys": [
+    11,
+    11
+   ],
+   "writable": [
+    4,
+    4
+   ],
+   "max": {
+    "run": 2,
+    "receipt": "transaction-19.json",
+    "label": "initialize canonical curve 0/2",
+    "depth": 1
+   }
+  },
+  {
+   "name": "maker_b.quote_curve",
+   "successfulInvocations": 70,
+   "revertedInvocations": 2,
+   "inclusiveCu": [
+    16573,
+    19840
+   ],
+   "revertedInclusiveCu": [
+    19840,
+    19840
+   ],
+   "transactionCu": [
+    17605,
+    504141
+   ],
+   "requestedCu": [
+    400000,
+    800000
+   ],
+   "wireBytes": [
+    462,
+    1196
+   ],
+   "signatures": [
+    1,
+    2
+   ],
+   "fees": [
+    5000,
+    10000
+   ],
+   "keys": [
+    5,
+    24
+   ],
+   "writable": [
+    1,
+    10
+   ],
+   "max": {
+    "run": 2,
+    "receipt": "transaction-141.json",
+    "label": "P32 route maximum quantity eight regions and three full books",
+    "depth": 2
+   }
+  },
+  {
+   "name": "maker_b.reprice",
+   "successfulInvocations": 471,
+   "revertedInvocations": 0,
+   "inclusiveCu": [
+    17800,
+    18810
+   ],
+   "revertedInclusiveCu": null,
+   "transactionCu": [
+    18393,
+    138432
+   ],
+   "requestedCu": [
+    100000,
+    800000
+   ],
+   "wireBytes": [
+    460,
+    1874
+   ],
+   "signatures": [
+    2,
+    4
+   ],
+   "fees": [
+    10000,
+    20000
+   ],
+   "keys": [
+    7,
+    27
+   ],
+   "writable": [
+    2,
+    13
+   ],
+   "max": {
+    "run": 2,
+    "receipt": "transaction-88.json",
+    "label": "refresh independent sources and six maker publications",
+    "depth": 1
+   }
+  }
+ ],
+ "missing": [],
+ "semantics": [
+  "inclusiveCu includes child CPI; never sum parent and child or equate it with transaction consumption",
+  "Transaction ranges include all batched instructions, setup and payer/signature overhead; use named raw receipts to reproduce",
+  "Reverted invocations grant no successful coverage even when a child returned success",
+  "Finite observed states, not worst-case CU, independent statistical samples, validator TPS or funded acceptance",
+  "Priority fee is decoded from requested v0 limit/rate or explicit v1 lamports, never calculated from consumed CU",
+  "Loaded account-data bytes are unavailable when RPC omits the metric; static key count is not bytes"
+ ]
+}

@@ -27,7 +27,7 @@ for item in json.loads((root / "ops/toolchain-downloads.json").read_text()):
         (target / "anchor").write_bytes(archive.read_bytes())
         (target / "anchor").chmod(0o755)
     else:
-        target = tools / name
+        target = tools / item.get("directory", name)
         target.mkdir(exist_ok=True)
         with tarfile.open(archive) as stream:
             stream.extractall(target, filter="data")

@@ -2,7 +2,8 @@ use super::*;
 use trading::authority::AccountGuard;
 
 pub fn change(
-    ctx: Context<ChangeAccountClaim>,
+    ctx: &mut Context<ChangeAccountClaim>,
+    events: &mut crate::event_cpi::Payloads,
     market_index: u8,
     amount: u64,
     gain: bool,
@@ -14,6 +15,12 @@ pub fn change(
     let accounts = &mut *ctx.accounts;
     let snapshot = begin(&accounts.identity)?;
     let selected = usize::from(market_index);
+    let selected_ledger = if selected == 0 {
+        accounts.btc_ledger.as_deref()
+    } else {
+        accounts.eth_ledger.as_deref()
+    }
+    .ok_or(ClearingError::OrderState)?;
     if gain {
         let certificate = accounts
             .certificate
@@ -24,47 +31,68 @@ pub fn change(
             &accounts.identity,
             &accounts.registry,
             &snapshot,
+            selected_ledger,
             selected,
         )?;
     } else {
         require!(accounts.certificate.is_none(), ClearingError::Profile);
     }
-    let pool = if selected == 0 {
-        accounts.identity.btc_ledger.settlement
-    } else {
-        accounts.identity.eth_ledger.settlement
-    };
+    let pool = selected_ledger.settlement;
     let (candidate, pool) =
         claim_candidate(&accounts.margin, &snapshot, selected, amount, gain, pool)?;
-    commit(&mut accounts.identity, &mut accounts.margin, &candidate)?;
+    commit(
+        &mut accounts.margin,
+        &candidate,
+        [
+            accounts
+                .btc_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+            accounts
+                .eth_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+        ],
+    )?;
     let ledger = if selected == 0 {
-        &mut accounts.identity.btc_ledger
+        accounts
+            .btc_ledger
+            .as_deref_mut()
+            .ok_or(ClearingError::OrderState)?
     } else {
-        &mut accounts.identity.eth_ledger
+        accounts
+            .eth_ledger
+            .as_deref_mut()
+            .ok_or(ClearingError::OrderState)?
     };
     ledger.settlement = pool;
     increment(&mut ledger.version)?;
-    increment(&mut accounts.identity.custody.liability_versions[selected])?;
-    accounts.identity.custody.total_cash = checked(if gain {
-        math::cash_add(accounts.identity.custody.total_cash, amount)
-    } else {
-        math::cash_sub(accounts.identity.custody.total_cash, amount)
-    })?;
+    increment(&mut ledger.liability_version)?;
     finish(&mut accounts.identity, &snapshot.clock)?;
     emit(
         &accounts.identity,
+        events,
         accounts.event_authority.to_account_info(),
         accounts.actor.key(),
         if gain { 3 } else { 2 },
         market_index,
         amount,
         &[&accounts.margin],
+        &[
+            accounts.btc_ledger.as_deref(),
+            accounts.eth_ledger.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>(),
+        None,
         snapshot.clock.slot,
     )
 }
 
 pub fn net(
-    ctx: Context<NetAccountClaims>,
+    ctx: &mut Context<NetAccountClaims>,
+    events: &mut crate::event_cpi::Payloads,
     guard: AccountGuard,
     source_market: u8,
     amount: u64,
@@ -85,6 +113,11 @@ pub fn net(
         &accounts.identity,
         &accounts.registry,
         &snapshot,
+        if source_market == 0 {
+            &accounts.btc_ledger
+        } else {
+            &accounts.eth_ledger
+        },
         usize::from(source_market),
     )?;
     let (candidate, pools) = net_candidate(
@@ -93,27 +126,36 @@ pub fn net(
         usize::from(source_market),
         amount,
         [
-            accounts.identity.btc_ledger.settlement,
-            accounts.identity.eth_ledger.settlement,
+            accounts.btc_ledger.settlement,
+            accounts.eth_ledger.settlement,
         ],
     )?;
-    commit(&mut accounts.identity, &mut accounts.margin, &candidate)?;
-    accounts.identity.btc_ledger.settlement = pools[0];
-    accounts.identity.eth_ledger.settlement = pools[1];
-    increment(&mut accounts.identity.btc_ledger.version)?;
-    increment(&mut accounts.identity.eth_ledger.version)?;
-    for version in &mut accounts.identity.custody.liability_versions {
-        increment(version)?;
-    }
+    commit(
+        &mut accounts.margin,
+        &candidate,
+        [
+            Some(&mut accounts.btc_ledger),
+            Some(&mut accounts.eth_ledger),
+        ],
+    )?;
+    accounts.btc_ledger.settlement = pools[0];
+    accounts.eth_ledger.settlement = pools[1];
+    increment(&mut accounts.btc_ledger.version)?;
+    increment(&mut accounts.eth_ledger.version)?;
+    increment(&mut accounts.btc_ledger.liability_version)?;
+    increment(&mut accounts.eth_ledger.liability_version)?;
     finish(&mut accounts.identity, &snapshot.clock)?;
     emit(
         &accounts.identity,
+        events,
         accounts.event_authority.to_account_info(),
         accounts.owner.key(),
         4,
         source_market,
         amount,
         &[&accounts.margin],
+        &[&accounts.btc_ledger, &accounts.eth_ledger],
+        None,
         snapshot.clock.slot,
     )
 }

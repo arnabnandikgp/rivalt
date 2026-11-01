@@ -1,7 +1,7 @@
 use super::*;
 
-/// One instruction snapshot. A cross root always supplies both canonical market
-/// states; source credibility affects reserves but never removes a dependency.
+/// One instruction snapshot. Every nonempty slot and requested effect is present.
+/// `selected == 2` is internal account maintenance with no requested market effect.
 pub(crate) struct Environment<'a> {
     pub markets: [Option<&'a Market>; 2],
     pub selected: usize,
@@ -36,30 +36,17 @@ impl<'a> Environment<'a> {
 
     pub fn validate(&self, root: &MarginAccount) -> Result<()> {
         let account = model(root)?;
-        require!(account.allows(self.selected), ClearingError::OrderState);
-        if root.mode == MODE_CROSS {
-            require!(
-                self.markets.iter().all(Option::is_some),
-                ClearingError::OrderState
-            );
-        }
-        for (index, market) in self.markets.iter().enumerate() {
-            if let Some(market) = market {
-                require!(
-                    market.schema_version == SCHEMA_VERSION
-                        && market.venue == root.venue
-                        && usize::from(market.index) == index,
-                    ClearingError::OrderState
-                );
-            }
-        }
-        self.market(self.selected)?;
-        Ok(())
+        require!(self.selected <= 2, ClearingError::OrderState);
+        let requested = if self.selected < 2 {
+            require!(account.allows(self.selected), ClearingError::OrderState);
+            1 << self.selected
+        } else { 0 };
+        super::super::markets::validate_environment(self.markets, &[root], requested)
     }
 
     pub fn risks(&self) -> [math::margin::Risk; 2] {
         std::array::from_fn(|index| {
-            self.markets[index].map_or(math::margin::Risk::default(), |market| math::margin::Risk {
+            self.markets[index].map_or(super::super::markets::empty_risk(), |market| math::margin::Risk {
                 lower: market.lower.max(1),
                 upper: market.upper.max(1),
                 funding: self.funding[index],

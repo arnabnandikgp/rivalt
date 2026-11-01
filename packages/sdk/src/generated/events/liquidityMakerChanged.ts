@@ -42,7 +42,7 @@ import {
 } from "../types/index.js";
 
 export const LIQUIDITY_MAKER_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([88, 64, 64, 174, 240, 198, 130, 26]);
+  new Uint8Array([93, 199, 88, 43, 57, 76, 217, 187]);
 
 export function getLiquidityMakerChangedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -52,7 +52,6 @@ export function getLiquidityMakerChangedEventDiscriminatorBytes(): ReadonlyUint8
 
 export type LiquidityMakerChangedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   market: Address;
   marketState: MarketSnapshot;
@@ -63,7 +62,6 @@ export type LiquidityMakerChangedEvent = {
 
 export type LiquidityMakerChangedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   market: Address | HasAddress;
   marketState: MarketSnapshotArgs;
@@ -77,7 +75,6 @@ export function getLiquidityMakerChangedEventEncoder(): FixedSizeEncoder<Liquidi
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["market", getAddressEncoder()],
       ["marketState", getMarketSnapshotEncoder()],
@@ -94,7 +91,6 @@ export function getLiquidityMakerChangedEventDecoder(): FixedSizeDecoder<Liquidi
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["market", getAddressDecoder()],
       ["marketState", getMarketSnapshotDecoder()],

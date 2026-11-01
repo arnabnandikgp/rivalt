@@ -8,6 +8,7 @@ import { json } from '../../indexer/src/events.js';
 import {accountAuthorityValue, type AccountAuthority} from './account-authority.js';
 import {persistLiquidityInputs,type LiquidityInputs} from './liquidity-inputs.js';
 import {liquidityPriceSequence,type LiquidityPriceAuthority} from './liquidity-authority.js';
+import {declareDispatch,prepareDispatch,reserveDispatch} from './dispatch.js';
 
 export const RESERVATION=20_000n;
 export type Authority=AccountAuthority | LiquidityPriceAuthority;
@@ -31,6 +32,7 @@ export function signedWire(wire:string,maxVersion:0|1=0) {
 // or sponsorship is exposed by this API, and a wallet signature is never rebuilt.
 export class Queue {
   constructor(readonly store:{pool:Pool;runId:string},readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS,readonly maxVersion:0|1=0){}
+  async prepare(){await prepareDispatch(this.store.pool,this.store.runId);}
   async budget(name:string,wallet:string,cap:bigint){
     await this.store.pool.query('INSERT INTO service_budgets(run_id,name,wallet,cap) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[this.store.runId,name,wallet,cap.toString()]);
     const r=(await this.store.pool.query('SELECT * FROM service_budgets WHERE run_id=$1 AND name=$2',[this.store.runId,name])).rows[0];
@@ -51,6 +53,7 @@ export class Queue {
         if(fee.value===null || BigInt(integer(fee.value))>RESERVATION)throw new Error('Operator fee exceeds reserved budget');
       }
       const r=(await c.query(`INSERT INTO service_intents(run_id,request_id,signature,wire,blockhash,authority,budget) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`,[this.store.runId,id,signed.signature,wire,signed.blockhash,authority?json(authority):null,budget])).rows[0];
+      await declareDispatch(c,this.store.runId,id,wire);
       if(inputs){if(this.maxVersion!==1)throw new Error('Input provenance requires the canonical queue');await persistLiquidityInputs(c,this.store.runId,id,inputs,wire);}
       // PostgreSQL delivers this hint only after the signed bytes are committed.
       await c.query("SELECT pg_notify('rivalt_intents',$1)",[this.store.runId]);
@@ -61,10 +64,41 @@ export class Queue {
   async pending(){return (await this.store.pool.query(`SELECT request_id FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved','expired-unexecuted') AND next_attempt<=now() ORDER BY next_attempt LIMIT 32`,[this.store.runId])).rows.map(r=>r.request_id as string);}
   async step(id:string){
     const c=await this.store.pool.connect();
+    const requestLock=`${this.store.runId}/dispatch-original/${id}`;
+    let owned=false,destroy=false;
     try{
+      owned=(await c.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS acquired',[requestLock])).rows[0]?.acquired===true;
+      if(!owned)return;
       await c.query('BEGIN');
       const r=(await c.query(`SELECT * FROM service_intents WHERE run_id=$1 AND request_id=$2 AND status IN ('pending','unresolved','expired-unexecuted') FOR UPDATE SKIP LOCKED`,[this.store.runId,id])).rows[0];
       if(!r){await c.query('COMMIT');return;}
+      let blockhashFinalizedSlot:string|null=r.blockhash_finalized_slot??null;
+      let observedValidity:{context:{slot:unknown};value:boolean}|undefined;
+      if(r.status!=='expired-unexecuted') {
+        // Observe lifetime even while another original holds the payer/account
+        // reservation. Otherwise a queued hash can mature and expire entirely
+        // behind that lock, losing the witness needed for safe retry progress.
+        observedValidity=await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'finalized'}]);
+        const observedSlot=integer(observedValidity!.context.slot);
+        if(observedValidity!.value===true&&(blockhashFinalizedSlot===null||observedSlot>BigInt(blockhashFinalizedSlot)))
+          blockhashFinalizedSlot=observedSlot.toString();
+        await c.query('SAVEPOINT admission');
+        if(!await reserveDispatch(c,this.store.runId,id,r.wire)) {
+          await c.query('ROLLBACK TO SAVEPOINT admission');
+          // Let later independent work enter the bounded due-work list. This is
+          // scheduling deferral, not an RPC attempt or a new economic outcome.
+          await c.query("UPDATE service_intents SET next_attempt=now()+interval '250 milliseconds',blockhash_finalized_slot=$3 WHERE run_id=$1 AND request_id=$2",[this.store.runId,id,blockhashFinalizedSlot]);
+          await c.query('COMMIT');return;
+        }
+        // Commit the observed lifetime with admission. A worker can die before
+        // the next RPC (or before its outcome update), then restart after expiry.
+        await c.query('UPDATE service_intents SET blockhash_finalized_slot=$3 WHERE run_id=$1 AND request_id=$2',
+          [this.store.runId,id,blockhashFinalizedSlot]);
+      }
+      // Crash here or after send leaves the resource reservation durable. The
+      // per-original session lock excludes a second worker across this commit.
+      await c.query('COMMIT');
+      await c.query('BEGIN');
       let status=r.status==='expired-unexecuted'?r.status:'unresolved',result:any=r.status==='expired-unexecuted'?r.result:null,release=false;
       try{
         const s=(await this.rpc.call('getSignatureStatuses',[[r.signature],{searchTransactionHistory:true}])).value[0];
@@ -77,8 +111,16 @@ export class Queue {
             status=tx.meta.err===null?'finalized':'failed';result={slot:integer(tx.slot).toString(),fee:integer(tx.meta.fee).toString(),error:tx.meta.err};release=true;
           }
         }else if(!s){
-          const valid=await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'finalized'}]);
-          if(valid.value===false && r.authority){
+          const valid=observedValidity??await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'finalized'}]);
+          const finalizedSlot=integer(valid.context.slot);
+          if(valid.value===true&&(blockhashFinalizedSlot===null||finalizedSlot>BigInt(blockhashFinalizedSlot)))
+            blockhashFinalizedSlot=finalizedSlot.toString();
+          // false at finalized can mean "too new", not expired. A hash that was
+          // never observed finalized-valid remains ambiguous after disappearance.
+          const confirmed=valid.value===true?valid:await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'confirmed'}]);
+          const expired=valid.value===false&&confirmed.value===false&&blockhashFinalizedSlot!==null
+            &&finalizedSlot>=BigInt(blockhashFinalizedSlot);
+          if(expired && r.authority){
             if(r.authority.kind==='liquidityPriceSequence') {
               if(this.maxVersion!==1)throw new Error('Canonical authority requires profile 4');
               const proof=await liquidityPriceSequence(this.rpc,r.authority,integer(valid.context.slot));
@@ -96,7 +138,7 @@ export class Queue {
               if(value.toString()===r.authority.value){status='expired-unexecuted';result={slot:integer(a.context.slot).toString(),fee:null,error:null,economicEffect:'not-applied'};}
             }
             }
-          }else if(valid.value===true){
+          }else if(confirmed.value===true&&r.status!=='expired-unexecuted'){
             // The INSERT was committed before this worker can broadcast. Lost
             // acknowledgements and process death only cause identical-byte retries.
             console.log(JSON.stringify({event:'executor-broadcast',runId:this.store.runId,requestId:id,signature:r.signature,at:Date.now()}));
@@ -108,8 +150,13 @@ export class Queue {
         const fee=BigInt(result.fee);if(fee>RESERVATION)throw new Error('Actual fee exceeds reservation');
         await c.query('UPDATE service_budgets SET committed=committed-$3,spent=spent+$4 WHERE run_id=$1 AND name=$2',[this.store.runId,r.budget,RESERVATION.toString(),fee.toString()]);
       }
-      await c.query("UPDATE service_intents SET status=$3,result=$4,attempts=attempts+1,updated_at=now(),next_attempt=now()+interval '1 second' WHERE run_id=$1 AND request_id=$2",[this.store.runId,id,status,result?json(result):null]);
+      if(release||status==='expired-unexecuted')
+        await c.query('DELETE FROM service_dispatch_access WHERE run_id=$1 AND request_id=$2',[this.store.runId,id]);
+      await c.query("UPDATE service_intents SET status=$3,result=$4,attempts=attempts+1,updated_at=now(),next_attempt=now()+interval '1 second',blockhash_finalized_slot=$5 WHERE run_id=$1 AND request_id=$2",[this.store.runId,id,status,result?json(result):null,blockhashFinalizedSlot]);
       await c.query('COMMIT');
-    }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
+    }catch(e){await c.query('ROLLBACK');throw e;}finally{
+      if(owned)try{await c.query('SELECT pg_advisory_unlock(hashtextextended($1,0))',[requestLock]);}catch{destroy=true;}
+      c.release(destroy);
+    }
   }
 }

@@ -38,7 +38,7 @@ import {
 } from "@solana/kit";
 
 export const ACCOUNT_RESOLUTION_VALUED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([50, 162, 81, 145, 11, 220, 251, 122]);
+  new Uint8Array([221, 140, 108, 20, 67, 86, 192, 5]);
 
 export function getAccountResolutionValuedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -48,7 +48,6 @@ export function getAccountResolutionValuedEventDiscriminatorBytes(): ReadonlyUin
 
 export type AccountResolutionValuedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   epoch: bigint;
   id: number;
@@ -62,7 +61,6 @@ export type AccountResolutionValuedEvent = {
 
 export type AccountResolutionValuedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   epoch: number | bigint;
   id: number;
@@ -79,7 +77,6 @@ export function getAccountResolutionValuedEventEncoder(): FixedSizeEncoder<Accou
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["epoch", getU64Encoder()],
       ["id", getU16Encoder()],
@@ -99,7 +96,6 @@ export function getAccountResolutionValuedEventDecoder(): FixedSizeDecoder<Accou
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["epoch", getU64Decoder()],
       ["id", getU16Decoder()],

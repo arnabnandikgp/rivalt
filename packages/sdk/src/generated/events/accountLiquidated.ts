@@ -28,25 +28,29 @@ import {
   getU8Decoder,
   getU8Encoder,
   type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
+  type Codec,
+  type Decoder,
+  type Encoder,
   type HasAddress,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
   getMarginAccountSnapshotDecoder,
   getMarginAccountSnapshotEncoder,
+  getMarketLedgerSnapshotDecoder,
+  getMarketLedgerSnapshotEncoder,
   getMarketSnapshotDecoder,
   getMarketSnapshotEncoder,
   type MarginAccountSnapshot,
   type MarginAccountSnapshotArgs,
+  type MarketLedgerSnapshot,
+  type MarketLedgerSnapshotArgs,
   type MarketSnapshot,
   type MarketSnapshotArgs,
 } from "../types/index.js";
 
 export const ACCOUNT_LIQUIDATED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([35, 131, 226, 210, 153, 126, 68, 34]);
+  new Uint8Array([87, 101, 34, 236, 150, 254, 234, 209]);
 
 export function getAccountLiquidatedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -56,10 +60,8 @@ export function getAccountLiquidatedEventDiscriminatorBytes(): ReadonlyUint8Arra
 
 export type AccountLiquidatedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   safetyEpoch: bigint;
-  liabilityVersions: Array<bigint>;
   marketIndex: number;
   lots: bigint;
   price: bigint;
@@ -71,14 +73,13 @@ export type AccountLiquidatedEvent = {
   targetState: MarginAccountSnapshot;
   receiverState: MarginAccountSnapshot;
   markets: Array<MarketSnapshot>;
+  ledgers: Array<MarketLedgerSnapshot>;
 };
 
 export type AccountLiquidatedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   safetyEpoch: number | bigint;
-  liabilityVersions: Array<number | bigint>;
   marketIndex: number;
   lots: number | bigint;
   price: number | bigint;
@@ -90,17 +91,16 @@ export type AccountLiquidatedEventArgs = {
   targetState: MarginAccountSnapshotArgs;
   receiverState: MarginAccountSnapshotArgs;
   markets: Array<MarketSnapshotArgs>;
+  ledgers: Array<MarketLedgerSnapshotArgs>;
 };
 
 /** Gets the encoder for {@link AccountLiquidatedEventArgs} event data. */
-export function getAccountLiquidatedEventEncoder(): FixedSizeEncoder<AccountLiquidatedEventArgs> {
+export function getAccountLiquidatedEventEncoder(): Encoder<AccountLiquidatedEventArgs> {
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["safetyEpoch", getU64Encoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["marketIndex", getU8Encoder()],
       ["lots", getU64Encoder()],
       ["price", getU64Encoder()],
@@ -111,21 +111,20 @@ export function getAccountLiquidatedEventEncoder(): FixedSizeEncoder<AccountLiqu
       ["receiver", getAddressEncoder()],
       ["targetState", getMarginAccountSnapshotEncoder()],
       ["receiverState", getMarginAccountSnapshotEncoder()],
-      ["markets", getArrayEncoder(getMarketSnapshotEncoder(), { size: 2 })],
+      ["markets", getArrayEncoder(getMarketSnapshotEncoder())],
+      ["ledgers", getArrayEncoder(getMarketLedgerSnapshotEncoder())],
     ]),
     [getConstantEncoder(ACCOUNT_LIQUIDATED_EVENT_DISCRIMINATOR)],
   );
 }
 
 /** Gets the decoder for {@link AccountLiquidatedEvent} event data. */
-export function getAccountLiquidatedEventDecoder(): FixedSizeDecoder<AccountLiquidatedEvent> {
+export function getAccountLiquidatedEventDecoder(): Decoder<AccountLiquidatedEvent> {
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["safetyEpoch", getU64Decoder()],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
       ["marketIndex", getU8Decoder()],
       ["lots", getU64Decoder()],
       ["price", getU64Decoder()],
@@ -136,14 +135,15 @@ export function getAccountLiquidatedEventDecoder(): FixedSizeDecoder<AccountLiqu
       ["receiver", getAddressDecoder()],
       ["targetState", getMarginAccountSnapshotDecoder()],
       ["receiverState", getMarginAccountSnapshotDecoder()],
-      ["markets", getArrayDecoder(getMarketSnapshotDecoder(), { size: 2 })],
+      ["markets", getArrayDecoder(getMarketSnapshotDecoder())],
+      ["ledgers", getArrayDecoder(getMarketLedgerSnapshotDecoder())],
     ]),
     [getConstantDecoder(ACCOUNT_LIQUIDATED_EVENT_DISCRIMINATOR)],
   );
 }
 
 /** Gets the codec for {@link AccountLiquidatedEvent} event data. */
-export function getAccountLiquidatedEventCodec(): FixedSizeCodec<
+export function getAccountLiquidatedEventCodec(): Codec<
   AccountLiquidatedEventArgs,
   AccountLiquidatedEvent
 > {

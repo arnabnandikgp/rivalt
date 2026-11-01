@@ -252,7 +252,11 @@ pub(super) fn finish(header: &mut Resolution, work: &mut ResolutionWork) -> u8 {
 
 /// Final equations/insurance floors are separate from even the last row. A
 /// maximum-width debtor must not consume the same transaction's final budget.
-pub fn finalize(ctx: Context<ProposeAccountResolution>, epoch: u64) -> Result<()> {
+pub fn finalize(
+    ctx: &mut Context<ProposeAccountResolution>,
+    events: &mut crate::event_cpi::Payloads,
+    epoch: u64,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     frozen(
@@ -273,11 +277,11 @@ pub fn finalize(ctx: Context<ProposeAccountResolution>, epoch: u64) -> Result<()
     let proposal_hash = accounts.resolution.proposal_hash;
     let evaluation = accounts.resolution.evaluation;
     let outcome = finish(&mut accounts.resolution, &mut accounts.work);
-    increment(&mut accounts.identity.custody.sequence)?;
-    crate::event_cpi::emit(
+
+    events.emit(
         &crate::events::AccountResolutionRates {
             venue: accounts.identity.venue.key(),
-            sequence: accounts.identity.custody.sequence,
+
             slot: Clock::get()?.slot,
             epoch,
             evaluation,
@@ -293,7 +297,8 @@ pub fn finalize(ctx: Context<ProposeAccountResolution>, epoch: u64) -> Result<()
 }
 
 pub fn upload(
-    ctx: Context<ProposeAccountResolution>,
+    ctx: &mut Context<ProposeAccountResolution>,
+    events: &mut crate::event_cpi::Payloads,
     epoch: u64,
     evaluation: u8,
     proposal_hash: [u8; 32],
@@ -320,11 +325,11 @@ pub fn upload(
         offset,
         &bytes,
     )?;
-    increment(&mut accounts.identity.custody.sequence)?;
-    crate::event_cpi::emit(
+
+    events.emit(
         &crate::events::AccountResolutionProposal {
             venue: accounts.identity.venue.key(),
-            sequence: accounts.identity.custody.sequence,
+
             slot: Clock::get()?.slot,
             epoch,
             evaluation,

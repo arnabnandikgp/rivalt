@@ -38,7 +38,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_QUALIFICATION_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([78, 191, 27, 88, 192, 34, 235, 128]);
+  new Uint8Array([238, 120, 24, 68, 207, 41, 185, 231]);
 
 export function getAccountQualificationEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -48,7 +48,6 @@ export function getAccountQualificationEventDiscriminatorBytes(): ReadonlyUint8A
 
 export type AccountQualificationEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   safetyEpoch: bigint;
   markets: Array<MarketSnapshot>;
@@ -56,7 +55,6 @@ export type AccountQualificationEvent = {
 
 export type AccountQualificationEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   safetyEpoch: number | bigint;
   markets: Array<MarketSnapshotArgs>;
@@ -67,7 +65,6 @@ export function getAccountQualificationEventEncoder(): FixedSizeEncoder<AccountQ
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["safetyEpoch", getU64Encoder()],
       ["markets", getArrayEncoder(getMarketSnapshotEncoder(), { size: 2 })],
@@ -81,7 +78,6 @@ export function getAccountQualificationEventDecoder(): FixedSizeDecoder<AccountQ
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["safetyEpoch", getU64Decoder()],
       ["markets", getArrayDecoder(getMarketSnapshotDecoder(), { size: 2 })],

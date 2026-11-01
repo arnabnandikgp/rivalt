@@ -1,7 +1,7 @@
-//! Profile-4 maker identity/consumption. Financial account schemas stay version 3.
+//! Profile-4 liquidity with schema-5 clearing-owned journal revisions.
 use anchor_lang::prelude::*;
 
-pub const VERSION: u16 = 4;
+pub const VERSION: u16 = 5;
 pub const MAKER_COUNT: usize = 3;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -20,10 +20,12 @@ pub struct ExecutedLeg {
     pub consumed_after: u64,
 }
 
-#[account(discriminator = [44, 251, 162, 245, 60, 52, 128, 8])]
+#[account]
 #[derive(InitSpace)]
 pub struct FundingPublisher {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub market: Pubkey,
     pub publisher: Pubkey,
@@ -60,6 +62,7 @@ pub struct FundingReport {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
 pub struct FundingPublisherPayload {
     pub schema_version: u16,
+    pub revision: u64,
     pub venue: Pubkey,
     pub market: Pubkey,
     pub publisher: Pubkey,
@@ -75,6 +78,7 @@ impl From<&FundingPublisher> for FundingPublisherPayload {
     fn from(value: &FundingPublisher) -> Self {
         Self {
             schema_version: value.schema_version,
+            revision: value.revision,
             venue: value.venue,
             market: value.market,
             publisher: value.publisher,
@@ -88,10 +92,12 @@ impl From<&FundingPublisher> for FundingPublisherPayload {
     }
 }
 
-#[account(discriminator = [133, 250, 116, 223, 223, 193, 72, 233])]
+#[account]
 #[derive(InitSpace)]
 pub struct LiquidityRegistry {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub market: Pubkey,
     pub count: u8,
@@ -100,10 +106,12 @@ pub struct LiquidityRegistry {
     pub bump: u8,
 }
 
-#[account(discriminator = [64, 36, 102, 180, 245, 54, 123, 199])]
+#[account]
 #[derive(InitSpace)]
 pub struct MakerRegistration {
     pub schema_version: u16,
+    /// Scoped journal revision; never a financial signing or risk parameter.
+    pub revision: u64,
     pub venue: Pubkey,
     pub market: Pubkey,
     pub capital: Pubkey,
@@ -126,6 +134,7 @@ pub struct MakerRegistration {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct LiquidityRegistryPayload {
     pub schema_version: u16,
+    pub revision: u64,
     pub venue: Pubkey,
     pub market: Pubkey,
     pub count: u8,
@@ -138,6 +147,7 @@ impl From<&LiquidityRegistry> for LiquidityRegistryPayload {
     fn from(account: &LiquidityRegistry) -> Self {
         Self {
             schema_version: account.schema_version,
+            revision: account.revision,
             venue: account.venue,
             market: account.market,
             count: account.count,
@@ -152,6 +162,7 @@ impl From<&LiquidityRegistry> for LiquidityRegistryPayload {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct MakerRegistrationPayload {
     pub schema_version: u16,
+    pub revision: u64,
     pub venue: Pubkey,
     pub market: Pubkey,
     pub capital: Pubkey,
@@ -174,6 +185,7 @@ impl From<&MakerRegistration> for MakerRegistrationPayload {
     fn from(account: &MakerRegistration) -> Self {
         Self {
             schema_version: account.schema_version,
+            revision: account.revision,
             venue: account.venue,
             market: account.market,
             capital: account.capital,

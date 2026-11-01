@@ -26,10 +26,8 @@ test('account cash preserves isolated Anchor bytes and every optional certificat
     add('collect_account_loss',[1,large],sdk.getCollectAccountLossInstruction({...common,certificate,marketIndex:1,amount:large}));
     add('pay_account_gain',[1,large],sdk.getPayAccountGainInstruction({...common,certificate,marketIndex:1,amount:large}));
   }
-  for(const userToken of [undefined,common.userToken]) {
-    add('allocate_market_fees',[1,large],sdk.getAllocateMarketFeesInstruction({...common,userToken,marketIndex:1,amount:large}));
-    add('withdraw_market_fees',[1,large],sdk.getWithdrawMarketFeesInstruction({...common,userToken,marketIndex:1,amount:large}));
-  }
+  add('allocate_market_fees',[1,large],sdk.getAllocateMarketFeesInstruction({...common,marketIndex:1,amount:large}));
+  add('withdraw_market_fees',[1,large],sdk.getWithdrawMarketFeesInstruction({...common,marketIndex:1,amount:large}));
   function tagged(value:unknown):unknown {
     if(typeof value==='bigint')return {$bn:value.toString()};
     if(typeof value==='string' && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value))return {$pubkey:value};
@@ -65,6 +63,6 @@ test('account cash preserves isolated Anchor bytes and every optional certificat
       assert.equal(result.data,Buffer.from(cases[index].instruction.data!).toString('hex'),cases[index].name);
       assert.deepEqual(result.accounts,cases[index].instruction.accounts!.map(account=>({address:account.address,signer:account.role>=2,writable:account.role%2===1})),cases[index].name);
     }
-    assert.equal(cases.length,14);
+    assert.equal(cases.length,12);
   }finally{rmSync(directory,{recursive:true});}
 });

@@ -408,3 +408,33 @@ fn triggered_cross_protection_uses_real_route_and_consumes_only_its_market_allow
     assert!(changed.book.orders[0].order.active() && changed.book.orders[1].order.active());
     assert!(!changed.book.orders[2].order.active() && !changed.book.orders[3].order.active());
 }
+
+#[test]
+fn relevant_market_set_refuses_hidden_fractional_claims_and_preserves_empty_slot() {
+    let markets = markets();
+    let mut environment = environment(&markets);
+    environment.markets[1] = None;
+    environment.funding[1] = 0;
+    let mut trader = root();
+    trader.positions[1].funding_checkpoint_scaled = -77;
+    trader.positions[1].generation = 9;
+    trader.book.reserve_observations[1] = 41;
+    let venue = Venue::default();
+    let execute = |trader: &MarginAccount| routes::candidate_with_environment(
+        &venue, trader, &[maker()], &[quote()], &intent(), None, &environment, &clock());
+    let result = execute(&trader).unwrap();
+    // One BTC lot at 60,000; 2 bps = 12 atoms. No positive unpaid credit.
+    assert_eq!(result.trader.cash, 99_988);
+    assert_eq!(result.trader.positions[0].lots, 1);
+    assert_eq!(result.trader.positions[0].virtual_scaled, -60_000 * math::SCALE);
+    assert_eq!(result.trader.positions[1].funding_checkpoint_scaled, -77);
+    assert_eq!(result.trader.positions[1].generation, 9);
+    assert_eq!(result.trader.book.reserve_observations[1], 41);
+    for claim in [-1, 1, -30_000 * math::SCALE, 30_000 * math::SCALE] {
+        trader.positions[1].virtual_scaled = claim;
+        assert!(execute(&trader).is_err(), "even a one-scaled-unit claim is relevant");
+    }
+    trader.positions[1].virtual_scaled = 0;
+    trader.positions[1].lots = 1;
+    assert!(execute(&trader).is_err());
+}

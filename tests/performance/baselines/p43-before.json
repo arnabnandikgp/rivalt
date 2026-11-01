@@ -1,0 +1,382 @@
+{
+  "schema": 2,
+  "checkpoint": "p43-before",
+  "instrumented": false,
+  "workload": {
+    "schema": 7,
+    "profile": 4,
+    "markets": 2,
+    "makersPerMarket": 3,
+    "lotsPerLeg": "1",
+    "quantities": [
+      1,
+      1,
+      1,
+      2,
+      2
+    ],
+    "orderBook": "one live order, then cancel",
+    "dependencies": "on-chain-required root union, no unused market/ledger",
+    "initialCashAtoms": "8000000",
+    "takerFeeBps": 2,
+    "insuranceFeePercent": 25
+  },
+  "idlHashes": {
+    "clearing": "690042fc54510ee316e70f2fe7096f3a97802eca734ce8d7f8dca18d2bbd79c2",
+    "maker_a": "e1ff26a02f22416ed33bd545f4ddb1dc1140fe495d6963a8b8a39332e4e80679",
+    "maker_b": "b2c70b3958835ebe428496efc4eb915ee2b4964165c610af3f1aa96a239ad126"
+  },
+  "harnessRevision": "1c9c931a1041685cd99907d0e78d29b4ddfd14a4",
+  "sbfSourceRevision": "6aeb7d0cf645fca889a9e3154ac01a129a72a6a8",
+  "profile": "liquidity-execution-qualification",
+  "runtime": {
+    "surfnet-version": "1.7.0",
+    "solana-core": "4.3.2",
+    "feature-set": 3383571666
+  },
+  "artifacts": {
+    "clearing": {
+      "sha256": "d9c83864f5d3b0c5e7dcfa0100486335b1c96c583b62f9c68054318cf3169bcb",
+      "bytes": 2482344
+    },
+    "maker_a": {
+      "sha256": "4a600b298340928f962f6d28e13d6aef209233bff8b5d403713f35d5f898d9a6",
+      "bytes": 261056
+    },
+    "maker_b": {
+      "sha256": "10340ac7f5a9c4bfe5dbf0adee62232daf6829962413d5e9dab726f387a8e9b2",
+      "bytes": 261056
+    },
+    "oracle_fixture": {
+      "sha256": "85a4369ebf563f77d01c77b3a363750839b8799622fc99db2fff78bfebce46c7",
+      "bytes": 168720
+    }
+  },
+  "rawEvidenceDirectory": ".local/liquidity-execution/runs/p43-before",
+  "rawSummarySha256": "b03e2ab9fdb16a35ac40a48b82256d06f9ac37375b0fb10aef525f7934fd7883",
+  "scope": "Focused fresh RPC/WS resources and access conflicts; no throughput, PG, full instruction or phase-44 claim",
+  "setupOutcomes": 117,
+  "cases": [
+    {
+      "id": "trade btc-single",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 257045,
+      "requestedComputeUnits": 800000,
+      "transactionVersion": 0,
+      "wireBytes": 942,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 17,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 10,
+      "declaredWrites": 5,
+      "compiledReads": 11,
+      "compiledWrites": 6
+    },
+    {
+      "id": "trade eth-single",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 274817,
+      "requestedComputeUnits": 800000,
+      "transactionVersion": 0,
+      "wireBytes": 1006,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 19,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 10,
+      "declaredWrites": 7,
+      "compiledReads": 11,
+      "compiledWrites": 8
+    },
+    {
+      "id": "trade isolated-single",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 265335,
+      "requestedComputeUnits": 800000,
+      "transactionVersion": 0,
+      "wireBytes": 942,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 17,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 10,
+      "declaredWrites": 5,
+      "compiledReads": 11,
+      "compiledWrites": 6
+    },
+    {
+      "id": "trade btc-pair-shared-program",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 352022,
+      "requestedComputeUnits": 800000,
+      "transactionVersion": 0,
+      "wireBytes": 1174,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 23,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 12,
+      "declaredWrites": 9,
+      "compiledReads": 13,
+      "compiledWrites": 10
+    },
+    {
+      "id": "trade btc-pair-distinct-programs",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 479272,
+      "requestedComputeUnits": 800000,
+      "transactionVersion": 1,
+      "wireBytes": 1196,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 24,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 14,
+      "declaredWrites": 9,
+      "compiledReads": 14,
+      "compiledWrites": 10
+    },
+    {
+      "id": "trade stale-account-rejection",
+      "samples": 1,
+      "outcome": "expected-rejection",
+      "computeUnits": 33313,
+      "requestedComputeUnits": 800000,
+      "transactionVersion": 0,
+      "wireBytes": 942,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 17,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 10,
+      "declaredWrites": 5,
+      "compiledReads": 11,
+      "compiledWrites": 6
+    },
+    {
+      "id": "order place",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 46968,
+      "requestedComputeUnits": 400000,
+      "transactionVersion": 0,
+      "wireBytes": 604,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 9,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 5,
+      "declaredWrites": 2,
+      "compiledReads": 6,
+      "compiledWrites": 3
+    },
+    {
+      "id": "order cancel",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 39203,
+      "requestedComputeUnits": 400000,
+      "transactionVersion": 0,
+      "wireBytes": 554,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 9,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 5,
+      "declaredWrites": 2,
+      "compiledReads": 6,
+      "compiledWrites": 3
+    },
+    {
+      "id": "reprice 0",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 18250,
+      "requestedComputeUnits": 400000,
+      "transactionVersion": 0,
+      "wireBytes": 460,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 7,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 4,
+      "declaredWrites": 1,
+      "compiledReads": 5,
+      "compiledWrites": 2
+    },
+    {
+      "id": "reprice 1",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 18250,
+      "requestedComputeUnits": 400000,
+      "transactionVersion": 0,
+      "wireBytes": 460,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 7,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 4,
+      "declaredWrites": 1,
+      "compiledReads": 5,
+      "compiledWrites": 2
+    },
+    {
+      "id": "funding 0",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 32522,
+      "requestedComputeUnits": 400000,
+      "transactionVersion": 0,
+      "wireBytes": 838,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 13,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 9,
+      "declaredWrites": 2,
+      "compiledReads": 10,
+      "compiledWrites": 3
+    },
+    {
+      "id": "funding 1",
+      "samples": 1,
+      "outcome": "success",
+      "computeUnits": 32523,
+      "requestedComputeUnits": 400000,
+      "transactionVersion": 0,
+      "wireBytes": 838,
+      "signatures": 2,
+      "feeLamports": "10000",
+      "priorityBid": "0",
+      "loadedAccounts": 13,
+      "loadedAccountDataBytes": null,
+      "declaredReads": 9,
+      "declaredWrites": 2,
+      "compiledReads": 10,
+      "compiledWrites": 3
+    }
+  ],
+  "accessChecks": [
+    {
+      "left": "trade btc-single",
+      "right": "trade eth-single",
+      "declaredConflicts": 3,
+      "compiledConflicts": 4
+    },
+    {
+      "left": "trade btc-single",
+      "right": "trade isolated-single",
+      "declaredConflicts": 2,
+      "compiledConflicts": 3
+    },
+    {
+      "left": "order cancel",
+      "right": "trade btc-single",
+      "declaredConflicts": 1,
+      "compiledConflicts": 2
+    },
+    {
+      "left": "funding 0",
+      "right": "funding 1",
+      "declaredConflicts": 0,
+      "compiledConflicts": 1
+    },
+    {
+      "left": "reprice 0",
+      "right": "reprice 1",
+      "declaredConflicts": 0,
+      "compiledConflicts": 1
+    },
+    {
+      "left": "reprice 0",
+      "right": "trade btc-single",
+      "declaredConflicts": 1,
+      "compiledConflicts": 2
+    },
+    {
+      "left": "reprice 0",
+      "right": "trade isolated-single",
+      "declaredConflicts": 0,
+      "compiledConflicts": 1
+    }
+  ],
+  "independentFinancialCheck": {
+    "feeTotals": [
+      "76",
+      "7"
+    ],
+    "custodyCash": "7999917",
+    "roots": 8
+  },
+  "parity": [
+    {
+      "program": "clearing",
+      "instructions": 109,
+      "instructionNames": [
+        "initializeLiquidityVenue",
+        "initializeVenueRegistry",
+        "initializeMarket",
+        "initializeLiquidity",
+        "createPortfolio",
+        "registerMargin",
+        "depositAccount",
+        "registerLiquidity",
+        "sealLiquidity",
+        "initializeLiquidityOracle",
+        "initializeFundingPublisher",
+        "initializeAccountResolution",
+        "initializeAccountResolutionPage",
+        "publishFundingReport",
+        "activateLiquidity",
+        "executeLiquidityRoute",
+        "manageAccountOrder"
+      ],
+      "accounts": 0,
+      "events": 189
+    },
+    {
+      "program": "maker_a",
+      "instructions": 66,
+      "instructionNames": [
+        "initializeCurve",
+        "reprice"
+      ],
+      "accounts": 0,
+      "events": 70
+    },
+    {
+      "program": "maker_b",
+      "instructions": 32,
+      "instructionNames": [
+        "initializeCurve",
+        "reprice"
+      ],
+      "accounts": 0,
+      "events": 34
+    }
+  ],
+  "limitations": [
+    "One observation per named state; no worst-case or statistical CU claim",
+    "Shared harness payer; compiled conflicts include it",
+    "No scheduler throughput, PG, full instruction coverage or Anchor v2 comparison",
+    "Null loadedAccountDataBytes means this RPC response does not provide the metric"
+  ]
+}

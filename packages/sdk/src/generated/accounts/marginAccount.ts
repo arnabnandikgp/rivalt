@@ -58,7 +58,7 @@ import {
 } from "../types/index.js";
 
 export const MARGIN_ACCOUNT_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  200, 111, 5, 168, 138, 82, 246, 229,
+  133, 220, 173, 213, 179, 211, 43, 238,
 ]);
 
 export function getMarginAccountDiscriminatorBytes(): ReadonlyUint8Array {
@@ -70,6 +70,8 @@ export function getMarginAccountDiscriminatorBytes(): ReadonlyUint8Array {
 export type MarginAccount = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   portfolio: Address;
   owner: Address;
@@ -94,6 +96,8 @@ export type MarginAccount = {
 
 export type MarginAccountArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   portfolio: Address | HasAddress;
   owner: Address | HasAddress;
@@ -122,6 +126,7 @@ export function getMarginAccountEncoder(): FixedSizeEncoder<MarginAccountArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["portfolio", getAddressEncoder()],
       ["owner", getAddressEncoder()],
@@ -150,6 +155,7 @@ export function getMarginAccountDecoder(): FixedSizeDecoder<MarginAccount> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["portfolio", getAddressDecoder()],
     ["owner", getAddressDecoder()],
@@ -253,5 +259,5 @@ export async function fetchAllMaybeMarginAccount(
 }
 
 export function getMarginAccountSize(): number {
-  return 970;
+  return 978;
 }

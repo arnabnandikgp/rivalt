@@ -142,7 +142,6 @@ try {
     await services.pause();
     await flush();
     const serviceReport = await services.report();
-    assert.equal(serviceReport.state.custody!.totalCash, '0');
     assert(Object.values(serviceReport.state.roots).every(account => account.cash === '0'));
     const remaining = Object.values(serviceReport.state.ledgers).reduce((sum, ledger) => sum + BigInt(ledger.fees) + BigInt(ledger.insurance), 0n);
     assert.equal(BigInt(serviceReport.reconciliation.actualVault), remaining);

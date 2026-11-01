@@ -19,6 +19,8 @@ import {
   getConstantEncoder,
   getHiddenPrefixDecoder,
   getHiddenPrefixEncoder,
+  getOptionDecoder,
+  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -30,6 +32,8 @@ import {
   type Decoder,
   type Encoder,
   type HasAddress,
+  type Option,
+  type OptionOrNullable,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
@@ -56,7 +60,7 @@ import {
 } from "../types/index.js";
 
 export const LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([56, 145, 24, 73, 218, 166, 221, 174]);
+  new Uint8Array([169, 192, 227, 14, 13, 74, 85, 43]);
 
 export function getLiquidityRouteExecutedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -66,11 +70,10 @@ export function getLiquidityRouteExecutedEventDiscriminatorBytes(): ReadonlyUint
 
 export type LiquidityRouteExecutedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   market: Address;
   marketState: MarketSnapshot;
-  otherMarketState: MarketSnapshot;
+  otherMarketState: Option<MarketSnapshot>;
   nonce: bigint;
   side: number;
   lots: bigint;
@@ -81,22 +84,20 @@ export type LiquidityRouteExecutedEvent = {
   carryBefore: number;
   carryAfter: number;
   ledger: MarketLedgerSnapshot;
+  otherLedger: Option<MarketLedgerSnapshot>;
   orderId: bigint;
   orderVersion: bigint;
   rootStates: Array<MarginAccountSnapshot>;
   makerStates: Array<MakerRegistrationPayload>;
-  totalCash: bigint;
-  liabilityVersions: Array<bigint>;
   legs: Array<ExecutedLeg>;
 };
 
 export type LiquidityRouteExecutedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   market: Address | HasAddress;
   marketState: MarketSnapshotArgs;
-  otherMarketState: MarketSnapshotArgs;
+  otherMarketState: OptionOrNullable<MarketSnapshotArgs>;
   nonce: number | bigint;
   side: number;
   lots: number | bigint;
@@ -107,12 +108,11 @@ export type LiquidityRouteExecutedEventArgs = {
   carryBefore: number;
   carryAfter: number;
   ledger: MarketLedgerSnapshotArgs;
+  otherLedger: OptionOrNullable<MarketLedgerSnapshotArgs>;
   orderId: number | bigint;
   orderVersion: number | bigint;
   rootStates: Array<MarginAccountSnapshotArgs>;
   makerStates: Array<MakerRegistrationPayloadArgs>;
-  totalCash: number | bigint;
-  liabilityVersions: Array<number | bigint>;
   legs: Array<ExecutedLegArgs>;
 };
 
@@ -121,11 +121,10 @@ export function getLiquidityRouteExecutedEventEncoder(): Encoder<LiquidityRouteE
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["market", getAddressEncoder()],
       ["marketState", getMarketSnapshotEncoder()],
-      ["otherMarketState", getMarketSnapshotEncoder()],
+      ["otherMarketState", getOptionEncoder(getMarketSnapshotEncoder())],
       ["nonce", getU64Encoder()],
       ["side", getU8Encoder()],
       ["lots", getU64Encoder()],
@@ -136,12 +135,11 @@ export function getLiquidityRouteExecutedEventEncoder(): Encoder<LiquidityRouteE
       ["carryBefore", getU8Encoder()],
       ["carryAfter", getU8Encoder()],
       ["ledger", getMarketLedgerSnapshotEncoder()],
+      ["otherLedger", getOptionEncoder(getMarketLedgerSnapshotEncoder())],
       ["orderId", getU64Encoder()],
       ["orderVersion", getU64Encoder()],
       ["rootStates", getArrayEncoder(getMarginAccountSnapshotEncoder())],
       ["makerStates", getArrayEncoder(getMakerRegistrationPayloadEncoder())],
-      ["totalCash", getU64Encoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["legs", getArrayEncoder(getExecutedLegEncoder())],
     ]),
     [getConstantEncoder(LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR)],
@@ -153,11 +151,10 @@ export function getLiquidityRouteExecutedEventDecoder(): Decoder<LiquidityRouteE
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["market", getAddressDecoder()],
       ["marketState", getMarketSnapshotDecoder()],
-      ["otherMarketState", getMarketSnapshotDecoder()],
+      ["otherMarketState", getOptionDecoder(getMarketSnapshotDecoder())],
       ["nonce", getU64Decoder()],
       ["side", getU8Decoder()],
       ["lots", getU64Decoder()],
@@ -168,12 +165,11 @@ export function getLiquidityRouteExecutedEventDecoder(): Decoder<LiquidityRouteE
       ["carryBefore", getU8Decoder()],
       ["carryAfter", getU8Decoder()],
       ["ledger", getMarketLedgerSnapshotDecoder()],
+      ["otherLedger", getOptionDecoder(getMarketLedgerSnapshotDecoder())],
       ["orderId", getU64Decoder()],
       ["orderVersion", getU64Decoder()],
       ["rootStates", getArrayDecoder(getMarginAccountSnapshotDecoder())],
       ["makerStates", getArrayDecoder(getMakerRegistrationPayloadDecoder())],
-      ["totalCash", getU64Decoder()],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
       ["legs", getArrayDecoder(getExecutedLegDecoder())],
     ]),
     [getConstantDecoder(LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR)],

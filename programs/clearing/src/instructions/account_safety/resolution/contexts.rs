@@ -26,6 +26,7 @@ pub struct ResolutionIdentity<'info> {
     pub vault: Box<Account<'info, TokenAccount>>,
 }
 
+#[event_cpi]
 #[derive(Accounts)]
 pub struct InitializeAccountResolution<'info> {
     #[account(mut)]
@@ -45,6 +46,7 @@ pub struct InitializeAccountResolution<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[event_cpi]
 #[derive(Accounts)]
 #[instruction(page_index: u16)]
 pub struct InitializeAccountResolutionPage<'info> {

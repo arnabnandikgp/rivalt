@@ -8,6 +8,8 @@ successful devnet checks apply to their recorded implementation only.
 - [Deployment](deployment.md): identities, roles, maker kit, rotation, recovery/exit.
 - [Validation](validation.md): choose relevant checks; actual qualified revisions,
   resource limits and remaining evidence boundaries.
+- [Performance](performance.md): P39–P44 contention contract, workload methodology,
+  executable access audit and pre-Anchor-v2 baseline gates.
 
 | Change | Required reading/check family |
 |---|---|

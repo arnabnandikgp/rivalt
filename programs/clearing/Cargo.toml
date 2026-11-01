@@ -13,6 +13,8 @@ default = []
 devnet-test-profile = ["oracle-fixture/devnet-test-profile"]
 # Explicit bounded local trading/safety candidate; default/devnet stay disabled.
 liquidity-execution-qualification = []
+# Diagnostic artifact only; never used for headline CU or production pinning.
+cu-profiling = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

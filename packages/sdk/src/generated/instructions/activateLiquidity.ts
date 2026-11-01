@@ -85,7 +85,7 @@ export type ActivateLiquidityInstruction<
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
       TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
+        ? ReadonlyAccount<TAccountCustody>
         : TAccountCustody,
       TAccountSafety extends string
         ? WritableAccount<TAccountSafety>
@@ -279,7 +279,7 @@ export async function getActivateLiquidityInstructionAsync<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: true },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
@@ -577,7 +577,7 @@ export function getActivateLiquidityInstruction<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: true },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },

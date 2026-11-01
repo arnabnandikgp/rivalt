@@ -12,7 +12,7 @@ def fixture():
         'isolated':root(7,1,999879,[-25000000000,0])})
     events=[]
     def add(event_kind,**change):
-        events.append(dict(kind=event_kind,payload=dict(sequence=str(len(events)+1),**change)))
+        events.append(dict(cursor=str(len(events)+1),kind=event_kind,payload=change))
     add('AccountFinancialChangedV3',kind=0,roots=['cross'],amount='7')
     fills=[(6,'btc',0,5,300015,61),(6,'eth',0,5,150015,31),
            (6,'eth',1,5,149990,30),(6,'btc',1,5,299990,60),
@@ -24,7 +24,7 @@ def fixture():
     add('AccountFinancialChangedV3',kind=0,roots=['isolated'],amount='5')
     add('AccountCustodyChangedV3',kind=4,subject='isolated',amount='5')
     state['sequence']=str(len(events))
-    return state,[dict(sequence='0',fundingIndexScaled='0')]*2,events
+    return state,[dict(cursor='0',fundingIndexScaled='0')]*2,events
 
 
 class TraderReplay(unittest.TestCase):

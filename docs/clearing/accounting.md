@@ -19,7 +19,10 @@ risk equity = C_a*S + sum_m(min(U_risk_a,m, 0))
 
 Neither a positive claim nor a reserve is account cash. Portfolio metadata has no
 balance. Each operation checks the canonical complete position/order dependency
-set, checked counters/bounds, final required reservations and actual custody.
+set, checked counters/bounds and final required reservations. Token gateways also
+authenticate actual custody; internal transitions conserve root/ledger entitlements
+without loading the shared token vault. Complete checkpoints independently reconcile
+all root cash and market pools against allocated and actual tokens.
 
 | Transition | Exact changes / eligibility |
 |---|---|
@@ -152,7 +155,10 @@ index magnitude at 10^15; funded cash at 10^15 atoms. Check the actual
 For signed quantity q, virtual claim v and checkpoint F_i, accrued scaled claim
 is `q*M*S + v - q*(F-F_i)`. Accrue before changing quantity or evaluating cash
 rights. A flat close/reopen retains its fraction; new entrants acquire no old
-fraction. Persist consumed relevant market prefixes in the same transaction.
+fraction. Persist consumed relevant market prefixes in the same transaction. Accrual validates
+the complete input and output plus each changed position; admission evaluates
+per-market rounded IM and negative claims in one traversal. Reusing those checks
+never credits positive claims or omits an isolated-slot/bound check.
 Reconciliation uses checkpoint-adjusted claims, not the sum of stored v alone.
 
 The held index uses `base + trunc(premiumScaled * elapsed / 3600)` with elapsed
@@ -189,7 +195,12 @@ held-funding stamps are checked again on consumption.
 The 234-byte certificate's cash accumulator is cash in selected-exposed/claim roots,
 not a common fungible backing pool. Its lots contain both sampled sums; only the
 selected sum is certified. Each debtor independently covers all gross debt.
-Missing/reordered/duplicate roots or changed required stamps restart/reject.
+Missing/reordered/duplicate roots or changed required stamps restart/reject. The
+worker submits the final page and gain payment in one atomic original. Earlier
+pages still need a stable required-observation/liability window: P42 measured three
+deliberately observation-interleaved failures and one coordinated-window completion,
+not a normal-traffic availability estimate. The scan only reads roots even when
+the later payment promotes its beneficiary writable in the complete message.
 Payment remains limited by actual selected P; an unpaid-profit certificate may
 need coordination with concurrent relevant activity. Funded withdrawal needs none.
 

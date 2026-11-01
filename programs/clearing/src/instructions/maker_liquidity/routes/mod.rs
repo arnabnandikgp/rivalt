@@ -2,7 +2,9 @@
 //! No profile-4 activation path is supplied by this module.
 use super::*;
 use crate::engine::routes as candidates;
-use crate::instructions::account_trading::{self as trading, environment, market_view, root_view};
+use crate::instructions::account_trading::{
+    self as trading, market_view, optional_environment, root_view,
+};
 use crate::instructions::{OrderExecution, RouteIntent, RouteLeg};
 use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
@@ -15,7 +17,11 @@ mod commit;
 #[cfg(test)]
 mod tests;
 
-pub fn execute(ctx: Context<ExecuteLiquidityRoute>, args: LiquidityRouteIntent) -> Result<()> {
+pub fn execute(
+    ctx: &mut Context<ExecuteLiquidityRoute>,
+    events: &mut crate::event_cpi::Payloads,
+    args: LiquidityRouteIntent,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     args.guard.check(
         &ctx.accounts.identity.venue,
@@ -44,11 +50,12 @@ pub fn execute(ctx: Context<ExecuteLiquidityRoute>, args: LiquidityRouteIntent) 
         generation: args.generation,
         legs: shared_legs(&args.legs),
     };
-    execute_core(ctx.accounts, intent, None, &args.legs, &clock)
+    execute_core(ctx.accounts, events, intent, None, &args.legs, &clock)
 }
 
 pub fn execute_order(
-    ctx: Context<ExecuteLiquidityRoute>,
+    ctx: &mut Context<ExecuteLiquidityRoute>,
+    events: &mut crate::event_cpi::Payloads,
     args: LiquidityOrderExecution,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
@@ -76,37 +83,41 @@ pub fn execute_order(
         },
         &clock,
     )?;
-    execute_core(ctx.accounts, intent, Some(index), &args.legs, &clock)
+    execute_core(
+        ctx.accounts,
+        events,
+        intent,
+        Some(index),
+        &args.legs,
+        &clock,
+    )
 }
 
 #[inline(never)]
 fn execute_core(
     accounts: &mut ExecuteLiquidityRoute,
+    events: &mut crate::event_cpi::Payloads,
     intent: RouteIntent,
     order_index: Option<usize>,
     signed_legs: &[LiquidityRouteLeg],
     clock: &Clock,
 ) -> Result<()> {
     let identity = &accounts.identity;
-    execution_profile(
-        &identity.venue,
-        &identity.custody,
-        &identity.safety,
-        &identity.market,
-    )?;
+    execution_profile(&identity.venue, &identity.safety, &identity.market)?;
     require!(identity.safety.mode == ACTIVE, ClearingError::Profile);
-    crate::instructions::account_custody::reconciled(
-        &identity.custody,
-        [&identity.ledger, &identity.other_ledger],
-        identity.vault.amount,
-    )?;
     let selected = usize::from(identity.market.index);
     require!(
         selected < 2
             && identity.venue.markets[selected] == identity.market.key()
-            && identity.venue.markets[1 - selected] == identity.other_market.key()
+            && identity
+                .other_market
+                .as_ref()
+                .is_none_or(|market| identity.venue.markets[1 - selected] == market.key())
             && identity.ledger.market_index == identity.market.index
-            && identity.other_ledger.market_index == identity.other_market.index,
+            && identity
+                .other_ledger
+                .as_ref()
+                .is_none_or(|ledger| usize::from(ledger.market_index) == 1 - selected),
         ClearingError::Profile
     );
     let has_second = intent.legs.len() == 2;
@@ -127,16 +138,30 @@ fn execute_core(
     );
     let markets = if selected == 0 {
         [
-            market_view(&identity.market)?,
-            market_view(&identity.other_market)?,
+            Some(market_view(&identity.market)?),
+            identity
+                .other_market
+                .as_deref()
+                .map(|market| market_view(market))
+                .transpose()?,
         ]
     } else {
         [
-            market_view(&identity.other_market)?,
-            market_view(&identity.market)?,
+            identity
+                .other_market
+                .as_deref()
+                .map(|market| market_view(market))
+                .transpose()?,
+            Some(market_view(&identity.market)?),
         ]
     };
-    let environment = environment(&markets, selected, clock)?;
+    let environment =
+        optional_environment(markets.each_ref().map(Option::as_ref), selected, clock)?;
+    environment.validate(&identity.trader)?;
+    environment.validate(&accounts.first_capital)?;
+    if let Some(capital) = accounts.second_capital.as_deref() {
+        environment.validate(capital)?;
+    }
     let trader = root_view(&identity.trader)?;
     let mut views = vec![pricing::View {
         capital: &accounts.first_capital,
@@ -171,6 +196,7 @@ fn execute_core(
     }
     let roots = maker_roots(accounts, has_second)?;
     let venue = &identity.venue;
+    profile_cu!("financial-candidate-enter");
     let next = candidates::candidate_for_version(
         venue,
         &trader,
@@ -182,8 +208,18 @@ fn execute_core(
         clock,
         4,
     )?;
+    profile_cu!("financial-candidate-exit");
     drop(views);
-    commit::apply(accounts, &intent, order_index, clock, &next, &actual_quotes)
+    profile_cu!("route-commit-enter");
+    commit::apply(
+        accounts,
+        events,
+        &intent,
+        order_index,
+        clock,
+        &next,
+        &actual_quotes,
+    )
 }
 
 /// Construct large root values in their own frame and place them directly in the

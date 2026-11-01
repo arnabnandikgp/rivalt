@@ -12,8 +12,6 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getBytesEncoder,
   getConstantDecoder,
   getConstantEncoder,
@@ -38,7 +36,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_AUTHORITY_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([251, 40, 242, 186, 173, 63, 170, 85]);
+  new Uint8Array([179, 166, 140, 50, 207, 134, 21, 108]);
 
 export function getAccountAuthorityChangedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -48,20 +46,16 @@ export function getAccountAuthorityChangedEventDiscriminatorBytes(): ReadonlyUin
 
 export type AccountAuthorityChangedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   margin: Address;
   state: MarginAccountSnapshot;
-  liabilityVersions: Array<bigint>;
 };
 
 export type AccountAuthorityChangedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   margin: Address | HasAddress;
   state: MarginAccountSnapshotArgs;
-  liabilityVersions: Array<number | bigint>;
 };
 
 /** Gets the encoder for {@link AccountAuthorityChangedEventArgs} event data. */
@@ -69,11 +63,9 @@ export function getAccountAuthorityChangedEventEncoder(): FixedSizeEncoder<Accou
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["margin", getAddressEncoder()],
       ["state", getMarginAccountSnapshotEncoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
     ]),
     [getConstantEncoder(ACCOUNT_AUTHORITY_CHANGED_EVENT_DISCRIMINATOR)],
   );
@@ -84,11 +76,9 @@ export function getAccountAuthorityChangedEventDecoder(): FixedSizeDecoder<Accou
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["margin", getAddressDecoder()],
       ["state", getMarginAccountSnapshotDecoder()],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ]),
     [getConstantDecoder(ACCOUNT_AUTHORITY_CHANGED_EVENT_DISCRIMINATOR)],
   );

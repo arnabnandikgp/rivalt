@@ -5,7 +5,7 @@ use crate::engine::book;
 use math::margin::{Margin, Risk};
 
 pub(crate) struct Snapshot {
-    pub markets: [Market; 2],
+    pub markets: [Option<Market>; 2],
     pub risks: [Risk; 2],
     pub bounds: [[i128; 2]; 2],
     pub clock: Clock,
@@ -13,15 +13,19 @@ pub(crate) struct Snapshot {
 
 impl Snapshot {
     pub(crate) fn new(markets: [&Market; 2], clock: &Clock) -> Result<Self> {
+        Self::optional(markets.map(Some), clock)
+    }
+
+    pub(crate) fn optional(markets: [Option<&Market>; 2], clock: &Clock) -> Result<Self> {
         let views = [
-            trading::market_view(markets[0])?,
-            trading::market_view(markets[1])?,
+            markets[0].map(trading::market_view).transpose()?,
+            markets[1].map(trading::market_view).transpose()?,
         ];
-        let environment = trading::environment(&views, 0, clock)?;
+        let environment = trading::optional_environment(views.each_ref().map(Option::as_ref), 2, clock)?;
         let risks = environment.risks();
         let bounds = [
-            crate::engine::oracle::funding_bounds(2, &views[0], clock)?,
-            crate::engine::oracle::funding_bounds(2, &views[1], clock)?,
+            views[0].as_ref().map(|market| crate::engine::oracle::funding_bounds(2, market, clock)).transpose()?.unwrap_or([0; 2]),
+            views[1].as_ref().map(|market| crate::engine::oracle::funding_bounds(2, market, clock)).transpose()?.unwrap_or([0; 2]),
         ];
         Ok(Self {
             markets: views,
@@ -31,18 +35,22 @@ impl Snapshot {
         })
     }
 
+    pub(crate) fn market(&self, index: usize) -> Result<&Market> {
+        self.markets.get(index).and_then(Option::as_ref).ok_or_else(|| error!(ClearingError::OrderState))
+    }
+
+    fn commit_model(&self, root: &mut MarginAccount, candidate: Margin) -> Result<()> {
+        crate::engine::markets::commit_model(root, candidate, self.markets.each_ref().map(Option::as_ref))
+    }
+
     pub(crate) fn refresh(
         &self,
         root: &MarginAccount,
         require_sources: bool,
     ) -> Result<Box<MarginAccount>> {
+        crate::engine::markets::validate(self.markets.each_ref().map(Option::as_ref), &[root], 0)?;
         let mut next = trading::root_view(root)?;
-        let selected = if root.mode == MODE_CROSS {
-            0
-        } else {
-            usize::from(root.isolated_market_index)
-        };
-        let environment = trading::environment(&self.markets, selected, &self.clock)?;
+        let environment = trading::optional_environment(self.markets.each_ref().map(Option::as_ref), 2, &self.clock)?;
         book::refresh_with_environment(&mut next, &environment)?;
         if require_sources {
             for index in 0..2 {
@@ -51,14 +59,14 @@ impl Snapshot {
                         entry.order.active() && usize::from(entry.market_index) == index
                     })
                 {
-                    crate::engine::oracle::action(&self.markets[index], &self.clock, false)?;
+                    crate::engine::oracle::action(self.market(index)?, &self.clock, false)?;
                 }
             }
         }
         let accrued = checked(
             crate::engine::account::model(&next)?.accrued(self.risks.map(|risk| risk.funding)),
         )?;
-        copy_model(&mut next, accrued);
+        self.commit_model(&mut next, accrued)?;
         Ok(next)
     }
 
@@ -84,21 +92,11 @@ impl Snapshot {
             model.claims(
                 self.markets
                     .each_ref()
-                    .map(|market| market.reference_price.max(1)),
+                    .map(|market| market.as_ref().map_or(1, |market| market.reference_price.max(1))),
                 self.risks.map(|risk| risk.funding),
             ),
         )
     }
-}
-
-fn copy_model(root: &mut MarginAccount, model: Margin) {
-    root.cash = model.cash;
-    root.positions = model.positions.map(|position| crate::state::Position {
-        lots: position.lots,
-        virtual_scaled: position.virtual_scaled,
-        funding_checkpoint_scaled: position.funding_checkpoint,
-        generation: position.generation,
-    });
 }
 
 pub(crate) fn advance(root: &mut MarginAccount) -> Result<()> {
@@ -116,7 +114,7 @@ pub(crate) fn withdraw_candidate(
     let candidate =
         checked(crate::engine::account::model(&next)?.withdraw(amount, snapshot.risks))?;
     snapshot.held_solvent(candidate)?;
-    copy_model(&mut next, candidate);
+    snapshot.commit_model(&mut next, candidate)?;
     advance(&mut next)?;
     Ok(next)
 }
@@ -144,6 +142,7 @@ pub(crate) fn claim_candidate(
     pool: u64,
 ) -> Result<(Box<MarginAccount>, u64)> {
     require!(market < 2 && amount > 0, ClearingError::Amount);
+    snapshot.market(market)?;
     let mut next = snapshot.refresh(root, true)?;
     let model = crate::engine::account::model(&next)?;
     require!(model.allows(market), ClearingError::Profile);
@@ -187,6 +186,8 @@ pub(crate) fn net_candidate(
         source < 2 && amount > 0 && root.mode == MODE_CROSS,
         ClearingError::Amount
     );
+    snapshot.market(0)?;
+    snapshot.market(1)?;
     let mut next = snapshot.refresh(root, false)?;
     require!(
         next.positions.iter().all(|position| position.lots == 0)

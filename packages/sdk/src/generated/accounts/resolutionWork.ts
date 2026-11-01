@@ -54,7 +54,7 @@ import {
 } from "../types/index.js";
 
 export const RESOLUTION_WORK_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [128, 138, 12, 12, 59, 172, 62, 201],
+  [99, 47, 197, 144, 90, 27, 131, 51],
 );
 
 export function getResolutionWorkDiscriminatorBytes(): ReadonlyUint8Array {
@@ -66,6 +66,8 @@ export function getResolutionWorkDiscriminatorBytes(): ReadonlyUint8Array {
 export type ResolutionWork = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   epoch: bigint;
   opcode: number;
@@ -87,6 +89,8 @@ export type ResolutionWork = {
 
 export type ResolutionWorkArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   epoch: number | bigint;
   opcode: number;
@@ -112,6 +116,7 @@ export function getResolutionWorkEncoder(): FixedSizeEncoder<ResolutionWorkArgs>
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["epoch", getU64Encoder()],
       ["opcode", getU8Encoder()],
@@ -142,6 +147,7 @@ export function getResolutionWorkDecoder(): FixedSizeDecoder<ResolutionWork> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["epoch", getU64Decoder()],
     ["opcode", getU8Decoder()],
@@ -251,5 +257,5 @@ export async function fetchAllMaybeResolutionWork(
 }
 
 export function getResolutionWorkSize(): number {
-  return 7918;
+  return 7926;
 }

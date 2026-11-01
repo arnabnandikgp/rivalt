@@ -33,16 +33,14 @@ pub struct ManageAccountOrder<'info> {
     pub actor: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[0]], bump = btc.bump, has_one = venue,
         constraint = venue.markets[0] == btc.key() @ ClearingError::Profile)]
-    pub btc: Box<Account<'info, Market>>,
+    pub btc: Option<Box<Account<'info, Market>>>,
     #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[1]], bump = eth.bump, has_one = venue,
         constraint = venue.markets[1] == eth.key() @ ClearingError::Profile)]
-    pub eth: Box<Account<'info, Market>>,
+    pub eth: Option<Box<Account<'info, Market>>>,
     #[account(mut, seeds = [b"margin-v3", margin.portfolio.as_ref(), &margin.subaccount_index.to_le_bytes()], bump = margin.bump, has_one = venue)]
     pub margin: Box<Account<'info, MarginAccount>>,
 }
@@ -53,8 +51,6 @@ pub struct SetAccountDelegate<'info> {
     pub owner: Signer<'info>,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
     pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
     #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<Account<'info, VenueSafety>>,
     #[account(mut, seeds = [b"margin-v3", margin.portfolio.as_ref(), &margin.subaccount_index.to_le_bytes()], bump = margin.bump, has_one = venue, has_one = owner)]
@@ -62,7 +58,8 @@ pub struct SetAccountDelegate<'info> {
 }
 
 pub fn manage(
-    ctx: Context<ManageAccountOrder>,
+    ctx: &mut Context<ManageAccountOrder>,
+    events: &mut crate::event_cpi::Payloads,
     guard: AccountGuard,
     market_index: u8,
     operation: OrderAction,
@@ -73,10 +70,10 @@ pub fn manage(
         &operation,
         OrderAction::Cancel { .. } | OrderAction::Cleanup
     ) {
-        base_profile(&accounts.venue, &accounts.custody, &accounts.safety)?;
+        base_identity(&accounts.venue, &accounts.safety)?;
         require!(accounts.safety.mode == ACTIVE, ClearingError::Profile);
     } else {
-        activated(&accounts.venue, &accounts.custody, &accounts.safety)?;
+        activated_identity(&accounts.venue, &accounts.safety)?;
     }
     guard.check(&accounts.venue, &accounts.safety, &accounts.margin)?;
     let clock = Clock::get()?;
@@ -86,8 +83,17 @@ pub fn manage(
     } else {
         crate::engine::account::trade_authority(&root, accounts.actor.key(), clock.slot)?
     };
-    let market_views = [market_view(&accounts.btc)?, market_view(&accounts.eth)?];
-    let environment = environment(&market_views, usize::from(market_index), &clock)?;
+    require!(market_index < 2, ClearingError::Profile);
+    // Borrow the authenticated market states through candidate computation; no
+    // duplicate two-market snapshot belongs on the 4 KiB instruction stack.
+    let environment = optional_environment(
+        [
+            accounts.btc.as_deref().map(|market| &**market),
+            accounts.eth.as_deref().map(|market| &**market),
+        ],
+        usize::from(market_index),
+        &clock,
+    )?;
     match &operation {
         OrderAction::Place { terms, .. } | OrderAction::Replace { terms, .. } => {
             environment.admit_sources(&root, &clock, !terms.reduce_only)?
@@ -96,33 +102,42 @@ pub fn manage(
         OrderAction::Cancel { .. } | OrderAction::Cleanup => {}
     }
     let next = candidates::manage_candidate(&root, &environment, operation, delegate_epoch)?;
-    let previous = accounts.margin.positions;
     commit_root(&mut accounts.margin, &next)?;
-    invalidate(&mut accounts.custody, previous, accounts.margin.positions)?;
-    materialize([&mut accounts.btc, &mut accounts.eth], &clock)?;
-    increment(&mut accounts.custody.sequence)?;
-    emit_order(accounts, clock.slot)
+    materialize_optional(
+        [
+            accounts.btc.as_deref_mut().map(|market| &mut **market),
+            accounts.eth.as_deref_mut().map(|market| &mut **market),
+        ],
+        &clock,
+    )?;
+
+    emit_order(events, accounts, clock.slot)
 }
 
 #[inline(never)]
-fn emit_order(accounts: &ManageAccountOrder, slot: u64) -> Result<()> {
+fn emit_order(
+    events: &mut crate::event_cpi::Payloads,
+    accounts: &ManageAccountOrder,
+    slot: u64,
+) -> Result<()> {
     let emitted = Box::new(crate::events::AccountOrderChanged {
         venue: accounts.venue.key(),
-        sequence: accounts.custody.sequence,
+
         slot,
         margin: accounts.margin.key(),
         state: crate::events::MarginAccountSnapshot::from(&**accounts.margin),
-        markets: [
-            crate::events::MarketSnapshot::from(&**accounts.btc),
-            crate::events::MarketSnapshot::from(&**accounts.eth),
-        ],
-        liability_versions: accounts.custody.liability_versions,
+        markets: [accounts.btc.as_deref(), accounts.eth.as_deref()]
+            .into_iter()
+            .flatten()
+            .map(|market| crate::events::MarketSnapshot::from(&**market))
+            .collect(),
     });
-    crate::event_cpi::emit(&*emitted, accounts.event_authority.to_account_info())
+    events.emit(&*emitted, accounts.event_authority.to_account_info())
 }
 
 pub fn delegate(
-    ctx: Context<SetAccountDelegate>,
+    ctx: &mut Context<SetAccountDelegate>,
+    events: &mut crate::event_cpi::Payloads,
     guard: AccountGuard,
     delegate: Pubkey,
     expiry_slot: u64,
@@ -134,7 +149,6 @@ pub fn delegate(
         cfg!(feature = "liquidity-execution-qualification")
             && accounts.venue.schema_version == SCHEMA_VERSION
             && supported_profile(&accounts.venue)
-            && accounts.custody.schema_version == SCHEMA_VERSION
             && accounts.safety.schema_version == SCHEMA_VERSION
             && matches!(accounts.safety.mode, CUSTODY | ACTIVE),
         ClearingError::Profile
@@ -147,17 +161,14 @@ pub fn delegate(
         expiry_slot,
         Clock::get()?.slot,
     )?;
-    let previous = accounts.margin.positions;
     commit_root(&mut accounts.margin, &next)?;
-    invalidate(&mut accounts.custody, previous, accounts.margin.positions)?;
-    increment(&mut accounts.custody.sequence)?;
+
     let emitted = crate::events::AccountAuthorityChanged {
         venue: accounts.venue.key(),
-        sequence: accounts.custody.sequence,
+
         slot: Clock::get()?.slot,
         margin: accounts.margin.key(),
         state: crate::events::MarginAccountSnapshot::from(&**accounts.margin),
-        liability_versions: accounts.custody.liability_versions,
     };
-    crate::event_cpi::emit(&emitted, accounts.event_authority.to_account_info())
+    events.emit(&emitted, accounts.event_authority.to_account_info())
 }

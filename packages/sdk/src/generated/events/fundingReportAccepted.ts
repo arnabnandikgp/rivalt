@@ -40,7 +40,7 @@ import {
 } from "../types/index.js";
 
 export const FUNDING_REPORT_ACCEPTED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([157, 0, 211, 150, 191, 4, 31, 22]);
+  new Uint8Array([27, 10, 11, 160, 119, 70, 145, 222]);
 
 export function getFundingReportAcceptedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -50,7 +50,6 @@ export function getFundingReportAcceptedEventDiscriminatorBytes(): ReadonlyUint8
 
 export type FundingReportAcceptedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   market: Address;
   publisher: Address;
@@ -60,7 +59,6 @@ export type FundingReportAcceptedEvent = {
 
 export type FundingReportAcceptedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   market: Address | HasAddress;
   publisher: Address | HasAddress;
@@ -73,7 +71,6 @@ export function getFundingReportAcceptedEventEncoder(): FixedSizeEncoder<Funding
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["market", getAddressEncoder()],
       ["publisher", getAddressEncoder()],
@@ -89,7 +86,6 @@ export function getFundingReportAcceptedEventDecoder(): FixedSizeDecoder<Funding
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["market", getAddressDecoder()],
       ["publisher", getAddressDecoder()],

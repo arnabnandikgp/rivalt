@@ -6,6 +6,7 @@ import subprocess
 def violations(entries):
     errors = []
     fixture_bytes = 0
+    performance_bytes = 0
     for name, size in entries:
         path = PurePosixPath(name)
         if name.startswith('docs/evidence/') and path.suffix != '.md':
@@ -14,8 +15,14 @@ def violations(entries):
             fixture_bytes += size
             if size > 96 * 1024:
                 errors.append(f'Extract a smaller regression fixture: {name}')
+        if name.startswith('tests/performance/baselines/'):
+            performance_bytes += size
+            if size > 64 * 1024:
+                errors.append(f'Performance baseline must be a bounded summary: {name}')
     if fixture_bytes > 200 * 1024:
         errors.append('Curated regression fixtures exceed the 200 KiB source budget')
+    if performance_bytes > 128 * 1024:
+        errors.append('Performance summary baselines exceed the 128 KiB source budget')
     return errors
 
 

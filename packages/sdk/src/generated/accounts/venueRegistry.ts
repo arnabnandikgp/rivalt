@@ -48,7 +48,7 @@ import {
 } from "@solana/kit";
 
 export const VENUE_REGISTRY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  127, 21, 158, 27, 21, 26, 190, 55,
+  11, 151, 217, 1, 250, 79, 175, 105,
 ]);
 
 export function getVenueRegistryDiscriminatorBytes(): ReadonlyUint8Array {
@@ -60,6 +60,8 @@ export function getVenueRegistryDiscriminatorBytes(): ReadonlyUint8Array {
 export type VenueRegistry = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   membershipVersion: bigint;
   count: number;
@@ -69,6 +71,8 @@ export type VenueRegistry = {
 
 export type VenueRegistryArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   membershipVersion: number | bigint;
   count: number;
@@ -82,6 +86,7 @@ export function getVenueRegistryEncoder(): Encoder<VenueRegistryArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["membershipVersion", getU64Encoder()],
       ["count", getU16Encoder()],
@@ -97,6 +102,7 @@ export function getVenueRegistryDecoder(): Decoder<VenueRegistry> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["membershipVersion", getU64Decoder()],
     ["count", getU16Decoder()],

@@ -23,6 +23,8 @@ import {
   getStructEncoder,
   getU16Decoder,
   getU16Encoder,
+  getU64Decoder,
+  getU64Encoder,
   transformEncoder,
   type Account,
   type Address,
@@ -42,7 +44,7 @@ import {
 } from "@solana/kit";
 
 export const CAPITAL_BINDING_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [73, 122, 190, 75, 85, 174, 37, 138],
+  [176, 183, 79, 146, 172, 158, 6, 18],
 );
 
 export function getCapitalBindingDiscriminatorBytes(): ReadonlyUint8Array {
@@ -54,6 +56,8 @@ export function getCapitalBindingDiscriminatorBytes(): ReadonlyUint8Array {
 export type CapitalBinding = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   capital: Address;
   registration: Address;
@@ -61,6 +65,8 @@ export type CapitalBinding = {
 
 export type CapitalBindingArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   capital: Address | HasAddress;
   registration: Address | HasAddress;
@@ -72,6 +78,7 @@ export function getCapitalBindingEncoder(): FixedSizeEncoder<CapitalBindingArgs>
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["capital", getAddressEncoder()],
       ["registration", getAddressEncoder()],
@@ -85,6 +92,7 @@ export function getCapitalBindingDecoder(): FixedSizeDecoder<CapitalBinding> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["capital", getAddressDecoder()],
     ["registration", getAddressDecoder()],
@@ -177,5 +185,5 @@ export async function fetchAllMaybeCapitalBinding(
 }
 
 export function getCapitalBindingSize(): number {
-  return 106;
+  return 114;
 }

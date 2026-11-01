@@ -11,7 +11,8 @@ import { candidates, referenceQuote, auditFill } from './liquidity-continuation-
 
 export async function depletionSupplement(h: CanonicalHarness, setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>, cohort?:Address[]) {
   const helpers = executionTestHelpers(h, setup), trader = setup.roots[1], results = [];
-  const initialCash = sdk.getCustodyDecoder().decode((await h.read(setup.custody))!).totalCash;
+  const members = cohort ?? [...setup.instances.map(maker => maker.capital), ...setup.roots];
+  const initialCash = (await Promise.all(members.map(helpers.root))).reduce((sum, root) => sum + root.cash, 0n);
   const initialLedger = sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[0]))!);
   for (const [instance, maker] of setup.instances.slice(0, 3).entries()) {
     const original = comparisonShape('treatment', instance);
@@ -56,9 +57,12 @@ export async function depletionSupplement(h: CanonicalHarness, setup: Awaited<Re
   const fees = results.reduce((sum, result) => sum + result.expectedFee, 0n);
   const custody = sdk.getCustodyDecoder().decode((await h.read(setup.custody))!);
   const ledger = sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[0]))!);
-  assert.equal(custody.totalCash, initialCash - fees);
+
   assert.equal(ledger.insurance + ledger.fees, initialLedger.insurance + initialLedger.fees + fees);
   const roots = await Promise.all((cohort??[...setup.instances.map(maker => maker.capital), ...setup.roots]).map(helpers.root));
+  assert.equal(roots.reduce((sum, root) => sum + root.cash, 0n), initialCash - fees);
+  const ledgers = await Promise.all(setup.ledgers.map(async key => sdk.getMarketLedgerDecoder().decode((await h.read(key))!)));
+  assert.equal(custody.allocatedVault, initialCash - fees + ledgers.reduce((sum, item) => sum + item.settlement + item.insurance + item.fees, 0n));
   for (const index of [0, 1]) {
     const market = await setup.marketState(index);
     assert.equal(roots.reduce((sum, root) => sum + root.positions[index].lots, 0n), 0n);

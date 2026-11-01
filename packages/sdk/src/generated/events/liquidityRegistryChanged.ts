@@ -36,7 +36,7 @@ import {
 } from "../types/index.js";
 
 export const LIQUIDITY_REGISTRY_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([211, 73, 106, 79, 120, 190, 40, 231]);
+  new Uint8Array([141, 152, 126, 145, 41, 175, 81, 12]);
 
 export function getLiquidityRegistryChangedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -46,7 +46,6 @@ export function getLiquidityRegistryChangedEventDiscriminatorBytes(): ReadonlyUi
 
 export type LiquidityRegistryChangedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   registry: Address;
   state: LiquidityRegistryPayload;
@@ -54,7 +53,6 @@ export type LiquidityRegistryChangedEvent = {
 
 export type LiquidityRegistryChangedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   registry: Address | HasAddress;
   state: LiquidityRegistryPayloadArgs;
@@ -65,7 +63,6 @@ export function getLiquidityRegistryChangedEventEncoder(): FixedSizeEncoder<Liqu
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["registry", getAddressEncoder()],
       ["state", getLiquidityRegistryPayloadEncoder()],
@@ -79,7 +76,6 @@ export function getLiquidityRegistryChangedEventDecoder(): FixedSizeDecoder<Liqu
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["registry", getAddressDecoder()],
       ["state", getLiquidityRegistryPayloadDecoder()],

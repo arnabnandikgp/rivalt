@@ -46,7 +46,7 @@ import {
 } from "@solana/kit";
 
 export const MARKET_LEDGER_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  34, 52, 130, 15, 133, 166, 1, 144,
+  20, 74, 143, 91, 58, 131, 8, 46,
 ]);
 
 export function getMarketLedgerDiscriminatorBytes(): ReadonlyUint8Array {
@@ -58,6 +58,8 @@ export function getMarketLedgerDiscriminatorBytes(): ReadonlyUint8Array {
 export type MarketLedger = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   market: Address;
   marketIndex: number;
@@ -67,11 +69,15 @@ export type MarketLedger = {
   /** Modulo-four fee-count carry, never collateral or a participant claim. */
   insuranceFeeRemainder: number;
   version: bigint;
+  /** Economic mutations of roots owing to this market invalidate its backing proof. */
+  liabilityVersion: bigint;
   bump: number;
 };
 
 export type MarketLedgerArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   market: Address | HasAddress;
   marketIndex: number;
@@ -81,6 +87,8 @@ export type MarketLedgerArgs = {
   /** Modulo-four fee-count carry, never collateral or a participant claim. */
   insuranceFeeRemainder: number;
   version: number | bigint;
+  /** Economic mutations of roots owing to this market invalidate its backing proof. */
+  liabilityVersion: number | bigint;
   bump: number;
 };
 
@@ -90,6 +98,7 @@ export function getMarketLedgerEncoder(): FixedSizeEncoder<MarketLedgerArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["market", getAddressEncoder()],
       ["marketIndex", getU8Encoder()],
@@ -98,6 +107,7 @@ export function getMarketLedgerEncoder(): FixedSizeEncoder<MarketLedgerArgs> {
       ["fees", getU64Encoder()],
       ["insuranceFeeRemainder", getU8Encoder()],
       ["version", getU64Encoder()],
+      ["liabilityVersion", getU64Encoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: MARKET_LEDGER_DISCRIMINATOR }),
@@ -109,6 +119,7 @@ export function getMarketLedgerDecoder(): FixedSizeDecoder<MarketLedger> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["market", getAddressDecoder()],
     ["marketIndex", getU8Decoder()],
@@ -117,6 +128,7 @@ export function getMarketLedgerDecoder(): FixedSizeDecoder<MarketLedger> {
     ["fees", getU64Decoder()],
     ["insuranceFeeRemainder", getU8Decoder()],
     ["version", getU64Decoder()],
+    ["liabilityVersion", getU64Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -199,5 +211,5 @@ export async function fetchAllMaybeMarketLedger(
 }
 
 export function getMarketLedgerSize(): number {
-  return 109;
+  return 125;
 }

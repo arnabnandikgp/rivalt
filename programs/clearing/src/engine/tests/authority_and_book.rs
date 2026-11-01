@@ -233,7 +233,10 @@ fn whole_book_sums_both_market_reserves_and_rejects_missing_or_wrong_market() {
     let both = book::place_with_environment(&first, &eth, 2, order_terms(1), 0).unwrap();
     assert_eq!(both.reserved, 120_300); // Plus 10*(31,000-29,700+3,030)+200.
     assert!(model(&both).unwrap().withdraw(1, eth.risks()).is_err());
-    assert!(book::place(&root, &markets[0], 0, 100, 1, order_terms(0)).is_err());
+    // A cross root with no ETH obligations can place using BTC alone. Once ETH
+    // authority exists, neither cancellation nor a new BTC action can omit it.
+    assert_eq!(book::place(&root, &markets[0], 0, 100, 1, order_terms(0)).unwrap().reserved, 76_800);
+    assert!(book::cancel(&both, &markets[0], 100, 1, 1, false, true).is_err());
     assert!(book::replace_with_environment(&both, &eth, 1, 1, order_terms(0), 0).is_err());
     assert!(book::cancel_with_environment(&both, &eth, 1, 1, false).is_err());
     let mut wider = book_markets();

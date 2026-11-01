@@ -13,7 +13,7 @@ console.log(JSON.stringify({
     rustcSha256: hash(`${sbf}/rust/bin/rustc`), clangSha256: hash(`${sbf}/llvm/bin/clang`) },
   binarySha256: Object.fromEntries([
     '.tools/bin/anchor', '.tools/agave/solana-release/bin/solana', '.tools/agave/solana-release/bin/cargo-build-sbf',
-    '.tools/surfpool/surfpool', '.tools/node/node-v24.22.0-darwin-arm64/bin/node',
+    '.tools/surfpool-1.7.0/surfpool', '.tools/node/node-v24.22.0-darwin-arm64/bin/node',
   ].map(path => [path, hash(path)])),
   installedDependencies: JSON.parse(run('node', ['ops/check-dependencies.mjs', ...process.argv.slice(2)])),
 }, null, 2));

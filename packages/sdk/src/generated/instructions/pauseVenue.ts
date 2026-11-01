@@ -81,7 +81,7 @@ export type PauseVenueInstruction<
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
       TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
+        ? ReadonlyAccount<TAccountCustody>
         : TAccountCustody,
       TAccountSafety extends string
         ? WritableAccount<TAccountSafety>
@@ -252,7 +252,7 @@ export async function getPauseVenueInstructionAsync<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: true },
     btcLedger: {
@@ -488,7 +488,7 @@ export function getPauseVenueInstruction<
     custody: {
       value: input.custody ?? null,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: true },
     btcLedger: {

@@ -286,6 +286,7 @@ pub(crate) fn candidate_for_version(
             ClearingError::Alias
         );
         book::validate(maker)?;
+        environment.validate(maker)?;
         models.push(model(maker)?);
         require!(
             quote.version == quote_version
@@ -335,7 +336,7 @@ pub(crate) fn candidate_for_version(
         ClearingError::RouteLimit
     );
     let mut trader_next = Box::new(trader.clone());
-    commit_model(&mut trader_next, next)?;
+    super::markets::commit_model(&mut trader_next, next, environment.markets)?;
     if let Some(index) = order_index {
         book::consume(&mut trader_next, index, intent.lots, gross, fee)?;
     }

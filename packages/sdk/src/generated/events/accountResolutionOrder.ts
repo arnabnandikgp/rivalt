@@ -34,7 +34,7 @@ import {
 } from "@solana/kit";
 
 export const ACCOUNT_RESOLUTION_ORDER_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([255, 128, 154, 229, 22, 34, 225, 38]);
+  new Uint8Array([58, 218, 3, 89, 236, 139, 2, 138]);
 
 export function getAccountResolutionOrderEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -44,7 +44,6 @@ export function getAccountResolutionOrderEventDiscriminatorBytes(): ReadonlyUint
 
 export type AccountResolutionOrderEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   epoch: bigint;
   orders: Array<Array<number>>;
@@ -52,7 +51,6 @@ export type AccountResolutionOrderEvent = {
 
 export type AccountResolutionOrderEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   epoch: number | bigint;
   orders: Array<Array<number>>;
@@ -63,7 +61,6 @@ export function getAccountResolutionOrderEventEncoder(): Encoder<AccountResoluti
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["epoch", getU64Encoder()],
       [
@@ -80,7 +77,6 @@ export function getAccountResolutionOrderEventDecoder(): Decoder<AccountResoluti
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["epoch", getU64Decoder()],
       [

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { getBase58Decoder, getTransactionDecoder, getCompiledTransactionMessageDecoder } from '@solana/kit';
-import { Connection, VersionedTransaction } from '@solana/web3.js';
+import { Connection, VersionedTransaction, type Keypair } from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import { payerKey } from './harness.js';
 import type { CanonicalHarness } from './canonical-maker-cases.js';
@@ -12,6 +12,9 @@ export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: 
   options: { computeUnitLimit?: (label: string,instructions: readonly unknown[]) => number;
     maxLoadedAccounts?: (label: string) => number | undefined;
     observeOutcomes?: (label: string) => boolean;
+    beforeBroadcast?: (label: string) => Promise<void>;
+    signedOriginal?: (label: string, signature: string) => void;
+    payerFor?: (label: string) => Keypair | undefined;
     deferFinality?: boolean } = {}) {
 assert.equal(new URL(url).hostname, '127.0.0.1');
 const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
@@ -35,17 +38,20 @@ const h: CanonicalHarness = {
   },
   async send(label, instructions, signers = [], expectedError) {
     if (verificationError) throw verificationError;
-    const transactionIndex = nextTransaction++;
     const started = performance.now();
     const observeOutcome = options.observeOutcomes?.(label) ?? false;
     const computeUnitLimit = options.computeUnitLimit?.(label,instructions)
       ?? (label.startsWith('reprice ') ? 100_000 : instructions.length > 1 && label.startsWith('atomic') ? 800_000 : 400_000);
-    const { transaction, v0Bytes, wireBytes } = await sdk.signCanonicalInstructions(connection, payer, instructions,
+    const { transaction, v0Bytes, wireBytes } = await sdk.signCanonicalInstructions(connection, options.payerFor?.(label) ?? payer, instructions,
       { computeUnitLimit, loadedAccountsDataSizeLimit: 8 * 1024 * 1024 }, signers);
     const wire = transaction.serialize(), wireBase64 = Buffer.from(wire).toString('base64');
     const signedAt = performance.now();
     let confirmedMs: number | undefined;
     const expectedSignature = getBase58Decoder().decode(transaction.signatures[0]);
+    // A load generator can classify identical signed offers before they create
+    // a second receipt/fee observation. Ordinary acceptance rejects duplicates.
+    options.signedOriginal?.(label, expectedSignature);
+    const transactionIndex = nextTransaction++;
     const saved = { label, wireBase64, signature: expectedSignature, version: transaction.version, v0Bytes, wireBytes };
     writeFileSync(`${runDir}/wire-${transactionIndex}.json`, serialize(saved));
     console.log(`${transactionIndex}: ${label}: v${transaction.version} ${wireBytes} bytes (v0 ${v0Bytes})`);
@@ -59,12 +65,15 @@ const h: CanonicalHarness = {
     const signatureSubscription = await ws.call('signatureSubscribe', [expectedSignature,
       { commitment: 'finalized', enableReceivedNotification: false }]);
     const notificationOffset = ws.notifications.length;
+    await options.beforeBroadcast?.(label);
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
     assert.equal(signature, expectedSignature);
     const verify = async () => {
+    let finalizedAt: number;
     try {
       await eventually(() => rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
         response => response.value[0]?.confirmationStatus === 'finalized', label);
+      finalizedAt = performance.now();
     } catch (error) {
       // Preserve the actual commitment/expiry state when a local runtime stalls;
       // neither a timeout nor a successful simulation proves final execution.
@@ -79,6 +88,7 @@ const h: CanonicalHarness = {
     }
     const history = await eventually(() => rpc.call('getTransaction', [signature,
       { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]), value => Boolean(value), `fetch ${label}`);
+    const receiptFetchedAt = performance.now();
     // Preserve a landed result even when a later resource or parity check fails.
     writeFileSync(`${runDir}/transaction-${transactionIndex}.json`, serialize(history));
     const loadedAccounts = new Set([...history.transaction.message.accountKeys,
@@ -109,6 +119,8 @@ const h: CanonicalHarness = {
     checks[transactionIndex] = { label, signature, version: transaction.version, v0Bytes, bytes: wireBytes,
       error: history.meta.err, confirmationMs: performance.now() - started, computeUnits: history.meta.computeUnitsConsumed, computeUnitLimit,
       buildSignMs: signedAt - started, signedToConfirmedMs: confirmedMs, simulationError: simulation.value.err,
+      signedToFinalizedMs: finalizedAt - signedAt, finalizedReceiptFetchMs: receiptFetchedAt - finalizedAt,
+      finalizedToWsAuditMs: performance.now() - finalizedAt,
       loadedAccounts, feeLamports: String(history.meta.fee), signatures: transaction.signatures.length, ws: true, wsErrorMatchesFinalized, wsError: notification.params.result.value.err, signatureWsError: signatureNotification.params.result.value.err };
     conformance.record(instructions, history);
     latestHistory = history;

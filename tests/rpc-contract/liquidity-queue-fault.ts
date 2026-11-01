@@ -5,6 +5,7 @@ import {createWriteStream} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 import type {AccountRuntime} from '../../packages/services/src/account-runtime.js';
 import {eventually} from './wire.js';
+import {dispatchAccess} from '../../packages/services/src/dispatch.js';
 
 /** Kill a real executor after upstream accepted the original, before its HTTP
  * acknowledgement. Restart must retrieve that original, never rebuild it. */
@@ -19,7 +20,10 @@ export async function liquidityQueueFault(runtime:AccountRuntime,config:{databas
       const call=JSON.parse(body);
       if(call.method==='sendTransaction'&&call.params[0]===original.wire) {
         const row=(await runtime.store.pool.query('SELECT wire FROM service_intents WHERE run_id=$1 AND request_id=$2',[runtime.runId,requestId])).rows[0];
-        assert.equal(row.wire,original.wire);persisted=true;broadcasts.push(call.params[0]);
+        assert.equal(row.wire,original.wire);
+        const access=(await runtime.store.pool.query('SELECT address,writable FROM service_dispatch_access WHERE run_id=$1 AND request_id=$2',[runtime.runId,requestId])).rows;
+        assert.deepEqual(access.sort((a,b)=>a.address.localeCompare(b.address)),dispatchAccess(original.wire),'Durable access committed before crash');
+        persisted=true;broadcasts.push(call.params[0]);
       }
       const upstream=await fetch(config.rpcUrl,{method:'POST',headers:{'content-type':'application/json'},body});
       const payload=await upstream.text();

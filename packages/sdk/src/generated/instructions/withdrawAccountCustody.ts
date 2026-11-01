@@ -93,10 +93,10 @@ export type WithdrawAccountCustodyInstruction<
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
       TAccountBtcLedger extends string
-        ? ReadonlyAccount<TAccountBtcLedger>
+        ? WritableAccount<TAccountBtcLedger>
         : TAccountBtcLedger,
       TAccountEthLedger extends string
-        ? ReadonlyAccount<TAccountEthLedger>
+        ? WritableAccount<TAccountEthLedger>
         : TAccountEthLedger,
       TAccountMargin extends string
         ? WritableAccount<TAccountMargin>
@@ -183,8 +183,8 @@ export type WithdrawAccountCustodyAsyncInput<
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
+  btcLedger?: TAccountBtcLedger;
+  ethLedger?: TAccountEthLedger;
   margin: TAccountMargin;
   quoteMint: TAccountQuoteMint;
   vault?: TAccountVault;
@@ -310,12 +310,12 @@ export async function getWithdrawAccountCustodyInstructionAsync<
     btcLedger: {
       value: input.btcLedger ?? null,
       isSigner: false,
-      isWritable: false,
+      isWritable: true,
     },
     ethLedger: {
       value: input.ethLedger ?? null,
       isSigner: false,
-      isWritable: false,
+      isWritable: true,
     },
     margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
     quoteMint: {
@@ -490,8 +490,8 @@ export type WithdrawAccountCustodyInput<
   venue: TAccountVenue;
   custody: TAccountCustody;
   safety: TAccountSafety;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
+  btcLedger?: TAccountBtcLedger;
+  ethLedger?: TAccountEthLedger;
   margin: TAccountMargin;
   quoteMint: TAccountQuoteMint;
   vault: TAccountVault;
@@ -615,12 +615,12 @@ export function getWithdrawAccountCustodyInstruction<
     btcLedger: {
       value: input.btcLedger ?? null,
       isSigner: false,
-      isWritable: false,
+      isWritable: true,
     },
     ethLedger: {
       value: input.ethLedger ?? null,
       isSigner: false,
-      isWritable: false,
+      isWritable: true,
     },
     margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
     quoteMint: {
@@ -751,8 +751,8 @@ export type ParsedWithdrawAccountCustodyInstruction<
     venue: TAccountMetas[1];
     custody: TAccountMetas[2];
     safety: TAccountMetas[3];
-    btcLedger: TAccountMetas[4];
-    ethLedger: TAccountMetas[5];
+    btcLedger?: TAccountMetas[4] | undefined;
+    ethLedger?: TAccountMetas[5] | undefined;
     margin: TAccountMetas[6];
     quoteMint: TAccountMetas[7];
     vault: TAccountMetas[8];
@@ -787,6 +787,12 @@ export function parseWithdrawAccountCustodyInstruction<
     accountIndex += 1;
     return accountMeta;
   };
+  const getNextOptionalAccount = () => {
+    const accountMeta = getNextAccount();
+    return accountMeta.address === CLEARING_PROGRAM_ADDRESS
+      ? undefined
+      : accountMeta;
+  };
   return {
     programAddress: instruction.programAddress,
     accounts: {
@@ -794,8 +800,8 @@ export function parseWithdrawAccountCustodyInstruction<
       venue: getNextAccount(),
       custody: getNextAccount(),
       safety: getNextAccount(),
-      btcLedger: getNextAccount(),
-      ethLedger: getNextAccount(),
+      btcLedger: getNextOptionalAccount(),
+      ethLedger: getNextOptionalAccount(),
       margin: getNextAccount(),
       quoteMint: getNextAccount(),
       vault: getNextAccount(),

@@ -31,6 +31,7 @@ import {
 
 export type FundingPublisherPayload = {
   schemaVersion: number;
+  revision: bigint;
   venue: Address;
   market: Address;
   publisher: Address;
@@ -44,6 +45,7 @@ export type FundingPublisherPayload = {
 
 export type FundingPublisherPayloadArgs = {
   schemaVersion: number;
+  revision: number | bigint;
   venue: Address | HasAddress;
   market: Address | HasAddress;
   publisher: Address | HasAddress;
@@ -58,6 +60,7 @@ export type FundingPublisherPayloadArgs = {
 export function getFundingPublisherPayloadEncoder(): FixedSizeEncoder<FundingPublisherPayloadArgs> {
   return getStructEncoder([
     ["schemaVersion", getU16Encoder()],
+    ["revision", getU64Encoder()],
     ["venue", getAddressEncoder()],
     ["market", getAddressEncoder()],
     ["publisher", getAddressEncoder()],
@@ -73,6 +76,7 @@ export function getFundingPublisherPayloadEncoder(): FixedSizeEncoder<FundingPub
 export function getFundingPublisherPayloadDecoder(): FixedSizeDecoder<FundingPublisherPayload> {
   return getStructDecoder([
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["market", getAddressDecoder()],
     ["publisher", getAddressDecoder()],

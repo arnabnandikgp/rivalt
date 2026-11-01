@@ -39,6 +39,8 @@ import {
 
 export type MarginAccount = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   portfolio: Address;
   owner: Address;
@@ -63,6 +65,8 @@ export type MarginAccount = {
 
 export type MarginAccountArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   portfolio: Address | HasAddress;
   owner: Address | HasAddress;
@@ -88,6 +92,7 @@ export type MarginAccountArgs = {
 export function getMarginAccountEncoder(): FixedSizeEncoder<MarginAccountArgs> {
   return getStructEncoder([
     ["schemaVersion", getU16Encoder()],
+    ["revision", getU64Encoder()],
     ["venue", getAddressEncoder()],
     ["portfolio", getAddressEncoder()],
     ["owner", getAddressEncoder()],
@@ -112,6 +117,7 @@ export function getMarginAccountEncoder(): FixedSizeEncoder<MarginAccountArgs> {
 export function getMarginAccountDecoder(): FixedSizeDecoder<MarginAccount> {
   return getStructDecoder([
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["portfolio", getAddressDecoder()],
     ["owner", getAddressDecoder()],

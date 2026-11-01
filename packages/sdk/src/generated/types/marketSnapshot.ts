@@ -44,6 +44,7 @@ import {
 
 export type MarketSnapshot = {
   schemaVersion: number;
+  revision: bigint;
   venue: Address;
   index: number;
   symbol: ReadonlyUint8Array;
@@ -66,6 +67,7 @@ export type MarketSnapshot = {
 
 export type MarketSnapshotArgs = {
   schemaVersion: number;
+  revision: number | bigint;
   venue: Address | HasAddress;
   index: number;
   symbol: ReadonlyUint8Array;
@@ -89,6 +91,7 @@ export type MarketSnapshotArgs = {
 export function getMarketSnapshotEncoder(): FixedSizeEncoder<MarketSnapshotArgs> {
   return getStructEncoder([
     ["schemaVersion", getU16Encoder()],
+    ["revision", getU64Encoder()],
     ["venue", getAddressEncoder()],
     ["index", getU8Encoder()],
     ["symbol", fixEncoderSize(getBytesEncoder(), 8)],
@@ -113,6 +116,7 @@ export function getMarketSnapshotEncoder(): FixedSizeEncoder<MarketSnapshotArgs>
 export function getMarketSnapshotDecoder(): FixedSizeDecoder<MarketSnapshot> {
   return getStructDecoder([
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["index", getU8Decoder()],
     ["symbol", fixDecoderSize(getBytesDecoder(), 8)],

@@ -63,7 +63,12 @@ fn no_liabilities(identity: &ResolutionIdentity, header: &Resolution, epoch: u64
     Ok(())
 }
 
-pub fn recover(ctx: Context<RecoverAccounts>, epoch: u64, resume: bool) -> Result<()> {
+pub fn recover(
+    ctx: &mut Context<RecoverAccounts>,
+    events: &mut crate::event_cpi::Payloads,
+    epoch: u64,
+    resume: bool,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     no_liabilities(&accounts.identity, &accounts.resolution, epoch)?;
@@ -121,17 +126,22 @@ pub fn recover(ctx: Context<RecoverAccounts>, epoch: u64, resume: bool) -> Resul
         accounts.resolution.safety_epoch = accounts.identity.safety.epoch;
         accounts.resolution.terms_epoch = accounts.identity.venue.terms_epoch;
     }
-    increment(&mut accounts.identity.custody.sequence)?;
+
     emit(
         &accounts.identity,
         &accounts.resolution,
         u8::from(resume),
         &clock,
+        events,
         accounts.event_authority.to_account_info(),
     )
 }
 
-pub fn reactivate(ctx: Context<RecoverAccounts>, epoch: u64) -> Result<()> {
+pub fn reactivate(
+    ctx: &mut Context<RecoverAccounts>,
+    events: &mut crate::event_cpi::Payloads,
+    epoch: u64,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     no_liabilities(&accounts.identity, &accounts.resolution, epoch)?;
@@ -169,12 +179,13 @@ pub fn reactivate(ctx: Context<RecoverAccounts>, epoch: u64) -> Result<()> {
     }
     accounts.identity.safety.mode = ACTIVE;
     increment(&mut accounts.identity.safety.epoch)?;
-    increment(&mut accounts.identity.custody.sequence)?;
+
     emit(
         &accounts.identity,
         &accounts.resolution,
         2,
         &clock,
+        events,
         accounts.event_authority.to_account_info(),
     )
 }
@@ -185,11 +196,12 @@ fn emit(
     header: &Resolution,
     kind: u8,
     clock: &Clock,
+    events: &mut crate::event_cpi::Payloads,
     authority: AccountInfo,
 ) -> Result<()> {
     let event = Box::new(crate::events::AccountSafetyRecovery {
         venue: identity.venue.key(),
-        sequence: identity.custody.sequence,
+
         slot: clock.slot,
         epoch: header.epoch,
         kind,
@@ -201,7 +213,10 @@ fn emit(
         stage: header.stage,
         recovery_since: identity.safety.recovery_since,
         recovery_last: identity.safety.recovery_last,
-        total_cash: identity.custody.total_cash,
+        total_cash: account_custody::accounted_cash(
+            &identity.custody,
+            [&identity.btc_ledger, &identity.eth_ledger],
+        )?,
         allocated_vault: identity.custody.allocated_vault,
         actual_vault: identity.vault.amount,
         markets: [
@@ -209,7 +224,7 @@ fn emit(
             crate::events::MarketSnapshot::from(&**identity.eth),
         ],
     });
-    crate::event_cpi::emit(&*event, authority)
+    events.emit(&*event, authority)
 }
 
 #[cfg(test)]

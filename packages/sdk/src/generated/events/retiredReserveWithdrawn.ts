@@ -32,7 +32,7 @@ import {
 } from "@solana/kit";
 
 export const RETIRED_RESERVE_WITHDRAWN_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([167, 139, 59, 103, 37, 196, 95, 47]);
+  new Uint8Array([213, 243, 125, 15, 120, 146, 238, 160]);
 
 export function getRetiredReserveWithdrawnEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -42,7 +42,6 @@ export function getRetiredReserveWithdrawnEventDiscriminatorBytes(): ReadonlyUin
 
 export type RetiredReserveWithdrawnEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   authority: Address;
   destination: Address;
@@ -52,14 +51,12 @@ export type RetiredReserveWithdrawnEvent = {
   fees: bigint;
   feeRemainder: number;
   ledgerVersion: bigint;
-  totalCash: bigint;
   allocatedVault: bigint;
   actualVault: bigint;
 };
 
 export type RetiredReserveWithdrawnEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   authority: Address | HasAddress;
   destination: Address | HasAddress;
@@ -69,7 +66,6 @@ export type RetiredReserveWithdrawnEventArgs = {
   fees: number | bigint;
   feeRemainder: number;
   ledgerVersion: number | bigint;
-  totalCash: number | bigint;
   allocatedVault: number | bigint;
   actualVault: number | bigint;
 };
@@ -79,7 +75,6 @@ export function getRetiredReserveWithdrawnEventEncoder(): FixedSizeEncoder<Retir
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["authority", getAddressEncoder()],
       ["destination", getAddressEncoder()],
@@ -89,7 +84,6 @@ export function getRetiredReserveWithdrawnEventEncoder(): FixedSizeEncoder<Retir
       ["fees", getU64Encoder()],
       ["feeRemainder", getU8Encoder()],
       ["ledgerVersion", getU64Encoder()],
-      ["totalCash", getU64Encoder()],
       ["allocatedVault", getU64Encoder()],
       ["actualVault", getU64Encoder()],
     ]),
@@ -102,7 +96,6 @@ export function getRetiredReserveWithdrawnEventDecoder(): FixedSizeDecoder<Retir
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["authority", getAddressDecoder()],
       ["destination", getAddressDecoder()],
@@ -112,7 +105,6 @@ export function getRetiredReserveWithdrawnEventDecoder(): FixedSizeDecoder<Retir
       ["fees", getU64Decoder()],
       ["feeRemainder", getU8Decoder()],
       ["ledgerVersion", getU64Decoder()],
-      ["totalCash", getU64Decoder()],
       ["allocatedVault", getU64Decoder()],
       ["actualVault", getU64Decoder()],
     ]),

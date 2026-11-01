@@ -21,6 +21,7 @@ below; P37's fresh integrated qualification after retirement is recorded separat
 | Current execution | `bash ops/liquidity-execution-smoke.sh` and affected full-book variants |
 | Maker CPI isolation | `node --import tsx tests/rpc-contract/liquidity-hostile-svm.ts`; compiled fault injection, distinct from real RPC landing/upgrade evidence |
 | Account/default arithmetic | Independent Fraction/bounded integer cases in `tests/financial/`, actual account safety handlers and compiled/RPC tests |
+| Durable dispatch/conflict scheduling | `bash ops/dispatch-smoke.sh`, scoped `dispatch`, queue and expiry-authority tests; P40A acceptance tracked separately |
 | Services/wallet/replay | `bash ops/liquidity-services-smoke.sh`, independent `tests/financial/p33_services_reference.py` |
 | Default/recovery/exits | `bash ops/liquidity-operations-smoke.sh`, independent `tests/load/p34_operations_report.py` |
 | Bounded comparison when changed behavior warrants it | `bash ops/liquidity-qualification-smoke.sh`, `tests/load/p34_report.py` |
@@ -32,6 +33,374 @@ PostgreSQL reconstruction and browser signing prove different layers. Record all
 failed/omitted attempts and why checks were skipped. Do not relabel simulation as
 landing or a historical capture as a fresh run. Scoped hosted CI supplements these
 checks; current workflow selection lives in `ops/ci-scope.py`.
+
+## Performance redesign checkpoint
+
+P39's [focused baseline](performance.md#current-results) uses clean harness
+`0ac6511` and unchanged hash-verified SBF `828fe543` on actual Surfpool RPC/WS.
+Twelve measured signed outcomes include one expected stale-account rejection;
+all actual receipts/wires agree. Eight-root cash/claims, 83 fee atoms and the
+25% insurance carry reconcile independently. The complete static inventory covers
+61 entrypoints; only the named twelve cases have new CU measurements. Separate
+payer versus protocol locks are recorded. No PostgreSQL, throughput, full
+instruction-profile or Anchor v2 claim follows from this focused audit.
+
+P40A service code at **`9134fd6aceed0b910b556bfb24c52134b5b280d0`** passes actual
+Surfpool RPC/WS/PostgreSQL dispatch: two independent originals progress concurrently
+under duplicate executors, shared-payer conflicts defer, expired nonexecution
+releases access but retains a 20,000-lamport fee reserve, and actual SIGKILL after
+upstream acceptance recovers the same cash-withdrawal original. Eight queue
+originals yield six successes, one charged on-chain rejection and one proven
+unexecuted expiry. Cash reconciles to 7,999,993 atoms; operator fees are 60,000
+lamports. Fresh 61-event PostgreSQL replay matches. The RPC harness separately
+verifies 106 signed setup/price-advance outcomes on unchanged SBF `828fe543`.
+
+The SQL follow-up at **`a2860f93af6190ba116ad752a6e26359305abce0`** checks read/read,
+W/W and both W/R directions, committed reservation persistence, rejection of
+ambiguous legacy queues and idempotent activation after their known receipt. Those
+encoded access fixtures are not additional financial executions. Fourteen scoped
+consumer tests and typecheck pass. Raw records remain under
+`.local/liquidity-execution/runs/p40a-dispatch-9134fd6/` (`dispatch.json` and
+`dispatch-database.json`); owned processes/ports are released. P40B event migration,
+validator scheduler throughput, broad financial/build/browser checks and endurance
+are outside this service-only acceptance. The current global on-chain writes remain.
+
+### Scoped history acceptance (P40B)
+
+Fresh schema-5 accounts and SQL journal format 2 use no global writable discovery
+counter. Native layout/source coverage binds all 17 headers, 42 contexts and 53
+clearing entrypoints. The independent ABI delta derives from immutable P40A
+`f8984e0`; generated SDK parity and relevant legacy Anchor encodings pass. Twenty
+sequence-only custody writers become readonly; 30 economic/administrative writers
+remain. No old state/database is reinterpreted.
+
+- `02bbdec` with SBF `ba2f15f`: separate actual journal and live indexer runs, each
+  120 signed outcomes and 72-event fresh PostgreSQL replay. SQL rollback, duplicate
+  byte checks, restart, reverted-effect exclusion and 70-account/eight-root live
+  reconciliation pass. Exact initial backing is 8,000,000 atoms; fees are 26 atoms.
+- `a44b26b` with SBF `6123dc8`: independent custody/insurance/token audit passes
+  57 signed outcomes and eight corruptions. Multichunk tests use 109 encoded
+  accounts, advancing unrelated slots and relevant revision/unversioned-byte races;
+  these are transport fixtures, not additional financial executions.
+- Final clean verifier `b495b38`, SBF **`304da5c`**: 57 signed same-slot/nested-CPI/
+  retirement outcomes, including two batches of three originals in one slot,
+  later-CPI rollback, zero-payload storage, pause-epoch proof invalidation and cash
+  exit. Live PostgreSQL reconciliation covers 32 accounts/six roots, 5,999,999 atoms;
+  51-event fresh replay matches. Anchor checks 49 clearing encodings, three account
+  codecs and 97 events, plus makers.
+- The same final pins pass 290 safety outcomes (267 successes, 23 expected rejects):
+  TP/SL, reservations, whole-account liquidation, complete two-market eight-root
+  default, stale-source resolved exit and recovery/reactivation. Independent Fraction
+  audit checks all payouts and ten corruptions. Anchor checks 266 clearing encodings,
+  two account codecs and 487 events, plus makers. Max observed 477,424 CU; two-row
+  Apply max 268,620 CU. A retained-receipt projection regression separately compares
+  five raw-state boundaries, excluding one uncaptured portfolio; no new live SQL or
+  complete-block proof is attributed to that offline comparison.
+
+Final clearing is 2,452,824 bytes; makers are 261,056 each. Artifact hashes are in
+SDK pins and retained manifests. The first two-row Apply failed on 32 KiB heap;
+borrowed row/footer serialization fixes it without changing bytes, heap or CU limits.
+Four borrowed-payload parity tests and seven footer/header cases include the maximum
+32-entity footer. Default SBF initialization remains rejected in all three programs.
+The earlier retirement projection initialization bug after zero-payload storage is
+also fixed and regression-tested. Failed attempts remain alongside successful runs.
+
+D85 changes Surfpool to checksum-pinned 1.7.0 (core 4.3.2, feature 3383571666) because
+1.6.1 inconsistently reconstructed empty-block parent hashes. Full bodies also match
+separate signature manifests. P39 measurements are not a same-runtime comparison.
+Raw evidence stays under `.local/liquidity-execution/runs/p40b-*`; owned RPC/WS/PG
+processes are stopped. No browser, full P44 instruction/resource coverage, validator
+scheduler throughput, funded deployment or endurance result is claimed. Scoped
+client/typecheck/generation/source/ABI checks pass; broad regressions run in CI.
+
+### Relevant-market acceptance (P41)
+
+Schema 6 preserves account layouts/seeds while optional canonical market contexts
+and four explicit partial payloads remove unrelated source/funding dependencies.
+The D86 ABI delta is checked against immutable P40B `d55ab82`. Independent omitted
+one-scaled-unit claims, live orders and receiver dependencies reject; absent empty
+slots retain their checkpoint/generation and reservation observations.
+
+Clean SBF **`b0c5675f9e511c1d46a6538d22ced16241d6a4f8`** builds default/qualified
+programs, IDLs and generated SDK. Clearing is 2,472,208 bytes; SHA-256
+`03c475ba72dcc77244ed32b2fc3c79c9ffe58ac0ae0ca90cb06e96d313d11e03`.
+The first order handler exceeded the 4 KiB frame by 240 bytes; borrowing typed
+markets removes duplicate snapshots. No heap/CU limit or admission check changes.
+All three compiled default initialization gates reject. Native coverage comprises
+112 passing clearing cases followed by eight affected trading cases including the
+new independent negative-prefix/expiry vector; these counts overlap.
+
+- Clean verifier **`ca8bab092ae6bc17b0ba982181a4a8c58f4df3f9`**: 167 actual RPC/WS
+  outcomes, 161 successes/six expected rejections; both isolated markets, coupled
+  cross roots, transfers/exits, orders/protection, negative funding, actual hold
+  expiry/revocation, complete backing, gain payment and explicit flat netting.
+  Ten omission cases check signed-message/footer absence and unchanged market bytes.
+  Fresh PostgreSQL replay matches all 115 events and reconciles 73 accounts/nine
+  members. Literal cash 7,998,935 + pools 999/4 + insurance 9/5 + retained fees
+  30/15 equals actual/allocated vault 7,999,997 atoms; fee carries are 3/0.
+  Exact quantity and checkpoint-adjusted claim identities pass in both markets.
+  Anchor independently checks 148 clearing encodings/257 events plus both makers.
+- Clean safety verifier **`078057ae4f0581dfed0228dd098f442d18c99093`**, same SBF:
+  290 signed outcomes, 267 successes/23 expected rejections, TP/SL/reservations,
+  strict post-fee liquidation, complete eight-root default, cash exit and recovery.
+  Independent raw-byte Fraction audit verifies eight payouts and ten corruptions.
+  Anchor checks 266 clearing encodings, two account codecs and 487 events plus
+  makers. Offline projection matches five raw-body boundaries, with one explicitly
+  uncaptured portfolio; it is not additional live SQL/block-fence evidence.
+
+Maximum observed CU is 276,058 in the dependency probe and 480,324 in safety;
+these are scoped observations, not P44 full-path bounds or validator throughput.
+The first claim probe landed all effects then found a revision-less certificate
+payload projection error. The corrected reader binds it to the authenticated
+footer; 13 affected projection cases pass, followed by the fresh successful probe.
+Current typecheck, generation, source coverage, explicit ABI and inventory checks
+pass. The legacy payload itself and on-chain settlement logic were unchanged by
+that repair.
+
+Raw records remain under `.local/liquidity-execution/runs/p41-claims-revision/`,
+`p41-safety/` and retained failed/earlier attempts; build/check logs use `.local/p41-*`.
+Owned RPC/WS/PostgreSQL processes stop after each run. Broader browser, services,
+full-cohort resources and endurance are not rerun for this phase; P44 owns final
+integration and full profiling. Custody/ledger coupling and continuous-activity
+certificate progress remain P42. External/funded gates are unchanged.
+
+## Custody isolation acceptance (P42)
+
+D87's schema-7 implementation is qualified for its scoped local acceptance only.
+Clean SBF source **`6aeb7d0cf645fca889a9e3154ac01a129a72a6a8`** builds qualified and
+still-disabled default programs without oversized frames. Qualified clearing is
+2,482,344 bytes, SHA-256
+`d9c83864f5d3b0c5e7dcfa0100486335b1c96c583b62f9c68054318cf3169bcb`.
+The explicit D87 ABI delta against immutable P41, generated SDK, eleven ABI guard
+regressions, 53-entrypoint/43-context scope coverage and all three compiled default
+gates pass. Current static inventory covers 61 entrypoints and 20 custody writers.
+All 114 native clearing cases pass on final source. Seventy-one affected client,
+projection and Anchor cases pass; four dependency-builder cases overlap three of
+those, and one additional worker case verifies atomic final-page/payment enqueue.
+The separate custody conformance case passes eleven current instruction/meta
+comparisons against isolated Anchor; its obsolete context-name fixture is updated.
+
+| Clean verifier / local run | Actual acceptance |
+|---|---|
+| `569ed3e` / `p42-custody-distinct/` | 207 RPC/WS outcomes: 196 successes, 11 expected rejections; ten market omission cases, cross funding/claims, exact fractions/netting and atomic certificate/payment with later-instruction rollback. Fresh PostgreSQL replay matches 149 events; 75 accounts/ten members reconcile allocated/actual V=8,099,997 atoms |
+| `569ed3e` / `p42-safety/` | 290 outcomes: 267 successes, 23 expected rejections; TP/SL, reservations, strict post-fee liquidation, complete eight-root default, stale-source resolved cash exit and recovery/reactivation. Independent raw-byte Fraction audit verifies eight payouts and rejects ten corruptions |
+| `6fbc5d6` / `p42-journal-treasury/` | 124 signed outcomes, five expected rejections; selected-market T→I allocation and actual fee exit retain authority and exact carry. Real SQL write rollback, shutdown/RPC backfill, failed-effect exclusion and identical 74-event fresh replay; 121 clearing-discovered transactions, zero unresolved |
+| `6fbc5d6` / `p42-retirement/` | 63 outcomes, seven expected rejections; nested CPI/second-call rollback, two same-slot batches, pause-bound complete-member retirement, cash exit, wrong reserve authority/destination rejection and actual 11-atom selected reserve exit. Fresh 53-event SQL replay; 32 accounts/six members, actual/allocated V=5,999,999 |
+| `72e2d18` / `p42-custody-alias/` | 57 signed gateway outcomes, 25 committed custody events, independent SPL/root/pool identities and eight rejected raw-state corruptions. Isolated legacy Anchor account/event parity passes |
+
+All run directories above are under `.local/liquidity-execution/runs/`; logs remain
+`.local/p42-*`. Each run uses the same hash-verified SBF source. Safety's separate
+retained-receipt projection matches five lifecycle boundaries/68 entities with one
+explicitly uncaptured portfolio; this is not additional live SQL/block-fence evidence.
+
+Actual distinct-owner/payer BTC/ETH trades have no protocol **or complete-message**
+W/W or W/R overlap. Same-market exact fee/exposure ordering and genuinely cross
+roots still couple dependencies. Internal routes preserve custody/vault bytes.
+Atomic final-page/payment is **118,337 CU, 604 bytes**, including a beneficiary
+promoted writable by the later instruction. A later failed instruction rolls back
+both proof and payout. The worker queues both as one immutable original.
+
+Certificate progress has an explicit residual: **four constructed attempts** include
+three deliberately interleaved new source observations, all correctly rejected,
+and one coordinated-window completion. This is not normal offered availability,
+a trading load rate or proof of progress under unbounded sampling. Earlier scan
+pages still require stable relevant observations/liabilities; no stale payment or
+oracle relaxation is introduced. Funded own-cash withdrawal needs no certificate.
+
+Maximum observed CU is 274,817 in the dependency run and 479,015 in safety; treasury
+allocation/fee exit are 17,282/30,465 CU, retired reserve exit 33,493 CU. These are
+scoped observations, not P44 full-path bounds or validator TPS. The first dependency
+fixture correctly hit self-trade prohibition; a third independently funded owner
+fixes that fixture. The gateway's old seed-error expectation was corrected to
+Anchor's earlier duplicate-writable rejection (2040). Failed receipts remain local;
+no admission rule changed to obtain a pass.
+
+No broad unrelated, browser, full-cohort resource or endurance suite is rerun for
+P42. CI owns broad regression; P43/P44 own targeted optimization and fresh complete
+qualification. Default/devnet and external/funded gates remain unchanged.
+
+## Targeted CU acceptance (P43)
+
+The optimization consolidates checked whole-account accrual/admission and reuses an
+unchanged book-binding model. It preserves input/output/position bounds, per-market
+IM rounding, reservations, funding and negative-claim admission. No positive unpaid
+credit, changed code trust, ABI/layout, risk setting or compiler migration is added.
+
+Clean uninstrumented SBF source **`fb5d0c546a417796ce615e0d3d3575545c96c178`** builds
+qualified/default programs without oversized frames. Clearing is 2,484,144 bytes,
+SHA-256 `a9a8f59e5e5fa93c4657ed25313f99199827d1e1ecf56e2f8b8ebb2caa6305f4`;
+its size increases by 1,800 bytes. Maker and oracle hashes remain exactly P42's.
+Regenerated IDL/SDK and the explicit wire contract are unchanged. All three compiled
+default gates still reject valid initialization with rollback.
+
+Clean before harness **`1c9c931`** / P42 SBF `6aeb7d0` and after harness
+**`1e86661`** / P43 SBF `fb5d0c5` each pass 117 actual setup outcomes and twelve
+focused signed RPC/WS cases. Receipt/wire verification and legacy Anchor parity
+pass. Workload, Surfpool 1.7.0 runtime/features, IDL hashes, message shapes, requested
+CU, fees and seven lock comparisons match. Each run independently checks every
+root's lot/claim conservation, exact fee/insurance carry and actual token-vault
+backing. The cross-run summary comparator matches fee totals, aggregate root cash
+and root count; it does not compare individual root positions or vault bytes.
+The bounded [before](../../tests/performance/baselines/p43-before.json) and
+[after](../../tests/performance/baselines/p43-after.json) summaries are reproducible
+with `tests/performance/summarize.ts` and `tests/performance/compare.ts`.
+
+| Named state | Before CU | After CU | Reduction |
+|---|---:|---:|---:|
+| BTC single maker | 257,045 | 256,160 | 885 |
+| ETH single maker, same cross root after BTC | 274,817 | 273,918 | 899 |
+| Isolated BTC single maker | 265,335 | 264,666 | 669 |
+| Two makers, same program | 352,022 | 350,792 | 1,230 |
+| Two makers, distinct programs | 479,272 | 478,042 | 1,230 |
+| Place / cancel order | 46,968 / 39,203 | 46,352 / 38,925 | 616 / 278 |
+
+These are **small savings, one observation per named state**, not statistical or
+worst-case improvements. Repricing stays 18,250 CU and stale-account rejection
+33,313 CU. The two report observations each increase by one CU. Observed fees stay
+10,000 lamports with two signatures and zero priority bid; requested limits are
+unchanged, so no actual lamport saving is claimed.
+
+Diagnostic source **`132e086`** also passes that workload in an isolated artifact.
+Five authenticated trade receipts attribute about 131k CU to each distinct full
+maker-code hash, about 20k to the singleton financial candidate and 18k to maker CPI.
+The [attribution](../../tests/performance/baselines/p43-attribution.json) includes
+marker/compiler overhead and nested overlapping intervals; it is not headline CU.
+Two broader compiler-size experiments produced oversized frames and were rejected
+without deployment or SDK pinning. The full-code check and original compiler flags
+remain. Trace code is absent from ordinary builds; accepted artifacts are preserved.
+
+On clean verifier **`1e86661`**, the same uninstrumented source additionally passes:
+
+- 147 full protected-book RPC/WS outcomes and 165 full entry/stored-book outcomes,
+  each including six expected rejections. Three full books, two protections per
+  root where applicable, eight regions, 4,608-lot aggregate routes, 4,096-lot single
+  routes, skew crossing, unfunded-provider rollback and structural invalidation
+  retain independent per-lot gross/fee/claim checks. Maximum observations are
+  504,141 CU/1,196 bytes/v1 and 503,938 CU/1,099 bytes/v0 respectively. These cases
+  deliberately retain broad canonical market dependencies; they are conservative
+  resource cases, not minimum-packet production-router measurements.
+- 290 safety outcomes, 267 successes/23 expected rejections: full reservations,
+  post-fee liquidation, complete eight-root default, stale-source cash exit and
+  recovery/reactivation. The raw-byte Fraction audit verifies all eight payouts,
+  two augmentations and ten corruption rejections. Maximum observed CU is 477,798.
+  Retained-receipt projection matches five boundaries/68 entities, with one
+  explicitly uncaptured portfolio; this is not new SQL/block-fence evidence.
+- 38 affected financial-core cases, including 108 independently calculated
+  admission/accrual combinations and invalid-bound cases, plus all 114 clearing
+  native cases. Typecheck, generation/ABI, bounded evidence and documentation checks
+  pass. No broader unrelated client/browser/endurance suite is rerun locally.
+
+Raw receipts stay in `.local/liquidity-execution/runs/p43-{before,trace,after,safety,resources,resources-stored}/`;
+logs use `.local/p43-*`. All owned listeners stop after each run. SQL, service faults,
+complete entrypoint/variant coverage, latency/cost scenarios and full frozen
+qualification remain P44; inherited P42 or P16A results do not claim them complete.
+P15B/P16B, default/devnet gates and deferred endurance are unchanged.
+
+## Frozen pre-migration qualification (P44)
+
+This qualification reuses the **same uninstrumented programs** built from clean
+`fb5d0c546a417796ce615e0d3d3575545c96c178`; no P44 program or IDL change occurs.
+Clearing is 2,484,144 bytes, SHA-256
+`a9a8f59e5e5fa93c4657ed25313f99199827d1e1ecf56e2f8b8ebb2caa6305f4`.
+The bounded [B baseline](../../tests/performance/baselines/p44-pre-v2.json) pins
+all four hashes/sizes, current IDL hashes, exact clean verifier commits, retained
+summary hashes and per-entrypoint successful/reverted CU and transaction ranges.
+The P43 focused, full-book and safety constituents already use these exact binaries;
+they are included once, not represented as fresh P44 reruns. P39 remains immutable.
+
+Build pins are Anchor 1.2.1, host Rust 1.97.1, platform-tools 1.52 / SBF Rust 1.89.0
+(dev), SBPF v0 with the locked build script and no CU instrumentation. Runtime pins
+are Surfpool 1.7.0, Solana core 4.3.2 / features 3383571666, Agave CLI 4.1.2,
+Node 24.22.0, pnpm 10.23.0, web3.js 3.1.1, Kit 8.5.0 and PostgreSQL 18.6.
+Legacy Anchor conformance remains isolated on Anchor 1.2.1 / web3.js 1.99.0.
+Wide/hostile VM checks use LiteSVM 1.6.1 and are not RPC landing evidence.
+The hostile fixture first rejects an unapproved replacement, then fault-injects
+only its approval hash to test the admitted malicious CPI boundary.
+
+| Constituent | Clean verifier; local run directory | Verified outcome |
+|---|---|---|
+| Maker lifecycle | `f9d29f6`; `p44-makers/` | 123 actual signed RPC/WS outcomes; both programs, eight regions, controls, revoke/approve and legacy Anchor parity |
+| Complete 64-member default | `cbc132b`; `p44-complete-cohort/` | 712 signed outcomes / 11 expected rejections; actual source-emergency deadline, all stages, exit, 64 exact independent Fraction payouts and ten rejected corruptions |
+| Dependency/claim/certificate | `f3b73c2`; `p44-market-dependencies/` | 207 outcomes / 11 rejections, ten omitted-market cases, negative funding/revocation, atomic page/payment rollback; 149-event fresh PG replay, 8,099,997 vault atoms |
+| SQL journal and treasury | `f3b73c2`; `p44-journal/` | 124 outcomes / five rejections; SQL rollback, shutdown/backfill, failed-event exclusion and immutable identity; identical 74-event fresh PG replay |
+| Custody | `9470101`; `p44-custody-pinned/` | 57 signed scenarios, 25 committed events, actual selected-artifact provenance, independent raw-byte conservation/eight rejected corruptions and Anchor parity |
+| Retirement/reserve exit | `9470101`; `p44-retirement/` | 63 outcomes / seven rejections, same-slot/nested-CPI ordering, terminal reserve withdrawal; identical 53-event fresh PG replay, 5,999,999 vault atoms |
+| Current load / parallel indexing | `8b8c33f`; `p44-load-final/` | 1,008 offers, 465 unique signed outcomes, 430 fills, 2 live coherent cycles / 33 revision-ahead retries; exact independent root/fee/claim audit and identical 585-event fresh PG replay |
+| Initial direct offered load | `7e8d042`; `p44-load-first/` | 752 offers, 401 signed outcomes, 377 economic successes; exact per-root replay and identical 524-event fresh PG replay, 9,000,000 vault atoms |
+| Dispatch / SQL ordering | `f4490e9`; `p44-dispatch-fair/` | Two lanes, duplicate executors, shared-payer deferral, immutable oldest-waiter ordering, version-1 drain gate, real lost-ack/SIGKILL, expiry; identical 61-event fresh PG replay |
+| Services and independent economics | `a5afbc9`; `p44-services-parallel-history/` | 188 harness outcomes, 239 durable originals (236 success / three report rejections), all three actual SIGKILL recoveries, stored-order fill, rotation/revocation/budget handover, source outage/recovery and live indexer restart; identical 137-event fresh PG replay, 7,999,993 vault atoms |
+| Compiled hostile maker | `1cc2d6a`; `.local/liquidity-execution/hostile-svm.json` | Five rejected replacement/malicious-CPI cases with complete rollback across 114 signed VM transactions; all financial state provisioned by real instructions |
+| Current browser | `f4490e9`; `p44-services-fair/` | Ten finalized internal-wallet actions, BTC/ETH and both account modes, TP/SL/cancel, saved-receipt reload, direct withdrawal/deposit while both APIs blocked |
+
+Run directories above are under `.local/liquidity-execution/runs/`. Browser
+acceptance is bounded to its saved receipts and `browser-summary.json`; that run
+later fails unsigned order preparation and is **not** a complete service pass.
+The dispatch probe's one proven-unexecuted expired original retains its actual
+20,000-lamport unknown-fee reservation; it is not classified as fee-free.
+
+The separate width fixture at clean `f3b73c2`, `.local/p44-width-probe/`, verifies
+eight compiled cases on a copy of the captured full 64-row context: 2,796/5,632-bit
+common denominators, 186-bit rate factors and mixed signs. Maximum Verify/FlowPlan
+costs are 782,453/749,225 CU, 681-byte v0, requested 1.2m CU with at least 20%
+headroom. Only arithmetic scratch is constructed; no Apply/payout occurs and the
+original capture is unchanged. The actual 64-member lifecycle peaks at 364,614 CU;
+its 56 added roots are flat and receive real one-atom deposits. These complementary
+checks do not prove arbitrary maximum-width claims arise in a funded lifecycle.
+
+Independent service-only replay verifies all eight roots, literal BTC fees 25
+atoms (six insurance / nineteen protocol), cash 7,999,968 and vault 7,999,993;
+all positions finish flat and aggregate unpaid claims sum to zero. Six internal
+maker reports retain zero funded trading P&L and explicitly unobserved hedges.
+All 55 stored funding inputs are retained; 53 available reports match independent
+flat-curve arithmetic. Three actual failed originals reject with `FundingReport`
+6131 and each pays 5,000 lamports; none is omitted from operator costs.
+
+D88 fixes premature blockhash-expiry inference; its finalized-valid witness is
+persisted even while dispatch defers. D89 prevents newer conflicting originals
+starving an older committed waiter. Neither releases active/ambiguous locks nor
+relaxes source, price, epoch, margin or fee-reservation checks. Qualification also
+separates six maker and two publisher fee payers using existing restricted
+permissions. The browser's public Vite configuration now forwards mandatory
+`accountSchema`; its fixture builds current source and checks actual HTTP fields.
+
+Retained failed attempts distinguish the causes: new-hash false expiry; deferred
+witness missed behind a shared payer; live finalized reconciliation ahead of
+journal; shared publisher payer starvation; absent bundled browser; stale ignored
+UI build; omitted public schema; and newer jobs overtaking a wallet trade. The
+corrected custody run supersedes an earlier financial pass whose report pointed
+to an obsolete artifact. The first `2281869` service attempt times out during
+setup with a recorded roughly twelve-minute runtime/finality stall; no application
+recovery result follows from that interrupted attempt. Its subsequent complete-
+setup attempt passes economic/worker faults but times out during live indexer
+restart. Bounded eight-block body/manifest reads fix that observed catch-up case
+at `a5afbc9`, preserving canonical ordering, drain-on-failure and every history/
+revision/financial check. Fourteen affected indexer tests and typecheck pass.
+
+For reproduction, use the scoped `ops/current-runtime-smoke.sh` probes with explicit
+fresh run directories, RPC/WS ports and PostgreSQL port. `services` needs real PG;
+set `RIVALT_CHROME_PATH` to installed Chrome. `RIVALT_SERVICE_BROWSER=0` deliberately
+omits already separately accepted browser actions and cannot claim a new browser
+pass. `complete-cohort`, `market-dependencies`, `journal`, `performance-load` and
+`dispatch` each preserve actual originals and independent financial checkpoints.
+`node --import tsx tests/performance/full-baseline.ts --replay` reproduces the frozen
+bounded inventory from the retained exact receipts and signed wires. Raw evidence
+remains ignored/local; the baseline is not a portable archive of those receipts.
+
+[Performance](performance.md) owns the complete actor/CU/scaling table, offered-load
+denominators, fee assumptions and residual constraints. Initial load indexing obtains
+one coherent cycle and 27 revision-ahead retries; the scoped current rerun records
+2 coherent cycles and 33 revision-ahead retries. Both complete exact
+post-stop replay; neither proves sustained read-API readiness or validator TPS. Loaded-data bytes absent
+from RPC remain unknown. P15B/P16B and deferred endurance are unchanged. No new
+program build, unrelated native regression, external wallet, devnet, 24-hour run,
+funded deployment or Anchor v2 migration is claimed by P44; broad regression runs
+in scoped hosted CI after publication.
+
+Frozen inventory reproduces **61/61 successful public entrypoints** over
+**2,871** distinct harness originals (2,721 success / 150 reverted).
+Operator/browser originals and VM cases are separate evidence populations and are
+not silently added to that count. Thirty-one focused queue/receipt/cost tests,
+fourteen indexer tests and two independent replay-auditor regressions pass.
 
 ## Qualified baseline and provenance
 

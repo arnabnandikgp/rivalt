@@ -84,3 +84,212 @@ pause/unpause path for profile 4; the preceding helper admitted only profile 3.
 Venue authority, reconciled custody and safety-epoch invalidation remain required.
 Fresh regression coverage must prove foreign-authority rejection, paused trading
 rejection and invalidation of pre-pause signed routes before runtime acceptance.
+
+## D82 — authorized contention redesign and pre-migration performance baseline
+
+On 30 October 2026 the user authorized P39–P44 in the
+[performance contract](operations/performance.md): complete dependency audit,
+account/transaction redesign, targeted CU optimization and fresh full profiling
+before considering Anchor v2. This supersedes treating current shared coordination
+as a fixed implementation boundary, not the financial safety/economic rules.
+
+P39 records targets and transitions; no runtime layout or wire identity changes
+merely because the plan is approved. Financial successor changes use a fresh local
+domain with explicit schemas and frozen migration dispositions. Every implementation
+updates its owning component contract. Keep exact fees/carry, loss ownership,
+funded-cash rights, causal funding, risk/source checks and complete default.
+Selected-market fee/exposure ordering remains a measured residual unless a safe
+exact replacement is proved; no asynchronous risk or reserve approximation.
+
+Keep concise bounded metric fixtures and reproducible harnesses in source, raw
+receipts/traces local and ignored. P44 freezes the pre-v2 comparison revision;
+framework migration is separate. Ready PRs are stacked and remain open. P15B/P16B,
+deferred endurance and authorization requirements for external/funded work persist.
+
+## D83 — durable service conflict admission before scoped history
+
+On 30 October 2026, P40A implements D82's independent execution with two bounded RPC lanes and durable
+signed-message account reservations. Acknowledgements and process death cannot
+release an ambiguous original's resource or fee rights. Finalized receipts release
+both as applicable; authenticated expired nonexecution releases resources only.
+The PostgreSQL admission contract is version 1 and old pending originals must be
+drained by their previous executor before enabling it. No financial/on-chain ABI,
+fee, custody entitlement or maker authority changes.
+
+P40 is split into A (service transport) and B (scoped on-chain events and journal)
+because the latter spans 27 event decoders and all 53 clearing entrypoints. A's
+acceptance cannot close B, and P41 depends on B. This is an implementation split
+within the authorized sequence, not new product scope. Both PRs remain stacked and
+open; current global on-chain coordination persists until its dependent changes.
+
+## D84 — scoped revisions and a fresh journal domain
+
+On 30 October 2026, P40B freezes the D82 successor's exact
+[account](clearing/accounts.md#scoped-history-contract-p40b)
+and [event/journal](application/durability.md#scoped-history-successor-contract-p40b)
+contracts before layout edits. Clearing-owned accounts move to schema 5 with local
+revisions and canonical discriminators; old state is not reinterpreted. The existing
+bounded profile/quote economics remain. Maker-owned quote accounts retain schema 4.
+Fresh local domain/genesis, explicit schema-bound clients and a fresh journal are
+required. Historical binaries, databases, signed originals and source remain intact.
+
+This supersedes custody-global event sequencing and its reconciliation fence, not
+cash/fee/liability/source/funding authority. Transaction-atomic read/write revision
+dependencies and complete finalized block fences replace it. No new globally
+writable discovery account is permitted. Pure sequence writers can become readonly;
+economic custody/market writers remain until their later accepted redesign.
+
+The terminal retirement scan currently depends on that global sequence. Replace
+this incidental dependency with an explicit existing-authority pause window bound
+to safety epoch and complete membership, preserving every liability/cash/reserve
+check. Permissionless scan calls cannot pause the venue. Ordinary own-cash exits
+acquire no new certificate. Audit all allowed paused mutations before acceptance.
+The complete resolved-header retirement branch remains separate.
+
+The P40B contract and isolated ordering tests do not activate new accounts/events.
+Require rebuilt ABI/SDK/SBF and actual RPC/WS/PostgreSQL acceptance; P40A, P16A and
+historical results cannot qualify the changed journal. External gates and deferred
+endurance are unchanged.
+
+P40B implementation detail: full account-body payloads retain the predecessor
+revision so the borrowed route/liquidation serializers remain byte-identical to
+owned IDL payloads without duplicating large account objects. A separate final
+footer advances the revision. The explicit ABI delta fixes 20 sequence-only custody
+meta reductions and the three zero-payload footer additions; imported financial
+types in maker IDLs advance with clearing, while maker-owned layouts stay unchanged.
+The successor remains restricted to its explicit local qualification artifact;
+[validation](operations/validation.md) records SDK/journal and compiled acceptance.
+Default/devnet financial gates remain unchanged.
+
+
+## D85 — qualify scoped history on Surfpool 1.7.0
+
+On 31 October 2026, the first P40B signed run reached a fill but correctly rejected
+its finalized block fence. A minimal independent RPC reproduction and the pinned
+1.6.1 source identify a runtime defect: stored blocks use relative synthetic hash
+indices, while reconstructed empty blocks use absolute slots. Adjacent finalized
+blocks therefore disagree on the previous hash. This is not a Rivalt revision gap.
+
+Use the official checksum-pinned **Surfpool 1.7.0** release for the remaining M12
+qualification. Its corrected reconstruction passes the mixed-block RPC probe;
+keep strict parent/hash checks and compare the separately requested signature
+manifest with each full block body so an omitted transaction cannot disappear
+silently. Preserve the 1.6.1 tool and historical evidence. No source-price, financial,
+fee, execution-authority or journal-completeness safeguard is relaxed. Framework,
+SBF compiler, dependency and database pins otherwise remain unchanged. P39's old
+runtime measurements remain historical inputs, not same-runtime performance proof.
+
+Primary source: [1.7.0 block reconstruction](https://github.com/solana-foundation/surfpool/blob/v1.7.0/crates/core/src/surfnet/svm.rs).
+The local reproduction is `.local/p40b-block-probe-170/blocks.json`; full P40B
+RPC/WS/PostgreSQL acceptance on this runtime is still required.
+
+## D86 — complete relevant-market dependencies
+
+On 31 October 2026, P41 freezes D82's
+[relevant-market contract](clearing/accounts.md#relevant-market-contract-p41).
+Ordinary actions may omit unrelated market accounts, but clearing derives the
+required union from all touched roots, requested effects and applicable certificate
+bounds. There is no caller-selected risk universe. Persist every consumed relevant
+funding prefix; omitted empty slots retain their existing bytes. Canonical optional
+market contexts replace unconditional two-market writes, using schema 6 and fresh
+local deployment/journal binding for the changed event shapes.
+
+This deliberately supersedes P40B's mandatory ordinary-action market contexts and
+four complete-market payload shapes. It does not change source admission, funding
+rates/causality, fees, loss ownership, oracle/publisher trust, account guards or
+complete-cohort default. Custody/ledger and certificate liveness work remains P42.
+Default/devnet gates and P15B/P16B remain unchanged; no activation or performance
+pass follows from this contract. Implement and qualify the full phase before its
+ready PR; keep the stack open.
+
+## D87 — isolate token custody from internal financial accounting
+
+On 31 October 2026, P42 freezes the [custody isolation contract](clearing/accounts.md#custody-isolation-contract-p42)
+under the user's authorized P39–P44 roadmap. Remove the redundant globally updated
+cash sum and two-market liability stamps from Custody; canonical roots and market
+ledgers maintain exact local conserving transitions. Each ledger owns its liability
+stamp. Actual token gateways retain allocated-vault backing and signed entitlement
+checks; complete frozen valuation/retirement independently checks all root cash.
+No projection or stale aggregate gains withdrawal authority.
+
+This supersedes P41's broad custody/vault/ledger ordinary-action contexts, not its
+whole-account funding/risk union. Pure internal operations omit token custody;
+selected-market fee carry/exposure ordering remains. Certificate changes preserve
+complete-debtor/observation rules and enable atomic final-page/payment without
+mistaking transaction-wide writable promotion for a scan mutation. Measure progress
+under ongoing activity and report any coordinated windows honestly.
+
+Schema 7 uses a fresh local domain/genesis/client/journal. Financial rates, funded
+cash versus unpaid claims, reserve ownership, strict liquidation progress, complete
+market-attributed default and default/devnet gates stay unchanged. P15B/P16B and
+deferred endurance remain separate. No activation/resource result follows from the
+contract. Scoped rebuilt acceptance now verifies these changes as documented in
+[validation](operations/validation.md#custody-isolation-acceptance-p42); P43/P44 own
+further optimization/full qualification. Earlier backing pages still need a stable
+required-observation window. Keep the ready stack open above #59.
+
+## D88 — distinguish not-yet-finalized blockhashes from expired originals
+
+On 1 November 2026, P44's fresh service fault run exposed a false expiry inference.
+The wallet original had not broadcast: its confirmed blockhash was absent from the
+finalized bank. A four-sample independent Surfpool RPC probe reproduces this state
+at `.local/p44-blockhash-probe/result.json`; retained failed-run database diagnosis
+is `.local/p44-service-fault-diagnostic.txt`. No successful recovery is inferred.
+
+Persist a finalized-valid slot for each immutable original before using later
+finalized-invalid plus confirmed-invalid as expiry evidence. Reject older finality
+contexts; retain ambiguity if the hash was never witnessed finalized-valid. The
+existing unchanged-authority proof still controls economic nonexecution, and only
+actual receipts release unknown fees. Confirmed-valid originals may transmit their
+unchanged bytes. This corrects D83's expiry premise without changing dispatch locks,
+on-chain authority or economics. The additive SQL field does not retroactively
+validate prior expiry classifications. Fresh restart/expiry acceptance is required.
+
+P44 follow-up: `cbc132b`'s live eight-worker run shows that recording the witness
+only after resource admission can miss a hash's entire validity window behind a
+shared payer. Sample finalized validity before conflict admission and persist that
+observation on a deferral without consuming an RPC-send attempt, releasing locks
+or granting financial authority. The retained queue diagnosis is
+`.local/p44-services-fenced-diagnostic.txt`; the complete service follow-up passes at `a5afbc9`, as recorded in
+[validation](operations/validation.md#frozen-pre-migration-qualification-p44).
+
+Review follow-up on 1 November 2026: successful admission also commits the observed
+witness atomically with its access reservation, before the next status RPC. The
+previous implementation persisted that branch's witness only with the later
+outcome, leaving a crash window. This corrects persistence timing without granting
+new expiry authority or releasing unknown fees. Acceptance must kill the actual
+executor immediately after admission and restart only after real hash expiry.
+
+## D89 — prevent newer conflicting originals from starving a committed waiter
+
+On 1 November 2026, P44's current UI successfully signs a trade, but continuous
+maker/publisher updates repeatedly overtake it. Retained PostgreSQL evidence shows
+the wallet original still pending with zero send attempts after thirty seconds,
+while each operator completes seventeen or more updates. The finalized blockhash
+witness exists; this is dispatch starvation, not lost acknowledgement or a source
+policy failure. Evidence: `.local/p44-http-schema-queue-diagnostic.txt` and
+`p44-services-http-schema/` under the existing local run directory.
+
+Dispatcher version 2 persists complete static access declarations with each signed
+original, then orders conflicting new admissions by immutable creation time and
+request ID. An older committed pending/unresolved request blocks younger conflicting
+admissions even between due-work polls. Already-held reservations still reconcile,
+unrelated/read-only-sharing work progresses, and terminal originals cease blocking.
+Conflict deferral is 250 ms; send retry policy, exact-byte originals, fee accounting,
+expiry proof and durable locks through definitive outcome remain unchanged.
+
+This supersedes D83's opportunistic reservation admission, not on-chain locks or
+economic authority. Existing version-1 runs must stop producers/executors and drain
+pending/unknown originals with the pinned previous executor before upgrading;
+unknown fees remain reserved. No live schema/account migration or risk safeguard
+relaxation is authorized. New SQL ordering and actual browser/service/expiry/fault
+acceptance are required before claiming this resolves the observed starvation.
+
+D89 acceptance: clean `f4490e9` passes actual SQL ordering, drain gating, duplicate
+executors, expiry and exact-original crash recovery; all ten browser actions
+finalize. Clean `a5afbc9` completes the full service lifecycle with separate role
+payers, three real SIGKILL recoveries and identical 137-event fresh PG replay.
+Its additional bounded parallel block retrieval preserves canonical order and all
+reconciliation checks. The current offered-load probe still records 33 revision-
+ahead retries versus two coherent live cycles; no sustained availability or
+validator throughput claim follows from these correctness/recovery passes.

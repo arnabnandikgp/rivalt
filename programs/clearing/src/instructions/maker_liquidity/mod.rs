@@ -38,13 +38,11 @@ mod tests;
 
 fn registry_event(
     venue: Pubkey,
-    custody: &mut Custody,
     registry: &Account<LiquidityRegistry>,
 ) -> Result<LiquidityRegistryChanged> {
-    increment(&mut custody.sequence)?;
     Ok(LiquidityRegistryChanged {
         venue,
-        sequence: custody.sequence,
+
         slot: Clock::get()?.slot,
         registry: registry.key(),
         state: LiquidityRegistryPayload::from(&**registry),
@@ -53,15 +51,13 @@ fn registry_event(
 
 fn maker_event(
     venue: Pubkey,
-    custody: &mut Custody,
     market: &Account<Market>,
     registration: &Account<MakerRegistration>,
     operation: u8,
 ) -> Result<LiquidityMakerChanged> {
-    increment(&mut custody.sequence)?;
     Ok(LiquidityMakerChanged {
         venue,
-        sequence: custody.sequence,
+
         slot: Clock::get()?.slot,
         market: market.key(),
         market_state: MarketSnapshot::from(&**market),
@@ -80,16 +76,19 @@ fn truncate_funding(mode: u8, market: &mut Account<Market>) -> Result<()> {
     Ok(())
 }
 
-pub fn initialize(ctx: Context<InitializeLiquidity>) -> Result<()> {
+pub fn initialize(
+    ctx: &mut Context<InitializeLiquidity>,
+    events: &mut crate::event_cpi::Payloads,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     custody_only(
         &ctx.accounts.venue,
-        &ctx.accounts.custody,
         &ctx.accounts.safety,
         &ctx.accounts.market,
     )?;
     ctx.accounts.registry.set_inner(LiquidityRegistry {
-        schema_version: 4,
+        revision: 0,
+        schema_version: 7,
         venue: ctx.accounts.venue.key(),
         market: ctx.accounts.market.key(),
         count: 0,
@@ -97,26 +96,20 @@ pub fn initialize(ctx: Context<InitializeLiquidity>) -> Result<()> {
         registrations: [Pubkey::default(); 3],
         bump: ctx.bumps.registry,
     });
-    let emitted_registry = registry_event(
-        ctx.accounts.venue.key(),
-        &mut ctx.accounts.custody,
-        &ctx.accounts.registry,
+    let emitted_registry = registry_event(ctx.accounts.venue.key(), &ctx.accounts.registry)?;
+    events.emit(
+        &emitted_registry,
+        ctx.accounts.event_authority.to_account_info(),
     )?;
-    emit_cpi!(emitted_registry);
     Ok(())
 }
 
 // Keep the full decoded curve out of the registration/event frame on SBF.
 #[inline(never)]
 fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<()> {
-    custody_only(
-        &accounts.venue,
-        &accounts.custody,
-        &accounts.safety,
-        &accounts.market,
-    )?;
+    custody_only(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
-        accounts.registry.schema_version == 4
+        accounts.registry.schema_version == 7
             && !accounts.registry.sealed
             && instance < 3
             && instance == accounts.registry.count,
@@ -141,12 +134,17 @@ fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<(
     Ok(())
 }
 
-pub fn register(ctx: Context<RegisterLiquidity>, instance: u8) -> Result<()> {
+pub fn register(
+    ctx: &mut Context<RegisterLiquidity>,
+    events: &mut crate::event_cpi::Payloads,
+    instance: u8,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
     validate_registration(accounts, instance)?;
     accounts.registration.set_inner(MakerRegistration {
-        schema_version: 4,
+        revision: 0,
+        schema_version: 7,
         venue: accounts.venue.key(),
         market: accounts.market.key(),
         capital: accounts.capital.key(),
@@ -165,6 +163,7 @@ pub fn register(ctx: Context<RegisterLiquidity>, instance: u8) -> Result<()> {
         bump: ctx.bumps.registration,
     });
     accounts.capital_binding.set_inner(CapitalBinding {
+        revision: 0,
         schema_version: SCHEMA_VERSION,
         venue: accounts.venue.key(),
         capital: accounts.capital.key(),
@@ -178,32 +177,31 @@ pub fn register(ctx: Context<RegisterLiquidity>, instance: u8) -> Result<()> {
         .ok_or(ClearingError::Arithmetic)?;
     let emitted_maker = maker_event(
         accounts.venue.key(),
-        &mut accounts.custody,
         &accounts.market,
         &accounts.registration,
         0,
     )?;
-    let emitted_registry = registry_event(
-        accounts.venue.key(),
-        &mut accounts.custody,
-        &accounts.registry,
+    let emitted_registry = registry_event(accounts.venue.key(), &accounts.registry)?;
+    events.emit(
+        &emitted_maker,
+        ctx.accounts.event_authority.to_account_info(),
     )?;
-    emit_cpi!(emitted_maker);
-    emit_cpi!(emitted_registry);
+    events.emit(
+        &emitted_registry,
+        ctx.accounts.event_authority.to_account_info(),
+    )?;
     Ok(())
 }
 
-pub fn seal(ctx: Context<SealLiquidity>) -> Result<()> {
+pub fn seal(
+    ctx: &mut Context<SealLiquidity>,
+    events: &mut crate::event_cpi::Payloads,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
-    custody_only(
-        &accounts.venue,
-        &accounts.custody,
-        &accounts.safety,
-        &accounts.market,
-    )?;
+    custody_only(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
-        accounts.registry.schema_version == 4
+        accounts.registry.schema_version == 7
             && accounts.registry.count == 3
             && !accounts.registry.sealed,
         ClearingError::MakerBinding
@@ -211,7 +209,7 @@ pub fn seal(ctx: Context<SealLiquidity>) -> Result<()> {
     let makers = [&accounts.first, &accounts.second, &accounts.third];
     for (index, registration) in makers.iter().enumerate() {
         require!(
-            registration.schema_version == 4
+            registration.schema_version == 7
                 && usize::from(registration.instance) == index
                 && registration.venue == accounts.venue.key()
                 && registration.market == accounts.market.key(),
@@ -228,12 +226,11 @@ pub fn seal(ctx: Context<SealLiquidity>) -> Result<()> {
         ClearingError::MakerBinding
     );
     accounts.registry.sealed = true;
-    let emitted_registry = registry_event(
-        accounts.venue.key(),
-        &mut accounts.custody,
-        &accounts.registry,
+    let emitted_registry = registry_event(accounts.venue.key(), &accounts.registry)?;
+    events.emit(
+        &emitted_registry,
+        ctx.accounts.event_authority.to_account_info(),
     )?;
-    emit_cpi!(emitted_registry);
     Ok(())
 }
 
@@ -288,7 +285,8 @@ fn control_cpi(
 }
 
 pub fn control(
-    ctx: Context<ControlLiquidity>,
+    ctx: &mut Context<ControlLiquidity>,
+    events: &mut crate::event_cpi::Payloads,
     authority: u64,
     expected_control: u64,
     expected_shape: u64,
@@ -314,17 +312,20 @@ pub fn control(
     control_cpi(accounts, &config, action, ctx.bumps.controller)?;
     let emitted_maker = maker_event(
         accounts.venue.key(),
-        &mut accounts.custody,
         &accounts.market,
         &accounts.registration,
         operation,
     )?;
-    emit_cpi!(emitted_maker);
+    events.emit(
+        &emitted_maker,
+        ctx.accounts.event_authority.to_account_info(),
+    )?;
     Ok(())
 }
 
 pub fn replenish(
-    ctx: Context<ControlLiquidity>,
+    ctx: &mut Context<ControlLiquidity>,
+    events: &mut crate::event_cpi::Payloads,
     authority: u64,
     expected_depth: u64,
     sides: u8,
@@ -355,27 +356,28 @@ pub fn replenish(
     }
     let emitted_maker = maker_event(
         accounts.venue.key(),
-        &mut accounts.custody,
         &accounts.market,
         &accounts.registration,
         4,
     )?;
-    emit_cpi!(emitted_maker);
+    events.emit(
+        &emitted_maker,
+        ctx.accounts.event_authority.to_account_info(),
+    )?;
     Ok(())
 }
 
-pub fn quarantine(ctx: Context<QuarantineLiquidity>, authority: u64) -> Result<()> {
+pub fn quarantine(
+    ctx: &mut Context<QuarantineLiquidity>,
+    events: &mut crate::event_cpi::Payloads,
+    authority: u64,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
-    control_base(
-        &accounts.venue,
-        &accounts.custody,
-        &accounts.safety,
-        &accounts.market,
-    )?;
+    control_base(&accounts.venue, &accounts.safety, &accounts.market)?;
     capital_identity(&accounts.capital, &accounts.market)?;
     require!(
-        accounts.registration.schema_version == 4
+        accounts.registration.schema_version == 7
             && accounts.registration.authority_epoch == authority
             && authority > 0
             && accounts.registration.owner == accounts.capital.owner,
@@ -386,16 +388,19 @@ pub fn quarantine(ctx: Context<QuarantineLiquidity>, authority: u64) -> Result<(
     accounts.registration.quarantined = true;
     let emitted = maker_event(
         accounts.venue.key(),
-        &mut accounts.custody,
         &accounts.market,
         &accounts.registration,
         5,
     )?;
-    emit_cpi!(emitted);
+    events.emit(&emitted, ctx.accounts.event_authority.to_account_info())?;
     Ok(())
 }
 
-pub fn approve(ctx: Context<ControlLiquidity>, authority: u64) -> Result<()> {
+pub fn approve(
+    ctx: &mut Context<ControlLiquidity>,
+    events: &mut crate::event_cpi::Payloads,
+    authority: u64,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut *ctx.accounts;
     let config = authenticated_control(accounts, authority, false)?;
@@ -424,11 +429,13 @@ pub fn approve(ctx: Context<ControlLiquidity>, authority: u64) -> Result<()> {
     accounts.registration.quarantined = false;
     let emitted_maker = maker_event(
         accounts.venue.key(),
-        &mut accounts.custody,
         &accounts.market,
         &accounts.registration,
         6,
     )?;
-    emit_cpi!(emitted_maker);
+    events.emit(
+        &emitted_maker,
+        ctx.accounts.event_authority.to_account_info(),
+    )?;
     Ok(())
 }

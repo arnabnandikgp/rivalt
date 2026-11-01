@@ -1,12 +1,13 @@
 //! Irreversible venue retirement. The scan is an administrative proof, never a
 //! prerequisite for a funded owner exit. No reserve can leave a live identity.
 use super::*;
-use account_cash::{
-    __client_accounts_account_financial_identity, __cpi_client_accounts_account_financial_identity,
-    AccountFinancialIdentity, AccountFinancialIdentityBumps,
+use account_cash::fees::{
+    __client_accounts_treasury_token_identity, __cpi_client_accounts_treasury_token_identity,
+    TreasuryTokenIdentity, TreasuryTokenIdentityBumps,
 };
 use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
+#[event_cpi]
 #[derive(Accounts)]
 pub struct InitializeAccountRetirement<'info> {
     #[account(mut)]
@@ -53,7 +54,7 @@ pub struct RetireAccounts<'info> {
 #[event_cpi]
 #[derive(Accounts)]
 pub struct WithdrawRetiredReserve<'info> {
-    pub identity: AccountFinancialIdentity<'info>,
+    pub identity: TreasuryTokenIdentity<'info>,
     #[account(address = identity.venue.reserve_authority @ ClearingError::Authority)]
     pub reserve_authority: Signer<'info>,
     #[account(address = identity.venue.quote_mint @ ClearingError::Mint)]
@@ -94,13 +95,12 @@ fn registry_valid(registry: &VenueRegistry) -> Result<()> {
 fn matches(
     certificate: &RetirementCertificate,
     safety: &VenueSafety,
-    custody: &Custody,
     registry: &VenueRegistry,
 ) -> bool {
     certificate.schema_version == SCHEMA_VERSION
         && certificate.safety_epoch == safety.epoch
         && certificate.membership_version == registry.membership_version
-        && certificate.custody_sequence == custody.sequence
+        && safety.paused
         && certificate.count == registry.count
 }
 
@@ -116,7 +116,10 @@ fn global_flat(identity: &ResolutionIdentity) -> Result<()> {
     Ok(())
 }
 
-pub fn initialize(ctx: Context<InitializeAccountRetirement>) -> Result<()> {
+pub fn initialize(
+    ctx: &mut Context<InitializeAccountRetirement>,
+    _events: &mut crate::event_cpi::Payloads,
+) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty()
             && cfg!(feature = "liquidity-execution-qualification")
@@ -135,11 +138,16 @@ pub fn initialize(ctx: Context<InitializeAccountRetirement>) -> Result<()> {
     Ok(())
 }
 
-pub fn check(ctx: Context<CheckAccountRetirement>, start: u16) -> Result<()> {
+pub fn check(
+    ctx: &mut Context<CheckAccountRetirement>,
+    events: &mut crate::event_cpi::Payloads,
+    start: u16,
+) -> Result<()> {
     let accounts = &mut *ctx.accounts;
     global_flat(&accounts.identity)?;
     require!(
-        matches!(accounts.identity.safety.mode, CUSTODY | ACTIVE),
+        matches!(accounts.identity.safety.mode, CUSTODY | ACTIVE)
+            && accounts.identity.safety.paused,
         ClearingError::Resolution
     );
     registry_valid(&accounts.registry)?;
@@ -149,12 +157,7 @@ pub fn check(ctx: Context<CheckAccountRetirement>, start: u16) -> Result<()> {
         ClearingError::Resolution
     );
     let certificate = &mut accounts.certificate;
-    let current = matches(
-        certificate,
-        &accounts.identity.safety,
-        &accounts.identity.custody,
-        &accounts.registry,
-    );
+    let current = matches(certificate, &accounts.identity.safety, &accounts.registry);
     if start == 0 {
         require!(
             !current || (!certificate.complete && certificate.next == 0),
@@ -183,17 +186,20 @@ pub fn check(ctx: Context<CheckAccountRetirement>, start: u16) -> Result<()> {
         .ok_or(ClearingError::Arithmetic)?;
     if certificate.next == certificate.count {
         require!(
-            certificate.cash == accounts.identity.custody.total_cash,
+            certificate.cash
+                == account_custody::accounted_cash(
+                    &accounts.identity.custody,
+                    [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger]
+                )?,
             ClearingError::Reconciliation
         );
         certificate.complete = true;
     }
-    increment(&mut accounts.identity.custody.sequence)?;
-    certificate.custody_sequence = accounts.identity.custody.sequence;
-    crate::event_cpi::emit(
+
+    events.emit(
         &crate::events::AccountRetirementProgress {
             venue: accounts.identity.venue.key(),
-            sequence: accounts.identity.custody.sequence,
+
             slot: Clock::get()?.slot,
             safety_epoch: certificate.safety_epoch,
             membership_version: certificate.membership_version,
@@ -206,7 +212,11 @@ pub fn check(ctx: Context<CheckAccountRetirement>, start: u16) -> Result<()> {
     )
 }
 
-pub fn retire(ctx: Context<RetireAccounts>, safety_epoch: u64) -> Result<()> {
+pub fn retire(
+    ctx: &mut Context<RetireAccounts>,
+    events: &mut crate::event_cpi::Payloads,
+    safety_epoch: u64,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     global_flat(&accounts.identity)?;
@@ -242,14 +252,14 @@ pub fn retire(ctx: Context<RetireAccounts>, safety_epoch: u64) -> Result<()> {
             .as_ref()
             .ok_or(ClearingError::Resolution)?;
         require!(
-            matches(
-                certificate,
-                &accounts.identity.safety,
-                &accounts.identity.custody,
-                &accounts.registry
-            ) && certificate.complete
+            matches(certificate, &accounts.identity.safety, &accounts.registry)
+                && certificate.complete
                 && certificate.next == certificate.count
-                && certificate.cash == accounts.identity.custody.total_cash,
+                && certificate.cash
+                    == account_custody::accounted_cash(
+                        &accounts.identity.custody,
+                        [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger]
+                    )?,
             ClearingError::Resolution
         );
     }
@@ -257,16 +267,19 @@ pub fn retire(ctx: Context<RetireAccounts>, safety_epoch: u64) -> Result<()> {
     accounts.identity.safety.paused = false;
     increment(&mut accounts.identity.safety.epoch)?;
     increment(&mut accounts.identity.venue.terms_epoch)?;
-    increment(&mut accounts.identity.custody.sequence)?;
-    crate::event_cpi::emit(
+
+    events.emit(
         &crate::events::AccountsRetired {
             venue: accounts.identity.venue.key(),
-            sequence: accounts.identity.custody.sequence,
+
             slot: Clock::get()?.slot,
             safety_epoch: accounts.identity.safety.epoch,
             terms_epoch: accounts.identity.venue.terms_epoch,
             count: accounts.registry.count,
-            total_cash: accounts.identity.custody.total_cash,
+            total_cash: account_custody::accounted_cash(
+                &accounts.identity.custody,
+                [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
+            )?,
             allocated_vault: accounts.identity.custody.allocated_vault,
             actual_vault: accounts.identity.vault.amount,
         },
@@ -274,7 +287,12 @@ pub fn retire(ctx: Context<RetireAccounts>, safety_epoch: u64) -> Result<()> {
     )
 }
 
-pub fn withdraw(ctx: Context<WithdrawRetiredReserve>, market_index: u8, amount: u64) -> Result<()> {
+pub fn withdraw(
+    ctx: &mut Context<WithdrawRetiredReserve>,
+    events: &mut crate::event_cpi::Payloads,
+    market_index: u8,
+    amount: u64,
+) -> Result<()> {
     require!(
         ctx.remaining_accounts.is_empty() && market_index < 2 && amount > 0,
         ClearingError::Amount
@@ -291,16 +309,14 @@ pub fn withdraw(ctx: Context<WithdrawRetiredReserve>, market_index: u8, amount: 
             && !identity.safety.paused,
         ClearingError::Profile
     );
-    account_custody::reconciled(
-        &identity.custody,
-        [&identity.btc_ledger, &identity.eth_ledger],
-        identity.vault.amount,
+    account_custody::vault_backed(&identity.custody, identity.vault.amount)?;
+    account_cash::fees::treasury_profile(
+        &identity.venue,
+        &identity.safety,
+        &identity.ledger,
+        market_index,
     )?;
-    let ledger = if market_index == 0 {
-        &mut identity.btc_ledger
-    } else {
-        &mut identity.eth_ledger
-    };
+    let ledger = &mut identity.ledger;
     ledger.insurance = checked(math::cash_sub(ledger.insurance, amount))?;
     increment(&mut ledger.version)?;
     identity.custody.allocated_vault =
@@ -322,21 +338,13 @@ pub fn withdraw(ctx: Context<WithdrawRetiredReserve>, market_index: u8, amount: 
         6,
     )?;
     identity.vault.reload()?;
-    increment(&mut identity.custody.sequence)?;
-    account_custody::reconciled(
-        &identity.custody,
-        [&identity.btc_ledger, &identity.eth_ledger],
-        identity.vault.amount,
-    )?;
-    let ledger = if market_index == 0 {
-        &identity.btc_ledger
-    } else {
-        &identity.eth_ledger
-    };
-    crate::event_cpi::emit(
+
+    account_custody::vault_backed(&identity.custody, identity.vault.amount)?;
+    let ledger = &identity.ledger;
+    events.emit(
         &crate::events::RetiredReserveWithdrawn {
             venue: identity.venue.key(),
-            sequence: identity.custody.sequence,
+
             slot: Clock::get()?.slot,
             authority: accounts.reserve_authority.key(),
             destination: accounts.destination.key(),
@@ -346,7 +354,6 @@ pub fn withdraw(ctx: Context<WithdrawRetiredReserve>, market_index: u8, amount: 
             fees: ledger.fees,
             fee_remainder: ledger.insurance_fee_remainder,
             ledger_version: ledger.version,
-            total_cash: identity.custody.total_cash,
             allocated_vault: identity.custody.allocated_vault,
             actual_vault: identity.vault.amount,
         },
@@ -358,47 +365,41 @@ pub fn withdraw(ctx: Context<WithdrawRetiredReserve>, market_index: u8, amount: 
 mod tests {
     use super::*;
     #[test]
-    fn certificate_binds_all_mutation_and_membership_stamps() {
-        let mut proof = RetirementCertificate {
+    fn certificate_requires_the_same_paused_epoch_and_complete_membership() {
+        let proof = RetirementCertificate {
             schema_version: SCHEMA_VERSION,
             safety_epoch: 2,
             membership_version: 3,
-            custody_sequence: 17,
             count: 2,
             ..Default::default()
         };
-        let safety = VenueSafety {
+        let mut safety = VenueSafety {
             epoch: 2,
+            paused: true,
             ..Default::default()
         };
-        let custody = Custody {
-            sequence: 17,
-            ..Default::default()
-        };
-        let registry = VenueRegistry {
+        let mut registry = VenueRegistry {
             membership_version: 3,
             count: 2,
             ..Default::default()
         };
-        assert!(matches(&proof, &safety, &custody, &registry));
-        for field in 0..4 {
-            let value = match field {
-                0 => &mut proof.safety_epoch,
-                1 => &mut proof.membership_version,
-                2 => &mut proof.custody_sequence,
-                _ => {
-                    proof.count += 1;
-                    assert!(!matches(&proof, &safety, &custody, &registry));
-                    break;
-                }
-            };
-            *value += 1;
-            assert!(!matches(&proof, &safety, &custody, &registry));
-            match field {
-                0 => proof.safety_epoch -= 1,
-                1 => proof.membership_version -= 1,
-                _ => proof.custody_sequence -= 1,
-            }
-        }
+        assert!(matches(&proof, &safety, &registry));
+        // Even an incorrectly retained epoch cannot make an unpaused proof valid.
+        safety.paused = false;
+        assert!(!matches(&proof, &safety, &registry));
+        safety.paused = true;
+        safety.epoch += 1;
+        assert!(!matches(&proof, &safety, &registry));
+        safety.epoch -= 1;
+        registry.membership_version += 1;
+        assert!(!matches(&proof, &safety, &registry));
+        registry.membership_version -= 1;
+        registry.count += 1;
+        assert!(!matches(&proof, &safety, &registry));
+        registry.count -= 1;
+        // Unrelated journal revisions are not retirement authority.
+        safety.revision += 1;
+        registry.revision += 1;
+        assert!(matches(&proof, &safety, &registry));
     }
 }

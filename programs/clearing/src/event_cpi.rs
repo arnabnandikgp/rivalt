@@ -9,6 +9,34 @@ use anchor_lang::{prelude::*, Event};
 
 const MAX_EVENT_BYTES: usize = 8_192;
 
+/// Invocation-local count of successfully emitted financial payloads. It is
+/// passed explicitly through handlers; no account or global counter is written.
+#[derive(Default)]
+pub struct Payloads {
+    count: u16,
+}
+
+impl Payloads {
+    pub fn count(&self) -> u16 {
+        self.count
+    }
+
+    pub fn emit<T: Event>(&mut self, event: &T, authority: AccountInfo) -> Result<()> {
+        self.emit_borrowed::<T, T>(event, authority)
+    }
+
+    pub fn emit_borrowed<T: Event, S: AnchorSerialize>(
+        &mut self,
+        event: &S,
+        authority: AccountInfo,
+    ) -> Result<()> {
+        require!(self.count < 4, crate::error::ClearingError::Profile);
+        emit_borrowed::<T, S>(event, authority)?;
+        self.count += 1;
+        Ok(())
+    }
+}
+
 struct PayloadSize(usize);
 impl std::io::Write for PayloadSize {
     fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
@@ -29,23 +57,22 @@ impl std::io::Write for PayloadSize {
     }
 }
 fn payload<T: AnchorSerialize>(event: &T, discriminator: &[u8]) -> Result<Vec<u8>> {
+    profile_cu!("payload-size-enter");
     let mut size = PayloadSize(anchor_lang::event::EVENT_IX_TAG_LE.len() + discriminator.len());
     event.serialize(&mut size)?;
+    profile_cu!("payload-size-exit");
     let mut bytes = Vec::with_capacity(size.0);
     bytes.extend_from_slice(anchor_lang::event::EVENT_IX_TAG_LE);
     bytes.extend_from_slice(discriminator);
     event.serialize(&mut bytes)?;
+    profile_cu!("payload-encoded");
     Ok(bytes)
-}
-
-/// Same program, event tag, discriminator, read-only authority signer and PDA
-/// seeds as Anchor 1.2.1's emit_cpi!. The payload moves into the CPI instruction.
-pub(crate) fn emit<T: Event>(event: &T, authority: AccountInfo) -> Result<()> {
-    emit_borrowed::<T, T>(event, authority)
 }
 
 /// Borrowed views avoid duplicating large fixed account snapshots on the SBF
 /// bump heap. The caller must prove exact serialization parity with the IDL event.
+/// Same program, tag, readonly authority signer and seeds as emit_cpi!; the
+/// bounded payload moves directly into the CPI instruction.
 pub(crate) fn emit_borrowed<T: Event, S: AnchorSerialize>(
     event: &S,
     authority: AccountInfo,
@@ -76,7 +103,6 @@ mod tests {
         use crate::events::{AccountResolutionApplied, MarginAccountSnapshot};
         let event = AccountResolutionApplied {
             venue: Pubkey::new_unique(),
-            sequence: 9,
             slot: 17,
             epoch: 3,
             id: 1,

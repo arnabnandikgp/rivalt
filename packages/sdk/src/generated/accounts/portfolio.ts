@@ -23,6 +23,8 @@ import {
   getStructEncoder,
   getU16Decoder,
   getU16Encoder,
+  getU64Decoder,
+  getU64Encoder,
   getU8Decoder,
   getU8Encoder,
   transformEncoder,
@@ -44,7 +46,7 @@ import {
 } from "@solana/kit";
 
 export const PORTFOLIO_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  179, 160, 245, 234, 80, 218, 219, 211,
+  94, 158, 71, 245, 122, 102, 110, 225,
 ]);
 
 export function getPortfolioDiscriminatorBytes(): ReadonlyUint8Array {
@@ -54,6 +56,8 @@ export function getPortfolioDiscriminatorBytes(): ReadonlyUint8Array {
 export type Portfolio = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   owner: Address;
   index: number;
@@ -63,6 +67,8 @@ export type Portfolio = {
 
 export type PortfolioArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   owner: Address | HasAddress;
   index: number;
@@ -76,6 +82,7 @@ export function getPortfolioEncoder(): FixedSizeEncoder<PortfolioArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["owner", getAddressEncoder()],
       ["index", getU16Encoder()],
@@ -91,6 +98,7 @@ export function getPortfolioDecoder(): FixedSizeDecoder<Portfolio> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["owner", getAddressDecoder()],
     ["index", getU16Decoder()],
@@ -174,5 +182,5 @@ export async function fetchAllMaybePortfolio(
 }
 
 export function getPortfolioSize(): number {
-  return 79;
+  return 87;
 }

@@ -2,16 +2,16 @@ import {describe,it,expect} from 'vitest';
 import {liquidityMakerEconomics,type LiquidityEconomicsInput} from './liquidity-economics.js';
 const root=(lots='0',virtual='0',funding='0',cash='1000000')=>({id:0,cash,role:1,mode:1,isolatedMarketIndex:0,
   positions:[{lots,virtualScaled:virtual,fundingCheckpointScaled:funding},{lots:'0',virtualScaled:'0',fundingCheckpointScaled:'0'}]});
-const vector=():LiquidityEconomicsInput=>({version:4,operatorClass:'internal-reference',capital:'capital',market:'market',marketIndex:0,
-  opening:{sequence:'10',root:root(),fundingIndexScaled:'0',referencePrice:'60000'},
-  closing:{sequence:'14',root:root('0','400','200','1000010'),fundingIndexScaled:'200',referencePrice:'60000'},
+const vector=():LiquidityEconomicsInput=>({version:5,operatorClass:'internal-reference',capital:'capital',market:'market',marketIndex:0,
+  opening:{cursor:'10',root:root(),fundingIndexScaled:'0',referencePrice:'60000'},
+  closing:{cursor:'14',root:root('0','400','200','1000010'),fundingIndexScaled:'200',referencePrice:'60000'},
   events:[
-    {signature:'a',kind:'LiquidityRouteExecutedV4',payload:{sequence:'11',market:'market',side:0,marketState:{index:0,fundingIndexScaled:'0'},
+    {cursor:'11',signature:'a',kind:'LiquidityRouteExecutedV4',payload:{market:'market',side:0,marketState:{index:0,fundingIndexScaled:'0'},
       legs:[{capital:'capital',lots:'2',gross:'120006'}],rootStates:[root('-2','120006000000000')]}},
-    {signature:'b',kind:'FundingReportAcceptedV4',payload:{sequence:'12',state:{index:0,fundingIndexScaled:'200'}}},
-    {signature:'c',kind:'LiquidityRouteExecutedV4',payload:{sequence:'13',market:'market',side:1,marketState:{index:0,fundingIndexScaled:'200'},
+    {cursor:'12',signature:'b',kind:'FundingReportAcceptedV4',payload:{state:{index:0,fundingIndexScaled:'200'}}},
+    {cursor:'13',signature:'c',kind:'LiquidityRouteExecutedV4',payload:{market:'market',side:1,marketState:{index:0,fundingIndexScaled:'200'},
       legs:[{capital:'capital',lots:'2',gross:'119996'}],rootStates:[root('0','10000000400','200')]}},
-    {signature:'d',kind:'AccountFinancialChangedV3',payload:{sequence:'14',roots:['capital'],kind:3,marketIndex:0,amount:'10',
+    {cursor:'14',signature:'d',kind:'AccountFinancialChangedV3',payload:{cursor:'14',roots:['capital'],kind:3,marketIndex:0,amount:'10',
       markets:[{index:0,fundingIndexScaled:'200'}],rootStates:[root('0','400','200','1000010')]}}
   ],transactions:['a','b','c','d'].map(signature=>({signature,feeLamports:'5000',failed:false,chargeToMaker:signature==='a'})),
   costScope:'one specified operator transaction only',pendingFeeReservationLamports:'0',hedge:{kind:'not-observed',assumedBps:'1',description:'hypothetical'}});

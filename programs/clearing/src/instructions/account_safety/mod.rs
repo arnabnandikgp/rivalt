@@ -12,12 +12,7 @@ fn candidate_profile(identity: &account_cash::AccountFinancialIdentity) -> Resul
         cfg!(feature = "liquidity-execution-qualification"),
         ClearingError::Profile
     );
-    account_cash::profile(&identity.venue, &identity.custody, &identity.safety)?;
-    account_custody::reconciled(
-        &identity.custody,
-        [&identity.btc_ledger, &identity.eth_ledger],
-        identity.vault.amount,
-    )
+    account_cash::profile(&identity.venue, &identity.safety)
 }
 
 #[cfg(test)]

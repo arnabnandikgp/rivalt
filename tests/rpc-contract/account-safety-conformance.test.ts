@@ -43,7 +43,7 @@ test('account safety preserves isolated Anchor bytes and every stage/optional pr
   for(const certificate of [undefined,common.certificate])for(const resolution of [undefined,common.resolution])
     add('retire_accounts',[large],sdk.getRetireAccountsInstruction({...common,certificate,resolution,safetyEpoch:large}));
   for(const marketIndex of [0,1]) {
-    add('withdraw_retired_reserve',[marketIndex,large],sdk.getWithdrawRetiredReserveInstruction({...common,marketIndex,amount:large}));
+    add('withdraw_retired_reserve',[marketIndex,large],sdk.getWithdrawRetiredReserveInstruction({...common,ledger:common.btcLedger,marketIndex,amount:large}));
     add('liquidate_account',[guard,guard,marketIndex,large,large+1n],
       sdk.getLiquidateAccountInstruction({...common,targetGuard:guard,receiverGuard:guard,marketIndex,lots:large,price:large+1n}));
   }

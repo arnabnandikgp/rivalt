@@ -100,7 +100,8 @@ fn coverage(market: &mut Market, now: i64) -> Result<()> {
 }
 
 pub fn freeze(
-    ctx: Context<FreezeAccounts>,
+    ctx: &mut Context<FreezeAccounts>,
+    events: &mut crate::event_cpi::Payloads,
     expected_safety_epoch: u64,
     expected_resolution_epoch: u64,
     emergency: bool,
@@ -174,7 +175,10 @@ pub fn freeze(
     header.prices = prices;
     header.funding = funding;
     header.frozen_at = clock.unix_timestamp;
-    header.cash_before = accounts.identity.custody.total_cash;
+    header.cash_before = account_custody::accounted_cash(
+        &accounts.identity.custody,
+        [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
+    )?;
     let ledgers = [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger];
     header.pools_before = ledgers.map(|ledger| ledger.settlement);
     header.insurance_before = ledgers.map(|ledger| ledger.insurance);
@@ -219,7 +223,7 @@ pub fn freeze(
     work.dfs_path.fill(0);
     work.depth = 0;
     work.augmentations = 0;
-    increment(&mut accounts.identity.custody.sequence)?;
+
     frozen(&accounts.identity, &accounts.registry, header, header.epoch)?;
     emit(
         &accounts.identity,
@@ -227,11 +231,16 @@ pub fn freeze(
         accounts.target.key(),
         emergency,
         &clock,
+        events,
         accounts.event_authority.to_account_info(),
     )
 }
 
-pub fn value_sources(ctx: Context<ValueAccountResolution>, epoch: u64) -> Result<()> {
+pub fn value_sources(
+    ctx: &mut Context<ValueAccountResolution>,
+    events: &mut crate::event_cpi::Payloads,
+    epoch: u64,
+) -> Result<()> {
     require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut *ctx.accounts;
     frozen(
@@ -254,7 +263,7 @@ pub fn value_sources(ctx: Context<ValueAccountResolution>, epoch: u64) -> Result
     require!(prices != [0; 2], ClearingError::Resolution);
     accounts.resolution.prices = prices;
     accounts.resolution.stage = VALUE;
-    increment(&mut accounts.identity.custody.sequence)?;
+
     frozen(
         &accounts.identity,
         &accounts.registry,
@@ -267,6 +276,7 @@ pub fn value_sources(ctx: Context<ValueAccountResolution>, epoch: u64) -> Result
         Pubkey::default(),
         false,
         &clock,
+        events,
         accounts.event_authority.to_account_info(),
     )
 }
@@ -278,12 +288,13 @@ fn emit(
     trigger: Pubkey,
     emergency: bool,
     clock: &Clock,
+    events: &mut crate::event_cpi::Payloads,
     authority: AccountInfo,
 ) -> Result<()> {
-    crate::event_cpi::emit(
+    events.emit(
         &crate::events::AccountResolutionFrozen {
             venue: identity.venue.key(),
-            sequence: identity.custody.sequence,
+
             slot: clock.slot,
             epoch: header.epoch,
             stage: header.stage,

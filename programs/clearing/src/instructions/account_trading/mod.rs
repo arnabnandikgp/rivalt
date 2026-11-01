@@ -16,14 +16,13 @@ pub(crate) fn supported_profile(venue: &Venue) -> bool {
     venue.profile_version == PROFILE_VERSION
 }
 
-pub(crate) fn base_profile(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> Result<()> {
+pub(crate) fn base_identity(venue: &Venue, safety: &VenueSafety) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification")
             && venue.schema_version == SCHEMA_VERSION
             && supported_profile(venue)
             && venue.market_count == 2
             && venue.insurance_fee_share_bps == 2500
-            && custody.schema_version == SCHEMA_VERSION
             && safety.schema_version == SCHEMA_VERSION
             && matches!(safety.mode, CUSTODY | ACTIVE),
         ClearingError::Profile
@@ -31,11 +30,25 @@ pub(crate) fn base_profile(venue: &Venue, custody: &Custody, safety: &VenueSafet
     Ok(())
 }
 
-pub(crate) fn activated(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> Result<()> {
-    base_profile(venue, custody, safety)?;
+pub(crate) fn base_profile(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> Result<()> {
+    require!(
+        custody.schema_version == SCHEMA_VERSION,
+        ClearingError::Profile
+    );
+    base_identity(venue, safety)
+}
+
+pub(crate) fn activated_identity(venue: &Venue, safety: &VenueSafety) -> Result<()> {
+    base_identity(venue, safety)?;
     require!(!safety.paused, ClearingError::Paused);
     require!(safety.mode == ACTIVE, ClearingError::Profile);
     Ok(())
+}
+
+#[cfg(test)]
+pub(crate) fn activated(venue: &Venue, custody: &Custody, safety: &VenueSafety) -> Result<()> {
+    base_profile(venue, custody, safety)?;
+    activated_identity(venue, safety)
 }
 
 pub mod contexts;

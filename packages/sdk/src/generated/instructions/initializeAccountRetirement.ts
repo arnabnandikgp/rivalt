@@ -60,6 +60,8 @@ export type InitializeAccountRetirementInstruction<
   TAccountCertificate extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
+  TAccountEventAuthority extends string | AccountMeta<string> = string,
+  TAccountProgram extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -81,6 +83,12 @@ export type InitializeAccountRetirementInstruction<
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
+      TAccountEventAuthority extends string
+        ? ReadonlyAccount<TAccountEventAuthority>
+        : TAccountEventAuthority,
+      TAccountProgram extends string
+        ? ReadonlyAccount<TAccountProgram>
+        : TAccountProgram,
       ...TRemainingAccounts,
     ]
   >;
@@ -124,12 +132,17 @@ export type InitializeAccountRetirementAsyncInput<
   TAccountCertificate extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
+  TAccountEventAuthority extends InstructionAccountInput =
+    InstructionAccountInput,
+  TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   payer: TAccountPayer;
   venue: TAccountVenue;
   safety?: TAccountSafety;
   certificate?: TAccountCertificate;
   systemProgram?: TAccountSystemProgram;
+  eventAuthority: TAccountEventAuthority;
+  program: TAccountProgram;
 };
 
 export async function getInitializeAccountRetirementInstructionAsync<
@@ -138,6 +151,8 @@ export async function getInitializeAccountRetirementInstructionAsync<
   TAccountSafety extends InstructionAccountInput,
   TAccountCertificate extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
+  TAccountEventAuthority extends InstructionAccountInput,
+  TAccountProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
   input: InitializeAccountRetirementAsyncInput<
@@ -145,7 +160,9 @@ export async function getInitializeAccountRetirementInstructionAsync<
     TAccountVenue,
     TAccountSafety,
     TAccountCertificate,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountEventAuthority,
+    TAccountProgram
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
@@ -172,6 +189,14 @@ export async function getInitializeAccountRetirementInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
       InstructionAccountInputAddress<TAccountSystemProgram>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountEventAuthority,
+      InstructionAccountInputAddress<TAccountEventAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountProgram,
+      InstructionAccountInputAddress<TAccountProgram>
     >
   >
 > {
@@ -198,6 +223,16 @@ export async function getInitializeAccountRetirementInstructionAsync<
     },
     systemProgram: {
       value: input.systemProgram ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    eventAuthority: {
+      value: input.eventAuthority ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    program: {
+      value: input.program ?? null,
       isSigner: false,
       isWritable: false,
     },
@@ -242,6 +277,8 @@ export async function getInitializeAccountRetirementInstructionAsync<
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("certificate", accounts.certificate),
       getAccountMeta("systemProgram", accounts.systemProgram),
+      getAccountMeta("eventAuthority", accounts.eventAuthority),
+      getAccountMeta("program", accounts.program),
     ],
     data: getInitializeAccountRetirementInstructionDataEncoder().encode({}),
     programAddress,
@@ -266,6 +303,14 @@ export async function getInitializeAccountRetirementInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
       InstructionAccountInputAddress<TAccountSystemProgram>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountEventAuthority,
+      InstructionAccountInputAddress<TAccountEventAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountProgram,
+      InstructionAccountInputAddress<TAccountProgram>
     >
   >);
 }
@@ -277,12 +322,17 @@ export type InitializeAccountRetirementInput<
   TAccountCertificate extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
+  TAccountEventAuthority extends InstructionAccountInput =
+    InstructionAccountInput,
+  TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   payer: TAccountPayer;
   venue: TAccountVenue;
   safety: TAccountSafety;
   certificate: TAccountCertificate;
   systemProgram?: TAccountSystemProgram;
+  eventAuthority: TAccountEventAuthority;
+  program: TAccountProgram;
 };
 
 export function getInitializeAccountRetirementInstruction<
@@ -291,6 +341,8 @@ export function getInitializeAccountRetirementInstruction<
   TAccountSafety extends InstructionAccountInput,
   TAccountCertificate extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
+  TAccountEventAuthority extends InstructionAccountInput,
+  TAccountProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
   input: InitializeAccountRetirementInput<
@@ -298,7 +350,9 @@ export function getInitializeAccountRetirementInstruction<
     TAccountVenue,
     TAccountSafety,
     TAccountCertificate,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountEventAuthority,
+    TAccountProgram
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
@@ -324,6 +378,14 @@ export function getInitializeAccountRetirementInstruction<
   ResolvedInstructionAccountMeta<
     TAccountSystemProgram,
     InstructionAccountInputAddress<TAccountSystemProgram>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountEventAuthority,
+    InstructionAccountInputAddress<TAccountEventAuthority>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountProgram,
+    InstructionAccountInputAddress<TAccountProgram>
   >
 > {
   // Program address.
@@ -352,6 +414,16 @@ export function getInitializeAccountRetirementInstruction<
       isSigner: false,
       isWritable: false,
     },
+    eventAuthority: {
+      value: input.eventAuthority ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    program: {
+      value: input.program ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -371,6 +443,8 @@ export function getInitializeAccountRetirementInstruction<
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("certificate", accounts.certificate),
       getAccountMeta("systemProgram", accounts.systemProgram),
+      getAccountMeta("eventAuthority", accounts.eventAuthority),
+      getAccountMeta("program", accounts.program),
     ],
     data: getInitializeAccountRetirementInstructionDataEncoder().encode({}),
     programAddress,
@@ -395,6 +469,14 @@ export function getInitializeAccountRetirementInstruction<
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
       InstructionAccountInputAddress<TAccountSystemProgram>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountEventAuthority,
+      InstructionAccountInputAddress<TAccountEventAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountProgram,
+      InstructionAccountInputAddress<TAccountProgram>
     >
   >);
 }
@@ -410,6 +492,8 @@ export type ParsedInitializeAccountRetirementInstruction<
     safety: TAccountMetas[2];
     certificate: TAccountMetas[3];
     systemProgram: TAccountMetas[4];
+    eventAuthority: TAccountMetas[5];
+    program: TAccountMetas[6];
   };
   data: InitializeAccountRetirementInstructionData;
 };
@@ -422,12 +506,12 @@ export function parseInitializeAccountRetirementInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedInitializeAccountRetirementInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 7) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 7,
       },
     );
   }
@@ -445,6 +529,8 @@ export function parseInitializeAccountRetirementInstruction<
       safety: getNextAccount(),
       certificate: getNextAccount(),
       systemProgram: getNextAccount(),
+      eventAuthority: getNextAccount(),
+      program: getNextAccount(),
     },
     data: getInitializeAccountRetirementInstructionDataDecoder().decode(
       instruction.data,

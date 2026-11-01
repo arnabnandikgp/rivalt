@@ -221,9 +221,19 @@ impl Margin {
         let mut next = *self;
         for (market, index) in funding.into_iter().enumerate() {
             if self.allows(market) {
-                next = next.with_selected(market, next.selected(market)?.accrued(index)?)?;
+                // Accrual preserves identity/cash and validates this position's
+                // input and output. Validate the complete result once below,
+                // instead of rescanning both positions after each local update.
+                let accrued = self.selected(market)?.accrued(index)?;
+                next.positions[market] = Position {
+                    lots: accrued.lots,
+                    virtual_scaled: accrued.virtual_scaled,
+                    funding_checkpoint: accrued.funding_checkpoint,
+                    generation: accrued.generation,
+                };
             }
         }
+        next.validate()?;
         Ok(next)
     }
 
@@ -273,8 +283,25 @@ impl Margin {
     }
 
     pub fn admissible(&self, risks: [Risk; MARKETS]) -> Result<()> {
-        let required = cash_add(self.requirement(risks, IM_BPS)?, self.reserved)?;
-        if self.risk_equity(risks)? < scaled(required)? {
+        // One whole-account validation and position traversal. Keep the same
+        // per-market rounded IM and gross negative-claim admission; a positive
+        // claim never offsets a loss or becomes cash.
+        self.validate()?;
+        let mut required = self.reserved;
+        let mut equity = scaled(self.cash)?;
+        for (market, risk) in risks.into_iter().enumerate() {
+            if !self.allows(market) {
+                continue;
+            }
+            if risk.lower == 0 || risk.lower > risk.upper || risk.upper > MAX_PRICE {
+                return Err(Error::Bounds);
+            }
+            let selected = self.selected(market)?;
+            required = cash_add(required, selected.margin(risk.upper, IM_BPS)?)?;
+            let price = if selected.lots < 0 { risk.upper } else { risk.lower };
+            equity = add(equity, selected.unpaid(price, risk.funding)?.min(0))?;
+        }
+        if equity < scaled(required)? {
             return Err(Error::Health);
         }
         Ok(())

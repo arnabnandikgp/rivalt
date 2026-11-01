@@ -1,6 +1,6 @@
 # Current status
 
-Updated 30 October 2026. This is the live handoff, not a cumulative run diary.
+Updated 1 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -13,6 +13,15 @@ the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| M12 performance and contention | Review | P39–P44 acceptance complete; open seven-PR stack awaits review/integration; no framework migration |
+| P39 dependency audit/baseline | Review | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55); accepted focused RPC/WS baseline and 61-entrypoint inventory |
+| P40 scoped events/services | Review | A and B acceptance passed; awaiting stack integration |
+| P40A bounded service execution | Review | [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56), stacked on #55; scoped RPC/WS/PG fault and fresh replay acceptance passed |
+| P40B scoped event history | Review | [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58), stacked on #56; scoped history and exact financial acceptance pass |
+| P41 relevant market dependencies | Review | [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59), stacked on #58; accepted clean `ca8bab0` / SBF `b0c5675` |
+| P42 custody/accounting isolation | Review | [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60), stacked on #59; D87 schema-7 financial/lock/settlement/gateway/default and fresh SQL replay acceptance passes |
+| P43 targeted CU optimization | Review | [PR #61](https://github.com/arnabnandikgp/rivalt/pull/61), ready above #60; Same-workload CU comparison, 147/165 full-book outcomes and 290 safety outcomes pass on uninstrumented SBF `fb5d0c5`; gains and limitations recorded |
+| P44 frozen pre-v2 qualification | Review | [PR #62](https://github.com/arnabnandikgp/rivalt/pull/62), ready above #61; frozen 61-entrypoint baseline, integrated recovery/replay and measured cost/load envelope |
 | M11 consolidation | Closed | P35–P38 accepted and integrated; merged tree equals accepted stack tip |
 | P35 component docs/handoff | Closed | [PR #50](https://github.com/arnabnandikgp/rivalt/pull/50) merged; component contracts, maintenance AGENTS and provenance |
 | P36 canonical names/ABI | Closed | [PR #51](https://github.com/arnabnandikgp/rivalt/pull/51) merged; canonical API names, preserved wire contract and passing CI |
@@ -23,85 +32,92 @@ the integration and preceding baselines.
 | Continuous 24-hour endurance | Deferred | No run scheduled or completion claimed |
 
 Review means accepted work awaiting integration; Closed requires acceptance plus
-integration. The user authorized this stack's merge on 30 October 2026.
+integration. The user authorized the consolidation stack's merge on 30 October 2026; the new
+P39–P44 stack remains open for review.
 
-## Consolidation checkpoint
+## Accepted performance stack
 
-P35 maintains 20 component documents and a 93-line agent handoff. All 111 original
-documents have a current-owner or immutable-history disposition; raw evidence stays
-local and ignored. Validated content `d64cb93`, ready head `72187bc`.
+P39–P44 follow D82. The integrated baseline remains unchanged until stack merge.
+P39's immutable focused A baseline uses SBF `828fe543`; P40A adds durable bounded
+service lanes, P40B scoped authenticated history, P41 relevant market dependencies,
+and P42 schema-7 token custody/internal-accounting separation. Their exact accepted
+commits, fresh RPC/WS/PG results and limits are in
+[validation](operations/validation.md). No historical results are relabelled as P44.
 
-P36 canonical Rust/IDL/SDK names retain original discriminators, layouts, metas,
-seeds, errors, numeric schemas and signed domains. Renamed SBF source `cff1cf9`;
-final scoped RPC/Anchor verifier `53beba5`. The stale-name CI fixture repair is
-`b94381a`; all five hosted jobs pass on final head `3511e44` in
-[run 41003463384](https://github.com/arnabnandikgp/rivalt/actions/runs/41003463384).
-P37 included that exact parent head. No independent review approval is inferred.
+P43's accepted uninstrumented SBF source is
+`fb5d0c546a417796ce615e0d3d3575545c96c178`; clean verifier `1e86661` supplies its
+matched CU comparison, full books and complete safety constituents. Route savings
+are 669–1,230 CU; requested limits and actual fees are unchanged. Its four applicable
+hosted CI jobs and automated review pass on `f9d29f6` in
+[run 41244319044](https://github.com/arnabnandikgp/rivalt/actions/runs/41244319044).
+Compiler-size experiments with oversized stack frames remain rejected.
 
-P37 uses one current account engine, canonical maker/publisher API, SDK, indexer,
-services, UI and demo. Obsolete isolated/group/fixed-maker runtimes and disabled
-on-chain sampling leave the active tree after shared primitives and applicable
-regressions move. D81 and the [dispositions](REPOSITORY-CONSOLIDATION.md#p37-disposition-and-compatibility-boundary)
-record intentional API retirement. Existing deployments, databases, keys, signed
-originals and user research remain untouched. Current wire expectations are frozen
-from pre-retirement `b89768b`, not regenerated from changed layouts.
+## P44 checkpoint
 
-Clean SBF source: **`828fe5431433f19cd562a23f44c45258ddbd61aa`**. Current binaries
-and IDLs have not changed since that build; measured allowlist commit `629d44a`.
-Clearing is 2,290,224 bytes; each maker 260,560 bytes; no oversized stack diagnostic.
-See [fresh qualification](operations/validation.md#current-runtime-consolidation-qualification)
-for exact verifier pins, failures repaired, evidence paths and resource bounds.
+P44 retains the same programs/IDL/economics and fixes the operational failures
+found in qualification: D88 finalized-valid blockhash witnesses; D89 immutable
+oldest-conflicting-original dispatch; mandatory UI account-schema forwarding; and
+bounded eight-block finalized history retrieval with unchanged ordered application,
+complete manifests and exact reconciliation. Old dispatcher version-1 originals
+must drain before upgrade; ambiguous fees/reservations are never released to make
+progress. Operators use separate restricted maker/publisher fee payers.
 
-Actual acceptance includes 229 client tests, 102 native clearing tests in each of
-qualified/default builds, independent financial/pricing/allocation references,
-three compiled default gates, five compiled hostile-CPI rollback cases and actual
-Surfpool RPC/WS custody, publisher, trading, safety and full-book transactions.
-Services at `a9878a0` resolve 343 originals and 84 reports, pass ten browser actions,
-three SIGKILL/lost-ack recoveries and identical 169-event PostgreSQL replay.
-Independent per-trader cash/claim/fee/insurance reconciliation passes.
+The B baseline covers **61/61** public entrypoints across
+**2,871** independently fetched harness originals on the exact pinned binaries;
+reverted calls cannot establish successful coverage. The operator and browser
+populations remain separate. Current source, artifacts, fixtures, scenario maxima,
+caller/scaling table, priority-fee assumptions and limitations are recorded in
+[performance](operations/performance.md) and
+[validation](operations/validation.md#frozen-pre-migration-qualification-p44).
 
-Operational run `d62c709` completes restart during proposal upload, ten-root default,
-sustained recovery and every funded exit. All 84 worker originals resolve; vault
-residual is exactly 452 atoms of market insurance/protocol fees. Independent exact
-Fraction replay and five corruption rejections pass. Journal run `f6b84a0` verifies
-SQL rollback, restart, reverted-event exclusion and 72-event fresh replay.
+Clean `a5afbc9` completes 239 durable originals (236 success / three report
+rejections), three lost-ack/SIGKILL recoveries, stored-order execution, publisher
+handover/revocation, source outage/recovery and live indexer restart. Fresh PG replay
+matches 137 events over eight members/70 accounts; independent audit verifies
+7,999,993 vault atoms, 7,999,968 cash and 25 taker-fee atoms. All six makers remain
+internal and hedge costs unobserved. Ten browser actions separately pass at
+`f4490e9`, including reload recovery and cash actions with both APIs blocked.
 
-The migrated demo passes at `a0a3651`: 13 actual browser-wallet originals covering
-creation, both margin modes, deposit/allocation, BTC/ETH trades, TP/SL/cancel,
-reduce-only closes, token-reconciled withdrawal and saved-receipt reload. Owned
-processes and PostgreSQL are stopped; all test ports are released. Previous stopped
-runtime and every failed attempt remain in place. Final scoped client checks pass
-19 cases; typecheck, generated parity, wire/evidence policy and doc links pass.
+Clean `8b8c33f` completes the current bounded load experiment: 1,008 offers,
+465 unique finalized originals, 430 fills, 35 on-chain rejections and
+543 unsubmitted offers with explicit generator/duplicate reasons. There are no
+expired/unresolved load originals. Live indexing records 2 coherent cycles and
+33 revision-ahead retries; final and fresh replay match 585 events and exactly
+9,000,000 vault atoms. Earlier 1/28 live progress and duplicate-wire failure remain
+recorded, not counted as successful full runs. This is not sustained availability
+or validator TPS.
 
-No new load/latency comparison, endurance, external wallet, independent-maker,
-external review or current devnet/funded qualification is claimed. Dedicated indexer
-smoke was omitted because the broader services/operations runs exercise its current
-projection/rebuild and the journal run adds real SQL rollback/reverted-event checks.
-P37's scope, client, financial, report and shell jobs all pass on `159ea27` in
-[run 41016415771](https://github.com/arnabnandikgp/rivalt/actions/runs/41016415771).
-Its automated reviewer skipped the large diff; no independent review is claimed.
+The actual 64-member default, eight scratch-only width cases, five compiled
+hostile-maker rollback cases, custody/dependency/treasury/retirement lifecycles,
+and their independent financial/replay checks pass at the exact pins in validation.
+The 56 added default members are flat; wide fixtures perform no payout. Ordinary
+own-cash exits remain independent of unpaid-profit certificates; earlier certificate
+pages still require stable relevant observations.
 
-P37's accepted content is `1494881`; PR #53 merged with its #51 parent. Initial GitHub push
-timed out; the retry succeeded without changing the content or stack relationships.
-
-P38 rewrites the root README around the current implementation and qualified local
-demo, with the component map and exact limits linked instead of duplicated phase
-history. Clean content `9a59ca8` passes 265 relative links/anchors, 112 immutable
-historical targets, 42 source/command paths, whitespace and evidence-policy checks.
-Its scope is Markdown only; runtime/build/financial suites are not rerun. PR #54
-merged with its #53 parent. The executable CI workflow's path filter does not run for this
-Markdown-only PR; its local checks are recorded, not described as a hosted pass.
-
-The stack **#50 → #51 → #53 → #54** merged atomically with no unresolved review
-threads. P54's automated review was still running; no independent approval is claimed.
-The merge was fetched, every PR's MERGED state checked and tree equality verified;
-local `main` fast-forwarded without touching unrelated research or local evidence.
-Only documentation/whitespace/evidence checks apply to this closeout. No financial,
-RPC/WS/PostgreSQL, browser, load or endurance suite is rerun for merge metadata.
-
-Next exact action: select the next product/engineering objective with the user.
-No further implementation phase, external activity or endurance run is authorized
-by this closeout.
+Fourteen affected indexer tests, 31 queue/receipt/cost cases, two independent audit
+regressions and typecheck pass. Raw originals, failed attempts and databases stay
+local/ignored. No new SBF build, unrelated local native suites, endurance, devnet,
+external wallet, funded deployment or Anchor v2 migration is run. Broad supported
+regression belongs to CI. The 53,089-byte frozen baseline reproduces from its pinned
+originals; typecheck, documentation links, shell syntax, whitespace and the staged
+128 KiB aggregate evidence budget pass. Acceptance content is `ade628d`.
+[PR #62](https://github.com/arnabnandikgp/rivalt/pull/62) is verified ready/open above
+#61; all seven stack PRs remain open. Hosted checks and review are visible on the
+PR and are separate from the recorded local acceptance. All four applicable hosted
+jobs (scope, shell, client and financial) pass on acceptance content `ade628d` in
+[run 41276941491](https://github.com/arnabnandikgp/rivalt/actions/runs/41276941491);
+the report job is correctly skipped. Later commits update handoff documentation
+only; this does not claim a new code run or independent review approval.
+The user authorized review fixes and merging the complete stack on 1 November.
+Review found an admission crash window: the finalized-valid witness must commit
+with the resource reservation, before status RPC or broadcast. The fix and a real
+SIGKILL-before-status regression are being verified; the P43 comparison wording
+already distinguishes aggregate comparison from each run's independent checks,
+and service-role CU labels now explicitly identify transaction CU. PRs #56/#58/
+#59/#60 have skipped/rate-limited automated reviews, not approval.
+Next exact action: run the focused queue/dispatch tests and actual RPC/WS/PG crash
+regression on the committed fix, resolve feedback, verify CI and merge the stack.
+No new program build, load/endurance campaign or Anchor v2 migration is needed.
 
 ## Deployment and operational limits
 

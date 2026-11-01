@@ -32,6 +32,7 @@ export type MarketLedgerSnapshot = {
   fees: bigint;
   insuranceFeeRemainder: number;
   version: bigint;
+  liabilityVersion: bigint;
 };
 
 export type MarketLedgerSnapshotArgs = {
@@ -43,6 +44,7 @@ export type MarketLedgerSnapshotArgs = {
   fees: number | bigint;
   insuranceFeeRemainder: number;
   version: number | bigint;
+  liabilityVersion: number | bigint;
 };
 
 export function getMarketLedgerSnapshotEncoder(): FixedSizeEncoder<MarketLedgerSnapshotArgs> {
@@ -55,6 +57,7 @@ export function getMarketLedgerSnapshotEncoder(): FixedSizeEncoder<MarketLedgerS
     ["fees", getU64Encoder()],
     ["insuranceFeeRemainder", getU8Encoder()],
     ["version", getU64Encoder()],
+    ["liabilityVersion", getU64Encoder()],
   ]);
 }
 
@@ -68,6 +71,7 @@ export function getMarketLedgerSnapshotDecoder(): FixedSizeDecoder<MarketLedgerS
     ["fees", getU64Decoder()],
     ["insuranceFeeRemainder", getU8Decoder()],
     ["version", getU64Decoder()],
+    ["liabilityVersion", getU64Decoder()],
   ]);
 }
 

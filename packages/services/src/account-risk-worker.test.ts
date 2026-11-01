@@ -8,6 +8,7 @@ import {accountWorkerKeys} from './account-worker-state.js';
 import type {AccountRuntime} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
 import {Queue} from './queue.js';
+import {dispatchWire,dispatchMockRows} from '../test-support/dispatch-fixture.js';
 
 /** Encoded RPC consumer fixture: no claim of simulated financial acceptance. */
 async function fixture(freezeAccepted=false) {
@@ -20,10 +21,10 @@ async function fixture(freezeAccepted=false) {
   const keys=await accountWorkerKeys(venue);
   const [,resolutionBump]=await sdk.deriveVenueComponent(venue,'resolution');
   const [,workBump]=await sdk.deriveVenueComponent(venue,'resolution-work');
-  test.put(keys.resolution,sdk.getResolutionEncoder().encode({...test.empty(sdk.getResolutionDecoder()),schemaVersion:3,venue,bump:resolutionBump}));
-  test.put(keys.work,sdk.getResolutionWorkEncoder().encode({...test.empty(sdk.getResolutionWorkDecoder()),schemaVersion:3,venue,bump:workBump}));
+  test.put(keys.resolution,sdk.getResolutionEncoder().encode({...test.empty(sdk.getResolutionDecoder()),schemaVersion:7,revision:1n,venue,bump:resolutionBump}));
+  test.put(keys.work,sdk.getResolutionWorkEncoder().encode({...test.empty(sdk.getResolutionWorkDecoder()),schemaVersion:7,revision:1n,venue,bump:workBump}));
   const [,registryBump]=await sdk.deriveVenueComponent(venue,'registry');
-  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:3,venue,count:2,membershipVersion:1n,members:[target,receiver],bump:registryBump}));
+  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:7,revision:1n,venue,count:2,membershipVersion:1n,members:[target,receiver],bump:registryBump}));
   const submissions:{instructions:Instruction[];authority:AccountAuthority|null}[]=[];
   const runtime={rpc:test.rpc,riskProbeCursor:0,budget:async()=> 'risk-budget',pendingBudget:async()=>false,
     discovery:async()=>({state:{members:[target,receiver],roots:{[target]:distressed,[receiver]:capital}}}),
@@ -47,8 +48,8 @@ it('attaches the signed receiver version to liquidation and proves only finalize
   // reimplementation of its decision. No unseen fee can be released.
   for(const state of ['unchanged','advanced','missing'] as const) {
     const calls:{sql:string;params:any[]}[]=[];
-    const intent={request_id:'liquidation',status:'pending',signature:'lost-original',wire:'saved-original',blockhash:'expired',budget:'risk-budget',authority:liquidation.authority};
-    const query=async(sql:string,params:any[]=[])=>{calls.push({sql,params});return {rows:sql.includes('FOR UPDATE SKIP LOCKED')?[intent]:[]};};
+    const intent={request_id:'liquidation',status:'pending',signature:'lost-original',wire:dispatchWire(),blockhash:'expired',blockhash_finalized_slot:'100',budget:'risk-budget',authority:liquidation.authority};
+    const query=async(sql:string,params:any[]=[])=>{calls.push({sql,params});return {rows:dispatchMockRows(sql,intent)};};
     const root=sdk.getMarginAccountDecoder().decode(Buffer.from(test.accounts.get(test.receiver).data[0],'base64'));
     const bytes=sdk.getMarginAccountEncoder().encode({...root,stateVersion:state==='advanced'?28n:27n});
     const rpc={call:async(method:string,params:any[])=>{
@@ -61,7 +62,7 @@ it('attaches the signed receiver version to liquidation and proves only finalize
     const store={runId:'risk-unit',pool:{connect:async()=>({query,release(){}})}};
     const queue=new Queue(store as unknown as ConstructorParameters<typeof Queue>[0],rpc as ConstructorParameters<typeof Queue>[1]);
     await queue.step('liquidation');
-    expect(calls.find(call=>call.sql.startsWith('UPDATE service_intents'))!.params[2]).toBe(state==='unchanged'?'expired-unexecuted':'unresolved');
+    expect(calls.find(call=>call.sql.startsWith('UPDATE service_intents SET status='))!.params[2]).toBe(state==='unchanged'?'expired-unexecuted':'unresolved');
     expect(calls.some(call=>call.sql.startsWith('UPDATE service_budgets'))).toBe(false);
   }
 });

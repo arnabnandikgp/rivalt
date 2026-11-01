@@ -54,7 +54,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([116, 78, 173, 90, 240, 10, 196, 1]);
+  new Uint8Array([179, 48, 166, 248, 136, 247, 187, 170]);
 
 export function getAccountCustodyChangedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -67,7 +67,6 @@ export type AccountCustodyChangedEvent = {
   profileVersion: number;
   domain: ReadonlyUint8Array;
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   /**
    * 0 venue, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdrawal,
@@ -94,9 +93,7 @@ export type AccountCustodyChangedEvent = {
   safetyEpoch: bigint;
   termsEpoch: bigint;
   configEpoch: bigint;
-  totalCash: bigint;
-  allocatedVault: bigint;
-  liabilityVersions: Array<bigint>;
+  allocatedVault: Option<bigint>;
   membershipVersion: Option<bigint>;
   memberCount: Option<number>;
   actualVault: Option<bigint>;
@@ -107,7 +104,6 @@ export type AccountCustodyChangedEventArgs = {
   profileVersion: number;
   domain: ReadonlyUint8Array;
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   /**
    * 0 venue, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdrawal,
@@ -134,9 +130,7 @@ export type AccountCustodyChangedEventArgs = {
   safetyEpoch: number | bigint;
   termsEpoch: number | bigint;
   configEpoch: number | bigint;
-  totalCash: number | bigint;
-  allocatedVault: number | bigint;
-  liabilityVersions: Array<number | bigint>;
+  allocatedVault: OptionOrNullable<number | bigint>;
   membershipVersion: OptionOrNullable<number | bigint>;
   memberCount: OptionOrNullable<number>;
   actualVault: OptionOrNullable<number | bigint>;
@@ -150,7 +144,6 @@ export function getAccountCustodyChangedEventEncoder(): Encoder<AccountCustodyCh
       ["profileVersion", getU16Encoder()],
       ["domain", fixEncoderSize(getBytesEncoder(), 32)],
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["kind", getU8Encoder()],
       ["actor", getAddressEncoder()],
@@ -173,9 +166,7 @@ export function getAccountCustodyChangedEventEncoder(): Encoder<AccountCustodyCh
       ["safetyEpoch", getU64Encoder()],
       ["termsEpoch", getU64Encoder()],
       ["configEpoch", getU64Encoder()],
-      ["totalCash", getU64Encoder()],
-      ["allocatedVault", getU64Encoder()],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
+      ["allocatedVault", getOptionEncoder(getU64Encoder())],
       ["membershipVersion", getOptionEncoder(getU64Encoder())],
       ["memberCount", getOptionEncoder(getU16Encoder())],
       ["actualVault", getOptionEncoder(getU64Encoder())],
@@ -192,7 +183,6 @@ export function getAccountCustodyChangedEventDecoder(): Decoder<AccountCustodyCh
       ["profileVersion", getU16Decoder()],
       ["domain", fixDecoderSize(getBytesDecoder(), 32)],
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["kind", getU8Decoder()],
       ["actor", getAddressDecoder()],
@@ -215,9 +205,7 @@ export function getAccountCustodyChangedEventDecoder(): Decoder<AccountCustodyCh
       ["safetyEpoch", getU64Decoder()],
       ["termsEpoch", getU64Decoder()],
       ["configEpoch", getU64Decoder()],
-      ["totalCash", getU64Decoder()],
-      ["allocatedVault", getU64Decoder()],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
+      ["allocatedVault", getOptionDecoder(getU64Decoder())],
       ["membershipVersion", getOptionDecoder(getU64Decoder())],
       ["memberCount", getOptionDecoder(getU16Decoder())],
       ["actualVault", getOptionDecoder(getU64Decoder())],

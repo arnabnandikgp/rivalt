@@ -45,7 +45,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findCustodyPda, findVenueSafetyPda } from "../pdas/index.js";
+import { findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -67,7 +67,6 @@ export type SetAccountDelegateInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountMargin extends string | AccountMeta<string> = string,
   TAccountEventAuthority extends string | AccountMeta<string> = string,
@@ -84,9 +83,6 @@ export type SetAccountDelegateInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -153,7 +149,6 @@ export function getSetAccountDelegateInstructionDataCodec(): FixedSizeCodec<
 export type SetAccountDelegateAsyncInput<
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMargin extends InstructionAccountInput = InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
@@ -162,7 +157,6 @@ export type SetAccountDelegateAsyncInput<
 > = {
   owner: TAccountOwner;
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
   margin: TAccountMargin;
   eventAuthority: TAccountEventAuthority;
@@ -175,7 +169,6 @@ export type SetAccountDelegateAsyncInput<
 export async function getSetAccountDelegateInstructionAsync<
   TAccountOwner extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMargin extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
@@ -185,7 +178,6 @@ export async function getSetAccountDelegateInstructionAsync<
   input: SetAccountDelegateAsyncInput<
     TAccountOwner,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMargin,
     TAccountEventAuthority,
@@ -204,10 +196,6 @@ export async function getSetAccountDelegateInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -242,11 +230,6 @@ export async function getSetAccountDelegateInstructionAsync<
   const originalAccounts = {
     owner: { value: input.owner ?? null, isSigner: true, isWritable: false },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
     eventAuthority: {
@@ -269,17 +252,6 @@ export async function getSetAccountDelegateInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -296,7 +268,6 @@ export async function getSetAccountDelegateInstructionAsync<
     accounts: [
       getAccountMeta("owner", accounts.owner),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("margin", accounts.margin),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
@@ -315,10 +286,6 @@ export async function getSetAccountDelegateInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -342,7 +309,6 @@ export async function getSetAccountDelegateInstructionAsync<
 export type SetAccountDelegateInput<
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountMargin extends InstructionAccountInput = InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
@@ -351,7 +317,6 @@ export type SetAccountDelegateInput<
 > = {
   owner: TAccountOwner;
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
   margin: TAccountMargin;
   eventAuthority: TAccountEventAuthority;
@@ -364,7 +329,6 @@ export type SetAccountDelegateInput<
 export function getSetAccountDelegateInstruction<
   TAccountOwner extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountMargin extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
@@ -374,7 +338,6 @@ export function getSetAccountDelegateInstruction<
   input: SetAccountDelegateInput<
     TAccountOwner,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountMargin,
     TAccountEventAuthority,
@@ -392,10 +355,6 @@ export function getSetAccountDelegateInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -429,11 +388,6 @@ export function getSetAccountDelegateInstruction<
   const originalAccounts = {
     owner: { value: input.owner ?? null, isSigner: true, isWritable: false },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
     eventAuthority: {
@@ -459,7 +413,6 @@ export function getSetAccountDelegateInstruction<
     accounts: [
       getAccountMeta("owner", accounts.owner),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("margin", accounts.margin),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
@@ -478,10 +431,6 @@ export function getSetAccountDelegateInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -510,11 +459,10 @@ export type ParsedSetAccountDelegateInstruction<
   accounts: {
     owner: TAccountMetas[0];
     venue: TAccountMetas[1];
-    custody: TAccountMetas[2];
-    safety: TAccountMetas[3];
-    margin: TAccountMetas[4];
-    eventAuthority: TAccountMetas[5];
-    program: TAccountMetas[6];
+    safety: TAccountMetas[2];
+    margin: TAccountMetas[3];
+    eventAuthority: TAccountMetas[4];
+    program: TAccountMetas[5];
   };
   data: SetAccountDelegateInstructionData;
 };
@@ -527,12 +475,12 @@ export function parseSetAccountDelegateInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedSetAccountDelegateInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 7) {
+  if (instruction.accounts.length < 6) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 7,
+        expectedAccountMetas: 6,
       },
     );
   }
@@ -547,7 +495,6 @@ export function parseSetAccountDelegateInstruction<
     accounts: {
       owner: getNextAccount(),
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
       margin: getNextAccount(),
       eventAuthority: getNextAccount(),

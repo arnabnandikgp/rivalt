@@ -45,9 +45,7 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import {
-  findBtcLedgerPda,
   findCustodyPda,
-  findEthLedgerPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
@@ -65,12 +63,9 @@ export function getWithdrawRetiredReserveDiscriminatorBytes(): ReadonlyUint8Arra
 export type WithdrawRetiredReserveInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
-  TAccountBtc extends string | AccountMeta<string> = string,
-  TAccountEth extends string | AccountMeta<string> = string,
-  TAccountBtcLedger extends string | AccountMeta<string> = string,
-  TAccountEthLedger extends string | AccountMeta<string> = string,
+  TAccountLedger extends string | AccountMeta<string> = string,
+  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountVault extends string | AccountMeta<string> = string,
   TAccountReserveAuthority extends string | AccountMeta<string> = string,
   TAccountQuoteMint extends string | AccountMeta<string> = string,
@@ -87,20 +82,15 @@ export type WithdrawRetiredReserveInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
-      TAccountBtc extends string ? WritableAccount<TAccountBtc> : TAccountBtc,
-      TAccountEth extends string ? WritableAccount<TAccountEth> : TAccountEth,
-      TAccountBtcLedger extends string
-        ? WritableAccount<TAccountBtcLedger>
-        : TAccountBtcLedger,
-      TAccountEthLedger extends string
-        ? WritableAccount<TAccountEthLedger>
-        : TAccountEthLedger,
+      TAccountLedger extends string
+        ? WritableAccount<TAccountLedger>
+        : TAccountLedger,
+      TAccountCustody extends string
+        ? WritableAccount<TAccountCustody>
+        : TAccountCustody,
       TAccountVault extends string
         ? WritableAccount<TAccountVault>
         : TAccountVault,
@@ -172,12 +162,9 @@ export function getWithdrawRetiredReserveInstructionDataCodec(): FixedSizeCodec<
 
 export type WithdrawRetiredReserveAsyncInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEth extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
+  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountReserveAuthority extends InstructionSignerInput =
     InstructionSignerInput,
@@ -190,12 +177,9 @@ export type WithdrawRetiredReserveAsyncInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
-  btcLedger?: TAccountBtcLedger;
-  ethLedger?: TAccountEthLedger;
+  ledger: TAccountLedger;
+  custody?: TAccountCustody;
   vault?: TAccountVault;
   reserveAuthority: TAccountReserveAuthority;
   quoteMint: TAccountQuoteMint;
@@ -209,12 +193,9 @@ export type WithdrawRetiredReserveAsyncInput<
 
 export async function getWithdrawRetiredReserveInstructionAsync<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
-  TAccountBtc extends InstructionAccountInput,
-  TAccountEth extends InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput,
+  TAccountCustody extends InstructionAccountInput,
   TAccountVault extends InstructionAccountInput,
   TAccountReserveAuthority extends InstructionSignerInput,
   TAccountQuoteMint extends InstructionAccountInput,
@@ -226,12 +207,9 @@ export async function getWithdrawRetiredReserveInstructionAsync<
 >(
   input: WithdrawRetiredReserveAsyncInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
-    TAccountBtc,
-    TAccountEth,
-    TAccountBtcLedger,
-    TAccountEthLedger,
+    TAccountLedger,
+    TAccountCustody,
     TAccountVault,
     TAccountReserveAuthority,
     TAccountQuoteMint,
@@ -251,28 +229,16 @@ export async function getWithdrawRetiredReserveInstructionAsync<
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtc,
-      InstructionAccountInputAddress<TAccountBtc>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountEth,
-      InstructionAccountInputAddress<TAccountEth>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
+      TAccountCustody,
+      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountVault,
@@ -318,21 +284,10 @@ export async function getWithdrawRetiredReserveInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
+    safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     custody: {
       value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
-    btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
-    eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
-    btcLedger: {
-      value: input.btcLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    ethLedger: {
-      value: input.ethLedger ?? null,
       isSigner: false,
       isWritable: true,
     },
@@ -377,17 +332,6 @@ export async function getWithdrawRetiredReserveInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -399,23 +343,12 @@ export async function getWithdrawRetiredReserveInstructionAsync<
       { programAddress },
     );
   }
-  if (!accounts.btcLedger.value) {
-    accounts.btcLedger.value = await findBtcLedgerPda(
+  if (!accounts.custody.value) {
+    accounts.custody.value = await findCustodyPda(
       {
-        btc: getAddressFromResolvedInstructionAccount(
-          "btc",
-          accounts.btc.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.ethLedger.value) {
-    accounts.ethLedger.value = await findEthLedgerPda(
-      {
-        eth: getAddressFromResolvedInstructionAccount(
-          "eth",
-          accounts.eth.value,
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
         ),
       },
       { programAddress },
@@ -440,12 +373,9 @@ export async function getWithdrawRetiredReserveInstructionAsync<
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
-      getAccountMeta("btc", accounts.btc),
-      getAccountMeta("eth", accounts.eth),
-      getAccountMeta("btcLedger", accounts.btcLedger),
-      getAccountMeta("ethLedger", accounts.ethLedger),
+      getAccountMeta("ledger", accounts.ledger),
+      getAccountMeta("custody", accounts.custody),
       getAccountMeta("vault", accounts.vault),
       getAccountMeta("reserveAuthority", accounts.reserveAuthority),
       getAccountMeta("quoteMint", accounts.quoteMint),
@@ -465,28 +395,16 @@ export async function getWithdrawRetiredReserveInstructionAsync<
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtc,
-      InstructionAccountInputAddress<TAccountBtc>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountEth,
-      InstructionAccountInputAddress<TAccountEth>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
+      TAccountCustody,
+      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountVault,
@@ -521,12 +439,9 @@ export async function getWithdrawRetiredReserveInstructionAsync<
 
 export type WithdrawRetiredReserveInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEth extends InstructionAccountInput = InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput = InstructionAccountInput,
+  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountReserveAuthority extends InstructionSignerInput =
     InstructionSignerInput,
@@ -539,12 +454,9 @@ export type WithdrawRetiredReserveInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
+  ledger: TAccountLedger;
+  custody: TAccountCustody;
   vault: TAccountVault;
   reserveAuthority: TAccountReserveAuthority;
   quoteMint: TAccountQuoteMint;
@@ -558,12 +470,9 @@ export type WithdrawRetiredReserveInput<
 
 export function getWithdrawRetiredReserveInstruction<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
-  TAccountBtc extends InstructionAccountInput,
-  TAccountEth extends InstructionAccountInput,
-  TAccountBtcLedger extends InstructionAccountInput,
-  TAccountEthLedger extends InstructionAccountInput,
+  TAccountLedger extends InstructionAccountInput,
+  TAccountCustody extends InstructionAccountInput,
   TAccountVault extends InstructionAccountInput,
   TAccountReserveAuthority extends InstructionSignerInput,
   TAccountQuoteMint extends InstructionAccountInput,
@@ -575,12 +484,9 @@ export function getWithdrawRetiredReserveInstruction<
 >(
   input: WithdrawRetiredReserveInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
-    TAccountBtc,
-    TAccountEth,
-    TAccountBtcLedger,
-    TAccountEthLedger,
+    TAccountLedger,
+    TAccountCustody,
     TAccountVault,
     TAccountReserveAuthority,
     TAccountQuoteMint,
@@ -599,28 +505,16 @@ export function getWithdrawRetiredReserveInstruction<
     InstructionAccountInputAddress<TAccountVenue>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
-  >,
-  ResolvedInstructionAccountMeta<
     TAccountSafety,
     InstructionAccountInputAddress<TAccountSafety>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountBtc,
-    InstructionAccountInputAddress<TAccountBtc>
+    TAccountLedger,
+    InstructionAccountInputAddress<TAccountLedger>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountEth,
-    InstructionAccountInputAddress<TAccountEth>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountBtcLedger,
-    InstructionAccountInputAddress<TAccountBtcLedger>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountEthLedger,
-    InstructionAccountInputAddress<TAccountEthLedger>
+    TAccountCustody,
+    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountVault,
@@ -665,21 +559,10 @@ export function getWithdrawRetiredReserveInstruction<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
+    safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     custody: {
       value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
-    btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
-    eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
-    btcLedger: {
-      value: input.btcLedger ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    ethLedger: {
-      value: input.ethLedger ?? null,
       isSigner: false,
       isWritable: true,
     },
@@ -732,12 +615,9 @@ export function getWithdrawRetiredReserveInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
-      getAccountMeta("btc", accounts.btc),
-      getAccountMeta("eth", accounts.eth),
-      getAccountMeta("btcLedger", accounts.btcLedger),
-      getAccountMeta("ethLedger", accounts.ethLedger),
+      getAccountMeta("ledger", accounts.ledger),
+      getAccountMeta("custody", accounts.custody),
       getAccountMeta("vault", accounts.vault),
       getAccountMeta("reserveAuthority", accounts.reserveAuthority),
       getAccountMeta("quoteMint", accounts.quoteMint),
@@ -757,28 +637,16 @@ export function getWithdrawRetiredReserveInstruction<
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountBtc,
-      InstructionAccountInputAddress<TAccountBtc>
+      TAccountLedger,
+      InstructionAccountInputAddress<TAccountLedger>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountEth,
-      InstructionAccountInputAddress<TAccountEth>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountBtcLedger,
-      InstructionAccountInputAddress<TAccountBtcLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountEthLedger,
-      InstructionAccountInputAddress<TAccountEthLedger>
+      TAccountCustody,
+      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountVault,
@@ -818,19 +686,16 @@ export type ParsedWithdrawRetiredReserveInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     venue: TAccountMetas[0];
-    custody: TAccountMetas[1];
-    safety: TAccountMetas[2];
-    btc: TAccountMetas[3];
-    eth: TAccountMetas[4];
-    btcLedger: TAccountMetas[5];
-    ethLedger: TAccountMetas[6];
-    vault: TAccountMetas[7];
-    reserveAuthority: TAccountMetas[8];
-    quoteMint: TAccountMetas[9];
-    destination: TAccountMetas[10];
-    tokenProgram: TAccountMetas[11];
-    eventAuthority: TAccountMetas[12];
-    program: TAccountMetas[13];
+    safety: TAccountMetas[1];
+    ledger: TAccountMetas[2];
+    custody: TAccountMetas[3];
+    vault: TAccountMetas[4];
+    reserveAuthority: TAccountMetas[5];
+    quoteMint: TAccountMetas[6];
+    destination: TAccountMetas[7];
+    tokenProgram: TAccountMetas[8];
+    eventAuthority: TAccountMetas[9];
+    program: TAccountMetas[10];
   };
   data: WithdrawRetiredReserveInstructionData;
 };
@@ -843,12 +708,12 @@ export function parseWithdrawRetiredReserveInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedWithdrawRetiredReserveInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 14) {
+  if (instruction.accounts.length < 11) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 14,
+        expectedAccountMetas: 11,
       },
     );
   }
@@ -862,12 +727,9 @@ export function parseWithdrawRetiredReserveInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
-      btc: getNextAccount(),
-      eth: getNextAccount(),
-      btcLedger: getNextAccount(),
-      ethLedger: getNextAccount(),
+      ledger: getNextAccount(),
+      custody: getNextAccount(),
       vault: getNextAccount(),
       reserveAuthority: getNextAccount(),
       quoteMint: getNextAccount(),

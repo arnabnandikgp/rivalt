@@ -42,13 +42,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import {
-  findBtcLedgerPda,
-  findCustodyPda,
-  findEthLedgerPda,
-  findVenueSafetyPda,
-  findVenueVaultPda,
-} from "../pdas/index.js";
+import { findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -69,13 +63,11 @@ export function getTransferFundedAccountDiscriminatorBytes(): ReadonlyUint8Array
 export type TransferFundedAccountInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountBtc extends string | AccountMeta<string> = string,
   TAccountEth extends string | AccountMeta<string> = string,
   TAccountBtcLedger extends string | AccountMeta<string> = string,
   TAccountEthLedger extends string | AccountMeta<string> = string,
-  TAccountVault extends string | AccountMeta<string> = string,
   TAccountOwner extends string | AccountMeta<string> = string,
   TAccountDonor extends string | AccountMeta<string> = string,
   TAccountRecipient extends string | AccountMeta<string> = string,
@@ -89,9 +81,6 @@ export type TransferFundedAccountInstruction<
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? WritableAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
@@ -103,9 +92,6 @@ export type TransferFundedAccountInstruction<
       TAccountEthLedger extends string
         ? WritableAccount<TAccountEthLedger>
         : TAccountEthLedger,
-      TAccountVault extends string
-        ? WritableAccount<TAccountVault>
-        : TAccountVault,
       TAccountOwner extends string
         ? ReadonlySignerAccount<TAccountOwner> &
             AccountSignerMeta<TAccountOwner>
@@ -171,13 +157,11 @@ export function getTransferFundedAccountInstructionDataCodec(): FixedSizeCodec<
 
 export type TransferFundedAccountAsyncInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountDonor extends InstructionAccountInput = InstructionAccountInput,
   TAccountRecipient extends InstructionAccountInput = InstructionAccountInput,
@@ -186,13 +170,11 @@ export type TransferFundedAccountAsyncInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
   btcLedger?: TAccountBtcLedger;
   ethLedger?: TAccountEthLedger;
-  vault?: TAccountVault;
   owner: TAccountOwner;
   donor: TAccountDonor;
   recipient: TAccountRecipient;
@@ -204,13 +186,11 @@ export type TransferFundedAccountAsyncInput<
 
 export async function getTransferFundedAccountInstructionAsync<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
   TAccountOwner extends InstructionSignerInput,
   TAccountDonor extends InstructionAccountInput,
   TAccountRecipient extends InstructionAccountInput,
@@ -220,13 +200,11 @@ export async function getTransferFundedAccountInstructionAsync<
 >(
   input: TransferFundedAccountAsyncInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountBtc,
     TAccountEth,
     TAccountBtcLedger,
     TAccountEthLedger,
-    TAccountVault,
     TAccountOwner,
     TAccountDonor,
     TAccountRecipient,
@@ -242,10 +220,6 @@ export async function getTransferFundedAccountInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -266,10 +240,6 @@ export async function getTransferFundedAccountInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountOwner,
@@ -307,11 +277,6 @@ export async function getTransferFundedAccountInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
@@ -325,7 +290,6 @@ export async function getTransferFundedAccountInstructionAsync<
       isSigner: false,
       isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
     owner: { value: input.owner ?? null, isSigner: true, isWritable: false },
     donor: { value: input.donor ?? null, isSigner: false, isWritable: true },
     recipient: {
@@ -353,52 +317,8 @@ export async function getTransferFundedAccountInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.btcLedger.value) {
-    accounts.btcLedger.value = await findBtcLedgerPda(
-      {
-        btc: getAddressFromResolvedInstructionAccount(
-          "btc",
-          accounts.btc.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.ethLedger.value) {
-    accounts.ethLedger.value = await findEthLedgerPda(
-      {
-        eth: getAddressFromResolvedInstructionAccount(
-          "eth",
-          accounts.eth.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.vault.value) {
-    accounts.vault.value = await findVenueVaultPda(
       {
         venue: getAddressFromResolvedInstructionAccount(
           "venue",
@@ -412,13 +332,11 @@ export async function getTransferFundedAccountInstructionAsync<
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
       getAccountMeta("btcLedger", accounts.btcLedger),
       getAccountMeta("ethLedger", accounts.ethLedger),
-      getAccountMeta("vault", accounts.vault),
       getAccountMeta("owner", accounts.owner),
       getAccountMeta("donor", accounts.donor),
       getAccountMeta("recipient", accounts.recipient),
@@ -434,10 +352,6 @@ export async function getTransferFundedAccountInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -458,10 +372,6 @@ export async function getTransferFundedAccountInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountOwner,
@@ -488,13 +398,11 @@ export async function getTransferFundedAccountInstructionAsync<
 
 export type TransferFundedAccountInput<
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput = InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput = InstructionAccountInput,
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountDonor extends InstructionAccountInput = InstructionAccountInput,
   TAccountRecipient extends InstructionAccountInput = InstructionAccountInput,
@@ -503,13 +411,11 @@ export type TransferFundedAccountInput<
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
-  btcLedger: TAccountBtcLedger;
-  ethLedger: TAccountEthLedger;
-  vault: TAccountVault;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
+  btcLedger?: TAccountBtcLedger;
+  ethLedger?: TAccountEthLedger;
   owner: TAccountOwner;
   donor: TAccountDonor;
   recipient: TAccountRecipient;
@@ -521,13 +427,11 @@ export type TransferFundedAccountInput<
 
 export function getTransferFundedAccountInstruction<
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
   TAccountBtcLedger extends InstructionAccountInput,
   TAccountEthLedger extends InstructionAccountInput,
-  TAccountVault extends InstructionAccountInput,
   TAccountOwner extends InstructionSignerInput,
   TAccountDonor extends InstructionAccountInput,
   TAccountRecipient extends InstructionAccountInput,
@@ -537,13 +441,11 @@ export function getTransferFundedAccountInstruction<
 >(
   input: TransferFundedAccountInput<
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
     TAccountBtc,
     TAccountEth,
     TAccountBtcLedger,
     TAccountEthLedger,
-    TAccountVault,
     TAccountOwner,
     TAccountDonor,
     TAccountRecipient,
@@ -558,10 +460,6 @@ export function getTransferFundedAccountInstruction<
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSafety,
@@ -582,10 +480,6 @@ export function getTransferFundedAccountInstruction<
   ResolvedInstructionAccountMeta<
     TAccountEthLedger,
     InstructionAccountInputAddress<TAccountEthLedger>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountVault,
-    InstructionAccountInputAddress<TAccountVault>
   >,
   ResolvedInstructionAccountMeta<
     TAccountOwner,
@@ -622,11 +516,6 @@ export function getTransferFundedAccountInstruction<
   // Original accounts.
   const originalAccounts = {
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: true },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: true },
@@ -640,7 +529,6 @@ export function getTransferFundedAccountInstruction<
       isSigner: false,
       isWritable: true,
     },
-    vault: { value: input.vault ?? null, isSigner: false, isWritable: true },
     owner: { value: input.owner ?? null, isSigner: true, isWritable: false },
     donor: { value: input.donor ?? null, isSigner: false, isWritable: true },
     recipient: {
@@ -670,13 +558,11 @@ export function getTransferFundedAccountInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
       getAccountMeta("btcLedger", accounts.btcLedger),
       getAccountMeta("ethLedger", accounts.ethLedger),
-      getAccountMeta("vault", accounts.vault),
       getAccountMeta("owner", accounts.owner),
       getAccountMeta("donor", accounts.donor),
       getAccountMeta("recipient", accounts.recipient),
@@ -692,10 +578,6 @@ export function getTransferFundedAccountInstruction<
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSafety,
@@ -716,10 +598,6 @@ export function getTransferFundedAccountInstruction<
     ResolvedInstructionAccountMeta<
       TAccountEthLedger,
       InstructionAccountInputAddress<TAccountEthLedger>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVault,
-      InstructionAccountInputAddress<TAccountVault>
     >,
     ResolvedInstructionAccountMeta<
       TAccountOwner,
@@ -751,18 +629,16 @@ export type ParsedTransferFundedAccountInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     venue: TAccountMetas[0];
-    custody: TAccountMetas[1];
-    safety: TAccountMetas[2];
-    btc: TAccountMetas[3];
-    eth: TAccountMetas[4];
-    btcLedger: TAccountMetas[5];
-    ethLedger: TAccountMetas[6];
-    vault: TAccountMetas[7];
-    owner: TAccountMetas[8];
-    donor: TAccountMetas[9];
-    recipient: TAccountMetas[10];
-    eventAuthority: TAccountMetas[11];
-    program: TAccountMetas[12];
+    safety: TAccountMetas[1];
+    btc?: TAccountMetas[2] | undefined;
+    eth?: TAccountMetas[3] | undefined;
+    btcLedger?: TAccountMetas[4] | undefined;
+    ethLedger?: TAccountMetas[5] | undefined;
+    owner: TAccountMetas[6];
+    donor: TAccountMetas[7];
+    recipient: TAccountMetas[8];
+    eventAuthority: TAccountMetas[9];
+    program: TAccountMetas[10];
   };
   data: TransferFundedAccountInstructionData;
 };
@@ -775,12 +651,12 @@ export function parseTransferFundedAccountInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedTransferFundedAccountInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 13) {
+  if (instruction.accounts.length < 11) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 13,
+        expectedAccountMetas: 11,
       },
     );
   }
@@ -790,17 +666,21 @@ export function parseTransferFundedAccountInstruction<
     accountIndex += 1;
     return accountMeta;
   };
+  const getNextOptionalAccount = () => {
+    const accountMeta = getNextAccount();
+    return accountMeta.address === CLEARING_PROGRAM_ADDRESS
+      ? undefined
+      : accountMeta;
+  };
   return {
     programAddress: instruction.programAddress,
     accounts: {
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
-      btc: getNextAccount(),
-      eth: getNextAccount(),
-      btcLedger: getNextAccount(),
-      ethLedger: getNextAccount(),
-      vault: getNextAccount(),
+      btc: getNextOptionalAccount(),
+      eth: getNextOptionalAccount(),
+      btcLedger: getNextOptionalAccount(),
+      ethLedger: getNextOptionalAccount(),
       owner: getNextAccount(),
       donor: getNextAccount(),
       recipient: getNextAccount(),

@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync,createWriteStream} from 'node:fs';
 import {execFileSync,spawn,type ChildProcess} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
-import type {Instruction} from '@solana/kit';
+import {address,type Instruction} from '@solana/kit';
+import {getTransferSolInstruction} from '@solana-program/system';
+import {fixtureKey} from './harness.js';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {LiquidityIndexer,type LiquidityConfig} from '../../packages/indexer/src/liquidity-indexer.js';
@@ -52,11 +54,19 @@ try {
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   const openingState=(await indexer.store.snapshot()).state;
   const {binding}=await indexer.store.snapshot();
-  const client=new sdk.AccountUserClient({version:4,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
+  const client=new sdk.AccountUserClient({version:4,accountSchema:7 as const,chain:'solana:localnet',profile:config.profile,rpcUrl:config.rpcUrl,wsUrl:config.wsUrl,
     genesis:binding.genesis,anchor,anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain});
   writeFileSync(`${directory}/public-deployment.json`,json(client.config));
   runtime=new AccountRuntime(databaseUrl,config.runId,config.rpcUrl,4);await runtime.open();
   const margin=setup.roots[0],owner=setup.traderOwner;
+  for(const delegate of [setup.owner.address,address('11111111111111111111111111111111')]) {
+    const snapshot=await client.snapshot([margin],'confirmed');
+    await h.send('P44 owner sets or revokes root-local delegate',[
+      await client.setDelegate(snapshot,owner.address,margin,delegate,delegate===setup.owner.address?snapshot.slot+1000n:0n)], [owner]);
+    const after=(await client.snapshot([margin],'confirmed')).roots[margin];
+    assert.equal(after.delegate,delegate);assert.equal(after.cash,snapshot.roots[margin].cash);
+    assert.equal(after.delegateEpoch,snapshot.roots[margin].delegateEpoch+1n);
+  }
   let walletCounter=0;
   async function prepare(label:string,instructions:Instruction[]) {
     const prepared=await client.prepare(label,owner.address,instructions);await prepared.transaction.sign([owner]);
@@ -71,10 +81,31 @@ try {
   const cashFault=await liquidityQueueFault(runtime,{databaseUrl,rpcUrl:config.rpcUrl,directory},original.requestId);
   assert.equal(cashFault.receipt.status,'finalized');faults.push(cashFault);
   assert.equal((await client.snapshot([margin])).roots[margin].cash,cashBefore-7n);
-  await setup.qualify();await indexer.cycle();
+  // Producer is paused here. Fence its confirmed setup publications before a
+  // one-shot finalized reconciliation; live loops handle bounded tail retries.
+  await setup.qualify();await flush();await indexer.cycle();
+  // Independent maker operators must not all promote the same updater key into
+  // a writable fee payer. The shared-payer failure remains a measured limitation.
+  const makerSigners=await Promise.all(setup.instances.map((_,index)=>fixtureKey(`p44-maker-updater-${index}`)));
+  const publisherSigners=await Promise.all([0,1].map(index=>fixtureKey(`p44-publisher-${index}`)));
+  await h.send('P44 fund independent operator fee payers',[...makerSigners,...publisherSigners].map(key=>getTransferSolInstruction({
+    source:setup.payer,destination:key.address,amount:100_000_000n})));
+  for(const [index,maker] of setup.instances.entries()) {
+    const state=await maker.state(),registration=await maker.registrationState();
+    await h.send('P44 authorize separate maker updater and payer',[sdk.getControlLiquidityInstruction({...maker.controlCommon,
+      expectedAuthority:registration.authorityEpoch,expectedControl:state.controlEpoch,expectedShape:state.shapeEpoch,
+      action:{__kind:'Updater',updater:makerSigners[index].address,expirySlot:1_000_000n}})],[setup.owner]);
+  }
+  for(const marketIndex of [0,1]) {
+    const configuration=sdk.getFundingPublisherDecoder().decode((await h.read(setup.configurations[marketIndex]))!);
+    await h.send('P44 authorize separate market publisher and payer',[sdk.getConfigureFundingPublisherInstruction({
+      ...setup.common,authority:setup.payer,market:setup.markets[marketIndex],configuration:setup.configurations[marketIndex],
+      expectedAuthority:configuration.authorityEpoch,publisher:publisherSigners[marketIndex].address})]);
+  }
+  await flush();await indexer.cycle();
   const beforePrice=sdk.makerA.getMakerPriceDecoder().decode((await h.read(setup.instances[0].price))!).state;
   await setup.waitUntil(beforePrice.updatedTime+1n);
-  assert.equal((await runtime.maker(0,0,setup.updater)).status,'queued');
+  assert.equal((await runtime.maker(0,0,makerSigners[0])).status,'queued');
   const makerOriginal=(await runtime.queue.pending())[0];assert(makerOriginal);
   const makerFault=await liquidityQueueFault(runtime,{databaseUrl,rpcUrl:config.rpcUrl,directory},makerOriginal);
   assert.equal(makerFault.receipt.status,'finalized');faults.push(makerFault);
@@ -102,8 +133,8 @@ try {
   }await delay(250);}})();};
   beginIndex();feeding=true;feedLoop=(async()=>{while(feeding){if(!paused)await setup.freshSources();await delay(1000);}})();
   let executor=start('executor');const makers:ChildProcess[]=[],publishers:ChildProcess[]=[];
-  for(const market of [0,1])for(const instance of [0,1,2])makers.push(start('maker',setup.updater,market,instance));
-  for(const market of [0,1])publishers.push(start('funding',setup.updater,market));
+  for(const market of [0,1])for(const instance of [0,1,2])makers.push(start('maker',makerSigners[market*3+instance],market,instance));
+  for(const market of [0,1])publishers.push(start('funding',publisherSigners[market],market));
   await until(()=>runtime!.heartbeats(),rows=>rows.length===6&&rows.every(row=>row.online),'six live canonical maker workers');
   const count=(pattern:string)=>runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget LIKE $2 AND status='finalized'",[config.runId,pattern]).then(result=>Number(result.rows[0].count));
   await until(()=>count('liquidity-maker-%'),value=>value>=7,'all canonical repricers publish');
@@ -123,13 +154,25 @@ try {
   assert.equal(response.statusCode,200,response.body);assert(response.json().available,response.body);
   assert.equal((await api.inject({url:'/v3/operators'})).statusCode,404);
   makers[0].kill('SIGKILL');await until(async()=>makers[0].signalCode==='SIGKILL',Boolean,'maker process killed');
-  const replacement=start('maker',setup.updater,0,0);
+  const replacement=start('maker',makerSigners[0],0,0);
   await until(()=>runtime!.heartbeats(),rows=>rows.some(row=>row.market_index===0&&row.instance===0&&row.process_id===replacement.pid),'actual maker restart');
   await normal();
-  const browser=await (await import('../browser/liquidity-lifecycle.js')).liquidityBrowser({directory,client,owner,endpoint,indexer,normal});
+  const browserEnabled=process.env.RIVALT_SERVICE_BROWSER!=='0';
+  const browser=browserEnabled?await (await import('../browser/liquidity-lifecycle.js')).liquidityBrowser({directory,client,owner,endpoint,indexer,normal}):[];
   // An actual stored order is discovered and filled by its separate worker.
-  let snapshot=await client.tradeSnapshot(margin,0);
-  const quote=await client.route({snapshot,trader:margin,marketIndex:0,side:0,lots:1n,maxFee:1000n,allInLimit:100_000n},owner.address);assert(quote);
+  let prepareAttempts=0;
+  const quote=await until(async()=>{
+    prepareAttempts++;
+    try {
+      const snapshot=await client.tradeSnapshot(margin,0);
+      const prepared=await client.route({snapshot,trader:margin,marketIndex:0,side:0,lots:1n,maxFee:1000n,allInLimit:100_000n},owner.address);
+      observations.push({stage:'order-worker-prepare',attempt:prepareAttempts,available:Boolean(prepared)});return prepared;
+    }catch(error){
+      if(!(error instanceof Error)||error.message!=='Required liquidity market source unavailable.')throw error;
+      observations.push({stage:'order-worker-prepare',attempt:prepareAttempts,available:false,reason:error.message});return null;
+    }
+  },Boolean,'admissible unsigned order-worker opening',60);assert(quote);
+  let snapshot;
   await wallet('open for actual order worker',quote.instructions);snapshot=await client.snapshot([margin],'confirmed');
   await wallet('triggered existing-position order',[await client.manageOrder(snapshot,owner.address,margin,0,
     sdk.orderAction('Place',{expectedId:snapshot.roots[margin].book.lastOrderId+1n,terms:{side:1,lots:1n,limit:50_000n,feeBudget:1000n,
@@ -141,9 +184,9 @@ try {
   for(const publisher of publishers)await stop(publisher);
   await until(async()=>(await runtime!.store.pool.query("SELECT count(*) FROM service_intents WHERE run_id=$1 AND budget LIKE 'liquidity-funding-%' AND status NOT IN ('finalized','failed')",[config.runId])).rows[0].count,
     value=>value==='0','old publisher originals resolved');await stop(executor);
-  const handover=await (await import('./liquidity-publisher-handover.js')).publisherHandover(runtime,setup,transport,databaseUrl,directory);
+  const handover=await (await import('./liquidity-publisher-handover.js')).publisherHandover(runtime,setup,transport,databaseUrl,directory,publisherSigners[0]);
   writeFileSync(`${directory}/publisher-handover.json`,json(handover));faults.push(handover);
-  executor=start('executor');for(const market of [0,1])publishers.push(start('funding',setup.updater,market));await normal();
+  executor=start('executor');for(const market of [0,1])publishers.push(start('funding',publisherSigners[market],market));await normal();
 
   // Stop sources until the real independent source deadline fails. No fixture
   // changes clocks/mode and no safeguard is relaxed to make recovery pass.
@@ -155,7 +198,10 @@ try {
   observations.push({stage:'source-outage',code:outage.statusCode,body:outage.json()});
   paused=false;await normal();
   // Restart the finalized indexer while all workers retain their signed queue.
-  indexing=false;await indexLoop;await indexer.close();indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();beginIndex();
+  indexing=false;await indexLoop;await indexer.close();indexer=new LiquidityIndexer(config);await indexer.open();
+  await until(async()=>{try{await indexer!.cycle();return true;}catch(error){
+    if(!(error instanceof ReconciliationAhead))throw error;return false;
+  }},Boolean,'restarted indexer reaches a coherent finalized fence');beginIndex();
   await until(()=>count('liquidity-funding-%'),value=>value>=8,'publisher recovery history');
   for(const child of children.filter(child=>child!==executor))await stop(child);
   // pending() is the executor's due-work list, not an unresolved-history count.
@@ -189,7 +235,7 @@ try {
   replay=new LiquidityIndexer({...config,databaseUrl:replayUrl.toString(),runId:'p33-service-replay'});await replay.open();await replay.cycle();
   assert.deepEqual((await replay.store.snapshot()).state,state);
   const intents=(await runtime.store.pool.query('SELECT request_id,signature,status,budget,result FROM service_intents WHERE run_id=$1 ORDER BY created_at',[config.runId])).rows;
-  const journal=(await indexer.store.pool.query('SELECT signature,kind,payload FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence',[config.runId,openingState.sequence])).rows;
+  const journal=(await indexer.store.pool.query('SELECT sequence::text AS cursor,signature,kind,payload FROM events WHERE run_id=$1 AND sequence>$2 ORDER BY sequence',[config.runId,openingState.sequence])).rows;
   const transactions=(await indexer.store.pool.query('SELECT signature,failed,payload FROM transactions WHERE run_id=$1',[config.runId])).rows;
   // Maker reprices have no clearing events, but their actual charged network
   // fees still belong in the operator report. Fetch every original independently.
@@ -197,11 +243,15 @@ try {
     const payload=await rpc.call('getTransaction',[intent.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     assert(payload);transactions.push({signature:intent.signature,failed:payload.meta.err!==null,payload});
   }
+  const originalWires=(await runtime.store.pool.query('SELECT request_id,signature,wire,budget,status,created_at,updated_at FROM service_intents WHERE run_id=$1 ORDER BY created_at',[config.runId])).rows;
+  writeFileSync(`${directory}/operator-receipts.json`,json({revision,originals:originalWires.map(original=>({ ...original,
+    transaction:transactions.find(tx=>tx.signature===original.signature)!.payload,
+    ws:ws.notifications.filter(notice=>notice.params?.result?.value?.signature===original.signature) }))}));
   const economics=setup.instances.map((instance,offset)=>{
     const marketIndex=(offset<3?0:1) as 0|1,market=setup.markets[marketIndex],budget=`liquidity-maker-${marketIndex}-${offset%3}`;
-    const boundary=(projection:typeof state)=>({sequence:projection.sequence,root:projection.roots[instance.capital],
+    const boundary=(projection:typeof state)=>({cursor:projection.sequence,root:projection.roots[instance.capital],
       fundingIndexScaled:projection.markets[market].fundingIndexScaled,referencePrice:projection.markets[market].referencePrice});
-    const input={version:4 as const,operatorClass:'internal-reference' as const,capital:instance.capital,market,marketIndex,
+    const input={version:5 as const,operatorClass:'internal-reference' as const,capital:instance.capital,market,marketIndex,
       opening:boundary(openingState),closing:boundary(state),events:journal,
       transactions:transactions.map(tx=>({signature:tx.signature,feeLamports:String(tx.payload.meta.fee),failed:tx.failed,
         chargeToMaker:intents.some(intent=>intent.signature===tx.signature&&intent.budget===budget)})),
@@ -219,7 +269,8 @@ try {
     (SELECT count(*) FROM jobs WHERE run_id=$1 AND status IN ('pending','unresolved')) AS unresolved`,[config.runId])).rows[0];
   assert.equal(counts.events,state.sequence);assert.equal(counts.outbox,counts.events);assert.equal(counts.unresolved,'0');
   const summary={revision,trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
-    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,faults,wallets,browser,observations,intents,
+    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,faults,wallets,browser,
+    browserScope:browserEnabled?'actual browser actions in this run':'omitted; any browser qualification must be cited separately',observations,intents,
     inputReplay:{reports:records.length,available,independentFlatPriceArithmetic:true},economics,counts,reconciliation,state,metrics:indexer.metrics,replayMetrics:replay.metrics,
     phaseAcceptance:false,remaining:'maker kit and full phase closeout; P34 comparative workload separate'};
   writeFileSync(`${directory}/summary.json`,json(summary));console.log(json({stage:'p33-services-pass',intents:intents.length,reports:records.length,reconciliation}));

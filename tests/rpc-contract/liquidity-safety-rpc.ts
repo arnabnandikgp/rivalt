@@ -117,7 +117,7 @@ try {
   await sendRoute('open cross ETH with whole-account funding', 1, cross, 0, 50n, { pair: true });
   await h.send('withdraw admissible funded cash before price stress', [await withdraw(cross, 400_100n)], [owner]);
   await h.send('seed explicit ten-atom ETH insurance', [sdk.getSeedMarketInsuranceInstruction({ ...common,
-    reserveAuthority: setup.payer, donor: owner, donorToken: setup.traderToken.address, quoteMint: setup.mint.address,
+    reserveAuthority: setup.payer, ledger: setup.ledgers[1], donor: owner, donorToken: setup.traderToken.address, quoteMint: setup.mint.address,
     marketIndex: 1, amount: 10n })], [owner]);
   for (const margin of [cross, isolated]) {
     for (let index = 0; index < 4; index++) {

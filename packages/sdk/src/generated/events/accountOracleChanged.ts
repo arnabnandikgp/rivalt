@@ -36,7 +36,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_ORACLE_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([110, 134, 123, 30, 250, 53, 165, 164]);
+  new Uint8Array([70, 219, 224, 254, 53, 33, 212, 22]);
 
 export function getAccountOracleChangedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -46,7 +46,6 @@ export function getAccountOracleChangedEventDiscriminatorBytes(): ReadonlyUint8A
 
 export type AccountOracleChangedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   market: Address;
   state: MarketSnapshot;
@@ -54,7 +53,6 @@ export type AccountOracleChangedEvent = {
 
 export type AccountOracleChangedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   market: Address | HasAddress;
   state: MarketSnapshotArgs;
@@ -65,7 +63,6 @@ export function getAccountOracleChangedEventEncoder(): FixedSizeEncoder<AccountO
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["market", getAddressEncoder()],
       ["state", getMarketSnapshotEncoder()],
@@ -79,7 +76,6 @@ export function getAccountOracleChangedEventDecoder(): FixedSizeDecoder<AccountO
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["market", getAddressDecoder()],
       ["state", getMarketSnapshotDecoder()],

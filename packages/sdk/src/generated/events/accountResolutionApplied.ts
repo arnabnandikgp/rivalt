@@ -42,7 +42,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_RESOLUTION_APPLIED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([235, 156, 190, 81, 243, 206, 170, 101]);
+  new Uint8Array([238, 238, 93, 42, 37, 111, 66, 54]);
 
 export function getAccountResolutionAppliedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -52,7 +52,6 @@ export function getAccountResolutionAppliedEventDiscriminatorBytes(): ReadonlyUi
 
 export type AccountResolutionAppliedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   epoch: bigint;
   id: number;
@@ -70,7 +69,6 @@ export type AccountResolutionAppliedEvent = {
 
 export type AccountResolutionAppliedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   epoch: number | bigint;
   id: number;
@@ -91,7 +89,6 @@ export function getAccountResolutionAppliedEventEncoder(): FixedSizeEncoder<Acco
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["epoch", getU64Encoder()],
       ["id", getU16Encoder()],
@@ -115,7 +112,6 @@ export function getAccountResolutionAppliedEventDecoder(): FixedSizeDecoder<Acco
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["epoch", getU64Decoder()],
       ["id", getU16Decoder()],

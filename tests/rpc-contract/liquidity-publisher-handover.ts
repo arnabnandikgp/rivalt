@@ -10,14 +10,14 @@ import {liquidityQueueFault} from './liquidity-queue-fault.js';
 
 /** Called with pricing/source/indexer loops alive and all old publishers stopped. */
 export async function publisherHandover(runtime:AccountRuntime,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,
-  transport:Awaited<ReturnType<typeof openCanonicalRpcHarness>>,databaseUrl:string,directory:string) {
+  transport:Awaited<ReturnType<typeof openCanonicalRpcHarness>>,databaseUrl:string,directory:string,originalPublisher=setup.updater) {
   const state=async()=>sdk.getFundingPublisherDecoder().decode((await transport.h.read(setup.configurations[0]))!);
   const control=async(publisher:typeof setup.owner.address,label:string)=>transport.h.send(label,[sdk.getConfigureFundingPublisherInstruction({
     ...setup.common,authority:setup.payer,market:setup.markets[0],configuration:setup.configurations[0],
     expectedAuthority:(await state()).authorityEpoch,publisher})]);
   const previous=await state();
   await control(setup.owner.address,'P33 rotate restricted publisher');
-  await assert.rejects(()=>runtime.funding(0,setup.updater),/signer mismatch/);
+  await assert.rejects(()=>runtime.funding(0,originalPublisher),/signer mismatch/);
   const handover=await transferLiquidityBudget(runtime,'funding',0,setup.owner);
   const row=(await runtime.store.pool.query('SELECT * FROM service_budgets WHERE run_id=$1 AND name=$2',[runtime.runId,handover.name])).rows[0];
   assert.equal(row.spent,handover.spent);assert.equal(row.cap,handover.cap);
@@ -44,8 +44,8 @@ export async function publisherHandover(runtime:AccountRuntime,setup:Awaited<Ret
   assert.equal(await runtime.pendingBudget(handover.name),false,'publisher original receipt resolved');
   await control(address('11111111111111111111111111111111'),'P33 revoke restricted publisher');
   assert.equal((await state()).enabled,false);await assert.rejects(()=>runtime.funding(0,setup.owner),/not authorized/);
-  const revoked=await state();await control(setup.updater.address,'P33 restore original restricted publisher');
+  const revoked=await state();await control(originalPublisher.address,'P33 restore original restricted publisher');
   for(let attempt=0;attempt<30&&await runtime.pendingBudget(handover.name);attempt++){await runtime.execute();await delay(100);}
-  const restored=await transferLiquidityBudget(runtime,'funding',0,setup.updater);
+  const restored=await transferLiquidityBudget(runtime,'funding',0,originalPublisher);
   return {previous,revoked,current:await state(),handover,restored,fault};
 }

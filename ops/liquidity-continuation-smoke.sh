@@ -19,7 +19,7 @@ for component in ['clearing','maker_a','maker_b','oracle_fixture']:
     name=component+'.so'
     assert hashlib.sha256((root/name).read_bytes()).hexdigest()==manifest['binaries'][name],name
 PY
-test "$(surfpool --version)" = 'surfpool 1.6.1'
+test "$(surfpool --version)" = 'surfpool 1.7.0'
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18941}"
 export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18942}"
 export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"

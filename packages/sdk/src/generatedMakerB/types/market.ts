@@ -44,6 +44,8 @@ import {
 
 export type Market = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   index: number;
   symbol: ReadonlyUint8Array;
@@ -66,6 +68,8 @@ export type Market = {
 
 export type MarketArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   index: number;
   symbol: ReadonlyUint8Array;
@@ -89,6 +93,7 @@ export type MarketArgs = {
 export function getMarketEncoder(): FixedSizeEncoder<MarketArgs> {
   return getStructEncoder([
     ["schemaVersion", getU16Encoder()],
+    ["revision", getU64Encoder()],
     ["venue", getAddressEncoder()],
     ["index", getU8Encoder()],
     ["symbol", fixEncoderSize(getBytesEncoder(), 8)],
@@ -113,6 +118,7 @@ export function getMarketEncoder(): FixedSizeEncoder<MarketArgs> {
 export function getMarketDecoder(): FixedSizeDecoder<Market> {
   return getStructDecoder([
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["index", getU8Decoder()],
     ["symbol", fixDecoderSize(getBytesDecoder(), 8)],

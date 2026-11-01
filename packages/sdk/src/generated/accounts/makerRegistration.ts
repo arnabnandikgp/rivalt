@@ -48,7 +48,7 @@ import {
 } from "@solana/kit";
 
 export const MAKER_REGISTRATION_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([64, 36, 102, 180, 245, 54, 123, 199]);
+  new Uint8Array([231, 196, 106, 151, 199, 213, 13, 66]);
 
 export function getMakerRegistrationDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -59,6 +59,8 @@ export function getMakerRegistrationDiscriminatorBytes(): ReadonlyUint8Array {
 export type MakerRegistration = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: bigint;
   venue: Address;
   market: Address;
   capital: Address;
@@ -79,6 +81,8 @@ export type MakerRegistration = {
 
 export type MakerRegistrationArgs = {
   schemaVersion: number;
+  /** Scoped journal revision; never a financial signing or risk parameter. */
+  revision: number | bigint;
   venue: Address | HasAddress;
   market: Address | HasAddress;
   capital: Address | HasAddress;
@@ -103,6 +107,7 @@ export function getMakerRegistrationEncoder(): FixedSizeEncoder<MakerRegistratio
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
+      ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["market", getAddressEncoder()],
       ["capital", getAddressEncoder()],
@@ -129,6 +134,7 @@ export function getMakerRegistrationDecoder(): FixedSizeDecoder<MakerRegistratio
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
+    ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["market", getAddressDecoder()],
     ["capital", getAddressDecoder()],
@@ -239,5 +245,5 @@ export async function fetchAllMaybeMakerRegistration(
 }
 
 export function getMakerRegistrationSize(): number {
-  return 333;
+  return 341;
 }

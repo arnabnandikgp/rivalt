@@ -9,7 +9,7 @@ import { CanonicalConformance } from './canonical-maker-conformance.js';
 it('records the canonical name by discriminator without a generation suffix', () => {
   const key = sdk.CLEARING_PROGRAM_ADDRESS;
   const instruction = sdk.getInitializeLiquidityInstruction({ authority: createNoopSigner(key), venue: key,
-    custody: key, market: key, safety: key, registry: key, eventAuthority: key, program: key });
+    market: key, safety: key, registry: key, eventAuthority: key, program: key });
   const conformance = new CanonicalConformance();
   conformance.record([instruction]);
   expect(conformance.modules[0].instructions).toHaveLength(1);
@@ -45,7 +45,7 @@ it('encodes the variable-byte untrusted proposal through the isolated Anchor cli
     btcLedger:key,ethLedger:key,vault:key,registry:key,resolution:key,work:key,eventAuthority:key,program:key,
     epoch:9007199254740993n,evaluation:2,proposalHash:new Uint8Array(32).fill(255),offset:1024,
     bytes:Uint8Array.from({length:512},(_,index)=>index%256)})]);
-  const payload=sdk.getAccountResolutionProposalEventEncoder().encode({venue:key,sequence:1n,slot:100n,epoch:9007199254740993n,
+  const payload=sdk.getAccountResolutionProposalEventEncoder().encode({venue:key,slot:100n,epoch:9007199254740993n,
     evaluation:2,proposalHash:new Uint8Array(32).fill(255),offset:1024,bytes:Uint8Array.from([0,255,1]),rejected:false,nextStage:4});
   conformance.record([],{meta:{err:null,innerInstructions:[{instructions:[{programIdIndex:0,
     data:getBase58Decoder().decode(Buffer.concat([Buffer.alloc(8),Buffer.from(payload)]))}]}]},

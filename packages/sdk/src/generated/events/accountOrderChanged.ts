@@ -24,9 +24,9 @@ import {
   getU64Decoder,
   getU64Encoder,
   type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
+  type Codec,
+  type Decoder,
+  type Encoder,
   type HasAddress,
   type ReadonlyUint8Array,
 } from "@solana/kit";
@@ -42,7 +42,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_ORDER_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([138, 63, 159, 244, 107, 190, 119, 30]);
+  new Uint8Array([31, 234, 218, 110, 227, 34, 21, 117]);
 
 export function getAccountOrderChangedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -52,58 +52,50 @@ export function getAccountOrderChangedEventDiscriminatorBytes(): ReadonlyUint8Ar
 
 export type AccountOrderChangedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   margin: Address;
   state: MarginAccountSnapshot;
   markets: Array<MarketSnapshot>;
-  liabilityVersions: Array<bigint>;
 };
 
 export type AccountOrderChangedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   margin: Address | HasAddress;
   state: MarginAccountSnapshotArgs;
   markets: Array<MarketSnapshotArgs>;
-  liabilityVersions: Array<number | bigint>;
 };
 
 /** Gets the encoder for {@link AccountOrderChangedEventArgs} event data. */
-export function getAccountOrderChangedEventEncoder(): FixedSizeEncoder<AccountOrderChangedEventArgs> {
+export function getAccountOrderChangedEventEncoder(): Encoder<AccountOrderChangedEventArgs> {
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["margin", getAddressEncoder()],
       ["state", getMarginAccountSnapshotEncoder()],
-      ["markets", getArrayEncoder(getMarketSnapshotEncoder(), { size: 2 })],
-      ["liabilityVersions", getArrayEncoder(getU64Encoder(), { size: 2 })],
+      ["markets", getArrayEncoder(getMarketSnapshotEncoder())],
     ]),
     [getConstantEncoder(ACCOUNT_ORDER_CHANGED_EVENT_DISCRIMINATOR)],
   );
 }
 
 /** Gets the decoder for {@link AccountOrderChangedEvent} event data. */
-export function getAccountOrderChangedEventDecoder(): FixedSizeDecoder<AccountOrderChangedEvent> {
+export function getAccountOrderChangedEventDecoder(): Decoder<AccountOrderChangedEvent> {
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["margin", getAddressDecoder()],
       ["state", getMarginAccountSnapshotDecoder()],
-      ["markets", getArrayDecoder(getMarketSnapshotDecoder(), { size: 2 })],
-      ["liabilityVersions", getArrayDecoder(getU64Decoder(), { size: 2 })],
+      ["markets", getArrayDecoder(getMarketSnapshotDecoder())],
     ]),
     [getConstantDecoder(ACCOUNT_ORDER_CHANGED_EVENT_DISCRIMINATOR)],
   );
 }
 
 /** Gets the codec for {@link AccountOrderChangedEvent} event data. */
-export function getAccountOrderChangedEventCodec(): FixedSizeCodec<
+export function getAccountOrderChangedEventCodec(): Codec<
   AccountOrderChangedEventArgs,
   AccountOrderChangedEvent
 > {

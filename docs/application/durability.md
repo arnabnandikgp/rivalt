@@ -6,27 +6,33 @@ Amounts and signed fractions are decimal strings in JSON; bytes are hex. Cash,
 market settlement pools, insurance, retained fees and fee carries remain separate.
 The registry supplies the complete stable root order. Events are authenticated CPI
 payloads, not log messages; reverted events never enter the economic projection.
-Unknown critical schemas, sequence gaps or immutable identity changes fail closed.
+Unknown critical schemas, revision gaps or immutable identity changes fail closed.
 
 Default has a compact event-derived financial view, not a fabricated copy of the
 wide arithmetic work account. Frozen rows retain original cash and claims. Partial
-Apply changes individual roots while the custody total and pools retain their
-frozen values. Reconcile that mixed root sum against remaining original cash plus
-applied cash; only the completion event adopts the new aggregate buckets. Inspect
+Apply changes individual roots while allocated custody and pools retain their
+frozen values; there is no cached custody cash sum. Reconcile that mixed root sum
+against remaining original cash plus applied cash; only the completion event adopts the new aggregate buckets. Inspect
 the canonical resolution header/pages against the event-derived fields. Wide
 registers and DFS scratch are solver continuation state, not spendable balances.
 
-Every RPC reconciliation chunk includes custody (the global discovery sequence)
-and compares the same full custody bytes. A changing sequence requests backfill;
-it never silently compares accounts from different economic snapshots. Unsequenced
-permissionless precreation of resolution storage is not a financial transition.
+RPC reconciliation reads the complete entity revision vector and financial bodies
+twice across bounded chunks. A relevant advance requests tail catch-up; it never
+silently combines incompatible states. Storage precreation has a zero-payload
+scoped transition, so its creation remains part of authenticated history.
+The settlement worker combines final backing page and gain payment in one durable
+original. The receiver pre-state guard remains the payment nonexecution proof;
+later-instruction failure rolls back the scan and payment together. Earlier pages
+retain observation/liability invalidation, so relevant continuous sampling can
+still require coordination.
+
 Market payout certificates and terminal retirement proof remain distinct; neither
 is an ordinary own-cash withdrawal prerequisite.
 
 
 ## Durable execution boundary
 
-`AccountExecution` reuses the immutable signed-wire queue and schema-3 journal with
+`AccountExecution` reuses the immutable signed-wire queue and current schema-bound journal with
 qualified genesis/anchor/artifact binding. Public ingress accepts one measured
 wallet action with explicit zero priority price, one wallet signer and exact
 schema-decoded venue/actor/owner accounts. It does not accept arbitrary operator
@@ -46,10 +52,55 @@ lamport budgets and heartbeat records are market/maker-specific; actual process/
 
 
 
+## Bounded dispatch and persistent account reservations
+
+P40A gives each executor two concurrent RPC lanes, retaining a 32-original due-work
+scan and spare capacity in its four-connection pool. Admission uses the complete
+static v0/v1 signed-message read/write set, including fee payer, program accounts
+and promoted writable aliases. ALT messages remain rejected. Read/read sharing is
+allowed; W/W and both W/R directions conflict. Authority metadata is not a substitute
+for the signed message's resource set. This is service scheduling, not a validator
+throughput or on-chain financial admission change.
+
+`service_dispatch_contract` now binds each run to dispatcher version 2 (D89).
+`service_intent_access` records each original's complete static signed access set
+atomically with its wire. These immutable declarations are scheduling metadata,
+not active locks. A new reservation cannot overtake an older committed conflicting
+pending/unresolved original, ordered by immutable `(created_at, request_id)`.
+Read/read sharing and unrelated work still progress. Already-held originals always
+retain their ability to reconcile; terminal declarations do not block new work.
+Conflict deferral polls after 250 ms without consuming a send attempt; it does not
+relax active reservations or authorize replacement signatures.
+`service_dispatch_access` stores `(run_id, request_id, address, writable)` with a
+foreign key to its immutable original. The same request cannot have two workers:
+a per-original PostgreSQL session advisory lock spans the pre-send commit and RPC
+step. Short shared/exclusive transaction advisory locks make conflict checking and
+resource reservation atomic across executors. Resource rows commit **before** any
+broadcast and survive process/connection death. Unrelated originals can progress.
+Conflicting attempts defer their due time without spending an attempt or changing
+the original's economic status; transport failures never cancel independent work.
+
+A send acknowledgement does not release access. Finalized success/failure releases
+resource reservations in the same transaction as its receipt and actual fee.
+Authenticated nonexecution after finalized expiry also releases resource access,
+but keeps the unknown fee reservation. Such an original is never broadcast again,
+even if a later RPC claims its blockhash valid. Absent proof retains access and can
+block that resource indefinitely; another independent resource can still progress.
+Reservations apply within one run/database. Direct submissions or separate queue
+deployments remain governed by on-chain locks and checks. Two executor processes do not each get to send the same active original.
+
+Deployment is additive SQL, with no account/event/financial wire change. Stop old
+executors first. An existing run without dispatcher version 2 is admitted only if
+it has no pending/unresolved originals; drain those with its previous pinned
+executor. Version-1 runs also require this drain; old binaries reject version 2.
+Never manufacture leases or assume old ambiguous originals were not sent.
+Expired-proven originals retain their unknown fees. Existing journal identities and
+original wires are preserved; P40B owns the separate fresh event-domain migration.
+
 ## Maker expiry proof
 
 New profile-4 reprice originals retain the registered maker program, registration,
-price PDA and expected sequence. After finalized blockhash expiry, one finalized
+price PDA and expected sequence. After proven finalized blockhash expiry, one finalized
 RPC batch at or after that expiry fence must authenticate both account owners,
 exact schema/discriminators/sizes, registration/venue/program bindings and canonical
 registration/config/price addresses. Only an unchanged monotone price sequence
@@ -84,13 +135,18 @@ evidence dumps. Unit/consumer tests and actual durable worker acceptance remain 
 ## Journal, reports and checkpoints
 
 Subscribe through standard RPC/WS for discovery, then fetch original signatures
-and finalized transaction/account bytes. Paginate history, deduplicate stable
+and finalized transaction/account bytes. Discover complete finalized blocks, deduplicate stable
 signature/instruction/event identities, retain failed transaction logs but apply
 no reverted events. Projection and checkpoint commit atomically in PostgreSQL;
 crash/rollback/disconnect recovery resumes the durable checkpoint. Unknown critical
-schemas, skipped sequence, bad CPI identity, duplicates with conflicting bytes and
+schemas, skipped revisions, bad CPI identity, duplicates with conflicting bytes and
 unexplained balances fail readiness. Fresh database replay must match incremental
 reconstruction. A chain reset is a different genesis, never a continuation.
+Block discovery reads up to eight blocks concurrently (body plus independent
+signature manifest, at most sixteen in-flight RPC requests). Responses still apply
+in canonical slot/transaction order. Parent-chain, completeness, cumulative history
+limits, three tail catch-ups and exact financial reconciliation remain mandatory;
+parallel reads never commit an unreconciled prefix.
 
 RPC reconciliation compares financial accounts, canonical registry/registration
 and publisher configuration as well as actual token backing. Maker price accounts
@@ -144,3 +200,172 @@ retain their existing `V3`/`V4` suffixes as schema identities; their source deco
 mapping is explicit in `account-events.ts`. Do not relabel historical rows or
 original signed bytes. Generated decoder names and stored event tags are different
 interfaces. Existing HTTP versions, numeric layouts and deployment checks remain.
+
+## Scoped-history successor contract (P40B)
+
+This is the implemented fresh-domain journal contract; exact acceptance pins and
+remaining limitations are in [validation](../operations/validation.md).
+The account kinds/layouts are in [accounts](../clearing/accounts.md#scoped-history-contract-p40b).
+New journal bindings use schema 5 and fresh databases. Public deployment configuration
+must explicitly bind account schema 5; transport/profile names alone cannot select
+an incompatible decoder. Historical schema-4 databases/originals retain their pinned
+client and are never relabeled by startup.
+
+Every successful clearing invocation emits one final `AccountTransition` CPI envelope.
+Its discriminator is SHA-256(`event:AccountTransition`)[0..8]. Ordered Borsh fields:
+`schema_version:u16=5, venue:Pubkey, domain:[u8;32], slot:u64,
+instruction:[u8;8], payload_count:u16, reads:Vec<ScopedRead>, writes:Vec<ScopedWrite>`.
+`instruction` is the executed public entrypoint's discriminator, not caller input.
+`ScopedRead` is `account:Pubkey, kind:u8, revision:u64` (41 bytes).
+`ScopedWrite` is `account:Pubkey, kind:u8, before:u64, after:u64` (49 bytes).
+The envelope is 100 bytes plus its rows, at most 32 entities and 1,668 bytes; keys
+are unique across both vectors, and at least one write is required. Read revisions
+are positive; writes are checked consecutive increments. Creation is 0→1 only.
+
+Financial payload events remove their global `sequence` field and use canonical
+`event:<source name>` discriminators. Their ordering within a clearing invocation
+comes from authenticated CPI positions, not a writable account. Count all actual
+payload emissions, including resolution row/completion/progress combinations;
+require exact `payload_count` (0–4 currently). Storage precreation now has an
+envelope with zero financial payloads. Missing, duplicate, trailing, unknown or
+foreign-frame payloads reject the whole candidate. The self-event instruction is
+not a second financial invocation. Authenticate the program/event PDA and invocation
+tree before decoding; failed transactions retain raw logs but produce no effects.
+
+The transport identity is `(genesis, signature, outer instruction, clearing invocation,
+payload ordinal)`. An envelope and its financial payloads are one transition; all
+transitions in one signed transaction apply atomically, including multiple instructions.
+Whole transactions, not individual account changes, are the ordering units.
+
+For each entity, a writer follows its predecessor revision; a reader at r follows
+the writer producing r and precedes the writer consuming r. These read-before-write
+edges prevent a snapshot reader from being reordered after its inputs change.
+No external reader may interleave intermediate revisions of one atomic transaction.
+Canonical block/transaction position breaks independent ties; slot alone is not a
+total order. Competing writers, missing predecessors, cross-entity cycles and an
+edge from a future finalized slot fail closed. Reordered delivery is acceptable
+only when this exact dependency graph reconstructs a valid complete prefix.
+
+Use a fixed finalized block fence and complete ordered transaction lists with
+recorded block hashes, parent links and signature-list digests. WS/address histories
+remain discovery hints; neither a repeated page nor a stable head signature proves
+that an independent entity was not omitted. Resolve actual loaded account keys when
+filtering venue transactions, and authenticate all relevant CPI invocations. A
+missing advertised block/transaction or inconsistent same-slot discovery cannot
+advance the checkpoint. Bound each recovery batch to 4,096 envelopes and expose
+backlog/limit failures. This is a local engineering limit, not a venue TPS claim.
+
+PostgreSQL stores immutable blocks, transactions, envelopes/payload bytes and entity
+revisions. Projection, local outbox cursor and complete-block checkpoint commit in
+one SQL transaction. The cursor is explicitly off-chain progress, not an on-chain
+financial sequence or signing guard. Duplicates require byte-identical originals;
+conflicting bytes or failed-effect attempts roll back the candidate. Recovery and
+fresh replay must produce identical projections and revision vectors.
+
+Reconciliation compares account kinds/revisions and their financial values, with
+membership fenced for complete discovery. A relevant advancing revision requests
+bounded tail catch-up; an unrelated entity must not restart all historical discovery.
+No mixed RPC chunk is presented as one simultaneous financial snapshot. Any sampled
+comparison ahead of the journal remains pending until the corresponding atomic
+transition is reconstructed; no stale proof authorizes a payment. Source accounts
+and external maker prices remain separately authenticated inputs. P42/P44 own
+continuously active certificate and performance measurements.
+
+The active journal uses `scoped-history.ts` with authenticated on-chain envelopes.
+Ordering unit tests supplement ABI/SDK parity, actual same-slot/nested-CPI outcomes,
+RPC reconciliation, crash recovery and fresh PostgreSQL replay; they do not
+substitute for those integration layers.
+
+`scoped-events.ts` supplies the separate schema-5 transport gate: reconstruct
+financial invocation ancestry from compiled outer/inner instructions and mandatory
+stack heights, resolve loaded keys and verify write privileges. Financial payloads
+belong to their immediate clearing frame; the final footer binds that frame's
+actual instruction, slot, domain and count. Unknown payload tags and instructions
+fail closed. This is the active schema-5 decoding gate; schema-4 journals remain
+bound to their historical clients.
+
+The schema-5 candidate now uses SQL journal format **2**, which refuses retained
+format-1 databases. `getBlocks` plus complete `getBlock` bodies establish a fixed
+finalized fence; parent slot/hash links detect omitted produced blocks, and each
+stored block preserves its ordered signatures and their digest. A separately
+requested signatures-only block must agree exactly with the full body and its
+header; missing transaction records reject. WS remains a hint.
+Projection orders whole signed transactions by scoped causal dependencies. A
+second account pass fences every entity revision before combining RPC chunks.
+Only a relevant advance permits bounded tail catch-up (three extensions).
+
+SQL independently decodes the supplied block transactions before accepting their
+envelopes, then commits blocks, original transactions, envelope/payload bytes,
+entity revisions, financial projection, outbox and fence together. Exact repeated
+blocks are checked against retained bytes without applying their effects again.
+`state.sequence` / the SQL event `sequence` column now mean a **local payload
+cursor** only; no such field is injected into canonical event data. Zero-payload
+storage transitions advance revisions without creating a financial payload.
+The footer serializes borrowed captured rows without allocating separate read/write
+vectors. Two-row default Apply likewise borrows its full root payload. Their bytes
+must match the owned IDL types exactly; this preserves the 32 KiB default heap and
+does not change revision, event ordering or financial validation rules.
+The public API labels this `asOf.cursor` and `cursorScope: local-payload-stream`,
+and exposes the finalized `blockhash`; it does not label a block hash a signature.
+Maker economics inputs use version 5 with `opening.cursor`, `closing.cursor` and
+an explicit `cursor` alongside each SQL-derived event payload. Contiguity is a
+local journal export check; it is not a field supplied by the on-chain event or
+a substitute for the journal's complete-block and entity-revision authentication.
+These are implemented local contracts; [validation](../operations/validation.md)
+records the separate compiled, signed and database evidence.
+
+## Relevant-market payloads (P41)
+
+Schema-6 accounts/envelopes and projection binding 6 use a new deployment and
+fresh database. Four event shapes explicitly omit unconsumed markets: routes use
+an optional other-market snapshot; order/cash/liquidation events contain zero to
+two snapshots in registry order. Duplicate/out-of-order snapshots reject. Missing
+snapshots preserve prior projected state, including its scoped revision; the
+authenticated footer contains exactly the supplied dependencies. No market state
+is synthesized to fill an absent slot. Full-cohort payloads remain complete.
+
+The numeric binding prevents replaying schema-5 events through the new codecs.
+Maker economics and independent report readers unwrap optional snapshots before
+accruing their recorded funding; local payload cursors remain separate from wire
+authority. Rebuilt acceptance is recorded in validation. P42 retains these partial
+market rules and supersedes the numeric binding and custody payloads below.
+
+## Custody isolation payloads (P42)
+
+Current account/envelope schema and projection binding are 7; SQL journal format
+remains 2 but the domain/genesis/database are fresh. Ledger snapshots carry their
+selected liability version. Route/cash/liquidation events contain only supplied
+ledgers; omitted values preserve the authenticated predecessor. Internal cash
+operations emit no allocated/actual vault value. Full cash is derived from the
+complete projected root set, never trusted as a withdrawal balance or filled from
+an incomplete account preview. Certificate payloads bind their predecessor revision
+from the authenticated footer before its successor revision is applied.
+
+Complete default keeps frozen C/P/I/T and exact applied-row stage accounting.
+Only complete Apply updates the ledger buckets; actual allocated custody stays
+constant. RPC reconstruction checks complete roots, pools and the actual SPL vault.
+The signed treasury/retirement/journal tests verify omitted-state preservation,
+real token exits, SQL rollback, disconnect/backfill and identical fresh replay.
+
+## Finalized blockhash validity fence (P44)
+
+A newly signed confirmed blockhash can be absent from the finalized bank. A false
+`isBlockhashValid(finalized)` alone is not expiry. The durable original now records
+`blockhash_finalized_slot` only after that exact hash returns finalized-valid. A
+witness is sampled before dispatch conflict admission and persisted even when the
+original must defer; successful admission commits the witness in the same SQL
+transaction as its resource reservation, before status lookup or broadcast. A
+crash after admission must not lose the witness if recovery starts after expiry.
+Waiting behind a shared payer must not hide its validity window. A later false
+observation at or beyond that slot, plus confirmed-invalid, permits
+the existing authenticated unchanged-account nonexecution proof. Missing earlier
+validity or an older finality context keeps the original unresolved and resources
+reserved. Confirmed-valid originals can broadcast the same bytes while awaiting
+finality. Never rebroadcast an already proven-unexecuted original or release its
+unknown fee without an independently fetched landed receipt.
+
+This is an additive nullable SQL column, with no on-chain or signed-wire change.
+Stop older executors before upgrading. Existing unknown originals start without a
+validity witness; do not invent one or relabel historical expired records as newly
+verified. Such records retain their original provenance and require independent
+receipt reconciliation before a deployment relying on them is qualified.

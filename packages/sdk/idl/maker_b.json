@@ -922,6 +922,13 @@
             "type": "u16"
           },
           {
+            "name": "revision",
+            "docs": [
+              "Scoped journal revision; never a financial signing or risk parameter."
+            ],
+            "type": "u64"
+          },
+          {
             "name": "venue",
             "type": "pubkey"
           },
@@ -1023,6 +1030,13 @@
           {
             "name": "schema_version",
             "type": "u16"
+          },
+          {
+            "name": "revision",
+            "docs": [
+              "Scoped journal revision; never a financial signing or risk parameter."
+            ],
+            "type": "u64"
           },
           {
             "name": "venue",
@@ -1514,6 +1528,13 @@
           {
             "name": "schema_version",
             "type": "u16"
+          },
+          {
+            "name": "revision",
+            "docs": [
+              "Scoped journal revision; never a financial signing or risk parameter."
+            ],
+            "type": "u64"
           },
           {
             "name": "profile_version",

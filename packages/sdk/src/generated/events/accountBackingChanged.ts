@@ -36,7 +36,7 @@ import {
 } from "../types/index.js";
 
 export const ACCOUNT_BACKING_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([66, 133, 138, 218, 88, 161, 206, 5]);
+  new Uint8Array([153, 130, 194, 9, 38, 95, 166, 119]);
 
 export function getAccountBackingChangedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -46,7 +46,6 @@ export function getAccountBackingChangedEventDiscriminatorBytes(): ReadonlyUint8
 
 export type AccountBackingChangedEvent = {
   venue: Address;
-  sequence: bigint;
   slot: bigint;
   certificate: Address;
   state: BackingSnapshot;
@@ -54,7 +53,6 @@ export type AccountBackingChangedEvent = {
 
 export type AccountBackingChangedEventArgs = {
   venue: Address | HasAddress;
-  sequence: number | bigint;
   slot: number | bigint;
   certificate: Address | HasAddress;
   state: BackingSnapshotArgs;
@@ -65,7 +63,6 @@ export function getAccountBackingChangedEventEncoder(): FixedSizeEncoder<Account
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
-      ["sequence", getU64Encoder()],
       ["slot", getU64Encoder()],
       ["certificate", getAddressEncoder()],
       ["state", getBackingSnapshotEncoder()],
@@ -79,7 +76,6 @@ export function getAccountBackingChangedEventDecoder(): FixedSizeDecoder<Account
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
-      ["sequence", getU64Decoder()],
       ["slot", getU64Decoder()],
       ["certificate", getAddressDecoder()],
       ["state", getBackingSnapshotDecoder()],
