@@ -119,15 +119,26 @@ window expired during the next unsigned trade preparation. The browser fixture
 now waits for live Normal source state before every trade and records at most
 three unsigned preparation attempts for that exact refusal. Signed/ambiguous
 originals are never retried or rebuilt by this loop; other errors remain fatal.
-Neither attempt establishes a complete services/browser pass. Existing runs,
-logs and databases remain retained; no financial safeguard or resource limit changed.
+Neither initial attempt establishes a complete services/browser pass. Clean
+`265640e` then finalized all ten browser actions with no page errors, including
+API-blocked cash actions and reload. Its subsequent order-worker check timed out:
+the live journal had rejected unchanged readonly venue metadata because JSONB
+reordered object keys. Nine actual finalized custody events reproduce identical
+venue values with different serialized key order in the retained database.
+The projection now compares complete values structurally; array order, fields and
+readonly enforcement remain exact. A new regression first reproduces the failure,
+then accepts reordered metadata and rejects three actual changes. All 20 affected
+projection/history/event tests and typecheck pass. A fresh integrated rerun is
+still required; no complete service pass is claimed for this attempt. Evidence is
+under `.local/anchor-rc2/p47-services-ready/`; logs/databases remain retained and
+no financial safeguard, hash format or resource limit changed.
 
 Services/browser/fault/load acceptance and the matched resource/fee report still
 remain, along with normal-runtime promotion and P47's ready PR. Comparisons must
 distinguish matched financial states from wall-clock/slot differences and consumed
 CU from paid fees. No C1, funded/external gate or endurance run is claimed.
-Next exact action: commit the bounded unsigned-browser preparation fix, rerun services with installed
-Chrome, then finish the bounded load/recovery matrix and comparison report.
+Next exact action: rerun services/browser on the committed structural-projection
+fix with installed Chrome, then finish bounded load/recovery and the comparison.
 
 ## Accepted performance stack
 

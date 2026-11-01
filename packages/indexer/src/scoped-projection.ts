@@ -1,6 +1,6 @@
+import {isDeepStrictEqual} from 'node:util';
 import type {AccountInvocation} from './account-events.js';
 import {accountCheck, projectAccounts, type AccountState} from './account-projection.js';
-import {json} from './events.js';
 import {orderScopedTransactions} from './scoped-history.js';
 
 /** Views reconstructed from payloads. Storage-only entities are still tracked
@@ -29,14 +29,16 @@ export function projectScopedBatch(initial:AccountState,invocations:readonly Acc
   const applied:AccountInvocation[]=[];
   for(const transaction of ordered.transactions)for(const envelope of transaction.envelopes) {
     const invocation=byIdentity.get(`${envelope.signature}/${envelope.outer}/${envelope.invocation}`)!;
-    const before=new Map([...projectedEntities(state)].map(([key,value])=>[key,json(value)]));
+    // JSONB may reorder object keys between journal commits. Compare complete
+    // immutable values, preserving array order and all financial fields.
+    const before=new Map([...projectedEntities(state)].map(([key,value])=>[key,structuredClone(value)]));
     for(const write of invocation.writes)state.revisions[write.account]={kind:write.kind,revision:write.before};
     for(const event of invocation.events)projectAccounts(state,event,binding.venue,binding.domain,4);
     const represented=projectedEntities(state),writes=new Map(invocation.writes.map(write=>[write.account,write]));
     for(const [key,value] of represented) {
       const expected=state.revisions[key];
       accountCheck(expected&&value.revision===expected.revision,`snapshot predecessor ${key}`);
-      accountCheck(before.get(key)===json(value)||writes.has(key),`payload changed readonly entity ${key}`);
+      accountCheck(isDeepStrictEqual(before.get(key),value)||writes.has(key),`payload changed readonly entity ${key}`);
     }
     for(const write of invocation.writes) {
       state.revisions[write.account]={kind:write.kind,revision:write.after};
@@ -44,7 +46,6 @@ export function projectScopedBatch(initial:AccountState,invocations:readonly Acc
     }
     applied.push(invocation);
   }
-  accountCheck(Object.keys(state.revisions).length===Object.keys(ordered.revisions).length
-    &&Object.entries(state.revisions).every(([key,value])=>json(value)===json(ordered.revisions[key])),'complete revision projection');
+  accountCheck(isDeepStrictEqual(state.revisions,ordered.revisions),'complete revision projection');
   return {state,invocations:applied};
 }

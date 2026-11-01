@@ -15,6 +15,28 @@ function initialization():AccountInvocation {
     events:[{signature:'init',outer:0,inner:0,ordinal:0,slot:1,blockTime:1,type:'AccountCustodyChangedV3',data,bytes:'fixture'}]};
 }
 const prepared=()=>projectScopedBatch(emptyLiquidity(),[initialization()],binding).state;
+function reordered(value:any):any {
+  if(Array.isArray(value))return value.map(reordered);
+  if(value!==null&&typeof value==='object')return Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,reordered(item)]));
+  return value;
+}
+it('accepts JSONB object-key reordering while rejecting actual readonly changes',()=>{
+  const state=reordered(prepared()),before=structuredClone(state);
+  // Portfolio registration repeats readonly venue/safety metadata after the journal
+  // has persisted it in JSONB. Object insertion order is not account state.
+  const registration={...initialization(),signature:'portfolio',slot:2n,
+    reads:[{account:venue,kind:0,revision:'1'},{account:'safety',kind:2,revision:'1'}],
+    writes:[{account:'portfolio',kind:4,before:'0',after:'1'}],
+    events:[{...initialization().events[0],data:{...data,kind:2,subject:'portfolio',allocatedVault:{__option:'None'}}}]};
+  const result=projectScopedBatch(state,[registration],binding).state;
+  expect(result.venue).toEqual(state.venue);expect(result.safety).toEqual(state.safety);
+  expect(result.portfolios.portfolio.children).toBe(0);expect(result.portfolios.portfolio.revision).toBe('1');
+  for(const mutation of [{configEpoch:'2'},{markets:['eth','btc']},{paused:true}]) {
+    const corrupted={...registration,events:[{...registration.events[0],data:{...registration.events[0].data,...mutation}}]};
+    expect(()=>projectScopedBatch(state,[corrupted],binding)).toThrow(/payload changed readonly entity/);
+  }
+  expect(state).toEqual(before);
+});
 it('reconstructs initialization with explicit funded balances and independent entity revisions',()=>{
   const state=prepared();
   expect(state.sequence).toBe('1');expect(state.revisions).toEqual({venue:{kind:0,revision:'1'},custody:{kind:1,revision:'1'},safety:{kind:2,revision:'1'}});
