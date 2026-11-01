@@ -164,7 +164,7 @@ try {
   assert.equal(sdk.getVenueSafetyDecoder().decode((await h.read(fixture.safety))!).mode, 0);
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
-    build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')),
+    build: JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`, 'utf8')),
     runtime: await rpc.call('getVersion'), genesis: await rpc.call('getGenesisHash'), checks, observations, parity,
     fundingLiquidityPolicy: 'restricted-publisher-D76', financialTradingActivated: false, phaseAcceptance: false }));
   console.log(`P32 publisher probe: ${observations.length} reports, ${checks.length} signed RPC/WS outcomes. Trading disabled.`);

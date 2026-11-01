@@ -74,7 +74,7 @@ try {
   assert.equal(Object.values(snapshot.state.roots).reduce((sum,value)=>sum+BigInt(value.cash),0n)+26n,8_000_000n);
   const summary={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
-    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,
+    build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),checks,
     binding:snapshot.binding,counts,reconciliation,state:snapshot.state,metrics:indexer.metrics,replayMetrics:replay.metrics,
     scope:'P33 finalized projection slice; durable workers and browser acceptance remain separate',phaseAcceptance:false};
   writeFileSync(`${runDir}/summary.json`,json(summary));console.log(json({stage:'p33-indexer-pass',counts,reconciliation,phaseAcceptance:false}));

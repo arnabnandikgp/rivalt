@@ -224,7 +224,7 @@ try {
   const parity=await conformance.finish(directory,[],h.read);
   writeFileSync(`${directory}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
-    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,isolated,reconciliation,parity,roots,markets,ledgers,custodyIsolation,independentMessages,negativeFunding:{observation,consumed,persisted},
+    build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),checks,isolated,reconciliation,parity,roots,markets,ledgers,custodyIsolation,independentMessages,negativeFunding:{observation,consumed,persisted},
     state:snapshot.state,phaseAcceptance:false}));
   console.log(json({stage:'p42-custody-rpc-pg-pass',outcomes:checks.length,isolatedCases:isolated.length,events:snapshot.state.sequence,reconciliation}));
 } finally {await replay?.close();await indexer?.close();try{await flush();}finally{ws.close();}}

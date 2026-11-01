@@ -17,7 +17,7 @@ const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
 const ws = new WireSubscriptions(process.env.RIVALT_WS_URL!);
 const payer = await payerKey(), base58 = getBase58Encoder();
 const artifacts=await new sdk.LiquidityArtifactVerifier(rpc).verify(payer.address);
-const build=JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/liquidity-execution'}/build-manifest.json`,'utf8'));
+const build=JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8'));
 const checks: Record<string, unknown>[] = [], committed: ReturnType<typeof sdk.parseAccountCustodyChangedEvent>[] = [];
 const eventBytes: string[] = [];
 const serialize = (value: unknown) => JSON.stringify(value, (_, item) => typeof item === 'bigint' ? item.toString() : item, 2)+'\n';
@@ -119,7 +119,7 @@ try {
     trackedDirty: execFileSync('git', ['status','--porcelain','--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
     runtime: await rpc.call('getVersion'), genesis: await rpc.call('getGenesisHash'),
     build,artifacts,
-    binarySha256: createHash('sha256').update(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/liquidity-execution'}/clearing.so`)).digest('hex'),
+    binarySha256: createHash('sha256').update(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/clearing.so`)).digest('hex'),
     idlSha256: createHash('sha256').update(readFileSync('packages/sdk/idl/clearing.json')).digest('hex'),
     checks, committedEvents: committed, wsNotifications: ws.notifications.length, legacyAccounts: Object.keys(accounts), rawAccounts, result }));
   console.log(`P23 RPC: ${checks.length} finalized signed scenarios; ${committed.length} committed events; legacy account/event parity.`);

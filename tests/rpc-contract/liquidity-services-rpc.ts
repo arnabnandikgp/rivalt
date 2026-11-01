@@ -269,7 +269,7 @@ try {
     (SELECT count(*) FROM jobs WHERE run_id=$1 AND status IN ('pending','unresolved')) AS unresolved`,[config.runId])).rows[0];
   assert.equal(counts.events,state.sequence);assert.equal(counts.outbox,counts.events);assert.equal(counts.unresolved,'0');
   const summary={revision,trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
-    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,faults,wallets,browser,
+    build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),checks,faults,wallets,browser,
     browserScope:browserEnabled?'actual browser actions in this run':'omitted; any browser qualification must be cited separately',observations,intents,
     inputReplay:{reports:records.length,available,independentFlatPriceArithmetic:true},economics,counts,reconciliation,state,metrics:indexer.metrics,replayMetrics:replay.metrics,
     phaseAcceptance:false,remaining:'maker kit and full phase closeout; P34 comparative workload separate'};

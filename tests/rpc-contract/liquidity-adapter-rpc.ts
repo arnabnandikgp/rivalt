@@ -56,7 +56,7 @@ try {
     trackedDirty: execFileSync('git',['status','--porcelain','--untracked-files=no'],{ encoding: 'utf8' }).trim() !== '',
     runtime: await rpc.call('getVersion'),genesis: await rpc.call('getGenesisHash'),largestBatch,
     binaries: Object.fromEntries(['clearing','maker_a','maker_b'].map(name => [name,
-      createHash('sha256').update(readFileSync(`.local/liquidity-execution/${name}.so`)).digest('hex')])),
+      createHash('sha256').update(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/${name}.so`)).digest('hex')])),
     checks,observations,financialTradingActivated: false,wsNotifications: ws.notifications.length };
   writeFileSync(`${runDir}/summary.json`,serialize(summary));
   console.log(`P31: ${observations.length} authenticated exact quote comparisons; ${checks.length} signed RPC/WS outcomes.`);

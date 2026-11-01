@@ -150,7 +150,7 @@ try {
   const parity=await conformance.finish(directory,[],h.read);
   assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),revision);
   assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-  const summary={revision,trackedDirty:false,build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),runtime:await rpc.call('getVersion'),
+  const summary={revision,trackedDirty:false,build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),runtime:await rpc.call('getVersion'),
     host:{cpu:cpus()[0].model,cores:cpus().length,os:release(),node:process.version},scope:'Direct selected-maker RPC offers with concurrent actual source/reprice/report transactions and live PostgreSQL; separate from durable-queue capacity or validator TPS',
     policy:{rates:[2,8,32],windowSeconds:8,maxInflight:4,stop:'offered success below 90%, confirmed p95 over 500 ms, or generator lag over 250 ms; each workload stops independently',fullBooksAndWideResources:'separate pinned acceptance constituents'},
     offers,ramps,checks,parity,producerSamples,indexSamples,reconciliation,replayMetrics:replay.metrics,financial:{fees,cash,actualVault:custody.allocatedVault,independentRootTransitions:true},resource:process.resourceUsage(),memory:process.memoryUsage()};

@@ -94,7 +94,7 @@ try {
   const parity = await conformance.finish(directory, [{ program: sdk.CLEARING_PROGRAM_ADDRESS, name: 'resolution', key: setup.resolution }], h.read);
   writeFileSync(`${directory}/summary.json`, serialize({ revision,
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
-    build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')), checks, parity,
+    build: JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`, 'utf8')), checks, parity,
     members: 64, actualDeposits: true, injectedFinancialState: false, resolution, financialCapture: 'financial-capture.json' }));
   console.log(`P44 complete-cohort source recovery: ${checks.length} signed outcomes and 64 independent payouts.`);
 } finally { try { await flush(); } finally { ws.close(); } }

@@ -82,12 +82,20 @@ lifecycle reconciles zero remaining trader cash, 18 insurance/vault atoms and
 including **16** exact rejections and both isolated conformance clients. These
 fast compiled checks do not replace fresh RPC acceptance or establish CU savings.
 
-The forwarding fix still needs a clean candidate rebuild and allowlist refresh.
-Actual RPC/WS/PostgreSQL replay, hostile runtime acceptance, browser/load matrix
-and B/C cost comparison remain incomplete. Broad regression belongs to CI; no
+The forwarding fix is committed at **`366c7ab4f12c058fbff6538ededca26674ccf5bf`**.
+All candidate binaries rebuilt cleanly on that source with no unsafe stack
+diagnostics; the SDK now pins their actual bytes/hashes. Evidence summaries select
+the explicit candidate artifact directory, preserving frozen B provenance.
+All three compiled default initialization gates reject with rollback. The hostile
+maker probe passes **five** exact rejections with full state rollback across
+**114** signed VM transactions, including a genuine route before deliberate
+admission-hash fault injection. The retired instruction now fails with RC2
+`InvalidInstructionData`, as distinct from unchanged protocol custom codes.
+Actual RPC/WS/PostgreSQL replay, browser/load matrix and B/C cost comparison
+remain incomplete. Broad regression belongs to CI; no
 hosted result is claimed. P15B/P16B and deferred endurance are unchanged. No access
-blocker is present. Next exact action: pin the clean CPI-fixed artifacts, then run
-the fresh signed custody probe before route/safety/journal acceptance.
+blocker is present. Next exact action: run the fresh signed custody probe on the pinned CPI-fixed
+artifacts before route/safety/journal acceptance.
 
 ## Accepted performance stack
 

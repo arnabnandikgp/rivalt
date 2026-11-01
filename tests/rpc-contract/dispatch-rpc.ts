@@ -166,7 +166,7 @@ try {
   assert.deepEqual((await replay.store.snapshot()).state,state);
   const databaseCases=await dispatchDatabaseCases(runtime.store.pool,config.runId);
   const parity=await conformance.finish(directory,[],h.read);
-  writeFileSync(`${directory}/dispatch.json`,json({revision,build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),
+  writeFileSync(`${directory}/dispatch.json`,json({revision,build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),
     setupOutcomes:checks.length,parallelOriginals:2,parallelBroadcasts:2,duplicateExecutors:2,sharedPayerDeferred:deferred,
     expired:expiredReceipt,admissionFault,unknownFeeReservation:'20000',originals,budgets,receipts,fault,reconciliation,parity,databaseCases,
     replaySequence:state.sequence,limits:'Two service RPC lanes; not validator scheduler throughput or P40B event qualification'}));
