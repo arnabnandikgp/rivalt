@@ -73,11 +73,13 @@ export class CanonicalConformance {
     const input = Object.fromEntries(this.modules.map(module => [module.name, { instructions: module.instructions, accounts: module.accounts, events: module.events }]));
     const path = `${runDir}/legacy-input.json`;
     writeFileSync(path, JSON.stringify(input, null, 2)+'\n');
-    const legacy = JSON.parse(execFileSync(process.execPath, ['tests/anchor-conformance/canonical-maker.cjs', path], { encoding: 'utf8', maxBuffer: 8*1024*1024 }));
+    for (const client of ['tests/anchor-conformance/canonical-maker.cjs', 'tests/anchor-rc2-conformance/canonical-maker.mjs']) {
+    const legacy = JSON.parse(execFileSync(process.execPath, [client, path], { encoding: 'utf8', maxBuffer: 8*1024*1024 }));
     for (const module of this.modules) {
       assert.deepEqual(legacy[module.name].instructions, module.instructions.map(item => item.expected), `${module.name}: instruction data/account flags`);
       assert.deepEqual(legacy[module.name].accounts.map((item: any) => item.value), module.expectedAccounts, `${module.name}: account fields`);
       assert.deepEqual(legacy[module.name].events.map((item: any) => item.data), module.expectedEvents, `${module.name}: event fields`);
+    }
     }
     return this.modules.map(module => ({ program: module.name, instructions: module.instructions.length,
       instructionNames: [...new Set(module.instructions.map(item => item.name))], accounts: module.accounts.length, events: module.events.length }));

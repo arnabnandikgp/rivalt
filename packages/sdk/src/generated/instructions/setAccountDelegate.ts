@@ -45,7 +45,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findVenueSafetyPda } from "../pdas/index.js";
+import { findEventAuthorityPda, findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -55,7 +55,7 @@ import {
 } from "../types/index.js";
 
 export const SET_ACCOUNT_DELEGATE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([250, 140, 65, 24, 51, 121, 96, 88]);
+  new Uint8Array([253, 87, 79, 111, 165, 50, 87, 251]);
 
 export function getSetAccountDelegateDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -159,7 +159,9 @@ export type SetAccountDelegateAsyncInput<
   venue: TAccountVenue;
   safety?: TAccountSafety;
   margin: TAccountMargin;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: SetAccountDelegateInstructionDataArgs["guard"];
   delegate: SetAccountDelegateInstructionDataArgs["delegate"];
@@ -263,6 +265,11 @@ export async function getSetAccountDelegateInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -319,7 +326,9 @@ export type SetAccountDelegateInput<
   venue: TAccountVenue;
   safety: TAccountSafety;
   margin: TAccountMargin;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: SetAccountDelegateInstructionDataArgs["guard"];
   delegate: SetAccountDelegateInstructionDataArgs["delegate"];
@@ -461,7 +470,9 @@ export type ParsedSetAccountDelegateInstruction<
     venue: TAccountMetas[1];
     safety: TAccountMetas[2];
     margin: TAccountMetas[3];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[4];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[5];
   };
   data: SetAccountDelegateInstructionData;

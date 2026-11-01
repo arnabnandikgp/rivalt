@@ -20,11 +20,11 @@ it('persists final backing page and payment as one original with receiver-versio
   ledgerState.insurance-=3n;ledgerState.settlement=3n;
   test.put(ledger,sdk.getMarketLedgerEncoder().encode(ledgerState));
   const keys=await accountWorkerKeys(venue),[,registryBump]=await sdk.deriveVenueComponent(venue,'registry');
-  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:7,revision:1n,venue,
+  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:8,revision:1n,venue,
     membershipVersion:4n,count:2,members:test.margins,bump:registryBump}));
   const [certificate,bump]=await sdk.deriveSettlementCertificate(venue,0);
   test.put(certificate,sdk.getSettlementCertificateEncoder().encode({...test.empty(sdk.getSettlementCertificateDecoder()),
-    schemaVersion:7,revision:1n,venue,marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2,liabilityVersion:1n,bump}));
+    schemaVersion:8,revision:1n,venue,marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2,liabilityVersion:1n,bump}));
   const submissions:{instructions:Instruction[];authority:AccountAuthority|null}[]=[];
   const runtime={rpc:test.rpc,budget:async()=> 'settlement-budget',pendingBudget:async()=>false,
     discovery:async()=>({state:{members:[margin]}}),

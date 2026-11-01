@@ -41,15 +41,18 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findBtcLedgerPda,
+  findBtcPda,
   findCustodyPda,
   findEthLedgerPda,
+  findEthPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const CHECK_ACCOUNT_RETIREMENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([112, 48, 16, 181, 151, 67, 89, 101]);
+  new Uint8Array([249, 193, 141, 17, 196, 101, 226, 246]);
 
 export function getCheckAccountRetirementDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -167,14 +170,16 @@ export type CheckAccountRetirementAsyncInput<
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
   btcLedger?: TAccountBtcLedger;
   ethLedger?: TAccountEthLedger;
   vault?: TAccountVault;
   registry: TAccountRegistry;
   certificate: TAccountCertificate;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   start: CheckAccountRetirementInstructionDataArgs["start"];
 };
@@ -349,6 +354,28 @@ export async function getCheckAccountRetirementInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.btc.value) {
+    accounts.btc.value = await findBtcPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eth.value) {
+    accounts.eth.value = await findEthPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
   if (!accounts.btcLedger.value) {
     accounts.btcLedger.value = await findBtcLedgerPda(
       {
@@ -381,6 +408,11 @@ export async function getCheckAccountRetirementInstructionAsync<
       },
       { programAddress },
     );
+  }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
   }
 
   return Object.freeze({
@@ -480,7 +512,9 @@ export type CheckAccountRetirementInput<
   vault: TAccountVault;
   registry: TAccountRegistry;
   certificate: TAccountCertificate;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   start: CheckAccountRetirementInstructionDataArgs["start"];
 };
@@ -718,7 +752,9 @@ export type ParsedCheckAccountRetirementInstruction<
     vault: TAccountMetas[7];
     registry: TAccountMetas[8];
     certificate: TAccountMetas[9];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[10];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[11];
   };
   data: CheckAccountRetirementInstructionData;

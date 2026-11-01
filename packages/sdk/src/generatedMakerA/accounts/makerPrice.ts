@@ -44,7 +44,7 @@ import {
 } from "../types/index.js";
 
 export const MAKER_PRICE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  66, 156, 238, 30, 240, 111, 194, 0,
+  207, 24, 132, 152, 121, 83, 241, 85,
 ]);
 
 export function getMakerPriceDiscriminatorBytes(): ReadonlyUint8Array {

@@ -5,7 +5,7 @@
 | Component | Pin / distinction |
 |---|---|
 | Host Rust / Cargo | 1.97.1, pinned by rust-toolchain.toml |
-| Anchor CLI / anchor-lang | 1.2.1; default `solana-v3`, `event-cpi` enabled |
+| Candidate Anchor CLI / anchor-lang / anchor-spl | 2.0.0-rc.2; language `alloc`/`guardrails`, SPL `guardrails`; isolated CLI |
 | Agave CLI distribution | 4.1.2, source 182084b8 |
 | Bundled cargo-build-sbf | 4.1.0; its displayed default platform-tools is v1.54 |
 | Explicit SBF build | platform-tools v1.52, rustc 1.89.0-dev, SBPF v0 |
@@ -14,18 +14,28 @@
 | Application web3.js / Kit | 3.1.1 / 8.5.0 |
 | Wallet compatibility | wallet-adapter 3.1.1, React / React DOM 19.3.0 |
 | Generator | codama 1.11.0, nodes-from-anchor 1.5.6, renderers-js 2.8.0 |
+| RC2 test process | @anchor-lang/core 2.0.0-rc.2, Kit 8.3.0, separate lockfile |
 | Legacy test process | @anchor-lang/core 1.2.1, web3.js 1.99.0 |
 | TypeScript / test runner | 5.9.3 / Vitest 3.2.4 |
 
 
-Also retain Anchor SPL 1.2.1, LiteSVM 1.6.1, Fastify 5.12.7, pg 8.23.1,
+Also retain LiteSVM 1.6.1, Fastify 5.12.7, pg 8.23.1,
 PostgreSQL 18.6, Vite 7.3.7 and Playwright core 1.64.1. Lockfiles and
 [download manifests](../../ops/toolchain-downloads.json) are authoritative. Host
 Rust, SBF compiler, runtime version and transaction format are different identities.
 Legacy Anchor/web3.js 1.x lives only in `tests/anchor-conformance`; no runtime
 imports or workspace overrides make it appear compatible with the modern client.
 
-From the repository root, bootstrap only missing tools:
+P46's unqualified candidate uses `bash ops/install-anchor-rc2.sh`, followed by
+`bash ops/build.sh`. It preserves `.tools/bin/anchor` and frozen P44 binaries;
+`.tools/anchor-v2-rc2/bin/anchor` is selected only by migration build scripts.
+Install the isolated client with
+`pnpm --dir tests/anchor-rc2-conformance install --frozen-lockfile`.
+Runtime probes additionally require `RIVALT_ALLOW_RC2_CANDIDATE=1` and explicit
+`RIVALT_ARTIFACT_DIR=.local/anchor-rc2/candidate`. Do not run the normal demo with
+unqualified candidate artifacts. [STATUS](../STATUS.md) records the remaining gates.
+
+From the repository root, bootstrap only missing baseline tools:
 
 ```sh
 python3 ops/bootstrap.py

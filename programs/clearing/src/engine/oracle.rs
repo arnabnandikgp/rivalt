@@ -7,7 +7,7 @@ pub(crate) fn feed_indexes(market: u8) -> Result<[usize; 4]> {
     match market {
         0 => Ok([0, 1, 2, 3]),
         1 => Ok([4, 1, 5, 3]),
-        _ => err!(ClearingError::OracleSource),
+        _ => Err(ProgramError::from(ClearingError::OracleSource)),
     }
 }
 
@@ -223,7 +223,7 @@ pub(crate) fn funding_bounds(mode: u8, market: &Market, clock: &Clock) -> Result
 }
 fn source(
     market: &mut Market,
-    infos: [&AccountInfo; 4],
+    infos: [&AccountView; 4],
     now: i64,
 ) -> Result<Option<policy::Bounds>> {
     let mut values = [None; 4];
@@ -255,7 +255,7 @@ fn source(
 pub(crate) fn sources(
     btc: &mut Market,
     eth: &mut Market,
-    infos: [&AccountInfo; 6],
+    infos: [&AccountView; 6],
     now: i64,
 ) -> Result<[Option<policy::Bounds>; 2]> {
     Ok([
@@ -273,7 +273,7 @@ pub(crate) fn freeze_coverage(market: &mut Market, now: i64) -> Result<()> {
         now.checked_sub(observation.sampled_at)
             .ok_or(ClearingError::Arithmetic)?,
     )
-    .map_err(|_| error!(ClearingError::Resolution))?;
+    .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
     let covered = if observation.held_until > observation.sampled_at {
         (market.funding_time.min(observation.held_until) - observation.sampled_at).max(0) as u64
     } else {

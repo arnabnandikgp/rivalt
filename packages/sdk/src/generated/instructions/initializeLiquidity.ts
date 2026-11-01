@@ -40,11 +40,15 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findLiquidityRegistryPda, findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findEventAuthorityPda,
+  findLiquidityRegistryPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const INITIALIZE_LIQUIDITY_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([22, 214, 118, 0, 73, 219, 158, 150]);
+  new Uint8Array([27, 159, 247, 95, 173, 143, 67, 250]);
 
 export function getInitializeLiquidityDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -147,7 +151,9 @@ export type InitializeLiquidityAsyncInput<
   safety?: TAccountSafety;
   registry?: TAccountRegistry;
   systemProgram?: TAccountSystemProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
 };
 
@@ -286,6 +292,11 @@ export async function getInitializeLiquidityInstructionAsync<
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -355,7 +366,9 @@ export type InitializeLiquidityInput<
   safety: TAccountSafety;
   registry: TAccountRegistry;
   systemProgram?: TAccountSystemProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
 };
 
@@ -533,7 +546,9 @@ export type ParsedInitializeLiquidityInstruction<
     safety: TAccountMetas[3];
     registry: TAccountMetas[4];
     systemProgram: TAccountMetas[5];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[6];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[7];
   };
   data: InitializeLiquidityInstructionData;

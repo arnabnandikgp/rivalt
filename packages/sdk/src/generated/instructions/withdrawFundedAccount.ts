@@ -42,7 +42,12 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findBtcPda,
+  findEthPda,
+  findEventAuthorityPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -52,7 +57,7 @@ import {
 } from "../types/index.js";
 
 export const WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([182, 227, 227, 227, 105, 250, 114, 82]);
+  new Uint8Array([192, 57, 45, 195, 49, 172, 22, 255]);
 
 export function getWithdrawFundedAccountDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -204,7 +209,9 @@ export type WithdrawFundedAccountAsyncInput<
   quoteMint: TAccountQuoteMint;
   userToken: TAccountUserToken;
   tokenProgram?: TAccountTokenProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: WithdrawFundedAccountInstructionDataArgs["guard"];
   amount: WithdrawFundedAccountInstructionDataArgs["amount"];
@@ -394,9 +401,36 @@ export async function getWithdrawFundedAccountInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.btc.value) {
+    accounts.btc.value = await findBtcPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eth.value) {
+    accounts.eth.value = await findEthPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
   }
 
   return Object.freeze({
@@ -518,7 +552,9 @@ export type WithdrawFundedAccountInput<
   quoteMint: TAccountQuoteMint;
   userToken: TAccountUserToken;
   tokenProgram?: TAccountTokenProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: WithdrawFundedAccountInstructionDataArgs["guard"];
   amount: WithdrawFundedAccountInstructionDataArgs["amount"];
@@ -806,7 +842,9 @@ export type ParsedWithdrawFundedAccountInstruction<
     quoteMint: TAccountMetas[10];
     userToken: TAccountMetas[11];
     tokenProgram: TAccountMetas[12];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[13];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[14];
   };
   data: WithdrawFundedAccountInstructionData;

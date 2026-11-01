@@ -69,11 +69,13 @@ pub fn recover(
     epoch: u64,
     resume: bool,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
-    let accounts = &mut *ctx.accounts;
-    no_liabilities(&accounts.identity, &accounts.resolution, epoch)?;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Resolution);
+    let accounts = &mut ctx.accounts;
+    let identity = &mut *accounts.identity;
+    no_liabilities(&identity, &accounts.resolution, epoch)?;
     require!(
-        accounts.identity.safety.mode == RESOLVED
+        identity.safety.mode == RESOLVED
             && accounts.resolution.stage == COMPLETE
             && accounts.resolution.cursor == accounts.resolution.count
             && accounts.resolution.count == accounts.registry.count
@@ -82,26 +84,17 @@ pub fn recover(
     );
     if resume {
         require_keys_eq!(
-            accounts.caller.key(),
-            accounts.identity.venue.authority,
+            accounts.caller.address().to_owned(),
+            identity.venue.authority,
             ClearingError::Authority
         );
     }
     let clock = Clock::get()?;
-    let bounds = freeze::sources(
-        &mut accounts.identity,
-        &accounts.sources,
-        clock.unix_timestamp,
-    )?;
+    let bounds = freeze::sources(identity, &accounts.sources, clock.unix_timestamp)?;
     let normal = bounds
         .iter()
         .all(|value| value.is_some_and(|bound| bound.normal));
-    observe(
-        &mut accounts.identity.safety,
-        clock.unix_timestamp,
-        normal,
-        resume,
-    )?;
+    observe(&mut identity.safety, clock.unix_timestamp, normal, resume)?;
     if resume {
         let skipped = u64::try_from(
             clock
@@ -109,31 +102,31 @@ pub fn recover(
                 .checked_sub(accounts.resolution.frozen_at)
                 .ok_or(ClearingError::Arithmetic)?,
         )
-        .map_err(|_| error!(ClearingError::Resolution))?;
-        for market in [&mut accounts.identity.btc, &mut accounts.identity.eth] {
+        .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
+        for market in [&mut identity.btc, &mut identity.eth] {
             increment(&mut market.terms_epoch)?;
             increment(&mut market.config_epoch)?;
             let mut view = account_trading::market_view(market)?;
             crate::engine::oracle::reset_oracle(&mut view, clock.unix_timestamp, skipped)?;
             account_trading::commit_market(market, &view)?;
         }
-        accounts.identity.safety.mode = CUSTODY;
-        accounts.identity.safety.paused = false;
-        increment(&mut accounts.identity.safety.epoch)?;
-        increment(&mut accounts.identity.venue.terms_epoch)?;
-        increment(&mut accounts.identity.venue.config_epoch)?;
+        identity.safety.mode = CUSTODY;
+        identity.safety.paused = false;
+        increment(&mut identity.safety.epoch)?;
+        increment(&mut identity.venue.terms_epoch)?;
+        increment(&mut identity.venue.config_epoch)?;
         accounts.resolution.stage = RECOVERED;
-        accounts.resolution.safety_epoch = accounts.identity.safety.epoch;
-        accounts.resolution.terms_epoch = accounts.identity.venue.terms_epoch;
+        accounts.resolution.safety_epoch = identity.safety.epoch;
+        accounts.resolution.terms_epoch = identity.venue.terms_epoch;
     }
 
     emit(
-        &accounts.identity,
+        &identity,
         &accounts.resolution,
         u8::from(resume),
         &clock,
         events,
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -142,27 +135,25 @@ pub fn reactivate(
     events: &mut crate::event_cpi::Payloads,
     epoch: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
-    let accounts = &mut *ctx.accounts;
-    no_liabilities(&accounts.identity, &accounts.resolution, epoch)?;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Resolution);
+    let accounts = &mut ctx.accounts;
+    let identity = &mut *accounts.identity;
+    no_liabilities(&identity, &accounts.resolution, epoch)?;
     require_keys_eq!(
-        accounts.caller.key(),
-        accounts.identity.venue.authority,
+        accounts.caller.address().to_owned(),
+        identity.venue.authority,
         ClearingError::Authority
     );
     require!(
-        accounts.identity.safety.mode == CUSTODY
-            && !accounts.identity.safety.paused
+        identity.safety.mode == CUSTODY
+            && !identity.safety.paused
             && accounts.resolution.stage == RECOVERED,
         ClearingError::Resolution
     );
     registry_hash(&accounts.registry)?;
     let clock = Clock::get()?;
-    let bounds = freeze::sources(
-        &mut accounts.identity,
-        &accounts.sources,
-        clock.unix_timestamp,
-    )?;
+    let bounds = freeze::sources(identity, &accounts.sources, clock.unix_timestamp)?;
     require!(
         bounds
             .iter()
@@ -171,22 +162,22 @@ pub fn reactivate(
     );
     // Custody operations cannot introduce q/claims/orders. New custody members
     // need not be excluded merely because the completed frozen cohort predates them.
-    for market in [&mut accounts.identity.btc, &mut accounts.identity.eth] {
+    for market in [&mut identity.btc, &mut identity.eth] {
         account_trading::oracle::action(market, &clock, true)?;
         let mut view = account_trading::market_view(market)?;
         crate::engine::oracle::reset_oracle(&mut view, clock.unix_timestamp, 0)?;
         account_trading::commit_market(market, &view)?;
     }
-    accounts.identity.safety.mode = ACTIVE;
-    increment(&mut accounts.identity.safety.epoch)?;
+    identity.safety.mode = ACTIVE;
+    increment(&mut identity.safety.epoch)?;
 
     emit(
-        &accounts.identity,
+        &identity,
         &accounts.resolution,
         2,
         &clock,
         events,
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -197,10 +188,10 @@ fn emit(
     kind: u8,
     clock: &Clock,
     events: &mut crate::event_cpi::Payloads,
-    authority: AccountInfo,
+    authority: AccountView,
 ) -> Result<()> {
     let event = Box::new(crate::events::AccountSafetyRecovery {
-        venue: identity.venue.key(),
+        venue: identity.venue.address().to_owned(),
 
         slot: clock.slot,
         epoch: header.epoch,
@@ -218,7 +209,7 @@ fn emit(
             [&identity.btc_ledger, &identity.eth_ledger],
         )?,
         allocated_vault: identity.custody.allocated_vault,
-        actual_vault: identity.vault.amount,
+        actual_vault: identity.vault.amount(),
         markets: [
             crate::events::MarketSnapshot::from(&**identity.btc),
             crate::events::MarketSnapshot::from(&**identity.eth),

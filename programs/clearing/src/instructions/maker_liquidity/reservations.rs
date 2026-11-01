@@ -20,7 +20,7 @@ pub(crate) struct Reservations {
 
 impl Reservations {
     pub(crate) fn new(root: &MarginAccount, market: &Market, slot: u64) -> Self {
-        let live_delegate = root.delegate != Pubkey::default() && slot < root.delegate_expiry_slot;
+        let live_delegate = root.delegate != Address::default() && slot < root.delegate_expiry_slot;
         let orders = root.book.orders.map(|stored| {
             let order = stored.order;
             if !order.active()

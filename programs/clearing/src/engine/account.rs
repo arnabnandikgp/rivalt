@@ -12,8 +12,8 @@ pub(crate) fn model(root: &MarginAccount) -> Result<math::margin::Margin> {
                 root.role
             )
             && root.delegate_epoch > 0
-            && ((root.delegate == Pubkey::default()) == (root.delegate_expiry_slot == 0))
-            && (root.delegate == Pubkey::default() || root.delegate != root.owner),
+            && ((root.delegate == Address::default()) == (root.delegate_expiry_slot == 0))
+            && (root.delegate == Address::default() || root.delegate != root.owner),
         ClearingError::Profile
     );
     let model = math::margin::Margin {
@@ -59,13 +59,13 @@ pub(crate) fn commit_model(
 
 /// Zero identifies owner-created durable authority. The live delegate grant is
 /// scoped to this root and expires exclusively at its stored slot.
-pub(crate) fn trade_authority(root: &MarginAccount, actor: Pubkey, slot: u64) -> Result<u64> {
+pub(crate) fn trade_authority(root: &MarginAccount, actor: Address, slot: u64) -> Result<u64> {
     model(root)?;
     if actor == root.owner {
         return Ok(0);
     }
     require!(
-        actor != Pubkey::default() && actor == root.delegate && slot < root.delegate_expiry_slot,
+        actor != Address::default() && actor == root.delegate && slot < root.delegate_expiry_slot,
         ClearingError::Authority
     );
     Ok(root.delegate_epoch)
@@ -74,6 +74,6 @@ pub(crate) fn trade_authority(root: &MarginAccount, actor: Pubkey, slot: u64) ->
 pub(crate) fn live_order_authority(root: &MarginAccount, epoch: u64, slot: u64) -> bool {
     epoch == 0
         || (epoch == root.delegate_epoch
-            && root.delegate != Pubkey::default()
+            && root.delegate != Address::default()
             && slot < root.delegate_expiry_slot)
 }

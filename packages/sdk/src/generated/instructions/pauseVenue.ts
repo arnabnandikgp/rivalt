@@ -44,13 +44,14 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const PAUSE_VENUE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  249, 14, 93, 103, 186, 72, 200, 112,
+  95, 78, 87, 119, 226, 152, 10, 227,
 ]);
 
 export function getPauseVenueDiscriminatorBytes(): ReadonlyUint8Array {
@@ -158,7 +159,9 @@ export type PauseVenueAsyncInput<
   btcLedger: TAccountBtcLedger;
   ethLedger: TAccountEthLedger;
   vault?: TAccountVault;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   paused: PauseVenueInstructionDataArgs["paused"];
 };
@@ -319,6 +322,11 @@ export async function getPauseVenueInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -396,7 +404,9 @@ export type PauseVenueInput<
   btcLedger: TAccountBtcLedger;
   ethLedger: TAccountEthLedger;
   vault: TAccountVault;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   paused: PauseVenueInstructionDataArgs["paused"];
 };
@@ -591,7 +601,9 @@ export type ParsedPauseVenueInstruction<
     btcLedger: TAccountMetas[4];
     ethLedger: TAccountMetas[5];
     vault: TAccountMetas[6];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[7];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[8];
   };
   data: PauseVenueInstructionData;

@@ -6,9 +6,9 @@ use anchor_lang::prelude::*;
 use clearing::state::accounts::{MarginAccount, Market, Venue, MODE_ISOLATED, ROLE_MAKER};
 
 #[cfg(not(feature = "devnet-test-profile"))]
-const CLEARING_ID: Pubkey = pubkey!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
+const CLEARING_ID: Address = Address::from_str_const("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
 #[cfg(feature = "devnet-test-profile")]
-const CLEARING_ID: Pubkey = pubkey!("BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv");
+const CLEARING_ID: Address = Address::from_str_const("BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv");
 
 #[error_code]
 pub enum MakerError {

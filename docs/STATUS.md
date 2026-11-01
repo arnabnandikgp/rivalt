@@ -13,9 +13,9 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| M13 Anchor RC2 migration | Planning | P45 plan; proposed P46 port and P47 fresh qualification against frozen P44 B; implementation not started |
+| M13 Anchor RC2 migration | Active | P45 plan accepted; P46 serialized C0 port in progress, P47 fresh qualification follows |
 | P45 migration contract | Review | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) ready; architecture/release research, exact RC2 pins, ABI choice, code gap map and measurement/acceptance plan |
-| P46 RC2 implementation | Planned — after plan review | Correct serialized port, explicit fresh ABI and generated clients; separately measured selective zero-copy only if justified |
+| P46 RC2 implementation | In progress | RC2 programs, generated SDK and schema binding ported; signed RPC/WS/PG financial acceptance remains |
 | P47 post-migration qualification | Planned — depends on P46 | Complete compiled financial/service/browser/load matrix and matched cost report; no inherited qualification |
 | M12 performance and contention | Closed | P39–P44 accepted and integrated; measured pre-migration baseline frozen; no framework migration |
 | P39 dependency audit/baseline | Closed | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55) merged; focused RPC/WS baseline and 61-entrypoint inventory |
@@ -39,47 +39,39 @@ Review means accepted work awaiting integration; Closed requires acceptance plus
 integration. The user authorized the performance stack's review fixes and merge on
 1 November 2026; all seven PRs independently report MERGED.
 
-## P45 migration planning checkpoint
+## P46 serialized port checkpoint
 
-The user requests the Anchor v2 architecture documentation first, then the
-migration guide and a detailed plan, with implementation in the next PR. The
-[migration plan](operations/anchor-v2-migration.md) and D90 propose P45 → P46 → P47.
-Current code, lockfiles, tools, financial rules and qualified artifacts are unchanged.
+The user accepted P45's plan on 1 November 2026. Work is on
+`implementation/p46-anchor-rc2` above ready PR #63 (`696851e`). No P46 PR or runtime
+qualification is claimed yet. The accepted P44 artifacts remain untouched under
+`.local/liquidity-execution`; candidate artifacts use `.local/anchor-rc2/candidate`.
 
-Research inspected baseline `c0bc3aaa3825896fcafbc879fe104362da61c21d`, the eight
-official documentation sections, migration guide and RC2 release notes. Four
-published Rust archives were checksum-verified against registry metadata; all
-identify source `a20660219882af5f199d56ea3f9326f387f89d8b`. RC2 client metadata was
-checked separately. Local reference copies and the derived ABI inventory remain
-ignored under `.local/anchor-v2-planning/`.
+Delivered in this working checkpoint: exact RC2 crates/lockfile and isolated CLI;
+serialized account/context/CPI port; bounded registry codec; foreign-loader metadata
+validation; scoped borrowed event codecs; explicit canonical instruction/maker IDs;
+clearing schema/journal binding 8 and maker account schema 5; real generated IDLs/SDK;
+independent legacy and RC2 conformance processes. Quote/report versions, economics,
+field layouts, seeds and ordered privileges remain unchanged. `state-only` dependency
+features resolve an observed RC2 exported-dispatch linker conflict. C0 remains
+serialized; no selective zero-copy optimization has been attempted.
 
-The important compatibility finding is concrete: all 61 current instruction
-discriminators are custom eight-byte values, while stock RC2 executable macros
-support only canonical hashes or one-byte custom values. Maker-owned account/event
-overrides also need explicit treatment. Recommend a fresh bounded ABI with canonical
-eight-byte identifiers, clearing schema 8/maker account schema 5 and coordinated
-client/journal binding. The plan retains serialized field layouts first, immutable
-B evidence, isolated tools/artifacts, guards and actual RPC/WS/PG acceptance.
-Small zero-copy conversions require separate measured C0/C1 checkpoints; no saving
-or live state migration is claimed.
+Actual checks on this working tree: `cargo test` for clearing with qualification and
+maker-interface passes **119 + 12** tests, including new bounded/truncated registry
+and loader-header negatives; all default/qualification SBF programs and oracle/
+hostile fixtures build with v1.52/SBPF v0 and no unsafe stack diagnostics. The exact
+ABI guard passes against immutable predecessor `c0bc3aa`, with reviewed RC2 metadata
+exceptions. TypeScript checking and SDK generation pass. Scoped client tests first
+reported 18 stale-schema-fixture/decoder failures; affected rerun passes **45/45**,
+with the other **200** preceding checks passing. Five scoped conformance tests pass
+with both isolated clients. These are current observations, not full qualification.
+Local logs are under `.local/anchor-v2-build/`; source is not yet pinned for RPC.
 
-Planning acceptance: source/IDL counts and discriminator hashes independently
-enumerated (53 clearing + four per maker; 17 clearing account types, 28 clearing
-events); proposed instruction hashes are unique and disjoint from old identifiers
-within each program. At clean planning commit `e48a7ec`, the read-only documentation
-check passes with 304 relative links,
-112 historical Git targets, 71 source/command paths and no errors;
-whitespace and staged evidence-policy checks pass. Immutable upstream source and migration-guide links
-return HTTP 200. No install, dependency resolution, SDK generation, SBF build, runtime
-test, load, browser check, devnet or full regression was run for this documentation
-change. Hosted workflow path filters exclude docs-only PRs; no CI pass is implied.
-
-No access blocker prevents planning. RC2 SBF/tool compatibility, bounded codecs,
-IDL/Codama support, CPI borrow behavior and financial/resource equivalence remain
-unproved implementation gates, with explicit acceptance in the plan. P15B/P16B
-and deferred endurance are unchanged. Ready PR #63 remains open. Next exact action:
-after the user's plan review, begin P46's isolated RC2 toolchain and serialized C0
-port with the explicit ABI delta. No implementation is started in this run.
+No signed candidate transaction, actual RPC/WS/PostgreSQL replay, hostile runtime
+acceptance, browser/load matrix or B/C cost comparison has passed. Broad regression
+is delegated to CI; no hosted result is claimed. P15B/P16B and deferred endurance
+are unchanged. No access blocker is present. Next exact action: record the coherent
+C0 checkpoint, rebuild with its clean revision manifest, and run the explicit
+candidate custody probe against fresh Surfpool before route/safety/journal acceptance.
 
 ## Accepted performance stack
 

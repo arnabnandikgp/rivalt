@@ -26,4 +26,4 @@ custom-panic = []
 anchor-lang = { workspace = true }
 maker-interface = { path = "../../crates/maker-interface" }
 
-clearing = { path = "../clearing", features = ["no-entrypoint"] }
+clearing = { path = "../clearing", features = ["state-only"] }

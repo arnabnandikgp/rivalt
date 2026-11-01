@@ -2,7 +2,7 @@ use super::*;
 
 /// Unsigned little-endian fixed width. Zero has exactly the all-zero encoding.
 /// Work arithmetic is checked; no integer truncation or floating point.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct Wide {
     pub limbs: Box<[u64; WIDE_LIMBS]>,
 }
@@ -18,9 +18,9 @@ impl Default for Wide {
 }
 
 /// Fixed scalar inputs are enough to reconstruct every terminal exact adjustment.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default, InitSpace)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default, InitSpace, IdlType)]
 pub struct ResolutionRow {
-    pub member: Pubkey,
+    pub member: Address,
     pub cash_before: u64,
     pub lots: [i64; MARKET_COUNT],
     pub generations: [u64; MARKET_COUNT],
@@ -33,13 +33,13 @@ pub struct ResolutionRow {
     pub applied: bool,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct ResolutionPage {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub epoch: u64,
     pub page_index: u16,
     pub row_count: u8,
@@ -47,13 +47,13 @@ pub struct ResolutionPage {
     pub bump: u8,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct Resolution {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub epoch: u64,
     pub stage: u8,
     pub cursor: u16,
@@ -97,13 +97,13 @@ pub struct Resolution {
 
 /// Bounded continuation registers for arithmetic, proof scans and circulation.
 /// P26 verifies every opcode/cursor; caller data is not a trusted payout plan.
-#[account]
-#[derive(InitSpace)]
+#[account(borsh)]
+#[derive(InitSpace, Clone)]
 pub struct ResolutionWork {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub epoch: u64,
     pub opcode: u8,
     pub row: u16,
@@ -126,7 +126,7 @@ impl Default for ResolutionWork {
         Self {
             schema_version: 0,
             revision: 0,
-            venue: Pubkey::default(),
+            venue: Address::default(),
             epoch: 0,
             opcode: 0,
             row: 0,

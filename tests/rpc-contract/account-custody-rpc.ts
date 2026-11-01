@@ -78,7 +78,7 @@ try {
   let allocated = 0n;
   for (const event of committed) {
     assert.equal(event.venue, result.venue);
-    assert.equal(event.schemaVersion, 7);
+    assert.equal(event.schemaVersion, 8);
     for (const ledger of event.ledgers) ledgerState.set(ledger.marketIndex, ledger);
     for (const root of event.members) rootCash.set(root.id, root.cash);
     if (event.allocatedVault.__option === 'Some') allocated = event.allocatedVault.value;

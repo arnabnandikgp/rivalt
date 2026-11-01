@@ -25,7 +25,7 @@ export async function liquidityPriceSequence(rpc:Pick<Rpc,'call'>,authority:Liqu
   };
   const registration=decode(0,sdk.CLEARING_PROGRAM_ADDRESS,sdk.MAKER_REGISTRATION_DISCRIMINATOR,sdk.getMakerRegistrationDecoder());
   const key=getAddressEncoder();
-  if(registration.schemaVersion!==7||registration.venue!==authority.venue||registration.pricingProgram!==program
+  if(registration.schemaVersion!==8||registration.venue!==authority.venue||registration.pricingProgram!==program
     ||registration.instance>2)throw new Error('Foreign liquidity authority registration');
   const [registered,bump]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,
     seeds:[Buffer.from('maker-v4'),key.encode(registration.market),Uint8Array.of(registration.instance)]});
@@ -34,6 +34,6 @@ export async function liquidityPriceSequence(rpc:Pick<Rpc,'call'>,authority:Liqu
   if(registered!==authority.registration||registration.bump!==bump||registration.config!==config
     ||registration.price!==price||price!==authority.account)throw new Error('Noncanonical liquidity authority');
   const state=decode(1,program,sdk.makerA.MAKER_PRICE_DISCRIMINATOR,sdk.makerA.getMakerPriceDecoder()).state;
-  if(state.schemaVersion!==4||state.config!==config||state.bump!==priceBump)throw new Error('Foreign liquidity price identity');
+  if(state.schemaVersion!==5||state.config!==config||state.bump!==priceBump)throw new Error('Foreign liquidity price identity');
   return {value:state.sequence,slot};
 }

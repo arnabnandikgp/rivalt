@@ -1,20 +1,20 @@
 use super::*;
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct Venue {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
     pub profile_version: u16,
     pub domain: [u8; 32],
-    pub authority: Pubkey,
-    pub fee_authority: Pubkey,
-    pub reserve_authority: Pubkey,
-    pub reserve_destination_owner: Pubkey,
-    pub quote_mint: Pubkey,
-    pub vault: Pubkey,
-    pub markets: [Pubkey; MARKET_COUNT],
+    pub authority: Address,
+    pub fee_authority: Address,
+    pub reserve_authority: Address,
+    pub reserve_destination_owner: Address,
+    pub quote_mint: Address,
+    pub vault: Address,
+    pub markets: [Address; MARKET_COUNT],
     pub market_count: u8,
     pub terms_epoch: u64,
     pub config_epoch: u64,
@@ -23,24 +23,24 @@ pub struct Venue {
     pub vault_bump: u8,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct Custody {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub allocated_vault: u64,
     pub bump: u8,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct VenueSafety {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub mode: u8,
     pub paused: bool,
     pub epoch: u64,
@@ -52,13 +52,13 @@ pub struct VenueSafety {
 
 /// Terminal administrative proof only. Ordinary owner exits never depend on
 /// this complete-cohort scan or its global discovery-sequence stamp.
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct RetirementCertificate {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub safety_epoch: u64,
     pub membership_version: u64,
     pub cash: u64,
@@ -68,43 +68,42 @@ pub struct RetirementCertificate {
     pub bump: u8,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct VenueRegistry {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub membership_version: u64,
     pub count: u16,
     #[max_len(64)]
-    #[borsh(deserialize_with = "crate::state::records::deserialize_cohort")]
-    pub members: Vec<Pubkey>,
+    pub members: Vec<Address>,
     pub bump: u8,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct Portfolio {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
-    pub owner: Pubkey,
+    pub venue: Address,
+    pub owner: Address,
     pub index: u16,
     pub children: u16,
     pub bump: u8,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct MarginAccount {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
-    pub portfolio: Pubkey,
-    pub owner: Pubkey,
+    pub venue: Address,
+    pub portfolio: Address,
+    pub owner: Address,
     pub subaccount_index: u16,
     pub id: u16,
     pub mode: u8,
@@ -115,7 +114,7 @@ pub struct MarginAccount {
     pub positions: [Position; MARKET_COUNT],
     pub nonce: u64,
     pub state_version: u64,
-    pub delegate: Pubkey,
+    pub delegate: Address,
     pub delegate_expiry_slot: u64,
     pub delegate_epoch: u64,
     pub reserved: u64,
@@ -124,13 +123,13 @@ pub struct MarginAccount {
     pub bump: u8,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct Market {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub index: u8,
     pub symbol: [u8; 8],
     pub lots_per_unit: u64,
@@ -150,14 +149,14 @@ pub struct Market {
     pub bump: u8,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct MarketLedger {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
-    pub market: Pubkey,
+    pub venue: Address,
+    pub market: Address,
     pub market_index: u8,
     pub settlement: u64,
     pub insurance: u64,
@@ -170,24 +169,24 @@ pub struct MarketLedger {
     pub bump: u8,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct CapitalBinding {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
-    pub capital: Pubkey,
-    pub registration: Pubkey,
+    pub venue: Address,
+    pub capital: Address,
+    pub registration: Address,
 }
 
-#[account]
-#[derive(InitSpace, Default)]
+#[account(borsh)]
+#[derive(InitSpace, Default, Clone)]
 pub struct SettlementCertificate {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub market_index: u8,
     pub safety_epoch: u64,
     pub membership_version: u64,

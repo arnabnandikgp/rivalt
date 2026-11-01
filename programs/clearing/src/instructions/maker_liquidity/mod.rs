@@ -37,41 +37,41 @@ pub mod sampling;
 mod tests;
 
 fn registry_event(
-    venue: Pubkey,
-    registry: &Account<LiquidityRegistry>,
+    venue: Address,
+    registry: &BorshAccount<LiquidityRegistry>,
 ) -> Result<LiquidityRegistryChanged> {
     Ok(LiquidityRegistryChanged {
         venue,
 
         slot: Clock::get()?.slot,
-        registry: registry.key(),
+        registry: registry.address().to_owned(),
         state: LiquidityRegistryPayload::from(&**registry),
     })
 }
 
 fn maker_event(
-    venue: Pubkey,
-    market: &Account<Market>,
-    registration: &Account<MakerRegistration>,
+    venue: Address,
+    market: &BorshAccount<Market>,
+    registration: &BorshAccount<MakerRegistration>,
     operation: u8,
 ) -> Result<LiquidityMakerChanged> {
     Ok(LiquidityMakerChanged {
         venue,
 
         slot: Clock::get()?.slot,
-        market: market.key(),
+        market: market.address().to_owned(),
         market_state: MarketSnapshot::from(&**market),
-        registration: registration.key(),
+        registration: registration.address().to_owned(),
         state: MakerRegistrationPayload::from(&**registration),
         operation,
     })
 }
 
-fn truncate_funding(mode: u8, market: &mut Account<Market>) -> Result<()> {
+fn truncate_funding(mode: u8, market: &mut BorshAccount<Market>) -> Result<()> {
     if cfg!(feature = "liquidity-execution-qualification") {
         let mut next = funding::control_candidate(mode, market, &Clock::get()?)?;
         increment(&mut next.observation_sequence)?;
-        market.set_inner(next);
+        **market = next;
     }
     Ok(())
 }
@@ -80,26 +80,30 @@ pub fn initialize(
     ctx: &mut Context<InitializeLiquidity>,
     events: &mut crate::event_cpi::Payloads,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     custody_only(
         &ctx.accounts.venue,
         &ctx.accounts.safety,
         &ctx.accounts.market,
     )?;
-    ctx.accounts.registry.set_inner(LiquidityRegistry {
+    **ctx.accounts.registry = LiquidityRegistry {
         revision: 0,
-        schema_version: 7,
-        venue: ctx.accounts.venue.key(),
-        market: ctx.accounts.market.key(),
+        schema_version: 8,
+        venue: ctx.accounts.venue.address().to_owned(),
+        market: ctx.accounts.market.address().to_owned(),
         count: 0,
         sealed: false,
-        registrations: [Pubkey::default(); 3],
+        registrations: [Address::default(); 3],
         bump: ctx.bumps.registry,
-    });
-    let emitted_registry = registry_event(ctx.accounts.venue.key(), &ctx.accounts.registry)?;
+    };
+    let emitted_registry = registry_event(
+        ctx.accounts.venue.address().to_owned(),
+        &ctx.accounts.registry,
+    )?;
     events.emit(
         &emitted_registry,
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -109,7 +113,7 @@ pub fn initialize(
 fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<()> {
     custody_only(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
-        accounts.registry.schema_version == 7
+        accounts.registry.schema_version == 8
             && !accounts.registry.sealed
             && instance < 3
             && instance == accounts.registry.count,
@@ -120,17 +124,21 @@ fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<(
     let (config, _) = config_and_price(
         &accounts.config,
         &accounts.price,
-        accounts.pricing_program.key(),
+        accounts.pricing_program.address().to_owned(),
         instance,
         &accounts.venue,
         &accounts.market,
         &accounts.capital,
     )?;
     require!(
-        !accounts.config.is_writable && !accounts.price.is_writable,
+        !accounts.config.is_writable() && !accounts.price.is_writable(),
         ClearingError::MakerBinding
     );
-    require_keys_eq!(config.owner, accounts.owner.key(), ClearingError::Authority);
+    require_keys_eq!(
+        config.owner,
+        accounts.owner.address().to_owned(),
+        ClearingError::Authority
+    );
     Ok(())
 }
 
@@ -139,20 +147,21 @@ pub fn register(
     events: &mut crate::event_cpi::Payloads,
     instance: u8,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     validate_registration(accounts, instance)?;
-    accounts.registration.set_inner(MakerRegistration {
+    **accounts.registration = MakerRegistration {
         revision: 0,
-        schema_version: 7,
-        venue: accounts.venue.key(),
-        market: accounts.market.key(),
-        capital: accounts.capital.key(),
-        owner: accounts.owner.key(),
-        pricing_program: accounts.pricing_program.key(),
-        program_data: accounts.program_data.key(),
-        config: accounts.config.key(),
-        price: accounts.price.key(),
+        schema_version: 8,
+        venue: accounts.venue.address().to_owned(),
+        market: accounts.market.address().to_owned(),
+        capital: accounts.capital.address().to_owned(),
+        owner: accounts.owner.address().to_owned(),
+        pricing_program: accounts.pricing_program.address().to_owned(),
+        program_data: accounts.program_data.address().to_owned(),
+        config: accounts.config.address().to_owned(),
+        price: accounts.price.address().to_owned(),
         approved_hash: module_hash(&accounts.program_data)?,
         instance,
         authority_epoch: 1,
@@ -161,34 +170,35 @@ pub fn register(
         sell_consumed: 0,
         quarantined: false,
         bump: ctx.bumps.registration,
-    });
-    accounts.capital_binding.set_inner(CapitalBinding {
+    };
+    **accounts.capital_binding = CapitalBinding {
         revision: 0,
         schema_version: SCHEMA_VERSION,
-        venue: accounts.venue.key(),
-        capital: accounts.capital.key(),
-        registration: accounts.registration.key(),
-    });
-    accounts.registry.registrations[usize::from(instance)] = accounts.registration.key();
+        venue: accounts.venue.address().to_owned(),
+        capital: accounts.capital.address().to_owned(),
+        registration: accounts.registration.address().to_owned(),
+    };
+    accounts.registry.registrations[usize::from(instance)] =
+        accounts.registration.address().to_owned();
     accounts.registry.count = accounts
         .registry
         .count
         .checked_add(1)
         .ok_or(ClearingError::Arithmetic)?;
     let emitted_maker = maker_event(
-        accounts.venue.key(),
+        accounts.venue.address().to_owned(),
         &accounts.market,
         &accounts.registration,
         0,
     )?;
-    let emitted_registry = registry_event(accounts.venue.key(), &accounts.registry)?;
+    let emitted_registry = registry_event(accounts.venue.address().to_owned(), &accounts.registry)?;
     events.emit(
         &emitted_maker,
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     events.emit(
         &emitted_registry,
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -197,11 +207,12 @@ pub fn seal(
     ctx: &mut Context<SealLiquidity>,
     events: &mut crate::event_cpi::Payloads,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     custody_only(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
-        accounts.registry.schema_version == 7
+        accounts.registry.schema_version == 8
             && accounts.registry.count == 3
             && !accounts.registry.sealed,
         ClearingError::MakerBinding
@@ -209,10 +220,10 @@ pub fn seal(
     let makers = [&accounts.first, &accounts.second, &accounts.third];
     for (index, registration) in makers.iter().enumerate() {
         require!(
-            registration.schema_version == 7
+            registration.schema_version == 8
                 && usize::from(registration.instance) == index
-                && registration.venue == accounts.venue.key()
-                && registration.market == accounts.market.key(),
+                && registration.venue == accounts.venue.address().to_owned()
+                && registration.market == accounts.market.address().to_owned(),
             ClearingError::MakerBinding
         );
         for previous in makers.iter().take(index) {
@@ -226,16 +237,16 @@ pub fn seal(
         ClearingError::MakerBinding
     );
     accounts.registry.sealed = true;
-    let emitted_registry = registry_event(accounts.venue.key(), &accounts.registry)?;
+    let emitted_registry = registry_event(accounts.venue.address().to_owned(), &accounts.registry)?;
     events.emit(
         &emitted_registry,
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
 
 fn control_cpi(
-    accounts: &ControlLiquidity,
+    accounts: &mut ControlLiquidity,
     config: &CurveState,
     action: CurveControl,
     bump: u8,
@@ -247,13 +258,13 @@ fn control_cpi(
         action.clone(),
         Clock::get()?.slot,
     )
-    .map_err(|_| error!(ClearingError::MakerBinding))?;
-    let mut data = hash(b"global:control_curve_v4").to_bytes()[..8].to_vec();
-    config.control_epoch.serialize(&mut data)?;
-    config.shape_epoch.serialize(&mut data)?;
-    action.serialize(&mut data)?;
-    let venue_key = accounts.venue.key();
-    let capital_key = accounts.capital.key();
+    .map_err(|_| ProgramError::from(ClearingError::MakerBinding))?;
+    let mut data = hash(b"global:control_curve").to_bytes()[..8].to_vec();
+    crate::wire::write(&config.control_epoch, &mut data)?;
+    crate::wire::write(&config.shape_epoch, &mut data)?;
+    crate::wire::write(&action, &mut data)?;
+    let venue_key = accounts.venue.address().to_owned();
+    let capital_key = accounts.capital.address().to_owned();
     let seeds: &[&[u8]] = &[
         b"liquidity-control-v4",
         venue_key.as_ref(),
@@ -262,26 +273,33 @@ fn control_cpi(
     ];
     invoke_signed(
         &Instruction {
-            program_id: accounts.pricing_program.key(),
+            program_id: accounts.pricing_program.address().to_owned(),
             accounts: vec![
-                AccountMeta::new_readonly(accounts.controller.key(), true),
-                AccountMeta::new(accounts.config.key(), false),
-                AccountMeta::new_readonly(accounts.price.key(), false),
-                AccountMeta::new_readonly(accounts.maker_event_authority.key(), false),
-                AccountMeta::new_readonly(accounts.pricing_program.key(), false),
+                AccountMeta::new_readonly(accounts.controller.address().to_owned(), true),
+                AccountMeta::new(accounts.config.address().to_owned(), false),
+                AccountMeta::new_readonly(accounts.price.address().to_owned(), false),
+                AccountMeta::new_readonly(
+                    accounts.maker_event_authority.address().to_owned(),
+                    false,
+                ),
+                AccountMeta::new_readonly(accounts.pricing_program.address().to_owned(), false),
             ],
             data,
         },
         &[
-            accounts.controller.to_account_info(),
-            accounts.config.to_account_info(),
-            accounts.price.to_account_info(),
-            accounts.maker_event_authority.to_account_info(),
-            accounts.pricing_program.to_account_info(),
+            accounts.controller.cpi_handle(),
+            accounts.config.try_cpi_handle_mut()?.into(),
+            accounts.price.cpi_handle(),
+            accounts.maker_event_authority.cpi_handle(),
+            accounts.pricing_program.cpi_handle(),
         ],
         &[seeds],
     )?;
-    verify_control_result(&accounts.config, accounts.pricing_program.key(), &expected)
+    verify_control_result(
+        &accounts.config,
+        accounts.pricing_program.address().to_owned(),
+        &expected,
+    )
 }
 
 pub fn control(
@@ -292,11 +310,12 @@ pub fn control(
     expected_shape: u64,
     action: CurveControl,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     let config = authenticated_control(accounts, authority, true)?;
     require_keys_eq!(
-        accounts.actor.key(),
+        accounts.actor.address().to_owned(),
         accounts.registration.owner,
         ClearingError::Authority
     );
@@ -311,14 +330,14 @@ pub fn control(
     truncate_funding(accounts.safety.mode, &mut accounts.market)?;
     control_cpi(accounts, &config, action, ctx.bumps.controller)?;
     let emitted_maker = maker_event(
-        accounts.venue.key(),
+        accounts.venue.address().to_owned(),
         &accounts.market,
         &accounts.registration,
         operation,
     )?;
     events.emit(
         &emitted_maker,
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -330,11 +349,12 @@ pub fn replenish(
     expected_depth: u64,
     sides: u8,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     let config = authenticated_control(accounts, authority, true)?;
     require_keys_eq!(
-        accounts.actor.key(),
+        accounts.actor.address().to_owned(),
         accounts.registration.owner,
         ClearingError::Authority
     );
@@ -355,14 +375,14 @@ pub fn replenish(
         accounts.registration.sell_consumed = 0;
     }
     let emitted_maker = maker_event(
-        accounts.venue.key(),
+        accounts.venue.address().to_owned(),
         &accounts.market,
         &accounts.registration,
         4,
     )?;
     events.emit(
         &emitted_maker,
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -372,12 +392,13 @@ pub fn quarantine(
     events: &mut crate::event_cpi::Payloads,
     authority: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     control_base(&accounts.venue, &accounts.safety, &accounts.market)?;
     capital_identity(&accounts.capital, &accounts.market)?;
     require!(
-        accounts.registration.schema_version == 7
+        accounts.registration.schema_version == 8
             && accounts.registration.authority_epoch == authority
             && authority > 0
             && accounts.registration.owner == accounts.capital.owner,
@@ -387,12 +408,12 @@ pub fn quarantine(
     increment(&mut accounts.registration.authority_epoch)?;
     accounts.registration.quarantined = true;
     let emitted = maker_event(
-        accounts.venue.key(),
+        accounts.venue.address().to_owned(),
         &accounts.market,
         &accounts.registration,
         5,
     )?;
-    events.emit(&emitted, ctx.accounts.event_authority.to_account_info())?;
+    events.emit(&emitted, ctx.accounts.event_authority.account().clone())?;
     Ok(())
 }
 
@@ -401,11 +422,12 @@ pub fn approve(
     events: &mut crate::event_cpi::Payloads,
     authority: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     let config = authenticated_control(accounts, authority, false)?;
     require_keys_eq!(
-        accounts.actor.key(),
+        accounts.actor.address().to_owned(),
         accounts.registration.owner,
         ClearingError::Authority
     );
@@ -413,7 +435,7 @@ pub fn approve(
         accounts
             .co_signer
             .as_ref()
-            .is_some_and(|signer| signer.key() == accounts.venue.authority),
+            .is_some_and(|signer| signer.address().to_owned() == accounts.venue.authority),
         ClearingError::Authority
     );
     let approved_hash = module_hash(&accounts.program_data)?;
@@ -428,14 +450,14 @@ pub fn approve(
     accounts.registration.approved_hash = approved_hash;
     accounts.registration.quarantined = false;
     let emitted_maker = maker_event(
-        accounts.venue.key(),
+        accounts.venue.address().to_owned(),
         &accounts.market,
         &accounts.registration,
         6,
     )?;
     events.emit(
         &emitted_maker,
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }

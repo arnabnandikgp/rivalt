@@ -11,7 +11,7 @@ fn balance(work: &mut ResolutionWork, node: usize, delta: i128) -> Result<()> {
         .checked_add(delta)
         .ok_or(ClearingError::Arithmetic)?;
     work.registers[2].limbs[node] =
-        i64::try_from(value).map_err(|_| error!(ClearingError::Arithmetic))? as u64;
+        i64::try_from(value).map_err(|_| ProgramError::from(ClearingError::Arithmetic))? as u64;
     Ok(())
 }
 
@@ -117,8 +117,11 @@ pub fn order(
     epoch: u64,
     orders: [Vec<u16>; 2],
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
-    let accounts = &mut *ctx.accounts;
+    require!(
+        ctx.remaining_accounts()?.is_empty(),
+        ClearingError::Resolution
+    );
+    let accounts = &mut ctx.accounts;
     frozen(
         &accounts.identity,
         &accounts.registry,
@@ -157,13 +160,13 @@ pub fn order(
 
     events.emit(
         &crate::events::AccountResolutionOrder {
-            venue: accounts.identity.venue.key(),
+            venue: accounts.identity.venue.address().to_owned(),
 
             slot: Clock::get()?.slot,
             epoch,
             orders,
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -173,8 +176,9 @@ pub fn check_order(
     epoch: u64,
     start: u16,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Resolution);
+    let accounts = &mut ctx.accounts;
     frozen(
         &accounts.identity,
         &accounts.registry,
@@ -254,7 +258,7 @@ pub fn check_order(
 
     events.emit(
         &crate::events::AccountResolutionProgress {
-            venue: accounts.identity.venue.key(),
+            venue: accounts.identity.venue.address().to_owned(),
 
             slot: Clock::get()?.slot,
             epoch,
@@ -266,7 +270,7 @@ pub fn check_order(
             evaluation: header.evaluation,
             clipped_mask: header.clipped_mask,
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -276,8 +280,9 @@ pub fn round(
     epoch: u64,
     start: u16,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Resolution);
+    let accounts = &mut ctx.accounts;
     frozen(
         &accounts.identity,
         &accounts.registry,
@@ -310,7 +315,7 @@ pub fn round(
 
     events.emit(
         &crate::events::AccountResolutionRounded {
-            venue: accounts.identity.venue.key(),
+            venue: accounts.identity.venue.address().to_owned(),
 
             slot: Clock::get()?.slot,
             epoch,
@@ -321,6 +326,6 @@ pub fn round(
             augmentations: work.augmentations,
             depth: work.depth,
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }

@@ -44,7 +44,7 @@ import {
 } from "../types/index.js";
 
 export const MAKER_CURVE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  193, 186, 219, 30, 59, 114, 63, 19,
+  41, 123, 236, 36, 164, 114, 119, 161,
 ]);
 
 export function getMakerCurveDiscriminatorBytes(): ReadonlyUint8Array {

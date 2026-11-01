@@ -105,13 +105,31 @@ fn cross_liquidation_includes_other_market_funding_and_receiver_reservations() {
         generation: 1,
         ..Default::default()
     };
-    assert!(risk::candidate_optional(&target, &receiver, [Some(&markets[0]), None],
-        2, 0, 1, 952, &clock()).is_err());
+    assert!(risk::candidate_optional(
+        &target,
+        &receiver,
+        [Some(&markets[0]), None],
+        2,
+        0,
+        1,
+        952,
+        &clock()
+    )
+    .is_err());
     let mut btc_only_target = target.clone();
     btc_only_target.positions[1] = Position::default();
     // Receiver obligations alone are sufficient to require ETH.
-    assert!(risk::candidate_optional(&btc_only_target, &receiver, [Some(&markets[0]), None],
-        2, 0, 1, 952, &clock()).is_err());
+    assert!(risk::candidate_optional(
+        &btc_only_target,
+        &receiver,
+        [Some(&markets[0]), None],
+        2,
+        0,
+        1,
+        952,
+        &clock()
+    )
+    .is_err());
     let result = risk::candidate(
         &target,
         &receiver,
@@ -242,7 +260,7 @@ fn clock() -> Clock {
     Clock {
         slot: 100,
         unix_timestamp: 150,
-        ..Default::default()
+        ..crate::test_support::clock()
     }
 }
 fn market(index: u8) -> Market {

@@ -1,9 +1,9 @@
 //! Persistent oracle state and its serialized supporting types.
 use anchor_lang::prelude::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace, IdlType)]
 pub struct OracleState {
-    pub sources: [Pubkey; 4],
+    pub sources: [Address; 4],
     pub source_sequences: [u64; 4],
     pub sampled_at: i64,
     pub source_deadline: i64,

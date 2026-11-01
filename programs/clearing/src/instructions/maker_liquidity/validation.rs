@@ -1,15 +1,16 @@
 use super::*;
+use crate::{ProgramData, UpgradeableProgramAddress};
 
 pub(crate) fn execution_base(venue: &Venue, safety: &VenueSafety, market: &Market) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && venue.schema_version == 7
+            && venue.schema_version == 8
             && venue.profile_version == 4
             && venue.market_count == 2
             && venue.insurance_fee_share_bps == 2500
-            && safety.schema_version == 7
+            && safety.schema_version == 8
             && matches!(safety.mode, CUSTODY | ACTIVE)
-            && market.schema_version == 7
+            && market.schema_version == 8
             && market.index < 2,
         ClearingError::Profile
     );
@@ -45,13 +46,13 @@ pub(crate) fn custody_only(venue: &Venue, safety: &VenueSafety, market: &Market)
 pub(crate) fn custody_base(venue: &Venue, safety: &VenueSafety, market: &Market) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && venue.schema_version == 7
+            && venue.schema_version == 8
             && venue.profile_version == 4
             && venue.market_count == 2
             && venue.insurance_fee_share_bps == 2500
-            && safety.schema_version == 7
+            && safety.schema_version == 8
             && safety.mode == CUSTODY
-            && market.schema_version == 7
+            && market.schema_version == 8
             && market.index < 2
             && market.funding_index_scaled == 0
             && market.gross_lots == 0
@@ -63,7 +64,7 @@ pub(crate) fn custody_base(venue: &Venue, safety: &VenueSafety, market: &Market)
 
 pub(crate) fn capital_identity(capital: &MarginAccount, market: &Market) -> Result<()> {
     require!(
-        capital.schema_version == 7
+        capital.schema_version == 8
             && capital.venue == market.venue
             && capital.mode == MODE_ISOLATED
             && capital.role == ROLE_MAKER
@@ -74,57 +75,57 @@ pub(crate) fn capital_identity(capital: &MarginAccount, market: &Market) -> Resu
 }
 
 pub(crate) fn config_and_price(
-    config: &AccountInfo,
-    price: &AccountInfo,
-    program: Pubkey,
+    config: &AccountView,
+    price: &AccountView,
+    program: Address,
     instance: u8,
-    venue: &Account<Venue>,
-    market: &Account<Market>,
-    capital: &Account<MarginAccount>,
+    venue: &BorshAccount<Venue>,
+    market: &BorshAccount<Market>,
+    capital: &BorshAccount<MarginAccount>,
 ) -> Result<(CurveState, PriceState)> {
     require!(
         (program == MAKER_A || program == MAKER_B)
             && instance < 3
-            && *config.owner == program
-            && *price.owner == program
-            && !config.executable
-            && !price.executable
-            && !price.is_writable,
+            && *config.owner() == program
+            && *price.owner() == program
+            && !config.executable()
+            && !price.executable()
+            && !price.is_writable(),
         ClearingError::MakerBinding
     );
     let (config_key, config_bump) =
-        Pubkey::find_program_address(&[b"curve-v4", capital.key().as_ref()], &program);
+        find_program_address(&[b"curve-v4", capital.address().as_ref()], &program);
     let (price_key, price_bump) =
-        Pubkey::find_program_address(&[b"price-v4", config_key.as_ref()], &program);
-    require_keys_eq!(*config.key, config_key, ClearingError::MakerBinding);
-    require_keys_eq!(*price.key, price_key, ClearingError::MakerBinding);
-    let config_bytes = config.try_borrow_data()?;
-    let price_bytes = price.try_borrow_data()?;
+        find_program_address(&[b"price-v4", config_key.as_ref()], &program);
+    require_keys_eq!(*config.address(), config_key, ClearingError::MakerBinding);
+    require_keys_eq!(*price.address(), price_key, ClearingError::MakerBinding);
+    let config_bytes = config.try_borrow()?;
+    let price_bytes = price.try_borrow()?;
     require!(
         config_bytes.len() == 691
             && price_bytes.len() == 83
-            && config_bytes[..8] == hash(b"account:MakerCurveV4").to_bytes()[..8]
-            && price_bytes[..8] == hash(b"account:MakerPriceV4").to_bytes()[..8],
+            && config_bytes[..8] == hash(b"account:MakerCurve").to_bytes()[..8]
+            && price_bytes[..8] == hash(b"account:MakerPrice").to_bytes()[..8],
         ClearingError::MakerBinding
     );
-    let curve = CurveState::try_from_slice(&config_bytes[8..])
-        .map_err(|_| error!(ClearingError::MakerBinding))?;
-    let publication = PriceState::try_from_slice(&price_bytes[8..])
-        .map_err(|_| error!(ClearingError::MakerBinding))?;
-    let controller = Pubkey::find_program_address(
+    let curve = crate::wire::read::<CurveState>(&config_bytes[8..])
+        .map_err(|_| ProgramError::from(ClearingError::MakerBinding))?;
+    let publication = crate::wire::read::<PriceState>(&price_bytes[8..])
+        .map_err(|_| ProgramError::from(ClearingError::MakerBinding))?;
+    let controller = find_program_address(
         &[
             b"liquidity-control-v4",
-            venue.key().as_ref(),
-            capital.key().as_ref(),
+            venue.address().as_ref(),
+            capital.address().as_ref(),
         ],
         &crate::ID,
     )
     .0;
     require!(
-        curve.schema_version == 4
-            && curve.venue == venue.key()
-            && curve.market == market.key()
-            && curve.capital == capital.key()
+        curve.schema_version == canonical::ACCOUNT_SCHEMA
+            && curve.venue == venue.address().to_owned()
+            && curve.market == market.address().to_owned()
+            && curve.capital == capital.address().to_owned()
             && curve.owner == capital.owner
             && curve.controller == controller
             && curve.domain == venue.domain
@@ -133,7 +134,7 @@ pub(crate) fn config_and_price(
             && curve.control_epoch > 0
             && curve.shape_epoch > 0
             && curve.bump == config_bump
-            && publication.schema_version == 4
+            && publication.schema_version == canonical::ACCOUNT_SCHEMA
             && publication.config == config_key
             && publication.bump == price_bump
             && publication.control_epoch > 0
@@ -143,7 +144,7 @@ pub(crate) fn config_and_price(
     curve
         .shape
         .validate()
-        .map_err(|_| error!(ClearingError::MakerBinding))?;
+        .map_err(|_| ProgramError::from(ClearingError::MakerBinding))?;
     if publication.sequence == 0 {
         require!(
             publication.anchor == 0
@@ -170,7 +171,7 @@ pub(crate) fn authenticated_control(
     require!(!accounts.safety.paused, ClearingError::Paused);
     capital_identity(&accounts.capital, &accounts.market)?;
     require!(
-        accounts.registration.schema_version == 7
+        accounts.registration.schema_version == 8
             && accounts.registration.authority_epoch == authority
             && authority > 0
             && accounts.registration.depth_epoch > 0
@@ -180,7 +181,7 @@ pub(crate) fn authenticated_control(
     let (config, _) = config_and_price(
         &accounts.config,
         &accounts.price,
-        accounts.pricing_program.key(),
+        accounts.pricing_program.address().to_owned(),
         accounts.registration.instance,
         &accounts.venue,
         &accounts.market,
@@ -200,21 +201,21 @@ pub(crate) fn authenticated_control(
 /// clearing dependencies. Verify its owner/layout and the ENTIRE expected next
 /// state, including all identity fields, instead of searching the same PDAs again.
 pub(crate) fn verify_control_result(
-    config: &AccountInfo,
-    program: Pubkey,
+    config: &AccountView,
+    program: Address,
     expected: &CurveState,
 ) -> Result<()> {
     require!(
-        *config.owner == program && !config.executable,
+        *config.owner() == program && !config.executable(),
         ClearingError::MakerBinding
     );
-    let bytes = config.try_borrow_data()?;
+    let bytes = config.try_borrow()?;
     require!(
-        bytes.len() == 691 && bytes[..8] == hash(b"account:MakerCurveV4").to_bytes()[..8],
+        bytes.len() == 691 && bytes[..8] == hash(b"account:MakerCurve").to_bytes()[..8],
         ClearingError::MakerBinding
     );
-    let actual =
-        CurveState::try_from_slice(&bytes[8..]).map_err(|_| error!(ClearingError::MakerBinding))?;
+    let actual = crate::wire::read::<CurveState>(&bytes[8..])
+        .map_err(|_| ProgramError::from(ClearingError::MakerBinding))?;
     require!(actual == *expected, ClearingError::MakerBinding);
     Ok(())
 }
@@ -247,13 +248,13 @@ mod control_result_tests {
         };
         shape.validate().unwrap();
         let expected = CurveState {
-            schema_version: 4,
-            venue: Pubkey::new_unique(),
-            market: Pubkey::new_unique(),
-            capital: Pubkey::new_unique(),
-            controller: Pubkey::new_unique(),
-            owner: Pubkey::new_unique(),
-            updater: Pubkey::new_unique(),
+            schema_version: canonical::ACCOUNT_SCHEMA,
+            venue: Address::new_unique(),
+            market: Address::new_unique(),
+            capital: Address::new_unique(),
+            controller: Address::new_unique(),
+            owner: Address::new_unique(),
+            updater: Address::new_unique(),
             updater_expiry_slot: 1000,
             control_epoch: 2,
             shape_epoch: 2,
@@ -263,14 +264,14 @@ mod control_result_tests {
             shape,
             bump: 252,
         };
-        let mut encoded = hash(b"account:MakerCurveV4").to_bytes()[..8].to_vec();
-        expected.serialize(&mut encoded).unwrap();
+        let mut encoded = hash(b"account:MakerCurve").to_bytes()[..8].to_vec();
+        crate::wire::write(&expected, &mut encoded).unwrap();
         assert_eq!(encoded.len(), 691);
-        let check = |bytes: &mut [u8], owner: Pubkey, executable: bool| {
-            let key = Pubkey::new_unique();
-            let mut lamports = 1;
-            let info =
-                AccountInfo::new(&key, false, true, &mut lamports, bytes, &owner, executable);
+        let check = |bytes: &mut [u8], owner: Address, executable: bool| {
+            let key = Address::new_unique();
+            let mut backing =
+                crate::test_support::TestAccount::new(key, owner, bytes, true, executable);
+            let info = backing.view();
             verify_control_result(&info, MAKER_A, &expected)
         };
         assert!(check(&mut encoded.clone(), MAKER_A, false).is_ok());
@@ -288,9 +289,9 @@ mod control_result_tests {
     }
 }
 
-pub(crate) fn module_hash(data: &Account<ProgramData>) -> Result<[u8; 32]> {
-    let info = data.to_account_info();
-    let bytes = info.try_borrow_data()?;
+pub(crate) fn module_hash(data: &BorshAccount<ProgramData>) -> Result<[u8; 32]> {
+    let info = data.account().clone();
+    let bytes = info.try_borrow()?;
     require!(bytes.len() <= 1_048_576, ClearingError::MakerBinding);
     profile_cu!("code-hash-enter");
     let digest = hash(&bytes).to_bytes();

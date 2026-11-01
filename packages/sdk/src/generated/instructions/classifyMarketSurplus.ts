@@ -46,13 +46,14 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const CLASSIFY_MARKET_SURPLUS_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([167, 119, 199, 63, 133, 98, 213, 253]);
+  new Uint8Array([148, 185, 85, 189, 180, 126, 77, 91]);
 
 export function getClassifyMarketSurplusDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -165,7 +166,9 @@ export type ClassifyMarketSurplusAsyncInput<
   safety?: TAccountSafety;
   ledger: TAccountLedger;
   vault?: TAccountVault;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: ClassifyMarketSurplusInstructionDataArgs["marketIndex"];
   amount: ClassifyMarketSurplusInstructionDataArgs["amount"];
@@ -312,6 +315,11 @@ export async function getClassifyMarketSurplusInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -383,7 +391,9 @@ export type ClassifyMarketSurplusInput<
   safety: TAccountSafety;
   ledger: TAccountLedger;
   vault: TAccountVault;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: ClassifyMarketSurplusInstructionDataArgs["marketIndex"];
   amount: ClassifyMarketSurplusInstructionDataArgs["amount"];
@@ -558,7 +568,9 @@ export type ParsedClassifyMarketSurplusInstruction<
     safety: TAccountMetas[3];
     ledger: TAccountMetas[4];
     vault: TAccountMetas[5];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[6];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[7];
   };
   data: ClassifyMarketSurplusInstructionData;

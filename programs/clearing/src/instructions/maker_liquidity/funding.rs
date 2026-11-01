@@ -135,8 +135,8 @@ mod tests {
 
     fn market() -> Market {
         Market {
-            schema_version: 7,
-            venue: Pubkey::new_unique(),
+            schema_version: 8,
+            venue: Address::new_unique(),
             cross_eligible: true,
             lots_per_unit: 1_000_000,
             terms_epoch: 1,
@@ -148,7 +148,7 @@ mod tests {
             valid_until: 4600,
             funding_time: 100,
             oracle: OracleState {
-                sources: [Pubkey::new_unique(); 4],
+                sources: [Address::new_unique(); 4],
                 source_sequences: [10; 4],
                 sampled_at: 100,
                 source_deadline: 130,
@@ -172,7 +172,7 @@ mod tests {
         Clock {
             unix_timestamp: now,
             slot: now as u64 * 10,
-            ..Clock::default()
+            ..crate::test_support::clock()
         }
     }
 

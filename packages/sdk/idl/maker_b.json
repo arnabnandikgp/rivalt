@@ -9,45 +9,24 @@
     {
       "name": "control_curve",
       "discriminator": [
-        87,
-        246,
-        69,
-        138,
-        190,
-        131,
-        55,
-        141
+        63,
+        46,
+        101,
+        68,
+        20,
+        174,
+        99,
+        44
       ],
       "accounts": [
         {
           "name": "controller",
-          "signer": true
+          "signer": true,
+          "address": "config.state.controller"
         },
         {
           "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  114,
-                  118,
-                  101,
-                  45,
-                  118,
-                  52
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "config.state.capital",
-                "account": "MakerCurve"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "price",
@@ -74,10 +53,42 @@
           }
         },
         {
-          "name": "event_authority"
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
         },
         {
-          "name": "program"
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
         }
       ],
       "args": [
@@ -102,14 +113,14 @@
     {
       "name": "initialize_curve",
       "discriminator": [
-        2,
-        112,
-        249,
-        167,
-        34,
-        145,
-        140,
-        171
+        170,
+        84,
+        186,
+        253,
+        131,
+        149,
+        95,
+        213
       ],
       "accounts": [
         {
@@ -124,72 +135,7 @@
           "name": "market"
         },
         {
-          "name": "capital",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  114,
-                  103,
-                  105,
-                  110,
-                  45,
-                  118,
-                  51
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "capital.portfolio",
-                "account": "MarginAccount"
-              },
-              {
-                "kind": "account",
-                "path": "capital.subaccount_index",
-                "account": "MarginAccount"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                203,
-                88,
-                155,
-                202,
-                90,
-                219,
-                148,
-                43,
-                250,
-                4,
-                140,
-                111,
-                46,
-                96,
-                211,
-                139,
-                13,
-                246,
-                221,
-                44,
-                68,
-                81,
-                197,
-                87,
-                135,
-                138,
-                167,
-                122,
-                240,
-                193,
-                192,
-                202
-              ]
-            }
-          }
+          "name": "capital"
         },
         {
           "name": "config",
@@ -246,10 +192,42 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority"
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
         },
         {
-          "name": "program"
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
         }
       ],
       "args": [
@@ -278,40 +256,18 @@
     {
       "name": "quote_curve",
       "discriminator": [
-        186,
-        69,
-        30,
-        223,
-        191,
-        154,
-        12,
-        19
+        176,
+        97,
+        46,
+        45,
+        67,
+        77,
+        127,
+        185
       ],
       "accounts": [
         {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  114,
-                  118,
-                  101,
-                  45,
-                  118,
-                  52
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "config.state.capital",
-                "account": "MakerCurve"
-              }
-            ]
-          }
+          "name": "config"
         },
         {
           "name": "price",
@@ -357,14 +313,14 @@
     {
       "name": "reprice",
       "discriminator": [
-        104,
-        190,
-        176,
-        98,
-        109,
-        111,
-        187,
-        154
+        148,
+        156,
+        223,
+        202,
+        159,
+        184,
+        56,
+        232
       ],
       "accounts": [
         {
@@ -372,29 +328,7 @@
           "signer": true
         },
         {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  114,
-                  118,
-                  101,
-                  45,
-                  118,
-                  52
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "config.state.capital",
-                "account": "MakerCurve"
-              }
-            ]
-          }
+          "name": "config"
         },
         {
           "name": "price",
@@ -422,10 +356,42 @@
           }
         },
         {
-          "name": "event_authority"
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
         },
         {
-          "name": "program"
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
         }
       ],
       "args": [
@@ -448,27 +414,66 @@
     {
       "name": "MakerCurve",
       "discriminator": [
-        193,
-        186,
-        219,
-        30,
-        59,
+        41,
+        123,
+        236,
+        36,
+        164,
         114,
-        63,
-        19
+        119,
+        161
       ]
     },
     {
       "name": "MakerPrice",
       "discriminator": [
-        66,
-        156,
-        238,
-        30,
-        240,
-        111,
-        194,
-        0
+        207,
+        24,
+        132,
+        152,
+        121,
+        83,
+        241,
+        85
+      ]
+    },
+    {
+      "name": "MarginAccount",
+      "discriminator": [
+        133,
+        220,
+        173,
+        213,
+        179,
+        211,
+        43,
+        238
+      ]
+    },
+    {
+      "name": "Market",
+      "discriminator": [
+        219,
+        190,
+        213,
+        55,
+        0,
+        227,
+        198,
+        154
+      ]
+    },
+    {
+      "name": "Venue",
+      "discriminator": [
+        8,
+        155,
+        85,
+        226,
+        234,
+        173,
+        42,
+        242
       ]
     }
   ],
@@ -476,27 +481,27 @@
     {
       "name": "MakerPriceUpdated",
       "discriminator": [
-        245,
-        185,
-        52,
-        198,
-        79,
-        168,
-        94,
-        143
+        206,
+        230,
+        180,
+        4,
+        44,
+        163,
+        127,
+        212
       ]
     },
     {
       "name": "MakerShapeUpdated",
       "discriminator": [
-        52,
-        132,
-        184,
-        47,
-        231,
-        114,
-        255,
-        196
+        69,
+        146,
+        222,
+        135,
+        172,
+        220,
+        72,
+        170
       ]
     }
   ],

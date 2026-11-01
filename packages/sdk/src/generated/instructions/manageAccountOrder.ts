@@ -42,7 +42,12 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findBtcPda,
+  findEthPda,
+  findEventAuthorityPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -56,7 +61,7 @@ import {
 } from "../types/index.js";
 
 export const MANAGE_ACCOUNT_ORDER_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([222, 137, 80, 44, 228, 144, 103, 165]);
+  new Uint8Array([69, 25, 199, 184, 146, 122, 14, 218]);
 
 export function getManageAccountOrderDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -168,7 +173,9 @@ export type ManageAccountOrderAsyncInput<
   btc?: TAccountBtc;
   eth?: TAccountEth;
   margin: TAccountMargin;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: ManageAccountOrderInstructionDataArgs["guard"];
   marketIndex: ManageAccountOrderInstructionDataArgs["marketIndex"];
@@ -286,6 +293,33 @@ export async function getManageAccountOrderInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.btc.value) {
+    accounts.btc.value = await findBtcPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eth.value) {
+    accounts.eth.value = await findEthPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -356,7 +390,9 @@ export type ManageAccountOrderInput<
   btc?: TAccountBtc;
   eth?: TAccountEth;
   margin: TAccountMargin;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: ManageAccountOrderInstructionDataArgs["guard"];
   marketIndex: ManageAccountOrderInstructionDataArgs["marketIndex"];
@@ -524,7 +560,9 @@ export type ParsedManageAccountOrderInstruction<
     btc?: TAccountMetas[3] | undefined;
     eth?: TAccountMetas[4] | undefined;
     margin: TAccountMetas[5];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[6];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[7];
   };
   data: ManageAccountOrderInstructionData;

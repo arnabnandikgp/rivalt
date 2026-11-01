@@ -46,7 +46,7 @@ import {
 } from "../types/index.js";
 
 export const QUOTE_CURVE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  186, 69, 30, 223, 191, 154, 12, 19,
+  176, 97, 46, 45, 67, 77, 127, 185,
 ]);
 
 export function getQuoteCurveDiscriminatorBytes(): ReadonlyUint8Array {

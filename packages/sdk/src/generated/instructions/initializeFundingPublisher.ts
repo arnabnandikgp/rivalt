@@ -44,6 +44,7 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import {
+  findEventAuthorityPda,
   findFundingPublisherPda,
   findLiquidityRegistryPda,
   findVenueSafetyPda,
@@ -51,7 +52,7 @@ import {
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const INITIALIZE_FUNDING_PUBLISHER_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([46, 125, 193, 138, 25, 29, 38, 77]);
+  new Uint8Array([122, 218, 127, 187, 191, 112, 159, 32]);
 
 export function getInitializeFundingPublisherDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -168,7 +169,9 @@ export type InitializeFundingPublisherAsyncInput<
   registry?: TAccountRegistry;
   configuration?: TAccountConfiguration;
   systemProgram?: TAccountSystemProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   publisher: InitializeFundingPublisherInstructionDataArgs["publisher"];
 };
@@ -333,6 +336,11 @@ export async function getInitializeFundingPublisherInstructionAsync<
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -412,7 +420,9 @@ export type InitializeFundingPublisherInput<
   registry: TAccountRegistry;
   configuration: TAccountConfiguration;
   systemProgram?: TAccountSystemProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   publisher: InitializeFundingPublisherInstructionDataArgs["publisher"];
 };
@@ -613,7 +623,9 @@ export type ParsedInitializeFundingPublisherInstruction<
     registry: TAccountMetas[4];
     configuration: TAccountMetas[5];
     systemProgram: TAccountMetas[6];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[7];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[8];
   };
   data: InitializeFundingPublisherInstructionData;

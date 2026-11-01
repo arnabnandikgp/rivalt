@@ -116,7 +116,7 @@ pub(crate) fn refresh_with_environment(
 ) -> Result<()> {
     environment.validate(root)?;
     let live_delegate =
-        root.delegate != Pubkey::default() && environment.slot < root.delegate_expiry_slot;
+        root.delegate != Address::default() && environment.slot < root.delegate_expiry_slot;
     for stored in &mut root.book.orders {
         let order = &mut stored.order;
         if !order.active() {
@@ -274,7 +274,7 @@ fn finish(mut next: MarginAccount, environment: &Environment) -> Result<MarginAc
     refresh_with_environment(&mut next, environment)?;
     model(&next)?
         .admissible(environment.risks())
-        .map_err(|_| error!(ClearingError::RouteHealth))?;
+        .map_err(|_| ProgramError::from(ClearingError::RouteHealth))?;
     advance(&mut next)?;
     Ok(next)
 }
@@ -314,7 +314,7 @@ pub(crate) fn find(root: &MarginAccount, id: u64, version: u64) -> Result<usize>
         .position(|entry| {
             entry.order.active() && entry.order.id == id && entry.order.version == version
         })
-        .ok_or_else(|| error!(ClearingError::OrderState))
+        .ok_or_else(|| ProgramError::from(ClearingError::OrderState))
 }
 
 pub(crate) fn replace_with_environment(

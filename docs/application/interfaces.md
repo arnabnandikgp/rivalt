@@ -5,12 +5,14 @@
 `AccountUserClient` validates version-4 local configuration, immutable artifact
 pins, genesis and the actual initialization signature/hash. Configuration includes
 RPC/WS URLs, venue, mint and domain. Never infer a deployment from a port or retained
-acceptance dump. The fresh P42 deployment requires explicit
-`accountSchema: 7` in addition to transport `version: 4` and the local profile;
-missing/old schema selection rejects. All clearing-owned decoders use schema 7,
-while maker-owned curve/price schemas stay 4. This is a fresh-domain/client change,
+acceptance dump. The fresh P46 candidate requires explicit
+`accountSchema: 8` in addition to transport `version: 4` and the local profile;
+missing/old schema selection rejects. All clearing-owned decoders use schema 8,
+while maker-owned curve/price schemas advance to 5; quote/report protocol versions remain unchanged. This is a fresh-domain/client change,
 not permission to upgrade retained state or replay old signed originals. [Deployment](../operations/deployment.md) owns
 artifact and key configuration; [routing](../liquidity/routing.md) owns snapshots.
+
+P46 is not yet runtime-qualified; normal artifact promotion waits for P47.
 
 Public amounts are integer decimal strings with units; internal arithmetic uses
 bigint. Never serialize a monetary bigint as an IEEE-754 number. Keep cash,
@@ -84,7 +86,7 @@ independent operators, or assumed hedges as observed costs. Instrumented local
 Wallet Standard browser evidence is distinct from external-provider compatibility.
 
 P42's fresh account-schema-7 deployment retains API version 4 but requires
-`accountSchema: 7` in deployment configuration and API envelopes. `asOf.cursor`
+`accountSchema: 8` in deployment configuration and API envelopes. `asOf.cursor`
 is the journal-local financial-payload cursor, `asOf.cursorScope` identifies that
 scope, and `asOf.blockhash`/`slot` identify its complete finalized block fence.
 Scoped revisions authenticate protocol history; UI pagination cursors do not.

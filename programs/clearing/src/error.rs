@@ -1,4 +1,5 @@
 //! Stable program error codes; explicit discriminants preserve the published ABI.
+use crate::{ProgramData, UpgradeableProgramAddress};
 use anchor_lang::prelude::*;
 
 #[error_code]

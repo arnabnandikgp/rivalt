@@ -90,7 +90,7 @@ pub(super) fn apply_row(
     root.book = Default::default();
     root.book.last_order_id = last_order_id;
     root.reserved = 0;
-    root.delegate = Pubkey::default();
+    root.delegate = Address::default();
     root.delegate_expiry_slot = 0;
     increment_counter(&mut root.delegate_epoch)?;
     increment_counter(&mut root.nonce)?;
@@ -115,7 +115,8 @@ pub(super) fn check_complete_plan(header: &Resolution) -> Result<()> {
         expected_cash += supply;
         require!(
             header.claim_sums[market]
-                == i128::try_from(supply).map_err(|_| error!(ClearingError::Arithmetic))?
+                == i128::try_from(supply)
+                    .map_err(|_| ProgramError::from(ClearingError::Arithmetic))?
                     * math::SCALE,
             ClearingError::Reconciliation
         );
@@ -151,7 +152,7 @@ pub(super) fn reconcile_row(
                 }
             })
             && root.reserved == 0
-            && root.delegate == Pubkey::default()
+            && root.delegate == Address::default()
             && root.delegate_expiry_slot == 0
             && root
                 .book
@@ -177,17 +178,14 @@ pub fn advance(
     start: u16,
     length: u8,
 ) -> Result<()> {
-    let accounts = &mut *ctx.accounts;
-    frozen(
-        &accounts.identity,
-        &accounts.registry,
-        &accounts.resolution,
-        epoch,
-    )?;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let accounts = &mut ctx.accounts;
+    let identity = &mut *accounts.identity;
+    frozen(&identity, &accounts.registry, &accounts.resolution, epoch)?;
     pages::page_range(&accounts.resolution, &accounts.page, stage, start, length)?;
     require!(
         matches!(stage, APPLY | RECONCILE)
-            && ctx.remaining_accounts.len() == usize::from(length)
+            && remaining_accounts.len() == usize::from(length)
             && accounts.page.epoch == epoch
             && accounts.work.epoch == epoch
             && accounts.work.schema_version == SCHEMA_VERSION
@@ -203,7 +201,7 @@ pub fn advance(
                 && accounts.page.rows[within].member == accounts.registry.members[id],
             ClearingError::Resolution
         );
-        let info = &ctx.remaining_accounts[offset];
+        let info = &mut remaining_accounts[offset];
         let mut root = pages::member(info, &accounts.registry, id, stage == APPLY)?;
         if stage == APPLY {
             apply_row(
@@ -213,19 +211,19 @@ pub fn advance(
                 &mut root,
                 id,
             )?;
-            root.try_serialize(&mut &mut info.try_borrow_mut_data()?[..])?;
-            accounts.identity.btc.gross_lots = accounts.resolution.remaining_gross[0];
-            accounts.identity.eth.gross_lots = accounts.resolution.remaining_gross[1];
+            crate::wire::write_account(&*root, &mut info.try_borrow_mut()?[..])?;
+            identity.btc.gross_lots = accounts.resolution.remaining_gross[0];
+            identity.eth.gross_lots = accounts.resolution.remaining_gross[1];
 
             emit_applied(
-                &accounts.identity,
+                &identity,
                 &accounts.resolution,
                 &accounts.page.rows[within],
                 &root,
                 id as u16,
                 &clock,
                 events,
-                accounts.event_authority.to_account_info(),
+                accounts.event_authority.account().clone(),
             )?;
         } else {
             reconcile_row(&mut accounts.resolution, &accounts.page.rows[within], &root)?;
@@ -235,12 +233,9 @@ pub fn advance(
     if accounts.resolution.cursor == accounts.resolution.count {
         if stage == APPLY {
             check_complete_plan(&accounts.resolution)?;
-            for (index, ledger) in [
-                &mut accounts.identity.btc_ledger,
-                &mut accounts.identity.eth_ledger,
-            ]
-            .into_iter()
-            .enumerate()
+            for (index, ledger) in [&mut identity.btc_ledger, &mut identity.eth_ledger]
+                .into_iter()
+                .enumerate()
             {
                 ledger.settlement = 0;
                 ledger.insurance = checked(math::cash_sub(
@@ -259,19 +254,19 @@ pub fn advance(
                 ClearingError::Reconciliation
             );
             accounts.resolution.stage = COMPLETE;
-            accounts.identity.safety.mode = RESOLVED;
-            accounts.identity.safety.paused = false;
-            increment(&mut accounts.identity.safety.epoch)?;
-            accounts.resolution.safety_epoch = accounts.identity.safety.epoch;
+            identity.safety.mode = RESOLVED;
+            identity.safety.paused = false;
+            increment(&mut identity.safety.epoch)?;
+            accounts.resolution.safety_epoch = identity.safety.epoch;
         }
-        profile(&accounts.identity)?;
+        profile(&identity)?;
 
         emit_complete(
-            &accounts.identity,
+            &identity,
             &accounts.resolution,
             &clock,
             events,
-            accounts.event_authority.to_account_info(),
+            accounts.event_authority.account().clone(),
         )?;
     }
     accounts.work.opcode = accounts.resolution.stage;
@@ -279,7 +274,7 @@ pub fn advance(
 
     events.emit(
         &crate::events::AccountResolutionProgress {
-            venue: accounts.identity.venue.key(),
+            venue: identity.venue.address().to_owned(),
 
             slot: clock.slot,
             epoch,
@@ -291,7 +286,7 @@ pub fn advance(
             evaluation: accounts.resolution.evaluation,
             clipped_mask: accounts.resolution.clipped_mask,
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -299,11 +294,11 @@ pub fn advance(
 /// boxed full root snapshot between the two supported Apply rows.
 #[derive(AnchorSerialize)]
 struct AppliedView<'a> {
-    venue: Pubkey,
+    venue: Address,
     slot: u64,
     epoch: u64,
     id: u16,
-    member: Pubkey,
+    member: Address,
     flows: [u64; 2],
     cash_before: u64,
     cash_after: u64,
@@ -324,10 +319,10 @@ fn emit_applied(
     id: u16,
     clock: &Clock,
     events: &mut crate::event_cpi::Payloads,
-    authority: AccountInfo,
+    authority: AccountView,
 ) -> Result<()> {
     let event = AppliedView {
-        venue: identity.venue.key(),
+        venue: identity.venue.address().to_owned(),
 
         slot: clock.slot,
         epoch: header.epoch,
@@ -356,11 +351,11 @@ fn borrowed_applied_event_matches_owned_payload() {
         ..Default::default()
     };
     let view = AppliedView {
-        venue: Pubkey::new_unique(),
+        venue: Address::new_unique(),
         slot: 3,
         epoch: 7,
         id: 5,
-        member: Pubkey::new_unique(),
+        member: Address::new_unique(),
         flows: [11, 13],
         cash_before: 43,
         cash_after: 37,
@@ -389,8 +384,8 @@ fn borrowed_applied_event_matches_owned_payload() {
     };
     let mut actual = Vec::new();
     let mut expected = Vec::new();
-    view.serialize(&mut actual).unwrap();
-    owned.serialize(&mut expected).unwrap();
+    crate::wire::write(&view, &mut actual).unwrap();
+    crate::wire::write(&owned, &mut expected).unwrap();
     assert_eq!(actual, expected);
 }
 
@@ -399,11 +394,11 @@ fn emit_complete(
     header: &Resolution,
     clock: &Clock,
     events: &mut crate::event_cpi::Payloads,
-    authority: AccountInfo,
+    authority: AccountView,
 ) -> Result<()> {
     events.emit(
         &crate::events::AccountResolutionCompleted {
-            venue: identity.venue.key(),
+            venue: identity.venue.address().to_owned(),
 
             slot: clock.slot,
             epoch: header.epoch,
@@ -422,7 +417,7 @@ fn emit_complete(
             fees: [identity.btc_ledger.fees, identity.eth_ledger.fees],
             insurance_spent: header.insurance_spent,
             allocated: identity.custody.allocated_vault,
-            actual_vault: identity.vault.amount,
+            actual_vault: identity.vault.amount(),
             liability_versions: [
                 identity.btc_ledger.liability_version,
                 identity.eth_ledger.liability_version,

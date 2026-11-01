@@ -1,11 +1,10 @@
 # Anchor v2 migration plan
 
-Status: **P45 planning, 1 November 2026**. Inspected Rivalt at
-`c0bc3aaa3825896fcafbc879fe104362da61c21d`. This document proposes P46/P47;
-it does not activate a new deployment or report migration results. Current
-[account](../clearing/accounts.md), [liquidity](../liquidity/README.md),
-[application](../application/interfaces.md) and [deployment](deployment.md)
-contracts remain normative until the implementing PR updates them.
+Status: **P45 in Review; P46 implementation authorized and in progress, 1 November 2026**.
+The user accepted this plan. The frozen predecessor remains
+`c0bc3aaa3825896fcafbc879fe104362da61c21d`; candidate schemas and clients in the
+P46 branch do not qualify a deployment. [STATUS](../STATUS.md) owns actual checks
+and remaining acceptance. P47 promotion remains a separate gate.
 
 ## Recommendation and boundaries
 
@@ -26,9 +25,9 @@ manufacture an improvement. P15B/P16B remain external; 24-hour endurance remains
 Deferred. No devnet credential, external wallet, paid service or funded deployment
 is needed for this local migration.
 
-Three ready, dependent PRs are proposed: **P45 plan → P46 port → P47 qualification**.
-This planning run stops before implementation. Later implementation can stack on
-the accepted exact parent without waiting for its merge.
+The authorized ready, dependent PR sequence is: **P45 plan → P46 port → P47 qualification**.
+Implementation stacks on the accepted exact parent without waiting for its merge;
+keep the stack open.
 
 ## Research and release identity
 
@@ -351,3 +350,38 @@ CPI borrow sequencing, candidate financial equivalence and all post-port costs.
 These are P46/P47 work, not evidence to manufacture in a documentation PR.
 The next action after plan review is the isolated RC2 toolchain/serialized C0 port
 on a P46 branch; capture the approved ABI delta before regenerating baselines.
+
+
+## P46 implementation notes
+
+The serialized C0 port uses `BorshAccount` for owned state and a `RegistryCodec`
+which rejects a u32 member prefix above 64 before Wincode allocation. SPL wrappers
+use RC2's native token handles. Foreign upgradeable program metadata uses an explicit
+loader owner, four-byte enum discriminator and program-header link; executable code
+remains included in the full maker hash. Native malformed-buffer tests cover those
+adapters. Scoped events retain bounded borrowed encoders and authenticated self-CPI.
+
+RC2's `no-entrypoint` still exports `__anchor_dispatch` on SBF. Linking the clearing
+and oracle-fixture libraries into makers collides at that symbol. A `state-only`
+feature suppresses only the `#[program]` module for these data-type dependencies;
+standalone programs retain their normal dispatch. No custom runtime or upstream
+fork is introduced. All deployable feature graphs must exclude `state-only` on the
+selected root program; imported state dependencies intentionally enable it.
+
+The generated IDL has the same ordered wire fields, privileges and numeric protocol
+errors after D90's identifier changes. RC2 flattens nested contexts, spells byte
+vectors as `vec<u8>`, lists imported clearing accounts in maker IDLs and exposes the
+foreign `ProgramData` type. It omits state-field/nested/dynamic-program PDA hints and
+adds fixed BTC/ETH/event-authority hints. Some dynamic address constraints appear as
+expression strings. `ops/anchor_rc2_wire_contract.py` checks these bounded metadata
+differences against immutable predecessor IDLs, separately from wire bytes. Codama
+receives explicit inputs for those dynamic addresses and a byte-vector normalization;
+the checked-in IDLs remain actual RC2 output. Missing hints are not proof of runtime
+constraint enforcement: negative signed SBF cases remain required.
+
+The CLI installs under `.tools/anchor-v2-rc2` through `ops/install-anchor-rc2.sh`.
+Candidate binaries default to `.local/anchor-rc2/candidate`, never the frozen P44
+artifact directory. Until P47, runtime probes require explicit
+`RIVALT_ALLOW_RC2_CANDIDATE=1` and `RIVALT_ARTIFACT_DIR`; this is not normal demo
+promotion. Isolated conformance processes use unchanged core 1.2.1/web3.js 1.99.0
+and new core 2.0.0-rc.2/Kit 8.3.0 respectively. Production stays on Kit 8.5.0.

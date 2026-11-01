@@ -56,7 +56,7 @@ fn profile(identity: &ResolutionIdentity) -> Result<()> {
     account_custody::reconciled(
         &identity.custody,
         [&identity.btc_ledger, &identity.eth_ledger],
-        identity.vault.amount,
+        identity.vault.amount(),
     )
 }
 
@@ -70,13 +70,13 @@ fn registry_hash(registry: &VenueRegistry) -> Result<[u8; 32]> {
     );
     for (index, member) in registry.members.iter().enumerate() {
         require!(
-            *member != Pubkey::default() && !registry.members[..index].contains(member),
+            *member != Address::default() && !registry.members[..index].contains(member),
             ClearingError::Resolution
         );
     }
     // Include membership version, not merely the public-key list.
     let mut bytes = Vec::with_capacity(VenueRegistry::INIT_SPACE);
-    registry.serialize(&mut bytes)?;
+    crate::wire::write(registry, &mut bytes)?;
     Ok(solana_sha256_hasher::hash(&bytes).to_bytes())
 }
 
@@ -150,8 +150,9 @@ pub fn initialize(
     ctx: &mut Context<InitializeAccountResolution>,
     _events: &mut crate::event_cpi::Payloads,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty() && cfg!(feature = "liquidity-execution-qualification"),
+        remaining_accounts.is_empty() && cfg!(feature = "liquidity-execution-qualification"),
         ClearingError::Profile
     );
     account_trading::base_profile(
@@ -163,11 +164,11 @@ pub fn initialize(
     // 8 KiB default work object on the SBF stack or bump heap.
     let header = &mut ctx.accounts.resolution;
     header.schema_version = SCHEMA_VERSION;
-    header.venue = ctx.accounts.venue.key();
+    header.venue = ctx.accounts.venue.address().to_owned();
     header.bump = ctx.bumps.resolution;
     let work = &mut ctx.accounts.work;
     work.schema_version = SCHEMA_VERSION;
-    work.venue = ctx.accounts.venue.key();
+    work.venue = ctx.accounts.venue.address().to_owned();
     work.bump = ctx.bumps.work;
     Ok(())
 }
@@ -177,8 +178,9 @@ pub fn initialize_page(
     _events: &mut crate::event_cpi::Payloads,
     page_index: u16,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty() && cfg!(feature = "liquidity-execution-qualification"),
+        remaining_accounts.is_empty() && cfg!(feature = "liquidity-execution-qualification"),
         ClearingError::Profile
     );
     account_trading::base_profile(
@@ -196,7 +198,7 @@ pub fn initialize_page(
     );
     let page = &mut ctx.accounts.page;
     page.schema_version = SCHEMA_VERSION;
-    page.venue = ctx.accounts.venue.key();
+    page.venue = ctx.accounts.venue.address().to_owned();
     page.page_index = page_index;
     page.bump = ctx.bumps.page;
     ctx.accounts.resolution.cursor += 1;

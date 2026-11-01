@@ -77,7 +77,7 @@ assert(loadRun, 'Frozen B requires the accepted current indexer/load constituent
 const load = json(`${loadRun.directory}/summary.json`);
 const quantiles = (value: {p50:number;p95:number;p99:number}) => [value.p50,value.p95,value.p99].map(item => Math.round(item*1000)/1000);
 const environment = { anchor: '1.2.1', hostRust: '1.97.1', platformTools: '1.52', sbfRust: '1.89.0-dev', sbpf: 'v0',
-  buildScript: 'ops/build-liquidity-execution.sh', locked: true, instrumented: false, accountSchema: 7,
+  buildScript: 'ops/build-liquidity-execution.sh', locked: true, instrumented: false, accountSchema: 8,
   node: '24.22.0', pnpm: '10.23.0', kit: '8.5.0', web3: '3.1.1', postgres: '18.6', liteSvm: '1.6.1',
   isolatedConformance: {anchor:'1.2.1',web3:'1.99.0'}, syntheticSlotMs:50,
   priorityFees: 'Every captured harness bid is zero; worker receipts are reported separately',

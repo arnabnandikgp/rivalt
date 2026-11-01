@@ -42,7 +42,12 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findBtcPda,
+  findEthPda,
+  findEventAuthorityPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -52,7 +57,7 @@ import {
 } from "../types/index.js";
 
 export const TRANSFER_FUNDED_ACCOUNT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([192, 145, 33, 83, 250, 178, 221, 180]);
+  new Uint8Array([155, 89, 210, 42, 245, 176, 201, 73]);
 
 export function getTransferFundedAccountDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -178,7 +183,9 @@ export type TransferFundedAccountAsyncInput<
   owner: TAccountOwner;
   donor: TAccountDonor;
   recipient: TAccountRecipient;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: TransferFundedAccountInstructionDataArgs["guard"];
   amount: TransferFundedAccountInstructionDataArgs["amount"];
@@ -328,6 +335,33 @@ export async function getTransferFundedAccountInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.btc.value) {
+    accounts.btc.value = await findBtcPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eth.value) {
+    accounts.eth.value = await findEthPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -419,7 +453,9 @@ export type TransferFundedAccountInput<
   owner: TAccountOwner;
   donor: TAccountDonor;
   recipient: TAccountRecipient;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: TransferFundedAccountInstructionDataArgs["guard"];
   amount: TransferFundedAccountInstructionDataArgs["amount"];
@@ -637,7 +673,9 @@ export type ParsedTransferFundedAccountInstruction<
     owner: TAccountMetas[6];
     donor: TAccountMetas[7];
     recipient: TAccountMetas[8];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[9];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[10];
   };
   data: TransferFundedAccountInstructionData;

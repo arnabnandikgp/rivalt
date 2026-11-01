@@ -2,7 +2,7 @@
 use super::*;
 use crate::engine::routes::{self as candidates, OrderAction};
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct AccountGuard {
     pub safety_epoch: u64,
     pub venue_terms_epoch: u64,
@@ -29,32 +29,32 @@ impl AccountGuard {
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct ManageAccountOrder<'info> {
-    pub actor: Signer<'info>,
+pub struct ManageAccountOrder {
+    pub actor: Signer,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
-    #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[0]], bump = btc.bump, has_one = venue,
-        constraint = venue.markets[0] == btc.key() @ ClearingError::Profile)]
-    pub btc: Option<Box<Account<'info, Market>>>,
-    #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[1]], bump = eth.bump, has_one = venue,
-        constraint = venue.markets[1] == eth.key() @ ClearingError::Profile)]
-    pub eth: Option<Box<Account<'info, Market>>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
+    #[account(mut, seeds = [b"market-v3", venue.address().as_ref(), &[0]], bump = btc.bump, has_one = venue,
+        constraint = venue.markets[0] == btc.address().to_owned() @ ClearingError::Profile)]
+    pub btc: Option<Box<BorshAccount<Market>>>,
+    #[account(mut, seeds = [b"market-v3", venue.address().as_ref(), &[1]], bump = eth.bump, has_one = venue,
+        constraint = venue.markets[1] == eth.address().to_owned() @ ClearingError::Profile)]
+    pub eth: Option<Box<BorshAccount<Market>>>,
     #[account(mut, seeds = [b"margin-v3", margin.portfolio.as_ref(), &margin.subaccount_index.to_le_bytes()], bump = margin.bump, has_one = venue)]
-    pub margin: Box<Account<'info, MarginAccount>>,
+    pub margin: Box<BorshAccount<MarginAccount>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct SetAccountDelegate<'info> {
-    pub owner: Signer<'info>,
+pub struct SetAccountDelegate {
+    pub owner: Signer,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(mut, seeds = [b"margin-v3", margin.portfolio.as_ref(), &margin.subaccount_index.to_le_bytes()], bump = margin.bump, has_one = venue, has_one = owner)]
-    pub margin: Box<Account<'info, MarginAccount>>,
+    pub margin: Box<BorshAccount<MarginAccount>>,
 }
 
 pub fn manage(
@@ -64,8 +64,9 @@ pub fn manage(
     market_index: u8,
     operation: OrderAction,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     if matches!(
         &operation,
         OrderAction::Cancel { .. } | OrderAction::Cleanup
@@ -81,7 +82,11 @@ pub fn manage(
     let delegate_epoch = if matches!(&operation, OrderAction::Cleanup) {
         0
     } else {
-        crate::engine::account::trade_authority(&root, accounts.actor.key(), clock.slot)?
+        crate::engine::account::trade_authority(
+            &root,
+            accounts.actor.address().to_owned(),
+            clock.slot,
+        )?
     };
     require!(market_index < 2, ClearingError::Profile);
     // Borrow the authenticated market states through candidate computation; no
@@ -121,10 +126,10 @@ fn emit_order(
     slot: u64,
 ) -> Result<()> {
     let emitted = Box::new(crate::events::AccountOrderChanged {
-        venue: accounts.venue.key(),
+        venue: accounts.venue.address().to_owned(),
 
         slot,
-        margin: accounts.margin.key(),
+        margin: accounts.margin.address().to_owned(),
         state: crate::events::MarginAccountSnapshot::from(&**accounts.margin),
         markets: [accounts.btc.as_deref(), accounts.eth.as_deref()]
             .into_iter()
@@ -132,18 +137,19 @@ fn emit_order(
             .map(|market| crate::events::MarketSnapshot::from(&**market))
             .collect(),
     });
-    events.emit(&*emitted, accounts.event_authority.to_account_info())
+    events.emit(&*emitted, accounts.event_authority.account().clone())
 }
 
 pub fn delegate(
     ctx: &mut Context<SetAccountDelegate>,
     events: &mut crate::event_cpi::Payloads,
     guard: AccountGuard,
-    delegate: Pubkey,
+    delegate: Address,
     expiry_slot: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     // Revocation needs no source or maker, and remains available while paused.
     require!(
         cfg!(feature = "liquidity-execution-qualification")
@@ -156,7 +162,7 @@ pub fn delegate(
     guard.check(&accounts.venue, &accounts.safety, &accounts.margin)?;
     let next = crate::engine::authority::candidate(
         &*root_view(&accounts.margin)?,
-        accounts.owner.key(),
+        accounts.owner.address().to_owned(),
         delegate,
         expiry_slot,
         Clock::get()?.slot,
@@ -164,11 +170,11 @@ pub fn delegate(
     commit_root(&mut accounts.margin, &next)?;
 
     let emitted = crate::events::AccountAuthorityChanged {
-        venue: accounts.venue.key(),
+        venue: accounts.venue.address().to_owned(),
 
         slot: Clock::get()?.slot,
-        margin: accounts.margin.key(),
+        margin: accounts.margin.address().to_owned(),
         state: crate::events::MarginAccountSnapshot::from(&**accounts.margin),
     };
-    events.emit(&emitted, accounts.event_authority.to_account_info())
+    events.emit(&emitted, accounts.event_authority.account().clone())
 }

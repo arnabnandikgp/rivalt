@@ -21,11 +21,20 @@ impl Snapshot {
             markets[0].map(trading::market_view).transpose()?,
             markets[1].map(trading::market_view).transpose()?,
         ];
-        let environment = trading::optional_environment(views.each_ref().map(Option::as_ref), 2, clock)?;
+        let environment =
+            trading::optional_environment(views.each_ref().map(Option::as_ref), 2, clock)?;
         let risks = environment.risks();
         let bounds = [
-            views[0].as_ref().map(|market| crate::engine::oracle::funding_bounds(2, market, clock)).transpose()?.unwrap_or([0; 2]),
-            views[1].as_ref().map(|market| crate::engine::oracle::funding_bounds(2, market, clock)).transpose()?.unwrap_or([0; 2]),
+            views[0]
+                .as_ref()
+                .map(|market| crate::engine::oracle::funding_bounds(2, market, clock))
+                .transpose()?
+                .unwrap_or([0; 2]),
+            views[1]
+                .as_ref()
+                .map(|market| crate::engine::oracle::funding_bounds(2, market, clock))
+                .transpose()?
+                .unwrap_or([0; 2]),
         ];
         Ok(Self {
             markets: views,
@@ -36,11 +45,18 @@ impl Snapshot {
     }
 
     pub(crate) fn market(&self, index: usize) -> Result<&Market> {
-        self.markets.get(index).and_then(Option::as_ref).ok_or_else(|| error!(ClearingError::OrderState))
+        self.markets
+            .get(index)
+            .and_then(Option::as_ref)
+            .ok_or_else(|| ProgramError::from(ClearingError::OrderState))
     }
 
     fn commit_model(&self, root: &mut MarginAccount, candidate: Margin) -> Result<()> {
-        crate::engine::markets::commit_model(root, candidate, self.markets.each_ref().map(Option::as_ref))
+        crate::engine::markets::commit_model(
+            root,
+            candidate,
+            self.markets.each_ref().map(Option::as_ref),
+        )
     }
 
     pub(crate) fn refresh(
@@ -50,7 +66,11 @@ impl Snapshot {
     ) -> Result<Box<MarginAccount>> {
         crate::engine::markets::validate(self.markets.each_ref().map(Option::as_ref), &[root], 0)?;
         let mut next = trading::root_view(root)?;
-        let environment = trading::optional_environment(self.markets.each_ref().map(Option::as_ref), 2, &self.clock)?;
+        let environment = trading::optional_environment(
+            self.markets.each_ref().map(Option::as_ref),
+            2,
+            &self.clock,
+        )?;
         book::refresh_with_environment(&mut next, &environment)?;
         if require_sources {
             for index in 0..2 {
@@ -88,14 +108,14 @@ impl Snapshot {
     }
 
     pub(crate) fn claims(&self, model: Margin) -> Result<[i128; 2]> {
-        checked(
-            model.claims(
-                self.markets
-                    .each_ref()
-                    .map(|market| market.as_ref().map_or(1, |market| market.reference_price.max(1))),
-                self.risks.map(|risk| risk.funding),
-            ),
-        )
+        checked(model.claims(
+            self.markets.each_ref().map(|market| {
+                market
+                    .as_ref()
+                    .map_or(1, |market| market.reference_price.max(1))
+            }),
+            self.risks.map(|risk| risk.funding),
+        ))
     }
 }
 

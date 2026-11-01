@@ -5,37 +5,37 @@ use anchor_spl::token::TokenAccount;
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct QualifyAccountTrading<'info> {
-    pub authority: Signer<'info>,
+pub struct QualifyAccountTrading {
+    pub authority: Signer,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority, has_one = vault)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
-    #[account(mut, seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
-    #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[0]], bump = btc.bump, has_one = venue,
-        constraint = venue.markets[0] == btc.key() @ ClearingError::Profile)]
-    pub btc: Box<Account<'info, Market>>,
-    #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[1]], bump = eth.bump, has_one = venue,
-        constraint = venue.markets[1] == eth.key() @ ClearingError::Profile)]
-    pub eth: Box<Account<'info, Market>>,
-    #[account(seeds = [b"ledger-v3", btc.key().as_ref()], bump = btc_ledger.bump, has_one = venue,
-        constraint = btc_ledger.market == btc.key() @ ClearingError::Profile)]
-    pub btc_ledger: Box<Account<'info, MarketLedger>>,
-    #[account(seeds = [b"ledger-v3", eth.key().as_ref()], bump = eth_ledger.bump, has_one = venue,
-        constraint = eth_ledger.market == eth.key() @ ClearingError::Profile)]
-    pub eth_ledger: Box<Account<'info, MarketLedger>>,
-    #[account(seeds = [b"vault-v3", venue.key().as_ref()], bump = venue.vault_bump,
-        constraint = vault.owner == venue.key() && vault.mint == venue.quote_mint @ ClearingError::Mint)]
-    pub vault: Box<Account<'info, TokenAccount>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"custody-v3", venue.address().as_ref()], bump = custody.bump, has_one = venue)]
+    pub custody: Box<BorshAccount<Custody>>,
+    #[account(mut, seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
+    #[account(mut, seeds = [b"market-v3", venue.address().as_ref(), &[0]], bump = btc.bump, has_one = venue,
+        constraint = venue.markets[0] == btc.address().to_owned() @ ClearingError::Profile)]
+    pub btc: Box<BorshAccount<Market>>,
+    #[account(mut, seeds = [b"market-v3", venue.address().as_ref(), &[1]], bump = eth.bump, has_one = venue,
+        constraint = venue.markets[1] == eth.address().to_owned() @ ClearingError::Profile)]
+    pub eth: Box<BorshAccount<Market>>,
+    #[account(seeds = [b"ledger-v3", btc.address().as_ref()], bump = btc_ledger.bump, has_one = venue,
+        constraint = btc_ledger.market == btc.address().to_owned() @ ClearingError::Profile)]
+    pub btc_ledger: Box<BorshAccount<MarketLedger>>,
+    #[account(seeds = [b"ledger-v3", eth.address().as_ref()], bump = eth_ledger.bump, has_one = venue,
+        constraint = eth_ledger.market == eth.address().to_owned() @ ClearingError::Profile)]
+    pub eth_ledger: Box<BorshAccount<MarketLedger>>,
+    #[account(seeds = [b"vault-v3", venue.address().as_ref()], bump = venue.vault_bump,
+        constraint = *vault.owner() == venue.address().to_owned() && *vault.mint() == venue.quote_mint @ ClearingError::Mint)]
+    pub vault: Box<Account<TokenAccount>>,
 }
 
 #[derive(Accounts)]
-pub struct ActivateAccounts<'info> {
-    pub qualification: QualifyAccountTrading<'info>,
-    #[account(seeds = [b"resolution-v3", qualification.venue.key().as_ref()], bump = resolution.bump,
-        constraint = resolution.venue == qualification.venue.key() @ ClearingError::Profile)]
-    pub resolution: Box<Account<'info, Resolution>>,
+pub struct ActivateAccounts {
+    pub qualification: Nested<QualifyAccountTrading>,
+    #[account(seeds = [b"resolution-v3", qualification.venue.address().as_ref()], bump = resolution.bump,
+        constraint = resolution.venue == qualification.venue.address().to_owned() @ ClearingError::Profile)]
+    pub resolution: Box<BorshAccount<Resolution>>,
 }
 
 fn storage_ready(header: &Resolution, safety: &VenueSafety) -> Result<()> {
@@ -57,8 +57,9 @@ pub fn activate_liquidity(
     ctx: &mut Context<ActivateAccounts>,
     events: &mut crate::event_cpi::Payloads,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty()
+        remaining_accounts.is_empty()
             && cfg!(feature = "liquidity-execution-qualification")
             && ctx.accounts.qualification.venue.profile_version == 4,
         ClearingError::Profile
@@ -80,7 +81,7 @@ fn transition_accounts(
     super::super::account_custody::reconciled(
         &accounts.custody,
         [&accounts.btc_ledger, &accounts.eth_ledger],
-        accounts.vault.amount,
+        accounts.vault.amount(),
     )?;
     let clock = Clock::get()?;
     for (market, ledger) in [
@@ -104,7 +105,7 @@ fn transition_accounts(
     increment(&mut accounts.safety.epoch)?;
 
     let emitted = crate::events::AccountQualification {
-        venue: accounts.venue.key(),
+        venue: accounts.venue.address().to_owned(),
 
         slot: clock.slot,
         safety_epoch: accounts.safety.epoch,
@@ -113,7 +114,7 @@ fn transition_accounts(
             crate::events::MarketSnapshot::from(&**accounts.eth),
         ],
     };
-    events.emit(&emitted, accounts.event_authority.to_account_info())
+    events.emit(&emitted, accounts.event_authority.account().clone())
 }
 
 #[cfg(test)]
@@ -123,18 +124,18 @@ mod tests {
     #[test]
     fn current_activation_rejects_retired_profiles_pauses_and_nontrading_modes() {
         let mut venue = Venue {
-            schema_version: 7,
+            schema_version: 8,
             profile_version: 4,
             market_count: 2,
             insurance_fee_share_bps: 2500,
             ..Default::default()
         };
         let custody = Custody {
-            schema_version: 7,
+            schema_version: 8,
             ..Default::default()
         };
         let mut safety = VenueSafety {
-            schema_version: 7,
+            schema_version: 8,
             mode: ACTIVE,
             ..Default::default()
         };

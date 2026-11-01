@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { createNoopSigner, getAddressDecoder, type Instruction } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 
-test('schema-7 custody bytes, roles and bounded amounts match isolated Anchor', async () => {
+test('schema-8 custody bytes, roles and bounded amounts match isolated Anchor', async () => {
   const key = (value: number) => getAddressDecoder().decode(new Uint8Array(32).fill(value));
   const owner = createNoopSigner(key(1)), authority = createNoopSigner(key(2));
   const reserveSigner = createNoopSigner(key(19));

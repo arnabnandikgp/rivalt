@@ -45,11 +45,15 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findFundingPublisherPda, findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findEventAuthorityPda,
+  findFundingPublisherPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const CONFIGURE_FUNDING_PUBLISHER_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([110, 142, 188, 144, 187, 218, 246, 26]);
+  new Uint8Array([209, 153, 177, 143, 74, 92, 77, 95]);
 
 export function getConfigureFundingPublisherDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -156,7 +160,9 @@ export type ConfigureFundingPublisherAsyncInput<
   safety?: TAccountSafety;
   market: TAccountMarket;
   configuration?: TAccountConfiguration;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   expectedAuthority: ConfigureFundingPublisherInstructionDataArgs["expectedAuthority"];
   publisher: ConfigureFundingPublisherInstructionDataArgs["publisher"];
@@ -285,6 +291,11 @@ export async function getConfigureFundingPublisherInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -349,7 +360,9 @@ export type ConfigureFundingPublisherInput<
   safety: TAccountSafety;
   market: TAccountMarket;
   configuration: TAccountConfiguration;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   expectedAuthority: ConfigureFundingPublisherInstructionDataArgs["expectedAuthority"];
   publisher: ConfigureFundingPublisherInstructionDataArgs["publisher"];
@@ -511,7 +524,9 @@ export type ParsedConfigureFundingPublisherInstruction<
     safety: TAccountMetas[2];
     market: TAccountMetas[3];
     configuration: TAccountMetas[4];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[5];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[6];
   };
   data: ConfigureFundingPublisherInstructionData;

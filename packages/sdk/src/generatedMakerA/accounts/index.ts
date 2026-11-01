@@ -8,3 +8,6 @@
 
 export * from "./makerCurve.js";
 export * from "./makerPrice.js";
+export * from "./marginAccount.js";
+export * from "./market.js";
+export * from "./venue.js";

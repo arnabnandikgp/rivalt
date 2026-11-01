@@ -12,7 +12,7 @@ use financial_core::{
 };
 declare_id!("4BBtj9tUo1xeZFkrW3LBg9GrUTtTezGYGBKqjs7A7fAE");
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct Register {
     pub limbs: Box<wide::Wide>,
 }
@@ -27,7 +27,7 @@ impl Default for Register {
     }
 }
 
-#[account]
+#[account(borsh)]
 #[derive(InitSpace, Default)]
 pub struct ArithmeticProbe {
     pub factors: u16,
@@ -42,19 +42,19 @@ pub struct ArithmeticProbe {
 
 #[derive(Accounts)]
 #[instruction(factors:u16)]
-pub struct Prepare<'info> {
+pub struct Prepare {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub payer: Signer,
     #[account(init,payer=payer,space=8+ArithmeticProbe::INIT_SPACE,
         seeds=[b"math-probe".as_ref(),&factors.to_le_bytes()],bump)]
-    pub probe: Box<Account<'info, ArithmeticProbe>>,
-    pub system_program: Program<'info, System>,
+    pub probe: Box<BorshAccount<ArithmeticProbe>>,
+    pub system_program: Program<System>,
 }
 
 #[derive(Accounts)]
-pub struct Measure<'info> {
+pub struct Measure {
     #[account(mut,seeds=[b"math-probe".as_ref(),&probe.factors.to_le_bytes()],bump=probe.bump)]
-    pub probe: Box<Account<'info, ArithmeticProbe>>,
+    pub probe: Box<BorshAccount<ArithmeticProbe>>,
 }
 
 fn row() -> Row {
@@ -64,13 +64,13 @@ fn row() -> Row {
     }
 }
 fn checked<T>(result: financial_core::Result<T>) -> Result<T> {
-    result.map_err(|_| error!(ProbeError::Arithmetic))
+    result.map_err(|_| ProgramError::from(ProbeError::Arithmetic))
 }
 
 #[program]
 pub mod clearing_math_probe {
     use super::*;
-    pub fn prepare(ctx: Context<Prepare>, factors: u16) -> Result<()> {
+    pub fn prepare(ctx: &mut Context<Prepare>, factors: u16) -> Result<()> {
         require!((1..=64).contains(&factors), ProbeError::Arithmetic);
         let probe = &mut **ctx.accounts.probe;
         probe.factors = factors;
@@ -91,7 +91,7 @@ pub mod clearing_math_probe {
         ))?;
         Ok(())
     }
-    pub fn measure(ctx: Context<Measure>, kind: u8, rows: u8) -> Result<()> {
+    pub fn measure(ctx: &mut Context<Measure>, kind: u8, rows: u8) -> Result<()> {
         require!(
             kind < 3 && (1..=2).contains(&rows) && (kind != 2 || rows == 1),
             ProbeError::Arithmetic

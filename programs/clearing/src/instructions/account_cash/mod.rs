@@ -21,11 +21,11 @@ mod tests;
 
 fn add(left: i128, right: i128) -> Result<i128> {
     left.checked_add(right)
-        .ok_or_else(|| error!(ClearingError::Arithmetic))
+        .ok_or_else(|| ProgramError::from(ClearingError::Arithmetic))
 }
 fn subtract(left: i128, right: i128) -> Result<i128> {
     left.checked_sub(right)
-        .ok_or_else(|| error!(ClearingError::Arithmetic))
+        .ok_or_else(|| ProgramError::from(ClearingError::Arithmetic))
 }
 
 pub(crate) fn profile(venue: &Venue, safety: &VenueSafety) -> Result<()> {
@@ -38,7 +38,7 @@ fn begin(identity: &AccountFinancialIdentity) -> Result<Snapshot> {
 }
 
 fn commit(
-    root: &mut Account<MarginAccount>,
+    root: &mut BorshAccount<MarginAccount>,
     candidate: &MarginAccount,
     ledgers: [Option<&mut MarketLedger>; 2],
 ) -> Result<()> {
@@ -53,20 +53,20 @@ fn finish(identity: &mut AccountFinancialIdentity, clock: &Clock) -> Result<()> 
 
 #[inline(never)]
 fn emit<'info>(
-    identity: &AccountFinancialIdentity<'info>,
+    identity: &AccountFinancialIdentity,
     events: &mut crate::event_cpi::Payloads,
-    authority: AccountInfo<'info>,
-    actor: Pubkey,
+    authority: AccountView,
+    actor: Address,
     kind: u8,
     market_index: u8,
     amount: u64,
-    roots: &[&Account<'info, MarginAccount>],
-    ledgers: &[&Account<'info, MarketLedger>],
+    roots: &[&BorshAccount<MarginAccount>],
+    ledgers: &[&BorshAccount<MarketLedger>],
     tokens: Option<(u64, u64)>,
     slot: u64,
 ) -> Result<()> {
     let event = Box::new(crate::events::AccountFinancialChanged {
-        venue: identity.venue.key(),
+        venue: identity.venue.address().to_owned(),
         slot,
         actor,
         kind,
@@ -75,7 +75,7 @@ fn emit<'info>(
         safety_epoch: identity.safety.epoch,
         allocated_vault: tokens.map(|value| value.0),
         actual_vault: tokens.map(|value| value.1),
-        roots: roots.iter().map(|root| root.key()).collect(),
+        roots: roots.iter().map(|root| root.address().to_owned()).collect(),
         root_states: roots
             .iter()
             .map(|root| crate::events::MarginAccountSnapshot::from(&***root))

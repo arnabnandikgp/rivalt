@@ -14,12 +14,12 @@ import {
   type ProgramDerivedAddress,
 } from "@solana/kit";
 
-export async function findMakerEventAuthorityPda(
+export async function findEventAuthorityPda(
   config: { programAddress?: Address | HasAddress | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
     programAddress:
-      programAddressInput = "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo" as Address<"Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo">,
+      programAddressInput = "7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU" as Address<"7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU">,
   } = config;
   const programAddress =
     typeof programAddressInput === "string"

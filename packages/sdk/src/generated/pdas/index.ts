@@ -6,15 +6,17 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./btc.js";
 export * from "./btcLedger.js";
 export * from "./capitalBinding.js";
 export * from "./certificate.js";
 export * from "./custody.js";
+export * from "./eth.js";
 export * from "./ethLedger.js";
+export * from "./eventAuthority.js";
 export * from "./fundingPublisher.js";
 export * from "./liquidityController.js";
 export * from "./liquidityRegistry.js";
-export * from "./makerEventAuthority.js";
 export * from "./marginAccount.js";
 export * from "./marketLedger.js";
 export * from "./page.js";

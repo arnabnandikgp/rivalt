@@ -3,6 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
+# P46 candidates are explicit only; P47 has not qualified normal runtime selection.
+[[ "${RIVALT_ALLOW_RC2_CANDIDATE:-0}" == 1 ]] || { echo 'RC2 qualification requires RIVALT_ALLOW_RC2_CANDIDATE=1 and a candidate artifact directory' >&2; exit 1; }
+: "${RIVALT_ARTIFACT_DIR:?Explicit RC2 candidate artifact directory required}"
 test "$(surfpool --version)" = 'surfpool 1.7.0'
 # Browser qualification must consume this checkout's schema/SDK, never a stale
 # ignored dist directory left by an older phase.
@@ -20,6 +23,7 @@ from pathlib import Path
 root=Path(os.environ['RIVALT_ARTIFACT_DIR'])
 manifest=json.loads((root/'build-manifest.json').read_text())
 assert manifest['trackedDirty'] is False and manifest['profile']=='liquidity-execution-qualification'
+assert manifest.get('framework')=='anchor-2.0.0-rc.2' and manifest.get('accountSchema')==8
 for component in ['clearing','maker_a','maker_b','oracle_fixture']:
     name=component+'.so'
     assert hashlib.sha256((root/name).read_bytes()).hexdigest()==manifest['binaries'][name], name

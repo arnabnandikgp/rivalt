@@ -1,44 +1,45 @@
 //! Complete market backing, scoped independently from funded-cash exit authority.
 use super::*;
+use anchor_lang::AccountDeserialize;
 
 #[event_cpi]
 #[derive(Accounts)]
 #[instruction(market_index: u8)]
-pub struct InitializeMarketBacking<'info> {
+pub struct InitializeMarketBacking {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub payer: Signer,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(init, payer = payer, space = 8 + SettlementCertificate::INIT_SPACE,
-        seeds = [b"settlement-v3", venue.key().as_ref(), &[market_index]], bump)]
-    pub certificate: Box<Account<'info, SettlementCertificate>>,
-    pub system_program: Program<'info, System>,
+        seeds = [b"settlement-v3", venue.address().as_ref(), &[market_index]], bump)]
+    pub certificate: Box<BorshAccount<SettlementCertificate>>,
+    pub system_program: Program<System>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct CheckMarketBacking<'info> {
+pub struct CheckMarketBacking {
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
-    #[account(seeds = [b"registry-v3", venue.key().as_ref()], bump = registry.bump, has_one = venue)]
-    pub registry: Box<Account<'info, VenueRegistry>>,
-    #[account(seeds = [b"market-v3", venue.key().as_ref(), &[0]], bump = btc.bump, has_one = venue,
-        constraint = venue.markets[0] == btc.key() @ ClearingError::Profile)]
-    pub btc: Box<Account<'info, Market>>,
-    #[account(seeds = [b"market-v3", venue.key().as_ref(), &[1]], bump = eth.bump, has_one = venue,
-        constraint = venue.markets[1] == eth.key() @ ClearingError::Profile)]
-    pub eth: Box<Account<'info, Market>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
+    #[account(seeds = [b"registry-v3", venue.address().as_ref()], bump = registry.bump, has_one = venue)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(seeds = [b"market-v3", venue.address().as_ref(), &[0]], bump = btc.bump, has_one = venue,
+        constraint = venue.markets[0] == btc.address().to_owned() @ ClearingError::Profile)]
+    pub btc: Box<BorshAccount<Market>>,
+    #[account(seeds = [b"market-v3", venue.address().as_ref(), &[1]], bump = eth.bump, has_one = venue,
+        constraint = venue.markets[1] == eth.address().to_owned() @ ClearingError::Profile)]
+    pub eth: Box<BorshAccount<Market>>,
     #[account(seeds = [b"ledger-v3", ledger.market.as_ref()], bump = ledger.bump, has_one = venue,
         constraint = ledger.market_index < 2 && venue.markets[usize::from(ledger.market_index)] == ledger.market @ ClearingError::Profile)]
-    pub ledger: Box<Account<'info, MarketLedger>>,
-    #[account(mut, seeds = [b"settlement-v3", venue.key().as_ref(), &[certificate.market_index]],
+    pub ledger: Box<BorshAccount<MarketLedger>>,
+    #[account(mut, seeds = [b"settlement-v3", venue.address().as_ref(), &[certificate.market_index]],
         bump = certificate.bump, has_one = venue,
         constraint = certificate.market_index == ledger.market_index @ ClearingError::Profile)]
-    pub certificate: Box<Account<'info, SettlementCertificate>>,
+    pub certificate: Box<BorshAccount<SettlementCertificate>>,
 }
 
 pub fn initialize(
@@ -46,23 +47,24 @@ pub fn initialize(
     events: &mut crate::event_cpi::Payloads,
     market_index: u8,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty() && market_index < 2,
+        remaining_accounts.is_empty() && market_index < 2,
         ClearingError::Profile
     );
     profile(&ctx.accounts.venue, &ctx.accounts.safety)?;
-    ctx.accounts.certificate.set_inner(SettlementCertificate {
+    **ctx.accounts.certificate = SettlementCertificate {
         schema_version: SCHEMA_VERSION,
-        venue: ctx.accounts.venue.key(),
+        venue: ctx.accounts.venue.address().to_owned(),
         market_index,
         bump: ctx.bumps.certificate,
         ..Default::default()
-    });
+    };
 
     emit_certificate(
         &ctx.accounts.certificate,
         events,
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )
 }
 
@@ -121,7 +123,7 @@ fn stamps(
 }
 
 pub(crate) fn certified(
-    certificate: &Account<SettlementCertificate>,
+    certificate: &BorshAccount<SettlementCertificate>,
     identity: &AccountFinancialIdentity,
     registry: &VenueRegistry,
     snapshot: &Snapshot,
@@ -131,46 +133,50 @@ pub(crate) fn certified(
     require!(
         selected < 2
             && certificate.market_index as usize == selected
-            && certificate.venue == identity.venue.key()
+            && certificate.venue == identity.venue.address().to_owned()
             && certificate.complete
             && certificate.next == certificate.count,
         ClearingError::ExitCohort
     );
-    let expected = Pubkey::create_program_address(
+    let expected = create_program_address(
         &[
             b"settlement-v3",
-            identity.venue.key().as_ref(),
+            identity.venue.address().as_ref(),
             &[selected as u8],
             &[certificate.bump],
         ],
         &crate::ID,
     )
-    .map_err(|_| error!(ClearingError::ExitCohort))?;
-    require_keys_eq!(certificate.key(), expected, ClearingError::ExitCohort);
+    .map_err(|_| ProgramError::from(ClearingError::ExitCohort))?;
+    require_keys_eq!(
+        certificate.address().to_owned(),
+        expected,
+        ClearingError::ExitCohort
+    );
     stamps(certificate, ledger, &identity.safety, registry, snapshot)
 }
 
 #[inline(never)]
 fn member(
-    info: &AccountInfo,
+    info: &AccountView,
     registry: &VenueRegistry,
     index: usize,
 ) -> Result<Box<MarginAccount>> {
     require!(
-        info.owner == &crate::ID
-            && !info.is_signer
-            && registry.members.get(index) == Some(info.key)
+        info.owner() == &crate::ID
+            && !info.is_signer()
+            && registry.members.get(index) == Some(info.address())
             && info.data_len() == 8 + MarginAccount::INIT_SPACE,
         ClearingError::ExitCohort
     );
     let root = Box::new(MarginAccount::try_deserialize(
-        &mut &info.try_borrow_data()?[..],
+        &mut &info.try_borrow()?[..],
     )?);
     require!(
         root.venue == registry.venue && usize::from(root.id) == index,
         ClearingError::ExitCohort
     );
-    let expected = Pubkey::create_program_address(
+    let expected = create_program_address(
         &[
             b"margin-v3",
             root.portfolio.as_ref(),
@@ -179,8 +185,8 @@ fn member(
         ],
         &crate::ID,
     )
-    .map_err(|_| error!(ClearingError::ExitCohort))?;
-    require_keys_eq!(expected, *info.key, ClearingError::ExitCohort);
+    .map_err(|_| ProgramError::from(ClearingError::ExitCohort))?;
+    require_keys_eq!(expected, *info.address(), ClearingError::ExitCohort);
     trading::model(&root)?;
     Ok(root)
 }
@@ -233,7 +239,8 @@ pub fn check(
     events: &mut crate::event_cpi::Payloads,
     start: u16,
 ) -> Result<()> {
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let accounts = &mut ctx.accounts;
     profile(&accounts.venue, &accounts.safety)?;
     registry_valid(&accounts.registry)?;
     let snapshot = Snapshot::new([&accounts.btc, &accounts.eth], &Clock::get()?)?;
@@ -293,7 +300,7 @@ pub fn check(
         &accounts.registry,
         &snapshot,
     )?;
-    let length = ctx.remaining_accounts.len();
+    let length = remaining_accounts.len();
     require!(
         !certificate.complete
             && certificate.next == start
@@ -307,7 +314,7 @@ pub fn check(
         bounds: certificate.funding_bounds,
         ..snapshot
     };
-    for (offset, info) in ctx.remaining_accounts.iter().enumerate() {
+    for (offset, info) in remaining_accounts.iter().enumerate() {
         let root = member(info, &accounts.registry, usize::from(start) + offset)?;
         certificate.required_market_mask |= debtor_mask(&root, &bounded, selected)?;
         stamps(
@@ -351,21 +358,21 @@ pub fn check(
     emit_certificate(
         certificate,
         events,
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
 #[inline(never)]
 fn emit_certificate<'info>(
-    certificate: &Account<SettlementCertificate>,
+    certificate: &BorshAccount<SettlementCertificate>,
     events: &mut crate::event_cpi::Payloads,
-    authority: AccountInfo<'info>,
+    authority: AccountView,
 ) -> Result<()> {
     events.emit(
         &crate::events::AccountBackingChanged {
             venue: certificate.venue,
             slot: Clock::get()?.slot,
-            certificate: certificate.key(),
+            certificate: certificate.address().to_owned(),
             state: crate::events::BackingSnapshot::from(&**certificate),
         },
         authority,

@@ -57,6 +57,7 @@ jobs:
       - run: npm install --global pnpm@10.23.0
       - run: pnpm install --frozen-lockfile
       - run: pnpm --dir tests/anchor-conformance install --frozen-lockfile
+      - run: pnpm --dir tests/anchor-rc2-conformance install --frozen-lockfile
       - run: node ops/local-keys.mjs
       - run: pnpm generate:check
       - run: pnpm typecheck

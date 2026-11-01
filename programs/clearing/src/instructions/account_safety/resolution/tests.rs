@@ -6,7 +6,7 @@ use math::{oracle::Bounds, SCALE};
 
 fn root(id: u16, cash: u64, claims: [i128; 2]) -> MarginAccount {
     MarginAccount {
-        schema_version: 7,
+        schema_version: 8,
         id,
         cash,
         mode: MODE_CROSS,
@@ -201,11 +201,11 @@ fn frozen_value_consumes_both_fractional_funding_endpoints_and_reconciles() {
     creditor.positions[0].lots = -3;
     creditor.positions[1].lots = 2;
     let mut row = ResolutionRow::default();
-    pages::value_row(&mut header, &mut row, Pubkey::new_unique(), &debtor).unwrap();
+    pages::value_row(&mut header, &mut row, Address::new_unique(), &debtor).unwrap();
     assert_eq!(row.claims_scaled, [-999_999_999, -285_714_284]);
     assert_eq!(row.collected, 1); // Own fractional debts combine before atom collection.
     assert_eq!(row.generations, [4, 4]);
-    pages::value_row(&mut header, &mut row, Pubkey::new_unique(), &creditor).unwrap();
+    pages::value_row(&mut header, &mut row, Address::new_unique(), &creditor).unwrap();
     header.cursor = 2;
     pages::finish_value(&mut header).unwrap();
     assert_eq!((header.stage, header.cursor), (DENOMINATOR, 0));
@@ -252,7 +252,7 @@ fn page_range_authenticates_every_legal_count_and_cursor() {
                     ..Default::default()
                 };
                 let page = ResolutionPage {
-                    schema_version: 7,
+                    schema_version: 8,
                     page_index: start / 2,
                     ..Default::default()
                 };
@@ -275,10 +275,10 @@ fn page_range_authenticates_every_legal_count_and_cursor() {
 
 #[test]
 fn registry_hash_binds_version_order_count_and_uniqueness() {
-    let first = Pubkey::new_unique();
-    let second = Pubkey::new_unique();
+    let first = Address::new_unique();
+    let second = Address::new_unique();
     let mut registry = VenueRegistry {
-        schema_version: 7,
+        schema_version: 8,
         count: 2,
         membership_version: 1,
         members: vec![first, second],
@@ -505,7 +505,7 @@ fn application_preserves_other_cash_and_accounts_for_insurance_once() {
             ..Default::default()
         },
     ];
-    roots[0].delegate = Pubkey::new_unique();
+    roots[0].delegate = Address::new_unique();
     roots[0].delegate_expiry_slot = 123;
     roots[0].book.last_order_id = 81;
     for index in 0..3 {
@@ -533,7 +533,7 @@ fn application_preserves_other_cash_and_accounts_for_insurance_once() {
     assert_eq!(header.claim_sums, [3 * SCALE, 0]);
     assert_eq!(header.insurance_before, [3, 9]); // Scalar planning never spends a live ledger.
     let mut debtor = root(0, 10, [-20 * SCALE, 0]);
-    debtor.delegate = Pubkey::new_unique();
+    debtor.delegate = Address::new_unique();
     debtor.delegate_expiry_slot = 123;
     debtor.book.last_order_id = 81;
     let mut one = Resolution {
@@ -556,7 +556,7 @@ fn application_preserves_other_cash_and_accounts_for_insurance_once() {
         (debtor.nonce, debtor.state_version, debtor.delegate_epoch),
         (1, 1, 2)
     );
-    assert_eq!(debtor.delegate, Pubkey::default());
+    assert_eq!(debtor.delegate, Address::default());
     assert_eq!(debtor.delegate_expiry_slot, 0);
     assert_eq!(debtor.book.last_order_id, 81);
     assert_eq!(debtor.positions.map(|position| position.generation), [5, 5]);
@@ -618,7 +618,7 @@ fn terminal_reconciliation_rejects_residual_claims_or_revived_authority() {
     account.positions[1].virtual_scaled = 1;
     assert!(application::reconcile_row(&mut header, &row, &account).is_err());
     account.positions[1].virtual_scaled = 0;
-    account.delegate = Pubkey::new_unique();
+    account.delegate = Address::new_unique();
     assert!(application::reconcile_row(&mut header, &row, &account).is_err());
 }
 

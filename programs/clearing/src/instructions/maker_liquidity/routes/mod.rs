@@ -22,7 +22,8 @@ pub fn execute(
     events: &mut crate::event_cpi::Payloads,
     args: LiquidityRouteIntent,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     args.guard.check(
         &ctx.accounts.identity.venue,
         &ctx.accounts.identity.safety,
@@ -31,7 +32,7 @@ pub fn execute(
     let clock = Clock::get()?;
     crate::engine::account::trade_authority(
         &*root_view(&ctx.accounts.identity.trader)?,
-        ctx.accounts.identity.actor.key(),
+        ctx.accounts.identity.actor.address().to_owned(),
         clock.slot,
     )?;
     let intent = RouteIntent {
@@ -50,7 +51,7 @@ pub fn execute(
         generation: args.generation,
         legs: shared_legs(&args.legs),
     };
-    execute_core(ctx.accounts, events, intent, None, &args.legs, &clock)
+    execute_core(&mut ctx.accounts, events, intent, None, &args.legs, &clock)
 }
 
 pub fn execute_order(
@@ -58,7 +59,8 @@ pub fn execute_order(
     events: &mut crate::event_cpi::Payloads,
     args: LiquidityOrderExecution,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     args.guard.check(
         &ctx.accounts.identity.venue,
         &ctx.accounts.identity.safety,
@@ -84,7 +86,7 @@ pub fn execute_order(
         &clock,
     )?;
     execute_core(
-        ctx.accounts,
+        &mut ctx.accounts,
         events,
         intent,
         Some(index),
@@ -108,11 +110,13 @@ fn execute_core(
     let selected = usize::from(identity.market.index);
     require!(
         selected < 2
-            && identity.venue.markets[selected] == identity.market.key()
+            && identity.venue.markets[selected] == identity.market.address().to_owned()
             && identity
                 .other_market
                 .as_ref()
-                .is_none_or(|market| identity.venue.markets[1 - selected] == market.key())
+                .is_none_or(
+                    |market| identity.venue.markets[1 - selected] == market.address().to_owned()
+                )
             && identity.ledger.market_index == identity.market.index
             && identity
                 .other_ledger
@@ -173,8 +177,13 @@ fn execute_core(
     }];
     if has_second {
         require_keys_neq!(
-            accounts.first_capital.key(),
-            accounts.second_capital.as_ref().unwrap().key(),
+            accounts.first_capital.address().to_owned(),
+            accounts
+                .second_capital
+                .as_ref()
+                .unwrap()
+                .address()
+                .to_owned(),
             ClearingError::Alias
         );
         views.push(pricing::View {

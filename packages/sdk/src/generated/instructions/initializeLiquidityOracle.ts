@@ -43,11 +43,15 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findCustodyPda, findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findCustodyPda,
+  findEventAuthorityPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const INITIALIZE_LIQUIDITY_ORACLE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([25, 98, 80, 222, 78, 170, 247, 2]);
+  new Uint8Array([148, 248, 125, 23, 17, 194, 68, 202]);
 
 export function getInitializeLiquidityOracleDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -153,7 +157,9 @@ export type InitializeLiquidityOracleAsyncInput<
   custody?: TAccountCustody;
   safety?: TAccountSafety;
   market: TAccountMarket;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   primary: InitializeLiquidityOracleInstructionDataArgs["primary"];
   guard: InitializeLiquidityOracleInstructionDataArgs["guard"];
@@ -282,6 +288,11 @@ export async function getInitializeLiquidityOracleInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -345,7 +356,9 @@ export type InitializeLiquidityOracleInput<
   custody: TAccountCustody;
   safety: TAccountSafety;
   market: TAccountMarket;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   primary: InitializeLiquidityOracleInstructionDataArgs["primary"];
   guard: InitializeLiquidityOracleInstructionDataArgs["guard"];
@@ -507,7 +520,9 @@ export type ParsedInitializeLiquidityOracleInstruction<
     custody: TAccountMetas[2];
     safety: TAccountMetas[3];
     market: TAccountMetas[4];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[5];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[6];
   };
   data: InitializeLiquidityOracleInstructionData;

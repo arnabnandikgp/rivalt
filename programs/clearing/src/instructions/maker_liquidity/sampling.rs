@@ -6,10 +6,11 @@ use crate::instructions::account_trading::{self, oracle::InitializeAccountOracle
 pub fn initialize(
     ctx: &mut Context<InitializeAccountOracle>,
     events: &mut crate::event_cpi::Payloads,
-    primary: Pubkey,
-    guard: Pubkey,
+    primary: Address,
+    guard: Address,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     execution_profile(
         &ctx.accounts.venue,
         &ctx.accounts.safety,

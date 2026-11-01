@@ -43,8 +43,8 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import {
+  findEventAuthorityPda,
   findLiquidityControllerPda,
-  findMakerEventAuthorityPda,
   findVenueSafetyPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
@@ -56,7 +56,7 @@ import {
 } from "../types/index.js";
 
 export const CONTROL_LIQUIDITY_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([62, 198, 177, 103, 93, 48, 182, 192]);
+  new Uint8Array([236, 205, 59, 14, 74, 203, 241, 34]);
 
 export function getControlLiquidityDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -212,15 +212,22 @@ export type ControlLiquidityAsyncInput<
   market: TAccountMarket;
   registration: TAccountRegistration;
   capital: TAccountCapital;
+  /** CHECK: authenticated fixed config; only this writable account goes to maker CPI. */
   config: TAccountConfig;
+  /** CHECK: authenticated fixed read-only price. */
   price: TAccountPrice;
+  /** CHECK: executable identity is bound to its loader metadata and approved hash. */
   pricingProgram: TAccountPricingProgram;
   programData: TAccountProgramData;
+  /** CHECK: dedicated noncustodial signer, canonical seeds and bump below. */
   controller?: TAccountController;
-  makerEventAuthority?: TAccountMakerEventAuthority;
+  /** CHECK: canonical maker event-CPI authority, not a pricing dependency. */
+  makerEventAuthority: TAccountMakerEventAuthority;
   /** Required only for joint code approval. Never passed to maker CPI. */
   coSigner?: TAccountCoSigner;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   expectedAuthority: ControlLiquidityInstructionDataArgs["expectedAuthority"];
   expectedControl: ControlLiquidityInstructionDataArgs["expectedControl"];
@@ -431,12 +438,9 @@ export async function getControlLiquidityInstructionAsync<
       { programAddress },
     );
   }
-  if (!accounts.makerEventAuthority.value) {
-    accounts.makerEventAuthority.value = await findMakerEventAuthorityPda({
-      programAddress: getAddressFromResolvedInstructionAccount(
-        "pricingProgram",
-        accounts.pricingProgram.value,
-      ),
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
     });
   }
 
@@ -554,15 +558,22 @@ export type ControlLiquidityInput<
   market: TAccountMarket;
   registration: TAccountRegistration;
   capital: TAccountCapital;
+  /** CHECK: authenticated fixed config; only this writable account goes to maker CPI. */
   config: TAccountConfig;
+  /** CHECK: authenticated fixed read-only price. */
   price: TAccountPrice;
+  /** CHECK: executable identity is bound to its loader metadata and approved hash. */
   pricingProgram: TAccountPricingProgram;
   programData: TAccountProgramData;
+  /** CHECK: dedicated noncustodial signer, canonical seeds and bump below. */
   controller: TAccountController;
+  /** CHECK: canonical maker event-CPI authority, not a pricing dependency. */
   makerEventAuthority: TAccountMakerEventAuthority;
   /** Required only for joint code approval. Never passed to maker CPI. */
   coSigner?: TAccountCoSigner;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   expectedAuthority: ControlLiquidityInstructionDataArgs["expectedAuthority"];
   expectedControl: ControlLiquidityInstructionDataArgs["expectedControl"];
@@ -843,15 +854,22 @@ export type ParsedControlLiquidityInstruction<
     market: TAccountMetas[3];
     registration: TAccountMetas[4];
     capital: TAccountMetas[5];
+    /** CHECK: authenticated fixed config; only this writable account goes to maker CPI. */
     config: TAccountMetas[6];
+    /** CHECK: authenticated fixed read-only price. */
     price: TAccountMetas[7];
+    /** CHECK: executable identity is bound to its loader metadata and approved hash. */
     pricingProgram: TAccountMetas[8];
     programData: TAccountMetas[9];
+    /** CHECK: dedicated noncustodial signer, canonical seeds and bump below. */
     controller: TAccountMetas[10];
+    /** CHECK: canonical maker event-CPI authority, not a pricing dependency. */
     makerEventAuthority: TAccountMetas[11];
     /** Required only for joint code approval. Never passed to maker CPI. */
     coSigner?: TAccountMetas[12] | undefined;
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[13];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[14];
   };
   data: ControlLiquidityInstructionData;

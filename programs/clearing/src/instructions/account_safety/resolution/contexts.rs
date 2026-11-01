@@ -2,164 +2,164 @@ use super::*;
 use anchor_spl::token::TokenAccount;
 
 #[derive(Accounts)]
-pub struct ResolutionIdentity<'info> {
+pub struct ResolutionIdentity {
     #[account(mut, seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = vault)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
-    #[account(mut, seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
-    #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[0]], bump = btc.bump, has_one = venue,
-        constraint = venue.markets[0] == btc.key() @ ClearingError::Profile)]
-    pub btc: Box<Account<'info, Market>>,
-    #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[1]], bump = eth.bump, has_one = venue,
-        constraint = venue.markets[1] == eth.key() @ ClearingError::Profile)]
-    pub eth: Box<Account<'info, Market>>,
-    #[account(mut, seeds = [b"ledger-v3", btc.key().as_ref()], bump = btc_ledger.bump, has_one = venue,
-        constraint = btc_ledger.market == btc.key() && btc_ledger.market_index == 0 @ ClearingError::Profile)]
-    pub btc_ledger: Box<Account<'info, MarketLedger>>,
-    #[account(mut, seeds = [b"ledger-v3", eth.key().as_ref()], bump = eth_ledger.bump, has_one = venue,
-        constraint = eth_ledger.market == eth.key() && eth_ledger.market_index == 1 @ ClearingError::Profile)]
-    pub eth_ledger: Box<Account<'info, MarketLedger>>,
-    #[account(seeds = [b"vault-v3", venue.key().as_ref()], bump = venue.vault_bump,
-        constraint = vault.owner == venue.key() && vault.mint == venue.quote_mint @ ClearingError::Mint)]
-    pub vault: Box<Account<'info, TokenAccount>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(mut, seeds = [b"custody-v3", venue.address().as_ref()], bump = custody.bump, has_one = venue)]
+    pub custody: Box<BorshAccount<Custody>>,
+    #[account(mut, seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
+    #[account(mut, seeds = [b"market-v3", venue.address().as_ref(), &[0]], bump = btc.bump, has_one = venue,
+        constraint = venue.markets[0] == btc.address().to_owned() @ ClearingError::Profile)]
+    pub btc: Box<BorshAccount<Market>>,
+    #[account(mut, seeds = [b"market-v3", venue.address().as_ref(), &[1]], bump = eth.bump, has_one = venue,
+        constraint = venue.markets[1] == eth.address().to_owned() @ ClearingError::Profile)]
+    pub eth: Box<BorshAccount<Market>>,
+    #[account(mut, seeds = [b"ledger-v3", btc.address().as_ref()], bump = btc_ledger.bump, has_one = venue,
+        constraint = btc_ledger.market == btc.address().to_owned() && btc_ledger.market_index == 0 @ ClearingError::Profile)]
+    pub btc_ledger: Box<BorshAccount<MarketLedger>>,
+    #[account(mut, seeds = [b"ledger-v3", eth.address().as_ref()], bump = eth_ledger.bump, has_one = venue,
+        constraint = eth_ledger.market == eth.address().to_owned() && eth_ledger.market_index == 1 @ ClearingError::Profile)]
+    pub eth_ledger: Box<BorshAccount<MarketLedger>>,
+    #[account(seeds = [b"vault-v3", venue.address().as_ref()], bump = venue.vault_bump,
+        constraint = *vault.owner() == venue.address().to_owned() && *vault.mint() == venue.quote_mint @ ClearingError::Mint)]
+    pub vault: Box<Account<TokenAccount>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct InitializeAccountResolution<'info> {
+pub struct InitializeAccountResolution {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub payer: Signer,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
-    #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"custody-v3", venue.address().as_ref()], bump = custody.bump, has_one = venue)]
+    pub custody: Box<BorshAccount<Custody>>,
+    #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(init, payer = payer, space = 8 + Resolution::INIT_SPACE,
-        seeds = [b"resolution-v3", venue.key().as_ref()], bump)]
-    pub resolution: Box<Account<'info, Resolution>>,
+        seeds = [b"resolution-v3", venue.address().as_ref()], bump)]
+    pub resolution: Box<BorshAccount<Resolution>>,
     #[account(init, payer = payer, space = 8 + ResolutionWork::INIT_SPACE,
-        seeds = [b"resolution-work-v3", venue.key().as_ref()], bump)]
-    pub work: Box<Account<'info, ResolutionWork>>,
-    pub system_program: Program<'info, System>,
+        seeds = [b"resolution-work-v3", venue.address().as_ref()], bump)]
+    pub work: Box<BorshAccount<ResolutionWork>>,
+    pub system_program: Program<System>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
 #[instruction(page_index: u16)]
-pub struct InitializeAccountResolutionPage<'info> {
+pub struct InitializeAccountResolutionPage {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub payer: Signer,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
-    #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
-    #[account(mut, seeds = [b"resolution-v3", venue.key().as_ref()], bump = resolution.bump, has_one = venue)]
-    pub resolution: Box<Account<'info, Resolution>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"custody-v3", venue.address().as_ref()], bump = custody.bump, has_one = venue)]
+    pub custody: Box<BorshAccount<Custody>>,
+    #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
+    #[account(mut, seeds = [b"resolution-v3", venue.address().as_ref()], bump = resolution.bump, has_one = venue)]
+    pub resolution: Box<BorshAccount<Resolution>>,
     #[account(init, payer = payer, space = 8 + ResolutionPage::INIT_SPACE,
-        seeds = [b"resolution-page-v3", venue.key().as_ref(), &page_index.to_le_bytes()], bump)]
-    pub page: Box<Account<'info, ResolutionPage>>,
-    pub system_program: Program<'info, System>,
+        seeds = [b"resolution-page-v3", venue.address().as_ref(), &page_index.to_le_bytes()], bump)]
+    pub page: Box<BorshAccount<ResolutionPage>>,
+    pub system_program: Program<System>,
 }
 
 /// Exact bindings are checked even when a feed is stale. Missing credibility is
 /// a valuation state, not permission to substitute a caller-supplied price.
 #[derive(Accounts)]
-pub struct ResolutionSources<'info> {
+pub struct ResolutionSources {
     /// CHECK: configured identity, program owner, feed ID and monotonic sequence.
-    pub primary_btc: UncheckedAccount<'info>,
+    pub primary_btc: UncheckedAccount,
     /// CHECK: configured identity, program owner, feed ID and monotonic sequence.
-    pub primary_collateral: UncheckedAccount<'info>,
+    pub primary_collateral: UncheckedAccount,
     /// CHECK: configured identity, program owner, feed ID and monotonic sequence.
-    pub guard_btc: UncheckedAccount<'info>,
+    pub guard_btc: UncheckedAccount,
     /// CHECK: configured identity, program owner, feed ID and monotonic sequence.
-    pub guard_collateral: UncheckedAccount<'info>,
+    pub guard_collateral: UncheckedAccount,
     /// CHECK: configured identity, program owner, feed ID and monotonic sequence.
-    pub primary_eth: UncheckedAccount<'info>,
+    pub primary_eth: UncheckedAccount,
     /// CHECK: configured identity, program owner, feed ID and monotonic sequence.
-    pub guard_eth: UncheckedAccount<'info>,
+    pub guard_eth: UncheckedAccount,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct FreezeAccounts<'info> {
-    pub identity: ResolutionIdentity<'info>,
-    pub caller: Signer<'info>,
-    #[account(seeds = [b"registry-v3", identity.venue.key().as_ref()], bump = registry.bump,
-        constraint = registry.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub registry: Box<Account<'info, VenueRegistry>>,
-    #[account(mut, seeds = [b"resolution-v3", identity.venue.key().as_ref()], bump = resolution.bump,
-        constraint = resolution.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub resolution: Box<Account<'info, Resolution>>,
-    #[account(mut, seeds = [b"resolution-work-v3", identity.venue.key().as_ref()], bump = work.bump,
-        constraint = work.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub work: Box<Account<'info, ResolutionWork>>,
+pub struct FreezeAccounts {
+    pub identity: Nested<ResolutionIdentity>,
+    pub caller: Signer,
+    #[account(seeds = [b"registry-v3", identity.venue.address().as_ref()], bump = registry.bump,
+        constraint = registry.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(mut, seeds = [b"resolution-v3", identity.venue.address().as_ref()], bump = resolution.bump,
+        constraint = resolution.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub resolution: Box<BorshAccount<Resolution>>,
+    #[account(mut, seeds = [b"resolution-work-v3", identity.venue.address().as_ref()], bump = work.bump,
+        constraint = work.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub work: Box<BorshAccount<ResolutionWork>>,
     #[account(seeds = [b"margin-v3", target.portfolio.as_ref(), &target.subaccount_index.to_le_bytes()], bump = target.bump,
-        constraint = target.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub target: Box<Account<'info, MarginAccount>>,
-    pub sources: ResolutionSources<'info>,
+        constraint = target.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub target: Box<BorshAccount<MarginAccount>>,
+    pub sources: Nested<ResolutionSources>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct ValueAccountResolution<'info> {
-    pub identity: ResolutionIdentity<'info>,
-    #[account(seeds = [b"registry-v3", identity.venue.key().as_ref()], bump = registry.bump,
-        constraint = registry.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub registry: Box<Account<'info, VenueRegistry>>,
-    #[account(mut, seeds = [b"resolution-v3", identity.venue.key().as_ref()], bump = resolution.bump,
-        constraint = resolution.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub resolution: Box<Account<'info, Resolution>>,
-    pub sources: ResolutionSources<'info>,
+pub struct ValueAccountResolution {
+    pub identity: Nested<ResolutionIdentity>,
+    #[account(seeds = [b"registry-v3", identity.venue.address().as_ref()], bump = registry.bump,
+        constraint = registry.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(mut, seeds = [b"resolution-v3", identity.venue.address().as_ref()], bump = resolution.bump,
+        constraint = resolution.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub resolution: Box<BorshAccount<Resolution>>,
+    pub sources: Nested<ResolutionSources>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct AdvanceAccountResolution<'info> {
-    pub identity: ResolutionIdentity<'info>,
-    #[account(seeds = [b"registry-v3", identity.venue.key().as_ref()], bump = registry.bump,
-        constraint = registry.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub registry: Box<Account<'info, VenueRegistry>>,
-    #[account(mut, seeds = [b"resolution-v3", identity.venue.key().as_ref()], bump = resolution.bump,
-        constraint = resolution.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub resolution: Box<Account<'info, Resolution>>,
-    #[account(mut, seeds = [b"resolution-work-v3", identity.venue.key().as_ref()], bump = work.bump,
-        constraint = work.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub work: Box<Account<'info, ResolutionWork>>,
-    #[account(mut, seeds = [b"resolution-page-v3", identity.venue.key().as_ref(), &page.page_index.to_le_bytes()], bump = page.bump,
-        constraint = page.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub page: Box<Account<'info, ResolutionPage>>,
+pub struct AdvanceAccountResolution {
+    pub identity: Nested<ResolutionIdentity>,
+    #[account(seeds = [b"registry-v3", identity.venue.address().as_ref()], bump = registry.bump,
+        constraint = registry.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(mut, seeds = [b"resolution-v3", identity.venue.address().as_ref()], bump = resolution.bump,
+        constraint = resolution.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub resolution: Box<BorshAccount<Resolution>>,
+    #[account(mut, seeds = [b"resolution-work-v3", identity.venue.address().as_ref()], bump = work.bump,
+        constraint = work.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub work: Box<BorshAccount<ResolutionWork>>,
+    #[account(mut, seeds = [b"resolution-page-v3", identity.venue.address().as_ref(), &page.page_index.to_le_bytes()], bump = page.bump,
+        constraint = page.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub page: Box<BorshAccount<ResolutionPage>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct ProposeAccountResolution<'info> {
-    pub identity: ResolutionIdentity<'info>,
-    #[account(seeds = [b"registry-v3", identity.venue.key().as_ref()], bump = registry.bump,
-        constraint = registry.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub registry: Box<Account<'info, VenueRegistry>>,
-    #[account(mut, seeds = [b"resolution-v3", identity.venue.key().as_ref()], bump = resolution.bump,
-        constraint = resolution.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub resolution: Box<Account<'info, Resolution>>,
-    #[account(mut, seeds = [b"resolution-work-v3", identity.venue.key().as_ref()], bump = work.bump,
-        constraint = work.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub work: Box<Account<'info, ResolutionWork>>,
+pub struct ProposeAccountResolution {
+    pub identity: Nested<ResolutionIdentity>,
+    #[account(seeds = [b"registry-v3", identity.venue.address().as_ref()], bump = registry.bump,
+        constraint = registry.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(mut, seeds = [b"resolution-v3", identity.venue.address().as_ref()], bump = resolution.bump,
+        constraint = resolution.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub resolution: Box<BorshAccount<Resolution>>,
+    #[account(mut, seeds = [b"resolution-work-v3", identity.venue.address().as_ref()], bump = work.bump,
+        constraint = work.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub work: Box<BorshAccount<ResolutionWork>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct RecoverAccounts<'info> {
-    pub identity: ResolutionIdentity<'info>,
-    pub caller: Signer<'info>,
-    #[account(seeds = [b"registry-v3", identity.venue.key().as_ref()], bump = registry.bump,
-        constraint = registry.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub registry: Box<Account<'info, VenueRegistry>>,
-    #[account(mut, seeds = [b"resolution-v3", identity.venue.key().as_ref()], bump = resolution.bump,
-        constraint = resolution.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub resolution: Box<Account<'info, Resolution>>,
-    pub sources: ResolutionSources<'info>,
+pub struct RecoverAccounts {
+    pub identity: Nested<ResolutionIdentity>,
+    pub caller: Signer,
+    #[account(seeds = [b"registry-v3", identity.venue.address().as_ref()], bump = registry.bump,
+        constraint = registry.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(mut, seeds = [b"resolution-v3", identity.venue.address().as_ref()], bump = resolution.bump,
+        constraint = resolution.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub resolution: Box<BorshAccount<Resolution>>,
+    pub sources: Nested<ResolutionSources>,
 }

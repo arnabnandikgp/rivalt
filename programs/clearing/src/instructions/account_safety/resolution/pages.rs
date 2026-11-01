@@ -1,4 +1,5 @@
 use super::*;
+use anchor_lang::AccountDeserialize;
 
 pub(super) fn page_range(
     header: &Resolution,
@@ -25,27 +26,27 @@ pub(super) fn page_range(
 
 #[inline(never)]
 pub(super) fn member(
-    info: &AccountInfo,
+    info: &AccountView,
     registry: &VenueRegistry,
     id: usize,
     writable: bool,
 ) -> Result<Box<MarginAccount>> {
     require!(
-        info.owner == &crate::ID
-            && info.is_writable == writable
-            && !info.is_signer
-            && registry.members.get(id) == Some(info.key)
+        info.owner() == &crate::ID
+            && info.is_writable() == writable
+            && !info.is_signer()
+            && registry.members.get(id) == Some(info.address())
             && info.data_len() == 8 + MarginAccount::INIT_SPACE,
         ClearingError::Resolution
     );
     let root = Box::new(MarginAccount::try_deserialize(
-        &mut &info.try_borrow_data()?[..],
+        &mut &info.try_borrow()?[..],
     )?);
     require!(
         root.venue == registry.venue && root.id as usize == id,
         ClearingError::Resolution
     );
-    let expected = Pubkey::create_program_address(
+    let expected = create_program_address(
         &[
             b"margin-v3",
             root.portfolio.as_ref(),
@@ -54,8 +55,8 @@ pub(super) fn member(
         ],
         &crate::ID,
     )
-    .map_err(|_| error!(ClearingError::Resolution))?;
-    require_keys_eq!(*info.key, expected, ClearingError::Resolution);
+    .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
+    require_keys_eq!(*info.address(), expected, ClearingError::Resolution);
     account_trading::model(&root)?;
     Ok(root)
 }
@@ -65,7 +66,7 @@ pub(super) fn member(
 pub(super) fn value_row(
     header: &mut Resolution,
     row: &mut ResolutionRow,
-    key: Pubkey,
+    key: Address,
     root: &MarginAccount,
 ) -> Result<()> {
     let claims = checked(account_trading::model(root)?.claims(header.prices, header.funding))?;
@@ -134,10 +135,11 @@ pub fn advance(
     start: u16,
     length: u8,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     if matches!(stage, APPLY | RECONCILE) {
         return application::advance(ctx, events, epoch, stage, start, length);
     }
-    let accounts = &mut *ctx.accounts;
+    let accounts = &mut ctx.accounts;
     frozen(
         &accounts.identity,
         &accounts.registry,
@@ -155,7 +157,7 @@ pub fn advance(
         rounding::initialize_plan(&accounts.resolution, &mut accounts.work)?;
     }
     require!(
-        ctx.remaining_accounts.len() == if stage == VALUE { length as usize } else { 0 },
+        remaining_accounts.len() == if stage == VALUE { length as usize } else { 0 },
         ClearingError::Resolution
     );
     let page = &mut accounts.page;
@@ -174,12 +176,12 @@ pub fn advance(
                 usize::from(page.row_count) == within,
                 ClearingError::Resolution
             );
-            let info = &ctx.remaining_accounts[offset];
+            let info = &remaining_accounts[offset];
             let root = member(info, &accounts.registry, id, false)?;
             value_row(
                 &mut accounts.resolution,
                 &mut page.rows[within],
-                *info.key,
+                *info.address(),
                 &root,
             )?;
             page.row_count += 1;
@@ -191,7 +193,7 @@ pub fn advance(
                 &page.rows[within],
                 &clock,
                 events,
-                accounts.event_authority.to_account_info(),
+                accounts.event_authority.account().clone(),
             )?;
         } else {
             require!(
@@ -226,7 +228,7 @@ pub fn advance(
 
                 events.emit(
                     &crate::events::AccountResolutionPlanned {
-                        venue: accounts.identity.venue.key(),
+                        venue: accounts.identity.venue.address().to_owned(),
 
                         slot: clock.slot,
                         epoch,
@@ -235,7 +237,7 @@ pub fn advance(
                         flow_floors: page.rows[within].rounded_flows,
                         cash_floor: page.rows[within].cash_after,
                     },
-                    accounts.event_authority.to_account_info(),
+                    accounts.event_authority.account().clone(),
                 )?;
             }
         }
@@ -264,7 +266,7 @@ pub fn advance(
 
     events.emit(
         &crate::events::AccountResolutionProgress {
-            venue: accounts.identity.venue.key(),
+            venue: accounts.identity.venue.address().to_owned(),
 
             slot: clock.slot,
             epoch,
@@ -276,7 +278,7 @@ pub fn advance(
             evaluation: accounts.resolution.evaluation,
             clipped_mask: accounts.resolution.clipped_mask,
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -287,11 +289,11 @@ fn emit_value(
     row: &ResolutionRow,
     clock: &Clock,
     events: &mut crate::event_cpi::Payloads,
-    authority: AccountInfo,
+    authority: AccountView,
 ) -> Result<()> {
     events.emit(
         &crate::events::AccountResolutionValued {
-            venue: identity.venue.key(),
+            venue: identity.venue.address().to_owned(),
 
             slot: clock.slot,
             epoch: header.epoch,

@@ -40,11 +40,15 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findLiquidityRegistryPda, findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findEventAuthorityPda,
+  findLiquidityRegistryPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const SEAL_LIQUIDITY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  9, 220, 8, 208, 93, 107, 35, 66,
+  31, 143, 152, 241, 90, 106, 88, 11,
 ]);
 
 export function getSealLiquidityDiscriminatorBytes(): ReadonlyUint8Array {
@@ -155,7 +159,9 @@ export type SealLiquidityAsyncInput<
   first: TAccountFirst;
   second: TAccountSecond;
   third: TAccountThird;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
 };
 
@@ -300,6 +306,11 @@ export async function getSealLiquidityInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -382,7 +393,9 @@ export type SealLiquidityInput<
   first: TAccountFirst;
   second: TAccountSecond;
   third: TAccountThird;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
 };
 
@@ -576,7 +589,9 @@ export type ParsedSealLiquidityInstruction<
     first: TAccountMetas[5];
     second: TAccountMetas[6];
     third: TAccountMetas[7];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[8];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[9];
   };
   data: SealLiquidityInstructionData;

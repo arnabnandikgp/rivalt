@@ -39,11 +39,17 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findVenueRegistryPda, findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findBtcPda,
+  findEthPda,
+  findEventAuthorityPda,
+  findVenueRegistryPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const CHECK_MARKET_BACKING_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([21, 81, 56, 88, 183, 171, 83, 40]);
+  new Uint8Array([66, 145, 239, 19, 111, 19, 186, 239]);
 
 export function getCheckMarketBackingDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -146,11 +152,13 @@ export type CheckMarketBackingAsyncInput<
   venue: TAccountVenue;
   safety?: TAccountSafety;
   registry?: TAccountRegistry;
-  btc: TAccountBtc;
-  eth: TAccountEth;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
   ledger: TAccountLedger;
   certificate: TAccountCertificate;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   start: CheckMarketBackingInstructionDataArgs["start"];
 };
@@ -292,6 +300,33 @@ export async function getCheckMarketBackingInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.btc.value) {
+    accounts.btc.value = await findBtcPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eth.value) {
+    accounts.eth.value = await findEthPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -369,7 +404,9 @@ export type CheckMarketBackingInput<
   eth: TAccountEth;
   ledger: TAccountLedger;
   certificate: TAccountCertificate;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   start: CheckMarketBackingInstructionDataArgs["start"];
 };
@@ -556,7 +593,9 @@ export type ParsedCheckMarketBackingInstruction<
     eth: TAccountMetas[4];
     ledger: TAccountMetas[5];
     certificate: TAccountMetas[6];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[7];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[8];
   };
   data: CheckMarketBackingInstructionData;

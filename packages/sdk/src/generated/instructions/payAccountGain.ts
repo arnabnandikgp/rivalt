@@ -44,11 +44,16 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findBtcPda,
+  findEthPda,
+  findEventAuthorityPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const PAY_ACCOUNT_GAIN_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([10, 28, 10, 104, 114, 129, 158, 42]);
+  new Uint8Array([149, 199, 146, 251, 166, 53, 71, 27]);
 
 export function getPayAccountGainDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -179,7 +184,9 @@ export type PayAccountGainAsyncInput<
   registry: TAccountRegistry;
   /** Absent for collection; validated completely before gain payment. */
   certificate?: TAccountCertificate;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: PayAccountGainInstructionDataArgs["marketIndex"];
   amount: PayAccountGainInstructionDataArgs["amount"];
@@ -340,6 +347,33 @@ export async function getPayAccountGainInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.btc.value) {
+    accounts.btc.value = await findBtcPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eth.value) {
+    accounts.eth.value = await findEthPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -440,7 +474,9 @@ export type PayAccountGainInput<
   registry: TAccountRegistry;
   /** Absent for collection; validated completely before gain payment. */
   certificate?: TAccountCertificate;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: PayAccountGainInstructionDataArgs["marketIndex"];
   amount: PayAccountGainInstructionDataArgs["amount"];
@@ -677,7 +713,9 @@ export type ParsedPayAccountGainInstruction<
     registry: TAccountMetas[8];
     /** Absent for collection; validated completely before gain payment. */
     certificate?: TAccountMetas[9] | undefined;
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[10];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[11];
   };
   data: PayAccountGainInstructionData;

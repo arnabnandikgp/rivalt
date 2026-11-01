@@ -327,3 +327,16 @@ post-CPI freshness. Retain guardrails and default/devnet gates. Keep B immutable
 separate candidate artifacts and compiler/runtime effects, and qualify actual
 RPC/WS/PostgreSQL financial/service flows before promoting new local artifacts.
 P15B/P16B remain external and continuous 24-hour endurance remains Deferred.
+
+
+D90 implementation authorization (1 November 2026): the user accepted the plan and
+instructed continuation. P46 now deliberately supersedes the retained instruction
+and maker discriminators and schema selection only for the fresh bounded candidate:
+canonical eight-byte identifiers, clearing/journal binding 8, maker account schema 5,
+quote/report protocol versions unchanged. Existing account field order, seeds,
+privileges and protocol error numbers are preserved by the explicit ABI comparison.
+The serialized port, foreign-loader adapter, state-only dependency feature and IDL
+metadata normalization are detailed in the migration contract. This records authority
+to implement P46/P47, not financial acceptance or artifact promotion; P47 still owns
+complete fresh qualification and matched B/C measurements. Both implementation PRs
+remain open until separately authorized to merge.

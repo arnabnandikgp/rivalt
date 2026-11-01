@@ -27,6 +27,7 @@ export * from "./orderRecord.js";
 export * from "./orderTerms.js";
 export * from "./position.js";
 export * from "./priceRegion.js";
+export * from "./programData.js";
 export * from "./protection.js";
 export * from "./protectiveGroup.js";
 export * from "./resolutionRow.js";

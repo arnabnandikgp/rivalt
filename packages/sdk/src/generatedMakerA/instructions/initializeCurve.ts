@@ -47,7 +47,11 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findCurveConfigPda, findCurvePricePda } from "../pdas/index.js";
+import {
+  findCurveConfigPda,
+  findCurvePricePda,
+  findEventAuthorityPda,
+} from "../pdas/index.js";
 import { MAKER_A_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getLiquidityShapeDecoder,
@@ -57,7 +61,7 @@ import {
 } from "../types/index.js";
 
 export const INITIALIZE_CURVE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([2, 112, 249, 167, 34, 145, 140, 171]);
+  new Uint8Array([170, 84, 186, 253, 131, 149, 95, 213]);
 
 export function getInitializeCurveDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -182,7 +186,9 @@ export type InitializeCurveAsyncInput<
   config?: TAccountConfig;
   price?: TAccountPrice;
   systemProgram?: TAccountSystemProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   shape: InitializeCurveInstructionDataArgs["shape"];
   updater: InitializeCurveInstructionDataArgs["updater"];
@@ -330,6 +336,11 @@ export async function getInitializeCurveInstructionAsync<
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -408,7 +419,9 @@ export type InitializeCurveInput<
   config: TAccountConfig;
   price: TAccountPrice;
   systemProgram?: TAccountSystemProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   shape: InitializeCurveInstructionDataArgs["shape"];
   updater: InitializeCurveInstructionDataArgs["updater"];
@@ -603,7 +616,9 @@ export type ParsedInitializeCurveInstruction<
     config: TAccountMetas[4];
     price: TAccountMetas[5];
     systemProgram: TAccountMetas[6];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[7];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[8];
   };
   data: InitializeCurveInstructionData;

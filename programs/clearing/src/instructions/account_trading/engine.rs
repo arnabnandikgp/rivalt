@@ -177,7 +177,8 @@ pub(crate) fn split_fee(ledger: &mut MarketLedger, fee: u64) -> Result<(u64, u64
     );
     let before = ledger.insurance_fee_remainder;
     let numerator = u128::from(fee) + u128::from(before);
-    let insurance = u64::try_from(numerator / 4).map_err(|_| error!(ClearingError::Arithmetic))?;
+    let insurance =
+        u64::try_from(numerator / 4).map_err(|_| ProgramError::from(ClearingError::Arithmetic))?;
     let retained = fee
         .checked_sub(insurance)
         .ok_or(ClearingError::Arithmetic)?;

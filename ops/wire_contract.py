@@ -116,7 +116,7 @@ def main():
     else:
         # D84 deliberately supersedes the account/event ABI. Verify its exact
         # allowed delta against the retained predecessor; never recapture it.
-        from scoped_wire_contract import check
+        from anchor_rc2_wire_contract import check
         check(Path('packages/sdk/idl'))
 
 

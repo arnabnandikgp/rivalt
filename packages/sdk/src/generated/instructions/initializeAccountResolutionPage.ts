@@ -45,6 +45,7 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findPagePda,
   findResolutionPda,
   findVenueSafetyPda,
@@ -52,7 +53,7 @@ import {
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const INITIALIZE_ACCOUNT_RESOLUTION_PAGE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([128, 207, 5, 82, 159, 26, 204, 242]);
+  new Uint8Array([140, 24, 112, 109, 122, 218, 84, 200]);
 
 export function getInitializeAccountResolutionPageDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -168,7 +169,9 @@ export type InitializeAccountResolutionPageAsyncInput<
   resolution?: TAccountResolution;
   page?: TAccountPage;
   systemProgram?: TAccountSystemProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   pageIndex: InitializeAccountResolutionPageInstructionDataArgs["pageIndex"];
 };
@@ -344,6 +347,11 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -422,7 +430,9 @@ export type InitializeAccountResolutionPageInput<
   resolution: TAccountResolution;
   page: TAccountPage;
   systemProgram?: TAccountSystemProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   pageIndex: InitializeAccountResolutionPageInstructionDataArgs["pageIndex"];
 };
@@ -619,7 +629,9 @@ export type ParsedInitializeAccountResolutionPageInstruction<
     resolution: TAccountMetas[4];
     page: TAccountMetas[5];
     systemProgram: TAccountMetas[6];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[7];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[8];
   };
   data: InitializeAccountResolutionPageInstructionData;

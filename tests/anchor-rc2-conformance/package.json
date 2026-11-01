@@ -1,0 +1,12 @@
+{
+  "name": "rivalt-anchor-rc2-conformance",
+  "private": true,
+  "type": "module",
+  "description": "Isolated exact RC2 client; exchanges only JSON and raw bytes with the production workspace.",
+  "packageManager": "pnpm@10.23.0",
+  "engines": { "node": "24.22.0" },
+  "dependencies": {
+    "@anchor-lang/core": "2.0.0-rc.2",
+    "@solana/kit": "8.3.0"
+  }
+}

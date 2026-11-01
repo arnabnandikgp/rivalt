@@ -3,10 +3,11 @@
 use anchor_lang::prelude::*;
 use financial_core::oracle::Price;
 
-pub const RECEIVER: Pubkey = pubkey!("rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp");
-pub const ACCOUNTS: [Pubkey; 2] = [
-    pubkey!("APgzQGGdv2qCgBkX6aHVkrGePtBVDDg68GiqaM7rmtf5"),
-    pubkey!("6HAuqASbHEh4w4REJEUUUCginTLfj1kwCh215ZLtMkrT"),
+pub const RECEIVER: Address =
+    Address::from_str_const("rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp");
+pub const ACCOUNTS: [Address; 2] = [
+    Address::from_str_const("APgzQGGdv2qCgBkX6aHVkrGePtBVDDg68GiqaM7rmtf5"),
+    Address::from_str_const("6HAuqASbHEh4w4REJEUUUCginTLfj1kwCh215ZLtMkrT"),
 ];
 // PriceUpdateV2 and PriceFeedMessage at pyth-crosschain revision
 // 145e9b4a88ef0bf2795357fdce8c0c2fe57b77d2. No legacy Anchor dependency.
@@ -23,16 +24,20 @@ const FEEDS: [[u8; 32]; 2] = [
 ];
 
 pub fn decode(
-    info: &AccountInfo,
+    info: &AccountView,
     index: usize,
     previous_publish: u64,
     slot: u64,
 ) -> Option<(Price, u64)> {
     let expected = ACCOUNTS.get(index)?;
-    if info.key != expected || info.owner != &RECEIVER || info.is_writable || info.executable {
+    if info.address() != expected
+        || info.owner() != &RECEIVER
+        || info.is_writable()
+        || info.executable()
+    {
         return None;
     }
-    let data = info.try_borrow_data().ok()?;
+    let data = info.try_borrow().ok()?;
     // Full is enum tag 1; Partial has a different serialized length and is refused.
     // The account allocates the enum's maximum size, leaving one padding byte for Full.
     if data.len() != 134
@@ -118,19 +123,14 @@ mod tests {
     }
     fn read(
         data: &mut [u8],
-        key: Pubkey,
-        owner: Pubkey,
+        key: Address,
+        owner: Address,
         writable: bool,
         previous: u64,
         slot: u64,
     ) -> Option<(Price, u64)> {
-        let mut lamports = 1;
-        decode(
-            &AccountInfo::new(&key, false, writable, &mut lamports, data, &owner, false),
-            0,
-            previous,
-            slot,
-        )
+        let mut backing = crate::test_support::TestAccount::new(key, owner, data, writable, false);
+        decode(&backing.view(), 0, previous, slot)
     }
     #[test]
     fn identity_full_verification_and_time_regression() {
@@ -151,7 +151,7 @@ mod tests {
         assert!(read(
             &mut data.clone(),
             ACCOUNTS[0],
-            Pubkey::default(),
+            Address::default(),
             false,
             0,
             123
@@ -212,16 +212,14 @@ mod tests {
                 .chunks_exact(2)
                 .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
                 .collect();
-            let mut lamports = 1;
-            let info = AccountInfo::new(
-                &ACCOUNTS[index],
+            let mut backing = crate::test_support::TestAccount::new(
+                ACCOUNTS[index],
+                RECEIVER,
+                &data,
                 false,
-                false,
-                &mut lamports,
-                &mut data,
-                &RECEIVER,
                 false,
             );
+            let info = backing.view();
             let (price_value, sequence) = decode(&info, index, 0, u64::MAX).unwrap();
             assert_eq!(
                 (

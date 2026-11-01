@@ -1,6 +1,7 @@
 //! Canonical pricing authentication shared by routes and complete funding samples.
 //! CPI receives only the fixed read-only config and price, never capital or vault.
 use super::*;
+use crate::{ProgramData, UpgradeableProgramAddress};
 use anchor_lang::solana_program::program::{get_return_data, invoke};
 use maker_interface::canonical::{MakerQuoteRequest, MakerQuoteResponse};
 
@@ -8,14 +9,14 @@ use maker_interface::canonical::{MakerQuoteRequest, MakerQuoteResponse};
 /// this instruction only. Every registration still compares its own approved hash.
 #[derive(Default)]
 pub(crate) struct CodeApprovalCache {
-    entries: [Option<(Pubkey, Pubkey, [u8; 32])>; 2],
+    entries: [Option<(Address, Address, [u8; 32])>; 2],
 }
 
 impl CodeApprovalCache {
     fn check(
         &mut self,
-        program: Pubkey,
-        data: &Account<ProgramData>,
+        program: Address,
+        data: &BorshAccount<ProgramData>,
         approved: [u8; 32],
     ) -> Result<()> {
         let digest = if let Some((_, _, digest)) =
@@ -23,7 +24,7 @@ impl CodeApprovalCache {
                 .iter()
                 .flatten()
                 .find(|(existing_program, existing_data, _)| {
-                    *existing_program == program && *existing_data == data.key()
+                    *existing_program == program && *existing_data == data.address().to_owned()
                 }) {
             *digest
         } else {
@@ -33,7 +34,7 @@ impl CodeApprovalCache {
                 .iter_mut()
                 .find(|entry| entry.is_none())
                 .ok_or(ClearingError::MakerBinding)?;
-            *empty = Some((program, data.key(), digest));
+            *empty = Some((program, data.address().to_owned(), digest));
             digest
         };
         require!(digest == approved, ClearingError::MakerUpgrade);
@@ -42,12 +43,12 @@ impl CodeApprovalCache {
 }
 
 pub(crate) fn sealed_registry(
-    registry: &Account<LiquidityRegistry>,
-    venue: Pubkey,
-    market: Pubkey,
+    registry: &BorshAccount<LiquidityRegistry>,
+    venue: Address,
+    market: Address,
 ) -> Result<()> {
     require!(
-        registry.schema_version == 7
+        registry.schema_version == 8
             && registry.venue == venue
             && registry.market == market
             && registry.sealed
@@ -56,29 +57,29 @@ pub(crate) fn sealed_registry(
                 .registrations
                 .iter()
                 .enumerate()
-                .all(|(index, key)| *key != Pubkey::default()
+                .all(|(index, key)| *key != Address::default()
                     && !registry.registrations[..index].contains(key)),
         ClearingError::MakerBinding
     );
     require_keys_eq!(
-        registry.key(),
-        Pubkey::create_program_address(
+        registry.address().to_owned(),
+        create_program_address(
             &[b"liquidity-v4", market.as_ref(), &[registry.bump]],
             &crate::ID
         )
-        .map_err(|_| error!(ClearingError::MakerBinding))?,
+        .map_err(|_| ProgramError::from(ClearingError::MakerBinding))?,
         ClearingError::MakerBinding
     );
     Ok(())
 }
 
-pub(crate) struct View<'account, 'info> {
-    pub capital: &'account Account<'info, MarginAccount>,
-    pub registration: &'account Account<'info, MakerRegistration>,
-    pub program: &'account Program<'info>,
-    pub data: &'account Account<'info, ProgramData>,
-    pub config: &'account UncheckedAccount<'info>,
-    pub price: &'account UncheckedAccount<'info>,
+pub(crate) struct View<'account> {
+    pub capital: &'account BorshAccount<MarginAccount>,
+    pub registration: &'account BorshAccount<MakerRegistration>,
+    pub program: &'account UncheckedAccount,
+    pub data: &'account BorshAccount<ProgramData>,
+    pub config: &'account UncheckedAccount,
+    pub price: &'account UncheckedAccount,
 }
 
 pub(crate) struct AuthenticatedCurve {
@@ -86,58 +87,63 @@ pub(crate) struct AuthenticatedCurve {
     pub price: PriceState,
 }
 
-impl<'account, 'info> View<'account, 'info> {
+impl<'account> View<'account> {
     /// Wrong caller-selected identities reject the transaction; an unavailable
     /// authentic maker may instead produce an unqualified funding observation.
     pub(crate) fn bind(
         &self,
-        venue: &Account<Venue>,
-        market: &Account<Market>,
-        registry: &Account<LiquidityRegistry>,
+        venue: &BorshAccount<Venue>,
+        market: &BorshAccount<Market>,
+        registry: &BorshAccount<LiquidityRegistry>,
     ) -> Result<()> {
-        sealed_registry(registry, venue.key(), market.key())?;
+        sealed_registry(
+            registry,
+            venue.address().to_owned(),
+            market.address().to_owned(),
+        )?;
         capital_identity(self.capital, market)?;
         // Identity and quote inventory are needed for D74 funding. Financial
         // admission belongs to execution, not publication authentication.
         let registration = self.registration;
         require!(
-            registration.schema_version == 7
-                && registration.venue == venue.key()
-                && registration.market == market.key()
+            registration.schema_version == 8
+                && registration.venue == venue.address().to_owned()
+                && registration.market == market.address().to_owned()
                 && registration.instance < 3
-                && registry.registrations[usize::from(registration.instance)] == registration.key()
-                && registration.capital == self.capital.key()
+                && registry.registrations[usize::from(registration.instance)]
+                    == registration.address().to_owned()
+                && registration.capital == self.capital.address().to_owned()
                 && registration.owner == self.capital.owner
-                && registration.pricing_program == self.program.key()
-                && registration.program_data == self.data.key()
-                && registration.config == self.config.key()
-                && registration.price == self.price.key()
-                && self.program.programdata_address()? == Some(self.data.key())
+                && registration.pricing_program == self.program.address().to_owned()
+                && registration.program_data == self.data.address().to_owned()
+                && registration.config == self.config.address().to_owned()
+                && registration.price == self.price.address().to_owned()
+                && self.program.programdata_address()? == Some(self.data.address().to_owned())
                 && registration.authority_epoch > 0
                 && registration.depth_epoch > 0
                 && registration.buy_consumed <= canonical::MAX_DEPTH
                 && registration.sell_consumed <= canonical::MAX_DEPTH
-                && !self.config.is_writable
-                && !self.price.is_writable,
+                && !self.config.is_writable()
+                && !self.price.is_writable(),
             ClearingError::MakerBinding
         );
         require_keys_eq!(
-            registration.key(),
-            Pubkey::create_program_address(
+            registration.address().to_owned(),
+            create_program_address(
                 &[
                     b"maker-v4",
-                    market.key().as_ref(),
+                    market.address().as_ref(),
                     &[registration.instance],
                     &[registration.bump]
                 ],
                 &crate::ID
             )
-            .map_err(|_| error!(ClearingError::MakerBinding))?,
+            .map_err(|_| ProgramError::from(ClearingError::MakerBinding))?,
             ClearingError::MakerBinding
         );
         require_keys_eq!(
-            self.capital.key(),
-            Pubkey::create_program_address(
+            self.capital.address().to_owned(),
+            create_program_address(
                 &[
                     b"margin-v3",
                     self.capital.portfolio.as_ref(),
@@ -146,7 +152,7 @@ impl<'account, 'info> View<'account, 'info> {
                 ],
                 &crate::ID
             )
-            .map_err(|_| error!(ClearingError::MakerBinding))?,
+            .map_err(|_| ProgramError::from(ClearingError::MakerBinding))?,
             ClearingError::MakerBinding
         );
         Ok(())
@@ -155,9 +161,9 @@ impl<'account, 'info> View<'account, 'info> {
     #[inline(never)]
     pub(crate) fn authenticate(
         &self,
-        venue: &Account<Venue>,
-        market: &Account<Market>,
-        registry: &Account<LiquidityRegistry>,
+        venue: &BorshAccount<Venue>,
+        market: &BorshAccount<Market>,
+        registry: &BorshAccount<LiquidityRegistry>,
         cache: &mut CodeApprovalCache,
     ) -> Result<AuthenticatedCurve> {
         profile_cu!("maker-auth-enter");
@@ -166,14 +172,14 @@ impl<'account, 'info> View<'account, 'info> {
         let (config, price) = config_and_price(
             self.config,
             self.price,
-            self.program.key(),
+            self.program.address().to_owned(),
             self.registration.instance,
             venue,
             market,
             self.capital,
         )?;
         cache.check(
-            self.program.key(),
+            self.program.address().to_owned(),
             self.data,
             self.registration.approved_hash,
         )?;
@@ -183,8 +189,8 @@ impl<'account, 'info> View<'account, 'info> {
 
     pub(crate) fn request(
         &self,
-        venue: &Account<Venue>,
-        market: &Account<Market>,
+        venue: &BorshAccount<Venue>,
+        market: &BorshAccount<Market>,
         state: &AuthenticatedCurve,
         side: u8,
         lots: u64,
@@ -192,8 +198,8 @@ impl<'account, 'info> View<'account, 'info> {
         MakerQuoteRequest {
             version: canonical::VERSION,
             domain: venue.domain,
-            market: market.key(),
-            capital: self.capital.key(),
+            market: market.address().to_owned(),
+            capital: self.capital.address().to_owned(),
             instance: self.registration.instance,
             authority_epoch: self.registration.authority_epoch,
             control_epoch: state.config.control_epoch,
@@ -218,38 +224,43 @@ impl<'account, 'info> View<'account, 'info> {
     ) -> Result<MakerQuoteResponse> {
         profile_cu!("canonical-quote-enter");
         let expected = canonical::quote(
-            self.config.key(),
+            self.config.address().to_owned(),
             &state.config,
             &state.price,
             request,
             clock.slot,
             clock.unix_timestamp,
         )
-        .map_err(|_| error!(ClearingError::MakerQuote))?;
+        .map_err(|_| ProgramError::from(ClearingError::MakerQuote))?;
         profile_cu!("canonical-quote-exit");
         let mut bytes = Vec::with_capacity(8 + canonical::REQUEST_BYTES);
-        bytes.extend_from_slice(&hash(b"global:quote_v4").to_bytes()[..8]);
-        request.serialize(&mut bytes)?;
+        bytes.extend_from_slice(&hash(b"global:quote_curve").to_bytes()[..8]);
+        crate::wire::write(request, &mut bytes)?;
         profile_cu!("maker-cpi-enter");
         invoke(
             &Instruction {
-                program_id: self.program.key(),
+                program_id: self.program.address().to_owned(),
                 accounts: vec![
-                    AccountMeta::new_readonly(self.config.key(), false),
-                    AccountMeta::new_readonly(self.price.key(), false),
+                    AccountMeta::new_readonly(self.config.address().to_owned(), false),
+                    AccountMeta::new_readonly(self.price.address().to_owned(), false),
                 ],
                 data: bytes,
             },
             &[
-                self.config.to_account_info(),
-                self.price.to_account_info(),
-                self.program.to_account_info(),
+                self.config.cpi_handle(),
+                self.price.cpi_handle(),
+                self.program.cpi_handle(),
             ],
         )?;
         profile_cu!("maker-cpi-exit");
         let (producer, bytes) = get_return_data().ok_or(ClearingError::MakerResponse)?;
-        canonical::validate_response(&expected, self.program.key(), producer, &bytes)
-            .map_err(|_| error!(ClearingError::MakerResponse))?;
+        canonical::validate_response(
+            &expected,
+            self.program.address().to_owned(),
+            producer,
+            &bytes,
+        )
+        .map_err(|_| ProgramError::from(ClearingError::MakerResponse))?;
         profile_cu!("maker-response-validated");
         Ok(expected)
     }

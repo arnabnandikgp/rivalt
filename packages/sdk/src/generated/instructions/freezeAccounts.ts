@@ -46,15 +46,18 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findBtcLedgerPda,
+  findBtcPda,
   findCustodyPda,
   findEthLedgerPda,
+  findEthPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const FREEZE_ACCOUNTS_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [79, 20, 170, 245, 139, 183, 183, 204],
+  [87, 63, 234, 112, 233, 23, 75, 13],
 );
 
 export function getFreezeAccountsDiscriminatorBytes(): ReadonlyUint8Array {
@@ -228,8 +231,8 @@ export type FreezeAccountsAsyncInput<
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
   btcLedger?: TAccountBtcLedger;
   ethLedger?: TAccountEthLedger;
   vault?: TAccountVault;
@@ -238,13 +241,21 @@ export type FreezeAccountsAsyncInput<
   resolution: TAccountResolution;
   work: TAccountWork;
   target: TAccountTarget;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryBtc: TAccountPrimaryBtc;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryCollateral: TAccountPrimaryCollateral;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardBtc: TAccountGuardBtc;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardCollateral: TAccountGuardCollateral;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryEth: TAccountPrimaryEth;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardEth: TAccountGuardEth;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   safetyEpoch: FreezeAccountsInstructionDataArgs["safetyEpoch"];
   resolutionEpoch: FreezeAccountsInstructionDataArgs["resolutionEpoch"];
@@ -508,6 +519,28 @@ export async function getFreezeAccountsInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.btc.value) {
+    accounts.btc.value = await findBtcPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eth.value) {
+    accounts.eth.value = await findEthPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
   if (!accounts.btcLedger.value) {
     accounts.btcLedger.value = await findBtcLedgerPda(
       {
@@ -540,6 +573,11 @@ export async function getFreezeAccountsInstructionAsync<
       },
       { programAddress },
     );
+  }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
   }
 
   return Object.freeze({
@@ -698,13 +736,21 @@ export type FreezeAccountsInput<
   resolution: TAccountResolution;
   work: TAccountWork;
   target: TAccountTarget;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryBtc: TAccountPrimaryBtc;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryCollateral: TAccountPrimaryCollateral;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardBtc: TAccountGuardBtc;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardCollateral: TAccountGuardCollateral;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryEth: TAccountPrimaryEth;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardEth: TAccountGuardEth;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   safetyEpoch: FreezeAccountsInstructionDataArgs["safetyEpoch"];
   resolutionEpoch: FreezeAccountsInstructionDataArgs["resolutionEpoch"];
@@ -1079,13 +1125,21 @@ export type ParsedFreezeAccountsInstruction<
     resolution: TAccountMetas[10];
     work: TAccountMetas[11];
     target: TAccountMetas[12];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     primaryBtc: TAccountMetas[13];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     primaryCollateral: TAccountMetas[14];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     guardBtc: TAccountMetas[15];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     guardCollateral: TAccountMetas[16];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     primaryEth: TAccountMetas[17];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     guardEth: TAccountMetas[18];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[19];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[20];
   };
   data: FreezeAccountsInstructionData;

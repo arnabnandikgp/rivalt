@@ -3,52 +3,52 @@ use super::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
 #[derive(Accounts)]
-pub struct TreasuryIdentity<'info> {
+pub struct TreasuryIdentity {
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(mut, seeds = [b"ledger-v3", ledger.market.as_ref()], bump = ledger.bump, has_one = venue,
         constraint = ledger.market_index < 2 && ledger.market == venue.markets[ledger.market_index as usize] @ ClearingError::Profile)]
-    pub ledger: Box<Account<'info, MarketLedger>>,
+    pub ledger: Box<BorshAccount<MarketLedger>>,
 }
 
 #[derive(Accounts)]
-pub struct TreasuryTokenIdentity<'info> {
+pub struct TreasuryTokenIdentity {
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = vault)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(mut, seeds = [b"ledger-v3", ledger.market.as_ref()], bump = ledger.bump, has_one = venue,
         constraint = ledger.market_index < 2 && ledger.market == venue.markets[ledger.market_index as usize] @ ClearingError::Profile)]
-    pub ledger: Box<Account<'info, MarketLedger>>,
-    #[account(mut, seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
-    #[account(mut, seeds = [b"vault-v3", venue.key().as_ref()], bump = venue.vault_bump,
-        constraint = vault.owner == venue.key() && vault.mint == venue.quote_mint @ ClearingError::Mint)]
-    pub vault: Box<Account<'info, TokenAccount>>,
+    pub ledger: Box<BorshAccount<MarketLedger>>,
+    #[account(mut, seeds = [b"custody-v3", venue.address().as_ref()], bump = custody.bump, has_one = venue)]
+    pub custody: Box<BorshAccount<Custody>>,
+    #[account(mut, seeds = [b"vault-v3", venue.address().as_ref()], bump = venue.vault_bump,
+        constraint = *vault.owner() == venue.address().to_owned() && *vault.mint() == venue.quote_mint @ ClearingError::Mint)]
+    pub vault: Box<Account<TokenAccount>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct AllocateMarketFees<'info> {
-    pub identity: TreasuryIdentity<'info>,
+pub struct AllocateMarketFees {
+    pub identity: Nested<TreasuryIdentity>,
     #[account(address = identity.venue.fee_authority @ ClearingError::Authority)]
-    pub fee_authority: Signer<'info>,
+    pub fee_authority: Signer,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct WithdrawMarketFees<'info> {
-    pub identity: TreasuryTokenIdentity<'info>,
+pub struct WithdrawMarketFees {
+    pub identity: Nested<TreasuryTokenIdentity>,
     #[account(address = identity.venue.fee_authority @ ClearingError::Authority)]
-    pub fee_authority: Signer<'info>,
+    pub fee_authority: Signer,
     #[account(address = identity.venue.quote_mint @ ClearingError::Mint)]
-    pub quote_mint: Box<Account<'info, Mint>>,
+    pub quote_mint: Box<Account<Mint>>,
     #[account(mut, token::mint = quote_mint, token::authority = fee_authority,
-        constraint = user_token.key() != identity.vault.key() @ ClearingError::Alias)]
-    pub user_token: Box<Account<'info, TokenAccount>>,
-    pub token_program: Program<'info, Token>,
+        constraint = user_token.address().to_owned() != identity.vault.address().to_owned() @ ClearingError::Alias)]
+    pub user_token: Box<Account<TokenAccount>>,
+    pub token_program: Program<Token>,
 }
 
 pub(crate) fn treasury_profile(
@@ -80,12 +80,13 @@ pub fn allocate(
     market_index: u8,
     amount: u64,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty() && amount > 0,
+        remaining_accounts.is_empty() && amount > 0,
         ClearingError::Amount
     );
-    let accounts = &mut *ctx.accounts;
-    let identity = &mut accounts.identity;
+    let accounts = &mut ctx.accounts;
+    let identity = &mut *accounts.identity;
     treasury_profile(
         &identity.venue,
         &identity.safety,
@@ -100,8 +101,8 @@ pub fn allocate(
         &identity.safety,
         &identity.ledger,
         events,
-        accounts.event_authority.to_account_info(),
-        accounts.fee_authority.key(),
+        accounts.event_authority.account().clone(),
+        accounts.fee_authority.address().to_owned(),
         5,
         amount,
         None,
@@ -114,19 +115,20 @@ pub fn withdraw(
     market_index: u8,
     amount: u64,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty() && amount > 0,
+        remaining_accounts.is_empty() && amount > 0,
         ClearingError::Amount
     );
-    let accounts = &mut *ctx.accounts;
-    let identity = &mut accounts.identity;
+    let accounts = &mut ctx.accounts;
+    let identity = &mut *accounts.identity;
     treasury_profile(
         &identity.venue,
         &identity.safety,
         &identity.ledger,
         market_index,
     )?;
-    super::super::account_custody::vault_backed(&identity.custody, identity.vault.amount)?;
+    super::super::account_custody::vault_backed(&identity.custody, identity.vault.amount())?;
     identity.ledger.fees = checked(math::cash_sub(identity.ledger.fees, amount))?;
     identity.custody.allocated_vault =
         checked(math::cash_sub(identity.custody.allocated_vault, amount))?;
@@ -135,47 +137,47 @@ pub fn withdraw(
     let seeds: &[&[u8]] = &[b"venue-v3", &identity.venue.domain, &bump];
     token::transfer_checked(
         CpiContext::new_with_signer(
-            accounts.token_program.key(),
+            accounts.token_program.address(),
             TransferChecked {
-                from: identity.vault.to_account_info(),
-                to: accounts.user_token.to_account_info(),
-                mint: accounts.quote_mint.to_account_info(),
-                authority: identity.venue.to_account_info(),
+                from: identity.vault.try_cpi_handle_mut()?,
+                to: accounts.user_token.try_cpi_handle_mut()?,
+                mint: accounts.quote_mint.cpi_handle(),
+                authority: identity.venue.cpi_handle(),
             },
             &[seeds],
         ),
         amount,
         6,
     )?;
-    identity.vault.reload()?;
-    super::super::account_custody::vault_backed(&identity.custody, identity.vault.amount)?;
+    identity.vault.revalidate_after_cpi()?;
+    super::super::account_custody::vault_backed(&identity.custody, identity.vault.amount())?;
     emit_treasury(
         &identity.venue,
         &identity.safety,
         &identity.ledger,
         events,
-        accounts.event_authority.to_account_info(),
-        accounts.fee_authority.key(),
+        accounts.event_authority.account().clone(),
+        accounts.fee_authority.address().to_owned(),
         6,
         amount,
-        Some((identity.custody.allocated_vault, identity.vault.amount)),
+        Some((identity.custody.allocated_vault, identity.vault.amount())),
     )
 }
 
 fn emit_treasury<'info>(
-    venue: &Account<Venue>,
+    venue: &BorshAccount<Venue>,
     safety: &VenueSafety,
-    ledger: &Account<MarketLedger>,
+    ledger: &BorshAccount<MarketLedger>,
     events: &mut crate::event_cpi::Payloads,
-    authority: AccountInfo<'info>,
-    actor: Pubkey,
+    authority: AccountView,
+    actor: Address,
     kind: u8,
     amount: u64,
     tokens: Option<(u64, u64)>,
 ) -> Result<()> {
     events.emit(
         &crate::events::AccountFinancialChanged {
-            venue: venue.key(),
+            venue: venue.address().to_owned(),
             slot: Clock::get()?.slot,
             actor,
             kind,

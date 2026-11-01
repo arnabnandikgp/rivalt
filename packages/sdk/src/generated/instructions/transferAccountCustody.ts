@@ -42,11 +42,11 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findVenueSafetyPda } from "../pdas/index.js";
+import { findEventAuthorityPda, findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const TRANSFER_ACCOUNT_CUSTODY_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([95, 81, 42, 204, 234, 182, 15, 18]);
+  new Uint8Array([79, 118, 155, 110, 54, 143, 155, 72]);
 
 export function getTransferAccountCustodyDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -148,7 +148,9 @@ export type TransferAccountCustodyAsyncInput<
   safety?: TAccountSafety;
   donor: TAccountDonor;
   recipient: TAccountRecipient;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   amount: TransferAccountCustodyInstructionDataArgs["amount"];
 };
@@ -261,6 +263,11 @@ export async function getTransferAccountCustodyInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -324,7 +331,9 @@ export type TransferAccountCustodyInput<
   safety: TAccountSafety;
   donor: TAccountDonor;
   recipient: TAccountRecipient;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   amount: TransferAccountCustodyInstructionDataArgs["amount"];
 };
@@ -481,7 +490,9 @@ export type ParsedTransferAccountCustodyInstruction<
     safety: TAccountMetas[2];
     donor: TAccountMetas[3];
     recipient: TAccountMetas[4];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[5];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[6];
   };
   data: TransferAccountCustodyInstructionData;

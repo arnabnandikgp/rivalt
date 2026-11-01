@@ -7,7 +7,7 @@ mod contexts;
 pub use contexts::*;
 
 pub(crate) fn arithmetic<T>(result: financial_core::Result<T>) -> Result<T> {
-    result.map_err(|_| error!(ClearingError::Arithmetic))
+    result.map_err(|_| ProgramError::from(ClearingError::Arithmetic))
 }
 
 pub(crate) fn increment(value: &mut u64) -> Result<()> {
@@ -82,7 +82,7 @@ pub(crate) fn accounted_cash(custody: &Custody, ledgers: [&MarketLedger; 2]) -> 
     let cash = u128::from(custody.allocated_vault)
         .checked_sub(pools)
         .ok_or(ClearingError::Reconciliation)?;
-    u64::try_from(cash).map_err(|_| error!(ClearingError::Arithmetic))
+    u64::try_from(cash).map_err(|_| ProgramError::from(ClearingError::Arithmetic))
 }
 
 pub(crate) fn reconciled(
@@ -97,7 +97,7 @@ pub(crate) fn reconciled(
 
 fn empty_financial_state(margin: &MarginAccount) -> Result<()> {
     let mut book = Vec::with_capacity(crate::state::OrderBook::INIT_SPACE);
-    margin.book.serialize(&mut book)?;
+    crate::wire::write(&margin.book, &mut book)?;
     require!(
         margin.schema_version == SCHEMA_VERSION
             && valid_identity(
@@ -109,7 +109,7 @@ fn empty_financial_state(margin: &MarginAccount) -> Result<()> {
             )
             && margin.nonce == 0
             && margin.reserved == 0
-            && margin.delegate == Pubkey::default()
+            && margin.delegate == Address::default()
             && margin.delegate_expiry_slot == 0
             && margin.delegate_epoch == 1
             && margin.positions.iter().all(|position| position.lots == 0
@@ -148,9 +148,9 @@ pub(crate) fn liability_free(margin: &MarginAccount) -> Result<()> {
     Ok(())
 }
 
-fn member(account: &Account<MarginAccount>) -> AccountCashSnapshot {
+fn member(account: &BorshAccount<MarginAccount>) -> AccountCashSnapshot {
     AccountCashSnapshot {
-        margin: account.key(),
+        margin: account.address().to_owned(),
         portfolio: account.portfolio,
         owner: account.owner,
         subaccount_index: account.subaccount_index,
@@ -163,9 +163,9 @@ fn member(account: &Account<MarginAccount>) -> AccountCashSnapshot {
     }
 }
 
-pub(crate) fn ledger_snapshot(account: &Account<MarketLedger>) -> MarketLedgerSnapshot {
+pub(crate) fn ledger_snapshot(account: &BorshAccount<MarketLedger>) -> MarketLedgerSnapshot {
     MarketLedgerSnapshot {
-        ledger: account.key(),
+        ledger: account.address().to_owned(),
         market: account.market,
         market_index: account.market_index,
         settlement: account.settlement,
@@ -178,24 +178,24 @@ pub(crate) fn ledger_snapshot(account: &Account<MarketLedger>) -> MarketLedgerSn
 }
 
 fn event(
-    venue: &Account<Venue>,
-    custody: Option<&Account<Custody>>,
-    safety: &Account<VenueSafety>,
+    venue: &BorshAccount<Venue>,
+    custody: Option<&BorshAccount<Custody>>,
+    safety: &BorshAccount<VenueSafety>,
     kind: u8,
-    actor: Pubkey,
-    subject: Pubkey,
+    actor: Address,
+    subject: Address,
     index: u16,
     amount: u64,
     actual_vault: Option<u64>,
     members: Vec<AccountCashSnapshot>,
     ledgers: Vec<MarketLedgerSnapshot>,
-    registry: Option<&Account<VenueRegistry>>,
+    registry: Option<&crate::state::records::RegistryAccount>,
 ) -> Result<AccountCustodyChanged> {
     Ok(AccountCustodyChanged {
         schema_version: SCHEMA_VERSION,
         profile_version: venue.profile_version,
         domain: venue.domain,
-        venue: venue.key(),
+        venue: venue.address().to_owned(),
 
         slot: Clock::get()?.slot,
         kind,
@@ -230,9 +230,9 @@ pub fn initialize_liquidity(
     ctx: &mut Context<InitializeVenue>,
     events: &mut crate::event_cpi::Payloads,
     domain: [u8; 32],
-    fee_authority: Pubkey,
-    reserve_authority: Pubkey,
-    reserve_destination_owner: Pubkey,
+    fee_authority: Address,
+    reserve_authority: Address,
+    reserve_destination_owner: Address,
 ) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification"),
@@ -253,61 +253,61 @@ fn initialize_profile(
     ctx: &mut Context<InitializeVenue>,
     events: &mut crate::event_cpi::Payloads,
     domain: [u8; 32],
-    fee_authority: Pubkey,
-    reserve_authority: Pubkey,
-    reserve_destination_owner: Pubkey,
+    fee_authority: Address,
+    reserve_authority: Address,
+    reserve_destination_owner: Address,
     profile_version: u16,
 ) -> Result<()> {
     require!(
-        cfg!(feature = "liquidity-execution-qualification") && ctx.remaining_accounts.is_empty(),
+        cfg!(feature = "liquidity-execution-qualification") && ctx.remaining_accounts()?.is_empty(),
         ClearingError::Profile
     );
     require!(domain != [0; 32], ClearingError::Domain);
     require!(
         [fee_authority, reserve_authority, reserve_destination_owner]
             .iter()
-            .all(|key| *key != Pubkey::default()),
+            .all(|key| *key != Address::default()),
         ClearingError::Authority
     );
     let venue = &mut ctx.accounts.venue;
-    venue.set_inner(Venue {
+    ***venue = Venue {
         schema_version: SCHEMA_VERSION,
         profile_version,
         domain,
-        authority: ctx.accounts.authority.key(),
+        authority: ctx.accounts.authority.address().to_owned(),
         fee_authority,
         reserve_authority,
         reserve_destination_owner,
-        quote_mint: ctx.accounts.quote_mint.key(),
-        vault: ctx.accounts.vault.key(),
+        quote_mint: ctx.accounts.quote_mint.address().to_owned(),
+        vault: ctx.accounts.vault.address().to_owned(),
         terms_epoch: 1,
         config_epoch: 1,
         insurance_fee_share_bps: 2500,
         bump: ctx.bumps.venue,
         vault_bump: ctx.bumps.vault,
         ..Default::default()
-    });
-    ctx.accounts.custody.set_inner(Custody {
+    };
+    **ctx.accounts.custody = Custody {
         schema_version: SCHEMA_VERSION,
-        venue: venue.key(),
+        venue: venue.address().to_owned(),
         bump: ctx.bumps.custody,
         ..Default::default()
-    });
-    ctx.accounts.safety.set_inner(VenueSafety {
+    };
+    **ctx.accounts.safety = VenueSafety {
         schema_version: SCHEMA_VERSION,
-        venue: venue.key(),
+        venue: venue.address().to_owned(),
         epoch: 1,
         bump: ctx.bumps.safety,
         ..Default::default()
-    });
+    };
     events.emit(
         &(event(
             venue,
             Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             0,
-            ctx.accounts.authority.key(),
-            venue.key(),
+            ctx.accounts.authority.address().to_owned(),
+            venue.address().to_owned(),
             0,
             0,
             Some(0),
@@ -315,7 +315,7 @@ fn initialize_profile(
             vec![],
             None,
         )?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -324,32 +324,33 @@ pub fn initialize_registry(
     ctx: &mut Context<InitializeVenueRegistry>,
     events: &mut crate::event_cpi::Payloads,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     active(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,
     )?;
     require_keys_eq!(
-        ctx.accounts.authority.key(),
+        ctx.accounts.authority.address().to_owned(),
         ctx.accounts.venue.authority,
         ClearingError::Authority
     );
-    ctx.accounts.registry.set_inner(VenueRegistry {
+    **ctx.accounts.registry = VenueRegistry {
         schema_version: SCHEMA_VERSION,
-        venue: ctx.accounts.venue.key(),
+        venue: ctx.accounts.venue.address().to_owned(),
         membership_version: 1,
         bump: ctx.bumps.registry,
         ..Default::default()
-    });
+    };
     events.emit(
         &(event(
             &ctx.accounts.venue,
             Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             10,
-            ctx.accounts.authority.key(),
-            ctx.accounts.registry.key(),
+            ctx.accounts.authority.address().to_owned(),
+            ctx.accounts.registry.address().to_owned(),
             0,
             0,
             None,
@@ -357,7 +358,7 @@ pub fn initialize_registry(
             vec![],
             Some(&ctx.accounts.registry),
         )?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -367,14 +368,15 @@ pub fn initialize_market(
     events: &mut crate::event_cpi::Payloads,
     index: u8,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     active(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,
     )?;
     require_keys_eq!(
-        ctx.accounts.authority.key(),
+        ctx.accounts.authority.address().to_owned(),
         ctx.accounts.venue.authority,
         ClearingError::Authority
     );
@@ -382,9 +384,9 @@ pub fn initialize_market(
         usize::from(index) < MARKET_COUNT && index == ctx.accounts.venue.market_count,
         ClearingError::Profile
     );
-    ctx.accounts.market.set_inner(Market {
+    **ctx.accounts.market = Market {
         schema_version: SCHEMA_VERSION,
-        venue: ctx.accounts.venue.key(),
+        venue: ctx.accounts.venue.address().to_owned(),
         index,
         symbol: if index == 0 {
             *b"BTC\0\0\0\0\0"
@@ -397,16 +399,16 @@ pub fn initialize_market(
         config_epoch: 1,
         bump: ctx.bumps.market,
         ..Default::default()
-    });
-    ctx.accounts.ledger.set_inner(MarketLedger {
+    };
+    **ctx.accounts.ledger = MarketLedger {
         schema_version: SCHEMA_VERSION,
-        venue: ctx.accounts.venue.key(),
-        market: ctx.accounts.market.key(),
+        venue: ctx.accounts.venue.address().to_owned(),
+        market: ctx.accounts.market.address().to_owned(),
         market_index: index,
         bump: ctx.bumps.ledger,
         ..Default::default()
-    });
-    ctx.accounts.venue.markets[usize::from(index)] = ctx.accounts.market.key();
+    };
+    ctx.accounts.venue.markets[usize::from(index)] = ctx.accounts.market.address().to_owned();
     ctx.accounts.venue.market_count += 1;
     events.emit(
         &(event(
@@ -414,8 +416,8 @@ pub fn initialize_market(
             Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             1,
-            ctx.accounts.authority.key(),
-            ctx.accounts.market.key(),
+            ctx.accounts.authority.address().to_owned(),
+            ctx.accounts.market.address().to_owned(),
             u16::from(index),
             0,
             None,
@@ -423,7 +425,7 @@ pub fn initialize_market(
             vec![ledger_snapshot(&ctx.accounts.ledger)],
             None,
         )?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -433,7 +435,8 @@ pub fn create_portfolio(
     events: &mut crate::event_cpi::Payloads,
     index: u16,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     available_identity(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
@@ -443,23 +446,23 @@ pub fn create_portfolio(
         index < MAX_PORTFOLIOS && usize::from(ctx.accounts.venue.market_count) == MARKET_COUNT,
         ClearingError::Profile
     );
-    ctx.accounts.portfolio.set_inner(Portfolio {
+    **ctx.accounts.portfolio = Portfolio {
         revision: 0,
         schema_version: SCHEMA_VERSION,
-        venue: ctx.accounts.venue.key(),
-        owner: ctx.accounts.owner.key(),
+        venue: ctx.accounts.venue.address().to_owned(),
+        owner: ctx.accounts.owner.address().to_owned(),
         index,
         children: 0,
         bump: ctx.bumps.portfolio,
-    });
+    };
     events.emit(
         &(event(
             &ctx.accounts.venue,
             Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             2,
-            ctx.accounts.owner.key(),
-            ctx.accounts.portfolio.key(),
+            ctx.accounts.owner.address().to_owned(),
+            ctx.accounts.portfolio.address().to_owned(),
             index,
             0,
             None,
@@ -467,7 +470,7 @@ pub fn create_portfolio(
             vec![],
             None,
         )?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -480,7 +483,8 @@ pub fn register(
     isolated_market_index: u8,
     role: u8,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     available_identity(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
@@ -515,11 +519,11 @@ pub fn register(
         registry.members.len() < MAX_MEMBERS,
         ClearingError::Capacity
     );
-    ctx.accounts.margin.set_inner(MarginAccount {
+    **ctx.accounts.margin = MarginAccount {
         schema_version: SCHEMA_VERSION,
-        venue: ctx.accounts.venue.key(),
-        portfolio: ctx.accounts.portfolio.key(),
-        owner: ctx.accounts.owner.key(),
+        venue: ctx.accounts.venue.address().to_owned(),
+        portfolio: ctx.accounts.portfolio.address().to_owned(),
+        owner: ctx.accounts.owner.address().to_owned(),
         subaccount_index,
         id: registry.count,
         mode,
@@ -528,9 +532,11 @@ pub fn register(
         delegate_epoch: 1,
         bump: ctx.bumps.margin,
         ..Default::default()
-    });
+    };
     ctx.accounts.portfolio.children |= child_mask;
-    registry.members.push(ctx.accounts.margin.key());
+    registry
+        .members
+        .push(ctx.accounts.margin.address().to_owned());
     registry.count += 1;
     increment(&mut registry.membership_version)?;
     events.emit(
@@ -539,8 +545,8 @@ pub fn register(
             Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             3,
-            ctx.accounts.owner.key(),
-            ctx.accounts.margin.key(),
+            ctx.accounts.owner.address().to_owned(),
+            ctx.accounts.margin.address().to_owned(),
             subaccount_index,
             0,
             None,
@@ -548,7 +554,7 @@ pub fn register(
             vec![],
             Some(registry),
         )?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -559,7 +565,8 @@ pub fn cash(
     amount: u64,
     withdraw: bool,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     if !withdraw && ctx.accounts.safety.mode == ACTIVE {
         super::account_cash::profile(&ctx.accounts.venue, &ctx.accounts.safety)?;
         super::account_trading::model(&ctx.accounts.margin)?;
@@ -591,7 +598,7 @@ pub fn cash(
         }
     }
     require!(amount > 0, ClearingError::Amount);
-    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount())?;
     let operation = if withdraw { cash_sub } else { cash_add };
     ctx.accounts.margin.cash = arithmetic(operation(ctx.accounts.margin.cash, amount))?;
     ctx.accounts.custody.allocated_vault =
@@ -602,12 +609,12 @@ pub fn cash(
         let seeds: &[&[u8]] = &[b"venue-v3", ctx.accounts.venue.domain.as_ref(), &bump];
         token::transfer_checked(
             CpiContext::new_with_signer(
-                ctx.accounts.token_program.key(),
+                ctx.accounts.token_program.address(),
                 TransferChecked {
-                    from: ctx.accounts.vault.to_account_info(),
-                    mint: ctx.accounts.quote_mint.to_account_info(),
-                    to: ctx.accounts.user_token.to_account_info(),
-                    authority: ctx.accounts.venue.to_account_info(),
+                    from: ctx.accounts.vault.try_cpi_handle_mut()?,
+                    mint: ctx.accounts.quote_mint.cpi_handle(),
+                    to: ctx.accounts.user_token.try_cpi_handle_mut()?,
+                    authority: ctx.accounts.venue.cpi_handle(),
                 },
                 &[seeds],
             ),
@@ -617,31 +624,31 @@ pub fn cash(
     } else {
         token::transfer_checked(
             CpiContext::new(
-                ctx.accounts.token_program.key(),
+                ctx.accounts.token_program.address(),
                 TransferChecked {
-                    from: ctx.accounts.user_token.to_account_info(),
-                    mint: ctx.accounts.quote_mint.to_account_info(),
-                    to: ctx.accounts.vault.to_account_info(),
-                    authority: ctx.accounts.owner.to_account_info(),
+                    from: ctx.accounts.user_token.try_cpi_handle_mut()?,
+                    mint: ctx.accounts.quote_mint.cpi_handle(),
+                    to: ctx.accounts.vault.try_cpi_handle_mut()?,
+                    authority: ctx.accounts.owner.cpi_handle(),
                 },
             ),
             amount,
             6,
         )?;
     }
-    ctx.accounts.vault.reload()?;
-    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
+    ctx.accounts.vault.revalidate_after_cpi()?;
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount())?;
     events.emit(
         &(event(
             &ctx.accounts.venue,
             Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             if withdraw { 5 } else { 4 },
-            ctx.accounts.owner.key(),
-            ctx.accounts.margin.key(),
+            ctx.accounts.owner.address().to_owned(),
+            ctx.accounts.margin.address().to_owned(),
             ctx.accounts.margin.subaccount_index,
             amount,
-            Some(ctx.accounts.vault.amount),
+            Some(ctx.accounts.vault.amount()),
             vec![member(&ctx.accounts.margin)],
             [
                 ctx.accounts.btc_ledger.as_deref(),
@@ -653,7 +660,7 @@ pub fn cash(
             .collect(),
             None,
         )?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -663,7 +670,8 @@ pub fn transfer(
     events: &mut crate::event_cpi::Payloads,
     amount: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     super::account_trading::base_identity(&ctx.accounts.venue, &ctx.accounts.safety)?;
     require!(ctx.accounts.safety.mode == CUSTODY, ClearingError::Profile);
     require!(!ctx.accounts.safety.paused, ClearingError::Paused);
@@ -685,8 +693,8 @@ pub fn transfer(
             None,
             &ctx.accounts.safety,
             6,
-            ctx.accounts.owner.key(),
-            ctx.accounts.donor.key(),
+            ctx.accounts.owner.address().to_owned(),
+            ctx.accounts.donor.address().to_owned(),
             0,
             amount,
             None,
@@ -694,7 +702,7 @@ pub fn transfer(
             vec![],
             None,
         )?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -704,7 +712,8 @@ pub fn pause(
     events: &mut crate::event_cpi::Payloads,
     paused: bool,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     if ctx.accounts.safety.mode == ACTIVE {
         super::account_trading::base_profile(
             &ctx.accounts.venue,
@@ -719,14 +728,14 @@ pub fn pause(
         )?;
     }
     require_keys_eq!(
-        ctx.accounts.authority.key(),
+        ctx.accounts.authority.address().to_owned(),
         ctx.accounts.venue.authority,
         ClearingError::Authority
     );
     reconciled(
         &ctx.accounts.custody,
         [&ctx.accounts.btc_ledger, &ctx.accounts.eth_ledger],
-        ctx.accounts.vault.amount,
+        ctx.accounts.vault.amount(),
     )?;
     ctx.accounts.safety.paused = paused;
     increment(&mut ctx.accounts.safety.epoch)?;
@@ -736,11 +745,11 @@ pub fn pause(
             Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             7,
-            ctx.accounts.authority.key(),
-            ctx.accounts.safety.key(),
+            ctx.accounts.authority.address().to_owned(),
+            ctx.accounts.safety.address().to_owned(),
             0,
             0,
-            Some(ctx.accounts.vault.amount),
+            Some(ctx.accounts.vault.amount()),
             vec![],
             vec![
                 ledger_snapshot(&ctx.accounts.btc_ledger),
@@ -748,7 +757,7 @@ pub fn pause(
             ],
             None,
         )?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -759,14 +768,15 @@ pub fn classify_surplus(
     market_index: u8,
     amount: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     available_identity(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,
     )?;
     require_keys_eq!(
-        ctx.accounts.reserve_authority.key(),
+        ctx.accounts.reserve_authority.address().to_owned(),
         ctx.accounts.venue.reserve_authority,
         ClearingError::Authority
     );
@@ -777,9 +787,9 @@ pub fn classify_surplus(
             && ctx.accounts.ledger.schema_version == SCHEMA_VERSION,
         ClearingError::Amount
     );
-    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount())?;
     require!(
-        amount <= ctx.accounts.vault.amount - ctx.accounts.custody.allocated_vault,
+        amount <= ctx.accounts.vault.amount() - ctx.accounts.custody.allocated_vault,
         ClearingError::Amount
     );
     let ledger = &mut ctx.accounts.ledger;
@@ -787,23 +797,23 @@ pub fn classify_surplus(
     increment(&mut ledger.version)?;
     ctx.accounts.custody.allocated_vault =
         arithmetic(cash_add(ctx.accounts.custody.allocated_vault, amount))?;
-    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount())?;
     events.emit(
         &(event(
             &ctx.accounts.venue,
             Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             8,
-            ctx.accounts.reserve_authority.key(),
+            ctx.accounts.reserve_authority.address().to_owned(),
             ctx.accounts.venue.markets[usize::from(market_index)],
             u16::from(market_index),
             amount,
-            Some(ctx.accounts.vault.amount),
+            Some(ctx.accounts.vault.amount()),
             vec![],
             vec![ledger_snapshot(&ctx.accounts.ledger)],
             None,
         )?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }
@@ -814,14 +824,15 @@ pub fn seed_insurance(
     market_index: u8,
     amount: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
     available_identity(
         &ctx.accounts.venue,
         &ctx.accounts.custody,
         &ctx.accounts.safety,
     )?;
     require_keys_eq!(
-        ctx.accounts.reserve_authority.key(),
+        ctx.accounts.reserve_authority.address().to_owned(),
         ctx.accounts.venue.reserve_authority,
         ClearingError::Authority
     );
@@ -832,7 +843,7 @@ pub fn seed_insurance(
             && ctx.accounts.ledger.schema_version == SCHEMA_VERSION,
         ClearingError::Amount
     );
-    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount())?;
     let ledger = &mut ctx.accounts.ledger;
     ledger.insurance = arithmetic(cash_add(ledger.insurance, amount))?;
     increment(&mut ledger.version)?;
@@ -840,35 +851,35 @@ pub fn seed_insurance(
         arithmetic(cash_add(ctx.accounts.custody.allocated_vault, amount))?;
     token::transfer_checked(
         CpiContext::new(
-            ctx.accounts.token_program.key(),
+            ctx.accounts.token_program.address(),
             TransferChecked {
-                from: ctx.accounts.donor_token.to_account_info(),
-                mint: ctx.accounts.quote_mint.to_account_info(),
-                to: ctx.accounts.vault.to_account_info(),
-                authority: ctx.accounts.donor.to_account_info(),
+                from: ctx.accounts.donor_token.try_cpi_handle_mut()?,
+                mint: ctx.accounts.quote_mint.cpi_handle(),
+                to: ctx.accounts.vault.try_cpi_handle_mut()?,
+                authority: ctx.accounts.donor.cpi_handle(),
             },
         ),
         amount,
         6,
     )?;
-    ctx.accounts.vault.reload()?;
-    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount)?;
+    ctx.accounts.vault.revalidate_after_cpi()?;
+    vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount())?;
     events.emit(
         &(event(
             &ctx.accounts.venue,
             Some(&ctx.accounts.custody),
             &ctx.accounts.safety,
             9,
-            ctx.accounts.donor.key(),
+            ctx.accounts.donor.address().to_owned(),
             ctx.accounts.venue.markets[usize::from(market_index)],
             u16::from(market_index),
             amount,
-            Some(ctx.accounts.vault.amount),
+            Some(ctx.accounts.vault.amount()),
             vec![],
             vec![ledger_snapshot(&ctx.accounts.ledger)],
             None,
         )?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }

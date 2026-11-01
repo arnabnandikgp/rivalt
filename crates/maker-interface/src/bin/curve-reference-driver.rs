@@ -19,7 +19,11 @@ fn evaluate(line: &str, consecutive: bool) -> Result<(u64, u64), String> {
     if fields.len() != 6 {
         return Err("fields".into());
     }
-    let shape = LiquidityShape::try_from_slice(&decode_hex(fields[0])?).map_err(|_| "shape")?;
+    let shape = anchor_lang::wincode::config::deserialize::<LiquidityShape, _>(
+        &decode_hex(fields[0])?,
+        anchor_lang::BORSH_CONFIG,
+    )
+    .map_err(|_| "shape")?;
     let anchor = fields[1].parse().map_err(|_| "anchor")?;
     let side = fields[2].parse().map_err(|_| "side")?;
     let lots = fields[3].parse().map_err(|_| "lots")?;

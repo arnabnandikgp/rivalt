@@ -1,11 +1,12 @@
 //! Authenticate bound source accounts before evaluating their price policy.
 use super::*;
+use anchor_lang::AccountDeserialize;
 use financial_core::oracle as policy;
 use oracle_fixture::{Feed, ID as FIXTURE};
 
 pub(crate) fn source(
-    info: &AccountInfo,
-    expected: Pubkey,
+    info: &AccountView,
+    expected: Address,
     index: usize,
     sequence: u64,
 ) -> Result<(policy::Price, u64)> {
@@ -13,13 +14,13 @@ pub(crate) fn source(
     #[cfg(feature = "devnet-test-profile")]
     if index < 2 {
         return crate::pyth_core::decode(info, index, sequence, Clock::get()?.slot)
-            .ok_or_else(|| error!(ClearingError::OracleSource));
+            .ok_or_else(|| ProgramError::from(ClearingError::OracleSource));
     }
     require!(
-        info.key == &expected && info.owner == &FIXTURE && !info.is_writable,
+        info.address() == &expected && info.owner() == &FIXTURE && !info.is_writable(),
         ClearingError::OracleSource
     );
-    let bytes = info.try_borrow_data()?;
+    let bytes = info.try_borrow()?;
     require!(
         bytes.len() == 8 + Feed::INIT_SPACE,
         ClearingError::OracleSource
@@ -45,7 +46,7 @@ pub(crate) fn source(
 }
 
 /// Bad account substitution rejects before a policy failure can be recorded.
-pub(crate) fn binding(info: &AccountInfo, expected: Pubkey, index: usize) -> Result<()> {
+pub(crate) fn binding(info: &AccountView, expected: Address, index: usize) -> Result<()> {
     #[cfg(feature = "devnet-test-profile")]
     let owner = if index < 2 {
         crate::pyth_core::RECEIVER
@@ -58,7 +59,10 @@ pub(crate) fn binding(info: &AccountInfo, expected: Pubkey, index: usize) -> Res
         FIXTURE
     };
     require!(
-        info.key == &expected && info.owner == &owner && !info.is_writable && !info.executable,
+        info.address() == &expected
+            && info.owner() == &owner
+            && !info.is_writable()
+            && !info.executable(),
         ClearingError::OracleSource
     );
     Ok(())
