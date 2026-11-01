@@ -537,11 +537,17 @@ source-unavailable response before signing. The harness now bounds and records
 every unsigned preparation retry. The next run omits the unchanged, separately
 passed browser actions and finishes the remaining service lifecycle; it must not
 claim a new browser run or hide those unavailable preparations.
-Next exact action: finish the remaining service lifecycle with classified unsigned
-preparation waits,
-then finish frozen instruction/resource/cost and bounded load reporting. P44 still owns full-path measurement,
-integrated qualification and the frozen pre-Anchor-v2 baseline. No validator TPS,
-endurance, browser or funded qualification is claimed for P42.
+Clean `2281869` passes the stored-order worker fill, publisher rotation/revocation/
+budget handover with real lost-ack/SIGKILL, and source outage/recovery. It then
+fails to reconcile the restarted indexer within forty seconds of continuous
+publication. Sequential full-block retrieval repeatedly falls behind; bounded
+eight-block parallel reads now preserve canonical order, complete signature
+manifests, all revision/financial checks and unchanged catch-up limits. Scoped
+unit and real service/fresh-replay acceptance are required before claiming a fix.
+The earlier same-revision attempt stopped during setup with a recorded twelve-
+minute runtime/finality stall; neither failed run is complete service acceptance.
+Next exact action: verify bounded parallel history reads, rerun service recovery,
+then freeze the complete instruction/cost baseline and publish the P44 PR.
 
 ## Deployment and operational limits
 

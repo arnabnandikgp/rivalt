@@ -142,6 +142,11 @@ crash/rollback/disconnect recovery resumes the durable checkpoint. Unknown criti
 schemas, skipped revisions, bad CPI identity, duplicates with conflicting bytes and
 unexplained balances fail readiness. Fresh database replay must match incremental
 reconstruction. A chain reset is a different genesis, never a continuation.
+Block discovery reads up to eight blocks concurrently (body plus independent
+signature manifest, at most sixteen in-flight RPC requests). Responses still apply
+in canonical slot/transaction order. Parent-chain, completeness, cumulative history
+limits, three tail catch-ups and exact financial reconciliation remain mandatory;
+parallel reads never commit an unreconciled prefix.
 
 RPC reconciliation compares financial accounts, canonical registry/registration
 and publisher configuration as well as actual token backing. Maker price accounts

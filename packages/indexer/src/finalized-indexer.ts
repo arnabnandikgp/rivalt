@@ -8,6 +8,9 @@ import type {RevisionVector} from './scoped-history.js';
 import {ReconciliationAhead} from './reconciliation-progress.js';
 
 export const MAX_RECONCILIATION_CATCHUPS=3;
+// Each block has two authenticated reads (body + signature manifest). Bound
+// network concurrency while retaining canonical slot/transaction application.
+export const FINALIZED_BLOCK_READ_WIDTH=8;
 export type TransportConfig = { rpcUrl:string; wsUrl:string; databaseUrl:string; runId:string; anchor:string;
   pageSize?:number; maxRecoveryTransactions?:number; chain?:sdk.TestChain; maxTransactionVersion?:0|1 };
 
@@ -83,19 +86,26 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
         const slots=await this.rpc.call('getBlocks',[first,last,{commitment:'finalized'}]);this.metrics.pages++;
         if(!Array.isArray(slots)||slots.some((slot:unknown,index:number)=>integer(slot)<first||integer(slot)>last||(index>0&&integer(slot)<=slots[index-1])))
           throw new Error('Invalid finalized block range');
-        for(const slot of slots) {
-          const block=await readFinalizedBlock(this.rpc,slot,this.config.maxTransactionVersion??0);
-          transactionCount+=block.transactions.length;
-          if(transactionCount>(this.config.maxRecoveryTransactions??10_000))throw new Error('History recovery exceeds transaction bound');
-          for(const [index,{signature,tx}] of block.transactions.entries()) {
-            this.metrics.fetched++;
-            const keys=[...tx.transaction.message.accountKeys,...(tx.meta.loadedAddresses?.writable??[]),...(tx.meta.loadedAddresses?.readonly??[])];
-            if(keys.includes(this.deployment.clearing)) {
-              await this.store.observe('rpc-finalized',signature,tx);
-              added.push(...this.decodeTransaction(signature,tx,index,row.binding));
+        for(let offset=0;offset<slots.length;offset+=FINALIZED_BLOCK_READ_WIDTH) {
+          const responses=await Promise.allSettled(slots.slice(offset,offset+FINALIZED_BLOCK_READ_WIDTH).map((slot:number)=>
+            readFinalizedBlock(this.rpc,slot,this.config.maxTransactionVersion??0)));
+          const batch=responses.map(response=>{
+            if(response.status==='rejected')throw response.reason;
+            return response.value;
+          });
+          for(const block of batch) {
+            transactionCount+=block.transactions.length;
+            if(transactionCount>(this.config.maxRecoveryTransactions??10_000))throw new Error('History recovery exceeds transaction bound');
+            for(const [index,{signature,tx}] of block.transactions.entries()) {
+              this.metrics.fetched++;
+              const keys=[...tx.transaction.message.accountKeys,...(tx.meta.loadedAddresses?.writable??[]),...(tx.meta.loadedAddresses?.readonly??[])];
+              if(keys.includes(this.deployment.clearing)) {
+                await this.store.observe('rpc-finalized',signature,tx);
+                added.push(...this.decodeTransaction(signature,tx,index,row.binding));
+              }
             }
+            blocks.push(block);
           }
-          blocks.push(block);
         }
       }
       // getSlot identifies an actual finalized bank. Missing its full block, or

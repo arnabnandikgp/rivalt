@@ -1,5 +1,5 @@
 import {expect,it,vi} from 'vitest';
-import {FinalizedIndexer,MAX_RECONCILIATION_CATCHUPS} from './finalized-indexer.js';
+import {FinalizedIndexer,MAX_RECONCILIATION_CATCHUPS,FINALIZED_BLOCK_READ_WIDTH} from './finalized-indexer.js';
 import {compareReconciliationRevision,ReconciliationAhead} from './reconciliation-progress.js';
 import {hash,type JournalEvent} from './events.js';
 import {orderScopedTransactions,type RevisionVector} from './scoped-history.js';
@@ -40,6 +40,24 @@ function fixture(limit=20) {
   });
   return {indexer,store,rpc,state,setHead:(value:number)=>{head=value;}};
 }
+it('bounds parallel block reads and applies out-of-order responses in canonical order',async()=>{
+  const test=fixture(30);test.setHead(20);const original=test.rpc.getMockImplementation()!;
+  let active=0,maximum=0;
+  const completed:number[]=[];
+  test.rpc.mockImplementation(async(method,params:any=[])=>{
+    if(method!=='getBlock')return original(method,params);
+    active++;maximum=Math.max(maximum,active);
+    await new Promise(resolve=>setTimeout(resolve,(FINALIZED_BLOCK_READ_WIDTH-((params[0]-2)%FINALIZED_BLOCK_READ_WIDTH))*2));
+    completed.push(params[0]);active--;
+    return original(method,params);
+  });
+  await test.indexer.cycle();
+  expect(maximum).toBe(2*FINALIZED_BLOCK_READ_WIDTH);expect(active).toBe(0);
+  expect(completed[0]).not.toBe(2);
+  expect(test.store.commit.mock.calls[0][0].map(block=>block.slot)).toEqual(Array.from({length:19},(_,index)=>index+2));
+  expect(test.store.commit.mock.calls[0][1].map(invocation=>Number(invocation.slot))).toEqual(Array.from({length:19},(_,index)=>index+2));
+  expect(test.indexer.healthy).toBe(true);
+});
 it('extends only finalized blocks beyond the accepted candidate and preserves the durable state until commit',async()=>{
   const test=fixture();let calls=0;
   test.indexer.reconcile=async snapshot=>{
@@ -53,6 +71,22 @@ it('extends only finalized blocks beyond the accepted candidate and preserves th
   expect(test.store.commit.mock.calls[0].slice(2)).toEqual([{slot:4,blockhash:'block4'},'block1']);
   expect(test.rpc.mock.calls.filter(([method,params])=>method==='getBlock'&&(params as any)[0]===2&&(params as any)[1].transactionDetails==='full')).toHaveLength(1);
   expect(test.state.cash).toBe(7);
+});
+it('drains every in-flight block/manifest read before a failed cycle can be retried',async()=>{
+  const test=fixture();test.setHead(10);const original=test.rpc.getMockImplementation()!;
+  let active=0,finished=0;
+  test.rpc.mockImplementation(async(method,params:any=[])=>{
+    if(method!=='getBlock')return original(method,params);
+    active++;
+    try {
+      if(params[0]===2&&params[1].transactionDetails==='full')throw new Error('body unavailable');
+      await new Promise(resolve=>setTimeout(resolve,10));
+      return original(method,params);
+    } finally {active--;finished++;}
+  });
+  await expect(test.indexer.cycle()).rejects.toThrow('body unavailable');
+  expect(active).toBe(0);expect(finished).toBe(2*FINALIZED_BLOCK_READ_WIDTH);
+  expect(test.store.commit).not.toHaveBeenCalled();expect(test.indexer.healthy).toBe(false);
 });
 for(const message of ['Economic mismatch','Finalized revision is behind'])it(`never retries ${message}`,async()=>{
   const test=fixture();test.indexer.reconcile=async()=>{throw new Error(message);};

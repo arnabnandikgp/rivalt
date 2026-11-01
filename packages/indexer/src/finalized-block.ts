@@ -7,10 +7,16 @@ export type BlockFence={slot:number;blockhash:string};
 
 export async function readFinalizedBlock(rpc:{call(method:string,params:unknown[]):Promise<any>},slot:number,maxVersion:0|1) {
   const configuration={encoding:'json',commitment:'finalized',rewards:false,maxSupportedTransactionVersion:maxVersion};
-  const [body,manifest]=await Promise.all([
+  const responses=await Promise.allSettled([
     rpc.call('getBlock',[slot,{...configuration,transactionDetails:'full'}]),
     rpc.call('getBlock',[slot,{...configuration,transactionDetails:'signatures'}]),
   ]);
+  // Drain both requests on failure so the caller's concurrency bound also
+  // holds when it retries a failed batch.
+  const [body,manifest]=responses.map(response=>{
+    if(response.status==='rejected')throw response.reason;
+    return response.value;
+  });
   const block=decodeFinalizedBlock(slot,body);
   if(!manifest||manifest.blockhash!==block.blockhash||manifest.parentSlot!==block.parentSlot
     ||manifest.previousBlockhash!==block.previousBlockhash||!Array.isArray(manifest.signatures)
