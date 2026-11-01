@@ -95,13 +95,34 @@ The approved bounded performance-summary budget moves to 256 KiB aggregate while
 retaining 64 KiB per file; raw evidence stays ignored. Continuation/operational
 launchers now require explicit RC2 candidate selection instead of selecting old
 binaries beneath the new SDK. P47 has not promoted normal demo/operator artifacts.
-The full-book, remaining authority/settlement/retirement, 64-member, operational,
-browser and load gates remain. Comparisons must distinguish matched scenarios
-from independently aggregated ranges and consumed CU from actual fees. No C1,
-new funded/external gate or endurance run is authorized or claimed by these checks.
+Fresh clean verifier **`a01da5d`** on unchanged C0 binaries passes the focused
+12-scenario/7-lock profile; 123 maker and 84 publisher outcomes; 207 dependency/
+settlement outcomes with 149-event PostgreSQL replay; 63 retirement outcomes with
+53-event replay; full protected/entry/stored books at 147/165/165 outcomes; and
+712 complete-cohort outcomes. The independent audit verifies 64 exact payouts
+(56 added members are flat) and rejects ten corruptions. Eight separate compiled
+wide-scratch cases pass with unchanged financial bodies; they are not payout
+history. The original 471 P46 outcomes remain separate constituents.
 
-Next exact action: commit the measurement/launcher checkpoint, then run the pinned
-C0 focused profile and missing scenario constituents with real RPC/WS/PostgreSQL.
+Two qualification tooling issues were observed. Fresh isolated chains replayed
+27 byte-identical signed setup originals among 2,266 executions; some read different
+fixture states and legitimately consume different CU. The collector now records
+executions and unique originals separately, retains cross-run references and still
+rejects duplicate receipts within a run or conflicting bytes under one signature.
+Nine measurement tests and typecheck pass; the revised read-only collection covers
+**60/61** entrypoints across **2,239 unique originals / 2,266 executions**. Only
+`set_account_delegate` remains, in the incomplete service constituent.
+The initial services attempt stopped at browser launch because its Playwright cache
+is absent; an installed Chrome is available via the documented `RIVALT_CHROME_PATH`.
+No completed services/browser pass is inferred from that attempt. Existing runs,
+logs and databases remain retained; no financial safeguard or resource limit changed.
+
+Services/browser/fault/load acceptance and the matched resource/fee report still
+remain, along with normal-runtime promotion and P47's ready PR. Comparisons must
+distinguish matched financial states from wall-clock/slot differences and consumed
+CU from paid fees. No C1, funded/external gate or endurance run is claimed.
+Next exact action: commit the population-counter fix and rerun the service/browser
+constituent with installed Chrome, then finish the bounded load/recovery matrix.
 
 ## Accepted performance stack
 

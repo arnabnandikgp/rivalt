@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {existsSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {relative, resolve} from 'node:path';
 import {receiptMetrics, observedDistribution, type Receipt} from './receipt-metrics.js';
-import {candidateArtifacts, profileContracts, sha256} from './profile-contracts.js';
+import {candidateArtifacts, profileContracts, sha256, OriginalPopulation} from './profile-contracts.js';
 
 const directories = process.argv.slice(2).filter(value => !value.startsWith('--'));
 assert(directories.length, 'Usage: candidate-baseline.ts <run>... [--partial | --write]');
@@ -14,8 +14,8 @@ const {build, artifacts} = candidateArtifacts(directory);
 const {contracts, idls} = profileContracts();
 assert.deepEqual(idls, profileContracts(build.revision).idls, 'Current IDLs must match the pinned candidate source');
 assert.equal(contracts.reduce((count, contract) => count + contract.instructions.length, 0), 61);
-type Sample = ReturnType<typeof receiptMetrics> & {run: number; receipt: string; label: string};
-const samples: Sample[] = [], signatures = new Set<string>();
+type Sample = ReturnType<typeof receiptMetrics> & {run: number; receipt: string; label: string; reexecutionOf: {run: number; receipt: string} | null};
+const samples: Sample[] = [], population = new OriginalPopulation();
 const runs = directories.map((directory, run) => {
   const summaryFile = existsSync(`${directory}/performance.json`) ? 'performance.json' : 'summary.json';
   const bytes = readFileSync(`${directory}/${summaryFile}`), summary = JSON.parse(bytes.toString());
@@ -45,9 +45,8 @@ const runs = directories.map((directory, run) => {
     assert.equal(metrics.feeLamports, String(check.feeLamports));
     assert.equal(metrics.wireBytes, check.bytes);
     assert.equal(original.label, check.label);
-    assert(!signatures.has(metrics.signature), 'Duplicate originals cannot inflate coverage');
-    signatures.add(metrics.signature);
-    samples.push({...metrics, run, receipt: filename, label: original.label});
+    const reexecutionOf = population.observe({...metrics, run, receipt: filename});
+    samples.push({...metrics, run, receipt: filename, label: original.label, reexecutionOf});
   }
   assert.equal(samples.length - start, summary.checks.length, 'Retain setup and reverted outcomes as well as successful actions');
   return {directory: relative(process.cwd(), resolve(directory)), summary: summaryFile,
@@ -67,6 +66,7 @@ const entrypoints = contracts.flatMap(contract => contract.instructions.map(inst
   const rejected = observations.filter(value => !value.invocation.transactionSucceeded);
   const largest = [...success].sort((left, right) => right.invocation.inclusiveCu - left.invocation.inclusiveCu)[0];
   return {name, successfulInvocations: success.length, revertedInvocations: rejected.length,
+    uniqueSuccessfulOriginals: new Set(success.map(value => value.sample.signature)).size,
     inclusiveCu: range(success.map(value => value.invocation.inclusiveCu)),
     inclusiveCuP50P95Max: quantiles(success.map(value => value.invocation.inclusiveCu)),
     revertedInclusiveCu: range(rejected.map(value => value.invocation.inclusiveCu)),
@@ -83,10 +83,13 @@ const entrypoints = contracts.flatMap(contract => contract.instructions.map(inst
 const missing = entrypoints.filter(value => !value.successfulInvocations).map(value => value.name);
 const result = {schema: 1, checkpoint: 'C0-Anchor-RC2', completeCoverage: missing.length === 0,
   qualificationClaim: 'entrypoint coverage only', sbfSource: build.revision, profile: build.profile, idls, artifacts, runs,
-  outcomes: {offeredHarness: samples.length, finalizedSuccess: samples.filter(value => value.outcome === 'success').length,
+  outcomes: {observedExecutions: samples.length, uniqueSignedOriginals: population.uniqueOriginals,
+    crossRunReexecutions: samples.filter(value => value.reexecutionOf).length, finalizedSuccess: samples.filter(value => value.outcome === 'success').length,
     finalizedRejection: samples.filter(value => value.outcome === 'rejected').length},
   entrypoints, missing, semantics: [
     'Coverage is not complete economic/service/load qualification',
+    'Independent fresh chains can replay identical signed bytes with different initial state; executions and unique originals are counted separately',
+    'Repeated originals within one run are rejected; every cross-run reexecution retains its first-original reference in local output',
     'Inclusive instruction CU contains child CPIs; do not sum parent and child',
     'Quantiles cover the named heterogeneous observed population, not independent repeated trials or worst cases',
     'Reverted transactions supply no successful coverage even when a child returns success',
@@ -108,4 +111,5 @@ if (process.argv.includes('--partial')) {
 }
 writeFileSync('.local/anchor-rc2/candidate-transactions.json', JSON.stringify(samples, null, 2) + '\n');
 console.log(JSON.stringify({entrypoints: entrypoints.length, covered: entrypoints.length - missing.length,
-  outcomes: samples.length, missing, bytes: Buffer.byteLength(output)}, null, 2));
+  executions: samples.length, uniqueOriginals: population.uniqueOriginals,
+  reexecutions: samples.filter(value => value.reexecutionOf).length, missing, bytes: Buffer.byteLength(output)}, null, 2));

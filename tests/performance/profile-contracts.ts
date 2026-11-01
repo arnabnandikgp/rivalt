@@ -44,3 +44,22 @@ export function candidateArtifacts(directory: string) {
   }));
   return {build, artifacts};
 }
+
+/** A signed original may be replayed on two independently reset local chains.
+ * Preserve both executions (their starting states/CU can differ), but never call
+ * them distinct signed originals or accept duplicate receipts within one run. */
+export class OriginalPopulation {
+  private readonly originals = new Map<string, {wireSha256: string; run: number; receipt: string; runs: Set<number>}>();
+  get uniqueOriginals() { return this.originals.size; }
+  observe(value: {signature: string; wireSha256: string; run: number; receipt: string}) {
+    const previous = this.originals.get(value.signature);
+    if (!previous) {
+      this.originals.set(value.signature, {...value, runs: new Set([value.run])});
+      return null;
+    }
+    assert.equal(value.wireSha256, previous.wireSha256, 'Same signature must identify identical signed bytes');
+    assert(!previous.runs.has(value.run), 'Duplicate original receipt within one run');
+    previous.runs.add(value.run);
+    return {run: previous.run, receipt: previous.receipt};
+  }
+}
