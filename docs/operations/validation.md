@@ -135,6 +135,16 @@ all classified rejection/unsubmitted reasons, two coherent live index cycles /
 33 revision-ahead retries and exact final replay remain limitations, not sustained
 availability or TPS. P15B/P16B and continuous 24-hour endurance remain unchanged.
 
+P47 is ready in [PR #66](https://github.com/arnabnandikgp/rivalt/pull/66) above #64.
+Accepted/report content is `2b677b597912b2a3e9d7b02dab19088eca66ccc7`. All four
+applicable hosted checks (scope/client/report/shell) pass in
+[run 41296789385](https://github.com/arnabnandikgp/rivalt/actions/runs/41296789385),
+including broad client regression, generated output, independent SDK pricing/
+allocation and UI build. The unchanged Rust financial job is skipped; its P46
+CI/source pins remain separate. Local B/C replay, ABI/evidence checks, four changed
+shell scripts, typecheck and 312 documentation file links also pass. The stack
+remains open; these results are not an independent review or an integration claim.
+
 ## Anchor RC2 serialized port (P46)
 
 This section records P46’s scoped implementation acceptance; **P47’s complete

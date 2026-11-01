@@ -1,6 +1,6 @@
 # Anchor v2 migration plan
 
-Status: **P45/P46 in Review; P47 local qualification accepted, publication pending, 1 November 2026**.
+Status: **P45–P47 in Review; local qualification and applicable hosted checks pass, 1 November 2026**.
 The user accepted this plan. The frozen predecessor remains
 `c0bc3aaa3825896fcafbc879fe104362da61c21d`; candidate schemas and clients in the
 P46 branch do not qualify a deployment. [STATUS](../STATUS.md) owns actual checks
