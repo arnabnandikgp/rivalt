@@ -62,7 +62,7 @@ it('attaches the signed receiver version to liquidation and proves only finalize
     const store={runId:'risk-unit',pool:{connect:async()=>({query,release(){}})}};
     const queue=new Queue(store as unknown as ConstructorParameters<typeof Queue>[0],rpc as ConstructorParameters<typeof Queue>[1]);
     await queue.step('liquidation');
-    expect(calls.find(call=>call.sql.startsWith('UPDATE service_intents'))!.params[2]).toBe(state==='unchanged'?'expired-unexecuted':'unresolved');
+    expect(calls.find(call=>call.sql.startsWith('UPDATE service_intents SET status='))!.params[2]).toBe(state==='unchanged'?'expired-unexecuted':'unresolved');
     expect(calls.some(call=>call.sql.startsWith('UPDATE service_budgets'))).toBe(false);
   }
 });

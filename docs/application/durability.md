@@ -353,8 +353,11 @@ A newly signed confirmed blockhash can be absent from the finalized bank. A fals
 `isBlockhashValid(finalized)` alone is not expiry. The durable original now records
 `blockhash_finalized_slot` only after that exact hash returns finalized-valid. A
 witness is sampled before dispatch conflict admission and persisted even when the
-original must defer; waiting behind a shared payer must not hide its validity
-window. A later false observation at or beyond that slot, plus confirmed-invalid, permits
+original must defer; successful admission commits the witness in the same SQL
+transaction as its resource reservation, before status lookup or broadcast. A
+crash after admission must not lose the witness if recovery starts after expiry.
+Waiting behind a shared payer must not hide its validity window. A later false
+observation at or beyond that slot, plus confirmed-invalid, permits
 the existing authenticated unchanged-account nonexecution proof. Missing earlier
 validity or an older finality context keeps the original unresolved and resources
 reserved. Confirmed-valid originals can broadcast the same bytes while awaiting

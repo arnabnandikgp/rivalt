@@ -253,6 +253,13 @@ or granting financial authority. The retained queue diagnosis is
 `.local/p44-services-fenced-diagnostic.txt`; the complete service follow-up passes at `a5afbc9`, as recorded in
 [validation](operations/validation.md#frozen-pre-migration-qualification-p44).
 
+Review follow-up on 1 November 2026: successful admission also commits the observed
+witness atomically with its access reservation, before the next status RPC. The
+previous implementation persisted that branch's witness only with the later
+outcome, leaving a crash window. This corrects persistence timing without granting
+new expiry authority or releasing unknown fees. Acceptance must kill the actual
+executor immediately after admission and restart only after real hash expiry.
+
 ## D89 — prevent newer conflicting originals from starving a committed waiter
 
 On 1 November 2026, P44's current UI successfully signs a trade, but continuous

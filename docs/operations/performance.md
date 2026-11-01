@@ -589,8 +589,10 @@ Actual service role costs at clean `a5afbc9` are separately verified from 239
 originals: 180 maker reprices cost 900,000 lamports; 55 funding reports cost 275,000
 (including three rejected reports); three wallet actions cost 15,000; one stored
 order fill costs 5,000. Total: 1,195,000 lamports, excluding setup/source/rent.
-Maker updates consume 18,249 CU each; available funding reports peak at 32,522 CU;
-the order worker consumes 256,768 CU. Wallet persistence-to-first-broadcast ranges
+Finalized transaction CU (from receipt `meta.computeUnitsConsumed`, distinct from
+the inclusive invocation CU in the instruction table) is 18,249 per maker update,
+peaks at 32,522 for available funding reports and is 256,768 for the order worker.
+Wallet persistence-to-first-broadcast ranges
 1,235–2,722 ms (three observations), while maker-role p95 ranges 40–2,785 ms and
 funding-role p95 77–3,267 ms. These include intentional process faults/reservations,
 not pure RPC latency. The full role distributions remain in `operator-metrics.json`.

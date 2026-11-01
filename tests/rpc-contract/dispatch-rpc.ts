@@ -17,6 +17,7 @@ import {liquidityQueueFault} from './liquidity-queue-fault.js';
 import {fixtureKey} from './harness.js';
 import {eventually} from './wire.js';
 import {dispatchDatabaseCases} from './dispatch-db-cases.js';
+import {dispatchAdmissionFault} from './dispatch-admission-fault.js';
 
 const directory=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATABASE_URL!;
 const rpcUrl=process.env.RIVALT_RPC_URL!,wsUrl=process.env.RIVALT_WS_URL!;
@@ -26,7 +27,7 @@ assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],
 const {h,rpc,ws,checks,flush,conformance}=await openCanonicalRpcHarness(rpcUrl,wsUrl,directory,{deferFinality:true});
 let indexer:LiquidityIndexer|undefined,replay:LiquidityIndexer|undefined,runtime:AccountRuntime|undefined;
 const executors:AccountExecution[]=[],receipts:unknown[]=[],broadcasts:string[]=[];
-let holdPair=false,releasePair:()=>void=()=>{},dropBefore:string|undefined,proxyError:unknown;
+let holdPair=false,releasePair:()=>void=()=>{},proxyError:unknown;
 let pairBarrier:Promise<void>=Promise.resolve();
 const proxy=createServer(async(request,response)=>{
   try {
@@ -40,7 +41,6 @@ const proxy=createServer(async(request,response)=>{
         [runtime!.runId,original.request_id])).rows;
       assert.deepEqual(access.sort((a,b)=>a.address.localeCompare(b.address)),dispatchAccess(wire),'Access persisted before network send');
       broadcasts.push(signature);
-      if(dropBefore===wire){response.destroy();return;}
       if(holdPair) {
         if(new Set(broadcasts).size===2)releasePair();
         await Promise.race([pairBarrier,delay(4000).then(()=>{throw new Error('Independent RPC lane did not progress');})]);
@@ -121,23 +121,11 @@ try {
   assert.equal(deferred.attempts,0);assert.equal(deferred.status,'pending');
   await finalize(sharedFirst);await finalize(sharedSecond);
 
-  // A connection loss before forwarding leaves an ambiguous original and durable
-  // locks. Real finalized blockhash expiry plus authenticated price state later
-  // frees access, while the unknown network fee remains reserved.
-  const expired=await reprice('maker:expiry',0,0);dropBefore=expired.original.wire;
-  await eventually(()=>rpc.call('isBlockhashValid',[expired.original.blockhash,{commitment:'finalized'}]),
-    value=>value.value===true,'expiry fixture hash first becomes finalized-valid');
-  await executors[0].queue.step(expired.original.request_id);dropBefore=undefined;
-  assert((await runtime.store.pool.query('SELECT blockhash_finalized_slot FROM service_intents WHERE run_id=$1 AND request_id=$2',
-    [config.runId,expired.original.request_id])).rows[0].blockhash_finalized_slot!==null,'Durable finalized validity precedes actual expiry');
-  assert.equal((await runtime.queue.get(expired.original.request_id)).status,'unresolved');
-  assert(Number((await runtime.store.pool.query('SELECT count(*) FROM service_dispatch_access WHERE run_id=$1 AND request_id=$2',
-    [config.runId,expired.original.request_id])).rows[0].count)>0);
-  const expiryDeadline=Date.now()+60_000;
-  while((await rpc.call('isBlockhashValid',[expired.original.blockhash,{commitment:'finalized'}])).value) {
-    assert(Date.now()<expiryDeadline,'Actual finalized expiry');await delay(200);
-  }
-  await runtime.queue.step(expired.original.request_id);
+  // Death between admission COMMIT and the first status response must retain the
+  // finalized-valid witness. Restart after real expiry can then release access;
+  // the unknown network fee stays reserved even with no observed broadcast.
+  const expired=await reprice('maker:expiry',0,0);
+  const admissionFault=await dispatchAdmissionFault(runtime,{databaseUrl,rpcUrl,directory},expired.original.request_id);
   const expiredReceipt=await runtime.queue.get(expired.original.request_id);
   assert.equal(expiredReceipt.status,'expired-unexecuted');assert.equal(expiredReceipt.result.fee,null);
   assert.equal((await runtime.store.pool.query('SELECT count(*) FROM service_dispatch_access WHERE run_id=$1 AND request_id=$2',
@@ -180,7 +168,7 @@ try {
   const parity=await conformance.finish(directory,[],h.read);
   writeFileSync(`${directory}/dispatch.json`,json({revision,build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),
     setupOutcomes:checks.length,parallelOriginals:2,parallelBroadcasts:2,duplicateExecutors:2,sharedPayerDeferred:deferred,
-    expired:expiredReceipt,unknownFeeReservation:'20000',originals,budgets,receipts,fault,reconciliation,parity,databaseCases,
+    expired:expiredReceipt,admissionFault,unknownFeeReservation:'20000',originals,budgets,receipts,fault,reconciliation,parity,databaseCases,
     replaySequence:state.sequence,limits:'Two service RPC lanes; not validator scheduler throughput or P40B event qualification'}));
   console.log('P40A actual RPC/WS/PostgreSQL dispatch, expiry, SIGKILL recovery and fresh replay passed');
 } finally {

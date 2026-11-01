@@ -23,7 +23,7 @@ async function fixture(changed=false,conflict=false) {
   }};
   const store={runId:'account-unit',pool:{connect:async()=>({query,release(){}})}};
   const queue=new Queue(store as unknown as ConstructorParameters<typeof Queue>[0],rpc as ConstructorParameters<typeof Queue>[1]);
-  const update=()=>calls.find(call=>call.sql.startsWith('UPDATE service_intents'))!;
+  const update=()=>calls.find(call=>call.sql.startsWith('UPDATE service_intents')&&!call.sql.startsWith('UPDATE service_intents SET blockhash_finalized_slot='))!;
   return {queue,rpc,calls,rpcCalls,update,intent};
 }
 it('proves only economic nonexecution at finalized expiry and keeps the unseen fee reserved',async()=>{
@@ -89,6 +89,10 @@ it('persists finalized hash observation and never regresses its fence',async()=>
     test.rpc.call=async(method,params=[])=>method==='isBlockhashValid'?{context:{slot:123},value:true}
       :method==='sendTransaction'?'original-signature':original(method,params);
     await test.queue.step('order:1');expect(test.update().params[4]).toBe(seen??'123');
+    const witness=test.calls.findIndex(call=>call.sql.startsWith('UPDATE service_intents SET blockhash_finalized_slot='));
+    const admissionCommit=test.calls.findIndex(call=>call.sql==='COMMIT');
+    expect(witness).toBeGreaterThan(-1);expect(witness).toBeLessThan(admissionCommit);
+    expect(test.calls[witness].params).toEqual(['account-unit','order:1',seen??'123']);
   }
 });
 it('records finalized validity while a conflicting original prevents dispatch',async()=>{

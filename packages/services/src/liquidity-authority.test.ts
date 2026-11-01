@@ -22,7 +22,7 @@ async function fixture(instance=0) {
   }};
   const store={runId:'authority-unit',pool:{connect:async()=>({query,release(){}})}};
   const queue=new Queue(store as unknown as ConstructorParameters<typeof Queue>[0],rpc as ConstructorParameters<typeof Queue>[1],sdk.CLEARING_PROGRAM_ADDRESS,1);
-  const status=()=>writes.find(write=>write.sql.startsWith('UPDATE service_intents'))!.params[2];
+  const status=()=>writes.find(write=>write.sql.startsWith('UPDATE service_intents SET status='))!.params[2];
   return {input,maker,intent,rpc,queue,reads,writes,status};
 }
 it('authenticates both maker programs after finalized expiry without releasing unseen network fees',async()=>{

@@ -90,6 +90,10 @@ export class Queue {
           await c.query("UPDATE service_intents SET next_attempt=now()+interval '250 milliseconds',blockhash_finalized_slot=$3 WHERE run_id=$1 AND request_id=$2",[this.store.runId,id,blockhashFinalizedSlot]);
           await c.query('COMMIT');return;
         }
+        // Commit the observed lifetime with admission. A worker can die before
+        // the next RPC (or before its outcome update), then restart after expiry.
+        await c.query('UPDATE service_intents SET blockhash_finalized_slot=$3 WHERE run_id=$1 AND request_id=$2',
+          [this.store.runId,id,blockhashFinalizedSlot]);
       }
       // Crash here or after send leaves the resource reservation durable. The
       // per-original session lock excludes a second worker across this commit.

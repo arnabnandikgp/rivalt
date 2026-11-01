@@ -108,9 +108,16 @@ jobs (scope, shell, client and financial) pass on acceptance content `ade628d` i
 [run 41276941491](https://github.com/arnabnandikgp/rivalt/actions/runs/41276941491);
 the report job is correctly skipped. Later commits update handoff documentation
 only; this does not claim a new code run or independent review approval.
-Next exact action: address P44 review feedback when it arrives; await stack
-integration authorization before merging. P39–P44 engineering
-work is complete within these measured bounds; no Anchor v2 migration is started.
+The user authorized review fixes and merging the complete stack on 1 November.
+Review found an admission crash window: the finalized-valid witness must commit
+with the resource reservation, before status RPC or broadcast. The fix and a real
+SIGKILL-before-status regression are being verified; the P43 comparison wording
+already distinguishes aggregate comparison from each run's independent checks,
+and service-role CU labels now explicitly identify transaction CU. PRs #56/#58/
+#59/#60 have skipped/rate-limited automated reviews, not approval.
+Next exact action: run the focused queue/dispatch tests and actual RPC/WS/PG crash
+regression on the committed fix, resolve feedback, verify CI and merge the stack.
+No new program build, load/endurance campaign or Anchor v2 migration is needed.
 
 ## Deployment and operational limits
 
