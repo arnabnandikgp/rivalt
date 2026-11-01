@@ -124,6 +124,25 @@ try {
   await until(async()=>{try{execFileSync('container',['exec',CONTAINER,'pg_isready','-h','127.0.0.1','-U','rivalt','-d','rivalt'],{stdio:'pipe',timeout:2000});return true;}catch{return false;}},Boolean,'PostgreSQL');
   const databaseUrl=`postgresql://rivalt:${password}@127.0.0.1:15443/rivalt`;
   stage='signed venue provisioning';setup=await liquidityExecutionSetup(transport.h,transport.rpc,{verifyRejections:false,makerCash:500_000_000n});
+  // Match the qualified service topology: an updater promoted to fee payer is
+  // writable even when its maker accounts are independent. Sharing it across
+  // all eight producers serializes publication behind finalized reservations.
+  const makerSigners=await Promise.all(setup.instances.map(()=>Keypair.generate()));
+  const publisherSigners=await Promise.all([0,1].map(()=>Keypair.generate()));
+  await transport.h.send('fund independent demo operator fee payers',[...makerSigners,...publisherSigners].map(key=>
+    getTransferSolInstruction({source:setup!.payer,destination:key.address,amount:100_000_000n})));
+  for(const [index,maker] of setup.instances.entries()){
+    const curve=await maker.state(),registration=await maker.registrationState();
+    await transport.h.send('authorize independent demo maker updater',[sdk.getControlLiquidityInstruction({...maker.controlCommon,
+      expectedAuthority:registration.authorityEpoch,expectedControl:curve.controlEpoch,expectedShape:curve.shapeEpoch,
+      action:{__kind:'Updater',updater:makerSigners[index].address,expirySlot:1_000_000n}})],[setup.owner]);
+  }
+  for(const marketIndex of [0,1]){
+    const configuration=sdk.getFundingPublisherDecoder().decode((await transport.h.read(setup.configurations[marketIndex]))!);
+    await transport.h.send('authorize independent demo funding publisher',[sdk.getConfigureFundingPublisherInstruction({
+      ...setup.common,authority:setup.payer,market:setup.markets[marketIndex],configuration:setup.configurations[marketIndex],
+      expectedAuthority:configuration.authorityEpoch,publisher:publisherSigners[marketIndex].address})]);
+  }
   const anchor=transport.anchor();await until(()=>transport!.rpc.call('getTransaction',[anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]),Boolean,'initialization finality');
   stage='finalized indexer';
   const config={rpcUrl,wsUrl,databaseUrl,runId:'interactive-'+session,venue:setup.venue,anchor,profile:'liquidity-execution-qualification' as const};
@@ -150,8 +169,8 @@ try {
       RIVALT_MARKET_INDEX:marketIndex===undefined?undefined:String(marketIndex),RIVALT_MAKER_ID:makerId===undefined?undefined:String(makerId)});
   };
   for(const market of [0,1]){
-    for(const maker of [0,1,2])worker(`maker-${market}-${maker}`,'maker',setup.updater,market,maker);
-    worker(`funding-${market}`,'funding',setup.updater,market);
+    for(const maker of [0,1,2])worker(`maker-${market}-${maker}`,'maker',makerSigners[market*3+maker],market,maker);
+    worker(`funding-${market}`,'funding',publisherSigners[market],market);
   }
   worker('orders','orders',setup.payer);worker('settlement','settlement',setup.payer);worker('risk','risk',setup.payer);
   // Ordinary risk probing/default remains active; no receiver is invented.

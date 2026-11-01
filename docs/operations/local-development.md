@@ -40,6 +40,10 @@ are relabeled. [STATUS](../STATUS.md) distinguishes qualification and PR integra
 The demo starts workers only after a coherent finalized provisioning journal.
 It retries typed revision-ahead catch-up for at most 30 seconds; other initial
 projection/reconciliation errors fail startup and preserve the local records.
+Six maker updaters and two funding publishers each use a separately funded local
+signer/fee payer, matching service qualification. Their existing restricted
+authorities are assigned through signed provisioning; no shared payer serializes
+all publication workers. Keys stay in the ignored session configuration.
 
 From the repository root, bootstrap only missing baseline tools:
 

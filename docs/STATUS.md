@@ -189,8 +189,17 @@ Disposable inactive Cargo targets under
 `.local/anchor-v2-build/{cli,check,idl}` were removed after verifying no compiler
 was running, recovering about 1.7 GiB; installed tools, SBF, logs, keys and databases
 are preserved. No C1, funded/external gate or endurance run is claimed.
-Next exact action: commit normal-runtime selection, verify fresh demo startup and
-its local-wallet lifecycle in an isolated test directory, stop it, then publish P47.
+Clean `02f536c` starts the fresh demo successfully; the actual local wallet
+finalizes six account/deposit/allocation originals, then safely refuses its first
+unsigned quote because BTC has no credible bounds. The launcher still shared one
+payer across six maker and two publisher workers, unlike qualified services.
+Signed provisioning now assigns eight separate restricted updater/publisher keys
+and fee payers. The browser waits for real Normal source state and permits only
+bounded explicit unsigned-source refusals; signed originals are never rebuilt.
+Typecheck passes. Failed evidence remains in
+`.local/anchor-rc2/p47-demo-browser-02f536c/`; its owned server is stopped.
+Next exact action: commit the demo role-payer correction, rerun fresh startup and
+the local-wallet lifecycle, stop it, then publish P47 with the completed report.
 
 ## Accepted performance stack
 
