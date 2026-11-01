@@ -13,6 +13,10 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| M13 Anchor RC2 migration | Planning | P45 plan; proposed P46 port and P47 fresh qualification against frozen P44 B; implementation not started |
+| P45 migration contract | Review — publication pending | Architecture/release research, exact RC2 pins, ABI choice, code gap map and measurement/acceptance plan |
+| P46 RC2 implementation | Planned — after plan review | Correct serialized port, explicit fresh ABI and generated clients; separately measured selective zero-copy only if justified |
+| P47 post-migration qualification | Planned — depends on P46 | Complete compiled financial/service/browser/load matrix and matched cost report; no inherited qualification |
 | M12 performance and contention | Closed | P39–P44 accepted and integrated; measured pre-migration baseline frozen; no framework migration |
 | P39 dependency audit/baseline | Closed | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55) merged; focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | Closed | A and B acceptance passed and integrated |
@@ -34,6 +38,45 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 Review means accepted work awaiting integration; Closed requires acceptance plus
 integration. The user authorized the performance stack's review fixes and merge on
 1 November 2026; all seven PRs independently report MERGED.
+
+## P45 migration planning checkpoint
+
+The user requests the Anchor v2 architecture documentation first, then the
+migration guide and a detailed plan, with implementation in the next PR. The
+[migration plan](operations/anchor-v2-migration.md) and D90 propose P45 → P46 → P47.
+Current code, lockfiles, tools, financial rules and qualified artifacts are unchanged.
+
+Research inspected baseline `c0bc3aaa3825896fcafbc879fe104362da61c21d`, the eight
+official documentation sections, migration guide and RC2 release notes. Four
+published Rust archives were checksum-verified against registry metadata; all
+identify source `a20660219882af5f199d56ea3f9326f387f89d8b`. RC2 client metadata was
+checked separately. Local reference copies and the derived ABI inventory remain
+ignored under `.local/anchor-v2-planning/`.
+
+The important compatibility finding is concrete: all 61 current instruction
+discriminators are custom eight-byte values, while stock RC2 executable macros
+support only canonical hashes or one-byte custom values. Maker-owned account/event
+overrides also need explicit treatment. Recommend a fresh bounded ABI with canonical
+eight-byte identifiers, clearing schema 8/maker account schema 5 and coordinated
+client/journal binding. The plan retains serialized field layouts first, immutable
+B evidence, isolated tools/artifacts, guards and actual RPC/WS/PG acceptance.
+Small zero-copy conversions require separate measured C0/C1 checkpoints; no saving
+or live state migration is claimed.
+
+Planning acceptance: source/IDL counts and discriminator hashes independently
+enumerated (53 clearing + four per maker; 17 clearing account types, 28 clearing
+events). The read-only documentation check passes with 304 relative links,
+112 historical Git targets, 71 source/command paths and no errors;
+`git diff --check` passes. Immutable upstream source and migration-guide links
+return HTTP 200. No install, dependency resolution, SDK generation, SBF build, runtime
+test, load, browser check, devnet or full regression was run for this documentation
+change. Hosted workflow path filters exclude docs-only PRs; no CI pass is implied.
+
+No access blocker prevents planning. RC2 SBF/tool compatibility, bounded codecs,
+IDL/Codama support, CPI borrow behavior and financial/resource equivalence remain
+unproved implementation gates, with explicit acceptance in the plan. P15B/P16B
+and deferred endurance are unchanged. Next exact action: publish the ready P45
+planning PR and stop for the user's plan review before starting P46.
 
 ## Accepted performance stack
 
@@ -122,8 +165,9 @@ latest #62 update are not independent approval. No additional program build,
 load/endurance run or external qualification was needed for this queue/docs fix.
 The fetched merge has identical tree and includes the tested fix as an ancestor.
 No implementation blocker remains within this completed scope.
-Next exact action: use the frozen B baseline to scope any separately authorized
-framework-migration evaluation; no Anchor v2 migration is started.
+P45 now uses the frozen B baseline to scope the separately requested RC2 migration;
+the active planning checkpoint above owns the next action. Implementation has not
+started.
 
 ## Deployment and operational limits
 

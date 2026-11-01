@@ -300,3 +300,30 @@ Its additional bounded parallel block retrieval preserves canonical order and al
 reconciliation checks. The current offered-load probe still records 33 revision-
 ahead retries versus two coherent live cycles; no sustained availability or
 validator throughput claim follows from these correctness/recovery passes.
+
+## D90 — plan a pinned Anchor RC2 migration against frozen B
+
+On 1 November 2026 the user requests architecture/documentation research and a
+detailed plan using Anchor **2.0.0-rc.2**, with implementation in the next PR and
+post-migration measurements afterward. P45 owns the
+[migration plan](operations/anchor-v2-migration.md); P46 port and P47 qualification
+are proposed dependent phases. This decision records planning authorization,
+not acceptance of migrated code or a new deployment.
+
+Published RC2 source lacks the current executable eight-byte custom discriminator
+override. All 61 Rivalt public instructions, plus maker-owned accounts/events,
+therefore require an explicit compatibility choice. Recommend stock RC2 in a fresh
+bounded local domain: canonical eight-byte hashes, clearing schema 8/maker account
+schema 5, explicit client/journal binding, unchanged financial rules, field encoding,
+PDA seeds, privileges and protocol errors. This is a proposed supersession of the
+retained instruction/maker identifiers and schema selection, not an incidental
+rename or permission to migrate old funds/accounts in place. Keep the existing
+implementation normative until the plan is accepted and P46 records its exact delta.
+
+Start with serialized accounts to capture a correct C0 port; isolate any justified
+small zero-copy conversions and their C0/C1 measurements. Preserve bounded cohort
+decoding, heap-backed wide arithmetic, authenticated events, CPI authority and
+post-CPI freshness. Retain guardrails and default/devnet gates. Keep B immutable,
+separate candidate artifacts and compiler/runtime effects, and qualify actual
+RPC/WS/PostgreSQL financial/service flows before promoting new local artifacts.
+P15B/P16B remain external and continuous 24-hour endurance remains Deferred.
