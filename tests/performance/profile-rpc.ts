@@ -13,7 +13,7 @@ import { executionTestHelpers } from '../rpc-contract/liquidity-execution-helper
 import { conflicts, instructionLocks, transactionLocks, type LockSet } from './lock-model.js';
 
 const runDir = process.env.RIVALT_RUN_DIR!;
-const artifactDirectory = process.env.RIVALT_ARTIFACT_DIR ?? '.local/liquidity-execution';
+const artifactDirectory = process.env.RIVALT_ARTIFACT_DIR ?? '.local/anchor-rc2/candidate';
 const checkpoint = process.env.RIVALT_PROFILE_STAGE;
 assert(checkpoint === 'p43-before' || checkpoint === 'p43-after' || checkpoint === 'p43-trace',
   'Select an explicit CU comparison checkpoint');

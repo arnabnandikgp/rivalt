@@ -13,9 +13,9 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| M13 Anchor RC2 migration | Active | P45 plan accepted; P46 serialized C0 port in progress, P47 fresh qualification follows |
+| M13 Anchor RC2 migration | Active | P45 plan accepted; P46 serialized C0 acceptance passed locally, P47 fresh qualification follows |
 | P45 migration contract | Review | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) ready; architecture/release research, exact RC2 pins, ABI choice, code gap map and measurement/acceptance plan |
-| P46 RC2 implementation | In progress | RC2 programs, generated SDK and schema binding ported; signed RPC/WS/PG financial acceptance remains |
+| P46 RC2 implementation | In progress — acceptance passed, publication pending | Serialized C0 port and scoped signed RPC/WS/PostgreSQL financial gates pass; publish ready PR above #63 |
 | P47 post-migration qualification | Planned — depends on P46 | Complete compiled financial/service/browser/load matrix and matched cost report; no inherited qualification |
 | M12 performance and contention | Closed | P39–P44 accepted and integrated; measured pre-migration baseline frozen; no framework migration |
 | P39 dependency audit/baseline | Closed | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55) merged; focused RPC/WS baseline and 61-entrypoint inventory |
@@ -41,61 +41,39 @@ integration. The user authorized the performance stack's review fixes and merge 
 
 ## P46 serialized port checkpoint
 
-The user accepted P45's plan on 1 November 2026. Work is on
-`implementation/p46-anchor-rc2` above ready PR #63 (`696851e`). No P46 PR or runtime
-qualification is claimed yet. The accepted P44 artifacts remain untouched under
-`.local/liquidity-execution`; candidate artifacts use `.local/anchor-rc2/candidate`.
+Work is on `implementation/p46-anchor-rc2` above ready PR #63 (`696851e`). The
+serialized port's scoped acceptance passes; its ready PR is not published yet.
+[Validation](operations/validation.md#anchor-rc2-serialized-port-p46) records the
+actual checks and exact pins. Frozen P44 artifacts remain untouched.
 
-Source checkpoint **`10b4d98966ed43b4146f6b77770c2d57bc869b01`** is committed locally.
-Delivered: exact RC2 crates/lockfile and isolated CLI;
-serialized account/context/CPI port; bounded registry codec; foreign-loader metadata
-validation; scoped borrowed event codecs; explicit canonical instruction/maker IDs;
-clearing schema/journal binding 8 and maker account schema 5; real generated IDLs/SDK;
-independent legacy and RC2 conformance processes. Quote/report versions, economics,
-field layouts, seeds and ordered privileges remain unchanged. `state-only` dependency
-features resolve an observed RC2 exported-dispatch linker conflict. C0 remains
-serialized; no selective zero-copy optimization has been attempted.
+Delivered: exact RC2 crates/CLI, bounded serialized registry/foreign-loader adapters,
+contexts and typed CPI borrowing, scoped event codecs, canonical identifier delta,
+clearing binding 8 / maker account schema 5, actual generated IDLs/SDK and isolated
+legacy/RC2 clients. Fields, seeds, privileges, signed quote/report domains, financial
+rules and default/devnet gates remain intact. No C1 zero-copy conversion is needed
+to close this serialized port; P47 will assess the measured operating envelope.
 
-Actual checks on this working tree: `cargo test` for clearing with qualification and
-maker-interface passes **119 + 12** tests, including new bounded/truncated registry
-and loader-header negatives; all default/qualification SBF programs and oracle/
-hostile fixtures build with v1.52/SBPF v0 and no unsafe stack diagnostics. The exact
-ABI guard passes against immutable predecessor `c0bc3aa`, with reviewed RC2 metadata
-exceptions. TypeScript checking and SDK generation pass. Scoped client tests first
-reported 18 stale-schema-fixture/decoder failures; affected rerun passes **45/45**,
-with the other **200** preceding checks passing. Five scoped conformance tests pass
-with both isolated clients. These are current observations, not full qualification.
-Local logs are under `.local/anchor-v2-build/`. Clean default/qualification artifacts
-are pinned to `10b4d98`. First Surfpool attempt deployed all four programs but the
-client correctly rejected its old P44 executable allowlist before financial actions
-(`custody-10b4d98`). The candidate allowlist now pins the actual C0 hashes/lengths;
-fresh test domains distinguish schema 8. This is an explicit candidate selection,
-not an artifact qualification claim.
+Clean C0 SBF source is **`366c7ab4f12c058fbff6538ededca26674ccf5bf`**, retained in
+`.local/anchor-rc2/c0-366c7ab/`. Clean RPC verifier
+**`8feb24c81affcc98e655f3da7822ca46eaef835c`** passes 57 custody, 290 safety and 124
+journal outcomes on fresh Surfpool/RPC/WS. Independent raw audits verify cash/token
+conservation and eight exact Fraction default payouts; PostgreSQL rollback,
+restart recovery and fresh-database replay match 74 committed events with zero
+unresolved jobs. Safety receipts also reproduce five captured financial checkpoints.
 
-The next custody RPC attempt (`custody-c0-2`) independently fetched 27 signed
-outcomes before the first deposit failed simulation with `AccountBorrowFailed`.
-The cause was the boxed native token wrapper's CPI handle dispatch. The follow-up
-uses RC2's forwarding handle traits without weakening borrow checks. An isolated
-compiled replay of the failing original now succeeds; the full compiled custody
-lifecycle reconciles zero remaining trader cash, 18 insurance/vault atoms and
-1,999,982 returned token atoms. The compiled maker lifecycle passes **123** cases
-including **16** exact rejections and both isolated conformance clients. These
-fast compiled checks do not replace fresh RPC acceptance or establish CU savings.
+Compiled maker lifecycle, default gates and five hostile-maker rollback cases
+pass. Both actual maker binaries match 3,172 independent pricing vectors each.
+Native adapter/financial tests and affected SDK/conformance checks passed at the
+pins recorded in validation. Typecheck, ABI/generated checks and documentation
+checks are scoped; no hosted CI result is claimed yet. All evidence remains local.
+The initial failed allowlist and boxed native token CPI attempts remain recorded;
+the fresh signed custody pass proves the forwarding-handle fix.
 
-The forwarding fix is committed at **`366c7ab4f12c058fbff6538ededca26674ccf5bf`**.
-All candidate binaries rebuilt cleanly on that source with no unsafe stack
-diagnostics; the SDK now pins their actual bytes/hashes. Evidence summaries select
-the explicit candidate artifact directory, preserving frozen B provenance.
-All three compiled default initialization gates reject with rollback. The hostile
-maker probe passes **five** exact rejections with full state rollback across
-**114** signed VM transactions, including a genuine route before deliberate
-admission-hash fault injection. The retired instruction now fails with RC2
-`InvalidInstructionData`, as distinct from unchanged protocol custom codes.
-Actual RPC/WS/PostgreSQL replay, browser/load matrix and B/C cost comparison
-remain incomplete. Broad regression belongs to CI; no
-hosted result is claimed. P15B/P16B and deferred endurance are unchanged. No access
-blocker is present. Next exact action: run the fresh signed custody probe on the pinned CPI-fixed
-artifacts before route/safety/journal acceptance.
+P47 is still required for full entrypoint/full-book/64-member coverage, services,
+browser, fault/load replay and the matched resource/fee comparison. Normal demo
+promotion remains gated. P15B/P16B and deferred endurance are unchanged. No access
+blocker is present. Next exact action: publish the ready P46 PR using `gh stack`,
+then start P47 on that exact accepted parent without waiting for merge.
 
 ## Accepted performance stack
 

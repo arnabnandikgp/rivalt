@@ -9,6 +9,66 @@ not these program artifacts. P36 adds the separately scoped rebuilt-code evidenc
 below; P37's fresh integrated qualification after retirement is recorded separately.
 [Original reports](../HISTORY.md) retain complete commands, failed attempts and pins.
 
+## Anchor RC2 serialized port (P46)
+
+This is scoped implementation acceptance, **not P47 qualification or normal demo
+promotion**. D90 uses exact Anchor `2.0.0-rc.2`, isolated CLI/client installations,
+platform-tools v1.52 and SBPF v0. The fresh clearing/account binding is 8, maker
+account schema is 5, and quote/report protocol versions and financial rules remain
+unchanged. Canonical identifiers replace the explicitly recorded historical IDs;
+the immutable predecessor ABI guard checks fields, seeds, privileges and protocol
+error codes. Default/devnet financial activation remains disabled.
+
+Clean uninstrumented C0 SBF source is
+**`366c7ab4f12c058fbff6538ededca26674ccf5bf`**. All default/qualification binaries
+and oracle/hostile fixtures build without unsafe stack diagnostics. C0 binaries
+and manifest are retained locally at `.local/anchor-rc2/c0-366c7ab/`; the normal
+frozen B directory is untouched. Qualification binaries are 1,537,824 bytes for
+clearing, 166,712 for each maker and 60,288 for the oracle fixture. These sizes do
+not establish per-transaction CU savings; P47 owns the matched B/C report. C0
+retains serialized owned accounts; no optional zero-copy C1 has been introduced.
+
+Fresh RPC harness revision **`8feb24c81affcc98e655f3da7822ca46eaef835c`** is clean.
+Commands use `RIVALT_ALLOW_RC2_CANDIDATE=1`, explicit
+`RIVALT_ARTIFACT_DIR=.local/anchor-rc2/candidate` and distinct new run directories:
+
+| Scoped gate | Actual result | Local evidence below `.local/anchor-rc2/` |
+|---|---|---|
+| `ops/account-custody-smoke.sh` | 57 signed/finalized RPC/WS outcomes; raw-byte conservation verifies zero remaining trader cash, 18 reserve/vault atoms and 1,999,982 returned token atoms; eight corruptions rejected | `custody-8feb24c/` |
+| `ops/liquidity-safety-smoke.sh` | 290 signed/finalized outcomes, including two-maker cross routes, funding, TP/SL, reserved withdrawals/transfers, strict post-fee liquidation progress, complete eight-member default, exact atom ownership, exits and sustained recovery | `safety-8feb24c/` |
+| Independent Fraction/raw safety audit | Eight exact payouts, two augmentations and ten corruptions rejected; tokens/claims/cash/reserves reconcile. Both isolated Anchor clients agree on 560 instructions, two accounts and 787 events | Same safety run |
+| `ops/liquidity-journal-smoke.sh` | 124 harness outcomes; real PostgreSQL 18.6 records 121 in-scope transactions, five failures, 74 events/outbox rows and zero unresolved jobs. Actual SQL failure rolls back; restart recovers a missed fill; fresh database replay is identical; fees/carry reconcile to 26 charged atoms | `journal-8feb24c/` |
+| Retained safety projection | 244 authenticated invocations and 23 failed transactions; 68 captured entities match at all five liquidation/default/recovery checkpoints. One portfolio body is explicitly uncaptured; this is not another RPC/SQL run | `safety-8feb24c/scoped-projection.json` |
+
+Compiled C0 checks also pass: maker lifecycle **123** cases/**16** exact rejections;
+three default initialization gates with rollback; five hostile-maker rejection
+cases across 114 signed VM transactions. Hostile testing first rejects an unapproved
+binary, then deliberately replaces only its admission hash to test CPI isolation;
+this is not an authorized-upgrade or RPC-landing claim. Independent pricing checks
+execute each actual maker binary against **3,172** vectors (1,547 exact quotes,
+1,625 expected rejections) per program; inserted pricing fixtures do not claim
+reachable cash state. Logs are under `.local/anchor-v2-build/`.
+
+Earlier port checks on source `10b4d98` passed 119 clearing and 12 maker-interface
+native tests, including bounded registry and foreign-loader negatives. Actual
+source-generated IDLs, SDK generation, ABI guard and scoped dual-client conformance
+pass. Affected client reruns pass 45/45 after stale-schema fixture corrections;
+the other 200 checks passed in the preceding run. Typecheck passes after the CPI
+and harness fixes. Broad hosted regression has not yet been observed.
+
+Retained failed attempts are explicit: the first RPC attempt rejected the old
+artifact allowlist; the next reached signed provisioning but failed its first
+deposit with `AccountBorrowFailed`. RC2 boxed native accounts needed the forwarding
+`ToCpiHandle` traits rather than the generic `AnchorAccount` method. The fresh pass
+above verifies the fix without bypassing borrow guardrails. Framework failures
+now use their exact RC2 named errors; protocol custom codes remain unchanged.
+
+P47 still owes full entrypoint/scenario coverage, full-book/64-member width gates,
+operator/browser/fault/load qualification, complete operational replay and a
+matched B/C resource/fee report. P46's scoped results do not satisfy those gates.
+No devnet, external participant, funded deployment, C1 optimization or continuous
+24-hour run is claimed. P15B/P16B remain open and endurance remains deferred.
+
 ## Checks by change
 
 | Scope | Existing targeted entrypoints |

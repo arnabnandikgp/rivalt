@@ -1,3 +1,4 @@
+import {assertInstructionError,svmInstructionError} from './instruction-errors.js';
 // Mathematical pricing fixtures only. These inserted config/publication accounts
 // prove real SBF quote evaluation, not deposits, fills or reachable financial state.
 import assert from 'node:assert/strict';
@@ -14,7 +15,7 @@ const clock = svm.getClock(); clock.unixTimestamp = 1_800_000_000n; clock.slot =
 const keyBytes = getAddressEncoder();
 const module = process.env.RIVALT_CANONICAL_PROGRAM === 'maker_b' ? sdk.makerB : sdk.makerA;
 const program = process.env.RIVALT_CANONICAL_PROGRAM === 'maker_b' ? sdk.makerB.MAKER_B_PROGRAM_ADDRESS : sdk.makerA.MAKER_A_PROGRAM_ADDRESS;
-const artifact = `${process.env.RIVALT_CANONICAL_ARTIFACT_DIR ?? '.local/liquidity-execution'}/${process.env.RIVALT_CANONICAL_PROGRAM ?? 'maker_a'}.so`;
+const artifact = `${process.env.RIVALT_CANONICAL_ARTIFACT_DIR ?? process.env.RIVALT_ARTIFACT_DIR ?? '.local/anchor-rc2/candidate'}/${process.env.RIVALT_CANONICAL_PROGRAM ?? 'maker_a'}.so`;
 console.error('SBF pricing artifact:', JSON.stringify({ artifact, sha256: createHash('sha256').update(readFileSync(artifact)).digest('hex') }));
 svm.addProgramFromFile(program, artifact);
 const [config, configBump] = await getProgramDerivedAddress({ programAddress: program, seeds: [Buffer.from('curve-v4'), keyBytes.encode(payer.address)] });
@@ -41,7 +42,7 @@ for (const line of readFileSync(0, 'utf8').trim().split('\n')) {
   } }, payer, [instruction], { computeUnitLimit: 100_000, loadedAccountsDataSizeLimit: 8 * 1024 * 1024 });
   const result = svm.sendTransaction(getTransactionDecoder().decode(transaction.serialize()));
   if (result instanceof FailedTransactionMetadata) {
-    assert(result.meta().logs().some(log => log.includes('Error Number: 6003.')), result.meta().logs().join('\n'));
+    assertInstructionError(svmInstructionError(result),6003,result.meta().logs().join('\n'));
     console.log('ERR');
   } else {
     const response = module.getMakerQuoteResponseDecoder().decode(result.returnData().data());

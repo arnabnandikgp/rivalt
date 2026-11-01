@@ -44,7 +44,7 @@ try {
   const unchangedKeys = [...makerKeys, fixture.markets[0], configuration, fixture.custody];
   const readAll = (keys = unchangedKeys) => Promise.all(keys.map(h.read));
   const beforeDisabled = await readAll();
-  await h.send('retired sampler discriminator cannot bypass publisher', [{programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data:Buffer.from([9,149,124,151,174,246,56,42])}], [], 101);
+  await h.send('retired sampler discriminator cannot bypass publisher', [{programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data:Buffer.from([9,149,124,151,174,246,56,42])}], [], 'InvalidInstructionData');
   assert.deepEqual(await readAll(), beforeDisabled);
   const observations: unknown[] = [];
   let publisher = fixture.updater;
