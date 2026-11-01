@@ -14,7 +14,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
 | M13 Anchor RC2 migration | Planning | P45 plan; proposed P46 port and P47 fresh qualification against frozen P44 B; implementation not started |
-| P45 migration contract | Review — publication pending | Architecture/release research, exact RC2 pins, ABI choice, code gap map and measurement/acceptance plan |
+| P45 migration contract | Review | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) ready; architecture/release research, exact RC2 pins, ABI choice, code gap map and measurement/acceptance plan |
 | P46 RC2 implementation | Planned — after plan review | Correct serialized port, explicit fresh ABI and generated clients; separately measured selective zero-copy only if justified |
 | P47 post-migration qualification | Planned — depends on P46 | Complete compiled financial/service/browser/load matrix and matched cost report; no inherited qualification |
 | M12 performance and contention | Closed | P39–P44 accepted and integrated; measured pre-migration baseline frozen; no framework migration |
@@ -65,9 +65,11 @@ or live state migration is claimed.
 
 Planning acceptance: source/IDL counts and discriminator hashes independently
 enumerated (53 clearing + four per maker; 17 clearing account types, 28 clearing
-events). The read-only documentation check passes with 304 relative links,
+events); proposed instruction hashes are unique and disjoint from old identifiers
+within each program. At clean planning commit `e48a7ec`, the read-only documentation
+check passes with 304 relative links,
 112 historical Git targets, 71 source/command paths and no errors;
-`git diff --check` passes. Immutable upstream source and migration-guide links
+whitespace and staged evidence-policy checks pass. Immutable upstream source and migration-guide links
 return HTTP 200. No install, dependency resolution, SDK generation, SBF build, runtime
 test, load, browser check, devnet or full regression was run for this documentation
 change. Hosted workflow path filters exclude docs-only PRs; no CI pass is implied.
@@ -75,8 +77,9 @@ change. Hosted workflow path filters exclude docs-only PRs; no CI pass is implie
 No access blocker prevents planning. RC2 SBF/tool compatibility, bounded codecs,
 IDL/Codama support, CPI borrow behavior and financial/resource equivalence remain
 unproved implementation gates, with explicit acceptance in the plan. P15B/P16B
-and deferred endurance are unchanged. Next exact action: publish the ready P45
-planning PR and stop for the user's plan review before starting P46.
+and deferred endurance are unchanged. Ready PR #63 remains open. Next exact action:
+after the user's plan review, begin P46's isolated RC2 toolchain and serialized C0
+port with the explicit ABI delta. No implementation is started in this run.
 
 ## Accepted performance stack
 
