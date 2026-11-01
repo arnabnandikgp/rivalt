@@ -28,6 +28,7 @@ async function wait<Value>(read:()=>Promise<Value>,accept:(value:Value)=>boolean
 }
 async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise<sdk.SignedIntent>{
   const before=new Set((await receipts()).map(item=>item.signature));
+  const reducing=name==='Review atomic trade'&&await page.getByLabel('Reduce only',{exact:true}).isChecked();
   // Wait for actual live source recovery. Only explicitly refused, unsigned
   // preparations may retry; a signed or ambiguous original never enters this loop.
   for(let attempt=1;attempt<=3;attempt++){
@@ -35,12 +36,13 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
       assert(sourceMargin,'Trade preparation needs its actual margin account');
       const snapshot=await client.snapshot([sourceMargin],'confirmed');
       const modes=snapshot.marketStates.map(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot));
-      sourceObservations.push({now:snapshot.now,slot:snapshot.slot,modes,markets:snapshot.marketStates.map(market=>({
+      sourceObservations.push({reducing,now:snapshot.now,slot:snapshot.slot,modes,markets:snapshot.marketStates.map(market=>({
         validUntil:market.validUntil,status:market.oracle.status,sampledAt:market.oracle.sampledAt,
         lastQualified:market.oracle.lastQualified,sourceDeadline:market.oracle.sourceDeadline}))});
       writeFileSync(`${directory}/source-observations.json`,JSON.stringify(sourceObservations,(_,value)=>typeof value==='bigint'?value.toString():value,2));
       return modes;
-    },modes=>modes.every(mode=>mode==='Normal'),'live Normal sources before trade',60_000);
+    },modes=>modes.every(mode=>mode==='Normal'||reducing&&mode==='Degraded'),
+      reducing?'credible sources before reduce-only close':'live Normal sources before opening trade',60_000);
     await button(name).first().click();
     const prepared=await wait(async()=>({review:await page.getByRole('region',{name:'Review transaction'}).isVisible(),
       alerts:await page.getByRole('alert').allTextContents()}),value=>value.review||value.alerts.length>0,`${name} review`);

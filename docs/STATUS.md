@@ -227,8 +227,17 @@ Its local operator configuration now selects the existing supported four-second
 publication cadence; synthetic feeds remain one second and all program source,
 quote, recovery and risk limits are unchanged. The separate measured P47 service/
 load fixtures retain their original two-second cadence and results.
-Next exact action: measure the full interactive lifecycle at this explicit local
-cadence, stop it, and record its actual success/rejection envelope before P47 publication.
+Clean `ffceacd` passes ten actual wallet actions with zero rejected originals:
+account setup, deposits/allocation, BTC/ETH buys, TP/SL and cancellation. It then
+stops because the fixture incorrectly requires Normal for a reduce-only close;
+264 recorded source reads end in fresh credible Degraded bounds. The existing
+`engine/oracle.rs::action` and risk specification explicitly permit reduction in
+Degraded mode. The browser now waits for that unchanged contract for signed
+reduce-only actions, while opening still requires Normal and NoCredibleBounds
+always rejects. This does not change the program or source/risk policy. Owned
+runtime is stopped and this incomplete attempt is not a full lifecycle pass.
+Next exact action: verify actual reduce-only closes under the documented credible
+bounds, then withdrawal/reload, stop the runtime and publish P47.
 
 ## Accepted performance stack
 
