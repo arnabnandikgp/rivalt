@@ -14,6 +14,7 @@ const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const config=JSON.parse(readFileSync(`${RUNTIME}/deployment.json`,'utf8'));
 const client=new sdk.AccountUserClient(config),outcomes:{label:string;signature:string;wire:string;fee:number;status:string;error:unknown;reviewAttempt:number}[]=[],errors:string[]=[],preparations:unknown[]=[];
+const sourceObservations:unknown[]=[];
 const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,
   args:['--disable-background-networking','--disable-component-update','--no-first-run']});
 const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
@@ -21,8 +22,9 @@ page.setDefaultTimeout(25000);page.on('pageerror',error=>errors.push(error.messa
 let decline=false;page.on('dialog',dialog=>{if(decline){decline=false;void dialog.dismiss();}else void dialog.accept();});
 const button=(name:string)=>page.getByRole('button',{name,exact:true});
 const receipts=()=>page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('rivalt:receipts:v4:')).flatMap(([,value])=>JSON.parse(value))) as Promise<sdk.SignedIntent[]>;
-async function wait<Value>(read:()=>Promise<Value>,accept:(value:Value)=>boolean,label:string){
-  for(let attempt=0;attempt<160;attempt++){const value=await read();if(accept(value))return value;await delay(200);}throw new Error(label);
+async function wait<Value>(read:()=>Promise<Value>,accept:(value:Value)=>boolean,label:string,timeoutMs=32_000){
+  const deadline=Date.now()+timeoutMs;
+  while(Date.now()<deadline){const value=await read();if(accept(value))return value;await delay(200);}throw new Error(label);
 }
 async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise<sdk.SignedIntent>{
   const before=new Set((await receipts()).map(item=>item.signature));
@@ -32,8 +34,13 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     if(name==='Review atomic trade')await wait(async()=>{
       assert(sourceMargin,'Trade preparation needs its actual margin account');
       const snapshot=await client.snapshot([sourceMargin],'confirmed');
-      return snapshot.marketStates.map(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot));
-    },modes=>modes.every(mode=>mode==='Normal'),'live Normal sources before trade');
+      const modes=snapshot.marketStates.map(market=>sdk.accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot));
+      sourceObservations.push({now:snapshot.now,slot:snapshot.slot,modes,markets:snapshot.marketStates.map(market=>({
+        validUntil:market.validUntil,status:market.oracle.status,sampledAt:market.oracle.sampledAt,
+        lastQualified:market.oracle.lastQualified,sourceDeadline:market.oracle.sourceDeadline}))});
+      writeFileSync(`${directory}/source-observations.json`,JSON.stringify(sourceObservations,(_,value)=>typeof value==='bigint'?value.toString():value,2));
+      return modes;
+    },modes=>modes.every(mode=>mode==='Normal'),'live Normal sources before trade',60_000);
     await button(name).first().click();
     const prepared=await wait(async()=>({review:await page.getByRole('region',{name:'Review transaction'}).isVisible(),
       alerts:await page.getByRole('alert').allTextContents()}),value=>value.review||value.alerts.length>0,`${name} review`);

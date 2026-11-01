@@ -187,7 +187,9 @@ try {
     if(stopping)return;
     const disk=statfsSync(DEMO_ROOT);if(disk.bavail*disk.bsize<768*1024**2)void shutdown('low disk guard',1);
   },1000);
-  sourceLoop=(async()=>{while(!stopping){await setup!.freshSources();await delay(2000);}})();
+  // Use the qualified service fixture's source cadence. This changes only the
+  // synthetic producer frequency, never on-chain age or recovery requirements.
+  sourceLoop=(async()=>{while(!stopping){await setup!.freshSources();await delay(1000);}})();
   sourceLoop.catch(()=>{if(!stopping)void shutdown('synthetic source publisher failed; original retained',1);});
   stage='UI and source readiness';
   const ui=processes.start('ui',process.execPath,['apps/trader/node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','18083','--strictPort','apps/trader'],{

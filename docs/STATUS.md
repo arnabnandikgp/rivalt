@@ -212,8 +212,15 @@ proves expiry 1,956 versus finalized execution slot 2,018 (prepared at 1,914).
 The new fixture also permits a bounded new user review for this independently
 proven expiry only; an unexplained RouteIntent remains fatal. This is not an
 increase in quote lifetime or an unrecorded signed retry. Owned runtime is stopped.
-Next exact action: run the fresh wallet lifecycle with exact classified version/
-expiry recovery, record every fee, stop it, then publish P47's measured limits.
+The first `eac2ff8` startup loses a worker PostgreSQL connection and shuts down;
+its fresh repeat starts but stops after seven successful originals and one final
+version rejection because both markets do not reach Normal within the fixture's
+32-second recovery wait. Neither is a pass. The demo synthetic source cadence now
+matches the qualified service fixture (one-second delay), and the browser uses
+that fixture's 60-second recovery deadline with raw source-state observations.
+On-chain age/recovery/quote limits and signed-failure bounds remain unchanged.
+Next exact action: verify the aligned demo cadence on a fresh chain, retain all
+source/rejection observations, stop it, then finish P47 reporting/publication.
 
 ## Accepted performance stack
 
