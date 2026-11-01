@@ -12,7 +12,7 @@ const directory=resolve(process.env.RIVALT_DEMO_EVIDENCE??`.local/demo-checks/${
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const config=JSON.parse(readFileSync(`${RUNTIME}/deployment.json`,'utf8'));
-const client=new sdk.AccountUserClient(config),outcomes:unknown[]=[],errors:string[]=[],preparations:unknown[]=[];
+const client=new sdk.AccountUserClient(config),outcomes:{label:string;signature:string;wire:string;fee:number;status:string;error:unknown;reviewAttempt:number}[]=[],errors:string[]=[],preparations:unknown[]=[];
 const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,
   args:['--disable-background-networking','--disable-component-update','--no-first-run']});
 const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
@@ -23,7 +23,7 @@ const receipts=()=>page.evaluate(()=>Object.entries(localStorage).filter(([key])
 async function wait<Value>(read:()=>Promise<Value>,accept:(value:Value)=>boolean,label:string){
   for(let attempt=0;attempt<160;attempt++){const value=await read();if(accept(value))return value;await delay(200);}throw new Error(label);
 }
-async function action(name:string,sourceMargin?:Address){
+async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise<sdk.SignedIntent>{
   const before=new Set((await receipts()).map(item=>item.signature));
   // Wait for actual live source recovery. Only explicitly refused, unsigned
   // preparations may retry; a signed or ambiguous original never enters this loop.
@@ -48,11 +48,25 @@ async function action(name:string,sourceMargin?:Address){
   assert(await page.getByRole('region',{name:'Review transaction'}).isVisible(),`${name}: missing review`);
   await button('Sign transaction').click();
   const saved=await wait(receipts,items=>items.length===before.size+1&&items.some(item=>!before.has(item.signature)&&['finalized','failed'].includes(item.status)),`${name} finality`);
-  const receipt=saved.find(item=>!before.has(item.signature))!;assert.equal(receipt.status,'finalized',JSON.stringify(receipt.error));
+  const receipt=saved.find(item=>!before.has(item.signature))!;
   const history=await client.rpc.call('getTransaction',[receipt.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
-  assert.equal(history.transaction[0],receipt.wire);assert.equal(history.meta.err,null);
-  outcomes.push({label:receipt.label,signature:receipt.signature,wire:receipt.wire,fee:history.meta.fee});
+  assert.equal(history.transaction[0],receipt.wire);
+  outcomes.push({label:receipt.label,signature:receipt.signature,wire:receipt.wire,fee:history.meta.fee,
+    status:receipt.status,error:history.meta.err,reviewAttempt});
   writeFileSync(`${directory}/wallet-transactions.json`,JSON.stringify(outcomes,null,2));
+  writeFileSync(`${directory}/wallet-finalized-${outcomes.length}.json`,JSON.stringify(history,null,2));
+  if(receipt.status==='failed'){
+    // A live settlement worker can advance the account between review and send.
+    // Model a new user review only AFTER independent finalized failure proof;
+    // retain its original, fee and rejection. Unknown outcomes never retry here.
+    assert.equal(name,'Review atomic trade',JSON.stringify(receipt.error));
+    assert.deepEqual(history.meta.err,{InstructionError:[3,{Custom:6122}]});
+    assert(reviewAttempt<3,'Bounded fresh review after finalized FinancialSequence rejection');
+    await button('Refresh').click();
+    await wait(()=>page.getByRole('main').getAttribute('aria-busy'),value=>value==='false','finalized rejection refresh');
+    return action(name,sourceMargin,reviewAttempt+1);
+  }
+  assert.equal(receipt.status,'finalized');assert.equal(history.meta.err,null);
   await button('Refresh').click();await delay(500);return receipt;
 }
 const select=async(label:string,value:string)=>{await page.getByLabel(label,{exact:true}).selectOption(value);await delay(500);};
@@ -87,14 +101,15 @@ try{
   await page.getByLabel('Collateral amount',{exact:true}).fill('1');await action('Withdraw');
   assert.equal((await client.walletTokens(owner)).find(item=>item.address===token)!.amount-tokensBefore.find(item=>item.address===token)!.amount,1_000_000n);
   const finalOriginals=(await receipts()).length;
-  await page.reload();await wait(receipts,items=>items.length===finalOriginals&&items.every(item=>item.status==='finalized'),'saved originals after reload');
+  await page.reload();await wait(receipts,items=>items.length===finalOriginals&&items.every(item=>['finalized','failed'].includes(item.status)),'saved successful/rejected originals after reload');
   await wait(()=>page.getByTestId('account-cash').textContent(),value=>!!value&&value!=='—','same-tab wallet and selected account after reload');
   assert.equal(await page.getByLabel('Margin account',{exact:true}).inputValue(),'0');
   const fills=page.locator('section').filter({has:page.getByRole('heading',{name:'Recent finalized fills',exact:true})});
   await wait(()=>fills.locator('tbody tr').count(),count=>count>=4,'indexed finalized fills after reload');
   assert.equal(errors.length,0,errors.join('\n'));await page.screenshot({path:`${directory}/demo-ui.png`,fullPage:true});
   const summary={status:'pass',revision,trackedDirty:false,build:JSON.parse(readFileSync(`${ARTIFACT_DIRECTORY}/build-manifest.json`,'utf8')),
-    walletOriginals:outcomes.length,owner,portfolio,cross,isolated,errors,preparations,
+    walletOriginals:outcomes.length,successfulOriginals:outcomes.filter(item=>item.status==='finalized').length,
+    rejectedOriginals:outcomes.filter(item=>item.status==='failed').length,owner,portfolio,cross,isolated,errors,preparations,
     checks:['local-origin faucet denial','unauthorized stop denial','fresh browser-generated wallet and real faucet','portfolio and both account modes',
       'deposits and explicit sibling allocation','actual wallet decline','BTC and ETH fills','TP/SL and cancellation','reduce-only closes','token-reconciled funded withdrawal','reload and saved originals','reconciled indexed fill display']};
   writeFileSync(`${directory}/summary.json`,JSON.stringify(summary,null,2));console.log(JSON.stringify(summary));

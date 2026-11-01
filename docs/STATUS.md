@@ -198,8 +198,16 @@ and fee payers. The browser waits for real Normal source state and permits only
 bounded explicit unsigned-source refusals; signed originals are never rebuilt.
 Typecheck passes. Failed evidence remains in
 `.local/anchor-rc2/p47-demo-browser-02f536c/`; its owned server is stopped.
-Next exact action: commit the demo role-payer correction, rerun fresh startup and
-the local-wallet lifecycle, stop it, then publish P47 with the completed report.
+Fresh runtime `1f74640` restores publication with separate payers; browser
+`f370885` finalizes seven actions including BTC, then its ETH trade finalizes with
+FinancialSequence 6122 while live settlement is active. The independently fetched
+failed RPC receipt remains in that run. The fixture now retains every original,
+fee and finalized rejection, and allows at most three new user reviews only after
+independently proving that exact finalized version failure. It never retries an
+unknown original or hides a rejected fee. This models normal optimistic-concurrency
+recovery; the program/UI safeguards are unchanged. The incomplete run is not a pass.
+Next exact action: verify a clean fresh demo lifecycle with classified known-failure
+recovery, stop the server, then finish the report and ready P47 PR.
 
 ## Accepted performance stack
 
