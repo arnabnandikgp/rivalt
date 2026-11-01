@@ -114,15 +114,20 @@ Nine measurement tests and typecheck pass; the revised read-only collection cove
 `set_account_delegate` remains, in the incomplete service constituent.
 The initial services attempt stopped at browser launch because its Playwright cache
 is absent; an installed Chrome is available via the documented `RIVALT_CHROME_PATH`.
-No completed services/browser pass is inferred from that attempt. Existing runs,
+The installed-Chrome attempt then finalized six browser actions before a source
+window expired during the next unsigned trade preparation. The browser fixture
+now waits for live Normal source state before every trade and records at most
+three unsigned preparation attempts for that exact refusal. Signed/ambiguous
+originals are never retried or rebuilt by this loop; other errors remain fatal.
+Neither attempt establishes a complete services/browser pass. Existing runs,
 logs and databases remain retained; no financial safeguard or resource limit changed.
 
 Services/browser/fault/load acceptance and the matched resource/fee report still
 remain, along with normal-runtime promotion and P47's ready PR. Comparisons must
 distinguish matched financial states from wall-clock/slot differences and consumed
 CU from paid fees. No C1, funded/external gate or endurance run is claimed.
-Next exact action: commit the population-counter fix and rerun the service/browser
-constituent with installed Chrome, then finish the bounded load/recovery matrix.
+Next exact action: commit the bounded unsigned-browser preparation fix, rerun services with installed
+Chrome, then finish the bounded load/recovery matrix and comparison report.
 
 ## Accepted performance stack
 
