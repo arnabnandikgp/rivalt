@@ -6,6 +6,7 @@ import {resolve} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
 import {address,type Address} from '@solana/kit';
+import {VersionedTransaction} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {RUNTIME,ARTIFACT_DIRECTORY} from '../../packages/local-demo/src/config.js';
 const directory=resolve(process.env.RIVALT_DEMO_EVIDENCE??`.local/demo-checks/${Date.now()}`);mkdirSync(directory,{recursive:true});
@@ -60,8 +61,19 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     // Model a new user review only AFTER independent finalized failure proof;
     // retain its original, fee and rejection. Unknown outcomes never retry here.
     assert.equal(name,'Review atomic trade',JSON.stringify(receipt.error));
-    assert.deepEqual(history.meta.err,{InstructionError:[3,{Custom:6122}]});
-    assert(reviewAttempt<3,'Bounded fresh review after finalized FinancialSequence rejection');
+    const code=history.meta.err?.InstructionError?.[1]?.Custom;
+    assert.deepEqual(history.meta.err,{InstructionError:[3,{Custom:code}]});
+    assert(code===6122||code===6117,JSON.stringify(history.meta.err));
+    if(code===6117){
+      // RouteIntent is a broad error. Retry only independently proven expiry,
+      // never an unexplained authority/quantity/generation mismatch.
+      const transaction=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64'));
+      const instruction=transaction.message.compiledInstructions[3];
+      assert.equal(transaction.message.staticAccountKeys[instruction.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);
+      const intent=sdk.getExecuteLiquidityRouteInstructionDataDecoder().decode(instruction.data);
+      assert(BigInt(history.slot)>=intent.expirySlot,'Finalized route must have landed after its signed expiry');
+    }
+    assert(reviewAttempt<3,'Bounded fresh review after finalized version conflict or proven expiry');
     await button('Refresh').click();
     await wait(()=>page.getByRole('main').getAttribute('aria-busy'),value=>value==='false','finalized rejection refresh');
     return action(name,sourceMargin,reviewAttempt+1);

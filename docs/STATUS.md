@@ -206,8 +206,14 @@ fee and finalized rejection, and allows at most three new user reviews only afte
 independently proving that exact finalized version failure. It never retries an
 unknown original or hides a rejected fee. This models normal optimistic-concurrency
 recovery; the program/UI safeguards are unchanged. The incomplete run is not a pass.
-Next exact action: verify a clean fresh demo lifecycle with classified known-failure
-recovery, stop the server, then finish the report and ready P47 PR.
+Clean `87fc84e` preserves seven successful originals plus two finalized ETH
+rejections: FinancialSequence, then RouteIntent. Decoding the latter signed wire
+proves expiry 1,956 versus finalized execution slot 2,018 (prepared at 1,914).
+The new fixture also permits a bounded new user review for this independently
+proven expiry only; an unexplained RouteIntent remains fatal. This is not an
+increase in quote lifetime or an unrecorded signed retry. Owned runtime is stopped.
+Next exact action: run the fresh wallet lifecycle with exact classified version/
+expiry recovery, record every fee, stop it, then publish P47's measured limits.
 
 ## Accepted performance stack
 
