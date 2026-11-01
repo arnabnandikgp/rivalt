@@ -9,13 +9,17 @@ not these program artifacts. P36 adds the separately scoped rebuilt-code evidenc
 below; P37's fresh integrated qualification after retirement is recorded separately.
 [Original reports](../HISTORY.md) retain complete commands, failed attempts and pins.
 
-## Anchor RC2 qualification checkpoint (P47)
+## Anchor RC2 qualification (P47)
 
-P47 remains **In progress**; normal artifact selection is implemented and its
-final demo startup/lifecycle check is pending. The unchanged
-C0 artifacts and clean verifiers are recorded in the bounded
+P47 local acceptance **passes**; PR integration remains separate in
+[STATUS](../STATUS.md). Normal artifacts are selected only after the financial,
+service and resource checks below. Unchanged C0 artifacts and clean verifiers
+are recorded in the bounded
 [coverage summary](../../tests/performance/baselines/p47-c0.json). Its **61/61**
-entrypoints are coverage, not proof of the remaining service/load/default matrix.
+entrypoints establish coverage; the distinct financial/service/load/default
+constituents below supply their own acceptance. The inventory retains 2,520
+executions / 2,493 originals / 27 byte-identical cross-run reexecutions, separating
+rejections and operator/browser populations. Retained B stays immutable.
 
 Clean `a01da5d` passes the 12-case focused RPC/WS profile; 123 maker and 84
 publisher outcomes; 207 dependency/settlement and 63 retirement outcomes with
@@ -47,7 +51,7 @@ retaining complete field/array/revision guards; the new regression first fails
 on old code and then rejects actual metadata changes. Twenty affected indexer
 cases and typecheck pass; the clean integrated rerun above supplies runtime proof.
 
-[Performance](performance.md#rc2-qualification-measurements-in-progress-p47)
+[Performance](performance.md#rc2-qualification-measurements-p47)
 records the paired B/C observations, full financial state comparison and explicit
 clock/digest mismatch limits. Fourteen affected measurement/provenance cases pass.
 Raw wires/logs/database copies stay ignored. No unrelated full host suite, new
@@ -73,13 +77,68 @@ initialize this profile. All three local/devnet feature combinations fail
 compilation at the intended mutual-exclusion guard. No devnet network is used.
 Evidence: `.local/anchor-rc2/devnet-gates-eac3755/`, reproduced with
 `RIVALT_DEVNET_GATE_ARTIFACTS=<fresh-directory> bash ops/build-devnet-gates.sh`.
-Fifteen affected local-demo configuration/process/transport tests pass. Final
-reporting and the normal launcher check remain; these passes do not integrate P47.
+Fifteen affected local-demo configuration/process/transport tests pass. Twelve
+resource-parser/receipt cases pass; absent heap requests and missing observed
+heap/data metrics remain absent. The C0 and comparison summaries reproduce from
+retained actual receipts; B still reproduces its unchanged 53,089-byte summary.
+
+Normal launchers/builds select `.local/anchor-rc2/current`, preserving frozen B and
+immutable C0. Its actual binary hashes must still match the SDK allowlist. The
+artifact binding remains `p46-anchor-rc2-c0-candidate-v1` to preserve the qualified
+journal identity; its historical name does not select arbitrary binaries.
+Clean `0591f10` initially caught confirmed provisioning advancing during the first
+finalized indexer cycle. Startup now retries only typed `ReconciliationAhead` for
+up to 30 seconds before producers start; all other errors remain fatal. Clean
+`02f536c` then starts successfully and finalizes six wallet account/cash actions,
+but its first unsigned trade refuses unavailable BTC sources. The normal launcher
+had still shared one updater/payer across all producers. It now assigns six maker
+and two publisher restricted keys through real signed provisioning, as qualified
+services already did. Their fee payers no longer serialize all publication.
+Neither failure is counted as completed demo acceptance; both remain local.
+
+Fresh demo runtime and clean browser verifier **`083760a`** pass
+**thirteen successful actual local-demo-wallet originals** in
+`.local/anchor-rc2/p47-demo-browser-083760a/` (runtime/data retained in
+`.local/anchor-rc2/p47-demo-083760a/`). Independently fetched finalized wires match
+all wallet signatures, both margin modes, deposits/sibling allocation, BTC/ETH
+trades, TP/SL cancellation, reduce-only closes, token-reconciled withdrawal and
+saved-original/reconciled-fill reload. Actual wallet decline creates no original;
+untrusted faucet origin and unauthorized stop reject. Page errors are zero.
+The fixture follows the unchanged source contract: Normal for opens and credible
+Normal/Degraded for reduce-only closes. It waits for real source recovery and
+allows bounded explicit unsigned-source refusal retries. A proven finalized
+version conflict or independently proven signed expiry may receive a new bounded
+user review; its failed original/fee remains recorded. Ambiguous originals never
+rebuild. The owned server and PostgreSQL are stopped, and all seven owned listeners
+are released. No new external-wallet claim is made.
+
+The complete demo denominator is **13 signed originals: 13 successful / 0 rejected**,
+with **65,000 actual fee lamports**; every finalized receipt is retained. The full
+interactive worker set targets four-second funding publication within the existing
+2–5-second range, and one-second synthetic feed refresh. These local settings do
+not replace the separate two-second service/load measurements.
+
+Earlier demo attempts retained a proven signed expiry (landed slot 2,018 versus
+expiry 1,956), an unaccepted MakerQuote 6115 refusal, source-recovery timeouts and
+a worker PostgreSQL startup disconnect. Clean `ffceacd` also passed ten actions
+before the fixture incorrectly demanded Normal for a reduce-only close with
+credible Degraded prices; `083760a` corrects only that fixture condition. None of
+these incomplete attempts is counted as a full pass or hidden by accepting more
+financial error codes. The final lifecycle does not establish continuous
+availability or eliminate those operating limits.
+
+The paired resource report records observed route reductions of 40–44%, with
+unchanged requested budgets and paid fees. Full books and 64-member continuation
+fit; separate 5,632-bit scratch verification reaches 572,668 CU. Its 56 added default
+members are flat and scratch cases never Apply. The bounded load's 433/1,008 fills,
+all classified rejection/unsubmitted reasons, two coherent live index cycles /
+33 revision-ahead retries and exact final replay remain limitations, not sustained
+availability or TPS. P15B/P16B and continuous 24-hour endurance remain unchanged.
 
 ## Anchor RC2 serialized port (P46)
 
-This is scoped implementation acceptance, **not P47 qualification or normal demo
-promotion**. D90 uses exact Anchor `2.0.0-rc.2`, isolated CLI/client installations,
+This section records P46’s scoped implementation acceptance; **P47’s complete
+qualification and local promotion are recorded separately above**. D90 uses exact Anchor `2.0.0-rc.2`, isolated CLI/client installations,
 platform-tools v1.52 and SBPF v0. The fresh clearing/account binding is 8, maker
 account schema is 5, and quote/report protocol versions and financial rules remain
 unchanged. Canonical identifiers replace the explicitly recorded historical IDs;
@@ -130,7 +189,7 @@ deposit with `AccountBorrowFailed`. RC2 boxed native accounts needed the forward
 above verifies the fix without bypassing borrow guardrails. Framework failures
 now use their exact RC2 named errors; protocol custom codes remain unchanged.
 
-P47 still owes full entrypoint/scenario coverage, full-book/64-member width gates,
+At the P46 checkpoint, P47 still owed full entrypoint/scenario coverage, full-book/64-member width gates,
 operator/browser/fault/load qualification, complete operational replay and a
 matched B/C resource/fee report. P46's scoped results do not satisfy those gates.
 No devnet, external participant, funded deployment, C1 optimization or continuous

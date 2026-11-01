@@ -9,9 +9,9 @@ successful devnet checks apply to their recorded implementation only.
 - [Validation](validation.md): choose relevant checks; actual qualified revisions,
   resource limits and remaining evidence boundaries.
 - [Performance](performance.md): P39–P44 contention contract, workload methodology,
-  executable access audit and pre-Anchor-v2 baseline gates.
-- [Anchor v2 migration](anchor-v2-migration.md): accepted P45 contract and active P46/P47
-  implementation/qualification sequence; STATUS separates observed checks from acceptance.
+  executable access audit, immutable pre-Anchor-v2 baseline and RC2 comparison.
+- [Anchor v2 migration](anchor-v2-migration.md): accepted P45 contract and qualified P46/P47
+  implementation; STATUS separates acceptance from integration.
 
 | Change | Required reading/check family |
 |---|---|

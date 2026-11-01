@@ -13,10 +13,10 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| M13 Anchor RC2 migration | Active | P45 plan accepted; P46 in Review with green CI; P47 fresh qualification in progress |
+| M13 Anchor RC2 migration | Active | P45/P46 in Review; P47 local qualification accepted, publication pending |
 | P45 migration contract | Review | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) ready; architecture/release research, exact RC2 pins, ABI choice, code gap map and measurement/acceptance plan |
 | P46 RC2 implementation | Review | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) ready above #63; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
-| P47 post-migration qualification | In progress | Separate frozen B/C0 readers reproduce actual coverage; remaining full matrix, resource/fee comparison and normal-runtime promotion |
+| P47 post-migration qualification | Acceptance passed | Full fresh C0 matrix, B/C report and normal-demo lifecycle pass; ready PR publication pending |
 | M12 performance and contention | Closed | P39–P44 accepted and integrated; measured pre-migration baseline frozen; no framework migration |
 | P39 dependency audit/baseline | Closed | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55) merged; focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | Closed | A and B acceptance passed and integrated |
@@ -52,7 +52,7 @@ contexts and typed CPI borrowing, scoped event codecs, canonical identifier delt
 clearing binding 8 / maker account schema 5, actual generated IDLs/SDK and isolated
 legacy/RC2 clients. Fields, seeds, privileges, signed quote/report domains, financial
 rules and default/devnet gates remain intact. No C1 zero-copy conversion is needed
-to close this serialized port; P47 will assess the measured operating envelope.
+to close this serialized port; P47 records its measured operating envelope below.
 
 Clean C0 SBF source is **`366c7ab4f12c058fbff6538ededca26674ccf5bf`**, retained in
 `.local/anchor-rc2/c0-366c7ab/`. Clean RPC verifier
@@ -71,173 +71,76 @@ on `360a247` in [run 41289514760](https://github.com/arnabnandikgp/rivalt/action
 The initial failed allowlist and boxed native token CPI attempts remain recorded;
 the fresh signed custody pass proves the forwarding-handle fix.
 
-P47 is still required for full entrypoint/full-book/64-member coverage, services,
-browser, fault/load replay and the matched resource/fee comparison. Normal local artifact promotion is implemented after P47’s financial/service
-qualification; the final launcher check and P47 PR remain below. P15B/P16B and deferred endurance are unchanged. No access
-blocker is present. P47 continues on the accepted exact parent without merging #64.
+P47 completes the remaining qualification below on these unchanged C0 binaries.
+P15B/P16B and deferred endurance are unchanged. Both phase branches remain open;
+qualification is not integration or a funded deployment.
 
-## P47 qualification checkpoint
+## P47 qualification
 
-`implementation/p47-rc2-qualification` is stacked above #64 at `360a247`. The
-separate baseline reader now loads immutable B IDLs and its schema-7 metadata;
-replaying all **2,871** retained originals reproduces the unchanged **53,089-byte**
-B summary exactly. It refuses baseline rewrites. The separate C0 collector checks
-admitted binary hashes, exact source/IDL pins, signatures, RPC/WS, fees and CPI
-ancestry. The three clean P46 runs currently establish **43/61** successful
-entrypoints across **471** outcomes; their retained rejections cannot inflate
-coverage. No new transaction or qualification is inferred from rereading evidence.
+`implementation/p47-rc2-qualification` contains accepted P46 parent `360a247`.
+Local acceptance passes; ready PR publication is pending. No access blocker is
+present. [Validation](operations/validation.md#anchor-rc2-qualification-p47) records
+exact constituents and [performance](operations/performance.md#rc2-qualification-measurements-p47)
+records all 61 entrypoints, binary sizes, caller/scaling dependencies and the B/C
+cost/load comparison. SBF remains clean **`366c7ab4f12c058fbff6538ededca26674ccf5bf`**;
+no C1 zero-copy conversion, economic change or new program build is inferred.
 
-Six provenance regression cases reject changed/dirty/instrumented sources and
-self-consistent but unadmitted binaries; four evidence-policy cases, typecheck and
-documentation checks pass. Broad host suites are not rerun locally.
+| Constituent | Clean verifier | Actual result |
+|---|---|---|
+| Complete coverage / full books | `a01da5d`, service `b0b62ff`, retained P46 `8feb24c` | 61/61 entrypoints; 2,520 executions / 2,493 originals / 27 cross-run reexecutions; 147/165/165 full-book outcomes |
+| Settlement / retirement / default | `a01da5d` | 207/63 dependency/retirement outcomes, 149/53-event PG replays; 712 complete-cohort outcomes, 64 independently audited payouts; eight separate scratch-width cases |
+| Services / browser | `b0b62ff` | 468 durable originals, ten browser actions, actual stored fill, three crash/lost-ack recoveries, source/publisher recovery, identical 187-event PG replay and independent accounting |
+| Dispatch / bounded load / operations | `1a893ed` | Admission/send SIGKILL and unknown-fee retention; 1,008 offers / 433 fills; complete default/recovery/cash exits with ten independently audited payouts and identical 192-event replay |
+| Default/devnet gates | P46 and `eac3755` | All three actual default/devnet initialization refusals with rollback; three mixed-feature compile rejections; no devnet network |
+| Normal demo | `083760a` | Fresh startup, thirteen successful local-wallet actions, both modes, BTC/ETH fills, TP/SL/cancel, closes, token-reconciled withdrawal and reload; owned server stopped |
 
-The approved bounded performance-summary budget moves to 256 KiB aggregate while
-retaining 64 KiB per file; raw evidence stays ignored. Continuation/operational
-launchers now require explicit RC2 candidate selection instead of selecting old
-binaries beneath the new SDK. P47 has not promoted normal demo/operator artifacts.
-Fresh clean verifier **`a01da5d`** on unchanged C0 binaries passes the focused
-12-scenario/7-lock profile; 123 maker and 84 publisher outcomes; 207 dependency/
-settlement outcomes with 149-event PostgreSQL replay; 63 retirement outcomes with
-53-event replay; full protected/entry/stored books at 147/165/165 outcomes; and
-712 complete-cohort outcomes. The independent audit verifies 64 exact payouts
-(56 added members are flat) and rejects ten corruptions. Eight separate compiled
-wide-scratch cases pass with unchanged financial bodies; they are not payout
-history. The original 471 P46 outcomes remain separate constituents.
+Frozen B remains unchanged and its 2,871 originals reproduce the 53,089-byte
+summary. C0's bounded summary is 56,839 bytes. The focused reader compares 33,682
+financial/relative-time values across 22 states for eleven successful cases.
+330 slot and 176 deployment-digest witnesses remain explicit differences, so the
+observed 40–44% route-CU reductions are paired workload observations, not a pure
+framework microbenchmark. Clearing/maker binary sizes fall 38.1%/36.1%; requested
+CU, zero-priority bids and actual focused fees are unchanged. Wide scratch reaches
+572,668 CU; no peak heap metric is invented. Raw evidence remains ignored/local.
 
-Two qualification tooling issues were observed. Fresh isolated chains replayed
-27 byte-identical signed setup originals among 2,266 executions; some read different
-fixture states and legitimately consume different CU. The collector now records
-executions and unique originals separately, retains cross-run references and still
-rejects duplicate receipts within a run or conflicting bytes under one signature.
-Nine measurement tests and typecheck pass; the revised read-only collection covers
-**60/61** entrypoints across **2,239 unique originals / 2,266 executions**. Only
-`set_account_delegate` remains, in the incomplete service constituent.
-The initial services attempt stopped at browser launch because its Playwright cache
-is absent; an installed Chrome is available via the documented `RIVALT_CHROME_PATH`.
-The installed-Chrome attempt then finalized six browser actions before a source
-window expired during the next unsigned trade preparation. The browser fixture
-now waits for live Normal source state before every trade and records at most
-three unsigned preparation attempts for that exact refusal. Signed/ambiguous
-originals are never retried or rebuilt by this loop; other errors remain fatal.
-Neither initial attempt establishes a complete services/browser pass. Clean
-`265640e` then finalized all ten browser actions with no page errors, including
-API-blocked cash actions and reload. Its subsequent order-worker check timed out:
-the live journal had rejected unchanged readonly venue metadata because JSONB
-reordered object keys. Nine actual finalized custody events reproduce identical
-venue values with different serialized key order in the retained database.
-The projection now compares complete values structurally; array order, fields and
-readonly enforcement remain exact. A new regression first reproduces the failure,
-then accepts reordered metadata and rejects three actual changes. All 20 affected
-projection/history/event tests and typecheck pass. A fresh integrated rerun is
-still required; no complete service pass is claimed for this attempt. Evidence is
-under `.local/anchor-rc2/p47-services-ready/`; logs/databases remain retained and
-no financial safeguard, hash format or resource limit changed.
+Qualification fixes: readonly projection compares complete values independently of
+JSONB object-key order; normal startup waits for the existing finalized revision
+fence; each of six maker updaters and two publishers has its own restricted key
+and fee payer. The demo had otherwise retained the previously measured shared-
+payer starvation. Browser tests wait for Normal on opens and credible
+Normal/Degraded on reduce-only closes. They retry only explicit unsigned source
+refusals or permit a new bounded user review after a proven finalized version
+conflict or signed expiry, retaining every failed original/fee. Ambiguous originals
+are never rebuilt.
+The final demo retains 13 signed originals (13 successful / 0 rejected),
+at four-second funding publication and one-second synthetic feed refresh.
+The separate service/load policy stays two seconds. Earlier missing-browser,
+source-window, JSONB, source-recovery, connection and maker-bound failures remain retained,
+not counted as passes. The initial separate-payer demo retained a finalized
+FinancialSequence 6122 rejection after seven successful actions. The later test
+incorrectly requiring Normal for reduce-only closes is also recorded; the final
+fixture follows the existing credible-Degraded reduction contract.
+No risk/authority/source safeguard was relaxed.
 
-Clean **`b0b62ff`** passes the affected integrated rerun in
-`.local/anchor-rc2/p47-services-jsonb/`: 254 harness outcomes, 468 durable originals
-(457 successful / 11 failed), all ten browser actions, actual stored-order fill,
-three SIGKILL/lost-ack recoveries, publisher rotation/revocation, source outage/
-recovery and indexer restart. Fresh PostgreSQL replay matches 187 events over
-70 accounts/eight members with zero unresolved jobs. Independent Python arithmetic
-verifies 7,999,993 vault atoms, 7,999,665 funded root cash, fees [267,61], insurance
-[66,15], flat inventory and zero aggregate unpaid claims. Internal makers remain
-labelled; no hedge is executed. Complete service acceptance is now supported.
+Actual commands include scoped `ops/current-runtime-smoke.sh` constituents,
+`ops/liquidity-services-smoke.sh`, continuation/operations launchers, the independent
+Python auditors, `ops/build-devnet-gates.sh`, `ops/demo.sh start|stop` with an isolated
+root, and `tests/browser/demo-lifecycle.ts`. Report readers reproduce B/C0 summaries
+and the focused comparison from actual original wires/RPC/WS. Typecheck, affected
+indexer/measurement/demo tests, ABI/evidence policy, shell and documentation checks
+are recorded in validation/PR. Broad supported host regression belongs to CI;
+no unrelated local full suite, new external wallet, outreach, funded deployment or
+24-hour run is claimed. Inactive disposable Cargo build targets were removed;
+programs, tools, logs, keys, databases and failed evidence remain preserved.
 
-The bounded C0 entrypoint summary covers **61/61**, with **2,520 executions /
-2,493 unique signed originals / 27 cross-run reexecutions**. Browser/operator
-originals are separate populations, not silently added to that harness count.
-The B/C reader compares 33,682 leaves across 22 reconstructed before/after states
-for 11 successful focused cases. All financial fields and relative Unix times
-match; 330 slot and 176 deployment-digest witnesses remain explicit differences.
-Twelve paired CU observations therefore are not exact-input/pure-framework gains.
-The initial C0 wrapper's incorrect `instrumented:true` metadata is explicitly
-identified; actual pinned SBF hashes/manifests prove uninstrumented C0. Future
-wrapper output is corrected without changing or rerunning those originals.
-Fourteen affected comparison/provenance tests and typecheck pass.
-
-Clean **`1a893ed`** now passes all three remaining RPC constituents. Dispatch
-preserves seven access rows and a finalized-valid witness through pre-broadcast
-SIGKILL, proves nonexecution after actual expiry, retains 20,000 unknown-fee
-lamports, and passes post-send recovery plus identical 61-event PG replay.
-The matched bounded load offers 1,008 actions: 466 submitted originals, 433 fills,
-33 on-chain stale-version rejections, and 542 unsubmitted (537 generator limits /
-five duplicate originals). Expired/unresolved are zero. Live indexing has two
-coherent cycles / 33 revision-ahead retries; final/fresh replay matches 588 events
-and 9,000,000 vault atoms. This does not establish sustained read readiness or TPS.
-The operational worker completes liquidation, default with proposal-upload SIGKILL,
-independent six-second recovery and all funded cash exits. Independent arithmetic
-verifies ten Fraction payouts / one augmentation and rejects five corruptions;
-192-event replay leaves only 452 insurance/protocol-fee atoms across ten members.
-Evidence directories are `.local/anchor-rc2/p47-{dispatch,load,operations}-1a893ed/`.
-
-The resource reader now records signed heap/data limits explicitly; absent requests
-and missing observed heap/data metrics remain absent. Twelve affected parser tests
-pass. Frozen B remains immutable. Clean `eac3755` also passes three actual devnet-feature initialization refusals
-with full rollback and three incompatible-feature compile rejections, entirely
-locally. Maker negative-gate contexts are explicitly injected fixtures, never
-financial acceptance. The compiled gate artifacts are retained separately in
-`.local/anchor-rc2/devnet-gates-eac3755/`. Fifteen affected demo configuration,
-process and transport tests pass. Normal local artifact selection now uses
-`.local/anchor-rc2/current`, preserving frozen B/C0 and the admitted hashes. The
-demo pin is corrected from stale Surfpool 1.6.1 to qualified 1.7.0. Clean `0591f10`
-then exposed initial-indexer finality advancing during confirmed provisioning;
-startup safely failed with `ReconciliationAhead`. The launcher now waits up to
-30 seconds for a coherent finalized fence before starting producers, retrying only
-that typed condition. Other errors still fail startup. The failed test directory
-is preserved; a fresh startup/local-wallet rerun remains the final integration check.
-Disposable inactive Cargo targets under
-`.local/anchor-v2-build/{cli,check,idl}` were removed after verifying no compiler
-was running, recovering about 1.7 GiB; installed tools, SBF, logs, keys and databases
-are preserved. No C1, funded/external gate or endurance run is claimed.
-Clean `02f536c` starts the fresh demo successfully; the actual local wallet
-finalizes six account/deposit/allocation originals, then safely refuses its first
-unsigned quote because BTC has no credible bounds. The launcher still shared one
-payer across six maker and two publisher workers, unlike qualified services.
-Signed provisioning now assigns eight separate restricted updater/publisher keys
-and fee payers. The browser waits for real Normal source state and permits only
-bounded explicit unsigned-source refusals; signed originals are never rebuilt.
-Typecheck passes. Failed evidence remains in
-`.local/anchor-rc2/p47-demo-browser-02f536c/`; its owned server is stopped.
-Fresh runtime `1f74640` restores publication with separate payers; browser
-`f370885` finalizes seven actions including BTC, then its ETH trade finalizes with
-FinancialSequence 6122 while live settlement is active. The independently fetched
-failed RPC receipt remains in that run. The fixture now retains every original,
-fee and finalized rejection, and allows at most three new user reviews only after
-independently proving that exact finalized version failure. It never retries an
-unknown original or hides a rejected fee. This models normal optimistic-concurrency
-recovery; the program/UI safeguards are unchanged. The incomplete run is not a pass.
-Clean `87fc84e` preserves seven successful originals plus two finalized ETH
-rejections: FinancialSequence, then RouteIntent. Decoding the latter signed wire
-proves expiry 1,956 versus finalized execution slot 2,018 (prepared at 1,914).
-The new fixture also permits a bounded new user review for this independently
-proven expiry only; an unexplained RouteIntent remains fatal. This is not an
-increase in quote lifetime or an unrecorded signed retry. Owned runtime is stopped.
-The first `eac2ff8` startup loses a worker PostgreSQL connection and shuts down;
-its fresh repeat starts but stops after seven successful originals and one final
-version rejection because both markets do not reach Normal within the fixture's
-32-second recovery wait. Neither is a pass. The demo synthetic source cadence now
-matches the qualified service fixture (one-second delay), and the browser uses
-that fixture's 60-second recovery deadline with raw source-state observations.
-On-chain age/recovery/quote limits and signed-failure bounds remain unchanged.
-Clean `ac7d263` starts but its first trade finalizes with MakerQuote 6115 after
-six successful cash/account originals. That failure remains fatal to the fixture;
-no broader rejection allowlist is added. The full demo's two-second publishers
-compete with wallet/settlement originals under durable read/write reservations.
-Its local operator configuration now selects the existing supported four-second
-publication cadence; synthetic feeds remain one second and all program source,
-quote, recovery and risk limits are unchanged. The separate measured P47 service/
-load fixtures retain their original two-second cadence and results.
-Clean `ffceacd` passes ten actual wallet actions with zero rejected originals:
-account setup, deposits/allocation, BTC/ETH buys, TP/SL and cancellation. It then
-stops because the fixture incorrectly requires Normal for a reduce-only close;
-264 recorded source reads end in fresh credible Degraded bounds. The existing
-`engine/oracle.rs::action` and risk specification explicitly permit reduction in
-Degraded mode. The browser now waits for that unchanged contract for signed
-reduce-only actions, while opening still requires Normal and NoCredibleBounds
-always rejects. This does not change the program or source/risk policy. Owned
-runtime is stopped and this incomplete attempt is not a full lifecycle pass.
-Next exact action: verify actual reduce-only closes under the documented credible
-bounds, then withdrawal/reload, stop the runtime and publish P47.
+Remaining limits: load filled 433/1,008 offered actions (92.92% of 466 submitted);
+537 generator limits, five duplicate originals and 33 stale-version rejections
+remain explicit. Live indexing achieved two coherent cycles / 33 revision-ahead
+retries, so continuous read readiness and sustained TPS remain unproved. The
+64-member cohort includes 56 flat additions; scratch-width cases never Apply.
+Internal makers, P15B/P16B and deferred endurance retain their existing labels/gates.
+Next exact action: publish P47 ready above #64, run the applicable hosted checks,
+and leave the stack open for review.
 
 ## Accepted performance stack
 

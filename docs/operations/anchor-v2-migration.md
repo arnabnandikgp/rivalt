@@ -1,10 +1,10 @@
 # Anchor v2 migration plan
 
-Status: **P45 in Review; P46 scoped implementation acceptance passed; P47 qualification in progress, 1 November 2026**.
+Status: **P45/P46 in Review; P47 local qualification accepted, publication pending, 1 November 2026**.
 The user accepted this plan. The frozen predecessor remains
 `c0bc3aaa3825896fcafbc879fe104362da61c21d`; candidate schemas and clients in the
 P46 branch do not qualify a deployment. [STATUS](../STATUS.md) owns actual checks
-and remaining acceptance. P47 promotion remains a separate gate.
+and integration status. P47’s qualified local promotion is recorded below.
 
 ## Recommendation and boundaries
 
@@ -265,8 +265,8 @@ It covers 61/61 entrypoints and 2,871 unique harness originals (2,721 success,
 150 rejection). Operator, browser and load populations are separate. Preserve B
 and its raw captures; these are comparison inputs, never new qualification.
 
-Before any RC2 build, parameterize artifact destinations and manifest selection:
-the current build script writes `.local/liquidity-execution/` unconditionally.
+The accepted plan required artifact destinations to be parameterized before any
+RC2 build: the pre-migration script wrote `.local/liquidity-execution/` unconditionally.
 Use a separate candidate root and immutable C0/final manifests. Preserve old SBF
 files and approved maker hashes; new approval hashes come only from verified new
 artifacts. Do not point the B replay script at candidate IDLs. Provide explicit
@@ -344,12 +344,11 @@ Any material CU/wire/heap increase must be investigated; no formerly supported
 scenario may exceed its accepted resource envelope unnoticed. If correctness or
 resource fit fails, keep the candidate unqualified and the current profile intact.
 
-P45 establishes source-level planning findings only. Still unproved: RC2 locked
+At the P45 planning checkpoint, the following were still unproved: RC2 locked
 SBF build on v1.52/v0, custom bounded/boxed codecs, actual IDL/Codama compatibility,
 CPI borrow sequencing, candidate financial equivalence and all post-port costs.
-These are P46/P47 work, not evidence to manufacture in a documentation PR.
-The next action after plan review is the isolated RC2 toolchain/serialized C0 port
-on a P46 branch; capture the approved ABI delta before regenerating baselines.
+P46/P47 now supply that implementation evidence in [validation](validation.md);
+planning conclusions themselves remain distinct from actual runtime acceptance.
 
 
 ## P46 implementation notes
@@ -380,10 +379,11 @@ the checked-in IDLs remain actual RC2 output. Missing hints are not proof of run
 constraint enforcement: negative signed SBF cases remain required.
 
 The CLI installs under `.tools/anchor-v2-rc2` through `ops/install-anchor-rc2.sh`.
-Candidate binaries default to `.local/anchor-rc2/candidate`, never the frozen P44
-artifact directory. Until P47, runtime probes require explicit
-`RIVALT_ALLOW_RC2_CANDIDATE=1` and `RIVALT_ARTIFACT_DIR`; this is not normal demo
-promotion. Isolated conformance processes use unchanged core 1.2.1/web3.js 1.99.0
+P46 candidate binaries used `.local/anchor-rc2/candidate`, never the frozen P44
+artifact directory, and required explicit candidate selection. After P47 acceptance,
+normal builds/probes/demo use `.local/anchor-rc2/current`; exact admitted hashes
+and fresh-domain checks remain mandatory. Frozen B/C0 files stay untouched.
+Isolated conformance processes use unchanged core 1.2.1/web3.js 1.99.0
 and new core 2.0.0-rc.2/Kit 8.3.0 respectively. Production stays on Kit 8.5.0.
 
 The first actual signed custody run exposed `AccountBorrowFailed` at the token CPI.
@@ -394,3 +394,16 @@ native wrapper's CPI borrow override. Manual CPI construction now uses
 wrapper's borrow protocol without unchecked CPI or disabled guardrails. Exact
 framework rejections are asserted using RPC/LiteSVM typed instruction errors;
 protocol custom codes and failed-transaction rollback remain exact.
+
+## P47 qualification and promotion
+
+Uninstrumented serialized C0 remains source `366c7ab` with platform-tools v1.52 /
+SBPF v0; no C1 is needed for the observed envelope. [Validation](validation.md#anchor-rc2-qualification-p47)
+records all 61 successful entrypoints, full books, complete 64-member default,
+independent financial audits, actual services/RPC/WS/PG fault replay and browser/
+demo exits. Default/devnet gates remain closed. [Performance](performance.md#rc2-qualification-measurements-p47)
+records complete caller/scaling costs, B/C field comparison and classified load.
+Clock/slot/deployment witnesses are explicit; paired CU changes are not a pure
+framework microbenchmark or proof of lower paid fees. Continuous indexed readiness,
+external maker economics, independent review and deferred endurance remain unproved.
+P47 qualifies the bounded local artifact selection; PR integration remains open.

@@ -340,3 +340,16 @@ metadata normalization are detailed in the migration contract. This records auth
 to implement P46/P47, not financial acceptance or artifact promotion; P47 still owns
 complete fresh qualification and matched B/C measurements. Both implementation PRs
 remain open until separately authorized to merge.
+
+D90 qualification (1 November 2026): P47 passes its fresh serialized-C0 local matrix
+and selects the exact admitted artifacts under `.local/anchor-rc2/current` for
+normal local use. Immutable B and C0 remain retained; no zero-copy C1 or changed
+economics is introduced. Actual field-level comparison, observed CU/size/fee/load
+limits and distinct verifier pins are in validation/performance. Demo workers use
+separate restricted maker/publisher fee payers and wait for a finalized provisioning
+fence; the full demo uses the supported four-second publisher cadence and one-
+second synthetic feed delay. Separate service/load measurements retain two-second
+publication. Journal readonly comparison ignores only object-key order. Risk/source checks,
+default/devnet activation gates and external/deferred gates are unchanged. This
+records local qualification, not stack integration, independent review or funded
+deployment authority.
