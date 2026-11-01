@@ -15,6 +15,7 @@ const contracts: ProgramContract[] = ['clearing', 'maker_a', 'maker_b'].map(name
 const idls = Object.fromEntries(contracts.map(({ name }) => [name, hash(readFileSync(`packages/sdk/idl/${name}.json`))]));
 const build = json('.local/liquidity-execution/build-manifest.json');
 assert.equal(build.trackedDirty, false); assert.equal(build.instrumented, undefined);
+assert.equal(build.revision, 'fb5d0c546a417796ce615e0d3d3575545c96c178', 'Frozen B uses its exact accepted programs');
 const artifacts = Object.fromEntries(['clearing', 'maker_a', 'maker_b', 'oracle_fixture'].map(name => {
   const bytes = readFileSync(`.local/liquidity-execution/${name}.so`);
   assert.equal(hash(bytes), build.binaries[`${name}.so`]);
@@ -36,7 +37,7 @@ const runs = directories.map(directory => {
     for (const name of contracts.map(value => value.name)) assert.equal(summary.binaries[name], artifacts[name].sha256);
   }
   const start = samples.length;
-  for (const filename of readdirSync(directory).filter(name => /^transaction-\d+\.json$/.test(name))) {
+  for (const filename of readdirSync(directory).filter(name => /^transaction-\d+\.json$/.test(name)).sort((left,right) => Number(left.slice(12,-5))-Number(right.slice(12,-5)))) {
     const receipt: Receipt = json(`${directory}/${filename}`);
     const saved = json(`${directory}/${filename.replace('transaction-', 'wire-')}`);
     const measured = receiptMetrics(receipt, Buffer.from(saved.wireBase64, 'base64'), contracts);
@@ -71,7 +72,31 @@ const entrypoints = contracts.flatMap(contract => contract.instructions.map(inst
       label: largest.sample.label, depth: largest.invocation.depth } : null };
 }));
 const missing = entrypoints.filter(value => value.successfulInvocations === 0).map(value => value.name);
+const loadRun = runs.find(run => run.directory.endsWith('/p44-load-final'));
+assert(loadRun, 'Frozen B requires the accepted current indexer/load constituent');
+const load = json(`${loadRun.directory}/summary.json`);
+const quantiles = (value: {p50:number;p95:number;p99:number}) => [value.p50,value.p95,value.p99].map(item => Math.round(item*1000)/1000);
+const environment = { anchor: '1.2.1', hostRust: '1.97.1', platformTools: '1.52', sbfRust: '1.89.0-dev', sbpf: 'v0',
+  buildScript: 'ops/build-liquidity-execution.sh', locked: true, instrumented: false, accountSchema: 7,
+  node: '24.22.0', pnpm: '10.23.0', kit: '8.5.0', web3: '3.1.1', postgres: '18.6', liteSvm: '1.6.1',
+  isolatedConformance: {anchor:'1.2.1',web3:'1.99.0'}, syntheticSlotMs:50,
+  priorityFees: 'Every captured harness bid is zero; worker receipts are reported separately',
+  loadedDataBytes: 'Not returned by this RPC; null in local per-transaction output'};
+assert(samples.every(sample => sample.priorityLamports === '0'));
+const loadEnvelope = { run: runs.indexOf(loadRun), host: load.host, policy: load.policy,
+  timing: 'p50/p95/p99 observed milliseconds, rounded to three decimals; WS audit completion is not exact notification arrival',
+  windows: load.ramps.map((row:any) => ({workload:row.workload, offeredPerSecond:row.rate,
+    offered:row.offered, eligible:row.eligible, constructed:row.constructed, simulated:row.simulated, submitted:row.submitted,
+    finalizedSuccess:row.finalizedSuccess, rejected:row.rejected, expired:row.expired, unresolved:row.unresolved,
+    unsubmitted:row.unsubmitted, reasons:row.reasons,
+    confirmedMs:quantiles(row.signedToConfirmedMs), finalizedMs:quantiles(row.signedToFinalizedMs),
+    buildMs:quantiles(row.buildMs), receiptFetchMs:quantiles(row.finalizedReceiptFetchMs),
+    wsAuditMs:quantiles(row.finalizedToWsAuditMs), generatorLagMs:quantiles(row.generatorLagMs)})),
+  indexerCycles: {coherent:load.indexSamples.filter((sample:any) => !sample.reason).length,
+    rejected:load.indexSamples.filter((sample:any) => sample.reason).length},
+  financial:load.reconciliation, parentProcess:{userCpuUs:load.resource.userCPUTime,systemCpuUs:load.resource.systemCPUTime,endRssBytes:load.memory.rss} };
 const result = { schema: 1, checkpoint: 'B-pre-Anchor-v2', complete: missing.length === 0, sbfSource: build.revision,
+  environment, loadEnvelope,
   profile: build.profile, idls, artifacts, runs, outcomes: { offeredHarness: samples.length,
     finalizedSuccess: samples.filter(value => value.outcome === 'success').length,
     finalizedRejection: samples.filter(value => value.outcome === 'rejected').length },

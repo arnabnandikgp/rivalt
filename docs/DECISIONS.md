@@ -250,7 +250,8 @@ only after resource admission can miss a hash's entire validity window behind a
 shared payer. Sample finalized validity before conflict admission and persist that
 observation on a deferral without consuming an RPC-send attempt, releasing locks
 or granting financial authority. The retained queue diagnosis is
-`.local/p44-services-fenced-diagnostic.txt`; full service acceptance is still pending.
+`.local/p44-services-fenced-diagnostic.txt`; the complete service follow-up passes at `a5afbc9`, as recorded in
+[validation](operations/validation.md#frozen-pre-migration-qualification-p44).
 
 ## D89 — prevent newer conflicting originals from starving a committed waiter
 
@@ -276,3 +277,12 @@ pending/unknown originals with the pinned previous executor before upgrading;
 unknown fees remain reserved. No live schema/account migration or risk safeguard
 relaxation is authorized. New SQL ordering and actual browser/service/expiry/fault
 acceptance are required before claiming this resolves the observed starvation.
+
+D89 acceptance: clean `f4490e9` passes actual SQL ordering, drain gating, duplicate
+executors, expiry and exact-original crash recovery; all ten browser actions
+finalize. Clean `a5afbc9` completes the full service lifecycle with separate role
+payers, three real SIGKILL recoveries and identical 137-event fresh PG replay.
+Its additional bounded parallel block retrieval preserves canonical order and all
+reconciliation checks. The current offered-load probe still records 33 revision-
+ahead retries versus two coherent live cycles; no sustained availability or
+validator throughput claim follows from these correctness/recovery passes.

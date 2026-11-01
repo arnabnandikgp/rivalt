@@ -35,536 +35,73 @@ Review means accepted work awaiting integration; Closed requires acceptance plus
 integration. The user authorized the consolidation stack's merge on 30 October 2026; the new
 P39–P44 stack remains open for review.
 
-## Consolidation checkpoint
+## Accepted performance stack
 
-P35 maintains 20 component documents and a 93-line agent handoff. All 111 original
-documents have a current-owner or immutable-history disposition; raw evidence stays
-local and ignored. Validated content `d64cb93`, ready head `72187bc`.
+P39–P44 follow D82. The integrated baseline remains unchanged until stack merge.
+P39's immutable focused A baseline uses SBF `828fe543`; P40A adds durable bounded
+service lanes, P40B scoped authenticated history, P41 relevant market dependencies,
+and P42 schema-7 token custody/internal-accounting separation. Their exact accepted
+commits, fresh RPC/WS/PG results and limits are in
+[validation](operations/validation.md). No historical results are relabelled as P44.
 
-P36 canonical Rust/IDL/SDK names retain original discriminators, layouts, metas,
-seeds, errors, numeric schemas and signed domains. Renamed SBF source `cff1cf9`;
-final scoped RPC/Anchor verifier `53beba5`. The stale-name CI fixture repair is
-`b94381a`; all five hosted jobs pass on final head `3511e44` in
-[run 41003463384](https://github.com/arnabnandikgp/rivalt/actions/runs/41003463384).
-P37 included that exact parent head. No independent review approval is inferred.
+P43's accepted uninstrumented SBF source is
+`fb5d0c546a417796ce615e0d3d3575545c96c178`; clean verifier `1e86661` supplies its
+matched CU comparison, full books and complete safety constituents. Route savings
+are 669–1,230 CU; requested limits and actual fees are unchanged. Its four applicable
+hosted CI jobs and automated review pass on `f9d29f6` in
+[run 41244319044](https://github.com/arnabnandikgp/rivalt/actions/runs/41244319044).
+Compiler-size experiments with oversized stack frames remain rejected.
 
-P37 uses one current account engine, canonical maker/publisher API, SDK, indexer,
-services, UI and demo. Obsolete isolated/group/fixed-maker runtimes and disabled
-on-chain sampling leave the active tree after shared primitives and applicable
-regressions move. D81 and the [dispositions](REPOSITORY-CONSOLIDATION.md#p37-disposition-and-compatibility-boundary)
-record intentional API retirement. Existing deployments, databases, keys, signed
-originals and user research remain untouched. Current wire expectations are frozen
-from pre-retirement `b89768b`, not regenerated from changed layouts.
+## P44 checkpoint
 
-Clean SBF source: **`828fe5431433f19cd562a23f44c45258ddbd61aa`**. Current binaries
-and IDLs have not changed since that build; measured allowlist commit `629d44a`.
-Clearing is 2,290,224 bytes; each maker 260,560 bytes; no oversized stack diagnostic.
-See [fresh qualification](operations/validation.md#current-runtime-consolidation-qualification)
-for exact verifier pins, failures repaired, evidence paths and resource bounds.
+P44 retains the same programs/IDL/economics and fixes the operational failures
+found in qualification: D88 finalized-valid blockhash witnesses; D89 immutable
+oldest-conflicting-original dispatch; mandatory UI account-schema forwarding; and
+bounded eight-block finalized history retrieval with unchanged ordered application,
+complete manifests and exact reconciliation. Old dispatcher version-1 originals
+must drain before upgrade; ambiguous fees/reservations are never released to make
+progress. Operators use separate restricted maker/publisher fee payers.
 
-Actual acceptance includes 229 client tests, 102 native clearing tests in each of
-qualified/default builds, independent financial/pricing/allocation references,
-three compiled default gates, five compiled hostile-CPI rollback cases and actual
-Surfpool RPC/WS custody, publisher, trading, safety and full-book transactions.
-Services at `a9878a0` resolve 343 originals and 84 reports, pass ten browser actions,
-three SIGKILL/lost-ack recoveries and identical 169-event PostgreSQL replay.
-Independent per-trader cash/claim/fee/insurance reconciliation passes.
+The B baseline covers **61/61** public entrypoints across
+**2,871** independently fetched harness originals on the exact pinned binaries;
+reverted calls cannot establish successful coverage. The operator and browser
+populations remain separate. Current source, artifacts, fixtures, scenario maxima,
+caller/scaling table, priority-fee assumptions and limitations are recorded in
+[performance](operations/performance.md) and
+[validation](operations/validation.md#frozen-pre-migration-qualification-p44).
 
-Operational run `d62c709` completes restart during proposal upload, ten-root default,
-sustained recovery and every funded exit. All 84 worker originals resolve; vault
-residual is exactly 452 atoms of market insurance/protocol fees. Independent exact
-Fraction replay and five corruption rejections pass. Journal run `f6b84a0` verifies
-SQL rollback, restart, reverted-event exclusion and 72-event fresh replay.
+Clean `a5afbc9` completes 239 durable originals (236 success / three report
+rejections), three lost-ack/SIGKILL recoveries, stored-order execution, publisher
+handover/revocation, source outage/recovery and live indexer restart. Fresh PG replay
+matches 137 events over eight members/70 accounts; independent audit verifies
+7,999,993 vault atoms, 7,999,968 cash and 25 taker-fee atoms. All six makers remain
+internal and hedge costs unobserved. Ten browser actions separately pass at
+`f4490e9`, including reload recovery and cash actions with both APIs blocked.
 
-The migrated demo passes at `a0a3651`: 13 actual browser-wallet originals covering
-creation, both margin modes, deposit/allocation, BTC/ETH trades, TP/SL/cancel,
-reduce-only closes, token-reconciled withdrawal and saved-receipt reload. Owned
-processes and PostgreSQL are stopped; all test ports are released. Previous stopped
-runtime and every failed attempt remain in place. Final scoped client checks pass
-19 cases; typecheck, generated parity, wire/evidence policy and doc links pass.
+Clean `8b8c33f` completes the current bounded load experiment: 1,008 offers,
+465 unique finalized originals, 430 fills, 35 on-chain rejections and
+543 unsubmitted offers with explicit generator/duplicate reasons. There are no
+expired/unresolved load originals. Live indexing records 2 coherent cycles and
+33 revision-ahead retries; final and fresh replay match 585 events and exactly
+9,000,000 vault atoms. Earlier 1/28 live progress and duplicate-wire failure remain
+recorded, not counted as successful full runs. This is not sustained availability
+or validator TPS.
 
-No new load/latency comparison, endurance, external wallet, independent-maker,
-external review or current devnet/funded qualification is claimed. Dedicated indexer
-smoke was omitted because the broader services/operations runs exercise its current
-projection/rebuild and the journal run adds real SQL rollback/reverted-event checks.
-P37's scope, client, financial, report and shell jobs all pass on `159ea27` in
-[run 41016415771](https://github.com/arnabnandikgp/rivalt/actions/runs/41016415771).
-Its automated reviewer skipped the large diff; no independent review is claimed.
+The actual 64-member default, eight scratch-only width cases, five compiled
+hostile-maker rollback cases, custody/dependency/treasury/retirement lifecycles,
+and their independent financial/replay checks pass at the exact pins in validation.
+The 56 added default members are flat; wide fixtures perform no payout. Ordinary
+own-cash exits remain independent of unpaid-profit certificates; earlier certificate
+pages still require stable relevant observations.
 
-P37's accepted content is `1494881`; PR #53 merged with its #51 parent. Initial GitHub push
-timed out; the retry succeeded without changing the content or stack relationships.
-
-P38 rewrites the root README around the current implementation and qualified local
-demo, with the component map and exact limits linked instead of duplicated phase
-history. Clean content `9a59ca8` passes 265 relative links/anchors, 112 immutable
-historical targets, 42 source/command paths, whitespace and evidence-policy checks.
-Its scope is Markdown only; runtime/build/financial suites are not rerun. PR #54
-merged with its #53 parent. The executable CI workflow's path filter does not run for this
-Markdown-only PR; its local checks are recorded, not described as a hosted pass.
-
-The stack **#50 → #51 → #53 → #54** merged atomically with no unresolved review
-threads. P54's automated review was still running; no independent approval is claimed.
-The merge was fetched, every PR's MERGED state checked and tree equality verified;
-local `main` fast-forwarded without touching unrelated research or local evidence.
-Only documentation/whitespace/evidence checks apply to this closeout. No financial,
-RPC/WS/PostgreSQL, browser, load or endurance suite is rerun for merge metadata.
-
-## Performance checkpoint
-
-The user authorized P39–P44 under D82. P39 is on `performance/p39-contract`, based
-on `4f84f2b`; no runtime layout or program binary changed. Clean harness `0ac6511`
-passes the focused signed probe against hash-verified SBF `828fe543`: 117 setup
-outcomes and 12 measured scenarios, including one expected stale-account rejection.
-Every outcome is fetched over RPC with WS confirmation and original-wire equality.
-Independent cash/claim/fee/insurance checks reconcile all eight roots. Isolated
-legacy Anchor conformance checks 207 instruction encodings and 185 event decodes.
-See [measurements](operations/performance.md#current-results) and the bounded
-[baseline](../tests/performance/baselines/p39-before-redesign.json) for exact values,
-binary pins, conflict comparisons and limitations. Raw receipts remain at
-`.local/liquidity-execution/runs/p39-baseline-0ac6511/`; owned ports are released.
-
-The complete static access inventory covers 61 deployed entrypoints, 50 clearing
-custody writers. Six scoped lock-model tests, typecheck, inventory and evidence
-policy pass. The receipt summarizer verifies twelve retained transactions and seven
-access comparisons. Offline dependency installation initially failed due to missing
-cache tarballs; pinned normal installation succeeded without dependency upgrades.
-No SBF rebuild, broad financial suite or PostgreSQL run is warranted for these
-harness/docs changes. No full CU coverage, scheduler throughput, endurance or
-migration result is claimed. P40/P44 must supply their own integrated acceptance.
-
-The user approved deletion of exactly 23 older stopped PostgreSQL test-data copies
-(2.18 GiB). Container state was independently checked before deletion; all approved
-copies were removed. Current P40A data, every interactive demo, raw evidence, logs,
-keys, configuration and installed dependencies remain. The local manifest is
-`.local/p40-inactive-db-cleanup.json`; P40B's disk-space blocker is cleared.
-
-P39 review clarifies that compiled-message coverage applies to the focused scenarios,
-while the 61-entrypoint inventory is static. No metric or runtime changes.
-
-P39 is published ready for review as [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55).
-Measured harness is `0ac6511`; verified summary/acceptance content is `b810b13`.
-
-P39 CI passes all five applicable hosted jobs on `2df1c30` in
-[run 41031665229](https://github.com/arnabnandikgp/rivalt/actions/runs/41031665229).
-P40A is based on that exact parent. It adds two bounded execution lanes and durable
-signed-message conflict reservations, with an explicit drain-before-upgrade gate.
-Fourteen targeted dispatch/expiry/liquidation-authority consumer cases and typecheck
-pass. Actual RPC/WS/PostgreSQL acceptance passes at clean `9134fd6`: two independent
-originals concurrently broadcast once despite duplicate executors; shared-payer
-work defers without an attempt; a genuine failed original releases access and
-charges its actual fee. Real finalized expiry releases resource locks while
-retaining 20,000 lamports of unknown-fee reserve. Actual SIGKILL after upstream
-acceptance recovers the original seven-atom withdrawal exactly once; cash totals
-7,999,993 atoms and fresh 61-event PostgreSQL replay matches. Eight originals are
-six finalized successes, one landed rejection and one proven unexecuted expiry;
-operator spent fees total 60,000 lamports. Owned test ports are released. Raw
-records are in `.local/liquidity-execution/runs/p40a-dispatch-9134fd6/`.
-
-Additional SQL checks pass at `a2860f9` on that retained owned database: read/read
-sharing, W/W and both W/R conflicts, persistence after releasing the connection,
-legacy ambiguity rejection and idempotent activation after a known receipt.
-`dispatch-database.json` records these as SQL access fixtures, not new economic
-executions. Their first typecheck found an unresolvable direct `pg` import from
-the test workspace; using the existing store's public pool type fixes it, and
-typecheck passes. The database is stopped again. Executable service code is
-identical to the successful `9134fd6` run; `a1a44a5` merges P39's documentation-only
-review correction without rewriting either tested commit. No on-chain ABI/event migration or validator throughput
-is claimed. Broad financial/build/browser suites are unnecessary for this service
-part; no prior evidence is presented as a new pass.
-
-P40A is ready for review in [PR #56](https://github.com/arnabnandikgp/rivalt/pull/56),
-stacked on #55. Accepted content is `0d124c1`; service runtime remains `9134fd6`.
-
-P40B is on `performance/p40-scoped-history`, based on accepted P40A `f8984e0`.
-D84's schema-5 account revisions, bounded authenticated envelopes and canonical
-account/event discriminators now cover all 53 clearing entrypoints and 42 contexts.
-Twenty sequence-only custody metas become readonly. Explicit ABI delta checks
-against immutable P40A, generated SDK parity and the affected native/layout tests
-pass. SDK/SQL bindings reject old state; fresh domain/genesis/database are required.
-
-The active journal reconstructs whole transactions from scoped read/write revision
-dependencies and complete finalized block manifests. SQL format 2 atomically stores
-original blocks/transactions, envelopes, projection, revisions and local outbox
-cursor. Two account passes fence multichunk reconciliation; only relevant advances
-request bounded tail catch-up. Old global event sequence is removed from payloads.
-The maker economics consumer now uses explicitly labelled local stream cursors.
-
-Clean verifier **`02bbdec15a04b8cfea64ea63b4f8a098bfca7f56`** passes both journal
-and live indexer RPC/WS/PostgreSQL probes using SBF `ba2f15f`. Each fresh run verifies
-120 signed outcomes and identical 72-event replay, including four failed originals
-without financial effects. SQL rollback, byte-checked duplicates and restart pass.
-Live reconciliation checks 70 accounts/eight roots, 8,000,000 vault atoms and the
-independently checked 26-atom fee partition. Raw records remain in
-`.local/liquidity-execution/runs/p40b-journal-170/` and `p40b-indexer-02bbdec/`.
-
-D85 pins Surfpool 1.7.0 (core 4.3.2, feature 3383571666) after an independently
-reproduced 1.6.1 empty/stored-block parent-hash bug. Strict parent/hash checks remain;
-full blocks must also match separately requested signature manifests. The old
-runtime and P39 receipts remain intact; no same-runtime performance comparison is
-claimed. The failed first probe remains in `p40b-journal-first/`.
-
-The test-only external-CPI fixture rebuilds clearing through its oracle dependency;
-current clean SBF is **`6123dc8fc590e498ae98e8371f496f67424a32ad`**, allowlisted at
-`9d489ce`. All 108 affected native clearing tests pass; no oversized stack frame.
-Clean verifier **`7ac00b2925dc2d1dee85b139cb855e794d49aba4`** then passes 51 actual
-signed outcomes: two financial calls below one external CPI, later-call rollback,
-zero-payload storage, paused complete-member retirement, unpause/repause proof
-invalidation and a token-reconciled retired cash exit. PostgreSQL reconciles 32
-accounts/six members to 5,999,999 atoms and fresh replay is identical. Isolated
-Anchor checks 43 clearing instruction encodings, three accounts and 85 events,
-plus maker encoding/event parity. Evidence: `p40b-scoped-cpi-revision/`.
-The preceding attempts exposed a negative-test error-code mismatch, then a real
-projection bug initializing retirement revision after zero-payload storage; both
-are fixed with retained failed evidence and a targeted regression.
-
-Clean verifier `a44b26b` passes the same-slot extension: 57 signed outcomes, two
-three-transaction same-slot batches recorded at distinct canonical block positions,
-51-event fresh PostgreSQL replay, and unchanged exact terminal cash. The independent
-custody run also passes 57 signed outcomes and eight deliberate raw-state corruption
-rejections. Seven targeted snapshot/API/economics tests, 17 affected SDK/conformance
-cases, typecheck, generated parity and all three compiled default gates pass.
-
-The first affected liquidation/default run reached Apply but exhausted the 32 KiB
-heap after two row payloads and before the footer. Borrowing the resolution root
-snapshot and captured footer rows removes duplicate allocations; four borrowed
-payload parity tests and seven footer/header cases pass. Clean SBF **`304da5c`**
-builds default/qualified clearing without oversized frames (qualified 2,452,824
-bytes); it retains the default heap and unchanged CU ceilings/financial checks.
-Failed evidence remains in `p40b-safety-a44b26b/`.
-
-Clean verifier **`b495b386f069d55aac89e093f75f97bff078a370`** passes the rebuilt
-safety run: 290 signed outcomes (267 successes, 23 expected rejections), live
-TP/SL/reservations, strict post-fee liquidation, complete eight-root default,
-resolved cash exit and sustained recovery/reactivation. Independent raw-byte
-Fraction audit checks every exact payout and rejects ten corruptions. Maximum
-observed CU is 477,424; two-row Apply remains within the default heap and records
-at most 268,620 CU. Isolated Anchor checks 266 clearing encodings, two accounts and
-487 events plus both makers. This is scoped coverage, not P44's full resource bound.
-
-The same rebuilt artifact passes 57 actual same-slot/CPI/retirement outcomes,
-51-event PostgreSQL fresh replay and exact 5,999,999-atom exit reconciliation.
-All three compiled default gates still reject. Evidence stays in
-`.local/liquidity-execution/runs/p40b-safety-heap/` and `p40b-scoped-heap/`.
-A separate retained-receipt projection check compares the safety lifecycle at five
-boundaries; it is not a new live SQL/block-fence run. The capture omits only the
-trader portfolio, explicitly reported rather than fabricated. Current static
-inventory covers 61 entrypoints and 30 custody writers, down from 50 declared in
-P39; complete financial write contention remains for P41/P42.
-
-Typecheck, generated/ABI/source coverage and affected consumer tests pass. Broad
-unrelated/browser/endurance suites are omitted; CI owns broad regression and P44
-owns full fresh integrated qualification. P40B acceptance content is `df042ce`; [PR #58](https://github.com/arnabnandikgp/rivalt/pull/58)
-is ready for review above #56. The retained safety projection verifier passes at
-that same clean commit. Owned RPC/WS/PG listeners and containers are confirmed
-stopped. Initial hosted client/financial/scope/shell jobs passed; report failed
-because its regression still compared schema-5 output directly with the immutable
-pre-change fixture. The regression now verifies both the original predecessor and
-the enumerated D84 delta, without refreshing the fixture; its CI checkout includes
-that predecessor. All 11 ABI regression cases and the explicit wire guard pass
-locally. The hosted recheck passed the ABI tests, then exposed the report fixture
-still embedding its cursor inside the financial payload. Moving the fixture cursor
-to its journal envelope preserves the literal cash/claim/fee expectations; all
-three report/availability reader tests now pass locally, including five financial
-corruption rejections. P41 rebuild preparation also found the private borrowed footer serializer derived
-an unsupported lifetime for Anchor IDL generation. Explicit ordered serialization
-fixes that build path: seven scoped/header/wire-parity tests pass and a fresh
-Anchor-built clearing IDL equals the accepted contract. Public fields and financial
-behavior do not change; this is an IDL-source repair, not a new SBF/RPC acceptance.
-All five applicable hosted jobs pass on `c0f0348` in [run 41125296305](https://github.com/arnabnandikgp/rivalt/actions/runs/41125296305). Integration remains pending; no production/throughput claim.
-P39/P40A remain open (#55/#56); their last checked applicable CI jobs passed on
-`96790ef` / `f8984e0`. No external access blocker remains.
-
-P41 is on `performance/p41-market-dependencies`, above ready P40B. D86's
-required-market union, optional route/order/cash/liquidation contexts, neutral
-empty-slot arithmetic and checkpoint preservation are implemented in source.
-Schema-6 SDK builders derive minimum dependencies; partial event projections
-preserve omitted markets. Treasury paths may also omit unused market inputs.
-Default/devnet gates and complete default/retirement contexts remain unchanged.
-
-All 112 affected native clearing cases passed before the added funding-expiry
-case; eight affected trading cases then passed including that independent case.
-Affected SDK/service/projection checks, typecheck, source coverage, generated parity,
-eleven ABI guard regressions and the explicit D86 delta against immutable P40B pass.
-The first SBF build rejected an order-handler stack offset of 4,336 bytes; borrowing
-typed market accounts removes duplicate snapshots. Clean SBF source `b0c5675` builds
-all qualified/default programs and IDLs without oversized frames. No heap/stack
-limit or financial check is relaxed. All three compiled default gates pass.
-
-Clean verifier `078057a` passes the extended dependency RPC/WS/PostgreSQL run:
-137 signed outcomes, ten actual market omission cases, both isolated markets,
-complete 87-event fresh replay and 71-account/nine-member reconciliation. Exact
-vault backing is 7,999,997 atoms. Negative premium, consumed funding, actual hold
-expiry, cancellation and publisher revocation retain the independently calculated
-prefix. Missing receiver, active-order, open-loss and flat-claim markets reject
-atomically. Raw records are in `p41-dependencies-complete/` below the existing
-`.local/liquidity-execution/runs/` directory. The earlier 125-outcome run remains
-in `p41-dependencies-first/`.
-
-The same clean verifier and compiled source pass full safety: 290 signed outcomes,
-23 expected rejections, TP/SL/reservations, strict post-fee liquidation, complete
-eight-root default, resolved cash exit and recovery/reactivation. Independent
-raw-byte Fraction audit verifies eight exact payouts and rejects ten corruptions.
-Retained-receipt projection matches five lifecycle boundaries (68 entities, one
-explicitly uncaptured portfolio); this is not a new SQL/block-fence run. Evidence:
-`p41-safety/`, `.local/p41-safety-financial.log` and `.local/p41-safety-projection.log`.
-The final claim/certificate/net probe passes at clean verifier **`ca8bab0`** on
-that same SBF: 167 signed outcomes (161 successes/six expected rejections), ten
-actual omitted-market cases and identical **115-event PostgreSQL replay**. All
-73 accounts/nine members reconcile to cash 7,998,935, pools 999/4, insurance 9/5,
-fees 30/15 and actual vault **7,999,997** atoms. Isolated Anchor parity verifies
-148 clearing instruction encodings/257 events plus both makers. Source and certificate
-market omissions reject; flat netting preserves cash and exact fractional claims.
-The first attempt completed every signed effect but exposed missing predecessor
-revision in the certificate projection. The fix binds its revision-less payload
-to the authenticated footer; all 13 affected projection tests and typecheck pass.
-Successful raw records stay in `p41-claims-revision/`, the failed attempt in
-`p41-claims-complete/`. Owned test listeners/containers are stopped.
-
-P41 acceptance content is `3415538`; [PR #59](https://github.com/arnabnandikgp/rivalt/pull/59)
-is ready above #58. Integration remains pending. All five hosted CI jobs pass on P41 repair `1b0887f`
-([run 41131181214](https://github.com/arnabnandikgp/rivalt/actions/runs/41131181214));
-three route fixture tests also pass locally. The repair supplies omitted maker roots
-without changing runtime admission. No broad
-unrelated/browser/endurance suites are rerun; CI owns broad regression and P44 owns
-full fresh qualification. P42 is on `performance/p42-custody-isolation` above #59. D87's schema-7 layouts,
-SDK, indexer and worker are implemented and scoped acceptance passes. Custody is
-59 bytes and owns only allocated tokens; selected ledgers carry liability stamps.
-Pure internal operations omit custody/vault. Full cash is derived and independently
-reconciled at complete checkpoints; economics and authority remain unchanged.
-
-Clean compiled source **`6aeb7d0cf645fca889a9e3154ac01a129a72a6a8`** builds all
-qualified/default programs and generated IDLs without oversized frames. All 114
-native clearing cases, 71 affected client/projection/Anchor cases, four overlapping
-dependency-builder cases, one additional atomic-worker case, eleven ABI guard
-regressions and three compiled default gates pass. Current inventory covers 61
-entrypoints and 20 custody writers. No unrelated suites/endurance are rerun.
-
-Clean verifier `569ed3e` passes 207 dependency/custody outcomes (11 expected
-rejections), 149-event fresh PostgreSQL replay and exact 8,099,997-atom backing.
-Distinct-owner/payer BTC/ETH trades have zero protocol and full-message write
-conflicts. Atomic final-page/payment costs 118,337 CU/604 bytes and later failure
-rolls back both effects. Three deliberately observation-interleaved scan attempts
-reject; one coordinated-window attempt completes. These four constructed attempts
-do not estimate normal availability: stable relevant observations remain necessary
-for earlier pages, with no source/risk relaxation.
-
-The same verifier/SBF passes 290 safety outcomes, including 23 expected rejections,
-TP/SL, liquidation, complete default, stale-source resolved exit and recovery.
-Independent Fraction audit verifies eight exact payouts and rejects ten corruptions.
-Clean `6fbc5d6` passes 124 treasury/journal outcomes (five rejections), actual SQL
-rollback/shutdown/backfill and identical 74-event replay. It also passes 63 terminal
-retirement/reserve outcomes (seven rejections), same-slot/nested-CPI ordering and
-53-event fresh replay, with actual/allocated vault 5,999,999 atoms.
-
-Clean `72e2d18` passes all 57 signed custody gateway scenarios, independent raw-byte
-accounting/eight corruptions and legacy Anchor account/event parity. Its earlier
-failure was an obsolete negative-test error expectation: duplicated writable
-ledgers correctly reject with 2040 before a seed check. The separate dependency
-fixture's self-trade rejection was fixed with a third independently funded owner.
-Failed evidence remains; neither correction changes financial rules. One additional
-custody codec case now passes all eleven exact current instruction/meta comparisons
-against isolated Anchor, after updating its obsolete context-name fixture.
-
-[Validation](operations/validation.md#custody-isolation-acceptance-p42) records exact
-pins, counts, limits and local run paths. Prior P41 binaries remain preserved.
-Acceptance content is `5c9a81d`; [PR #60](https://github.com/arnabnandikgp/rivalt/pull/60)
-is ready above #59. Integration remains pending; all five applicable hosted jobs pass on `aae9090`
-in [run 41134366713](https://github.com/arnabnandikgp/rivalt/actions/runs/41134366713).
-P43 is on `performance/p43-cu-optimization` above exact P42 `aae9090`. The focused
-profiler now builds minimum required dependencies and records explicit before/after
-checkpoints, runtime/IDL/SBF pins and real vault conservation. Historical P39 metrics
-remain immutable. Clean harness `1c9c931` passes twelve focused before-optimization outcomes on
-accepted P42 SBF `6aeb7d0`, plus 117 actual setup outcomes, seven compiled-access
-comparisons and exact complete-root/fee/vault reconciliation. Bounded baseline is
-`tests/performance/baselines/p43-before.json`; raw receipts stay in
-`.local/liquidity-execution/runs/p43-before/`. BTC single/shared-program pair/distinct-
-program pair consume 257,045/352,022/479,272 CU in these named states. They are
-single observations, not worst-case or throughput bounds. No optimization gain is
-claimed. Typecheck and receipt/wire verification pass after adding the pinned token
-decoder dependency to the performance workspace.
-The first diagnostic build exposed Anchor 1.2.1’s narrower log facade; tracing now
-uses its pinned compatibility syscall, guarded to SBF only. Clean diagnostic source
-`132e086` builds without oversized frames and passes the same twelve RPC/WS
-outcomes, financial reconciliation and legacy Anchor parity. Five successful trade
-receipts supply paired CU attribution. Full maker-code hashing is about 131k CU per
-unique program; the single-maker financial candidate is about 20k CU, maker CPI
-about 18k. Diagnostic intervals include marker overhead and are not headline gains.
-
-Two broader size-optimization compiler experiments generated oversized frames and
-are rejected, with logs retained at `.local/p43-maker-size/`. No candidate binary
-from either experiment was deployed or pinned. The accepted compiler flags and
-full approved-code hashing remain. P42 binaries/manifests are preserved at their
-existing local revision directory before rebuilding.
-
-The source candidate now validates the complete accrued account once after its
-individually checked position updates, combines admission's IM/negative-equity
-traversal, and reuses an unchanged root model in book binding. All bounds, checked
-arithmetic, isolated-slot rules, per-market rounding and zero positive credit remain.
-Thirty-eight affected financial cases pass, including two new cases with 108
-independently calculated admission/accrual combinations and invalid-bound rejection.
-All 114 clearing native cases, typecheck and receipt attribution pass. Clean source
-`fb5d0c5` rebuilds qualified/default SBF and identical IDL/SDK without oversized
-frames. Clearing is 2,484,144 bytes; maker and oracle binaries are unchanged.
-Clean verifier **`1e86661`** passes the identical after workload: trade savings are
-669–1,230 CU, order placement/cancellation 616/278 CU. Repricing/stale rejection
-stay unchanged; reports differ by +1 CU. These are small single-observation gains;
-actual fees and requested CU remain unchanged. All three compiled default gates pass.
-
-That verifier also passes 147 protected-book and 165 entry/stored-book signed
-outcomes, six expected rejections each, with independent per-lot/fee/claim checks.
-Peak observations are 504,141 and 503,938 CU. All 290 safety outcomes pass (23
-expected rejections), including liquidation, complete default, source-independent
-resolved cash exit and recovery. The independent Fraction audit verifies eight
-payouts and rejects ten corruptions; retained-receipt projection matches five
-boundaries/68 entities with one explicitly uncaptured portfolio. This is not a new
-SQL/block-fence run. [Validation](operations/validation.md#targeted-cu-acceptance-p43)
-records exact pins, counts, diagnostics, limitations and local evidence paths.
-P43 accepted content is `595b85e`; [PR #61](https://github.com/arnabnandikgp/rivalt/pull/61)
-is ready above #60. Its four applicable hosted checks pass in
-[run 41244111564](https://github.com/arnabnandikgp/rivalt/actions/runs/41244111564);
-the report job is skipped and automated review remains pending.
-P44 is on `performance/p44-pre-v2-baseline` above exact P43 `f9d29f6`.
-Fresh maker RPC/WS acceptance at that revision passes 123 signed outcomes on the
-same `fb5d0c5` binaries. Its raw evidence is `.local/liquidity-execution/runs/p44-makers/`.
-The first service run stops at the lost-ack fault before any wallet broadcast: the
-queue wrongly interprets a new confirmed hash absent from finalized state as expired.
-Retained SQL shows `expired-unexecuted`, 13 attempts and no dispatch rows; a separate
-actual RPC probe reproduces confirmed-valid/finalized-absent in all four samples.
-D88 adds a persisted finalized-valid fence before expiry proof; unseen hashes remain
-ambiguous, exact-byte retry/fee reservations and on-chain economics stay unchanged.
-Nineteen scoped consumer/metric cases pass. The first metric typecheck found a
-readonly-byte typing error; it is corrected and the fresh typecheck/eight metric
-cases pass. Clean `71d51d9` passes actual dispatch/expiry/SIGKILL recovery: eight
-durable originals, one correctly expired original retaining its 20,000-lamport
-unknown-fee reserve, and identical 61-event PostgreSQL replay over 70 accounts.
-Actual and allocated vault both equal 7,999,993 atoms. Evidence:
-`.local/liquidity-execution/runs/p44-dispatch-finality/`.
-The broader service retry passes the wallet fault but stops at a one-shot indexer
-check ahead of its finalized history. The harness now flushes setup finality at
-that quiet boundary and retries only `ReconciliationAhead` at a live restart.
-No revision/completeness safeguard changes. Service acceptance remains pending.
-The pinned-binary inventory currently verifies 854 outcomes and successful coverage
-of 43/61 entrypoints; missing cases are explicit in the ignored partial report.
-Clean `cbc132b` completes the actual 64-member source-emergency/valuation/default
-run: 712 signed outcomes, eleven expected rejections, 64 independently verified
-Fraction payouts and ten corruption rejections. Peak observed CU is 364,614
-(FlowPlan); all 56 added members receive actual one-atom deposits. Evidence:
-`.local/liquidity-execution/runs/p44-complete-cohort/`.
-The service run at that revision passes both wallet/maker SIGKILL faults but
-then exposes queued hashes expiring behind shared payer reservations before their
-first finalized-valid observation. The witness is now sampled before dispatch
-conflict admission and persisted even on deferral; unknown outcomes stay reserved.
-Twenty scoped metric/queue tests and typecheck pass for the follow-up.
-The 57-outcome custody run passes actual financial/Anchor checks, but its legacy
-report incorrectly hashes an obsolete artifact path. Its metadata is not admitted
-to the frozen baseline; the driver now verifies deployed hashes and records the
-selected build plus individual WS/signed-wire evidence before a clean rerun.
-The extremal-width compiled resource fixture is prepared separately and explicitly
-cannot count as a reachable financial lifecycle. The new receipt profiler verifies
-signed message bodies and complete CPI logs, separates inclusive instruction CU from
-transaction costs, and refuses reverted calls as successful coverage.
-Clean `f3b73c2` passes 207 current dependency/claim outcomes and identical 149-event
-PostgreSQL replay, with actual/allocated vault 8,099,997 atoms. Its treasury/journal
-run passes 124 outcomes (five expected failures), actual SQL rollback/shutdown/
-backfill and identical 74-event fresh replay with no unresolved journal rows.
-Eight full-context scratch-only width cases also pass (2,796/5,632-bit common
-factor, 186-bit rate factor); peak Verify is 782,453 CU and FlowPlan 749,225 CU.
-These LiteSVM fixtures perform no Apply or payout and do not enlarge the supported
-financial contract. Evidence is `.local/p44-width-probe/` and current run directories
-`p44-market-dependencies/`, `p44-journal/`.
-The shared-updater service retry now advances repricers but cannot sustain full
-source/publisher recovery. Its six maker workers and both publishers all promote
-the same signer to a writable fee payer, forcing sequential finalized reservations.
-The next qualification uses existing owner-authorized per-maker updater keys and
-separate fee payers, retaining the two publishers' own shared role key. No quote,
-source, funding or dispatch-reservation guard is relaxed. Shared-payer results stay
-retained as a limitation, not excluded successful offers. Four independent integer
-cost-model tests and typecheck pass; this is scenario tooling, not profitability.
-Clean `9470101` passes corrected custody capture (57 signed outcomes, 25 committed
-events, eight independent corruption rejections) and terminal retirement (63 signed
-outcomes, seven rejections, identical 53-event PostgreSQL replay). Their actual SBF
-provenance is now checked. The combined same-SBF inventory covers 60/61 successful
-entrypoints over 2,017 outcomes; root delegation remains explicitly unmeasured.
-That revision's separate-maker-key service run still fails Normal recovery: the two
-publishers retain a shared payer and one market's fresh originals repeatedly wait
-behind the other. The next fixture also assigns each publisher its existing separate
-authorized key; the failed run remains at `p44-services-operators/`.
-The `76586dc` service run passes separate-key Normal recovery and delegation but
-stops at browser startup because this machine has no Playwright-downloaded browser.
-The installed Chrome will be selected explicitly for the rerun; no browser download
-or application profile change is needed. A separate bounded load driver is prepared:
-2/8/32 offers per second in eight-second windows, four in-flight constructions,
-stopping each workload's ramp on declared success/latency/backpressure thresholds.
-It independently replays each root's actual fills and exact fee/claim/custody totals
-and requires live indexing plus fresh PostgreSQL replay. Typecheck passes; no live
-load result is claimed yet.
-Clean `7e8d042` passes bounded offered load: 752 offers, 401 signed/finalized
-transactions, 377 successful economic transitions, 24 rejected stale account
-versions and 351 generator in-flight-limit rejections. Each of eight windows retains
-its denominator; ramps stop on the declared thresholds. Independent per-root replay,
-fee/claim/custody conservation and identical 524-event PostgreSQL replay pass over
-72 accounts/nine members; vault is exactly 9,000,000 atoms. Evidence:
-`p44-load-first/`. A service qualification shared this host during part of the run;
-these timings are application observations, not isolated capacity or validator TPS.
-Its browser run correctly rejects the old ignored UI bundle's schema. The launcher
-now rebuilds the trader before service qualification. This is a fixture build
-provenance repair; no schema or freshness guard changes. P43's automated review
-also identified overly broad comparison wording: documentation now distinguishes
-each run's independent conservation from the narrower aggregate cross-run check.
-Clean `fd7d0f4` also passes the final changed-queue dispatch regression: two RPC
-lanes, duplicate executors, shared-payer deferral, finalized expiry, exact original
-SIGKILL recovery and identical 61-event fresh PostgreSQL replay. Its browser reaches
-the current bundle but exposes a real configuration omission: Vite's public-field
-allowlist drops mandatory `accountSchema`. The field is now forwarded and the
-browser harness checks every required deployment field at the actual HTTP endpoint
-before connecting. Evidence stays in `p44-services-current-ui/` and
-`p44-dispatch-final/`; the former is not service acceptance.
-Clean `574d564` fixes the public endpoint and reaches actual wallet signing. It
-then exposes dispatch starvation: the wallet original remains pending with zero
-broadcast attempts for thirty seconds while fresh operator jobs keep entering.
-D89 adds immutable signed-access declarations and oldest-conflicting-first admission
-without releasing active/ambiguous reservations. Nineteen scoped dispatch/expiry/
-consumer tests pass; actual SQL, service/browser and recovery acceptance is pending.
-The load probe also records limited live read-API progress (one successful cycle
-versus 27 revision-ahead retries); its exact final/replay checks pass after activity
-stops. This remains an explicit measured limitation, not sustained live readiness.
-Clean `f4490e9` passes the D89 actual SQL/dispatch/expiry/SIGKILL regression, including
-older-waiter ordering, unrelated progress, immutable arrival/access metadata and
-version-1 drain gating. Its browser now completes all ten signed actions, saved
-receipt reload and direct cash exits with both APIs blocked; raw browser receipts
-are in `p44-services-fair/`. The later service preparation stops on a transient
-source-unavailable response before signing. The harness now bounds and records
-every unsigned preparation retry. The next run omits the unchanged, separately
-passed browser actions and finishes the remaining service lifecycle; it must not
-claim a new browser run or hide those unavailable preparations.
-Clean `2281869` passes stored-order execution, publisher handover/revocation and
-source outage/recovery, then times out on live restarted-indexer catch-up. Bounded
-eight-block parallel retrieval preserves ordered bodies/manifests and unchanged
-reconciliation. All fourteen affected indexer cases and typecheck pass.
-Clean `a5afbc9` then passes the complete service lifecycle: 188 harness outcomes,
-239 durable originals (236 successes/three actual report failures), all three
-lost-ack/SIGKILL recoveries, live indexer restart and identical 137-event fresh
-PostgreSQL replay; actual/allocated vault is 7,999,993 atoms. Fifty-five signed
-reports retain raw inputs; 53 available calculations pass independent literal depth
-math. Browser actions are explicitly omitted here and remain separately accepted
-at `f4490e9`. Actual role fees/timings are verified from original wires and receipts.
-Evidence: `p44-services-parallel-history/`; the two failed preparation runs remain.
-The independent financial auditor now selects the explicitly declared service-only
-case, retaining literal fee/fill vectors and per-root funding/claim checks. The
-changed indexer needs one scoped offered-load rerun; future load samples now copy
-telemetry counters instead of retaining a mutable reference.
-Independent service replay passes all eight roots: BTC taker fees 25 atoms,
-insurance six, cash 7,999,968 and vault 7,999,993, with flat positions and zero
-aggregate unpaid claims. Five compiled hostile-maker cases reject with complete
-rollback across 114 signed VM transactions at clean `1cc2d6a`.
-The changed-indexer load attempt reaches higher construction concurrency and
-exposes identical signed offers sharing a blockhash/pre-state. Surfpool correctly
-rejects the duplicate as already processed. The generator now records such offers
-as duplicate originals before transmission, preserving their offered denominator,
-original signature and one actual economic/fee effect. No nonce, memo, financial
-rule or program behavior changes. The failed run remains `p44-load-parallel-history/`.
-Next exact action: complete the scoped load rerun with explicit duplicate-original
-classification, then freeze the complete instruction/cost baseline and publish P44.
+Fourteen affected indexer tests, 31 queue/receipt/cost cases, two independent audit
+regressions and typecheck pass. Raw originals, failed attempts and databases stay
+local/ignored. No new SBF build, unrelated local native suites, endurance, devnet,
+external wallet, funded deployment or Anchor v2 migration is run. Broad supported
+regression belongs to CI. The 53,089-byte frozen baseline reproduces from its pinned
+originals; typecheck, documentation links and shell syntax pass.
+Next exact action: check the staged evidence budget, commit acceptance and publish
+the ready P44 PR above #61; observe scoped CI and keep the stack open.
 
 ## Deployment and operational limits
 
