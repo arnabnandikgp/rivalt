@@ -219,8 +219,16 @@ version rejection because both markets do not reach Normal within the fixture's
 matches the qualified service fixture (one-second delay), and the browser uses
 that fixture's 60-second recovery deadline with raw source-state observations.
 On-chain age/recovery/quote limits and signed-failure bounds remain unchanged.
-Next exact action: verify the aligned demo cadence on a fresh chain, retain all
-source/rejection observations, stop it, then finish P47 reporting/publication.
+Clean `ac7d263` starts but its first trade finalizes with MakerQuote 6115 after
+six successful cash/account originals. That failure remains fatal to the fixture;
+no broader rejection allowlist is added. The full demo's two-second publishers
+compete with wallet/settlement originals under durable read/write reservations.
+Its local operator configuration now selects the existing supported four-second
+publication cadence; synthetic feeds remain one second and all program source,
+quote, recovery and risk limits are unchanged. The separate measured P47 service/
+load fixtures retain their original two-second cadence and results.
+Next exact action: measure the full interactive lifecycle at this explicit local
+cadence, stop it, and record its actual success/rejection envelope before P47 publication.
 
 ## Accepted performance stack
 
