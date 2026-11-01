@@ -537,17 +537,24 @@ source-unavailable response before signing. The harness now bounds and records
 every unsigned preparation retry. The next run omits the unchanged, separately
 passed browser actions and finishes the remaining service lifecycle; it must not
 claim a new browser run or hide those unavailable preparations.
-Clean `2281869` passes the stored-order worker fill, publisher rotation/revocation/
-budget handover with real lost-ack/SIGKILL, and source outage/recovery. It then
-fails to reconcile the restarted indexer within forty seconds of continuous
-publication. Sequential full-block retrieval repeatedly falls behind; bounded
-eight-block parallel reads now preserve canonical order, complete signature
-manifests, all revision/financial checks and unchanged catch-up limits. Scoped
-unit and real service/fresh-replay acceptance are required before claiming a fix.
-The earlier same-revision attempt stopped during setup with a recorded twelve-
-minute runtime/finality stall; neither failed run is complete service acceptance.
-Next exact action: verify bounded parallel history reads, rerun service recovery,
-then freeze the complete instruction/cost baseline and publish the P44 PR.
+Clean `2281869` passes stored-order execution, publisher handover/revocation and
+source outage/recovery, then times out on live restarted-indexer catch-up. Bounded
+eight-block parallel retrieval preserves ordered bodies/manifests and unchanged
+reconciliation. All fourteen affected indexer cases and typecheck pass.
+Clean `a5afbc9` then passes the complete service lifecycle: 188 harness outcomes,
+239 durable originals (236 successes/three actual report failures), all three
+lost-ack/SIGKILL recoveries, live indexer restart and identical 137-event fresh
+PostgreSQL replay; actual/allocated vault is 7,999,993 atoms. Fifty-five signed
+reports retain raw inputs; 53 available calculations pass independent literal depth
+math. Browser actions are explicitly omitted here and remain separately accepted
+at `f4490e9`. Actual role fees/timings are verified from original wires and receipts.
+Evidence: `p44-services-parallel-history/`; the two failed preparation runs remain.
+The independent financial auditor now selects the explicitly declared service-only
+case, retaining literal fee/fill vectors and per-root funding/claim checks. The
+changed indexer needs one scoped offered-load rerun; future load samples now copy
+telemetry counters instead of retaining a mutable reference.
+Next exact action: audit service finances, remeasure the changed live indexer/load
+path, then freeze the complete instruction/cost baseline and publish the P44 PR.
 
 ## Deployment and operational limits
 

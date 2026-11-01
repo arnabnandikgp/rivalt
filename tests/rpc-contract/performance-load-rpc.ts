@@ -53,7 +53,7 @@ try {
   indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
   running=true;
   producer=(async()=>{while(running){const started=performance.now();await setup.sample();producerSamples.push({elapsedMs:performance.now()-started,at:Date.now()});await delay(50);}})().catch(error=>{backgroundError??=error;});
-  indexing=(async()=>{while(running){const started=performance.now();try{await indexer!.cycle();indexSamples.push({at:Date.now(),elapsedMs:performance.now()-started,metrics:indexer!.metrics});}
+  indexing=(async()=>{while(running){const started=performance.now();try{await indexer!.cycle();indexSamples.push({at:Date.now(),elapsedMs:performance.now()-started,metrics:structuredClone(indexer!.metrics)});}
     catch(error){indexSamples.push({at:Date.now(),reason:String(error)});if(!(error instanceof ReconciliationAhead))backgroundError??=error;}await delay(250);}})();
   const origin=performance.now(),pending=new Set<Promise<void>>();
   async function execute(offer:Offer,actor:Keypair){
