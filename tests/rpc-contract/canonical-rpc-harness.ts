@@ -1,3 +1,4 @@
+import {assertInstructionError} from './instruction-errors.js';
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { getBase58Decoder, getTransactionDecoder, getCompiledTransactionMessageDecoder } from '@solana/kit';
@@ -59,7 +60,7 @@ const h: CanonicalHarness = {
     writeFileSync(`${runDir}/simulation-${transactionIndex}.json`, serialize(simulation));
     if (observeOutcome) { /* Timed offers retain and classify every actual outcome. */ }
     else if (expectedError === undefined) assert.equal(simulation.value.err, null, `${label}: ${simulation.value.logs?.join('\n')}`);
-    else assert.equal(simulation.value.err?.InstructionError?.[1]?.Custom, expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
+    else assertInstructionError(simulation.value.err?.InstructionError?.[1], expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
     // Subscribe after simulation, before broadcast. The acknowledgement is a WS
     // ordering barrier: simulation logs cannot satisfy the landing observation.
     const signatureSubscription = await ws.call('signatureSubscribe', [expectedSignature,
@@ -98,7 +99,7 @@ const h: CanonicalHarness = {
     assert.equal(history.transaction.signatures[0], signature);
     if (observeOutcome) { /* Acceptance separately audits successes and atomic failures. */ }
     else if (expectedError === undefined) assert.equal(history.meta.err, null, label);
-    else assert.equal(history.meta.err?.InstructionError?.[1]?.Custom, expectedError, label);
+    else assertInstructionError(history.meta.err?.InstructionError?.[1], expectedError, label);
     assert(history.meta.computeUnitsConsumed <= computeUnitLimit * 0.8, `${label}: 20% CU headroom`);
     const binary = await rpc.call('getTransaction', [signature, { encoding: 'base64', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]);
     const fetched = Buffer.from(binary.transaction[0], 'base64');
@@ -135,7 +136,7 @@ const h: CanonicalHarness = {
       confirmedMs = performance.now() - signedAt;
       if (observeOutcome) { /* Preserve an observed rejection without hiding RPC/resource failures. */ }
       else if (expectedError === undefined) assert.equal(confirmed.value[0].err, null, label);
-      else assert.equal(confirmed.value[0].err?.InstructionError?.[1]?.Custom, expectedError, label);
+      else assertInstructionError(confirmed.value[0].err?.InstructionError?.[1], expectedError, label);
     } else await verify();
   },
   async quote(label, instruction, expected) {

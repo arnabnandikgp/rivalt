@@ -247,9 +247,9 @@ impl<'account> View<'account> {
                 data: bytes,
             },
             &[
-                self.config.cpi_handle(),
-                self.price.cpi_handle(),
-                self.program.cpi_handle(),
+                self.config.to_cpi_handle(),
+                self.price.to_cpi_handle(),
+                self.program.to_cpi_handle(),
             ],
         )?;
         profile_cu!("maker-cpi-exit");

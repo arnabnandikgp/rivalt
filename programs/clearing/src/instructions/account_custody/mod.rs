@@ -611,10 +611,10 @@ pub fn cash(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.address(),
                 TransferChecked {
-                    from: ctx.accounts.vault.try_cpi_handle_mut()?,
-                    mint: ctx.accounts.quote_mint.cpi_handle(),
-                    to: ctx.accounts.user_token.try_cpi_handle_mut()?,
-                    authority: ctx.accounts.venue.cpi_handle(),
+                    from: ctx.accounts.vault.try_to_cpi_handle_mut()?,
+                    mint: ctx.accounts.quote_mint.to_cpi_handle(),
+                    to: ctx.accounts.user_token.try_to_cpi_handle_mut()?,
+                    authority: ctx.accounts.venue.to_cpi_handle(),
                 },
                 &[seeds],
             ),
@@ -626,10 +626,10 @@ pub fn cash(
             CpiContext::new(
                 ctx.accounts.token_program.address(),
                 TransferChecked {
-                    from: ctx.accounts.user_token.try_cpi_handle_mut()?,
-                    mint: ctx.accounts.quote_mint.cpi_handle(),
-                    to: ctx.accounts.vault.try_cpi_handle_mut()?,
-                    authority: ctx.accounts.owner.cpi_handle(),
+                    from: ctx.accounts.user_token.try_to_cpi_handle_mut()?,
+                    mint: ctx.accounts.quote_mint.to_cpi_handle(),
+                    to: ctx.accounts.vault.try_to_cpi_handle_mut()?,
+                    authority: ctx.accounts.owner.to_cpi_handle(),
                 },
             ),
             amount,
@@ -853,10 +853,10 @@ pub fn seed_insurance(
         CpiContext::new(
             ctx.accounts.token_program.address(),
             TransferChecked {
-                from: ctx.accounts.donor_token.try_cpi_handle_mut()?,
-                mint: ctx.accounts.quote_mint.cpi_handle(),
-                to: ctx.accounts.vault.try_cpi_handle_mut()?,
-                authority: ctx.accounts.donor.cpi_handle(),
+                from: ctx.accounts.donor_token.try_to_cpi_handle_mut()?,
+                mint: ctx.accounts.quote_mint.to_cpi_handle(),
+                to: ctx.accounts.vault.try_to_cpi_handle_mut()?,
+                authority: ctx.accounts.donor.to_cpi_handle(),
             },
         ),
         amount,

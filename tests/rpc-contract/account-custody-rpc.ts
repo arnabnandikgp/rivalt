@@ -1,3 +1,4 @@
+import {assertInstructionError} from './instruction-errors.js';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -37,7 +38,7 @@ const h: Harness = {
     writeFileSync(`${runDir}/wire-${checks.length}.json`, serialize({ label, wireBase64,signature:expectedSignature }));
     const simulation = await rpc.call('simulateTransaction', [wireBase64, { encoding: 'base64', sigVerify: true, commitment: 'confirmed' }]);
     if (expectedError === undefined) assert.equal(simulation.value.err, null, `${label}: ${simulation.value.logs?.join('\n')}`);
-    else assert.equal(simulation.value.err?.InstructionError?.[1]?.Custom, expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
+    else assertInstructionError(simulation.value.err?.InstructionError?.[1], expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
     const subscriptionId=await ws.call('signatureSubscribe',[expectedSignature,{commitment:'finalized',enableReceivedNotification:false}]);
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
     assert.equal(signature,expectedSignature);
@@ -51,7 +52,7 @@ const h: Harness = {
     const notification=await ws.notification(subscriptionId);
     writeFileSync(`${runDir}/ws-${checks.length}.json`,serialize(notification));
     if (expectedError === undefined) assert.equal(history.meta.err, null, label);
-    else assert.equal(history.meta.err?.InstructionError?.[1]?.Custom, expectedError, label);
+    else assertInstructionError(history.meta.err?.InstructionError?.[1], expectedError, label);
     assert(history.meta.computeUnitsConsumed <= 320_000, `${label}: CU headroom`);
     const bytes = (history.meta.innerInstructions ?? []).flatMap((outer: any) => outer.instructions)
       .filter((instruction: any) => history.transaction.message.accountKeys[instruction.programIdIndex] === program)

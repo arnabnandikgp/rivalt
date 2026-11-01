@@ -1,3 +1,4 @@
+import type {ExpectedInstructionError} from './instruction-errors.js';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -39,7 +40,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
     feeAuthority: payer.address, reserveAuthority: payer.address, reserveDestinationOwner: payer.address };
   const tracked: Address[] = [venue, custody, safety, registry, vault, token.address, ...markets, ...ledgers];
   const snapshot = () => Promise.all(tracked.map(async key => (await h.read(key))?.toString('hex') ?? null));
-  async function rejected(label: string, instructions: Instruction[], signers: typeof payer[], error: number) {
+  async function rejected(label: string, instructions: Instruction[], signers: typeof payer[], error: ExpectedInstructionError) {
     const before = await snapshot();
     await h.send(label, instructions, signers, error);
     assert.deepEqual(await snapshot(), before, `${label}: changed committed state`);
@@ -213,7 +214,7 @@ export async function canonicalMakerCases(h: CanonicalHarness) {
   await rejected('quote quantity overflow is rejected', [await maker.request(0, (1n<<64n)-1n)], [], 6003);
   const aliasQuote = await maker.request(0, 1n);
   await rejected('quote cannot substitute another price account', [{ ...aliasQuote, accounts: [aliasQuote.accounts[0],
-    { ...aliasQuote.accounts[1], address: instances[1].price }] }], [], 2006);
+    { ...aliasQuote.accounts[1], address: instances[1].price }] }], [], 'InvalidSeeds');
   await h.send('owner revokes delegated publisher', [sdk.getControlLiquidityInstruction({ ...maker.controlCommon,
     expectedAuthority: 3n, expectedControl: current.controlEpoch, expectedShape: current.shapeEpoch,
     action: { __kind: 'Updater', updater: address('11111111111111111111111111111111'), expirySlot: 0n } })], [owner]);

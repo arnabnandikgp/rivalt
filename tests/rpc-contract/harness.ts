@@ -1,3 +1,4 @@
+import type {ExpectedInstructionError} from './instruction-errors.js';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {address,getAddressEncoder,getProgramDerivedAddress,type Address,type Instruction} from '@solana/kit';
@@ -13,7 +14,7 @@ export async function addresses(){
   return {eventAuthority,program,programData};
 }
 export type Harness = {
-  send(label: string, instructions: Instruction[], signers?: Keypair[], expectedError?: number): Promise<void>;
+  send(label: string, instructions: Instruction[], signers?: Keypair[], expectedError?: ExpectedInstructionError): Promise<void>;
   read(key: Address): Promise<Buffer | null>;
   rent(bytes: number): Promise<bigint>;
 };

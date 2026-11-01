@@ -1,3 +1,4 @@
+import {assertInstructionError,svmInstructionError} from './instruction-errors.js';
 // Compiled CPI isolation regression. All financial state is created by signed
 // instructions. After provisioning, substitute a malicious maker and explicitly
 // fault-inject its admission hash to reach the CPI boundary. This is not evidence
@@ -15,7 +16,7 @@ import type {CanonicalHarness} from './canonical-maker-cases.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 
-const directory='.local/liquidity-execution';
+const directory=process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate';
 const svm=new LiteSVM().withSigverify(true).withBlockhashCheck(true),payer=await payerKey();
 svm.airdrop(payer.address,lamports(100_000_000_000n));
 for(const [name,program] of [['clearing',sdk.CLEARING_PROGRAM_ADDRESS],['maker_a',sdk.makerA.MAKER_A_PROGRAM_ADDRESS],
@@ -47,8 +48,7 @@ const h:CanonicalHarness={
     }else{
       assert(outcome instanceof FailedTransactionMetadata,`${label}: unexpectedly succeeded`);
       const logs=outcome.meta().logs(),error=outcome.err().toString();
-      if(expectedError===-1)assert.match(error,/ReadonlyDataModified/,logs.join('\n'));
-      else assert(logs.some(log=>log.includes(`Error Number: ${expectedError}.`)),`${label}: ${error}\n${logs.join('\n')}`);
+      assertInstructionError(svmInstructionError(outcome),expectedError,`${label}: ${error}\n${logs.join('\n')}`);
       if(hostile)checks.push({label,error,units:String(outcome.meta().computeUnitsConsumed()),logs});
     }
   },
@@ -82,13 +82,13 @@ const decoded=sdk.getMakerRegistrationDecoder().decode(registration.data);
 const data=sdk.getMakerRegistrationEncoder().encode({...decoded,approvedHash:createHash('sha256').update(programData).digest()});
 svm.setAccount({...registration,data});
 for(const [lots,label,error] of [[1n,'wrong gross',sdk.CLEARING_ERROR__MAKER_RESPONSE],
-  [2n,'overlong return bytes',sdk.CLEARING_ERROR__MAKER_RESPONSE],[3n,'read-only config mutation',-1],[4n,'maker rejection',6000]] as const){
+  [2n,'overlong return bytes',sdk.CLEARING_ERROR__MAKER_RESPONSE],[3n,'read-only config mutation','ReadonlyDataModified'],[4n,'maker rejection',6000]] as const){
   before=await snapshot();
   await h.send(`hostile second leg: ${label}`,[await build(lots)],[setup.traderOwner],error);
   assert.deepEqual(await snapshot(),before,`${label}: failed pair mutated clearing, token, maker or consumption state`);
 }
 assert.equal(checks.length,5);
-writeFileSync(`${directory}/hostile-svm.json`,JSON.stringify({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
+writeFileSync(`${process.env.RIVALT_RUN_DIR??directory}/hostile-svm.json`,JSON.stringify({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
   trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
   build:JSON.parse(readFileSync(`${directory}/build-manifest.json`,'utf8')),submitted,checks,
   scope:'Compiled hostile-CPI fault injection; admission hash replaced after proving upgrade rejection; financial state only from signed instructions; no RPC landing claim'},null,2)+'\n');

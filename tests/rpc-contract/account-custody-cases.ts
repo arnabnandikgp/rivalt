@@ -1,3 +1,4 @@
+import type {ExpectedInstructionError} from './instruction-errors.js';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { getAddressEncoder, getProgramDerivedAddress, type Address, type Instruction, type ReadonlyUint8Array } from '@solana/kit';
@@ -46,7 +47,7 @@ export async function accountCustodyCases(h: Harness) {
   const portfolios: Address[] = [];
   const tracked = [venue, custody, safety, registry, vault, token.address, ...markets, ...ledgers];
   const snapshot = async () => Promise.all([...tracked, ...roots, ...portfolios].map(async key => (await h.read(key))?.toString('hex') ?? null));
-  async function rejected(label: string, instructions: Instruction[], signers: Awaited<ReturnType<typeof fixtureKey>>[], error: number) {
+  async function rejected(label: string, instructions: Instruction[], signers: Awaited<ReturnType<typeof fixtureKey>>[], error: ExpectedInstructionError) {
     const before = await snapshot();
     await h.send(label, instructions, signers, error);
     assert.deepEqual(await snapshot(), before, `${label}: committed financial/registry bytes changed`);
@@ -123,7 +124,7 @@ export async function accountCustodyCases(h: Harness) {
   await rejected('reject transfer to another owner', [await sdk.getTransferAccountCustodyInstructionAsync({ ...transfer, recipient: otherOwner, amount: 1n })], [owner], 2001);
   await rejected('reject root alias transfer', [await sdk.getTransferAccountCustodyInstructionAsync({ ...transfer, recipient: cross, amount: 1n })], [owner], 2040);
   await rejected('reject overdraw without sibling bailout', [await sdk.getWithdrawAccountCustodyInstructionAsync({ ...cash, margin: btc, amount: 200_001n })], [owner], 6100);
-  await rejected('reject wrong token owner', [await sdk.getWithdrawAccountCustodyInstructionAsync({ ...cash, margin: btc, userToken: wrongOwnerToken.address, amount: 1n })], [owner], 2015);
+  await rejected('reject wrong token owner', [await sdk.getWithdrawAccountCustodyInstructionAsync({ ...cash, margin: btc, userToken: wrongOwnerToken.address, amount: 1n })], [owner], 'InvalidAccountData');
   await rejected('reject amount bound', [await sdk.getDepositAccountInstructionAsync({ ...cash, margin: btc, amount: (1n << 64n)-1n })], [owner], 6100);
   await rejected('reject zero deposit', [await sdk.getDepositAccountInstructionAsync({ ...cash, margin: btc, amount: 0n })], [owner], 6106);
   await rejected('rollback transfer when subsequent withdrawal fails', [
@@ -131,7 +132,7 @@ export async function accountCustodyCases(h: Harness) {
     await sdk.getWithdrawAccountCustodyInstructionAsync({ ...cash, margin: separate, amount: 50_101n }),
   ], [owner], 6100);
   const signed = await sdk.getWithdrawAccountCustodyInstructionAsync({ ...cash, margin: btc, amount: 1n });
-  await rejected('reject missing owner signature', [{ ...signed, accounts: signed.accounts.map((account, index) => index === 0 ? { address: account.address, role: 0 } : account) }], [], 3010);
+  await rejected('reject missing owner signature', [{ ...signed, accounts: signed.accounts.map((account, index) => index === 0 ? { address: account.address, role: 0 } : account) }], [], 'MissingRequiredSignature');
   await rejected('reject extra unrecognized dependency', [{ ...signed, accounts: [...signed.accounts, { address: badMint.address, role: 0 }] }], [owner], 6108);
   await h.send('unsolicited seven atom token transfer', [getTransferCheckedInstruction({ source: token.address, mint: mint.address,
     destination: vault, authority: owner, amount: 7n, decimals: 6 })], [owner]);

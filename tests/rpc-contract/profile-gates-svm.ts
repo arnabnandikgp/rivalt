@@ -1,3 +1,4 @@
+import {assertInstructionError,svmInstructionError} from './instruction-errors.js';
 // Real compiled default binaries must reject activation/initialization even when
 // every account and signer is provisioned through valid preceding instructions.
 import assert from 'node:assert/strict';
@@ -8,7 +9,7 @@ import * as sdk from '@rivalt/sdk';
 import {provisionCanonicalMakers,type CanonicalHarness} from './canonical-maker-cases.js';
 import {LOADER,payerKey} from './harness.js';
 
-const directory='.local/liquidity-execution',results:unknown[]=[];
+const directory=process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate',results:unknown[]=[];
 const programs=[['clearing',sdk.CLEARING_PROGRAM_ADDRESS],['maker_a',sdk.makerA.MAKER_A_PROGRAM_ADDRESS],
   ['maker_b',sdk.makerB.MAKER_B_PROGRAM_ADDRESS]] as const;
 for(const [gatedName,gatedProgram] of programs) {
@@ -41,7 +42,7 @@ for(const [gatedName,gatedProgram] of programs) {
       if(gate){
         assert(outcome instanceof FailedTransactionMetadata,`${gatedName} default unexpectedly initialized`);
         const error=gatedName==='clearing'?sdk.CLEARING_ERROR__PROFILE:sdk.makerA.MAKER_A_ERROR__BINDING;
-        assert(outcome.meta().logs().some(log=>log.includes(`Error Number: ${error}.`)),outcome.meta().logs().join('\n'));
+        assertInstructionError(svmInstructionError(outcome),error,outcome.meta().logs().join('\n'));
         assert.deepEqual(await Promise.all(keys.map(h.read)),before,'Rejected gate changed financial/deployment accounts');
         results.push({program:gatedName,label,precedingSignedTransactions:preceding,rejected:error,logs:outcome.meta().logs()});
         throw rejected;
@@ -53,5 +54,5 @@ for(const [gatedName,gatedProgram] of programs) {
   await assert.rejects(async()=>{try{await provisionCanonicalMakers(h,undefined,[0]);}catch(error){if(error===rejected)throw new Error('Default gate verified');throw error;}},/Default gate verified/);
 }
 assert.equal(results.length,3);
-writeFileSync(`${directory}/default-gates-svm.json`,JSON.stringify({results},null,2)+'\n');
+writeFileSync(`${process.env.RIVALT_RUN_DIR??directory}/default-gates-svm.json`,JSON.stringify({results},null,2)+'\n');
 console.log('Three compiled default gates rejected valid initialization with full rollback.');

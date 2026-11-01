@@ -385,3 +385,12 @@ artifact directory. Until P47, runtime probes require explicit
 `RIVALT_ALLOW_RC2_CANDIDATE=1` and `RIVALT_ARTIFACT_DIR`; this is not normal demo
 promotion. Isolated conformance processes use unchanged core 1.2.1/web3.js 1.99.0
 and new core 2.0.0-rc.2/Kit 8.3.0 respectively. Production stays on Kit 8.5.0.
+
+The first actual signed custody run exposed `AccountBorrowFailed` at the token CPI.
+RC2's generic `AnchorAccount` implementation for `Box<T>` does not forward the
+native wrapper's CPI borrow override. Manual CPI construction now uses
+`ToCpiHandle` / `ToCpiHandleMut` forwarding (`to_cpi_handle` /
+`try_to_cpi_handle_mut`) throughout clearing. This preserves the native token
+wrapper's borrow protocol without unchecked CPI or disabled guardrails. Exact
+framework rejections are asserted using RPC/LiteSVM typed instruction errors;
+protocol custom codes and failed-transaction rollback remain exact.

@@ -20,7 +20,7 @@ export function liquidityFixture() {
     const registrationState = { ...emptyState(sdk.getMakerRegistrationDecoder()),schemaVersion: 8,revision:1n,venue,market,capital: capitalKey,
       owner: capital.owner,instance,authorityEpoch: 1n,depthEpoch: 1n,
       pricingProgram: instance === 2 ? sdk.makerB.MAKER_B_PROGRAM_ADDRESS : sdk.makerA.MAKER_A_PROGRAM_ADDRESS };
-    const config = { ...emptyState(sdk.makerA.getMakerCurveDecoder()).state,schemaVersion: 4,capability: 1,venue,market,
+    const config = { ...emptyState(sdk.makerA.getMakerCurveDecoder()).state,schemaVersion: 5,capability: 1,venue,market,
       capital: capitalKey,instance,owner: capital.owner,controlEpoch: 1n,shapeEpoch: 1n };
     const price = { ...emptyState(sdk.makerA.getMakerPriceDecoder()).state,anchor: 10_000n };
     const maker = { capability: 1 as const,registration,registrationState,capital,shape,config,price,

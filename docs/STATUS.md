@@ -72,11 +72,22 @@ client correctly rejected its old P44 executable allowlist before financial acti
 fresh test domains distinguish schema 8. This is an explicit candidate selection,
 not an artifact qualification claim.
 
-No signed candidate transaction, actual RPC/WS/PostgreSQL replay, hostile runtime
-acceptance, browser/load matrix or B/C cost comparison has passed. Broad regression
-is delegated to CI; no hosted result is claimed. P15B/P16B and deferred endurance
-are unchanged. No access blocker is present. Next exact action: commit the candidate allowlist and run the explicit
-candidate custody probe against fresh Surfpool before route/safety/journal acceptance.
+The next custody RPC attempt (`custody-c0-2`) independently fetched 27 signed
+outcomes before the first deposit failed simulation with `AccountBorrowFailed`.
+The cause was the boxed native token wrapper's CPI handle dispatch. The follow-up
+uses RC2's forwarding handle traits without weakening borrow checks. An isolated
+compiled replay of the failing original now succeeds; the full compiled custody
+lifecycle reconciles zero remaining trader cash, 18 insurance/vault atoms and
+1,999,982 returned token atoms. The compiled maker lifecycle passes **123** cases
+including **16** exact rejections and both isolated conformance clients. These
+fast compiled checks do not replace fresh RPC acceptance or establish CU savings.
+
+The forwarding fix still needs a clean candidate rebuild and allowlist refresh.
+Actual RPC/WS/PostgreSQL replay, hostile runtime acceptance, browser/load matrix
+and B/C cost comparison remain incomplete. Broad regression belongs to CI; no
+hosted result is claimed. P15B/P16B and deferred endurance are unchanged. No access
+blocker is present. Next exact action: pin the clean CPI-fixed artifacts, then run
+the fresh signed custody probe before route/safety/journal acceptance.
 
 ## Accepted performance stack
 
@@ -166,8 +177,7 @@ load/endurance run or external qualification was needed for this queue/docs fix.
 The fetched merge has identical tree and includes the tested fix as an ancestor.
 No implementation blocker remains within this completed scope.
 P45 now uses the frozen B baseline to scope the separately requested RC2 migration;
-the active planning checkpoint above owns the next action. Implementation has not
-started.
+the active P46 checkpoint above owns the next action.
 
 ## Deployment and operational limits
 

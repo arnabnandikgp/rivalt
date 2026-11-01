@@ -287,11 +287,11 @@ fn control_cpi(
             data,
         },
         &[
-            accounts.controller.cpi_handle(),
-            accounts.config.try_cpi_handle_mut()?.into(),
-            accounts.price.cpi_handle(),
-            accounts.maker_event_authority.cpi_handle(),
-            accounts.pricing_program.cpi_handle(),
+            accounts.controller.to_cpi_handle(),
+            accounts.config.try_to_cpi_handle_mut()?.into(),
+            accounts.price.to_cpi_handle(),
+            accounts.maker_event_authority.to_cpi_handle(),
+            accounts.pricing_program.to_cpi_handle(),
         ],
         &[seeds],
     )?;

@@ -139,10 +139,10 @@ pub fn withdraw(
         CpiContext::new_with_signer(
             accounts.token_program.address(),
             TransferChecked {
-                from: identity.vault.try_cpi_handle_mut()?,
-                to: accounts.user_token.try_cpi_handle_mut()?,
-                mint: accounts.quote_mint.cpi_handle(),
-                authority: identity.venue.cpi_handle(),
+                from: identity.vault.try_to_cpi_handle_mut()?,
+                to: accounts.user_token.try_to_cpi_handle_mut()?,
+                mint: accounts.quote_mint.to_cpi_handle(),
+                authority: identity.venue.to_cpi_handle(),
             },
             &[seeds],
         ),
