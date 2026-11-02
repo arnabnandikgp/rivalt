@@ -11,6 +11,8 @@ default = []
 devnet-test-profile = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
+# Share account types without linking RC2's exported dispatch symbol.
+state-only = ["no-entrypoint"]
 no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build"]

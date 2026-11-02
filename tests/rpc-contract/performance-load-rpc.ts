@@ -99,7 +99,7 @@ try {
         let task:Promise<void>;task=execute(offer,marketIndex===1?ethOwner:setup.traderOwner).catch(error=>{
           if(error instanceof DuplicateOriginal){offer.reason=error.message;offer.duplicateOf={signature:error.signature,label:error.originalLabel};return;}
           offer.reason=`unexpected:${String(error)}`;backgroundError??=error;})
-          .finally(()=>{pending.delete(task);appendFileSync(`${directory}/offers.ndjson`,json(offer));});pending.add(task);
+          .finally(()=>{pending.delete(task);appendFileSync(`${directory}/offers.ndjson`,json(offer)+'\n');});pending.add(task);
       }
       await delay(Math.max(0,start+8000-performance.now()));await Promise.all(pending);await flush();if(backgroundError)throw backgroundError;
       const cohort=offers.slice(first),landed=cohort.flatMap(offer=>checks.filter(check=>check.label===offer.label));
@@ -150,7 +150,7 @@ try {
   const parity=await conformance.finish(directory,[],h.read);
   assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),revision);
   assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-  const summary={revision,trackedDirty:false,build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),runtime:await rpc.call('getVersion'),
+  const summary={revision,trackedDirty:false,build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),runtime:await rpc.call('getVersion'),
     host:{cpu:cpus()[0].model,cores:cpus().length,os:release(),node:process.version},scope:'Direct selected-maker RPC offers with concurrent actual source/reprice/report transactions and live PostgreSQL; separate from durable-queue capacity or validator TPS',
     policy:{rates:[2,8,32],windowSeconds:8,maxInflight:4,stop:'offered success below 90%, confirmed p95 over 500 ms, or generator lag over 250 ms; each workload stops independently',fullBooksAndWideResources:'separate pinned acceptance constituents'},
     offers,ramps,checks,parity,producerSamples,indexSamples,reconciliation,replayMetrics:replay.metrics,financial:{fees,cash,actualVault:custody.allocatedVault,independentRootTransitions:true},resource:process.resourceUsage(),memory:process.memoryUsage()};

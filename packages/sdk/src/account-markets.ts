@@ -8,7 +8,7 @@ export function requiredAccountMarkets(roots: readonly MarginAccount[], requeste
   requireValue(Number.isInteger(requested) && requested >= 0 && requested < 4, 'Invalid market dependency mask.');
   let mask = requested;
   for (const root of roots) {
-    requireValue(root?.schemaVersion === 7 && root.positions.length === 2 && root.book.orders.length === 4
+    requireValue(root?.schemaVersion === 8 && root.positions.length === 2 && root.book.orders.length === 4
       && [0, 1].includes(root.mode), 'Invalid account market dependencies.');
     for (const [index, position] of root.positions.entries()) {
       if (position.lots !== 0n || position.virtualScaled !== 0n) mask |= 1 << index;

@@ -69,6 +69,9 @@ it('rejects cross-profile configs and selects explicit measured compute envelope
   expect(Buffer.from(sdk.accountWalletInstructions([instruction(sdk.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR)])[0].data!).readUInt32LE(1)).toBe(400_000);
   expect(Buffer.from(sdk.accountWalletInstructions([instruction(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR)])[0].data!).readUInt32LE(1)).toBe(800_000);
   expect(()=>sdk.accountWalletInstructions([instruction(sdk.FREEZE_ACCOUNTS_DISCRIMINATOR)])).toThrow(/Unsupported/);
+  // Frozen pre-RC2 route ID: an old signed intent cannot become a new action.
+  const oldRoute = Uint8Array.from([195,172,220,84,16,82,29,7]);
+  expect(()=>sdk.accountWalletInstructions([instruction(oldRoute)])).toThrow(/Unsupported/);
 });
 it('makes closed-claim netting explicit and binds the source market certificate',async()=>{
   const fixture=await environment(),client=new sdk.AccountUserClient(fixture.config),snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,[fixture.margins[0]]);
@@ -96,10 +99,10 @@ it('discovers only canonical children of the selected owner portfolio and reject
   await expect(client.ownerAccounts(fixture.owner,0)).rejects.toThrow('Owner account identity mismatch');
 });
 
-it('requires explicit schema-7 deployment selection independently of profile version', async () => {
+it('requires explicit schema-8 deployment selection independently of profile version', async () => {
   const fixture = await environment();
-  expect(sdk.accountUserConfig(fixture.config).accountSchema).toBe(7);
-  expect(() => sdk.accountUserConfig({...fixture.config, accountSchema: 3 as 7})).toThrow(/Explicit qualified/);
+  expect(sdk.accountUserConfig(fixture.config).accountSchema).toBe(8);
+  expect(() => sdk.accountUserConfig({...fixture.config, accountSchema: 7 as 8})).toThrow(/Explicit qualified/);
   const {accountSchema: _schema, ...missing} = fixture.config;
   expect(() => sdk.accountUserConfig(missing as sdk.AccountUserConfig)).toThrow(/Explicit qualified/);
 });

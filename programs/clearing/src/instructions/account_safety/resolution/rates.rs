@@ -74,7 +74,7 @@ pub(super) fn chunk(
         let limb = u64::from_le_bytes(
             bytes
                 .try_into()
-                .map_err(|_| error!(ClearingError::Resolution))?,
+                .map_err(|_| ProgramError::from(ClearingError::Resolution))?,
         );
         let position = start / 8 + index;
         if position < 2 * WIDE_LIMBS {
@@ -200,7 +200,7 @@ fn verify_complete(header: &Resolution, work: &mut ResolutionWork) -> Result<[(u
     for index in 0..2 {
         let (aggregates, scratch) = work.registers.split_at_mut(4);
         let [outgoing, capacity, remainder, _] = scratch else {
-            return err!(ClearingError::Resolution);
+            return Err(ProgramError::from(ClearingError::Resolution));
         };
         result[index] = checked(math::clearing::row::verify_market(
             header.positive_scaled[index],
@@ -257,8 +257,9 @@ pub fn finalize(
     events: &mut crate::event_cpi::Payloads,
     epoch: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Resolution);
+    let accounts = &mut ctx.accounts;
     frozen(
         &accounts.identity,
         &accounts.registry,
@@ -280,7 +281,7 @@ pub fn finalize(
 
     events.emit(
         &crate::events::AccountResolutionRates {
-            venue: accounts.identity.venue.key(),
+            venue: accounts.identity.venue.address().to_owned(),
 
             slot: Clock::get()?.slot,
             epoch,
@@ -292,7 +293,7 @@ pub fn finalize(
             budgets: accounts.resolution.budgets,
             insurance_spent: accounts.resolution.insurance_spent,
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -305,8 +306,11 @@ pub fn upload(
     offset: u16,
     bytes: Vec<u8>,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
-    let accounts = &mut *ctx.accounts;
+    require!(
+        ctx.remaining_accounts()?.is_empty(),
+        ClearingError::Resolution
+    );
+    let accounts = &mut ctx.accounts;
     frozen(
         &accounts.identity,
         &accounts.registry,
@@ -328,7 +332,7 @@ pub fn upload(
 
     events.emit(
         &crate::events::AccountResolutionProposal {
-            venue: accounts.identity.venue.key(),
+            venue: accounts.identity.venue.address().to_owned(),
 
             slot: Clock::get()?.slot,
             epoch,
@@ -339,6 +343,6 @@ pub fn upload(
             rejected: result == 1,
             next_stage: accounts.resolution.stage,
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }

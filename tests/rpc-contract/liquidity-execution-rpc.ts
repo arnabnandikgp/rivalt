@@ -148,7 +148,7 @@ try {
   ], h.read);
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
-    build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')), checks, parity,
+    build: JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`, 'utf8')), checks, parity,
     allRoots, markets, ledgers, custody, financialTradingActivated: true, phaseAcceptance: false }));
   console.log(`P32 scoped execution: ${checks.length} signed RPC/WS outcomes. Full safety/PG/continuation acceptance remains open.`);
 } finally { try { await flush(); } finally { ws.close(); } }

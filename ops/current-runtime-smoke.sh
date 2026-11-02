@@ -3,6 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
+# P47 qualifies the exact C0 hashes; retained P44 artifacts remain separate.
+export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
+node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
 test "$(surfpool --version)" = 'surfpool 1.7.0'
 # Browser qualification must consume this checkout's schema/SDK, never a stale
 # ignored dist directory left by an older phase.
@@ -13,17 +16,6 @@ export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
 export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
 export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/liquidity-execution/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 test ! -e "$RIVALT_RUN_DIR"
-export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/liquidity-execution}"
-python3 - <<'PYTHON'
-import hashlib,json,os
-from pathlib import Path
-root=Path(os.environ['RIVALT_ARTIFACT_DIR'])
-manifest=json.loads((root/'build-manifest.json').read_text())
-assert manifest['trackedDirty'] is False and manifest['profile']=='liquidity-execution-qualification'
-for component in ['clearing','maker_a','maker_b','oracle_fixture']:
-    name=component+'.so'
-    assert hashlib.sha256((root/name).read_bytes()).hexdigest()==manifest['binaries'][name], name
-PYTHON
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT"
 if [[ "${RIVALT_LIQUIDITY_POSTGRES:-0}" == 1 ]]; then
   container system status >/dev/null

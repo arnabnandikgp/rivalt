@@ -3,16 +3,19 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve, relative } from 'node:path';
-import { receiptMetrics, observedDistribution, type ProgramContract, type Receipt } from './receipt-metrics.js';
+import { receiptMetrics, observedDistribution, type Receipt } from './receipt-metrics.js';
 
+import {profileContracts, FROZEN_B_SOURCE} from './profile-contracts.js';
+
+assert(!process.argv.includes('--write'), 'Frozen B cannot be rewritten; use the separate candidate collector');
 const hash = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
 const json = (path: string) => JSON.parse(readFileSync(path, 'utf8'));
 const directories: string[] = process.argv.includes('--replay')
   ? json('tests/performance/baselines/p44-pre-v2.json').runs.map((run: { directory: string }) => run.directory)
   : process.argv.slice(2).filter(value => !value.startsWith('--'));
 assert(directories.length, 'Usage: full-baseline.ts <run>... [--write | --partial]');
-const contracts: ProgramContract[] = ['clearing', 'maker_a', 'maker_b'].map(name => ({ ...json(`packages/sdk/idl/${name}.json`), name }));
-const idls = Object.fromEntries(contracts.map(({ name }) => [name, hash(readFileSync(`packages/sdk/idl/${name}.json`))]));
+const {contracts, idls} = profileContracts(FROZEN_B_SOURCE);
+assert.deepEqual(idls, json('tests/performance/baselines/p44-pre-v2.json').idls, 'Frozen B IDLs');
 const build = json('.local/liquidity-execution/build-manifest.json');
 assert.equal(build.trackedDirty, false); assert.equal(build.instrumented, undefined);
 assert.equal(build.revision, 'fb5d0c546a417796ce615e0d3d3575545c96c178', 'Frozen B uses its exact accepted programs');

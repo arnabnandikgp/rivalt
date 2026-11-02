@@ -46,13 +46,14 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const WITHDRAW_MARKET_FEES_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([236, 141, 236, 121, 133, 175, 96, 152]);
+  new Uint8Array([196, 199, 207, 67, 231, 90, 235, 233]);
 
 export function getWithdrawMarketFeesDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -184,7 +185,9 @@ export type WithdrawMarketFeesAsyncInput<
   quoteMint: TAccountQuoteMint;
   userToken: TAccountUserToken;
   tokenProgram?: TAccountTokenProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: WithdrawMarketFeesInstructionDataArgs["marketIndex"];
   amount: WithdrawMarketFeesInstructionDataArgs["amount"];
@@ -368,6 +371,11 @@ export async function getWithdrawMarketFeesInstructionAsync<
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -460,7 +468,9 @@ export type WithdrawMarketFeesInput<
   quoteMint: TAccountQuoteMint;
   userToken: TAccountUserToken;
   tokenProgram?: TAccountTokenProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: WithdrawMarketFeesInstructionDataArgs["marketIndex"];
   amount: WithdrawMarketFeesInstructionDataArgs["amount"];
@@ -692,7 +702,9 @@ export type ParsedWithdrawMarketFeesInstruction<
     quoteMint: TAccountMetas[6];
     userToken: TAccountMetas[7];
     tokenProgram: TAccountMetas[8];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[9];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[10];
   };
   data: WithdrawMarketFeesInstructionData;

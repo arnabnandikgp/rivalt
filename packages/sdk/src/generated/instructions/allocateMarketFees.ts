@@ -44,11 +44,11 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findVenueSafetyPda } from "../pdas/index.js";
+import { findEventAuthorityPda, findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const ALLOCATE_MARKET_FEES_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([73, 100, 212, 184, 126, 4, 162, 29]);
+  new Uint8Array([238, 132, 46, 190, 60, 46, 250, 248]);
 
 export function getAllocateMarketFeesDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -148,7 +148,9 @@ export type AllocateMarketFeesAsyncInput<
   safety?: TAccountSafety;
   ledger: TAccountLedger;
   feeAuthority: TAccountFeeAuthority;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: AllocateMarketFeesInstructionDataArgs["marketIndex"];
   amount: AllocateMarketFeesInstructionDataArgs["amount"];
@@ -255,6 +257,11 @@ export async function getAllocateMarketFeesInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -311,7 +318,9 @@ export type AllocateMarketFeesInput<
   safety: TAccountSafety;
   ledger: TAccountLedger;
   feeAuthority: TAccountFeeAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: AllocateMarketFeesInstructionDataArgs["marketIndex"];
   amount: AllocateMarketFeesInstructionDataArgs["amount"];
@@ -456,7 +465,9 @@ export type ParsedAllocateMarketFeesInstruction<
     safety: TAccountMetas[1];
     ledger: TAccountMetas[2];
     feeAuthority: TAccountMetas[3];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[4];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[5];
   };
   data: AllocateMarketFeesInstructionData;

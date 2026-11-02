@@ -46,13 +46,14 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const WITHDRAW_RETIRED_RESERVE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([128, 169, 190, 185, 100, 109, 194, 197]);
+  new Uint8Array([143, 109, 72, 169, 117, 203, 249, 57]);
 
 export function getWithdrawRetiredReserveDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -185,7 +186,9 @@ export type WithdrawRetiredReserveAsyncInput<
   quoteMint: TAccountQuoteMint;
   destination: TAccountDestination;
   tokenProgram?: TAccountTokenProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: WithdrawRetiredReserveInstructionDataArgs["marketIndex"];
   amount: WithdrawRetiredReserveInstructionDataArgs["amount"];
@@ -369,6 +372,11 @@ export async function getWithdrawRetiredReserveInstructionAsync<
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -462,7 +470,9 @@ export type WithdrawRetiredReserveInput<
   quoteMint: TAccountQuoteMint;
   destination: TAccountDestination;
   tokenProgram?: TAccountTokenProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: WithdrawRetiredReserveInstructionDataArgs["marketIndex"];
   amount: WithdrawRetiredReserveInstructionDataArgs["amount"];
@@ -694,7 +704,9 @@ export type ParsedWithdrawRetiredReserveInstruction<
     quoteMint: TAccountMetas[6];
     destination: TAccountMetas[7];
     tokenProgram: TAccountMetas[8];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[9];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[10];
   };
   data: WithdrawRetiredReserveInstructionData;

@@ -4,10 +4,10 @@ use anchor_lang::prelude::*;
 pub const VERSION: u16 = 5;
 pub const MAKER_COUNT: usize = 3;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, IdlType)]
 pub struct ExecutedLeg {
-    pub registration: Pubkey,
-    pub capital: Pubkey,
+    pub registration: Address,
+    pub capital: Address,
     pub instance: u8,
     pub lots: u64,
     pub gross: u64,
@@ -20,15 +20,15 @@ pub struct ExecutedLeg {
     pub consumed_after: u64,
 }
 
-#[account]
-#[derive(InitSpace)]
+#[account(borsh)]
+#[derive(InitSpace, Clone)]
 pub struct FundingPublisher {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
-    pub market: Pubkey,
-    pub publisher: Pubkey,
+    pub venue: Address,
+    pub market: Address,
+    pub publisher: Address,
     pub authority_epoch: u64,
     pub last_sequence: u64,
     pub last_observed_slot: u64,
@@ -37,11 +37,11 @@ pub struct FundingPublisher {
     pub bump: u8,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, Default)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, Default, IdlType)]
 pub struct FundingReport {
     pub version: u16,
     pub domain: [u8; 32],
-    pub market: Pubkey,
+    pub market: Address,
     pub authority_epoch: u64,
     pub sequence: u64,
     pub expected_observation_sequence: u64,
@@ -59,13 +59,13 @@ pub struct FundingReport {
     pub input_digest: [u8; 32],
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, IdlType)]
 pub struct FundingPublisherPayload {
     pub schema_version: u16,
     pub revision: u64,
-    pub venue: Pubkey,
-    pub market: Pubkey,
-    pub publisher: Pubkey,
+    pub venue: Address,
+    pub market: Address,
+    pub publisher: Address,
     pub authority_epoch: u64,
     pub last_sequence: u64,
     pub last_observed_slot: u64,
@@ -92,34 +92,34 @@ impl From<&FundingPublisher> for FundingPublisherPayload {
     }
 }
 
-#[account]
-#[derive(InitSpace)]
+#[account(borsh)]
+#[derive(InitSpace, Clone)]
 pub struct LiquidityRegistry {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
-    pub market: Pubkey,
+    pub venue: Address,
+    pub market: Address,
     pub count: u8,
     pub sealed: bool,
-    pub registrations: [Pubkey; MAKER_COUNT],
+    pub registrations: [Address; MAKER_COUNT],
     pub bump: u8,
 }
 
-#[account]
-#[derive(InitSpace)]
+#[account(borsh)]
+#[derive(InitSpace, Clone)]
 pub struct MakerRegistration {
     pub schema_version: u16,
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
-    pub venue: Pubkey,
-    pub market: Pubkey,
-    pub capital: Pubkey,
-    pub owner: Pubkey,
-    pub pricing_program: Pubkey,
-    pub program_data: Pubkey,
-    pub config: Pubkey,
-    pub price: Pubkey,
+    pub venue: Address,
+    pub market: Address,
+    pub capital: Address,
+    pub owner: Address,
+    pub pricing_program: Address,
+    pub program_data: Address,
+    pub config: Address,
+    pub price: Address,
     pub approved_hash: [u8; 32],
     pub instance: u8,
     pub authority_epoch: u64,
@@ -131,15 +131,15 @@ pub struct MakerRegistration {
 }
 
 /// Event payload: identical field bytes without an account discriminator.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct LiquidityRegistryPayload {
     pub schema_version: u16,
     pub revision: u64,
-    pub venue: Pubkey,
-    pub market: Pubkey,
+    pub venue: Address,
+    pub market: Address,
     pub count: u8,
     pub sealed: bool,
-    pub registrations: [Pubkey; MAKER_COUNT],
+    pub registrations: [Address; MAKER_COUNT],
     pub bump: u8,
 }
 
@@ -159,18 +159,18 @@ impl From<&LiquidityRegistry> for LiquidityRegistryPayload {
 }
 
 /// Event payload: identical field bytes without an account discriminator.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct MakerRegistrationPayload {
     pub schema_version: u16,
     pub revision: u64,
-    pub venue: Pubkey,
-    pub market: Pubkey,
-    pub capital: Pubkey,
-    pub owner: Pubkey,
-    pub pricing_program: Pubkey,
-    pub program_data: Pubkey,
-    pub config: Pubkey,
-    pub price: Pubkey,
+    pub venue: Address,
+    pub market: Address,
+    pub capital: Address,
+    pub owner: Address,
+    pub pricing_program: Address,
+    pub program_data: Address,
+    pub config: Address,
+    pub price: Address,
     pub approved_hash: [u8; 32],
     pub instance: u8,
     pub authority_epoch: u64,

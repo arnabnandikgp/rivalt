@@ -6,19 +6,20 @@ use crate::{
     events::AccountTransition,
     state::{accounts::*, liquidity::*},
 };
+use anchor_lang::accounts::{AnchorAccountSerialize, SerializedAccount};
 use anchor_lang::{prelude::*, Bumps};
 
 pub(crate) const MAX_ENTITIES: usize = 32;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq, IdlType)]
 pub struct ScopedRead {
-    pub account: Pubkey,
+    pub account: Address,
     pub kind: u8,
     pub revision: u64,
 }
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq, IdlType)]
 pub struct ScopedWrite {
-    pub account: Pubkey,
+    pub account: Address,
     pub kind: u8,
     pub before: u64,
     pub after: u64,
@@ -56,7 +57,7 @@ pub(crate) enum Access {
 }
 #[derive(Clone, Debug)]
 struct Entry {
-    account: Pubkey,
+    account: Address,
     kind: u8,
     revision: u64,
     access: Access,
@@ -78,7 +79,7 @@ impl Scope {
     /// Returns the revision to persist; capture and readonly visits change none.
     fn visit(
         &mut self,
-        account: Pubkey,
+        account: Address,
         kind: u8,
         schema: u16,
         revision: u64,
@@ -100,7 +101,7 @@ impl Scope {
             } else {
                 revision
                     .checked_add(1)
-                    .ok_or_else(|| error!(ClearingError::Arithmetic))
+                    .ok_or_else(|| ProgramError::from(ClearingError::Arithmetic))
             }
         } else {
             require!(
@@ -133,13 +134,13 @@ impl Scope {
         }
     }
 
-    pub(crate) fn account<T: Revisioned + AccountSerialize + AccountDeserialize + Clone + Owner>(
+    pub(crate) fn account<T: Revisioned + Owner + Discriminator, S: AnchorAccountSerialize<T>>(
         &mut self,
-        account: &mut Account<T>,
+        account: &mut SerializedAccount<T, S>,
         access: Access,
     ) -> Result<()> {
         let revision = self.visit(
-            account.key(),
+            account.address().to_owned(),
             T::KIND,
             account.schema(),
             account.revision(),
@@ -151,12 +152,12 @@ impl Scope {
         Ok(())
     }
 
-    fn remaining(&mut self, accounts: &[AccountInfo], writable: bool) -> Result<()> {
+    fn remaining(&mut self, accounts: &mut [AccountView], writable: bool) -> Result<()> {
         // All currently supported remaining accounts are canonical cohort roots.
         // The handler validates their venue/PDA/member order and stage authority.
         for account in accounts {
-            require_keys_eq!(*account.owner, crate::ID, ClearingError::Profile);
-            let data = account.try_borrow_data()?;
+            require_keys_eq!(*account.owner(), crate::ID, ClearingError::Profile);
+            let data = account.try_borrow()?;
             require!(
                 data.len() == 8 + MarginAccount::INIT_SPACE
                     && data[..8] == *MarginAccount::DISCRIMINATOR,
@@ -170,10 +171,16 @@ impl Scope {
             } else {
                 Access::Read
             };
-            require!(!writable || account.is_writable, ClearingError::Profile);
-            let next = self.visit(*account.key, MarginAccount::KIND, schema, revision, access)?;
+            require!(!writable || account.is_writable(), ClearingError::Profile);
+            let next = self.visit(
+                *account.address(),
+                MarginAccount::KIND,
+                schema,
+                revision,
+                access,
+            )?;
             if self.cursor.is_some() && writable {
-                account.try_borrow_mut_data()?[10..18].copy_from_slice(&next.to_le_bytes());
+                account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
             }
         }
         Ok(())
@@ -181,7 +188,7 @@ impl Scope {
 
     fn finish(
         &self,
-        venue: Pubkey,
+        venue: Address,
         domain: [u8; 32],
         instruction: [u8; 8],
         payload_count: u16,
@@ -191,12 +198,27 @@ impl Scope {
             self.cursor == Some(self.entries.len()) && payload_count <= 4,
             ClearingError::Profile
         );
-        require!(self.entries.iter().any(|entry| entry.access != Access::Read), ClearingError::Profile);
+        require!(
+            self.entries
+                .iter()
+                .any(|entry| entry.access != Access::Read),
+            ClearingError::Profile
+        );
         Ok(TransitionView {
             schema_version: SCHEMA_VERSION,
-            venue, domain, slot, instruction, payload_count,
-            reads: ScopedRows { entries: &self.entries, writes: false },
-            writes: ScopedRows { entries: &self.entries, writes: true },
+            venue,
+            domain,
+            slot,
+            instruction,
+            payload_count,
+            reads: ScopedRows {
+                entries: &self.entries,
+                writes: false,
+            },
+            writes: ScopedRows {
+                entries: &self.entries,
+                writes: true,
+            },
         })
     }
 }
@@ -207,18 +229,40 @@ struct ScopedRows<'a> {
     entries: &'a [Entry],
     writes: bool,
 }
-impl AnchorSerialize for ScopedRows<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        let included = |entry: &&Entry| (entry.access != Access::Read) == self.writes;
-        let count = self.entries.iter().filter(included).count() as u32;
-        count.serialize(writer)?;
-        for entry in self.entries.iter().filter(included) {
-            entry.account.serialize(writer)?;
-            entry.kind.serialize(writer)?;
-            entry.revision.serialize(writer)?;
-            if self.writes {
-                entry.revision.checked_add(1).ok_or_else(|| std::io::Error::new(
-                    std::io::ErrorKind::InvalidData, "scoped revision exhausted"))?.serialize(writer)?;
+// SAFETY: dynamic metadata; size_of exactly counts the u32 prefix and each
+// emitted address/kind/revision field. No native-memory/zero-copy claim is made.
+unsafe impl<'a> SchemaWrite<anchor_lang::BorshConfig> for ScopedRows<'a> {
+    type Src = Self;
+    fn size_of(value: &Self) -> anchor_lang::wincode::WriteResult<usize> {
+        let count = value
+            .entries
+            .iter()
+            .filter(|entry| (entry.access != Access::Read) == value.writes)
+            .count();
+        if count > MAX_ENTITIES {
+            return Err(anchor_lang::wincode::WriteError::Custom(
+                "too many scoped rows",
+            ));
+        }
+        Ok(4 + count * if value.writes { 49 } else { 41 })
+    }
+    fn write(
+        mut writer: impl anchor_lang::wincode::io::Writer,
+        value: &Self,
+    ) -> anchor_lang::wincode::WriteResult<()> {
+        Self::size_of(value)?;
+        let included = |entry: &&Entry| (entry.access != Access::Read) == value.writes;
+        let count = value.entries.iter().filter(included).count() as u32;
+        writer.write(&count.to_le_bytes())?;
+        for entry in value.entries.iter().filter(included) {
+            writer.write(entry.account.as_ref())?;
+            writer.write(&[entry.kind])?;
+            writer.write(&entry.revision.to_le_bytes())?;
+            if value.writes {
+                let after = entry.revision.checked_add(1).ok_or(
+                    anchor_lang::wincode::WriteError::Custom("scoped revision exhausted"),
+                )?;
+                writer.write(&after.to_le_bytes())?;
             }
         }
         Ok(())
@@ -226,7 +270,7 @@ impl AnchorSerialize for ScopedRows<'_> {
 }
 struct TransitionView<'a> {
     schema_version: u16,
-    venue: Pubkey,
+    venue: Address,
     domain: [u8; 32],
     slot: u64,
     instruction: [u8; 8],
@@ -237,30 +281,39 @@ struct TransitionView<'a> {
 
 // This private borrowed view is not an IDL type. Manual field-order serialization
 // also avoids Anchor's IDL derive treating the rows' lifetime as a type parameter.
-impl AnchorSerialize for TransitionView<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        self.schema_version.serialize(writer)?;
-        self.venue.serialize(writer)?;
-        self.domain.serialize(writer)?;
-        self.slot.serialize(writer)?;
-        self.instruction.serialize(writer)?;
-        self.payload_count.serialize(writer)?;
-        self.reads.serialize(writer)?;
-        self.writes.serialize(writer)
+// SAFETY: the fixed 84-byte header and both bounded row streams are written in
+// the IDL field order. Dynamic metadata avoids any Rust layout/alignment promise.
+unsafe impl<'a> SchemaWrite<anchor_lang::BorshConfig> for TransitionView<'a> {
+    type Src = Self;
+    fn size_of(value: &Self) -> anchor_lang::wincode::WriteResult<usize> {
+        Ok(84 + ScopedRows::size_of(&value.reads)? + ScopedRows::size_of(&value.writes)?)
+    }
+    fn write(
+        mut writer: impl anchor_lang::wincode::io::Writer,
+        value: &Self,
+    ) -> anchor_lang::wincode::WriteResult<()> {
+        writer.write(&value.schema_version.to_le_bytes())?;
+        writer.write(value.venue.as_ref())?;
+        writer.write(&value.domain)?;
+        writer.write(&value.slot.to_le_bytes())?;
+        writer.write(&value.instruction)?;
+        writer.write(&value.payload_count.to_le_bytes())?;
+        ScopedRows::write(writer.by_ref(), &value.reads)?;
+        ScopedRows::write(writer.by_ref(), &value.writes)
     }
 }
 
 /// Implementations live beside the context coverage table. Visits are identical
 /// before/after the handler, including optional and nested account declarations.
-pub(crate) trait ScopedContext<'info>: Bumps {
+pub(crate) trait ScopedContext: Bumps {
     fn visit(&mut self, scope: &mut Scope) -> Result<()>;
-    fn venue(&self) -> (Pubkey, [u8; 32]);
-    fn event_authority(&self) -> AccountInfo<'info>;
+    fn venue(&self) -> (Address, [u8; 32]);
+    fn event_authority(&self) -> AccountView;
 }
 
 #[inline(never)]
-pub(crate) fn run<'context, 'info, T: ScopedContext<'info>>(
-    mut context: Context<'context, T>,
+pub(crate) fn run<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
     instruction: [u8; 8],
     remaining_writable: bool,
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
@@ -268,14 +321,15 @@ pub(crate) fn run<'context, 'info, T: ScopedContext<'info>>(
     profile_cu!("scope-enter");
     let mut scope = Scope::new();
     context.accounts.visit(&mut scope)?;
-    scope.remaining(context.remaining_accounts, remaining_writable)?;
+    let mut remaining = context.remaining_accounts()?;
+    scope.remaining(&mut remaining, remaining_writable)?;
     let mut payloads = event_cpi::Payloads::default();
     profile_cu!("handler-enter");
-    handler(&mut context, &mut payloads)?;
+    handler(context, &mut payloads)?;
     profile_cu!("handler-exit");
     scope.cursor = Some(0);
     context.accounts.visit(&mut scope)?;
-    scope.remaining(context.remaining_accounts, remaining_writable)?;
+    scope.remaining(&mut remaining, remaining_writable)?;
     let (venue, domain) = context.accounts.venue();
     let event = scope.finish(
         venue,

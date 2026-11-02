@@ -9,9 +9,9 @@ pub(super) fn validate_report(
     clock: &Clock,
 ) -> Result<()> {
     require!(
-        configuration.schema_version == 7
+        configuration.schema_version == 8
             && configuration.enabled
-            && configuration.publisher != Pubkey::default()
+            && configuration.publisher != Address::default()
             && configuration.authority_epoch > 0
             && report.version == 1
             && report.domain == venue.domain

@@ -8,14 +8,15 @@ pub fn withdraw(
     guard: AccountGuard,
     amount: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     guard.check(
         &accounts.identity.venue,
         &accounts.identity.safety,
         &accounts.margin,
     )?;
-    super::super::account_custody::vault_backed(&accounts.custody, accounts.vault.amount)?;
+    super::super::account_custody::vault_backed(&accounts.custody, accounts.vault.amount())?;
     let terminal = matches!(accounts.identity.safety.mode, RESOLVED | RETIRED)
         || super::super::account_custody::recovered_custody(&accounts.identity.safety);
     let clock = if terminal {
@@ -46,29 +47,29 @@ pub fn withdraw(
     let seeds: &[&[u8]] = &[b"venue-v3", &accounts.identity.venue.domain, &bump];
     token::transfer_checked(
         CpiContext::new_with_signer(
-            accounts.token_program.key(),
+            accounts.token_program.address(),
             TransferChecked {
-                from: accounts.vault.to_account_info(),
-                mint: accounts.quote_mint.to_account_info(),
-                to: accounts.user_token.to_account_info(),
-                authority: accounts.identity.venue.to_account_info(),
+                from: accounts.vault.try_to_cpi_handle_mut()?,
+                mint: accounts.quote_mint.to_cpi_handle(),
+                to: accounts.user_token.try_to_cpi_handle_mut()?,
+                authority: accounts.identity.venue.to_cpi_handle(),
             },
             &[seeds],
         ),
         amount,
         6,
     )?;
-    accounts.vault.reload()?;
+    accounts.vault.revalidate_after_cpi()?;
     if !terminal {
         finish(&mut accounts.identity, &clock)?;
     }
-    super::super::account_custody::vault_backed(&accounts.custody, accounts.vault.amount)?;
+    super::super::account_custody::vault_backed(&accounts.custody, accounts.vault.amount())?;
 
     emit(
         &accounts.identity,
         events,
-        accounts.event_authority.to_account_info(),
-        accounts.owner.key(),
+        accounts.event_authority.account().clone(),
+        accounts.owner.address().to_owned(),
         0,
         255,
         amount,
@@ -80,7 +81,7 @@ pub fn withdraw(
         .into_iter()
         .flatten()
         .collect::<Vec<_>>(),
-        Some((accounts.custody.allocated_vault, accounts.vault.amount)),
+        Some((accounts.custody.allocated_vault, accounts.vault.amount())),
         clock.slot,
     )
 }
@@ -115,8 +116,9 @@ pub fn transfer(
     guard: AccountGuard,
     amount: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     let snapshot = begin(&accounts.identity)?;
     guard.check(
         &accounts.identity.venue,
@@ -157,8 +159,8 @@ pub fn transfer(
     emit(
         &accounts.identity,
         events,
-        accounts.event_authority.to_account_info(),
-        accounts.owner.key(),
+        accounts.event_authority.account().clone(),
+        accounts.owner.address().to_owned(),
         1,
         255,
         amount,

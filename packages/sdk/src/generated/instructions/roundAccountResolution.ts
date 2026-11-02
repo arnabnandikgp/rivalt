@@ -43,15 +43,18 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findBtcLedgerPda,
+  findBtcPda,
   findCustodyPda,
   findEthLedgerPda,
+  findEthPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const ROUND_ACCOUNT_RESOLUTION_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([190, 79, 178, 22, 255, 147, 201, 4]);
+  new Uint8Array([248, 104, 22, 65, 93, 7, 115, 112]);
 
 export function getRoundAccountResolutionDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -180,15 +183,17 @@ export type RoundAccountResolutionAsyncInput<
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
   btcLedger?: TAccountBtcLedger;
   ethLedger?: TAccountEthLedger;
   vault?: TAccountVault;
   registry: TAccountRegistry;
   resolution: TAccountResolution;
   work: TAccountWork;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   epoch: RoundAccountResolutionInstructionDataArgs["epoch"];
   start: RoundAccountResolutionInstructionDataArgs["start"];
@@ -371,6 +376,28 @@ export async function getRoundAccountResolutionInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.btc.value) {
+    accounts.btc.value = await findBtcPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eth.value) {
+    accounts.eth.value = await findEthPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
   if (!accounts.btcLedger.value) {
     accounts.btcLedger.value = await findBtcLedgerPda(
       {
@@ -403,6 +430,11 @@ export async function getRoundAccountResolutionInstructionAsync<
       },
       { programAddress },
     );
+  }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
   }
 
   return Object.freeze({
@@ -509,7 +541,9 @@ export type RoundAccountResolutionInput<
   registry: TAccountRegistry;
   resolution: TAccountResolution;
   work: TAccountWork;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   epoch: RoundAccountResolutionInstructionDataArgs["epoch"];
   start: RoundAccountResolutionInstructionDataArgs["start"];
@@ -761,7 +795,9 @@ export type ParsedRoundAccountResolutionInstruction<
     registry: TAccountMetas[8];
     resolution: TAccountMetas[9];
     work: TAccountMetas[10];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[11];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[12];
   };
   data: RoundAccountResolutionInstructionData;

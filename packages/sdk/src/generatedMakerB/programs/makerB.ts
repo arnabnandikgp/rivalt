@@ -37,10 +37,19 @@ import {
 import {
   getMakerCurveCodec,
   getMakerPriceCodec,
+  getMarginAccountCodec,
+  getMarketCodec,
+  getVenueCodec,
   type MakerCurve,
   type MakerCurveArgs,
   type MakerPrice,
   type MakerPriceArgs,
+  type MarginAccount,
+  type MarginAccountArgs,
+  type Market,
+  type MarketArgs,
+  type Venue,
+  type VenueArgs,
 } from "../accounts/index.js";
 import {
   getControlCurveInstructionAsync,
@@ -60,7 +69,11 @@ import {
   type QuoteCurveAsyncInput,
   type RepriceAsyncInput,
 } from "../instructions/index.js";
-import { findCurveConfigPda, findCurvePricePda } from "../pdas/index.js";
+import {
+  findCurveConfigPda,
+  findCurvePricePda,
+  findEventAuthorityPda,
+} from "../pdas/index.js";
 
 export const MAKER_B_PROGRAM_ADDRESS =
   "F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc" as Address<"F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc">;
@@ -68,6 +81,9 @@ export const MAKER_B_PROGRAM_ADDRESS =
 export enum MakerBAccount {
   MakerCurve,
   MakerPrice,
+  MarginAccount,
+  Market,
+  Venue,
 }
 
 export function identifyMakerBAccount(
@@ -78,7 +94,7 @@ export function identifyMakerBAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([193, 186, 219, 30, 59, 114, 63, 19]),
+        new Uint8Array([41, 123, 236, 36, 164, 114, 119, 161]),
       ),
       0,
     )
@@ -89,12 +105,45 @@ export function identifyMakerBAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([66, 156, 238, 30, 240, 111, 194, 0]),
+        new Uint8Array([207, 24, 132, 152, 121, 83, 241, 85]),
       ),
       0,
     )
   ) {
     return MakerBAccount.MakerPrice;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([133, 220, 173, 213, 179, 211, 43, 238]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBAccount.MarginAccount;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([219, 190, 213, 55, 0, 227, 198, 154]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBAccount.Market;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([8, 155, 85, 226, 234, 173, 42, 242]),
+      ),
+      0,
+    )
+  ) {
+    return MakerBAccount.Venue;
   }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
@@ -115,7 +164,7 @@ export function identifyMakerBEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([245, 185, 52, 198, 79, 168, 94, 143]),
+        new Uint8Array([206, 230, 180, 4, 44, 163, 127, 212]),
       ),
       0,
     )
@@ -126,7 +175,7 @@ export function identifyMakerBEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([52, 132, 184, 47, 231, 114, 255, 196]),
+        new Uint8Array([69, 146, 222, 135, 172, 220, 72, 170]),
       ),
       0,
     )
@@ -153,7 +202,7 @@ export function identifyMakerBInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([87, 246, 69, 138, 190, 131, 55, 141]),
+        new Uint8Array([63, 46, 101, 68, 20, 174, 99, 44]),
       ),
       0,
     )
@@ -164,7 +213,7 @@ export function identifyMakerBInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([2, 112, 249, 167, 34, 145, 140, 171]),
+        new Uint8Array([170, 84, 186, 253, 131, 149, 95, 213]),
       ),
       0,
     )
@@ -175,7 +224,7 @@ export function identifyMakerBInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([186, 69, 30, 223, 191, 154, 12, 19]),
+        new Uint8Array([176, 97, 46, 45, 67, 77, 127, 185]),
       ),
       0,
     )
@@ -186,7 +235,7 @@ export function identifyMakerBInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([104, 190, 176, 98, 109, 111, 187, 154]),
+        new Uint8Array([148, 156, 223, 202, 159, 184, 56, 232]),
       ),
       0,
     )
@@ -270,6 +319,12 @@ export type MakerBPluginAccounts = {
     SelfFetchFunctions<MakerCurveArgs, MakerCurve>;
   makerPrice: ReturnType<typeof getMakerPriceCodec> &
     SelfFetchFunctions<MakerPriceArgs, MakerPrice>;
+  marginAccount: ReturnType<typeof getMarginAccountCodec> &
+    SelfFetchFunctions<MarginAccountArgs, MarginAccount>;
+  market: ReturnType<typeof getMarketCodec> &
+    SelfFetchFunctions<MarketArgs, Market>;
+  venue: ReturnType<typeof getVenueCodec> &
+    SelfFetchFunctions<VenueArgs, Venue>;
 };
 
 export type MakerBPluginInstructions = {
@@ -296,6 +351,7 @@ export type MakerBPluginInstructions = {
 
 export type MakerBPluginPdas = {
   curvePrice: typeof findCurvePricePda;
+  eventAuthority: typeof findEventAuthorityPda;
   curveConfig: typeof findCurveConfigPda;
 };
 
@@ -316,6 +372,9 @@ export function makerBProgram(
         accounts: {
           makerCurve: addSelfFetchFunctions(client, getMakerCurveCodec()),
           makerPrice: addSelfFetchFunctions(client, getMakerPriceCodec()),
+          marginAccount: addSelfFetchFunctions(client, getMarginAccountCodec()),
+          market: addSelfFetchFunctions(client, getMarketCodec()),
+          venue: addSelfFetchFunctions(client, getVenueCodec()),
         },
         instructions: {
           controlCurve: (input, instructionConfig) =>
@@ -354,6 +413,11 @@ export function makerBProgram(
         pdas: {
           curvePrice: (seeds, pdaConfig) =>
             findCurvePricePda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          eventAuthority: (pdaConfig) =>
+            findEventAuthorityPda({
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

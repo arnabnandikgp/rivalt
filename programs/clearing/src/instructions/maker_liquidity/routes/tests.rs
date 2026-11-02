@@ -7,14 +7,14 @@ fn clock() -> Clock {
     Clock {
         slot: 100,
         unix_timestamp: 1006,
-        ..Default::default()
+        ..crate::test_support::clock()
     }
 }
 fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
         Market {
-            schema_version: 7,
+            schema_version: 8,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
             cross_eligible: true,
@@ -42,10 +42,10 @@ fn markets() -> [Market; 2] {
 }
 fn trader(cash: u64) -> MarginAccount {
     MarginAccount {
-        schema_version: 7,
+        schema_version: 8,
         mode: MODE_CROSS,
         isolated_market_index: 255,
-        owner: Pubkey::new_from_array([1; 32]),
+        owner: Address::new_from_array([1; 32]),
         delegate_epoch: 1,
         cash,
         ..Default::default()
@@ -58,7 +58,7 @@ fn makers() -> [MarginAccount; 2] {
         isolated_market_index: 0,
         subaccount_index: 1,
         role: ROLE_MAKER,
-        owner: Pubkey::new_from_array([id + 1; 32]),
+        owner: Address::new_from_array([id + 1; 32]),
         ..trader(1_000_000)
     })
 }
@@ -76,8 +76,8 @@ fn canonical_quote(instance: u8, gross: u64) -> canonical::MakerQuoteResponse {
         request: canonical::MakerQuoteRequest {
             version: 4,
             domain: [0; 32],
-            market: Pubkey::default(),
-            capital: Pubkey::default(),
+            market: Address::default(),
+            capital: Address::default(),
             instance,
             authority_epoch: 2,
             control_epoch: 3,
@@ -247,22 +247,22 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
         legs: vec![leg(), leg()],
     };
     let mut bytes = Vec::new();
-    route.serialize(&mut bytes).unwrap();
+    crate::wire::write(&route, &mut bytes).unwrap();
     assert_eq!(bytes.len() + 8, 223);
     bytes.clear();
-    order.serialize(&mut bytes).unwrap();
+    crate::wire::write(&order, &mut bytes).unwrap();
     assert_eq!(bytes.len() + 8, 172);
     let mut registration = MakerRegistration {
-        schema_version: 7,
+        schema_version: 8,
         revision: 0,
-        venue: Pubkey::default(),
-        market: Pubkey::default(),
-        capital: Pubkey::default(),
-        owner: Pubkey::default(),
-        pricing_program: Pubkey::default(),
-        program_data: Pubkey::default(),
-        config: Pubkey::default(),
-        price: Pubkey::default(),
+        venue: Address::default(),
+        market: Address::default(),
+        capital: Address::default(),
+        owner: Address::default(),
+        pricing_program: Address::default(),
+        program_data: Address::default(),
+        config: Address::default(),
+        price: Address::default(),
         approved_hash: [0; 32],
         instance: 0,
         authority_epoch: 2,
@@ -291,13 +291,13 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
     consume(&mut registration, &quote).unwrap();
     assert_eq!(registration.buy_consumed, 11);
     let curve = CurveState {
-        schema_version: 4,
-        venue: Pubkey::default(),
-        market: Pubkey::default(),
-        capital: Pubkey::default(),
-        controller: Pubkey::default(),
-        owner: Pubkey::default(),
-        updater: Pubkey::default(),
+        schema_version: canonical::ACCOUNT_SCHEMA,
+        venue: Address::default(),
+        market: Address::default(),
+        capital: Address::default(),
+        controller: Address::default(),
+        owner: Address::default(),
+        updater: Address::default(),
         updater_expiry_slot: 0,
         control_epoch: 3,
         shape_epoch: 4,
@@ -404,7 +404,7 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
     assert_eq!(root.book.orders[0].order.notional, 120_008);
     assert_eq!(root.book.orders[0].order.fee_charged, 25);
     let mut ledger = MarketLedger {
-        schema_version: 7,
+        schema_version: 8,
         ..Default::default()
     };
     trading::split_fee(&mut ledger, 13).unwrap();
@@ -428,10 +428,10 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
     let markets = markets();
     let roots = [trader(100_000), makers()[0].clone(), makers()[1].clone()];
     let makers = [0u8, 1].map(|instance| {
-        let mut value = MakerRegistration::try_from_slice(&[0; 333]).unwrap();
-        value.schema_version = 7;
+        let mut value = crate::wire::read::<MakerRegistration>(&[0; 333]).unwrap();
+        value.schema_version = 8;
         value.instance = instance;
-        value.capital = Pubkey::new_from_array([instance + 21; 32]);
+        value.capital = Address::new_from_array([instance + 21; 32]);
         value.buy_consumed = 11 + u64::from(instance);
         value.sell_consumed = 31 + u64::from(instance);
         value.authority_epoch = 41 + u64::from(instance);
@@ -439,7 +439,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         value
     });
     let legs = [0u8, 1].map(|instance| ExecutedLeg {
-        registration: Pubkey::new_from_array([instance + 71; 32]),
+        registration: Address::new_from_array([instance + 71; 32]),
         capital: makers[usize::from(instance)].capital,
         instance,
         lots: 2 + u64::from(instance),
@@ -453,8 +453,8 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         consumed_after: 11 + u64::from(instance),
     });
     let ledger = MarketLedgerSnapshot {
-        ledger: Pubkey::new_unique(),
-        market: Pubkey::new_unique(),
+        ledger: Address::new_unique(),
+        market: Address::new_unique(),
         market_index: 0,
         settlement: 101,
         insurance: 102,
@@ -509,9 +509,9 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         maker_states: makers.iter().collect(),
         legs: legs.to_vec(),
     };
-    fn bytes<T: AnchorSerialize>(value: &T) -> Vec<u8> {
+    fn bytes<T: SchemaWrite<anchor_lang::BorshConfig, Src = T>>(value: &T) -> Vec<u8> {
         let mut encoded = Vec::new();
-        value.serialize(&mut encoded).unwrap();
+        crate::wire::write(&value, &mut encoded).unwrap();
         encoded
     }
     let expected = bytes(&owned);

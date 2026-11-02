@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {spawn,execFileSync} from 'node:child_process';
 import {existsSync,mkdirSync,readFileSync,openSync,closeSync,rmSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
-import {CONTROL,DEMO_ROOT,RUNTIME,CONTAINER,PORTS} from './config.js';
+import {CONTROL,DEMO_ROOT,RUNTIME,CONTAINER,PORTS,ARTIFACT_DIRECTORY} from './config.js';
 import {watchSupervisor} from './processes.js';
 
 const action=process.argv[2]??'status';
@@ -60,9 +60,9 @@ else if(action==='start'||action==='reset'){
   }else if(await status()){console.log(await status());process.exit(0);}
   if(existsSync(RUNTIME))throw new Error('The previous local chain ended. Use bash ops/demo.sh reset to create a fresh test venue; old wallet receipts stay labelled with the old deployment.');
   execFileSync('python3',['ops/check-ports.py',...PORTS.map(String)],{stdio:'inherit'});
-  assert(execFileSync('surfpool',['--version'],{encoding:'utf8'}).trim()==='surfpool 1.6.1','Pinned Surfpool required');
+  assert(execFileSync('surfpool',['--version'],{encoding:'utf8'}).trim()==='surfpool 1.7.0','Pinned Surfpool required');
   execFileSync('container',['system','start'],{stdio:'inherit'});
-  for(const program of ['clearing','maker_a','maker_b','oracle_fixture'])assert(existsSync(`.local/liquidity-execution/${program}.so`),'Build qualified artifacts with bash ops/build-liquidity-execution.sh');
+  for(const program of ['clearing','maker_a','maker_b','oracle_fixture'])assert(existsSync(`${ARTIFACT_DIRECTORY}/${program}.so`),'Build qualified artifacts with bash ops/build-liquidity-execution.sh');
   mkdirSync(DEMO_ROOT,{recursive:true,mode:0o700});
   const log=openSync(DEMO_ROOT+'/supervisor.log','w',0o600);
   const child=spawn(process.execPath,['--import','tsx','packages/local-demo/src/session.ts'],{cwd:process.cwd(),env:process.env,detached:true,stdio:['ignore',log,log]});

@@ -8,15 +8,15 @@ fn clock() -> Clock {
     Clock {
         slot: 100,
         unix_timestamp: 1_006,
-        ..Default::default()
+        ..crate::test_support::clock()
     }
 }
 fn root() -> MarginAccount {
     MarginAccount {
-        schema_version: 7,
+        schema_version: 8,
         mode: MODE_CROSS,
         isolated_market_index: 255,
-        owner: Pubkey::new_from_array([1; 32]),
+        owner: Address::new_from_array([1; 32]),
         delegate_epoch: 1,
         cash: 100_000,
         ..Default::default()
@@ -26,7 +26,7 @@ fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
         Market {
-            schema_version: 7,
+            schema_version: 8,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
             cross_eligible: true,
@@ -59,7 +59,7 @@ fn maker() -> MarginAccount {
         isolated_market_index: 0,
         subaccount_index: 1,
         role: ROLE_MAKER,
-        owner: Pubkey::new_from_array([2; 32]),
+        owner: Address::new_from_array([2; 32]),
         cash: 1_000_000,
         ..root()
     }
@@ -199,7 +199,7 @@ fn positive_unpaid_claims_never_fund_risk_or_fee() {
 fn fee_carry_is_exact_per_market_and_never_an_asset() {
     let mut account_cash = 100_000;
     let mut ledgers = [0u8, 1].map(|market_index| MarketLedger {
-        schema_version: 7,
+        schema_version: 8,
         market_index,
         ..Default::default()
     });
@@ -327,7 +327,7 @@ fn dependency_stamps_follow_both_claims_but_not_cash_only_siblings() {
 fn typed_adapter_rejects_identity_mutation_and_wrong_schema() {
     let mut account = root();
     let mut view = root_view(&account).unwrap();
-    view.owner = Pubkey::new_unique();
+    view.owner = Address::new_unique();
     assert!(commit_root(&mut account, &view).is_err());
     assert_eq!(account.owner, root().owner);
     account.schema_version = 2;

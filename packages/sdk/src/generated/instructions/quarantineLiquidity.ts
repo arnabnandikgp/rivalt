@@ -42,11 +42,11 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findVenueSafetyPda } from "../pdas/index.js";
+import { findEventAuthorityPda, findVenueSafetyPda } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const QUARANTINE_LIQUIDITY_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([241, 172, 102, 0, 106, 204, 141, 71]);
+  new Uint8Array([132, 146, 86, 13, 219, 126, 148, 43]);
 
 export function getQuarantineLiquidityDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -155,7 +155,9 @@ export type QuarantineLiquidityAsyncInput<
   market: TAccountMarket;
   registration: TAccountRegistration;
   capital: TAccountCapital;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   expectedAuthority: QuarantineLiquidityInstructionDataArgs["expectedAuthority"];
 };
@@ -283,6 +285,11 @@ export async function getQuarantineLiquidityInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -354,7 +361,9 @@ export type QuarantineLiquidityInput<
   market: TAccountMarket;
   registration: TAccountRegistration;
   capital: TAccountCapital;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   expectedAuthority: QuarantineLiquidityInstructionDataArgs["expectedAuthority"];
 };
@@ -532,7 +541,9 @@ export type ParsedQuarantineLiquidityInstruction<
     market: TAccountMetas[3];
     registration: TAccountMetas[4];
     capital: TAccountMetas[5];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[6];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[7];
   };
   data: QuarantineLiquidityInstructionData;

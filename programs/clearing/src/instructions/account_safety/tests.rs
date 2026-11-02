@@ -5,19 +5,19 @@ use financial_core::SCALE;
 
 fn root(id: u16, cash: u64) -> MarginAccount {
     MarginAccount {
-        schema_version: 7,
+        schema_version: 8,
         id,
         cash,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         delegate_epoch: 1,
-        owner: Pubkey::new_unique(),
+        owner: Address::new_unique(),
         ..Default::default()
     }
 }
 fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| Market {
-        schema_version: 7,
+        schema_version: 8,
         index,
         cross_eligible: true,
         terms_epoch: 1,
@@ -47,7 +47,7 @@ fn clock() -> Clock {
     Clock {
         slot: 100,
         unix_timestamp: 1000,
-        ..Default::default()
+        ..crate::test_support::clock()
     }
 }
 fn debtor() -> MarginAccount {

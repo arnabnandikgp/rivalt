@@ -1,14 +1,20 @@
 use super::*;
+use anchor_lang::AccountDeserialize;
 use anchor_lang::Discriminator;
 
-fn wire<T: AccountSerialize + AccountDeserialize + Space>(account: T, size: usize) {
+fn wire<
+    T: SchemaWrite<anchor_lang::BorshConfig, Src = T> + Discriminator + AccountDeserialize + Space,
+>(
+    account: T,
+    size: usize,
+) {
     let mut bytes = Vec::new();
-    account.try_serialize(&mut bytes).unwrap();
+    crate::wire::write_discriminated(&account, &mut bytes).unwrap();
     assert_eq!(bytes.len(), size);
     assert_eq!(8 + T::INIT_SPACE, size);
     let decoded = T::try_deserialize(&mut bytes.as_slice()).unwrap();
     let mut roundtrip = Vec::new();
-    decoded.try_serialize(&mut roundtrip).unwrap();
+    crate::wire::write_discriminated(&decoded, &mut roundtrip).unwrap();
     assert_eq!(bytes, roundtrip);
 }
 
@@ -24,7 +30,7 @@ fn exact_contract_sizes_and_roundtrips() {
     );
     wire(
         VenueRegistry {
-            members: vec![Pubkey::default(); 64],
+            members: vec![Address::default(); 64],
             ..Default::default()
         },
         2113,
@@ -50,14 +56,14 @@ fn no_old_account_discriminator_or_seed_is_reinterpreted() {
         MarginAccount::DISCRIMINATOR,
         &[32, 142, 108, 87, 247, 179, 54, 6]
     );
-    let owner = Pubkey::new_unique();
+    let owner = Address::new_unique();
     let mut keys = std::collections::HashSet::new();
     for domain in [[1; 32], [2; 32]] {
-        let venue = Pubkey::find_program_address(&[b"venue-v3", &domain], &crate::ID).0;
-        let old = Pubkey::find_program_address(&[b"group-v2", &domain], &crate::ID).0;
+        let venue = find_program_address(&[b"venue-v3", &domain], &crate::ID).0;
+        let old = find_program_address(&[b"group-v2", &domain], &crate::ID).0;
         assert_ne!(venue, old);
         for portfolio_index in 0u16..4 {
-            let portfolio = Pubkey::find_program_address(
+            let portfolio = find_program_address(
                 &[
                     b"portfolio-v3",
                     venue.as_ref(),
@@ -68,7 +74,7 @@ fn no_old_account_discriminator_or_seed_is_reinterpreted() {
             )
             .0;
             for child_index in 0u16..9 {
-                let child = Pubkey::find_program_address(
+                let child = find_program_address(
                     &[b"margin-v3", portfolio.as_ref(), &child_index.to_le_bytes()],
                     &crate::ID,
                 )
@@ -99,7 +105,7 @@ fn fractional_positions_and_wide_numerators_preserve_every_byte() {
     margin.positions[0].virtual_scaled = -300_000_001;
     margin.positions[1].virtual_scaled = 400_000_001;
     let mut bytes = Vec::new();
-    margin.try_serialize(&mut bytes).unwrap();
+    crate::wire::write_discriminated(&margin, &mut bytes).unwrap();
     assert_eq!(
         i128::from_le_bytes(bytes[137..153].try_into().unwrap()),
         -300_000_001

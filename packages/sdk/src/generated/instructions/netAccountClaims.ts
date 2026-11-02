@@ -44,7 +44,12 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findBtcPda,
+  findEthPda,
+  findEventAuthorityPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -54,7 +59,7 @@ import {
 } from "../types/index.js";
 
 export const NET_ACCOUNT_CLAIMS_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([177, 49, 114, 141, 189, 12, 64, 79]);
+  new Uint8Array([234, 97, 182, 215, 70, 97, 13, 87]);
 
 export function getNetAccountClaimsDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -187,7 +192,9 @@ export type NetAccountClaimsAsyncInput<
   margin: TAccountMargin;
   registry: TAccountRegistry;
   certificate: TAccountCertificate;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: NetAccountClaimsInstructionDataArgs["guard"];
   sourceMarket: NetAccountClaimsInstructionDataArgs["sourceMarket"];
@@ -349,6 +356,33 @@ export async function getNetAccountClaimsInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.btc.value) {
+    accounts.btc.value = await findBtcPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eth.value) {
+    accounts.eth.value = await findEthPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -447,7 +481,9 @@ export type NetAccountClaimsInput<
   margin: TAccountMargin;
   registry: TAccountRegistry;
   certificate: TAccountCertificate;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: NetAccountClaimsInstructionDataArgs["guard"];
   sourceMarket: NetAccountClaimsInstructionDataArgs["sourceMarket"];
@@ -683,7 +719,9 @@ export type ParsedNetAccountClaimsInstruction<
     margin: TAccountMetas[7];
     registry: TAccountMetas[8];
     certificate: TAccountMetas[9];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[10];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[11];
   };
   data: NetAccountClaimsInstructionData;

@@ -201,7 +201,7 @@ try {
   ], h.read);
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
-    build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')), checks, parity,
+    build: JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`, 'utf8')), checks, parity,
     expectedPerLeg, expectedGross, expectedFee, expectedSell, sellFee, totalFees, allRoots, markets, ledgers, custody,
     fullBooks: true, fullRegions: true, bookVariant, crossedReport: crossedReport.report, phaseAcceptance: false }));
   console.log(`P32 full-book resource probe: ${checks.length} finalized outcomes. Full safety/PG/continuation acceptance remains open.`);

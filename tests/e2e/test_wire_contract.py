@@ -11,6 +11,7 @@ wire = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(wire)
 sys.path.insert(0, str(Path("ops").resolve()))
 import scoped_wire_contract as scoped
+import anchor_rc2_wire_contract as rc2
 
 
 class WireContractTest(unittest.TestCase):
@@ -116,15 +117,26 @@ class WireContractTest(unittest.TestCase):
 
     def test_frozen_original_and_domains(self):
         baseline = json.loads(wire.BASELINE.read_text())
-        self.assertEqual(wire.source_domains(), baseline["contract"]["domains"])
+        rc2.check_domains()
         for program in wire.PROGRAMS:
             with self.subTest(program=program):
                 # Preserve the immutable pre-change fixture. The successor must
                 # match only the deliberately enumerated D84 delta from it.
                 self.assertEqual(wire.program_contract(scoped.predecessor_idl(program)),
                                  baseline["contract"]["programs"][program])
-                self.assertEqual(wire.capture()["programs"][program],
-                                 wire.program_contract(scoped.expected_idl(program)))
+                actual, expected = rc2.comparable(json.loads(Path(f"packages/sdk/idl/{program}.json").read_text()), rc2.expected_idl(program))
+                self.assertEqual(wire.program_contract(actual), wire.program_contract(expected))
+
+    def test_rc2_metadata_exceptions_do_not_hide_unknown_authority_changes(self):
+        for mutation in ('privilege', 'seed', 'address', 'order'):
+            changed = deepcopy(self.original)
+            account = changed['instructions'][0]['accounts'][0]
+            if mutation == 'privilege': account['writable'] = True
+            elif mutation == 'seed': account['pda'] = {'seeds': [{'kind': 'const', 'value': [0]}]}
+            elif mutation == 'address': account['address'] = '11111111111111111111111111111111'
+            else: changed['instructions'][0]['accounts'].reverse()
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                rc2.comparable(changed, rc2.expected_idl('clearing'))
 
 
 if __name__ == "__main__":

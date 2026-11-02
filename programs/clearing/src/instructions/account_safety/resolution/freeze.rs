@@ -106,58 +106,53 @@ pub fn freeze(
     expected_resolution_epoch: u64,
     emergency: bool,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
-    let accounts = &mut *ctx.accounts;
-    profile(&accounts.identity)?;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Resolution);
+    let accounts = &mut ctx.accounts;
+    let identity = &mut *accounts.identity;
+    profile(&identity)?;
     let header = &mut accounts.resolution;
     require!(
-        accounts.identity.safety.mode == ACTIVE
-            && accounts.identity.safety.epoch == expected_safety_epoch
+        identity.safety.mode == ACTIVE
+            && identity.safety.epoch == expected_safety_epoch
             && header.schema_version == SCHEMA_VERSION
             && header.epoch == expected_resolution_epoch
             && ((header.stage == IDLE && header.cursor == PAGE_COUNT) || header.stage == RECOVERED)
             && accounts.work.schema_version == SCHEMA_VERSION
             && accounts.registry.members.get(accounts.target.id as usize)
-                == Some(&accounts.target.key()),
+                == Some(&accounts.target.address().to_owned()),
         ClearingError::Resolution
     );
     let registry_hash = registry_hash(&accounts.registry)?;
     let clock = Clock::get()?;
-    let bounds = sources(
-        &mut accounts.identity,
-        &accounts.sources,
-        clock.unix_timestamp,
-    )?;
-    account_trading::materialize(
-        [&mut accounts.identity.btc, &mut accounts.identity.eth],
-        &clock,
-    )?;
+    let bounds = sources(identity, &accounts.sources, clock.unix_timestamp)?;
+    account_trading::materialize([&mut identity.btc, &mut identity.eth], &clock)?;
     let funding = [
-        accounts.identity.btc.funding_index_scaled,
-        accounts.identity.eth.funding_index_scaled,
+        identity.btc.funding_index_scaled,
+        identity.eth.funding_index_scaled,
     ];
     let prices = authorized_prices(
         &accounts.target,
-        [&accounts.identity.btc, &accounts.identity.eth],
+        [&identity.btc, &identity.eth],
         bounds,
         funding,
         emergency,
-        accounts.caller.key() == accounts.identity.venue.authority,
+        accounts.caller.address().to_owned() == identity.venue.authority,
         clock.unix_timestamp,
     )?;
-    coverage(&mut accounts.identity.btc, clock.unix_timestamp)?;
-    coverage(&mut accounts.identity.eth, clock.unix_timestamp)?;
+    coverage(&mut identity.btc, clock.unix_timestamp)?;
+    coverage(&mut identity.eth, clock.unix_timestamp)?;
     increment(&mut header.epoch)?;
-    increment(&mut accounts.identity.safety.epoch)?;
-    increment(&mut accounts.identity.venue.terms_epoch)?;
-    for market in [&mut accounts.identity.btc, &mut accounts.identity.eth] {
+    increment(&mut identity.safety.epoch)?;
+    increment(&mut identity.venue.terms_epoch)?;
+    for market in [&mut identity.btc, &mut identity.eth] {
         increment(&mut market.terms_epoch)?;
     }
-    accounts.identity.safety.mode = FROZEN;
-    accounts.identity.safety.paused = true;
-    accounts.identity.safety.resolution_epoch = header.epoch;
-    accounts.identity.safety.recovery_since = 0;
-    accounts.identity.safety.recovery_last = 0;
+    identity.safety.mode = FROZEN;
+    identity.safety.paused = true;
+    identity.safety.resolution_epoch = header.epoch;
+    identity.safety.recovery_since = 0;
+    identity.safety.recovery_last = 0;
     header.stage = if prices == [0; 2] {
         AWAIT_VALUATION
     } else {
@@ -166,9 +161,9 @@ pub fn freeze(
     header.cursor = 0;
     header.count = accounts.registry.count;
     header.registry_hash = registry_hash;
-    header.safety_epoch = accounts.identity.safety.epoch;
-    header.terms_epoch = accounts.identity.venue.terms_epoch;
-    let markets = [&accounts.identity.btc, &accounts.identity.eth];
+    header.safety_epoch = identity.safety.epoch;
+    header.terms_epoch = identity.venue.terms_epoch;
+    let markets = [&identity.btc, &identity.eth];
     header.config_epochs = markets.map(|market| market.config_epoch);
     header.source_observations = markets.map(|market| market.observation_sequence);
     header.source_deadlines = markets.map(|market| market.oracle.source_deadline);
@@ -176,14 +171,14 @@ pub fn freeze(
     header.funding = funding;
     header.frozen_at = clock.unix_timestamp;
     header.cash_before = account_custody::accounted_cash(
-        &accounts.identity.custody,
-        [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
+        &identity.custody,
+        [&identity.btc_ledger, &identity.eth_ledger],
     )?;
-    let ledgers = [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger];
+    let ledgers = [&identity.btc_ledger, &identity.eth_ledger];
     header.pools_before = ledgers.map(|ledger| ledger.settlement);
     header.insurance_before = ledgers.map(|ledger| ledger.insurance);
     header.fees_before = ledgers.map(|ledger| ledger.fees);
-    header.allocated_before = accounts.identity.custody.allocated_vault;
+    header.allocated_before = identity.custody.allocated_vault;
     header.remaining_gross = markets.map(|market| market.gross_lots);
     header.remaining_lots = [0; 2];
     header.remaining_claims = header
@@ -224,15 +219,15 @@ pub fn freeze(
     work.depth = 0;
     work.augmentations = 0;
 
-    frozen(&accounts.identity, &accounts.registry, header, header.epoch)?;
+    frozen(&identity, &accounts.registry, header, header.epoch)?;
     emit(
-        &accounts.identity,
+        &identity,
         header,
-        accounts.target.key(),
+        accounts.target.address().to_owned(),
         emergency,
         &clock,
         events,
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -241,43 +236,31 @@ pub fn value_sources(
     events: &mut crate::event_cpi::Payloads,
     epoch: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
-    let accounts = &mut *ctx.accounts;
-    frozen(
-        &accounts.identity,
-        &accounts.registry,
-        &accounts.resolution,
-        epoch,
-    )?;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Resolution);
+    let accounts = &mut ctx.accounts;
+    let identity = &mut *accounts.identity;
+    frozen(&identity, &accounts.registry, &accounts.resolution, epoch)?;
     require!(
         accounts.resolution.stage == AWAIT_VALUATION,
         ClearingError::Resolution
     );
     let clock = Clock::get()?;
-    let bounds = sources(
-        &mut accounts.identity,
-        &accounts.sources,
-        clock.unix_timestamp,
-    )?;
-    let prices = required_prices([&accounts.identity.btc, &accounts.identity.eth], bounds)?;
+    let bounds = sources(identity, &accounts.sources, clock.unix_timestamp)?;
+    let prices = required_prices([&identity.btc, &identity.eth], bounds)?;
     require!(prices != [0; 2], ClearingError::Resolution);
     accounts.resolution.prices = prices;
     accounts.resolution.stage = VALUE;
 
-    frozen(
-        &accounts.identity,
-        &accounts.registry,
-        &accounts.resolution,
-        epoch,
-    )?;
+    frozen(&identity, &accounts.registry, &accounts.resolution, epoch)?;
     emit(
-        &accounts.identity,
+        &identity,
         &accounts.resolution,
-        Pubkey::default(),
+        Address::default(),
         false,
         &clock,
         events,
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -285,15 +268,15 @@ pub fn value_sources(
 fn emit(
     identity: &ResolutionIdentity,
     header: &Resolution,
-    trigger: Pubkey,
+    trigger: Address,
     emergency: bool,
     clock: &Clock,
     events: &mut crate::event_cpi::Payloads,
-    authority: AccountInfo,
+    authority: AccountView,
 ) -> Result<()> {
     events.emit(
         &crate::events::AccountResolutionFrozen {
-            venue: identity.venue.key(),
+            venue: identity.venue.address().to_owned(),
 
             slot: clock.slot,
             epoch: header.epoch,
@@ -316,7 +299,7 @@ fn emit(
             fees: header.fees_before,
             allocated: header.allocated_before,
             gross: header.remaining_gross,
-            actual_vault: identity.vault.amount,
+            actual_vault: identity.vault.amount(),
             markets: [
                 crate::events::MarketSnapshot::from(&**identity.btc),
                 crate::events::MarketSnapshot::from(&**identity.eth),

@@ -17,9 +17,11 @@ liquidity-execution-qualification = []
 cu-profiling = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
+# Share account types without linking RC2's exported dispatch symbol.
+state-only = ["no-entrypoint"]
 no-idl = []
 no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build", "maker-interface/idl-build", "oracle-fixture/idl-build"]
+idl-build = ["anchor-lang/idl-build", "maker-interface/idl-build", "oracle-fixture/idl-build"]
 anchor-debug = []
 custom-heap = []
 custom-panic = []
@@ -31,4 +33,4 @@ financial-core = { path = "../../crates/financial-core" }
 maker-interface = { path = "../../crates/maker-interface" }
 solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }
 
-oracle-fixture = { path = "../../tests/fixtures/oracle", features = ["no-entrypoint"] }
+oracle-fixture = { path = "../../tests/fixtures/oracle", features = ["state-only"] }

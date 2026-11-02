@@ -31,7 +31,7 @@ impl<'a> Environment<'a> {
         self.markets
             .get(index)
             .and_then(|market| *market)
-            .ok_or_else(|| error!(ClearingError::OrderState))
+            .ok_or_else(|| ProgramError::from(ClearingError::OrderState))
     }
 
     pub fn validate(&self, root: &MarginAccount) -> Result<()> {
@@ -40,16 +40,20 @@ impl<'a> Environment<'a> {
         let requested = if self.selected < 2 {
             require!(account.allows(self.selected), ClearingError::OrderState);
             1 << self.selected
-        } else { 0 };
+        } else {
+            0
+        };
         super::super::markets::validate_environment(self.markets, &[root], requested)
     }
 
     pub fn risks(&self) -> [math::margin::Risk; 2] {
         std::array::from_fn(|index| {
-            self.markets[index].map_or(super::super::markets::empty_risk(), |market| math::margin::Risk {
-                lower: market.lower.max(1),
-                upper: market.upper.max(1),
-                funding: self.funding[index],
+            self.markets[index].map_or(super::super::markets::empty_risk(), |market| {
+                math::margin::Risk {
+                    lower: market.lower.max(1),
+                    upper: market.upper.max(1),
+                    funding: self.funding[index],
+                }
             })
         })
     }

@@ -8,11 +8,12 @@ pub fn change(
     amount: u64,
     gain: bool,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty() && market_index < 2,
+        remaining_accounts.is_empty() && market_index < 2,
         ClearingError::Profile
     );
-    let accounts = &mut *ctx.accounts;
+    let accounts = &mut ctx.accounts;
     let snapshot = begin(&accounts.identity)?;
     let selected = usize::from(market_index);
     let selected_ledger = if selected == 0 {
@@ -72,8 +73,8 @@ pub fn change(
     emit(
         &accounts.identity,
         events,
-        accounts.event_authority.to_account_info(),
-        accounts.actor.key(),
+        accounts.event_authority.account().clone(),
+        accounts.actor.address().to_owned(),
         if gain { 3 } else { 2 },
         market_index,
         amount,
@@ -97,11 +98,12 @@ pub fn net(
     source_market: u8,
     amount: u64,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty() && source_market < 2,
+        remaining_accounts.is_empty() && source_market < 2,
         ClearingError::Profile
     );
-    let accounts = &mut *ctx.accounts;
+    let accounts = &mut ctx.accounts;
     let snapshot = begin(&accounts.identity)?;
     guard.check(
         &accounts.identity.venue,
@@ -148,8 +150,8 @@ pub fn net(
     emit(
         &accounts.identity,
         events,
-        accounts.event_authority.to_account_info(),
-        accounts.owner.key(),
+        accounts.event_authority.account().clone(),
+        accounts.owner.address().to_owned(),
         4,
         source_market,
         amount,

@@ -4,29 +4,29 @@ use anchor_lang::prelude::*;
 
 #[event]
 pub struct LiquidityRegistryChanged {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub registry: Pubkey,
+    pub registry: Address,
     pub state: crate::state::liquidity::LiquidityRegistryPayload,
 }
 
 #[event]
 pub struct LiquidityMakerChanged {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub market: Pubkey,
+    pub market: Address,
     pub market_state: MarketSnapshot,
-    pub registration: Pubkey,
+    pub registration: Address,
     pub state: crate::state::liquidity::MakerRegistrationPayload,
     pub operation: u8,
 }
 
 /// Version-3 custody payloads are scalar snapshots, never nested account types.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct AccountCashSnapshot {
-    pub margin: Pubkey,
-    pub portfolio: Pubkey,
-    pub owner: Pubkey,
+    pub margin: Address,
+    pub portfolio: Address,
+    pub owner: Address,
     pub subaccount_index: u16,
     pub id: u16,
     pub mode: u8,
@@ -36,10 +36,10 @@ pub struct AccountCashSnapshot {
     pub state_version: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct MarketLedgerSnapshot {
-    pub ledger: Pubkey,
-    pub market: Pubkey,
+    pub ledger: Address,
+    pub market: Address,
     pub market_index: u8,
     pub settlement: u64,
     pub insurance: u64,
@@ -54,24 +54,24 @@ pub struct AccountCustodyChanged {
     pub schema_version: u16,
     pub profile_version: u16,
     pub domain: [u8; 32],
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     /// 0 venue, 1 market, 2 portfolio, 3 margin, 4 deposit, 5 withdrawal,
     /// 6 cash transfer, 7 pause, 8 surplus classification, 9 reserve seed, 10 registry.
     pub kind: u8,
-    pub actor: Pubkey,
-    pub subject: Pubkey,
+    pub actor: Address,
+    pub subject: Address,
     pub index: u16,
     pub amount: u64,
     pub members: Vec<AccountCashSnapshot>,
     pub ledgers: Vec<MarketLedgerSnapshot>,
-    pub authority: Pubkey,
-    pub fee_authority: Pubkey,
-    pub reserve_authority: Pubkey,
-    pub reserve_destination_owner: Pubkey,
-    pub quote_mint: Pubkey,
-    pub vault: Pubkey,
-    pub markets: [Pubkey; 2],
+    pub authority: Address,
+    pub fee_authority: Address,
+    pub reserve_authority: Address,
+    pub reserve_destination_owner: Address,
+    pub quote_mint: Address,
+    pub vault: Address,
+    pub markets: [Address; 2],
     pub market_count: u8,
     pub insurance_fee_share_bps: u16,
     pub mode: u8,
@@ -85,13 +85,13 @@ pub struct AccountCustodyChanged {
     pub actual_vault: Option<u64>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct MarginAccountSnapshot {
     pub schema_version: u16,
     pub revision: u64,
-    pub venue: Pubkey,
-    pub portfolio: Pubkey,
-    pub owner: Pubkey,
+    pub venue: Address,
+    pub portfolio: Address,
+    pub owner: Address,
     pub subaccount_index: u16,
     pub id: u16,
     pub mode: u8,
@@ -101,7 +101,7 @@ pub struct MarginAccountSnapshot {
     pub positions: [crate::state::Position; 2],
     pub nonce: u64,
     pub state_version: u64,
-    pub delegate: Pubkey,
+    pub delegate: Address,
     pub delegate_expiry_slot: u64,
     pub delegate_epoch: u64,
     pub reserved: u64,
@@ -136,11 +136,11 @@ impl From<&crate::state::accounts::MarginAccount> for MarginAccountSnapshot {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct MarketSnapshot {
     pub schema_version: u16,
     pub revision: u64,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub index: u8,
     pub symbol: [u8; 8],
     pub lots_per_unit: u64,
@@ -189,54 +189,54 @@ impl From<&crate::state::accounts::Market> for MarketSnapshot {
 
 #[event]
 pub struct AccountOracleChanged {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub market: Pubkey,
+    pub market: Address,
     pub state: MarketSnapshot,
 }
 
 #[event]
 pub struct AccountOrderChanged {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub margin: Pubkey,
+    pub margin: Address,
     pub state: MarginAccountSnapshot,
     pub markets: Vec<MarketSnapshot>,
 }
 
 #[event]
 pub struct FundingPublisherChanged {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub market: Pubkey,
-    pub configuration: Pubkey,
+    pub market: Address,
+    pub configuration: Address,
     pub state: crate::state::liquidity::FundingPublisherPayload,
     pub market_state: MarketSnapshot,
 }
 
 #[event]
 pub struct FundingReportAccepted {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub market: Pubkey,
-    pub publisher: Pubkey,
+    pub market: Address,
+    pub publisher: Address,
     pub report: crate::state::liquidity::FundingReport,
     pub state: MarketSnapshot,
 }
 
 #[event]
 pub struct AccountAuthorityChanged {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub margin: Pubkey,
+    pub margin: Address,
     pub state: MarginAccountSnapshot,
 }
 
 #[event]
 pub struct LiquidityRouteExecuted {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub market: Pubkey,
+    pub market: Address,
     pub market_state: MarketSnapshot,
     pub other_market_state: Option<MarketSnapshot>,
     pub nonce: u64,
@@ -259,7 +259,7 @@ pub struct LiquidityRouteExecuted {
 
 #[event]
 pub struct AccountQualification {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub safety_epoch: u64,
     pub markets: [MarketSnapshot; 2],
@@ -267,9 +267,9 @@ pub struct AccountQualification {
 
 #[event]
 pub struct AccountFinancialChanged {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub actor: Pubkey,
+    pub actor: Address,
     /// 0 withdrawal, 1 transfer, 2 collection, 3 payment, 4 flat netting,
     /// 5 retained fees allocated to insurance, 6 retained fee token withdrawal.
     pub kind: u8,
@@ -278,7 +278,7 @@ pub struct AccountFinancialChanged {
     pub safety_epoch: u64,
     pub allocated_vault: Option<u64>,
     pub actual_vault: Option<u64>,
-    pub roots: Vec<Pubkey>,
+    pub roots: Vec<Address>,
     pub root_states: Vec<MarginAccountSnapshot>,
     pub markets: Vec<MarketSnapshot>,
     pub ledgers: Vec<MarketLedgerSnapshot>,
@@ -286,16 +286,16 @@ pub struct AccountFinancialChanged {
 
 #[event]
 pub struct AccountBackingChanged {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub certificate: Pubkey,
+    pub certificate: Address,
     pub state: BackingSnapshot,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct BackingSnapshot {
     pub schema_version: u16,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub market_index: u8,
     pub safety_epoch: u64,
     pub membership_version: u64,
@@ -339,7 +339,7 @@ impl From<&crate::state::accounts::SettlementCertificate> for BackingSnapshot {
 
 #[event]
 pub struct AccountLiquidated {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub safety_epoch: u64,
     pub market_index: u8,
@@ -348,8 +348,8 @@ pub struct AccountLiquidated {
     pub fee: u64,
     pub deficit_before: i128,
     pub deficit_after: i128,
-    pub target: Pubkey,
-    pub receiver: Pubkey,
+    pub target: Address,
+    pub receiver: Address,
     pub target_state: MarginAccountSnapshot,
     pub receiver_state: MarginAccountSnapshot,
     pub markets: Vec<MarketSnapshot>,
@@ -359,11 +359,11 @@ pub struct AccountLiquidated {
 /// The complete frozen input header; wide derived work is emitted separately.
 #[event]
 pub struct AccountResolutionFrozen {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     pub stage: u8,
-    pub trigger: Pubkey,
+    pub trigger: Address,
     pub emergency: bool,
     pub count: u16,
     pub registry_hash: [u8; 32],
@@ -387,11 +387,11 @@ pub struct AccountResolutionFrozen {
 
 #[event]
 pub struct AccountResolutionValued {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     pub id: u16,
-    pub member: Pubkey,
+    pub member: Address,
     pub cash: u64,
     pub lots: [i64; 2],
     pub generations: [u64; 2],
@@ -401,7 +401,7 @@ pub struct AccountResolutionValued {
 
 #[event]
 pub struct AccountResolutionProgress {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     pub processed_stage: u8,
@@ -415,7 +415,7 @@ pub struct AccountResolutionProgress {
 
 #[event]
 pub struct AccountResolutionProposal {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     pub evaluation: u8,
@@ -428,7 +428,7 @@ pub struct AccountResolutionProposal {
 
 #[event]
 pub struct AccountResolutionRates {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     pub evaluation: u8,
@@ -443,18 +443,18 @@ pub struct AccountResolutionRates {
 
 #[event]
 pub struct AccountResolutionPlanned {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     pub id: u16,
-    pub member: Pubkey,
+    pub member: Address,
     pub flow_floors: [u64; 2],
     pub cash_floor: u64,
 }
 
 #[event]
 pub struct AccountResolutionOrder {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     pub orders: [Vec<u16>; 2],
@@ -462,7 +462,7 @@ pub struct AccountResolutionOrder {
 
 #[event]
 pub struct AccountResolutionRounded {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     pub start: u16,
@@ -475,11 +475,11 @@ pub struct AccountResolutionRounded {
 
 #[event]
 pub struct AccountResolutionApplied {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     pub id: u16,
-    pub member: Pubkey,
+    pub member: Address,
     pub flows: [u64; 2],
     pub cash_before: u64,
     pub cash_after: u64,
@@ -493,7 +493,7 @@ pub struct AccountResolutionApplied {
 
 #[event]
 pub struct AccountResolutionCompleted {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     pub stage: u8,
@@ -513,7 +513,7 @@ pub struct AccountResolutionCompleted {
 
 #[event]
 pub struct AccountSafetyRecovery {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
     /// 0 observe, 1 resolved->custody, 2 explicit candidate reactivation.
@@ -534,7 +534,7 @@ pub struct AccountSafetyRecovery {
 
 #[event]
 pub struct AccountRetirementProgress {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub safety_epoch: u64,
     pub membership_version: u64,
@@ -546,7 +546,7 @@ pub struct AccountRetirementProgress {
 
 #[event]
 pub struct AccountsRetired {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
     pub safety_epoch: u64,
     pub terms_epoch: u64,
@@ -558,10 +558,10 @@ pub struct AccountsRetired {
 
 #[event]
 pub struct RetiredReserveWithdrawn {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub authority: Pubkey,
-    pub destination: Pubkey,
+    pub authority: Address,
+    pub destination: Address,
     pub market_index: u8,
     pub amount: u64,
     pub insurance: u64,
@@ -574,9 +574,10 @@ pub struct RetiredReserveWithdrawn {
 
 /// Final authenticated footer for one successful clearing invocation.
 #[event]
+#[cfg_attr(test, derive(AnchorDeserialize))]
 pub struct AccountTransition {
     pub schema_version: u16,
-    pub venue: Pubkey,
+    pub venue: Address,
     pub domain: [u8; 32],
     pub slot: u64,
     pub instruction: [u8; 8],

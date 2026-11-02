@@ -44,13 +44,14 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const DEPOSIT_ACCOUNT_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [135, 248, 38, 135, 220, 118, 42, 215],
+  [177, 65, 65, 203, 1, 157, 104, 213],
 );
 
 export function getDepositAccountDiscriminatorBytes(): ReadonlyUint8Array {
@@ -186,7 +187,9 @@ export type DepositAccountAsyncInput<
   vault?: TAccountVault;
   userToken: TAccountUserToken;
   tokenProgram?: TAccountTokenProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   amount: DepositAccountInstructionDataArgs["amount"];
 };
@@ -387,6 +390,11 @@ export async function getDepositAccountInstructionAsync<
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -493,7 +501,9 @@ export type DepositAccountInput<
   vault: TAccountVault;
   userToken: TAccountUserToken;
   tokenProgram?: TAccountTokenProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   amount: DepositAccountInstructionDataArgs["amount"];
 };
@@ -754,7 +764,9 @@ export type ParsedDepositAccountInstruction<
     vault: TAccountMetas[8];
     userToken: TAccountMetas[9];
     tokenProgram: TAccountMetas[10];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[11];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[12];
   };
   data: DepositAccountInstructionData;

@@ -141,7 +141,7 @@ try {
   // Real process death after upstream acceptance tests committed reservations and
   // immutable-byte recovery, followed by independent token/cash reconciliation.
   const {binding}=await indexer.store.snapshot();
-  const client=new sdk.AccountUserClient({version:4,accountSchema:7 as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,
+  const client=new sdk.AccountUserClient({version:4,accountSchema:8 as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,
     genesis:binding.genesis,anchor,anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain});
   const margin=setup.roots[0],owner=setup.traderOwner;
   const exit=await client.exit(await client.snapshot([margin]),owner.address,margin,setup.traderToken.address,7n);
@@ -166,7 +166,7 @@ try {
   assert.deepEqual((await replay.store.snapshot()).state,state);
   const databaseCases=await dispatchDatabaseCases(runtime.store.pool,config.runId);
   const parity=await conformance.finish(directory,[],h.read);
-  writeFileSync(`${directory}/dispatch.json`,json({revision,build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),
+  writeFileSync(`${directory}/dispatch.json`,json({revision,build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),
     setupOutcomes:checks.length,parallelOriginals:2,parallelBroadcasts:2,duplicateExecutors:2,sharedPayerDeferred:deferred,
     expired:expiredReceipt,admissionFault,unknownFeeReservation:'20000',originals,budgets,receipts,fault,reconciliation,parity,databaseCases,
     replaySequence:state.sequence,limits:'Two service RPC lanes; not validator scheduler throughput or P40B event qualification'}));

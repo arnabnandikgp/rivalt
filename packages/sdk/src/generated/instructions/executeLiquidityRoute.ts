@@ -52,7 +52,11 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findMarketLedgerPda, findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findEventAuthorityPda,
+  findMarketLedgerPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAccountGuardDecoder,
@@ -66,7 +70,7 @@ import {
 } from "../types/index.js";
 
 export const EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([195, 172, 220, 84, 16, 82, 29, 7]);
+  new Uint8Array([168, 103, 155, 184, 217, 71, 251, 209]);
 
 export function getExecuteLiquidityRouteDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -311,17 +315,25 @@ export type ExecuteLiquidityRouteAsyncInput<
   registry: TAccountRegistry;
   firstCapital: TAccountFirstCapital;
   firstRegistration: TAccountFirstRegistration;
+  /** CHECK: executable identity is bound to its loader metadata and approved hash. */
   firstProgram: TAccountFirstProgram;
   firstProgramData: TAccountFirstProgramData;
+  /** CHECK: fixed read-only identity, ownership, code and quote verified before CPI. */
   firstConfig: TAccountFirstConfig;
+  /** CHECK: fixed read-only publication validated against current inventory/depth. */
   firstPrice: TAccountFirstPrice;
   secondCapital?: TAccountSecondCapital;
   secondRegistration?: TAccountSecondRegistration;
+  /** CHECK: executable identity is bound to its loader metadata and approved hash. */
   secondProgram?: TAccountSecondProgram;
   secondProgramData?: TAccountSecondProgramData;
+  /** CHECK: same fixed read-only checks as the first leg; all-or-none optional tuple. */
   secondConfig?: TAccountSecondConfig;
+  /** CHECK: same fixed read-only checks as the first leg; no arbitrary remaining accounts. */
   secondPrice?: TAccountSecondPrice;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: ExecuteLiquidityRouteInstructionDataArgs["guard"];
   domain: ExecuteLiquidityRouteInstructionDataArgs["domain"];
@@ -625,6 +637,11 @@ export async function getExecuteLiquidityRouteInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -799,17 +816,25 @@ export type ExecuteLiquidityRouteInput<
   registry: TAccountRegistry;
   firstCapital: TAccountFirstCapital;
   firstRegistration: TAccountFirstRegistration;
+  /** CHECK: executable identity is bound to its loader metadata and approved hash. */
   firstProgram: TAccountFirstProgram;
   firstProgramData: TAccountFirstProgramData;
+  /** CHECK: fixed read-only identity, ownership, code and quote verified before CPI. */
   firstConfig: TAccountFirstConfig;
+  /** CHECK: fixed read-only publication validated against current inventory/depth. */
   firstPrice: TAccountFirstPrice;
   secondCapital?: TAccountSecondCapital;
   secondRegistration?: TAccountSecondRegistration;
+  /** CHECK: executable identity is bound to its loader metadata and approved hash. */
   secondProgram?: TAccountSecondProgram;
   secondProgramData?: TAccountSecondProgramData;
+  /** CHECK: same fixed read-only checks as the first leg; all-or-none optional tuple. */
   secondConfig?: TAccountSecondConfig;
+  /** CHECK: same fixed read-only checks as the first leg; no arbitrary remaining accounts. */
   secondPrice?: TAccountSecondPrice;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   guard: ExecuteLiquidityRouteInstructionDataArgs["guard"];
   domain: ExecuteLiquidityRouteInstructionDataArgs["domain"];
@@ -1232,17 +1257,25 @@ export type ParsedExecuteLiquidityRouteInstruction<
     registry: TAccountMetas[8];
     firstCapital: TAccountMetas[9];
     firstRegistration: TAccountMetas[10];
+    /** CHECK: executable identity is bound to its loader metadata and approved hash. */
     firstProgram: TAccountMetas[11];
     firstProgramData: TAccountMetas[12];
+    /** CHECK: fixed read-only identity, ownership, code and quote verified before CPI. */
     firstConfig: TAccountMetas[13];
+    /** CHECK: fixed read-only publication validated against current inventory/depth. */
     firstPrice: TAccountMetas[14];
     secondCapital?: TAccountMetas[15] | undefined;
     secondRegistration?: TAccountMetas[16] | undefined;
+    /** CHECK: executable identity is bound to its loader metadata and approved hash. */
     secondProgram?: TAccountMetas[17] | undefined;
     secondProgramData?: TAccountMetas[18] | undefined;
+    /** CHECK: same fixed read-only checks as the first leg; all-or-none optional tuple. */
     secondConfig?: TAccountMetas[19] | undefined;
+    /** CHECK: same fixed read-only checks as the first leg; no arbitrary remaining accounts. */
     secondPrice?: TAccountMetas[20] | undefined;
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[21];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[22];
   };
   data: ExecuteLiquidityRouteInstructionData;

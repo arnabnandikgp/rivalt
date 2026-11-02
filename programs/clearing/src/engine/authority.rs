@@ -4,8 +4,8 @@ use crate::constants::orders::INVALIDATED;
 
 pub(crate) fn candidate(
     root: &MarginAccount,
-    actor: Pubkey,
-    delegate: Pubkey,
+    actor: Address,
+    delegate: Address,
     expiry_slot: u64,
     slot: u64,
 ) -> Result<MarginAccount> {
@@ -13,8 +13,8 @@ pub(crate) fn candidate(
     book::validate(root)?;
     require_keys_eq!(actor, root.owner, ClearingError::Authority);
     require!(
-        (delegate == Pubkey::default() && expiry_slot == 0)
-            || (delegate != Pubkey::default()
+        (delegate == Address::default() && expiry_slot == 0)
+            || (delegate != Address::default()
                 && delegate != root.owner
                 && expiry_slot > slot
                 && expiry_slot - slot <= crate::constants::orders::MAX_ORDER_SLOTS),

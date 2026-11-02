@@ -32,7 +32,7 @@ import {
 } from "@solana/kit";
 
 export const MAKER_PRICE_UPDATED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([245, 185, 52, 198, 79, 168, 94, 143]);
+  new Uint8Array([206, 230, 180, 4, 44, 163, 127, 212]);
 
 export function getMakerPriceUpdatedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(

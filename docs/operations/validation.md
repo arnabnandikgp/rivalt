@@ -9,6 +9,215 @@ not these program artifacts. P36 adds the separately scoped rebuilt-code evidenc
 below; P37's fresh integrated qualification after retirement is recorded separately.
 [Original reports](../HISTORY.md) retain complete commands, failed attempts and pins.
 
+## Anchor RC2 qualification (P47)
+
+P47 local acceptance **passes**; PR integration remains separate in
+[STATUS](../STATUS.md). Normal artifacts are selected only after the financial,
+service and resource checks below. Unchanged C0 artifacts and clean verifiers
+are recorded in the bounded
+[coverage summary](../../tests/performance/baselines/p47-c0.json). Its **61/61**
+entrypoints establish coverage; the distinct financial/service/load/default
+constituents below supply their own acceptance. The inventory retains 2,520
+executions / 2,493 originals / 27 byte-identical cross-run reexecutions, separating
+rejections and operator/browser populations. Retained B stays immutable.
+
+Clean `a01da5d` passes the 12-case focused RPC/WS profile; 123 maker and 84
+publisher outcomes; 207 dependency/settlement and 63 retirement outcomes with
+149/53-event PostgreSQL replays; 147/165/165 full protected/entry/stored-book
+outcomes; and 712 complete-cohort outcomes. Independent arithmetic verifies 64
+exact payouts (56 added members are flat), one augmentation and ten corruption
+rejections. Eight separate wide-scratch compiled cases pass; they do not execute
+payout history. P46's original 57 custody/290 safety/124 journal outcomes remain
+separate constituents. All use C0 SBF `366c7ab`.
+
+Clean **`b0b62ff`** completes the services/browser constituent with real
+Surfpool/RPC/WS/PostgreSQL in `.local/anchor-rc2/p47-services-jsonb/`: **254 harness
+outcomes, 468 durable originals (457 successful / 11 rejected), ten signed browser
+actions**, three actual SIGKILL/lost-ack recoveries, stored-order execution,
+publisher rotation/revocation, source outage/recovery and live indexer restart.
+Fresh replay matches **187 events, 70 accounts/eight members**, zero unresolved
+jobs. The independent `p33_services_reference.py` audit verifies **7,999,993 vault
+atoms, 7,999,665 funded root cash, fees [267,61], insurance [66,15]**, flat inventory
+and zero aggregate unpaid claims. Six makers are internal; hedge assumptions stay
+labelled and no hedge was executed. Browser evidence uses installed Chrome and an
+instrumented local wallet, not a new external-wallet compatibility claim.
+
+Failed attempts remain local: missing Playwright cache; six browser actions then
+an unsigned source-window refusal; and ten browser actions followed by the order
+worker timeout. The last failure traced to JSONB key ordering in the readonly
+projection comparison, reproduced from nine actual finalized custody events with
+identical venue values. Structural comparison fixes that false rejection while
+retaining complete field/array/revision guards; the new regression first fails
+on old code and then rejects actual metadata changes. Twenty affected indexer
+cases and typecheck pass; the clean integrated rerun above supplies runtime proof.
+
+[Performance](performance.md#rc2-qualification-measurements-p47)
+records the paired B/C observations, full financial state comparison and explicit
+clock/digest mismatch limits. Fourteen affected measurement/provenance cases pass.
+Raw wires/logs/database copies stay ignored. No unrelated full host suite, new
+program build, funded/devnet deployment, external review or endurance is inferred.
+Clean `1a893ed` adds fresh dispatch, load and operational constituents. Dispatch
+passes pre-broadcast and post-send SIGKILL, actual expiry proof with seven durable
+access rows and retained 20,000-lamport unknown-fee reserve, SQL ordering/fairness
+cases and identical 61-event replay. The bounded load records 1,008 offers, 466
+submitted originals, 433 fills, 33 stale-version rejections and 542 unsubmitted
+(537 generator-inflight / five duplicate originals), zero expired/unresolved.
+Live indexing obtains two coherent cycles and 33 revision-ahead retries; final
+and fresh replay match 588 events / nine members / 9,000,000 vault atoms.
+Operational workers pass liquidation, complete default with proposal-upload
+SIGKILL/restart, six-second recovery and all funded account exits. Independent
+arithmetic verifies ten exact Fraction payouts, one augmentation and five rejected
+corruptions. Identical 192-event replay over ten members leaves **452 atoms** of
+insurance/protocol fees only. Evidence is retained under
+`.local/anchor-rc2/p47-{dispatch,load,operations}-1a893ed/`.
+Clean `eac3755` compiles all three devnet-feature binaries without unsafe stack
+diagnostics. All three reject valid-context initialization with full rollback;
+maker contexts are explicitly injected negative fixtures because clearing cannot
+initialize this profile. All three local/devnet feature combinations fail
+compilation at the intended mutual-exclusion guard. No devnet network is used.
+Evidence: `.local/anchor-rc2/devnet-gates-eac3755/`, reproduced with
+`RIVALT_DEVNET_GATE_ARTIFACTS=<fresh-directory> bash ops/build-devnet-gates.sh`.
+Fifteen affected local-demo configuration/process/transport tests pass. Twelve
+resource-parser/receipt cases pass; absent heap requests and missing observed
+heap/data metrics remain absent. The C0 and comparison summaries reproduce from
+retained actual receipts; B still reproduces its unchanged 53,089-byte summary.
+
+Normal launchers/builds select `.local/anchor-rc2/current`, preserving frozen B and
+immutable C0. Its actual binary hashes must still match the SDK allowlist. The
+artifact binding remains `p46-anchor-rc2-c0-candidate-v1` to preserve the qualified
+journal identity; its historical name does not select arbitrary binaries.
+The stack review found that runtime/continuation launchers checked only a
+self-consistent manifest, while the SDK separately enforced the qualified hashes.
+The shared `ops/verify-liquidity-artifacts.ts` preflight now enforces both account
+schemas, clean qualification metadata, actual lengths and the fixed SDK hashes
+before any normal/continuation/broad-smoke runtime starts. The default build uses
+retained staging and validates before copying into `current`; explicit alternate
+build outputs remain candidates, not admitted runtime artifacts. Standalone
+hostile-maker smoke now selects `current` and applies the same preflight.
+Fifteen focused file/manifest/launcher regressions pass, including self-consistent
+forgeries rejected before runtime creation; eight existing deployed-code verifier
+tests, typecheck, ABI and shell checks pass. The actual retained `current` and
+immutable `c0-366c7ab` files pass the new gate. No program or IDL changed, and no
+new performance, broad financial, load or endurance result is inferred.
+Clean `0591f10` initially caught confirmed provisioning advancing during the first
+finalized indexer cycle. Startup now retries only typed `ReconciliationAhead` for
+up to 30 seconds before producers start; all other errors remain fatal. Clean
+`02f536c` then starts successfully and finalizes six wallet account/cash actions,
+but its first unsigned trade refuses unavailable BTC sources. The normal launcher
+had still shared one updater/payer across all producers. It now assigns six maker
+and two publisher restricted keys through real signed provisioning, as qualified
+services already did. Their fee payers no longer serialize all publication.
+Neither failure is counted as completed demo acceptance; both remain local.
+
+Fresh demo runtime and clean browser verifier **`083760a`** pass
+**thirteen successful actual local-demo-wallet originals** in
+`.local/anchor-rc2/p47-demo-browser-083760a/` (runtime/data retained in
+`.local/anchor-rc2/p47-demo-083760a/`). Independently fetched finalized wires match
+all wallet signatures, both margin modes, deposits/sibling allocation, BTC/ETH
+trades, TP/SL cancellation, reduce-only closes, token-reconciled withdrawal and
+saved-original/reconciled-fill reload. Actual wallet decline creates no original;
+untrusted faucet origin and unauthorized stop reject. Page errors are zero.
+The fixture follows the unchanged source contract: Normal for opens and credible
+Normal/Degraded for reduce-only closes. It waits for real source recovery and
+allows bounded explicit unsigned-source refusal retries. A proven finalized
+version conflict or independently proven signed expiry may receive a new bounded
+user review; its failed original/fee remains recorded. Ambiguous originals never
+rebuild. The owned server and PostgreSQL are stopped, and all seven owned listeners
+are released. No new external-wallet claim is made.
+
+The complete demo denominator is **13 signed originals: 13 successful / 0 rejected**,
+with **65,000 actual fee lamports**; every finalized receipt is retained. The full
+interactive worker set targets four-second funding publication within the existing
+2–5-second range, and one-second synthetic feed refresh. These local settings do
+not replace the separate two-second service/load measurements.
+
+Earlier demo attempts retained a proven signed expiry (landed slot 2,018 versus
+expiry 1,956), an unaccepted MakerQuote 6115 refusal, source-recovery timeouts and
+a worker PostgreSQL startup disconnect. Clean `ffceacd` also passed ten actions
+before the fixture incorrectly demanded Normal for a reduce-only close with
+credible Degraded prices; `083760a` corrects only that fixture condition. None of
+these incomplete attempts is counted as a full pass or hidden by accepting more
+financial error codes. The final lifecycle does not establish continuous
+availability or eliminate those operating limits.
+
+The paired resource report records observed route reductions of 40–44%, with
+unchanged requested budgets and paid fees. Full books and 64-member continuation
+fit; separate 5,632-bit scratch verification reaches 572,668 CU. Its 56 added default
+members are flat and scratch cases never Apply. The bounded load's 433/1,008 fills,
+all classified rejection/unsubmitted reasons, two coherent live index cycles /
+33 revision-ahead retries and exact final replay remain limitations, not sustained
+availability or TPS. P15B/P16B and continuous 24-hour endurance remain unchanged.
+
+P47 is ready in [PR #66](https://github.com/arnabnandikgp/rivalt/pull/66) above #64.
+Accepted/report content is `2b677b597912b2a3e9d7b02dab19088eca66ccc7`. All four
+applicable hosted checks (scope/client/report/shell) pass in
+[run 41296789385](https://github.com/arnabnandikgp/rivalt/actions/runs/41296789385),
+including broad client regression, generated output, independent SDK pricing/
+allocation and UI build. The unchanged Rust financial job is skipped; its P46
+CI/source pins remain separate. Local B/C replay, ABI/evidence checks, four changed
+shell scripts, typecheck and 312 documentation file links also pass. The stack
+remains open; these results are not an independent review or an integration claim.
+
+## Anchor RC2 serialized port (P46)
+
+This section records P46’s scoped implementation acceptance; **P47’s complete
+qualification and local promotion are recorded separately above**. D90 uses exact Anchor `2.0.0-rc.2`, isolated CLI/client installations,
+platform-tools v1.52 and SBPF v0. The fresh clearing/account binding is 8, maker
+account schema is 5, and quote/report protocol versions and financial rules remain
+unchanged. Canonical identifiers replace the explicitly recorded historical IDs;
+the immutable predecessor ABI guard checks fields, seeds, privileges and protocol
+error codes. Default/devnet financial activation remains disabled.
+
+Clean uninstrumented C0 SBF source is
+**`366c7ab4f12c058fbff6538ededca26674ccf5bf`**. All default/qualification binaries
+and oracle/hostile fixtures build without unsafe stack diagnostics. C0 binaries
+and manifest are retained locally at `.local/anchor-rc2/c0-366c7ab/`; the normal
+frozen B directory is untouched. Qualification binaries are 1,537,824 bytes for
+clearing, 166,712 for each maker and 60,288 for the oracle fixture. These sizes do
+not establish per-transaction CU savings; P47 owns the matched B/C report. C0
+retains serialized owned accounts; no optional zero-copy C1 has been introduced.
+
+Fresh RPC harness revision **`8feb24c81affcc98e655f3da7822ca46eaef835c`** is clean.
+Commands use `RIVALT_ALLOW_RC2_CANDIDATE=1`, explicit
+`RIVALT_ARTIFACT_DIR=.local/anchor-rc2/candidate` and distinct new run directories:
+
+| Scoped gate | Actual result | Local evidence below `.local/anchor-rc2/` |
+|---|---|---|
+| `ops/account-custody-smoke.sh` | 57 signed/finalized RPC/WS outcomes; raw-byte conservation verifies zero remaining trader cash, 18 reserve/vault atoms and 1,999,982 returned token atoms; eight corruptions rejected | `custody-8feb24c/` |
+| `ops/liquidity-safety-smoke.sh` | 290 signed/finalized outcomes, including two-maker cross routes, funding, TP/SL, reserved withdrawals/transfers, strict post-fee liquidation progress, complete eight-member default, exact atom ownership, exits and sustained recovery | `safety-8feb24c/` |
+| Independent Fraction/raw safety audit | Eight exact payouts, two augmentations and ten corruptions rejected; tokens/claims/cash/reserves reconcile. Both isolated Anchor clients agree on 560 instructions, two accounts and 787 events | Same safety run |
+| `ops/liquidity-journal-smoke.sh` | 124 harness outcomes; real PostgreSQL 18.6 records 121 in-scope transactions, five failures, 74 events/outbox rows and zero unresolved jobs. Actual SQL failure rolls back; restart recovers a missed fill; fresh database replay is identical; fees/carry reconcile to 26 charged atoms | `journal-8feb24c/` |
+| Retained safety projection | 244 authenticated invocations and 23 failed transactions; 68 captured entities match at all five liquidation/default/recovery checkpoints. One portfolio body is explicitly uncaptured; this is not another RPC/SQL run | `safety-8feb24c/scoped-projection.json` |
+
+Compiled C0 checks also pass: maker lifecycle **123** cases/**16** exact rejections;
+three default initialization gates with rollback; five hostile-maker rejection
+cases across 114 signed VM transactions. Hostile testing first rejects an unapproved
+binary, then deliberately replaces only its admission hash to test CPI isolation;
+this is not an authorized-upgrade or RPC-landing claim. Independent pricing checks
+execute each actual maker binary against **3,172** vectors (1,547 exact quotes,
+1,625 expected rejections) per program; inserted pricing fixtures do not claim
+reachable cash state. Logs are under `.local/anchor-v2-build/`.
+
+Earlier port checks on source `10b4d98` passed 119 clearing and 12 maker-interface
+native tests, including bounded registry and foreign-loader negatives. Actual
+source-generated IDLs, SDK generation, ABI guard and scoped dual-client conformance
+pass. Affected client reruns pass 45/45 after stale-schema fixture corrections;
+the other 200 checks passed in the preceding run. Typecheck passes after the CPI
+and harness fixes. Broad hosted regression has not yet been observed.
+
+Retained failed attempts are explicit: the first RPC attempt rejected the old
+artifact allowlist; the next reached signed provisioning but failed its first
+deposit with `AccountBorrowFailed`. RC2 boxed native accounts needed the forwarding
+`ToCpiHandle` traits rather than the generic `AnchorAccount` method. The fresh pass
+above verifies the fix without bypassing borrow guardrails. Framework failures
+now use their exact RC2 named errors; protocol custom codes remain unchanged.
+
+At the P46 checkpoint, P47 still owed full entrypoint/scenario coverage, full-book/64-member width gates,
+operator/browser/fault/load qualification, complete operational replay and a
+matched B/C resource/fee report. P46's scoped results do not satisfy those gates.
+No devnet, external participant, funded deployment, C1 optimization or continuous
+24-hour run is claimed. P15B/P16B remain open and endurance remains deferred.
+
 ## Checks by change
 
 | Scope | Existing targeted entrypoints |

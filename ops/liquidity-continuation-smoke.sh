@@ -5,20 +5,13 @@ cd "$(dirname "$0")/.."
 source ops/env.sh
 export RIVALT_CONTINUATION_PROFILE="${RIVALT_CONTINUATION_PROFILE:?control or treatment required}"
 case "$RIVALT_CONTINUATION_PROFILE" in
-  control|treatment) export RIVALT_ARTIFACT_DIR=.local/liquidity-execution ;;
+  control|treatment) : ;;
   *) echo 'Unknown comparison profile' >&2; exit 1 ;;
 esac
+export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 # Retained binaries are explicit pinned build artifacts, never retained runtime
 # state. Every deployment starts empty and proves actual hashes before use.
-python3 - <<'PY'
-import hashlib,json,os,pathlib
-root=pathlib.Path(os.environ['RIVALT_ARTIFACT_DIR'])
-manifest=json.loads((root/'build-manifest.json').read_text())
-assert manifest['trackedDirty'] is False
-for component in ['clearing','maker_a','maker_b','oracle_fixture']:
-    name=component+'.so'
-    assert hashlib.sha256((root/name).read_bytes()).hexdigest()==manifest['binaries'][name],name
-PY
+node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
 test "$(surfpool --version)" = 'surfpool 1.7.0'
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18941}"
 export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18942}"

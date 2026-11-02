@@ -6,18 +6,18 @@ fn fixture() -> (Venue, Market, FundingPublisher, FundingReport, Clock) {
         ..Venue::default()
     };
     let market = Market {
-        schema_version: 7,
+        schema_version: 8,
         config_epoch: 4,
         terms_epoch: 2,
         observation_sequence: 9,
         ..Market::default()
     };
     let configuration = FundingPublisher {
-        schema_version: 7,
+        schema_version: 8,
         revision: 0,
-        venue: Pubkey::new_unique(),
-        market: Pubkey::new_unique(),
-        publisher: Pubkey::new_unique(),
+        venue: Address::new_unique(),
+        market: Address::new_unique(),
+        publisher: Address::new_unique(),
         authority_epoch: 3,
         last_sequence: 12,
         last_observed_slot: 1000,
@@ -48,7 +48,7 @@ fn fixture() -> (Venue, Market, FundingPublisher, FundingReport, Clock) {
     let clock = Clock {
         slot: 1015,
         unix_timestamp: 102,
-        ..Clock::default()
+        ..crate::test_support::clock()
     };
     (venue, market, configuration, report, clock)
 }
@@ -67,16 +67,18 @@ fn bounds(reference: u64) -> policy::Bounds {
 fn frozen_wire_widths_and_account_event_parity() {
     let (_, _, configuration, report, _) = fixture();
     let mut account_bytes = Vec::new();
-    configuration.try_serialize(&mut account_bytes).unwrap();
+    crate::wire::write_discriminated(&configuration, &mut account_bytes).unwrap();
     assert_eq!(account_bytes.len(), 148);
     assert_eq!(FundingPublisher::INIT_SPACE, 140);
     let mut payload_bytes = Vec::new();
-    FundingPublisherPayload::from(&configuration)
-        .serialize(&mut payload_bytes)
-        .unwrap();
+    crate::wire::write(
+        &FundingPublisherPayload::from(&configuration),
+        &mut payload_bytes,
+    )
+    .unwrap();
     assert_eq!(payload_bytes, account_bytes[8..]);
     let mut report_bytes = Vec::new();
-    report.serialize(&mut report_bytes).unwrap();
+    crate::wire::write(&report, &mut report_bytes).unwrap();
     assert_eq!(report_bytes.len(), 203);
     // Independent offsets fix the signed report wire contract, not just round-trip parity.
     assert_eq!(&report_bytes[0..2], &[1, 0]);
@@ -93,7 +95,7 @@ fn signed_report_rejects_replay_wrong_binding_and_stale_control_snapshot() {
     let mutations: &[fn(&mut FundingReport)] = &[
         |report| report.version = 2,
         |report| report.domain = [9; 32],
-        |report| report.market = Pubkey::new_unique(),
+        |report| report.market = Address::new_unique(),
         |report| report.authority_epoch -= 1,
         |report| report.sequence -= 1,
         |report| report.sequence += 1,

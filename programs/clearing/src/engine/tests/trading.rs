@@ -9,7 +9,7 @@ fn clock() -> Clock {
     Clock {
         slot: 100,
         unix_timestamp: 1007,
-        ..Clock::default()
+        ..crate::test_support::clock()
     }
 }
 fn group() -> Venue {
@@ -25,7 +25,7 @@ fn market(index: u8) -> Market {
     let reference = if index == 0 { 60_000 } else { 30_000 };
     Market {
         schema_version: SCHEMA_VERSION,
-        venue: Pubkey::new_from_array([9; 32]),
+        venue: Address::new_from_array([9; 32]),
         index,
         lots_per_unit: if index == 0 { 1_000_000 } else { 100_000 },
         terms_epoch: 1,
@@ -52,9 +52,9 @@ fn market(index: u8) -> Market {
 fn root(id: u16, market: u8, role: u8) -> MarginAccount {
     MarginAccount {
         schema_version: SCHEMA_VERSION,
-        venue: Pubkey::new_from_array([9; 32]),
-        owner: Pubkey::new_from_array([id as u8 + 1; 32]),
-        portfolio: Pubkey::new_from_array([id as u8 + 10; 32]),
+        venue: Address::new_from_array([9; 32]),
+        owner: Address::new_from_array([id as u8 + 1; 32]),
+        portfolio: Address::new_from_array([id as u8 + 10; 32]),
         subaccount_index: 1,
         id,
         mode: MODE_ISOLATED,
@@ -156,7 +156,7 @@ fn execution(
 }
 fn bytes(root: &MarginAccount) -> Vec<u8> {
     let mut bytes = Vec::new();
-    root.serialize(&mut bytes).unwrap();
+    crate::wire::write(&root, &mut bytes).unwrap();
     bytes
 }
 
@@ -557,7 +557,7 @@ fn causal_funding_prefix_recovery_and_stale_paths_are_market_local() {
     let mut time = Clock {
         slot: 100,
         unix_timestamp: 1000,
-        ..Clock::default()
+        ..crate::test_support::clock()
     };
     let first = oracle::sample_candidate(
         1,
@@ -669,9 +669,9 @@ fn custody_sampling_cannot_accrue_funding_before_activation() {
 
 #[test]
 fn event_snapshots_preserve_account_payload_without_discriminator() {
-    fn serialized<T: AnchorSerialize>(value: &T) -> Vec<u8> {
+    fn serialized<T: SchemaWrite<anchor_lang::BorshConfig, Src = T>>(value: &T) -> Vec<u8> {
         let mut bytes = Vec::new();
-        value.serialize(&mut bytes).unwrap();
+        crate::wire::write(&value, &mut bytes).unwrap();
         bytes
     }
     let root = long();
@@ -685,19 +685,19 @@ fn event_snapshots_preserve_account_payload_without_discriminator() {
         serialized(&crate::events::MarketSnapshot::from(&market))
     );
     let registration = crate::state::liquidity::MakerRegistration {
-        schema_version: 7,
+        schema_version: 8,
         revision: 0,
         owner: root.owner,
         venue: root.venue,
         buy_consumed: 123,
         sell_consumed: 456,
         approved_hash: [31; 32],
-        market: Pubkey::new_from_array([32; 32]),
-        capital: Pubkey::new_from_array([33; 32]),
-        pricing_program: Pubkey::new_from_array([34; 32]),
-        program_data: Pubkey::new_from_array([35; 32]),
-        config: Pubkey::new_from_array([36; 32]),
-        price: Pubkey::new_from_array([37; 32]),
+        market: Address::new_from_array([32; 32]),
+        capital: Address::new_from_array([33; 32]),
+        pricing_program: Address::new_from_array([34; 32]),
+        program_data: Address::new_from_array([35; 32]),
+        config: Address::new_from_array([36; 32]),
+        price: Address::new_from_array([37; 32]),
         instance: 1,
         authority_epoch: 2,
         depth_epoch: 3,

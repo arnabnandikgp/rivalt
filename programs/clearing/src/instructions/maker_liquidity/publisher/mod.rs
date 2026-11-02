@@ -15,33 +15,34 @@ mod tests;
 pub fn initialize(
     ctx: &mut Context<InitializeFundingPublisher>,
     events: &mut crate::event_cpi::Payloads,
-    publisher: Pubkey,
+    publisher: Address,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     execution_profile(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
         accounts.safety.mode == CUSTODY
-            && publisher != Pubkey::default()
+            && publisher != Address::default()
             && accounts
                 .market
                 .oracle
                 .sources
                 .iter()
-                .all(|key| *key != Pubkey::default()),
+                .all(|key| *key != Address::default()),
         ClearingError::FundingReport
     );
     pricing::sealed_registry(
         &accounts.registry,
-        accounts.venue.key(),
-        accounts.market.key(),
+        accounts.venue.address().to_owned(),
+        accounts.market.address().to_owned(),
     )?;
     let clock = Clock::get()?;
-    accounts.configuration.set_inner(FundingPublisher {
+    **accounts.configuration = FundingPublisher {
         revision: 0,
-        schema_version: 7,
-        venue: accounts.venue.key(),
-        market: accounts.market.key(),
+        schema_version: 8,
+        venue: accounts.venue.address().to_owned(),
+        market: accounts.market.address().to_owned(),
         publisher,
         authority_epoch: 1,
         last_sequence: 0,
@@ -49,19 +50,19 @@ pub fn initialize(
         last_observed_time: clock.unix_timestamp,
         enabled: true,
         bump: ctx.bumps.configuration,
-    });
+    };
 
     events.emit(
         &FundingPublisherChanged {
-            venue: accounts.venue.key(),
+            venue: accounts.venue.address().to_owned(),
 
             slot: clock.slot,
-            market: accounts.market.key(),
-            configuration: accounts.configuration.key(),
+            market: accounts.market.address().to_owned(),
+            configuration: accounts.configuration.address().to_owned(),
             state: FundingPublisherPayload::from(&**accounts.configuration),
             market_state: MarketSnapshot::from(&**accounts.market),
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -69,19 +70,20 @@ pub fn configure(
     ctx: &mut Context<ConfigureFundingPublisher>,
     events: &mut crate::event_cpi::Payloads,
     expected_authority: u64,
-    publisher: Pubkey,
+    publisher: Address,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && accounts.venue.schema_version == 7
+            && accounts.venue.schema_version == 8
             && accounts.venue.profile_version == 4
             && accounts.venue.market_count == 2
             && accounts.venue.insurance_fee_share_bps == 2500
-            && accounts.safety.schema_version == 7
-            && accounts.market.schema_version == 7
-            && accounts.configuration.schema_version == 7
+            && accounts.safety.schema_version == 8
+            && accounts.market.schema_version == 8
+            && accounts.configuration.schema_version == 8
             && accounts.configuration.authority_epoch == expected_authority
             && expected_authority > 0
             && matches!(
@@ -90,7 +92,7 @@ pub fn configure(
             ),
         ClearingError::FundingReport
     );
-    let enabled = publisher != Pubkey::default();
+    let enabled = publisher != Address::default();
     require!(
         !enabled || (!accounts.safety.paused && matches!(accounts.safety.mode, CUSTODY | ACTIVE)),
         ClearingError::FundingReport
@@ -99,7 +101,7 @@ pub fn configure(
     if matches!(accounts.safety.mode, CUSTODY | ACTIVE) {
         let mut next = funding::control_candidate(accounts.safety.mode, &accounts.market, &clock)?;
         increment(&mut next.observation_sequence)?;
-        accounts.market.set_inner(next);
+        **accounts.market = next;
     }
     increment(&mut accounts.configuration.authority_epoch)?;
     accounts.configuration.publisher = publisher;
@@ -109,15 +111,15 @@ pub fn configure(
 
     events.emit(
         &FundingPublisherChanged {
-            venue: accounts.venue.key(),
+            venue: accounts.venue.address().to_owned(),
 
             slot: clock.slot,
-            market: accounts.market.key(),
-            configuration: accounts.configuration.key(),
+            market: accounts.market.address().to_owned(),
+            configuration: accounts.configuration.address().to_owned(),
             state: FundingPublisherPayload::from(&**accounts.configuration),
             market_state: MarketSnapshot::from(&**accounts.market),
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -126,8 +128,9 @@ pub fn publish(
     events: &mut crate::event_cpi::Payloads,
     report: FundingReport,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Profile);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let accounts = &mut ctx.accounts;
     execution_profile(&accounts.venue, &accounts.safety, &accounts.market)?;
     let clock = Clock::get()?;
     validate_report(
@@ -157,21 +160,21 @@ pub fn publish(
         impact.as_ref(),
     )?;
     increment(&mut next.observation_sequence)?;
-    accounts.market.set_inner(next);
+    **accounts.market = next;
     accounts.configuration.last_sequence = report.sequence;
     accounts.configuration.last_observed_slot = report.observed_slot;
     accounts.configuration.last_observed_time = report.observed_time;
 
     events.emit(
         &FundingReportAccepted {
-            venue: accounts.venue.key(),
+            venue: accounts.venue.address().to_owned(),
 
             slot: clock.slot,
-            market: accounts.market.key(),
-            publisher: accounts.publisher.key(),
+            market: accounts.market.address().to_owned(),
+            publisher: accounts.publisher.address().to_owned(),
             report,
             state: MarketSnapshot::from(&**accounts.market),
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }

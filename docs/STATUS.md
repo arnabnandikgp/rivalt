@@ -1,6 +1,6 @@
 # Current status
 
-Updated 1 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 2 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -13,6 +13,10 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| M13 Anchor RC2 migration | Review | P45–P47 accepted and open as #63 → #64 → #66; C0 local qualification and applicable hosted checks pass |
+| P45 migration contract | Review | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) ready; architecture/release research, exact RC2 pins, ABI choice, code gap map and measurement/acceptance plan |
+| P46 RC2 implementation | Review | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) ready above #63; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
+| P47 post-migration qualification | Review | [PR #66](https://github.com/arnabnandikgp/rivalt/pull/66) ready above #64; full C0 matrix, reproducible B/C report, normal demo and applicable CI pass |
 | M12 performance and contention | Closed | P39–P44 accepted and integrated; measured pre-migration baseline frozen; no framework migration |
 | P39 dependency audit/baseline | Closed | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55) merged; focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | Closed | A and B acceptance passed and integrated |
@@ -34,6 +38,127 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 Review means accepted work awaiting integration; Closed requires acceptance plus
 integration. The user authorized the performance stack's review fixes and merge on
 1 November 2026; all seven PRs independently report MERGED.
+
+## P46 serialized port checkpoint
+
+Work is on `implementation/p46-anchor-rc2` above ready PR #63 (`696851e`). The
+serialized port's scoped acceptance passes; [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64)
+is open and ready with accepted content `44d1251`.
+[Validation](operations/validation.md#anchor-rc2-serialized-port-p46) records the
+actual checks and exact pins. Frozen P44 artifacts remain untouched.
+
+Delivered: exact RC2 crates/CLI, bounded serialized registry/foreign-loader adapters,
+contexts and typed CPI borrowing, scoped event codecs, canonical identifier delta,
+clearing binding 8 / maker account schema 5, actual generated IDLs/SDK and isolated
+legacy/RC2 clients. Fields, seeds, privileges, signed quote/report domains, financial
+rules and default/devnet gates remain intact. No C1 zero-copy conversion is needed
+to close this serialized port; P47 records its measured operating envelope below.
+
+Clean C0 SBF source is **`366c7ab4f12c058fbff6538ededca26674ccf5bf`**, retained in
+`.local/anchor-rc2/c0-366c7ab/`. Clean RPC verifier
+**`8feb24c81affcc98e655f3da7822ca46eaef835c`** passes 57 custody, 290 safety and 124
+journal outcomes on fresh Surfpool/RPC/WS. Independent raw audits verify cash/token
+conservation and eight exact Fraction default payouts; PostgreSQL rollback,
+restart recovery and fresh-database replay match 74 committed events with zero
+unresolved jobs. Safety receipts also reproduce five captured financial checkpoints.
+
+Compiled maker lifecycle, default gates and five hostile-maker rollback cases
+pass. Both actual maker binaries match 3,172 independent pricing vectors each.
+Native adapter/financial tests and affected SDK/conformance checks passed at the
+pins recorded in validation. Typecheck, ABI/generated checks and documentation
+checks are scoped. All five hosted jobs (scope/client/report/financial/shell) pass
+on `360a247` in [run 41289514760](https://github.com/arnabnandikgp/rivalt/actions/runs/41289514760). All evidence remains local.
+The initial failed allowlist and boxed native token CPI attempts remain recorded;
+the fresh signed custody pass proves the forwarding-handle fix.
+
+P47 completes the remaining qualification below on these unchanged C0 binaries.
+P15B/P16B and deferred endurance are unchanged. Both phase branches remain open;
+qualification is not integration or a funded deployment.
+
+## P47 qualification
+
+`implementation/p47-rc2-qualification` contains accepted P46 parent `360a247`.
+Local acceptance passes; [PR #66](https://github.com/arnabnandikgp/rivalt/pull/66)
+is open and ready. Acceptance/report content is `2b677b597912b2a3e9d7b02dab19088eca66ccc7`.
+All four applicable hosted jobs (scope/client/report/shell) pass in
+[run 41296789385](https://github.com/arnabnandikgp/rivalt/actions/runs/41296789385);
+the unchanged Rust financial job is correctly skipped for this PR. P46’s actual
+financial CI and local compiled acceptance remain separately pinned. No access blocker is present. [Validation](operations/validation.md#anchor-rc2-qualification-p47) records
+exact constituents and [performance](operations/performance.md#rc2-qualification-measurements-p47)
+records all 61 entrypoints, binary sizes, caller/scaling dependencies and the B/C
+cost/load comparison. SBF remains clean **`366c7ab4f12c058fbff6538ededca26674ccf5bf`**;
+no C1 zero-copy conversion, economic change or new program build is inferred.
+
+| Constituent | Clean verifier | Actual result |
+|---|---|---|
+| Complete coverage / full books | `a01da5d`, service `b0b62ff`, retained P46 `8feb24c` | 61/61 entrypoints; 2,520 executions / 2,493 originals / 27 cross-run reexecutions; 147/165/165 full-book outcomes |
+| Settlement / retirement / default | `a01da5d` | 207/63 dependency/retirement outcomes, 149/53-event PG replays; 712 complete-cohort outcomes, 64 independently audited payouts; eight separate scratch-width cases |
+| Services / browser | `b0b62ff` | 468 durable originals, ten browser actions, actual stored fill, three crash/lost-ack recoveries, source/publisher recovery, identical 187-event PG replay and independent accounting |
+| Dispatch / bounded load / operations | `1a893ed` | Admission/send SIGKILL and unknown-fee retention; 1,008 offers / 433 fills; complete default/recovery/cash exits with ten independently audited payouts and identical 192-event replay |
+| Default/devnet gates | P46 and `eac3755` | All three actual default/devnet initialization refusals with rollback; three mixed-feature compile rejections; no devnet network |
+| Normal demo | `083760a` | Fresh startup, thirteen successful local-wallet actions, both modes, BTC/ETH fills, TP/SL/cancel, closes, token-reconciled withdrawal and reload; owned server stopped |
+
+Frozen B remains unchanged and its 2,871 originals reproduce the 53,089-byte
+summary. C0's bounded summary is 56,839 bytes. The focused reader compares 33,682
+financial/relative-time values across 22 states for eleven successful cases.
+330 slot and 176 deployment-digest witnesses remain explicit differences, so the
+observed 40–44% route-CU reductions are paired workload observations, not a pure
+framework microbenchmark. Clearing/maker binary sizes fall 38.1%/36.1%; requested
+CU, zero-priority bids and actual focused fees are unchanged. Wide scratch reaches
+572,668 CU; no peak heap metric is invented. Raw evidence remains ignored/local.
+
+Qualification fixes: readonly projection compares complete values independently of
+JSONB object-key order; normal startup waits for the existing finalized revision
+fence; each of six maker updaters and two publishers has its own restricted key
+and fee payer. The demo had otherwise retained the previously measured shared-
+payer starvation. Browser tests wait for Normal on opens and credible
+Normal/Degraded on reduce-only closes. They retry only explicit unsigned source
+refusals or permit a new bounded user review after a proven finalized version
+conflict or signed expiry, retaining every failed original/fee. Ambiguous originals
+are never rebuilt.
+The final demo retains 13 signed originals (13 successful / 0 rejected),
+at four-second funding publication and one-second synthetic feed refresh.
+The separate service/load policy stays two seconds. Earlier missing-browser,
+source-window, JSONB, source-recovery, connection and maker-bound failures remain retained,
+not counted as passes. The initial separate-payer demo retained a finalized
+FinancialSequence 6122 rejection after seven successful actions. The later test
+incorrectly requiring Normal for reduce-only closes is also recorded; the final
+fixture follows the existing credible-Degraded reduction contract.
+No risk/authority/source safeguard was relaxed.
+
+Actual commands include scoped `ops/current-runtime-smoke.sh` constituents,
+`ops/liquidity-services-smoke.sh`, continuation/operations launchers, the independent
+Python auditors, `ops/build-devnet-gates.sh`, `ops/demo.sh start|stop` with an isolated
+root, and `tests/browser/demo-lifecycle.ts`. Report readers reproduce B/C0 summaries
+and the focused comparison from actual original wires/RPC/WS. Typecheck, affected
+indexer/measurement/demo tests, ABI/evidence policy, shell and documentation checks
+are recorded in validation/PR. Broad supported host regression belongs to CI;
+no unrelated local full suite, new external wallet, outreach, funded deployment or
+24-hour run is claimed. Inactive disposable Cargo build targets were removed;
+programs, tools, logs, keys, databases and failed evidence remain preserved.
+
+Remaining limits: load filled 433/1,008 offered actions (92.92% of 466 submitted);
+537 generator limits, five duplicate originals and 33 stale-version rejections
+remain explicit. Live indexing achieved two coherent cycles / 33 revision-ahead
+retries, so continuous read readiness and sustained TPS remain unproved. The
+64-member cohort includes 56 flat additions; scratch-width cases never Apply.
+Internal makers, P15B/P16B and deferred endurance retain their existing labels/gates.
+The user authorized review fixes and merge of #63 → #64 → #66 on 2 November.
+The five review threads contain four actionable artifact/path/schema-documentation
+findings and one obsolete plan-approval status finding (the plan was subsequently
+approved). Fixes are carried on the stack tip: shared fixed-hash artifact preflight,
+staged default-build promotion, consistent smoke/demo paths and current schema
+documentation. Fifteen targeted regressions, eight existing artifact-verifier
+tests, typecheck, ABI and shell checks pass on the review worktree; actual retained
+current/C0 artifacts pass the gate. No programs, IDLs or financial rules changed.
+P46 automated review was skipped for file count. A focused self-review checked the
+registry codec, loader identity/ownership, event/scoped-history encoding, maker
+CPI privilege/return validation and native-token CPI forwarding/revalidation;
+no additional defect was found in those inspected paths. This is not independent
+review. P46's hosted financial acceptance remains separately pinned above.
+Next exact action: commit the review fixes, verify the affected admitted local
+launch path, publish and check CI, then merge stack #65 and verify its final tree.
+P47 remains Review until integration; no new broad qualification is claimed.
 
 ## Accepted performance stack
 
@@ -122,8 +247,8 @@ latest #62 update are not independent approval. No additional program build,
 load/endurance run or external qualification was needed for this queue/docs fix.
 The fetched merge has identical tree and includes the tested fix as an ancestor.
 No implementation blocker remains within this completed scope.
-Next exact action: use the frozen B baseline to scope any separately authorized
-framework-migration evaluation; no Anchor v2 migration is started.
+P45 now uses the frozen B baseline to scope the separately requested RC2 migration;
+the active P46 checkpoint above owns the next action.
 
 ## Deployment and operational limits
 

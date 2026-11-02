@@ -135,6 +135,6 @@ try {
     {program:common.program,name:'marginAccount',key:roots[0]},{program:common.program,name:'custody',key:custody}],h.read);
   writeFileSync(`${directory}/summary.json`,json({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
-    build:JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json','utf8')),checks,reconciliation,parity,envelopes,sameSlot,sql:sql.rows[0]}));
+    build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),checks,reconciliation,parity,envelopes,sameSlot,sql:sql.rows[0]}));
   console.log(json({stage:'p40b-scoped-history-pass',reconciliation,parity}));
 }finally{await replay?.close();await indexer?.close();try{await flush();}finally{ws.close();}}

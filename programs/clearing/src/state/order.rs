@@ -2,7 +2,7 @@
 use crate::constants::orders::{OPEN, PARTIAL};
 use anchor_lang::prelude::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace, IdlType)]
 pub struct OrderRecord {
     pub id: u64,
     pub version: u64,
@@ -33,7 +33,7 @@ impl OrderRecord {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace, IdlType)]
 pub struct ProtectiveGroup {
     pub id: u64,
     pub version: u64,

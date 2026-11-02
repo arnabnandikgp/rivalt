@@ -44,13 +44,14 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const WITHDRAW_ACCOUNT_CUSTODY_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([8, 125, 77, 6, 124, 105, 113, 123]);
+  new Uint8Array([211, 165, 24, 154, 201, 22, 195, 210]);
 
 export function getWithdrawAccountCustodyDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -190,7 +191,9 @@ export type WithdrawAccountCustodyAsyncInput<
   vault?: TAccountVault;
   userToken: TAccountUserToken;
   tokenProgram?: TAccountTokenProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   amount: WithdrawAccountCustodyInstructionDataArgs["amount"];
 };
@@ -391,6 +394,11 @@ export async function getWithdrawAccountCustodyInstructionAsync<
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -497,7 +505,9 @@ export type WithdrawAccountCustodyInput<
   vault: TAccountVault;
   userToken: TAccountUserToken;
   tokenProgram?: TAccountTokenProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   amount: WithdrawAccountCustodyInstructionDataArgs["amount"];
 };
@@ -758,7 +768,9 @@ export type ParsedWithdrawAccountCustodyInstruction<
     vault: TAccountMetas[8];
     userToken: TAccountMetas[9];
     tokenProgram: TAccountMetas[10];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[11];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[12];
   };
   data: WithdrawAccountCustodyInstructionData;

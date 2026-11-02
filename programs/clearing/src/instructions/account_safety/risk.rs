@@ -5,25 +5,25 @@ use account_trading::authority::AccountGuard;
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct LiquidateAccount<'info> {
-    pub identity: AccountFinancialIdentity<'info>,
+pub struct LiquidateAccount {
+    pub identity: Nested<AccountFinancialIdentity>,
     #[account(mut, seeds = [b"ledger-v3", identity.venue.markets[0].as_ref()], bump = btc_ledger.bump,
-        constraint = btc_ledger.venue == identity.venue.key() && btc_ledger.market == identity.venue.markets[0]
+        constraint = btc_ledger.venue == identity.venue.address().to_owned() && btc_ledger.market == identity.venue.markets[0]
             && btc_ledger.market_index == 0 @ ClearingError::Profile)]
-    pub btc_ledger: Option<Box<Account<'info, MarketLedger>>>,
+    pub btc_ledger: Option<Box<BorshAccount<MarketLedger>>>,
     #[account(mut, seeds = [b"ledger-v3", identity.venue.markets[1].as_ref()], bump = eth_ledger.bump,
-        constraint = eth_ledger.venue == identity.venue.key() && eth_ledger.market == identity.venue.markets[1]
+        constraint = eth_ledger.venue == identity.venue.address().to_owned() && eth_ledger.market == identity.venue.markets[1]
             && eth_ledger.market_index == 1 @ ClearingError::Profile)]
-    pub eth_ledger: Option<Box<Account<'info, MarketLedger>>>,
-    pub receiver_owner: Signer<'info>,
+    pub eth_ledger: Option<Box<BorshAccount<MarketLedger>>>,
+    pub receiver_owner: Signer,
     #[account(mut, seeds = [b"margin-v3", target.portfolio.as_ref(), &target.subaccount_index.to_le_bytes()],
-        bump = target.bump, constraint = target.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub target: Box<Account<'info, MarginAccount>>,
+        bump = target.bump, constraint = target.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub target: Box<BorshAccount<MarginAccount>>,
     #[account(mut, seeds = [b"margin-v3", receiver.portfolio.as_ref(), &receiver.subaccount_index.to_le_bytes()],
-        bump = receiver.bump, constraint = receiver.venue == identity.venue.key() @ ClearingError::Profile,
-        constraint = receiver.owner == receiver_owner.key() @ ClearingError::Authority,
-        constraint = receiver.key() != target.key() @ ClearingError::Alias)]
-    pub receiver: Box<Account<'info, MarginAccount>>,
+        bump = receiver.bump, constraint = receiver.venue == identity.venue.address().to_owned() @ ClearingError::Profile,
+        constraint = receiver.owner == receiver_owner.address().to_owned() @ ClearingError::Authority,
+        constraint = receiver.address().to_owned() != target.address().to_owned() @ ClearingError::Alias)]
+    pub receiver: Box<BorshAccount<MarginAccount>>,
 }
 
 /// V3 validates its own identities before sharing the scalar risk engine.
@@ -87,11 +87,12 @@ pub fn liquidate(
     lots: u64,
     price: u64,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty() && market_index < 2,
+        remaining_accounts.is_empty() && market_index < 2,
         ClearingError::Profile
     );
-    let accounts = &mut *ctx.accounts;
+    let accounts = &mut ctx.accounts;
     candidate_profile(&accounts.identity)?;
     target_guard.check(
         &accounts.identity.venue,
@@ -177,7 +178,7 @@ pub fn liquidate(
 /// building two full roots and two markets on the 4 KiB SBF stack.
 #[derive(AnchorSerialize)]
 struct LiquidationEventView<'a> {
-    venue: Pubkey,
+    venue: Address,
     slot: u64,
     safety_epoch: u64,
     market_index: u8,
@@ -186,8 +187,8 @@ struct LiquidationEventView<'a> {
     fee: u64,
     deficit_before: i128,
     deficit_after: i128,
-    target: Pubkey,
-    receiver: Pubkey,
+    target: Address,
+    receiver: Address,
     target_state: &'a MarginAccount,
     receiver_state: &'a MarginAccount,
     markets: Vec<&'a Market>,
@@ -207,7 +208,7 @@ fn emit(
     slot: u64,
 ) -> Result<()> {
     let event = LiquidationEventView {
-        venue: accounts.identity.venue.key(),
+        venue: accounts.identity.venue.address().to_owned(),
 
         slot,
         safety_epoch: accounts.identity.safety.epoch,
@@ -217,8 +218,8 @@ fn emit(
         fee,
         deficit_before: before,
         deficit_after: after,
-        target: accounts.target.key(),
-        receiver: accounts.receiver.key(),
+        target: accounts.target.address().to_owned(),
+        receiver: accounts.receiver.address().to_owned(),
         target_state: &accounts.target,
         receiver_state: &accounts.receiver,
         markets: accounts.identity.markets().into_iter().flatten().collect(),
@@ -233,7 +234,7 @@ fn emit(
     };
     events.emit_borrowed::<crate::events::AccountLiquidated, _>(
         &event,
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -243,7 +244,7 @@ mod event_tests {
     #[test]
     fn borrowed_liquidation_is_exactly_the_owned_event_wire() {
         let target = MarginAccount {
-            schema_version: 7,
+            schema_version: 8,
             cash: 17,
             nonce: 9,
             positions: [
@@ -258,19 +259,19 @@ mod event_tests {
             ..Default::default()
         };
         let receiver = MarginAccount {
-            schema_version: 7,
+            schema_version: 8,
             cash: 21,
             id: 1,
             ..Default::default()
         };
         let market = Market {
-            schema_version: 7,
+            schema_version: 8,
             reference_price: 20_000,
             funding_index_scaled: -17,
             ..Default::default()
         };
         let owned = crate::events::AccountLiquidated {
-            venue: Pubkey::new_unique(),
+            venue: Address::new_unique(),
             slot: 42,
             safety_epoch: 4,
             market_index: 1,
@@ -279,8 +280,8 @@ mod event_tests {
             fee: 11,
             deficit_before: 1234,
             deficit_after: 567,
-            target: Pubkey::new_unique(),
-            receiver: Pubkey::new_unique(),
+            target: Address::new_unique(),
+            receiver: Address::new_unique(),
             target_state: crate::events::MarginAccountSnapshot::from(&target),
             receiver_state: crate::events::MarginAccountSnapshot::from(&receiver),
             ledgers: vec![],
@@ -307,9 +308,9 @@ mod event_tests {
             ledgers: vec![],
         };
         let mut expected = Vec::new();
-        owned.serialize(&mut expected).unwrap();
+        crate::wire::write(&owned, &mut expected).unwrap();
         let mut actual = Vec::new();
-        view.serialize(&mut actual).unwrap();
+        crate::wire::write(&view, &mut actual).unwrap();
         assert_eq!(actual, expected);
     }
 }

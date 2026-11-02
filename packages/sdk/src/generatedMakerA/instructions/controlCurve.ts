@@ -42,7 +42,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findCurvePricePda } from "../pdas/index.js";
+import { findCurvePricePda, findEventAuthorityPda } from "../pdas/index.js";
 import { MAKER_A_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getCurveControlDecoder,
@@ -52,7 +52,7 @@ import {
 } from "../types/index.js";
 
 export const CONTROL_CURVE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  87, 246, 69, 138, 190, 131, 55, 141,
+  63, 46, 101, 68, 20, 174, 99, 44,
 ]);
 
 export function getControlCurveDiscriminatorBytes(): ReadonlyUint8Array {
@@ -148,7 +148,9 @@ export type ControlCurveAsyncInput<
   controller: TAccountController;
   config: TAccountConfig;
   price?: TAccountPrice;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   expectedControl: ControlCurveInstructionDataArgs["expectedControl"];
   expectedShape: ControlCurveInstructionDataArgs["expectedShape"];
@@ -248,6 +250,11 @@ export async function getControlCurveInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -297,7 +304,9 @@ export type ControlCurveInput<
   controller: TAccountController;
   config: TAccountConfig;
   price: TAccountPrice;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   expectedControl: ControlCurveInstructionDataArgs["expectedControl"];
   expectedShape: ControlCurveInstructionDataArgs["expectedShape"];
@@ -429,7 +438,9 @@ export type ParsedControlCurveInstruction<
     controller: TAccountMetas[0];
     config: TAccountMetas[1];
     price: TAccountMetas[2];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[3];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[4];
   };
   data: ControlCurveInstructionData;

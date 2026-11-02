@@ -3,8 +3,8 @@ members = ["programs/clearing", "crates/financial-core", "crates/maker-interface
 resolver = "2"
 
 [workspace.dependencies]
-anchor-lang = { version = "=1.2.1", features = ["event-cpi"] }
-anchor-spl = { version = "=1.2.1", default-features = false, features = ["token", "token_2022", "solana-v3"] }
+anchor-lang = { version = "=2.0.0-rc.2", default-features = false, features = ["alloc", "guardrails"] }
+anchor-spl = { version = "=2.0.0-rc.2", default-features = false, features = ["guardrails"] }
 
 [profile.release]
 overflow-checks = true

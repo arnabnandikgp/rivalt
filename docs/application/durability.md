@@ -7,6 +7,10 @@ market settlement pools, insurance, retained fees and fee carries remain separat
 The registry supplies the complete stable root order. Events are authenticated CPI
 payloads, not log messages; reverted events never enter the economic projection.
 Unknown critical schemas, revision gaps or immutable identity changes fail closed.
+Read-only projection checks compare complete field values, including ordered
+arrays, independently of JSON object-key order. PostgreSQL JSONB may reorder keys
+between commits; this must neither reject unchanged account metadata nor excuse
+an actual financial/authority change. Signed bytes and content hashes are unchanged.
 
 Default has a compact event-derived financial view, not a fabricated copy of the
 wide arithmetic work account. Frozen rows retain original cash and claims. Partial

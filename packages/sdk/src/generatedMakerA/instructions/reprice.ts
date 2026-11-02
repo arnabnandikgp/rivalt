@@ -42,11 +42,11 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findCurvePricePda } from "../pdas/index.js";
+import { findCurvePricePda, findEventAuthorityPda } from "../pdas/index.js";
 import { MAKER_A_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const REPRICE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  104, 190, 176, 98, 109, 111, 187, 154,
+  148, 156, 223, 202, 159, 184, 56, 232,
 ]);
 
 export function getRepriceDiscriminatorBytes(): ReadonlyUint8Array {
@@ -140,7 +140,9 @@ export type RepriceAsyncInput<
   actor: TAccountActor;
   config: TAccountConfig;
   price?: TAccountPrice;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   expectedControl: RepriceInstructionDataArgs["expectedControl"];
   expectedSequence: RepriceInstructionDataArgs["expectedSequence"];
@@ -236,6 +238,11 @@ export async function getRepriceInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -285,7 +292,9 @@ export type RepriceInput<
   actor: TAccountActor;
   config: TAccountConfig;
   price: TAccountPrice;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   expectedControl: RepriceInstructionDataArgs["expectedControl"];
   expectedSequence: RepriceInstructionDataArgs["expectedSequence"];
@@ -413,7 +422,9 @@ export type ParsedRepriceInstruction<
     actor: TAccountMetas[0];
     config: TAccountMetas[1];
     price: TAccountMetas[2];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[3];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[4];
   };
   data: RepriceInstructionData;

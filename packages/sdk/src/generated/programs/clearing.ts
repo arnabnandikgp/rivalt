@@ -304,14 +304,16 @@ import {
 } from "../instructions/index.js";
 import {
   findBtcLedgerPda,
+  findBtcPda,
   findCapitalBindingPda,
   findCertificatePda,
   findCustodyPda,
   findEthLedgerPda,
+  findEthPda,
+  findEventAuthorityPda,
   findFundingPublisherPda,
   findLiquidityControllerPda,
   findLiquidityRegistryPda,
-  findMakerEventAuthorityPda,
   findMarginAccountPda,
   findMarketLedgerPda,
   findPagePda,
@@ -956,7 +958,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([166, 6, 187, 7, 126, 14, 139, 6]),
+        new Uint8Array([246, 74, 124, 66, 126, 240, 164, 192]),
       ),
       0,
     )
@@ -967,7 +969,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([158, 125, 88, 198, 4, 88, 115, 45]),
+        new Uint8Array([126, 218, 57, 229, 217, 138, 41, 255]),
       ),
       0,
     )
@@ -978,7 +980,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([73, 100, 212, 184, 126, 4, 162, 29]),
+        new Uint8Array([238, 132, 46, 190, 60, 46, 250, 248]),
       ),
       0,
     )
@@ -989,7 +991,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([136, 174, 199, 147, 44, 36, 124, 250]),
+        new Uint8Array([100, 203, 4, 69, 50, 23, 124, 228]),
       ),
       0,
     )
@@ -1000,7 +1002,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([24, 254, 55, 247, 185, 141, 200, 14]),
+        new Uint8Array([149, 102, 156, 38, 43, 158, 226, 4]),
       ),
       0,
     )
@@ -1011,7 +1013,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([112, 48, 16, 181, 151, 67, 89, 101]),
+        new Uint8Array([249, 193, 141, 17, 196, 101, 226, 246]),
       ),
       0,
     )
@@ -1022,7 +1024,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([21, 81, 56, 88, 183, 171, 83, 40]),
+        new Uint8Array([66, 145, 239, 19, 111, 19, 186, 239]),
       ),
       0,
     )
@@ -1033,7 +1035,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([167, 119, 199, 63, 133, 98, 213, 253]),
+        new Uint8Array([148, 185, 85, 189, 180, 126, 77, 91]),
       ),
       0,
     )
@@ -1044,7 +1046,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([233, 57, 152, 62, 151, 36, 207, 224]),
+        new Uint8Array([35, 140, 150, 47, 61, 125, 54, 188]),
       ),
       0,
     )
@@ -1055,7 +1057,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([110, 142, 188, 144, 187, 218, 246, 26]),
+        new Uint8Array([209, 153, 177, 143, 74, 92, 77, 95]),
       ),
       0,
     )
@@ -1066,7 +1068,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([62, 198, 177, 103, 93, 48, 182, 192]),
+        new Uint8Array([236, 205, 59, 14, 74, 203, 241, 34]),
       ),
       0,
     )
@@ -1077,7 +1079,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([190, 83, 131, 136, 246, 233, 81, 198]),
+        new Uint8Array([54, 26, 137, 113, 59, 182, 53, 225]),
       ),
       0,
     )
@@ -1088,7 +1090,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([135, 248, 38, 135, 220, 118, 42, 215]),
+        new Uint8Array([177, 65, 65, 203, 1, 157, 104, 213]),
       ),
       0,
     )
@@ -1099,7 +1101,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([212, 85, 15, 174, 43, 247, 199, 170]),
+        new Uint8Array([128, 46, 100, 204, 183, 230, 53, 135]),
       ),
       0,
     )
@@ -1110,7 +1112,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([195, 172, 220, 84, 16, 82, 29, 7]),
+        new Uint8Array([168, 103, 155, 184, 217, 71, 251, 209]),
       ),
       0,
     )
@@ -1121,7 +1123,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([159, 255, 180, 192, 47, 160, 38, 65]),
+        new Uint8Array([240, 183, 132, 7, 94, 122, 26, 36]),
       ),
       0,
     )
@@ -1132,7 +1134,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([79, 20, 170, 245, 139, 183, 183, 204]),
+        new Uint8Array([87, 63, 234, 112, 233, 23, 75, 13]),
       ),
       0,
     )
@@ -1143,7 +1145,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([154, 81, 209, 77, 98, 252, 111, 116]),
+        new Uint8Array([183, 78, 104, 116, 183, 15, 47, 61]),
       ),
       0,
     )
@@ -1154,7 +1156,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([128, 207, 5, 82, 159, 26, 204, 242]),
+        new Uint8Array([140, 24, 112, 109, 122, 218, 84, 200]),
       ),
       0,
     )
@@ -1165,7 +1167,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([174, 156, 215, 5, 24, 22, 39, 120]),
+        new Uint8Array([23, 14, 219, 16, 71, 23, 132, 51]),
       ),
       0,
     )
@@ -1176,7 +1178,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([46, 125, 193, 138, 25, 29, 38, 77]),
+        new Uint8Array([122, 218, 127, 187, 191, 112, 159, 32]),
       ),
       0,
     )
@@ -1187,7 +1189,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([22, 214, 118, 0, 73, 219, 158, 150]),
+        new Uint8Array([27, 159, 247, 95, 173, 143, 67, 250]),
       ),
       0,
     )
@@ -1198,7 +1200,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([25, 98, 80, 222, 78, 170, 247, 2]),
+        new Uint8Array([148, 248, 125, 23, 17, 194, 68, 202]),
       ),
       0,
     )
@@ -1209,7 +1211,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([250, 122, 16, 167, 236, 144, 173, 143]),
+        new Uint8Array([239, 81, 3, 85, 25, 155, 68, 160]),
       ),
       0,
     )
@@ -1220,7 +1222,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([239, 190, 155, 70, 222, 88, 62, 74]),
+        new Uint8Array([35, 35, 189, 193, 155, 48, 170, 203]),
       ),
       0,
     )
@@ -1231,7 +1233,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([83, 98, 92, 176, 125, 128, 185, 8]),
+        new Uint8Array([171, 150, 246, 208, 59, 111, 198, 53]),
       ),
       0,
     )
@@ -1242,7 +1244,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([102, 230, 6, 145, 112, 93, 102, 185]),
+        new Uint8Array([65, 159, 220, 107, 114, 82, 191, 244]),
       ),
       0,
     )
@@ -1253,7 +1255,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([131, 207, 144, 94, 233, 148, 193, 145]),
+        new Uint8Array([39, 235, 197, 252, 216, 79, 212, 18]),
       ),
       0,
     )
@@ -1264,7 +1266,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([222, 137, 80, 44, 228, 144, 103, 165]),
+        new Uint8Array([69, 25, 199, 184, 146, 122, 14, 218]),
       ),
       0,
     )
@@ -1275,7 +1277,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([177, 49, 114, 141, 189, 12, 64, 79]),
+        new Uint8Array([234, 97, 182, 215, 70, 97, 13, 87]),
       ),
       0,
     )
@@ -1286,7 +1288,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([97, 21, 211, 203, 242, 247, 254, 77]),
+        new Uint8Array([54, 181, 74, 95, 94, 228, 178, 94]),
       ),
       0,
     )
@@ -1297,7 +1299,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([249, 14, 93, 103, 186, 72, 200, 112]),
+        new Uint8Array([95, 78, 87, 119, 226, 152, 10, 227]),
       ),
       0,
     )
@@ -1308,7 +1310,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([10, 28, 10, 104, 114, 129, 158, 42]),
+        new Uint8Array([149, 199, 146, 251, 166, 53, 71, 27]),
       ),
       0,
     )
@@ -1319,7 +1321,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([117, 16, 202, 186, 1, 19, 96, 124]),
+        new Uint8Array([5, 94, 130, 146, 21, 228, 47, 102]),
       ),
       0,
     )
@@ -1330,7 +1332,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([215, 24, 92, 183, 31, 114, 182, 177]),
+        new Uint8Array([32, 39, 131, 11, 127, 118, 35, 241]),
       ),
       0,
     )
@@ -1341,7 +1343,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([241, 172, 102, 0, 106, 204, 141, 71]),
+        new Uint8Array([132, 146, 86, 13, 219, 126, 148, 43]),
       ),
       0,
     )
@@ -1352,7 +1354,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([148, 196, 189, 82, 173, 14, 171, 133]),
+        new Uint8Array([162, 89, 139, 133, 40, 94, 178, 191]),
       ),
       0,
     )
@@ -1363,7 +1365,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([219, 239, 15, 207, 243, 222, 93, 67]),
+        new Uint8Array([20, 29, 183, 179, 123, 39, 45, 195]),
       ),
       0,
     )
@@ -1374,7 +1376,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([37, 201, 113, 79, 246, 27, 211, 123]),
+        new Uint8Array([238, 192, 252, 155, 240, 56, 252, 251]),
       ),
       0,
     )
@@ -1385,7 +1387,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([18, 5, 57, 115, 223, 186, 54, 240]),
+        new Uint8Array([156, 36, 155, 86, 98, 38, 140, 32]),
       ),
       0,
     )
@@ -1396,7 +1398,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([137, 189, 163, 68, 161, 179, 13, 220]),
+        new Uint8Array([164, 235, 145, 210, 171, 169, 231, 117]),
       ),
       0,
     )
@@ -1407,7 +1409,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([233, 54, 212, 73, 41, 95, 248, 60]),
+        new Uint8Array([205, 185, 237, 201, 15, 220, 100, 203]),
       ),
       0,
     )
@@ -1418,7 +1420,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([190, 79, 178, 22, 255, 147, 201, 4]),
+        new Uint8Array([248, 104, 22, 65, 93, 7, 115, 112]),
       ),
       0,
     )
@@ -1429,7 +1431,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([9, 220, 8, 208, 93, 107, 35, 66]),
+        new Uint8Array([31, 143, 152, 241, 90, 106, 88, 11]),
       ),
       0,
     )
@@ -1440,7 +1442,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([152, 240, 176, 200, 131, 225, 171, 192]),
+        new Uint8Array([210, 218, 26, 12, 123, 193, 213, 209]),
       ),
       0,
     )
@@ -1451,7 +1453,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([250, 140, 65, 24, 51, 121, 96, 88]),
+        new Uint8Array([253, 87, 79, 111, 165, 50, 87, 251]),
       ),
       0,
     )
@@ -1462,7 +1464,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([95, 81, 42, 204, 234, 182, 15, 18]),
+        new Uint8Array([79, 118, 155, 110, 54, 143, 155, 72]),
       ),
       0,
     )
@@ -1473,7 +1475,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([192, 145, 33, 83, 250, 178, 221, 180]),
+        new Uint8Array([155, 89, 210, 42, 245, 176, 201, 73]),
       ),
       0,
     )
@@ -1484,7 +1486,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([139, 215, 4, 127, 183, 174, 98, 189]),
+        new Uint8Array([104, 10, 208, 35, 140, 115, 13, 140]),
       ),
       0,
     )
@@ -1495,7 +1497,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([8, 125, 77, 6, 124, 105, 113, 123]),
+        new Uint8Array([211, 165, 24, 154, 201, 22, 195, 210]),
       ),
       0,
     )
@@ -1506,7 +1508,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([182, 227, 227, 227, 105, 250, 114, 82]),
+        new Uint8Array([192, 57, 45, 195, 49, 172, 22, 255]),
       ),
       0,
     )
@@ -1517,7 +1519,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([236, 141, 236, 121, 133, 175, 96, 152]),
+        new Uint8Array([196, 199, 207, 67, 231, 90, 235, 233]),
       ),
       0,
     )
@@ -1528,7 +1530,7 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([128, 169, 190, 185, 100, 109, 194, 197]),
+        new Uint8Array([143, 109, 72, 169, 117, 203, 249, 57]),
       ),
       0,
     )
@@ -2405,11 +2407,13 @@ export type ClearingPluginInstructions = {
 export type ClearingPluginPdas = {
   custody: typeof findCustodyPda;
   venueSafety: typeof findVenueSafetyPda;
+  btc: typeof findBtcPda;
+  eth: typeof findEthPda;
   btcLedger: typeof findBtcLedgerPda;
   ethLedger: typeof findEthLedgerPda;
   venueVault: typeof findVenueVaultPda;
+  eventAuthority: typeof findEventAuthorityPda;
   liquidityController: typeof findLiquidityControllerPda;
-  makerEventAuthority: typeof findMakerEventAuthorityPda;
   venueRegistry: typeof findVenueRegistryPda;
   fundingPublisher: typeof findFundingPublisherPda;
   portfolio: typeof findPortfolioPda;
@@ -2931,6 +2935,16 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
+          btc: (seeds, pdaConfig) =>
+            findBtcPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          eth: (seeds, pdaConfig) =>
+            findEthPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           btcLedger: (seeds, pdaConfig) =>
             findBtcLedgerPda(seeds, {
               programAddress:
@@ -2946,13 +2960,13 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          liquidityController: (seeds, pdaConfig) =>
-            findLiquidityControllerPda(seeds, {
+          eventAuthority: (pdaConfig) =>
+            findEventAuthorityPda({
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          makerEventAuthority: (pdaConfig) =>
-            findMakerEventAuthorityPda({
+          liquidityController: (seeds, pdaConfig) =>
+            findLiquidityControllerPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

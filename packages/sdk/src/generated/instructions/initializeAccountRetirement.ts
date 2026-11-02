@@ -40,11 +40,15 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findCertificatePda, findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findCertificatePda,
+  findEventAuthorityPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const INITIALIZE_ACCOUNT_RETIREMENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([174, 156, 215, 5, 24, 22, 39, 120]);
+  new Uint8Array([23, 14, 219, 16, 71, 23, 132, 51]);
 
 export function getInitializeAccountRetirementDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -141,7 +145,9 @@ export type InitializeAccountRetirementAsyncInput<
   safety?: TAccountSafety;
   certificate?: TAccountCertificate;
   systemProgram?: TAccountSystemProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
 };
 
@@ -269,6 +275,11 @@ export async function getInitializeAccountRetirementInstructionAsync<
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -331,7 +342,9 @@ export type InitializeAccountRetirementInput<
   safety: TAccountSafety;
   certificate: TAccountCertificate;
   systemProgram?: TAccountSystemProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
 };
 
@@ -492,7 +505,9 @@ export type ParsedInitializeAccountRetirementInstruction<
     safety: TAccountMetas[2];
     certificate: TAccountMetas[3];
     systemProgram: TAccountMetas[4];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[5];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[6];
   };
   data: InitializeAccountRetirementInstructionData;

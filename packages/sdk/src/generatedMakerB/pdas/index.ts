@@ -8,3 +8,4 @@
 
 export * from "./curveConfig.js";
 export * from "./curvePrice.js";
+export * from "./eventAuthority.js";

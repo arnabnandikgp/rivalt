@@ -4,8 +4,70 @@ P39–P44 are integrated at `6b14e8a` within their bounded engineering scope. Th
 document owns the audit, comparison methodology and recorded delivery gates;
 the clearing/liquidity/application documents own current financial rules and
 layouts. The baseline-A audit below preserves the pre-redesign snapshot. Integration
-is not a public deployment. Anchor v2 migration is a
-separate evaluation after the pre-migration baseline, not part of these phases.
+is not a public deployment. The completed P47 local
+qualification below compares Anchor RC2 against that immutable pre-migration baseline;
+[STATUS](../STATUS.md) records the open PRs separately from integration.
+
+## RC2 qualification measurements (P47)
+
+The focused observations below belong to P47’s completed local qualification. The
+[bounded C0 inventory](../../tests/performance/baselines/p47-c0.json) covers all
+61 public entrypoints on uninstrumented SBF source `366c7ab`; it separates
+2,520 observed executions from 2,493 unique signed originals. Inclusive instruction
+CU contains child CPIs; do not sum parent and child. Per-entrypoint quantiles are
+heterogeneous observed populations, not repeated identical trials or worst cases.
+
+The [focused comparison](../../tests/performance/baselines/p47-comparison.json)
+compares immutable B `fb5d0c5` / verifier `1e86661` with C0 / verifier `a01da5d`.
+Compiler, SBPF architecture, Surfpool, scripted workload, signed access, requested
+budgets and fees agree. Authenticated event replay compares **33,682 field values
+across 22 before/after states**: roots, cash, unpaid/fractional claims, positions,
+funding checkpoints, books, ledgers, carries, permissions and revisions all match
+under the explicit fresh schema/domain/address mapping. Unix timestamps share one
+uniform origin offset. **330 slot and 176 code/input-digest witnesses differ** and
+remain in the local detailed report; these are not exact input matches or a pure
+Anchor microbenchmark. No C1 zero-copy conversion is present. Smaller authenticated
+maker binaries contribute to route savings alongside framework/codec/CPI changes.
+
+| Focused transaction | B CU | C0 CU | Observed reduction |
+|---|---:|---:|---:|
+| trade btc-single | 256,160 | 154,261 | 39.8% |
+| trade eth-single | 273,918 | 158,955 | 42.0% |
+| trade isolated-single | 264,666 | 155,072 | 41.4% |
+| trade btc-pair-shared-program | 350,792 | 197,730 | 43.6% |
+| trade btc-pair-distinct-programs | 478,042 | 278,984 | 41.6% |
+| trade stale-account-rejection | 33,313 | 9,494 | 71.5% |
+| order place | 46,352 | 30,115 | 35.0% |
+| order cancel | 38,925 | 22,898 | 41.2% |
+| reprice 0 | 18,250 | 10,002 | 45.2% |
+| reprice 1 | 18,250 | 10,002 | 45.2% |
+| funding 0 | 32,523 | 21,953 | 32.5% |
+| funding 1 | 32,524 | 21,955 | 32.5% |
+
+Each row is one observation. The rejected stale-account row is not a successful
+fill. Trade budgets remain 800,000 CU and other focused budgets 400,000 CU; all
+rows retain two signatures, zero priority bid and **10,000 actual fee lamports**.
+Reduced consumption alone saves no paid fee at those unchanged bids. The current
+service/browser population uses separate role payers and usually one signature;
+its fees must not be conflated with this two-signature harness population.
+
+Reproduce after retaining the named local runs and artifacts:
+
+```sh
+source ops/env.sh
+RIVALT_ARTIFACT_DIR=.local/anchor-rc2/c0-366c7ab node --import tsx \
+  tests/performance/migration-comparison.ts \
+  .local/liquidity-execution/runs/p43-after .local/anchor-rc2/p47-profile-a01da5d
+```
+
+The reader loads B's immutable schema-7 projection modules in an ignored isolated
+reader; it never relaxes the current schema-8 journal. Five mutation regressions
+reject changed cash, claims, carries, relative time, funding checkpoint, order
+ordering and field shape. The C0 wrapper initially mislabeled its summary as
+instrumented; the reader permits that metadata correction only at exact `a01da5d`,
+then checks the unchanged uninstrumented C0 source and actual admitted binary hashes.
+Frozen B is never rewritten. The fresh resource/load/worker envelope is recorded below;
+[STATUS](../STATUS.md) distinguishes qualification from PR integration.
 
 ## Scope and comparison points
 
@@ -22,7 +84,7 @@ Default/devnet gates and P15B/P16B remain; continuous 24-hour endurance is Defer
 - **B: pre-Anchor-v2 baseline.** Exact accepted P44 revision, after contention and
   targeted CU work. Full supported instruction/variant/workflow coverage; no
   successful path may be silently represented by a rejection or an old binary.
-- **C: future migration comparison.** Same economic inputs, fixtures, transaction
+- **C0: serialized RC2 migration comparison.** Same economic inputs, fixtures, transaction
   shapes and safety requirements. Pin Anchor/runtime/compiler independently. If a
   runtime/toolchain change is required, run old code under the new environment as
   a bridge where compatible; otherwise label combined effects honestly.
@@ -356,7 +418,7 @@ The probe cannot sustain fresh complete publication/recovery under the 50 ms loc
 slot schedule. This is an operational conflict, not evidence of excessive on-chain
 market locks or permission to release ambiguous originals.
 
-The accepted service qualification configures each internal maker's existing updater
+The accepted service qualification and normal local demo configure each internal maker's existing updater
 authority and each market publisher as distinct signers and fee payers, funded with
 test SOL, while retaining owner/capital identities. The intermediate maker-only key
 split still leaves publisher starvation: finalized reservations on their shared
@@ -370,79 +432,180 @@ separates maker costs from venue costs, requested-CU v0 bids from explicit v1 bi
 and retained protocol revenue from insurance. Inputs are assumptions; use measured
 receipts to choose a base case. It does not forecast landing, hedge cost or revenue.
 
-## Frozen instruction cost reference
+## Current instruction cost reference (RC2 C0)
+
+The immutable [pre-migration B inventory](../../tests/performance/baselines/p44-pre-v2.json)
+remains available separately. This table uses the 61-entrypoint
+[C0 inventory](../../tests/performance/baselines/p47-c0.json), 2,520 executions
+from 2,493 unique originals. The populations differ from B; range endpoints are
+not paired percentage comparisons.
 
 CU below is the inclusive invocation range in successful transactions, including child
 CPI. Transaction CU includes every batched instruction and is stored separately in the
 bounded baseline. Never sum parent and child CU. These are observed cases, not
 worst-case ceilings. Maker control calls occur through clearing; quote calls may be
-read-only simulations or execution CPI.
+standalone submitted probes or execution CPI. This table contains actual fetched
+transactions, not simulation-only coverage. Default wide-scratch cases are separate
+below and do not establish payout history.
 
 | Instruction | Caller | Observed inclusive CU | Main scaling / contention dependency |
 |---|---|---:|---|
-| `clearing.activate_liquidity` | Venue authority | 49,936 | Fixed selected market / registry bounds |
-| `clearing.advance_account_resolution` | Permissionless keeper/proposer | 235,585–392,895 | Stage/page count and rational width; not linear CU per added maker |
-| `clearing.allocate_market_fees` | Fee authority | 16,833 | One market ledger; withdrawal uses token gateway |
-| `clearing.approve_liquidity` | Maker owner + venue approval | 221,092 | One maker; complete approved-code hash |
-| `clearing.check_account_resolution_order` | Permissionless keeper/proposer | 236,342–280,734 | Stage/page count and rational width; not linear CU per added maker |
-| `clearing.check_account_retirement` | Permissionless keeper | 65,626–65,712 | Two roots/page; total full scan grows with cohort |
-| `clearing.check_market_backing` | Permissionless keeper | 41,241–54,687 | Two roots/page; total full scan grows with cohort |
-| `clearing.classify_market_surplus` | Reserve authority | 22,385 | Selected ledger + actual token custody |
-| `clearing.collect_account_loss` | Any keeper/payer | 57,417–68,504 | Whole root + relevant markets; gain requires valid backing certificate |
-| `clearing.configure_funding_publisher` | Venue authority | 23,001–23,610 | Fixed selected market / registry bounds |
-| `clearing.control_liquidity` | Maker owner / co-signer for scoped control | 210,784–248,563 | One maker/config; code hash and <=8 regions |
-| `clearing.create_portfolio` | Owner | 21,435–30,438 | Fixed layout; registration traverses bounded registry |
-| `clearing.deposit_account` | Owner | 36,559–48,533 | Selected roots; token gateways share vault/custody |
-| `clearing.execute_liquidity_order` | Keeper using stored authority | 274,125–503,488 | Same bounded route plus stored order / protection |
-| `clearing.execute_liquidity_route` | Owner/delegate | 255,216–504,141 | <=2 selected maker capitals / programs; whole-account financial admission |
-| `clearing.finalize_account_resolution_rates` | Permissionless keeper/proposer | 260,384–298,447 | Stage/page count and rational width; not linear CU per added maker |
-| `clearing.freeze_accounts` | Keeper for default; authority for source emergency | 228,903–261,785 | Complete membership binding; global safety barrier |
-| `clearing.initialize_account_resolution` | Any storage payer | 167,419 | Fixed account/page sizes; setup count grows with membership |
-| `clearing.initialize_account_resolution_page` | Any storage payer | 80,446–92,446 | Fixed account/page sizes; setup count grows with membership |
-| `clearing.initialize_account_retirement` | Any storage payer | 17,535 | Fixed account/page sizes; setup count grows with membership |
-| `clearing.initialize_funding_publisher` | Venue authority | 30,166–33,166 | Fixed selected market / registry bounds |
-| `clearing.initialize_liquidity` | Venue authority | 21,883 | Fixed selected market / registry bounds |
-| `clearing.initialize_liquidity_oracle` | Venue authority | 29,036–33,534 | Fixed selected market / registry bounds |
-| `clearing.initialize_liquidity_venue` | Verified upgrade authority | 39,365 | One venue initialization |
-| `clearing.initialize_market` | Venue authority | 32,160–41,160 | Fixed selected market / registry bounds |
-| `clearing.initialize_market_backing` | Any storage payer | 19,720–24,220 | Fixed account/page sizes; setup count grows with membership |
-| `clearing.initialize_venue_registry` | Venue authority | 22,941 | Fixed selected market / registry bounds |
-| `clearing.liquidate_account` | Consenting receiver owner | 98,590 | Target + receiver, relevant markets, whole books and strict fee-adjusted progress |
-| `clearing.manage_account_order` | Owner/delegate; cleanup keeper | 37,490–60,684 | Whole account, <=4 orders / 2 protections |
-| `clearing.net_account_claims` | Owner, explicit flat net | 70,182 | Two markets and valid source certificate |
-| `clearing.order_account_resolution` | Permissionless keeper/proposer | 203,414–231,247 | Stage/page count and rational width; not linear CU per added maker |
-| `clearing.pause_venue` | Venue authority | 24,422–24,424 | Fixed selected market / registry bounds |
-| `clearing.pay_account_gain` | Any keeper/payer | 68,473–72,331 | Whole root + relevant markets; gain requires valid backing certificate |
-| `clearing.propose_account_resolution` | Permissionless keeper/proposer | 204,024–232,803 | Stage/page count and rational width; not linear CU per added maker |
-| `clearing.publish_funding_report` | Restricted market publisher | 30,777–32,075 | No maker scan on-chain; backend covers all 3 makers |
-| `clearing.quarantine_liquidity` | Venue authority | 28,529 | Fixed selected market / registry bounds |
-| `clearing.reactivate_accounts` | Venue authority | 101,979 | Both qualified markets; fixed current bounds |
-| `clearing.recover_accounts` | Keeper observation; authority to resume | 96,379–101,868 | Complete resolved-state and source checks |
-| `clearing.register_liquidity` | Maker owner + venue approval | 183,913–198,418 | One maker; complete approved-code hash |
-| `clearing.register_margin` | Owner | 36,800–51,719 | Fixed layout; registration traverses bounded registry |
-| `clearing.replenish_liquidity` | Maker owner / co-signer for scoped control | 182,736–187,275 | One maker/config; code hash and <=8 regions |
-| `clearing.retire_accounts` | Venue authority | 52,189 | Fixed selected market / registry bounds |
-| `clearing.round_account_resolution` | Permissionless keeper/proposer | 210,736–236,930 | Stage/page count and rational width; not linear CU per added maker |
-| `clearing.seal_liquidity` | Venue authority | 23,440 | Fixed selected market / registry bounds |
-| `clearing.seed_market_insurance` | Reserve authority + donor | 29,300–29,304 | One market and actual SPL token transfer |
-| `clearing.set_account_delegate` | Owner | 27,456–27,478 | One root; no market or maker dependency |
-| `clearing.transfer_account_custody` | Owner | 43,817–43,821 | Selected roots; token gateways share vault/custody |
-| `clearing.transfer_funded_account` | Owner | 82,263–93,523 | Relevant markets and whole touched root books; no all-maker scan |
-| `clearing.value_account_resolution` | Permissionless keeper | 143,837 | Both source markets; complete resolution epoch |
-| `clearing.withdraw_account_custody` | Owner | 48,621–48,625 | Selected roots; token gateways share vault/custody |
-| `clearing.withdraw_funded_account` | Owner | 46,327–86,783 | Relevant markets and whole touched root books; no all-maker scan |
-| `clearing.withdraw_market_fees` | Fee authority | 30,016 | One market ledger; withdrawal uses token gateway |
-| `clearing.withdraw_retired_reserve` | Reserve authority | 33,044 | Selected ledger + actual token custody |
-| `maker_a.control_curve` | Clearing controller PDA via CPI | 32,435–44,152 | Selected maker, <=8 regions |
-| `maker_a.initialize_curve` | Maker owner | 56,078–69,088 | One config / price pair, <=8 regions |
-| `maker_a.quote_curve` | Router simulation or clearing CPI | 16,600–20,047 | Selected maker, <=8 regions and supported quantity |
-| `maker_a.reprice` | Owner or restricted updater | 17,800–18,810 | One maker price account; independent payers avoid artificial shared locks |
-| `maker_b.control_curve` | Clearing controller PDA via CPI | 32,435–38,386 | Selected maker, <=8 regions |
-| `maker_b.initialize_curve` | Maker owner | 56,078–66,088 | One config / price pair, <=8 regions |
-| `maker_b.quote_curve` | Router simulation or clearing CPI | 16,573–19,840 | Selected maker, <=8 regions and supported quantity |
-| `maker_b.reprice` | Owner or restricted updater | 17,800–18,810 | One maker price account; independent payers avoid artificial shared locks |
+| `clearing.activate_liquidity` | Venue authority | 20,553 | Fixed selected market / registry bounds |
+| `clearing.advance_account_resolution` | Permissionless keeper/proposer | 27,964–187,059 | Stage/page count and rational width; not linear CU per added maker |
+| `clearing.allocate_market_fees` | Fee authority | 13,022 | One market ledger; withdrawal uses token gateway |
+| `clearing.approve_liquidity` | Maker owner + venue approval | 127,740 | One maker; complete approved-code hash |
+| `clearing.check_account_resolution_order` | Permissionless keeper/proposer | 28,705–71,038 | Stage/page count and rational width; not linear CU per added maker |
+| `clearing.check_account_retirement` | Permissionless keeper | 26,277–26,378 | Two roots/page; total full scan grows with cohort |
+| `clearing.check_market_backing` | Permissionless keeper | 27,418–38,081 | Two roots/page; total full scan grows with cohort |
+| `clearing.classify_market_surplus` | Reserve authority | 14,977 | Selected ledger + actual token custody |
+| `clearing.collect_account_loss` | Any keeper/payer | 32,372–38,036 | Whole root + relevant markets; gain requires valid backing certificate |
+| `clearing.configure_funding_publisher` | Venue authority | 14,809–15,418 | Fixed selected market / registry bounds |
+| `clearing.control_liquidity` | Maker owner / co-signer for scoped control | 125,193–136,092 | One maker/config; code hash and <=8 regions |
+| `clearing.create_portfolio` | Owner | 15,296–15,990 | Fixed layout; registration traverses bounded registry |
+| `clearing.deposit_account` | Owner | 24,250–30,825 | Selected roots; token gateways share vault/custody |
+| `clearing.execute_liquidity_order` | Keeper using stored authority | 162,010–304,545 | Same bounded route plus stored order / protection |
+| `clearing.execute_liquidity_route` | Owner/delegate | 153,322–305,080 | <=2 selected maker capitals / programs; whole-account financial admission |
+| `clearing.finalize_account_resolution_rates` | Permissionless keeper/proposer | 80,827–120,995 | Stage/page count and rational width; not linear CU per added maker |
+| `clearing.freeze_accounts` | Keeper for default; authority for source emergency | 43,021–74,638 | Complete membership binding; global safety barrier |
+| `clearing.initialize_account_resolution` | Any storage payer | 14,774 | Fixed account/page sizes; setup count grows with membership |
+| `clearing.initialize_account_resolution_page` | Any storage payer | 13,055–14,379 | Fixed account/page sizes; setup count grows with membership |
+| `clearing.initialize_account_retirement` | Any storage payer | 9,558 | Fixed account/page sizes; setup count grows with membership |
+| `clearing.initialize_funding_publisher` | Venue authority | 17,472–18,114 | Fixed selected market / registry bounds |
+| `clearing.initialize_liquidity` | Venue authority | 15,349–15,670 | Fixed selected market / registry bounds |
+| `clearing.initialize_liquidity_oracle` | Venue authority | 16,142–17,156 | Fixed selected market / registry bounds |
+| `clearing.initialize_liquidity_venue` | Verified upgrade authority | 21,231–21,555 | One venue initialization |
+| `clearing.initialize_market` | Venue authority | 18,423–21,685 | Fixed selected market / registry bounds |
+| `clearing.initialize_market_backing` | Any storage payer | 13,888 | Fixed account/page sizes; setup count grows with membership |
+| `clearing.initialize_venue_registry` | Venue authority | 15,972–16,293 | Fixed selected market / registry bounds |
+| `clearing.liquidate_account` | Consenting receiver owner | 58,728 | Target + receiver, relevant markets, whole books and strict fee-adjusted progress |
+| `clearing.manage_account_order` | Owner/delegate; cleanup keeper | 21,501–39,345 | Whole account, <=4 orders / 2 protections |
+| `clearing.net_account_claims` | Owner, explicit flat net | 38,111 | Two markets and valid source certificate |
+| `clearing.order_account_resolution` | Permissionless keeper/proposer | 25,914–49,239 | Stage/page count and rational width; not linear CU per added maker |
+| `clearing.pause_venue` | Venue authority | 15,966 | Fixed selected market / registry bounds |
+| `clearing.pay_account_gain` | Any keeper/payer | 38,988–40,195 | Whole root + relevant markets; gain requires valid backing certificate |
+| `clearing.propose_account_resolution` | Permissionless keeper/proposer | 26,708–53,264 | Stage/page count and rational width; not linear CU per added maker |
+| `clearing.publish_funding_report` | Restricted market publisher | 16,708–21,505 | No maker scan on-chain; backend covers all 3 makers |
+| `clearing.quarantine_liquidity` | Venue authority | 16,690 | Fixed selected market / registry bounds |
+| `clearing.reactivate_accounts` | Venue authority | 33,007 | Both qualified markets; fixed current bounds |
+| `clearing.recover_accounts` | Keeper observation; authority to resume | 27,498–33,108 | Complete resolved-state and source checks |
+| `clearing.register_liquidity` | Maker owner + venue approval | 112,855–118,194 | One maker; complete approved-code hash |
+| `clearing.register_margin` | Owner | 19,397–20,779 | Fixed layout; registration traverses bounded registry |
+| `clearing.replenish_liquidity` | Maker owner / co-signer for scoped control | 106,234–106,811 | One maker/config; code hash and <=8 regions |
+| `clearing.retire_accounts` | Venue authority | 22,007 | Fixed selected market / registry bounds |
+| `clearing.round_account_resolution` | Permissionless keeper/proposer | 33,246–57,340 | Stage/page count and rational width; not linear CU per added maker |
+| `clearing.seal_liquidity` | Venue authority | 16,112 | Fixed selected market / registry bounds |
+| `clearing.seed_market_insurance` | Reserve authority + donor | 22,899–22,900 | One market and actual SPL token transfer |
+| `clearing.set_account_delegate` | Owner | 16,519–16,541 | One root; no market or maker dependency |
+| `clearing.transfer_account_custody` | Owner | 24,779–24,783 | Selected roots; token gateways share vault/custody |
+| `clearing.transfer_funded_account` | Owner | 48,729–54,486 | Relevant markets and whole touched root books; no all-maker scan |
+| `clearing.value_account_resolution` | Permissionless keeper | 73,809 | Both source markets; complete resolution epoch |
+| `clearing.withdraw_account_custody` | Owner | 30,868–30,872 | Selected roots; token gateways share vault/custody |
+| `clearing.withdraw_funded_account` | Owner | 27,646–53,749 | Relevant markets and whole touched root books; no all-maker scan |
+| `clearing.withdraw_market_fees` | Fee authority | 22,685 | One market ledger; withdrawal uses token gateway |
+| `clearing.withdraw_retired_reserve` | Reserve authority | 24,545 | Selected ledger + actual token custody |
+| `maker_a.control_curve` | Clearing controller PDA via CPI | 11,384–14,279 | Selected maker, <=8 regions |
+| `maker_a.initialize_curve` | Maker owner | 22,881–25,862 | One config / price pair, <=8 regions |
+| `maker_a.quote_curve` | Router simulation or clearing CPI | 6,758–10,205 | Selected maker, <=8 regions and supported quantity |
+| `maker_a.reprice` | Owner or restricted updater | 9,552–10,562 | One maker price account; independent payers avoid artificial shared locks |
+| `maker_b.control_curve` | Clearing controller PDA via CPI | 9,554–13,123 | Selected maker, <=8 regions |
+| `maker_b.initialize_curve` | Maker owner | 20,788–22,813 | One config / price pair, <=8 regions |
+| `maker_b.quote_curve` | Router simulation or clearing CPI | 6,758–9,998 | Selected maker, <=8 regions and supported quantity |
+| `maker_b.reprice` | Owner or restricted updater | 7,722–8,732 | One maker price account; independent payers avoid artificial shared locks |
 
-## Bounded load and operating envelope
+## RC2 resource, load and cost envelope (P47)
+
+Uninstrumented binaries use the same platform-tools v1.52 / SBPF v0 compiler:
+
+| Program | Frozen B bytes | C0 bytes | Size reduction |
+|---|---:|---:|---:|
+| clearing | 2,484,144 | 1,537,824 | 38.1% |
+| maker_a | 261,056 | 166,712 | 36.1% |
+| maker_b | 261,056 | 166,712 | 36.1% |
+| oracle_fixture | 168,720 | 60,288 | 64.3% |
+
+The complete current full-book route reaches **305,080 transaction CU** and the
+stored-order route **304,995 CU**, both within unchanged 800,000-CU requests.
+The 64-member real default reaches **187,509 transaction CU** in the recorded
+continuation population. Its 56 added members are flat. Eight separate compiled
+scratch-only wide cases reach **572,668 CU** at 5,632-bit double-debt verification;
+those cases neither Apply nor pay claims. All fit their 1,200,000-CU requests.
+C0 and devnet-feature builds have no unsafe stack diagnostics; no peak heap usage
+is returned or inferred. Signed heap requests are absent in the harness inventory;
+loaded-data limits are explicit 8 MiB where present. Missing observed loaded-data
+bytes stay null. Successful maximum cases establish observed fit, not unbounded
+arithmetic capacity or a recommendation to reduce every instruction’s budget.
+
+The same-program two-maker focused route is **1.28×** the BTC singleton; distinct
+maker programs are **1.81×**. It still hashes the complete approved program data.
+More *published* makers affect backend collection/allocation and operator updates;
+only selected capitals/programs affect the bounded atomic route. Three makers per
+market and two selected capitals remain the supported limit. Unchanged signed
+write dependencies, source safeguards and fee requests remain unchanged constraints.
+No migration percentage is inferred from heterogeneous per-entrypoint ranges.
+
+Clean `1a893ed` runs the P44 policy unchanged: 2/8/32 offered actions per second,
+eight-second offered windows plus finality drain, at most four in flight, 50 ms
+Surfpool slots, eight-core Apple M3 / Darwin 25.5.0 / Node 24.22.0 / PG 18.6.
+It runs without another Rivalt integration workload on the host. This exercises
+the application and local node, not a production validator scheduling benchmark.
+
+| Workload | Offers/s | Offered | Submitted | Fills | Rejected | Unsubmitted | Confirmed p95 ms | Finalized p95 ms |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| same-cross-concentrated | 2 | 16 | 16 | 16 | 0 | 0 | 155 | 1798 |
+| same-cross-concentrated | 8 | 64 | 64 | 62 | 2 | 0 | 239 | 1831 |
+| same-cross-concentrated | 32 | 256 | 83 | 65 | 18 | 173 | 215 | 1829 |
+| same-market-spread | 2 | 16 | 16 | 16 | 0 | 0 | 208 | 1821 |
+| same-market-spread | 8 | 64 | 62 | 62 | 0 | 2 | 244 | 1831 |
+| same-market-spread | 32 | 256 | 75 | 69 | 6 | 181 | 257 | 1849 |
+| disjoint-isolated | 2 | 16 | 16 | 16 | 0 | 0 | 289 | 1843 |
+| disjoint-isolated | 8 | 64 | 60 | 60 | 0 | 4 | 276 | 1828 |
+| disjoint-isolated | 32 | 256 | 74 | 67 | 7 | 182 | 250 | 1833 |
+
+Totals: **1,008 offers, 471 constructions, 466 unique submitted/finalized originals,
+433 fills, 33 on-chain FinancialSequence rejections, 542 unsubmitted** (537
+generator-inflight limits / five duplicate signed originals). Expired and unresolved
+are zero. The overall fill/offer fraction is **42.96%**; fill/submitted is **92.92%**.
+Neither is sustained venue availability. All nine denominators/reasons remain in
+the retained summary. Lower CU does not remove the generator’s four-in-flight cap,
+root-version races or per-market contention. One finite run cannot establish a
+statistical improvement over B’s 430/1,008 fills.
+
+Live indexing obtains **two coherent cycles / 33 revision-ahead retries**, matching
+B’s observed cycle counts. After activity stops, final and fresh replay agree on
+588 events, nine members/72 accounts and 9,000,000 vault atoms. Continuous coherent
+read-API readiness remains unproved. Parent process use is 98.867 s user CPU,
+3.498 s system CPU and 562,528,256 bytes ending RSS; child processes are excluded.
+The retained load offers file initially omitted NDJSON separators; the complete
+summary owns all 1,008 offers. Future logging adds separators without recapturing
+or relabeling this run.
+
+Actual zero-priority load fees are **2,330,000 lamports**, about **5,381 lamports per
+successful fill** including rejected originals. Requested budgets are unchanged;
+C0 reduces consumed CU, not the paid fee at these bids. The pre-migration cost
+scenario formulas below therefore still apply: hypothetical 10,000 micro-lamports
+per requested CU adds 8,000 lamports to an 800,000-CU v0 route, while v1 explicitly
+specifies priority lamports. No fee-market/landing guarantee or observed SOL price
+is implied. Lower budgets require a separately scoped, maximum-case headroom check.
+
+The **separate** clean `b0b62ff` service population has 468 durable originals:
+355 maker reprices cost 1,775,000 lamports; 103 reports cost 515,000 (11 rejected
+FundingReport originals included); nine wallet actions cost 45,000; one order
+worker fill costs 5,000. Total **2,340,000 lamports**, excluding setup/rent/sources
+and browser originals sent directly. Successful actual transaction CU is
+8,172–10,002 for reprices, 21,953–21,955 for available reports and 158,674 for the
+stored-order worker. Original/role timing distributions include injected crashes
+and reservation waits; they are not all offered worker polls or pure RPC latency.
+
+Reproduce actual role costs with
+`node --import tsx tests/performance/operator-summary.ts .local/anchor-rc2/p47-services-jsonb`.
+The signed-wire resource parser checks v0/v1 heap/data requests separately from
+consumption; four new cases plus eight receipt-attribution cases pass. Full B
+replay still reproduces its unchanged 53,089-byte summary. Raw B/C receipts stay
+local, and the 256 KiB aggregate / 64 KiB per-file tracked-summary limits remain.
+Independent maker profitability, paid oracle operation, external hedges, funded
+pilot readiness and continuous 24-hour endurance are outside this qualification.
+
+## Pre-migration bounded load and operating envelope
 
 ### Initial measurement before parallel indexer reads
 

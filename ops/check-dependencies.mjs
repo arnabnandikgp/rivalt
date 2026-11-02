@@ -36,6 +36,9 @@ assert.equal(versions.get('@solana/wallet-adapter'), '3.1.1');
 if (!runtimeOnly) for (const [name, expected] of [['@anchor-lang/core', '1.2.1'], ['@solana/web3.js', '1.99.0']]) {
   assert.equal(JSON.parse(readFileSync(`tests/anchor-conformance/node_modules/${name}/package.json`)).version, expected);
 }
+if (!runtimeOnly) for (const [name, expected] of [['@anchor-lang/core', '2.0.0-rc.2'], ['@solana/kit', '8.3.0']]) {
+  assert.equal(JSON.parse(readFileSync(`tests/anchor-rc2-conformance/node_modules/${name}/package.json`)).version, expected);
+}
 const custodyTestPackages = Object.fromEntries([
   ['litesvm', '1.6.1'], ['@solana-program/token', '0.18.0'], ['@solana-program/system', '0.16.0'],
 ].map(([name, expected]) => {

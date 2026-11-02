@@ -1,7 +1,7 @@
 //! Shared instruction payloads. Field order is a pinned wire contract.
 use anchor_lang::prelude::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, IdlType)]
 pub struct OrderTerms {
     pub side: u8,
     pub lots: u64,
@@ -15,7 +15,7 @@ pub struct OrderTerms {
     pub generation: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct OrderExecution {
     pub id: u64,
     pub version: u64,
@@ -27,14 +27,14 @@ pub struct OrderExecution {
     pub legs: Vec<RouteLeg>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct RouteLeg {
     pub lots: u64,
     pub quote_epoch: u64,
     pub authority_epoch: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct RouteIntent {
     pub domain: [u8; 32],
     pub terms_epoch: u64,

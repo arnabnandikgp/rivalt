@@ -36,7 +36,7 @@ import {
 } from "../types/index.js";
 
 export const MAKER_SHAPE_UPDATED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([52, 132, 184, 47, 231, 114, 255, 196]);
+  new Uint8Array([69, 146, 222, 135, 172, 220, 72, 170]);
 
 export function getMakerShapeUpdatedEventDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(

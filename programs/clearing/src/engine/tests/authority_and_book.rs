@@ -6,7 +6,7 @@ fn margin_root() -> MarginAccount {
         schema_version: SCHEMA_VERSION,
         mode: MODE_CROSS,
         isolated_market_index: 255,
-        owner: Pubkey::new_from_array([1; 32]),
+        owner: Address::new_from_array([1; 32]),
         delegate_epoch: 1,
         cash: 1_000,
         ..MarginAccount::default()
@@ -16,7 +16,7 @@ fn margin_root() -> MarginAccount {
 #[test]
 fn owner_and_exclusive_delegate_authority_are_root_scoped() {
     let mut root = margin_root();
-    let delegate = Pubkey::new_from_array([2; 32]);
+    let delegate = Address::new_from_array([2; 32]);
     assert_eq!(trade_authority(&root, root.owner, 100).unwrap(), 0);
     assert!(trade_authority(&root, delegate, 100).is_err());
     root.delegate = delegate;
@@ -53,7 +53,7 @@ fn malformed_authority_and_cross_maker_identity_reject() {
     assert!(model(&root).is_err());
     root.delegate = root.owner;
     assert!(model(&root).is_err());
-    root.delegate = Pubkey::new_unique();
+    root.delegate = Address::new_unique();
     assert!(model(&root).is_ok());
 }
 
@@ -63,7 +63,7 @@ fn owner_grants_revoke_old_intents_and_orders_without_moving_cash_or_fractions()
     let mut root = margin_root();
     root.cash = 1_000_000;
     root.positions[0].virtual_scaled = -300_000_000;
-    let delegate = Pubkey::new_from_array([2; 32]);
+    let delegate = Address::new_from_array([2; 32]);
     let mut granted = authority::candidate(&root, root.owner, delegate, 200, 100).unwrap();
     assert_eq!(
         (granted.delegate_epoch, granted.nonce, granted.state_version),
@@ -86,7 +86,7 @@ fn owner_grants_revoke_old_intents_and_orders_without_moving_cash_or_fractions()
         2,
     )
     .unwrap();
-    let revoked = authority::candidate(&granted, root.owner, Pubkey::default(), 0, 100).unwrap();
+    let revoked = authority::candidate(&granted, root.owner, Address::default(), 0, 100).unwrap();
     assert_eq!((revoked.delegate_epoch, revoked.nonce), (3, 2));
     assert!(revoked.book.orders[0].order.active());
     assert!(!revoked.book.orders[1].order.active());
@@ -101,7 +101,7 @@ fn owner_grants_revoke_old_intents_and_orders_without_moving_cash_or_fractions()
     assert!(authority::candidate(&root, root.owner, root.owner, 200, 100).is_err());
     assert!(authority::candidate(&root, root.owner, delegate, 100, 100).is_err());
     assert!(authority::candidate(&root, root.owner, delegate, 216_101, 100).is_err());
-    assert!(authority::candidate(&root, root.owner, Pubkey::default(), 200, 100).is_err());
+    assert!(authority::candidate(&root, root.owner, Address::default(), 200, 100).is_err());
     assert!(authority::candidate(&granted, root.owner, delegate, 200, 100).is_err());
     assert!(authority::candidate(
         &MarginAccount {
@@ -136,7 +136,7 @@ fn stored_execution_checks_actual_market_and_live_delegate_before_quotes() {
     let markets = book_markets();
     let mut root = margin_root();
     root.cash = 1_000_000;
-    let delegate = Pubkey::new_from_array([2; 32]);
+    let delegate = Address::new_from_array([2; 32]);
     let granted = authority::candidate(&root, root.owner, delegate, 110, 100).unwrap();
     let order = book::place_with_environment(
         &granted,
@@ -159,7 +159,7 @@ fn stored_execution_checks_actual_market_and_live_delegate_before_quotes() {
     let group = Venue::default();
     let clock = Clock {
         slot: 109,
-        ..Clock::default()
+        ..crate::test_support::clock()
     };
     assert!(routes::stored_intent(&group, &markets[1], &order, execution(), &clock).is_ok());
     assert!(routes::stored_intent(&group, &markets[0], &order, execution(), &clock).is_err());
@@ -171,7 +171,7 @@ fn stored_execution_checks_actual_market_and_live_delegate_before_quotes() {
         &Clock { slot: 110, ..clock }
     )
     .is_err());
-    let revoked = authority::candidate(&order, root.owner, Pubkey::default(), 0, 109).unwrap();
+    let revoked = authority::candidate(&order, root.owner, Address::default(), 0, 109).unwrap();
     assert!(routes::stored_intent(&group, &markets[1], &revoked, execution(), &clock).is_err());
 }
 
@@ -191,10 +191,7 @@ fn book_markets() -> [Market; 2] {
         }
     })
 }
-fn book_environment(
-    markets: &[Market; 2],
-    selected: usize,
-) -> crate::engine::book::Environment<'_> {
+fn book_environment(markets: &[Market; 2], selected: usize) -> crate::engine::book::Environment {
     crate::engine::book::Environment {
         markets: [Some(&markets[0]), Some(&markets[1])],
         selected,
@@ -235,7 +232,12 @@ fn whole_book_sums_both_market_reserves_and_rejects_missing_or_wrong_market() {
     assert!(model(&both).unwrap().withdraw(1, eth.risks()).is_err());
     // A cross root with no ETH obligations can place using BTC alone. Once ETH
     // authority exists, neither cancellation nor a new BTC action can omit it.
-    assert_eq!(book::place(&root, &markets[0], 0, 100, 1, order_terms(0)).unwrap().reserved, 76_800);
+    assert_eq!(
+        book::place(&root, &markets[0], 0, 100, 1, order_terms(0))
+            .unwrap()
+            .reserved,
+        76_800
+    );
     assert!(book::cancel(&both, &markets[0], 100, 1, 1, false, true).is_err());
     assert!(book::replace_with_environment(&both, &eth, 1, 1, order_terms(0), 0).is_err());
     assert!(book::cancel_with_environment(&both, &eth, 1, 1, false).is_err());
@@ -295,7 +297,7 @@ fn delegated_orders_expire_without_revoking_owner_orders_and_replacement_rebinds
     let eth = book_environment(&markets, 1);
     let root = MarginAccount {
         cash: 1_000_000,
-        delegate: Pubkey::new_unique(),
+        delegate: Address::new_unique(),
         delegate_expiry_slot: 110,
         delegate_epoch: 2,
         ..margin_root()

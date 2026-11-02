@@ -1,5 +1,8 @@
 # Accounts, ownership and wire identity
 
+P47 qualifies the RC2 schema-8 local runtime; integration is tracked in [STATUS](../STATUS.md).
+The retained P44 deployment stays on its schema-7 client.
+
 Preserve two markets (BTC index 0, ETH index 1), one classic SPL six-decimal test
 mint, 64 stable members including makers/receivers, four portfolios per owner,
 children 0–8, two position slots, four orders and two protective pairs per root.
@@ -53,7 +56,7 @@ conflicting actions. Distinct-market independence is not a validator TPS claim.
 
 Ordered Borsh fields in [state/accounts](../../programs/clearing/src/state/accounts) are normative.
 Clearing accounts use canonical discriminator bytes, SHA-256(`account:<name>`)[0..8].
-Each begins with schema u16=7 and a scoped revision u64. D84 deliberately supersedes
+Each begins with schema u16=8 and a scoped revision u64. D84 deliberately supersedes
 P36's preserved historical discriminators for this fresh local domain. Integer seeds are little endian. Reused Position and
 OrderBook scalar records preserve 48-/680-byte encoding only, not V2 account
 identity, handlers or common-loss semantics. All public JSON integers are decimal
@@ -86,8 +89,8 @@ contract's size tests do not establish SBF stack/CU safety.
 
 ## Current-profile additions and activation
 
-Canonical maker registrations and funding publishers are clearing-owned schema 7.
-Maker-owned curve and price accounts retain schema 4. Their exact layouts are in
+Canonical maker registrations and funding publishers are clearing-owned schema 8.
+Maker-owned curve and price accounts use schema 5. Their exact layouts are in
 [quoting](../liquidity/quoting.md) and [funding](../liquidity/funding.md).
 The older fixed-maker registration is retired, not reinterpreted as the current
 canonical registration. Unknown schema/profile combinations reject even if fields decode.

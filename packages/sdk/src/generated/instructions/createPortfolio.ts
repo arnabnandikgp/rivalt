@@ -45,13 +45,14 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findPortfolioPda,
   findVenueSafetyPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const CREATE_PORTFOLIO_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([190, 83, 131, 136, 246, 233, 81, 198]);
+  new Uint8Array([54, 26, 137, 113, 59, 182, 53, 225]);
 
 export function getCreatePortfolioDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -156,7 +157,9 @@ export type CreatePortfolioAsyncInput<
   safety?: TAccountSafety;
   portfolio?: TAccountPortfolio;
   systemProgram?: TAccountSystemProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   index: CreatePortfolioInstructionDataArgs["index"];
 };
@@ -315,6 +318,11 @@ export async function getCreatePortfolioInstructionAsync<
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -386,7 +394,9 @@ export type CreatePortfolioInput<
   safety: TAccountSafety;
   portfolio: TAccountPortfolio;
   systemProgram?: TAccountSystemProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   index: CreatePortfolioInstructionDataArgs["index"];
 };
@@ -570,7 +580,9 @@ export type ParsedCreatePortfolioInstruction<
     safety: TAccountMetas[3];
     portfolio: TAccountMetas[4];
     systemProgram: TAccountMetas[5];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[6];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[7];
   };
   data: CreatePortfolioInstructionData;

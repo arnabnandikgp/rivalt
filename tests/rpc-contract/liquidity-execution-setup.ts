@@ -126,7 +126,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   }
   const qualify = async () => { for (let round = 0; round < 4; round++) await sample(); };
   await qualify();
-  if(options.verifyRejections!==false)await h.send('retired activation discriminator rejects', [{programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data:discriminator('activate_accounts_v3')}], [], 101);
+  if(options.verifyRejections!==false)await h.send('retired activation discriminator rejects', [{programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data:discriminator('activate_accounts_v3')}], [], 'InvalidInstructionData');
   await h.send('activate storage-ready canonical candidate', [sdk.getActivateLiquidityInstruction(safetyCommon)]);
   if(options.verifyRejections!==false)await h.send('canonical activation cannot replay', [sdk.getActivateLiquidityInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__PROFILE);
   await qualify();

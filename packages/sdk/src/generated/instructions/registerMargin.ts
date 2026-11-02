@@ -47,6 +47,7 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findMarginAccountPda,
   findVenueRegistryPda,
   findVenueSafetyPda,
@@ -54,7 +55,7 @@ import {
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const REGISTER_MARGIN_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [18, 5, 57, 115, 223, 186, 54, 240],
+  [156, 36, 155, 86, 98, 38, 140, 32],
 );
 
 export function getRegisterMarginDiscriminatorBytes(): ReadonlyUint8Array {
@@ -186,7 +187,9 @@ export type RegisterMarginAsyncInput<
   portfolio: TAccountPortfolio;
   margin?: TAccountMargin;
   systemProgram?: TAccountSystemProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   subaccountIndex: RegisterMarginInstructionDataArgs["subaccountIndex"];
   mode: RegisterMarginInstructionDataArgs["mode"];
@@ -376,6 +379,11 @@ export async function getRegisterMarginInstructionAsync<
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -461,7 +469,9 @@ export type RegisterMarginInput<
   portfolio: TAccountPortfolio;
   margin: TAccountMargin;
   systemProgram?: TAccountSystemProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   subaccountIndex: RegisterMarginInstructionDataArgs["subaccountIndex"];
   mode: RegisterMarginInstructionDataArgs["mode"];
@@ -678,7 +688,9 @@ export type ParsedRegisterMarginInstruction<
     portfolio: TAccountMetas[5];
     margin: TAccountMetas[6];
     systemProgram: TAccountMetas[7];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[8];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[9];
   };
   data: RegisterMarginInstructionData;

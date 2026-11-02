@@ -3,36 +3,36 @@ use super::*;
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct InitializeAccountOracle<'info> {
-    pub authority: Signer<'info>,
+pub struct InitializeAccountOracle {
+    pub authority: Signer,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, has_one = authority)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"custody-v3", venue.key().as_ref()], bump = custody.bump, has_one = venue)]
-    pub custody: Box<Account<'info, Custody>>,
-    #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
-    #[account(mut, seeds = [b"market-v3", venue.key().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
-    pub market: Box<Account<'info, Market>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"custody-v3", venue.address().as_ref()], bump = custody.bump, has_one = venue)]
+    pub custody: Box<BorshAccount<Custody>>,
+    #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
+    #[account(mut, seeds = [b"market-v3", venue.address().as_ref(), &[market.index]], bump = market.bump, has_one = venue)]
+    pub market: Box<BorshAccount<Market>>,
 }
 
 pub(crate) fn feed_indexes(market: u8) -> Result<[usize; 4]> {
     match market {
         0 => Ok([0, 1, 2, 3]),
         1 => Ok([4, 1, 5, 3]),
-        _ => err!(ClearingError::OracleSource),
+        _ => Err(ProgramError::from(ClearingError::OracleSource)),
     }
 }
 
 fn event(
-    venue: &Account<Venue>,
-    market: &mut Account<Market>,
+    venue: &BorshAccount<Venue>,
+    market: &mut BorshAccount<Market>,
 ) -> Result<crate::events::AccountOracleChanged> {
     increment(&mut market.observation_sequence)?;
     Ok(crate::events::AccountOracleChanged {
-        venue: venue.key(),
+        venue: venue.address().to_owned(),
 
         slot: Clock::get()?.slot,
-        market: market.key(),
+        market: market.address().to_owned(),
         state: crate::events::MarketSnapshot::from(&**market),
     })
 }
@@ -42,21 +42,21 @@ fn event(
 pub(crate) fn initialize_accounts(
     ctx: &mut Context<InitializeAccountOracle>,
     events: &mut crate::event_cpi::Payloads,
-    primary: Pubkey,
-    guard: Pubkey,
+    primary: Address,
+    guard: Address,
 ) -> Result<()> {
     let market = &mut ctx.accounts.market;
     require!(
         ctx.accounts.safety.mode == CUSTODY
-            && market.oracle.sources == [Pubkey::default(); 4]
+            && market.oracle.sources == [Address::default(); 4]
             && primary != guard
-            && primary != Pubkey::default()
-            && guard != Pubkey::default(),
+            && primary != Address::default()
+            && guard != Address::default(),
         ClearingError::OracleSource
     );
     for (position, feed) in feed_indexes(market.index)?.into_iter().enumerate() {
         let authority = if position < 2 { primary } else { guard };
-        market.oracle.sources[position] = Pubkey::find_program_address(
+        market.oracle.sources[position] = find_program_address(
             &[b"feed", authority.as_ref(), &[feed as u8 + 1; 32]],
             &oracle_fixture::ID,
         )
@@ -68,7 +68,7 @@ pub(crate) fn initialize_accounts(
         .ok_or(ClearingError::Arithmetic)?;
     events.emit(
         &(event(&ctx.accounts.venue, market)?),
-        ctx.accounts.event_authority.to_account_info(),
+        ctx.accounts.event_authority.account().clone(),
     )?;
     Ok(())
 }

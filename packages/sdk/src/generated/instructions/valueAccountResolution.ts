@@ -41,15 +41,18 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findBtcLedgerPda,
+  findBtcPda,
   findCustodyPda,
   findEthLedgerPda,
+  findEthPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const VALUE_ACCOUNT_RESOLUTION_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([139, 215, 4, 127, 183, 174, 98, 189]);
+  new Uint8Array([104, 10, 208, 35, 140, 115, 13, 140]);
 
 export function getValueAccountResolutionDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -201,20 +204,28 @@ export type ValueAccountResolutionAsyncInput<
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
-  btc: TAccountBtc;
-  eth: TAccountEth;
+  btc?: TAccountBtc;
+  eth?: TAccountEth;
   btcLedger?: TAccountBtcLedger;
   ethLedger?: TAccountEthLedger;
   vault?: TAccountVault;
   registry: TAccountRegistry;
   resolution: TAccountResolution;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryBtc: TAccountPrimaryBtc;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryCollateral: TAccountPrimaryCollateral;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardBtc: TAccountGuardBtc;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardCollateral: TAccountGuardCollateral;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryEth: TAccountPrimaryEth;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardEth: TAccountGuardEth;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   epoch: ValueAccountResolutionInstructionDataArgs["epoch"];
 };
@@ -455,6 +466,28 @@ export async function getValueAccountResolutionInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.btc.value) {
+    accounts.btc.value = await findBtcPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.eth.value) {
+    accounts.eth.value = await findEthPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
   if (!accounts.btcLedger.value) {
     accounts.btcLedger.value = await findBtcLedgerPda(
       {
@@ -487,6 +520,11 @@ export async function getValueAccountResolutionInstructionAsync<
       },
       { programAddress },
     );
+  }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
   }
 
   return Object.freeze({
@@ -624,13 +662,21 @@ export type ValueAccountResolutionInput<
   vault: TAccountVault;
   registry: TAccountRegistry;
   resolution: TAccountResolution;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryBtc: TAccountPrimaryBtc;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryCollateral: TAccountPrimaryCollateral;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardBtc: TAccountGuardBtc;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardCollateral: TAccountGuardCollateral;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryEth: TAccountPrimaryEth;
+  /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   guardEth: TAccountGuardEth;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   epoch: ValueAccountResolutionInstructionDataArgs["epoch"];
 };
@@ -964,13 +1010,21 @@ export type ParsedValueAccountResolutionInstruction<
     vault: TAccountMetas[7];
     registry: TAccountMetas[8];
     resolution: TAccountMetas[9];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     primaryBtc: TAccountMetas[10];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     primaryCollateral: TAccountMetas[11];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     guardBtc: TAccountMetas[12];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     guardCollateral: TAccountMetas[13];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     primaryEth: TAccountMetas[14];
+    /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
     guardEth: TAccountMetas[15];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[16];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[17];
   };
   data: ValueAccountResolutionInstructionData;

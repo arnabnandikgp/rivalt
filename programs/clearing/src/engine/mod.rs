@@ -19,7 +19,7 @@ pub mod routes;
 pub(crate) mod sources;
 
 pub(crate) fn checked<T>(value: math::Result<T>) -> Result<T> {
-    value.map_err(|_| error!(ClearingError::Arithmetic))
+    value.map_err(|_| ProgramError::from(ClearingError::Arithmetic))
 }
 
 pub(crate) fn risk(market: &Market, funding: i128) -> Result<[math::margin::Risk; 2]> {

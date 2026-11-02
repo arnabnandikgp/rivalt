@@ -44,13 +44,14 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findMarketLedgerPda,
   findVenueSafetyPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const INITIALIZE_MARKET_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([239, 190, 155, 70, 222, 88, 62, 74]);
+  new Uint8Array([35, 35, 189, 193, 155, 48, 170, 203]);
 
 export function getInitializeMarketDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -161,7 +162,9 @@ export type InitializeMarketAsyncInput<
   market: TAccountMarket;
   ledger?: TAccountLedger;
   systemProgram?: TAccountSystemProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   index: InitializeMarketInstructionDataArgs["index"];
 };
@@ -322,6 +325,11 @@ export async function getInitializeMarketInstructionAsync<
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -400,7 +408,9 @@ export type InitializeMarketInput<
   market: TAccountMarket;
   ledger: TAccountLedger;
   systemProgram?: TAccountSystemProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   index: InitializeMarketInstructionDataArgs["index"];
 };
@@ -597,7 +607,9 @@ export type ParsedInitializeMarketInstruction<
     market: TAccountMetas[4];
     ledger: TAccountMetas[5];
     systemProgram: TAccountMetas[6];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[7];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[8];
   };
   data: InitializeMarketInstructionData;

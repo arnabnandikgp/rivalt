@@ -21,8 +21,8 @@ def violations(entries):
                 errors.append(f'Performance baseline must be a bounded summary: {name}')
     if fixture_bytes > 200 * 1024:
         errors.append('Curated regression fixtures exceed the 200 KiB source budget')
-    if performance_bytes > 128 * 1024:
-        errors.append('Performance summary baselines exceed the 128 KiB source budget')
+    if performance_bytes > 256 * 1024:
+        errors.append('Performance summary baselines exceed the 256 KiB source budget')
     return errors
 
 

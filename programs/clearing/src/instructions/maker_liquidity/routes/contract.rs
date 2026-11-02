@@ -2,7 +2,7 @@ use super::*;
 use crate::instructions::account_trading::authority::AccountGuard;
 
 /// D70 signs structural authority, never a price sequence or consumption prefix.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct LiquidityRouteLeg {
     pub lots: u64,
     pub authority_epoch: u64,
@@ -11,7 +11,7 @@ pub struct LiquidityRouteLeg {
     pub depth_epoch: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct LiquidityRouteIntent {
     pub guard: AccountGuard,
     pub domain: [u8; 32],
@@ -28,7 +28,7 @@ pub struct LiquidityRouteIntent {
     pub legs: Vec<LiquidityRouteLeg>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct LiquidityOrderExecution {
     pub guard: AccountGuard,
     pub id: u64,

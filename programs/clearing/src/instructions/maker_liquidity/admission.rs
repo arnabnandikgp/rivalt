@@ -126,11 +126,11 @@ mod tests {
     use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
     fn environment() -> (MarginAccount, Market) {
-        let venue = Pubkey::new_unique();
+        let venue = Address::new_unique();
         let capital = MarginAccount {
-            schema_version: 7,
+            schema_version: 8,
             venue,
-            owner: Pubkey::new_unique(),
+            owner: Address::new_unique(),
             subaccount_index: 1,
             id: 1,
             mode: MODE_ISOLATED,

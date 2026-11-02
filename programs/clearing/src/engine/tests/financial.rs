@@ -10,7 +10,7 @@ fn clock() -> Clock {
     Clock {
         slot: 100,
         unix_timestamp: 1_006,
-        ..Clock::default()
+        ..crate::test_support::clock()
     }
 }
 fn root() -> MarginAccount {
@@ -18,7 +18,7 @@ fn root() -> MarginAccount {
         schema_version: SCHEMA_VERSION,
         mode: MODE_CROSS,
         isolated_market_index: 255,
-        owner: Pubkey::new_from_array([1; 32]),
+        owner: Address::new_from_array([1; 32]),
         delegate_epoch: 1,
         cash: 100_000,
         ..Default::default()
@@ -53,7 +53,7 @@ fn markets() -> [Market; 2] {
         }
     })
 }
-fn environment(markets: &[Market; 2]) -> book::Environment<'_> {
+fn environment(markets: &[Market; 2]) -> book::Environment {
     book::Environment {
         markets: markets.each_ref().map(Some),
         selected: 0,
@@ -69,7 +69,7 @@ fn maker() -> MarginAccount {
         isolated_market_index: 0,
         subaccount_index: 1,
         role: ROLE_MAKER,
-        owner: Pubkey::new_from_array([2; 32]),
+        owner: Address::new_from_array([2; 32]),
         cash: 1_000_000,
         ..root()
     }
@@ -420,19 +420,35 @@ fn relevant_market_set_refuses_hidden_fractional_claims_and_preserves_empty_slot
     trader.positions[1].generation = 9;
     trader.book.reserve_observations[1] = 41;
     let venue = Venue::default();
-    let execute = |trader: &MarginAccount| routes::candidate_with_environment(
-        &venue, trader, &[maker()], &[quote()], &intent(), None, &environment, &clock());
+    let execute = |trader: &MarginAccount| {
+        routes::candidate_with_environment(
+            &venue,
+            trader,
+            &[maker()],
+            &[quote()],
+            &intent(),
+            None,
+            &environment,
+            &clock(),
+        )
+    };
     let result = execute(&trader).unwrap();
     // One BTC lot at 60,000; 2 bps = 12 atoms. No positive unpaid credit.
     assert_eq!(result.trader.cash, 99_988);
     assert_eq!(result.trader.positions[0].lots, 1);
-    assert_eq!(result.trader.positions[0].virtual_scaled, -60_000 * math::SCALE);
+    assert_eq!(
+        result.trader.positions[0].virtual_scaled,
+        -60_000 * math::SCALE
+    );
     assert_eq!(result.trader.positions[1].funding_checkpoint_scaled, -77);
     assert_eq!(result.trader.positions[1].generation, 9);
     assert_eq!(result.trader.book.reserve_observations[1], 41);
     for claim in [-1, 1, -30_000 * math::SCALE, 30_000 * math::SCALE] {
         trader.positions[1].virtual_scaled = claim;
-        assert!(execute(&trader).is_err(), "even a one-scaled-unit claim is relevant");
+        assert!(
+            execute(&trader).is_err(),
+            "even a one-scaled-unit claim is relevant"
+        );
     }
     trader.positions[1].virtual_scaled = 0;
     trader.positions[1].lots = 1;

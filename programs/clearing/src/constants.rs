@@ -13,16 +13,20 @@ pub mod orders {
 pub mod makers {
     use anchor_lang::prelude::*;
     #[cfg(not(feature = "devnet-test-profile"))]
-    pub const MAKER_A: Pubkey = pubkey!("7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU");
+    pub const MAKER_A: Address =
+        Address::from_str_const("7Kp4Y5yeBiuS9NYmw67quMLRto5Y9CcUQ29VjLviHggU");
 
     #[cfg(not(feature = "devnet-test-profile"))]
-    pub const MAKER_B: Pubkey = pubkey!("F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc");
+    pub const MAKER_B: Address =
+        Address::from_str_const("F3ETRB1fPHjJ2KQYuL8SomC1auBpWK5VtVqFwAU7k2Yc");
 
     #[cfg(feature = "devnet-test-profile")]
-    pub const MAKER_A: Pubkey = pubkey!("C2dhcKi2FQTsJgHiAYYb8hGeqYWdcUQr9MB4kU6AdLJG");
+    pub const MAKER_A: Address =
+        Address::from_str_const("C2dhcKi2FQTsJgHiAYYb8hGeqYWdcUQr9MB4kU6AdLJG");
 
     #[cfg(feature = "devnet-test-profile")]
-    pub const MAKER_B: Pubkey = pubkey!("8gBGZLMdws9ci5ax8ASmK46WPigHguFYvm8azK8q6Ckc");
+    pub const MAKER_B: Address =
+        Address::from_str_const("8gBGZLMdws9ci5ax8ASmK46WPigHguFYvm8azK8q6Ckc");
 }
 
 pub mod routes {

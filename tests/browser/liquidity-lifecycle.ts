@@ -22,7 +22,7 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Accoun
     args:['--disable-background-networking','--disable-component-update','--no-first-run']});
   const context=await browser.newContext({viewport:{width:1440,height:1100},reducedMotion:'reduce'}),page=await context.newPage();
   page.setDefaultTimeout(20_000);
-  const wires:string[]=[],outcomes:unknown[]=[],errors:string[]=[];
+  const wires:string[]=[],outcomes:unknown[]=[],errors:string[]=[],preparationObservations:unknown[]=[];
   page.on('pageerror',error=>errors.push(error.message));
   const button=(name:string)=>page.getByRole('button',{name,exact:true});
   const receipts=()=>page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('rivalt:receipts:v4:'))
@@ -33,10 +33,26 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Accoun
     throw new Error(`${label}: ${json(last)}`);
   }
   async function action(name:string) {
-    const before=wires.length;await button(name).first().click();
-    await wait(async()=>({review:await page.getByRole('region',{name:'Review transaction'}).isVisible(),alerts:await page.getByRole('alert').allTextContents()}),
-      value=>value.review||value.alerts.length>0,`${name} review`);
-    assert(await page.getByRole('region',{name:'Review transaction'}).isVisible(),`${name}: ${await page.getByRole('alert').allTextContents()}`);
+    const before=wires.length;
+    // Published liquidity has a bounded validity window. Retry only an unsigned
+    // preparation refused for this exact source condition, never a signed or
+    // ambiguous original. Preserve each refusal in the qualification evidence.
+    for(let attempt=1;attempt<=3;attempt++) {
+      if(name==='Review atomic trade')await input.normal();
+      await button(name).first().click();
+      const prepared=await wait(async()=>({review:await page.getByRole('region',{name:'Review transaction'}).isVisible(),
+        alerts:await page.getByRole('alert').allTextContents()}),value=>value.review||value.alerts.length>0,`${name} review`);
+      preparationObservations.push({name,attempt,review:prepared.review,alerts:prepared.alerts});
+      writeFileSync(`${directory}/browser-preparations.json`,json(preparationObservations));
+      if(prepared.review)break;
+      assert.equal(wires.length,before,'A refused preparation cannot have signed bytes');
+      const unavailable=name==='Review atomic trade'&&prepared.alerts.length===1
+        &&prepared.alerts[0]==='Required liquidity market source unavailable.';
+      assert(unavailable&&attempt<3,`${name}: ${prepared.alerts}`);
+      await button('Refresh').click();
+      await wait(()=>page.getByRole('main').getAttribute('aria-busy'),value=>value==='false','unsigned preparation refresh');
+    }
+    assert(await page.getByRole('region',{name:'Review transaction'}).isVisible(),`${name}: missing review`);
     await button('Sign transaction').click();await wait(async()=>wires.length,value=>value===before+1,`${name} signature`);
     const wire=wires.at(-1)!,items=await wait(receipts,values=>values.some(value=>value.wire===wire&&['failed','finalized'].includes(value.status)),`${name} finality`);
     const receipt=items.find(value=>value.wire===wire)!;assert.equal(receipt.status,'finalized',json(receipt));
@@ -90,8 +106,8 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Accoun
     await wait(()=>page.getByTestId('account-cash').textContent(),value=>Boolean(value&&value!=='—'),'RPC balance recovery while APIs are blocked');
     assert.equal(await page.getByLabel('Margin account',{exact:true}).inputValue(),'1');
     assert.deepEqual(errors,[]);await page.screenshot({path:`${directory}/liquidity-ui.png`,fullPage:true});
-    writeFileSync(`${directory}/browser-summary.json`,json({internalWallet:true,outcomes,errors,wireCount:wires.length}));return outcomes;
+    writeFileSync(`${directory}/browser-summary.json`,json({internalWallet:true,outcomes,errors,wireCount:wires.length,preparationObservations}));return outcomes;
   }catch(error){await page.screenshot({path:`${directory}/browser-failure.png`,fullPage:true}).catch(()=>{});
-    writeFileSync(`${directory}/browser-failure.json`,json({error:String(error),alerts:await page.getByRole('alert').allTextContents(),outcomes,errors}));throw error;
+    writeFileSync(`${directory}/browser-failure.json`,json({error:String(error),alerts:await page.getByRole('alert').allTextContents(),outcomes,errors,preparationObservations}));throw error;
   }finally{await browser.close();await readApp.close();vite?.kill('SIGTERM');}
 }

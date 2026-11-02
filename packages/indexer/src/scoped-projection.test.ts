@@ -5,7 +5,7 @@ import {projectScopedBatch} from './scoped-projection.js';
 import {json} from './events.js';
 import type {AccountInvocation} from './account-events.js';
 const venue='venue',domain='00'.repeat(32),binding={venue,domain};
-const data={schemaVersion:7,profileVersion:4,venue,domain,slot:'1',kind:0,actor:'authority',subject:venue,index:0,amount:'0',members:[],ledgers:[],
+const data={schemaVersion:8,profileVersion:4,venue,domain,slot:'1',kind:0,actor:'authority',subject:venue,index:0,amount:'0',members:[],ledgers:[],
   authority:'authority',feeAuthority:'fees',reserveAuthority:'reserve',reserveDestinationOwner:'reserve',quoteMint:'mint',vault:'vault',markets:['btc','eth'],
   marketCount:0,insuranceFeeShareBps:2500,mode:0,paused:false,safetyEpoch:'1',termsEpoch:'1',configEpoch:'1',allocatedVault:{__option:'Some',value:'0'},
   membershipVersion:{__option:'None'},memberCount:{__option:'None'},actualVault:'0'};
@@ -15,10 +15,32 @@ function initialization():AccountInvocation {
     events:[{signature:'init',outer:0,inner:0,ordinal:0,slot:1,blockTime:1,type:'AccountCustodyChangedV3',data,bytes:'fixture'}]};
 }
 const prepared=()=>projectScopedBatch(emptyLiquidity(),[initialization()],binding).state;
+function reordered(value:any):any {
+  if(Array.isArray(value))return value.map(reordered);
+  if(value!==null&&typeof value==='object')return Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,reordered(item)]));
+  return value;
+}
+it('accepts JSONB object-key reordering while rejecting actual readonly changes',()=>{
+  const state=reordered(prepared()),before=structuredClone(state);
+  // Portfolio registration repeats readonly venue/safety metadata after the journal
+  // has persisted it in JSONB. Object insertion order is not account state.
+  const registration={...initialization(),signature:'portfolio',slot:2n,
+    reads:[{account:venue,kind:0,revision:'1'},{account:'safety',kind:2,revision:'1'}],
+    writes:[{account:'portfolio',kind:4,before:'0',after:'1'}],
+    events:[{...initialization().events[0],data:{...data,kind:2,subject:'portfolio',allocatedVault:{__option:'None'}}}]};
+  const result=projectScopedBatch(state,[registration],binding).state;
+  expect(result.venue).toEqual(state.venue);expect(result.safety).toEqual(state.safety);
+  expect(result.portfolios.portfolio.children).toBe(0);expect(result.portfolios.portfolio.revision).toBe('1');
+  for(const mutation of [{configEpoch:'2'},{markets:['eth','btc']},{paused:true}]) {
+    const corrupted={...registration,events:[{...registration.events[0],data:{...registration.events[0].data,...mutation}}]};
+    expect(()=>projectScopedBatch(state,[corrupted],binding)).toThrow(/payload changed readonly entity/);
+  }
+  expect(state).toEqual(before);
+});
 it('reconstructs initialization with explicit funded balances and independent entity revisions',()=>{
   const state=prepared();
   expect(state.sequence).toBe('1');expect(state.revisions).toEqual({venue:{kind:0,revision:'1'},custody:{kind:1,revision:'1'},safety:{kind:2,revision:'1'}});
-  expect(state.custody).toEqual({schemaVersion:7,revision:'1',venue,allocatedVault:'0'});
+  expect(state.custody).toEqual({schemaVersion:8,revision:'1',venue,allocatedVault:'0'});
   expect(state.venue?.revision).toBe('1');expect(state.safety?.revision).toBe('1');
 });
 it('advances zero-payload storage envelopes without inventing a financial event/cursor',()=>{
@@ -51,12 +73,12 @@ it('uses the authenticated predecessor when a zero-payload storage account first
   const progress={...storage,signature:'progress',slot:3n,writes:[{account:'retirement',kind:13,before:'1',after:'2'}],
     events:[{...initialization().events[0],type:'AccountRetirementProgressV3' as const,data:{venue,slot:'3',safetyEpoch:'2',membershipVersion:'1',cash:'0',count:0,next:0,complete:true}}]};
   const result=projectScopedBatch(initial,[progress],binding).state;
-  expect(result.retirement).toEqual({schemaVersion:7,revision:'2',venue,safetyEpoch:'2',membershipVersion:'1',cash:'0',count:0,next:0,complete:true});
+  expect(result.retirement).toEqual({schemaVersion:8,revision:'2',venue,safetyEpoch:'2',membershipVersion:'1',cash:'0',count:0,next:0,complete:true});
   expect(result.sequence).toBe('2');expect(initial.retirement).toBeNull();
 });
 
 it('binds revision-less backing payloads to the authenticated certificate predecessor',()=>{
-  const certificate={schemaVersion:7,venue,marketIndex:0,safetyEpoch:'1',membershipVersion:'2',liabilityVersion:'3',
+  const certificate={schemaVersion:8,venue,marketIndex:0,safetyEpoch:'1',membershipVersion:'2',liabilityVersion:'3',
     observations:['7','0'],fundingBounds:[['0','1'],['0','0']],sourceDeadlines:['100','0'],requiredMarketMask:1,
     count:2,next:0,cash:'0',lots:['0','0'],claimSum:'0',complete:false,bump:255};
   const created={...initialization(),signature:'certificate',slot:2n,reads:[{account:venue,kind:0,revision:'1'}],

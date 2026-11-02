@@ -5,10 +5,10 @@ use math::SCALE;
 
 fn root(cash: u64, claims: [i128; 2]) -> MarginAccount {
     MarginAccount {
-        schema_version: 7,
+        schema_version: 8,
         mode: MODE_CROSS,
         isolated_market_index: 255,
-        owner: Pubkey::new_from_array([1; 32]),
+        owner: Address::new_from_array([1; 32]),
         delegate_epoch: 1,
         cash,
         positions: claims.map(|virtual_scaled| crate::state::Position {
@@ -21,7 +21,7 @@ fn root(cash: u64, claims: [i128; 2]) -> MarginAccount {
 
 fn fixture_snapshot() -> Snapshot {
     let markets = [0u8, 1].map(|index| Market {
-        schema_version: 7,
+        schema_version: 8,
         index,
         cross_eligible: true,
         lots_per_unit: [1_000_000, 100_000][usize::from(index)],
@@ -49,7 +49,7 @@ fn fixture_snapshot() -> Snapshot {
         &Clock {
             slot: 100,
             unix_timestamp: 1_000,
-            ..Default::default()
+            ..crate::test_support::clock()
         },
     )
     .unwrap()

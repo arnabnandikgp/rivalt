@@ -11,7 +11,8 @@ pub(super) fn apply(
     next: &candidates::Candidate,
     quotes: &[canonical::MakerQuoteResponse],
 ) -> Result<()> {
-    let cash_before = u128::from(accounts.identity.trader.cash)
+    let identity = &mut *accounts.identity;
+    let cash_before = u128::from(identity.trader.cash)
         + u128::from(accounts.first_capital.cash)
         + accounts
             .second_capital
@@ -28,10 +29,10 @@ pub(super) fn apply(
         ClearingError::Reconciliation
     );
     let mut executed = Vec::with_capacity(quotes.len());
-    let leg = |registration: &Account<MakerRegistration>,
-               capital: Pubkey,
+    let leg = |registration: &BorshAccount<MakerRegistration>,
+               capital: Address,
                quote: &canonical::MakerQuoteResponse| ExecutedLeg {
-        registration: registration.key(),
+        registration: registration.address().to_owned(),
         capital,
         instance: registration.instance,
         lots: quote.request.lots,
@@ -51,37 +52,30 @@ pub(super) fn apply(
     consume(&mut accounts.first_registration, &quotes[0])?;
     executed.push(leg(
         &accounts.first_registration,
-        accounts.first_capital.key(),
+        accounts.first_capital.address().to_owned(),
         &quotes[0],
     ));
     let previous = accounts.first_capital.positions;
     trading::commit_root(&mut accounts.first_capital, &next.makers[0])?;
-    accounts
-        .identity
-        .invalidate_positions(previous, accounts.first_capital.positions)?;
+    identity.invalidate_positions(previous, accounts.first_capital.positions)?;
     if quotes.len() == 2 {
         let registration = accounts.second_registration.as_deref_mut().unwrap();
         let capital = accounts.second_capital.as_deref_mut().unwrap();
         consume(registration, &quotes[1])?;
-        executed.push(leg(registration, capital.key(), &quotes[1]));
+        executed.push(leg(registration, capital.address().to_owned(), &quotes[1]));
         let previous = capital.positions;
         trading::commit_root(capital, &next.makers[1])?;
-        accounts
-            .identity
-            .invalidate_positions(previous, capital.positions)?;
+        identity.invalidate_positions(previous, capital.positions)?;
     }
-    let order = order_index.map(|index| accounts.identity.trader.book.orders[index].order);
-    let previous = accounts.identity.trader.positions;
-    trading::commit_root(&mut accounts.identity.trader, &next.trader)?;
-    accounts
-        .identity
-        .invalidate_positions(previous, accounts.identity.trader.positions)?;
-    accounts.identity.market.gross_lots = next.gross_lots;
+    let order = order_index.map(|index| identity.trader.book.orders[index].order);
+    let previous = identity.trader.positions;
+    trading::commit_root(&mut identity.trader, &next.trader)?;
+    identity.invalidate_positions(previous, identity.trader.positions)?;
+    identity.market.gross_lots = next.gross_lots;
     trading::materialize_optional(
         [
-            Some(&mut accounts.identity.market),
-            accounts
-                .identity
+            Some(&mut identity.market),
+            identity
                 .other_market
                 .as_deref_mut()
                 .map(|market| &mut **market),
@@ -89,7 +83,7 @@ pub(super) fn apply(
         clock,
     )?;
     let (insurance_credit, retained_fee, carry_before) =
-        trading::split_fee(&mut accounts.identity.ledger, next.fee)?;
+        trading::split_fee(&mut identity.ledger, next.fee)?;
 
     emit(
         events,
@@ -110,9 +104,9 @@ pub(super) fn apply(
 /// event serialization does not allocate multiple full order-book copies.
 #[derive(AnchorSerialize)]
 pub(super) struct RouteEventView<'a> {
-    pub venue: Pubkey,
+    pub venue: Address,
     pub slot: u64,
-    pub market: Pubkey,
+    pub market: Address,
     pub market_state: &'a Market,
     pub other_market_state: Option<&'a Market>,
     pub nonce: u64,
@@ -155,10 +149,10 @@ fn emit(
         makers.push(accounts.second_registration.as_deref().unwrap());
     }
     let event = RouteEventView {
-        venue: identity.venue.key(),
+        venue: identity.venue.address().to_owned(),
 
         slot,
-        market: identity.market.key(),
+        market: identity.market.address().to_owned(),
         market_state: &identity.market,
         other_market_state: identity.other_market.as_deref().map(|market| &**market),
         nonce: intent.nonce,
@@ -183,6 +177,6 @@ fn emit(
     };
     events.emit_borrowed::<crate::events::LiquidityRouteExecuted, _>(
         &event,
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }

@@ -1,3 +1,4 @@
+import {assertInstructionError} from './instruction-errors.js';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -16,7 +17,7 @@ const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
 const ws = new WireSubscriptions(process.env.RIVALT_WS_URL!);
 const payer = await payerKey(), base58 = getBase58Encoder();
 const artifacts=await new sdk.LiquidityArtifactVerifier(rpc).verify(payer.address);
-const build=JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/liquidity-execution'}/build-manifest.json`,'utf8'));
+const build=JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8'));
 const checks: Record<string, unknown>[] = [], committed: ReturnType<typeof sdk.parseAccountCustodyChangedEvent>[] = [];
 const eventBytes: string[] = [];
 const serialize = (value: unknown) => JSON.stringify(value, (_, item) => typeof item === 'bigint' ? item.toString() : item, 2)+'\n';
@@ -37,7 +38,7 @@ const h: Harness = {
     writeFileSync(`${runDir}/wire-${checks.length}.json`, serialize({ label, wireBase64,signature:expectedSignature }));
     const simulation = await rpc.call('simulateTransaction', [wireBase64, { encoding: 'base64', sigVerify: true, commitment: 'confirmed' }]);
     if (expectedError === undefined) assert.equal(simulation.value.err, null, `${label}: ${simulation.value.logs?.join('\n')}`);
-    else assert.equal(simulation.value.err?.InstructionError?.[1]?.Custom, expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
+    else assertInstructionError(simulation.value.err?.InstructionError?.[1], expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
     const subscriptionId=await ws.call('signatureSubscribe',[expectedSignature,{commitment:'finalized',enableReceivedNotification:false}]);
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
     assert.equal(signature,expectedSignature);
@@ -51,7 +52,7 @@ const h: Harness = {
     const notification=await ws.notification(subscriptionId);
     writeFileSync(`${runDir}/ws-${checks.length}.json`,serialize(notification));
     if (expectedError === undefined) assert.equal(history.meta.err, null, label);
-    else assert.equal(history.meta.err?.InstructionError?.[1]?.Custom, expectedError, label);
+    else assertInstructionError(history.meta.err?.InstructionError?.[1], expectedError, label);
     assert(history.meta.computeUnitsConsumed <= 320_000, `${label}: CU headroom`);
     const bytes = (history.meta.innerInstructions ?? []).flatMap((outer: any) => outer.instructions)
       .filter((instruction: any) => history.transaction.message.accountKeys[instruction.programIdIndex] === program)
@@ -78,7 +79,7 @@ try {
   let allocated = 0n;
   for (const event of committed) {
     assert.equal(event.venue, result.venue);
-    assert.equal(event.schemaVersion, 7);
+    assert.equal(event.schemaVersion, 8);
     for (const ledger of event.ledgers) ledgerState.set(ledger.marketIndex, ledger);
     for (const root of event.members) rootCash.set(root.id, root.cash);
     if (event.allocatedVault.__option === 'Some') allocated = event.allocatedVault.value;
@@ -118,7 +119,7 @@ try {
     trackedDirty: execFileSync('git', ['status','--porcelain','--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
     runtime: await rpc.call('getVersion'), genesis: await rpc.call('getGenesisHash'),
     build,artifacts,
-    binarySha256: createHash('sha256').update(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/liquidity-execution'}/clearing.so`)).digest('hex'),
+    binarySha256: createHash('sha256').update(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/clearing.so`)).digest('hex'),
     idlSha256: createHash('sha256').update(readFileSync('packages/sdk/idl/clearing.json')).digest('hex'),
     checks, committedEvents: committed, wsNotifications: ws.notifications.length, legacyAccounts: Object.keys(accounts), rawAccounts, result }));
   console.log(`P23 RPC: ${checks.length} finalized signed scenarios; ${committed.length} committed events; legacy account/event parity.`);

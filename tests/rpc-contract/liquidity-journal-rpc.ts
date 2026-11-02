@@ -123,7 +123,7 @@ try {
   assert.equal(roots.reduce((sum, account) => sum + account.cash, 0n) + 26n, 8_000_000n);
   writeFileSync(`${runDir}/summary.json`, json({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
-    build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')), checks, binding, counts,
-    state: snapshot.state, failed, roots, markets, ledger, scope:'Schema-7 complete block journal and financial projection', phaseAcceptance: false }));
+    build: JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`, 'utf8')), checks, binding, counts,
+    state: snapshot.state, failed, roots, markets, ledger, scope:'Schema-8 complete block journal and financial projection', phaseAcceptance: false }));
   console.log(json({ stage:'p40b-scoped-journal-pass', counts, financialFees: '26', phaseAcceptance: false }));
 } finally { await replay?.close(); await store?.close(); try { await flush(); } finally { ws.close(); } }

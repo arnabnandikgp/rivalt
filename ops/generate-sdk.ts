@@ -24,7 +24,30 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
   const path = `packages/sdk/src/${folder}`;
   const before = process.argv.includes('--check') ? snapshot(path) : undefined;
   const idl = JSON.parse(readFileSync(`packages/sdk/idl/${program}.json`, 'utf8'));
-  const codama = createFromRoot(rootNodeFromAnchor(idl));
+  // RC2 exports dynamic address constraints as expressions, not base58 keys.
+  // Keep the raw generated IDL intact, but require these inputs explicitly in
+  // Codama instead of generating an invalid literal address default.
+  const dynamicAddresses = new Set([
+    'identity.venue.fee_authority', 'identity.venue.authority',
+    'identity.venue.quote_mint', 'identity.venue.reserve_authority',
+    'config.state.controller',
+  ]);
+  for (const instruction of idl.instructions) for (const account of instruction.accounts) {
+    if (typeof account.address === 'string' && account.address.includes('.')) {
+      assert(dynamicAddresses.has(account.address), `Unreviewed RC2 address expression: ${account.address}`);
+      delete account.address;
+    }
+  }
+  function byteVectors(value: unknown): unknown {
+    if (Array.isArray(value)) return value.map(byteVectors);
+    if (value && typeof value === 'object') {
+      const fields = Object.entries(value);
+      if (fields.length === 1 && fields[0][0] === 'vec' && fields[0][1] === 'u8') return 'bytes';
+      return Object.fromEntries(fields.map(([key, child]) => [key, byteVectors(child)]));
+    }
+    return value;
+  }
+  const codama = createFromRoot(rootNodeFromAnchor(byteVectors(idl) as typeof idl));
   // Public PDA helper names bind seed schemas, never the alphabetically first
   // instruction that happens to use them. Preserve the already published names
   // when new group instructions precede V1 instructions in Anchor's sorted IDL.
@@ -53,6 +76,14 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
       // The same ledger PDA can be expressed with selected/other/BTC/ETH inputs.
       // Keep its published `market` helper and distinct seed parameter names;
       // aliasing all four AST nodes to one name creates invalid generated calls.
+      if (name === 'market') {
+        const indexSeed = pda.seeds?.[2];
+        if (isNode(indexSeed, 'constantPdaSeedNode')) {
+          // RC2 newly describes the fixed BTC/ETH market dependencies. Keep
+          // both distinct from the parameterized public market helper.
+          name = pda.name;
+        }
+      }
       if (name === 'marketLedger') {
         const marketSeed = pda.seeds?.[1];
         assert(isNode(marketSeed, 'variablePdaSeedNode'));

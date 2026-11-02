@@ -40,7 +40,11 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findFundingPublisherPda, findVenueSafetyPda } from "../pdas/index.js";
+import {
+  findEventAuthorityPda,
+  findFundingPublisherPda,
+  findVenueSafetyPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getFundingReportDecoder,
@@ -50,7 +54,7 @@ import {
 } from "../types/index.js";
 
 export const PUBLISH_FUNDING_REPORT_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([215, 24, 92, 183, 31, 114, 182, 177]);
+  new Uint8Array([32, 39, 131, 11, 127, 118, 35, 241]);
 
 export function getPublishFundingReportDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -176,11 +180,17 @@ export type PublishFundingReportAsyncInput<
   safety?: TAccountSafety;
   market: TAccountMarket;
   configuration?: TAccountConfiguration;
+  /** CHECK: fixed source identity, owner, schema and sequence validated below. */
   primaryAsset: TAccountPrimaryAsset;
+  /** CHECK: fixed source identity, owner, schema and sequence validated below. */
   primaryCollateral: TAccountPrimaryCollateral;
+  /** CHECK: fixed source identity, owner, schema and sequence validated below. */
   guardAsset: TAccountGuardAsset;
+  /** CHECK: fixed source identity, owner, schema and sequence validated below. */
   guardCollateral: TAccountGuardCollateral;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   report: PublishFundingReportInstructionDataArgs["report"];
 };
@@ -352,6 +362,11 @@ export async function getPublishFundingReportInstructionAsync<
       { programAddress },
     );
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -443,11 +458,17 @@ export type PublishFundingReportInput<
   safety: TAccountSafety;
   market: TAccountMarket;
   configuration: TAccountConfiguration;
+  /** CHECK: fixed source identity, owner, schema and sequence validated below. */
   primaryAsset: TAccountPrimaryAsset;
+  /** CHECK: fixed source identity, owner, schema and sequence validated below. */
   primaryCollateral: TAccountPrimaryCollateral;
+  /** CHECK: fixed source identity, owner, schema and sequence validated below. */
   guardAsset: TAccountGuardAsset;
+  /** CHECK: fixed source identity, owner, schema and sequence validated below. */
   guardCollateral: TAccountGuardCollateral;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   report: PublishFundingReportInstructionDataArgs["report"];
 };
@@ -672,11 +693,17 @@ export type ParsedPublishFundingReportInstruction<
     safety: TAccountMetas[2];
     market: TAccountMetas[3];
     configuration: TAccountMetas[4];
+    /** CHECK: fixed source identity, owner, schema and sequence validated below. */
     primaryAsset: TAccountMetas[5];
+    /** CHECK: fixed source identity, owner, schema and sequence validated below. */
     primaryCollateral: TAccountMetas[6];
+    /** CHECK: fixed source identity, owner, schema and sequence validated below. */
     guardAsset: TAccountMetas[7];
+    /** CHECK: fixed source identity, owner, schema and sequence validated below. */
     guardCollateral: TAccountMetas[8];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[9];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[10];
   };
   data: PublishFundingReportInstructionData;

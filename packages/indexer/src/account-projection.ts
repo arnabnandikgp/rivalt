@@ -60,7 +60,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
   const resolution=()=>{const value=present(state.resolution,'resolution');equal(value.epoch,change.epoch,'resolution epoch');return value;};
   const market=(value:any,key?:string)=>{
     const canonical=currentVenue().markets[value.index];
-    accountCheck(value.schemaVersion===7 && value.venue===venue && [0,1].includes(value.index),'market identity');
+    accountCheck(value.schemaVersion===8 && value.venue===venue && [0,1].includes(value.index),'market identity');
     accountCheck(!key||key===canonical,'market key');
     const previous=present(state.markets[canonical],'market');
     equal(pick(value,['symbol','lotsPerUnit','crossEligible']),pick(previous,['symbol','lotsPerUnit','crossEligible']),'immutable market');
@@ -75,7 +75,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
   const ledger=(value:any)=>{
     accountCheck([0,1].includes(value.marketIndex)&&currentVenue().markets[value.marketIndex]===value.market,'ledger market');
     const {ledger:key,...fields}=value;
-    state.ledgers[key]={schemaVersion:7,revision:state.ledgers[key]?.revision??'0',venue,...fields};
+    state.ledgers[key]={schemaVersion:8,revision:state.ledgers[key]?.revision??'0',venue,...fields};
   };
   const partialLedgers=(values:any[])=>{
     accountCheck(Array.isArray(values)&&values.length<=2
@@ -91,12 +91,12 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
   };
   switch(event.type) {
     case 'AccountCustodyChangedV3': {
-      accountCheck(change.schemaVersion===7&&change.profileVersion===profile&&change.domain===domain,'custody version/domain');
+      accountCheck(change.schemaVersion===8&&change.profileVersion===profile&&change.domain===domain,'custody version/domain');
       accountCheck(Number.isInteger(change.kind)&&change.kind>=0&&change.kind<=10,'custody kind');
       if(change.kind===0) {
         accountCheck(!state.venue&&state.sequence==='0','duplicate initialization');
-        state.safety={schemaVersion:7,revision:'0',venue,mode:0,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
-        state.custody={schemaVersion:7,revision:'0',venue,allocatedVault:'0'};
+        state.safety={schemaVersion:8,revision:'0',venue,mode:0,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
+        state.custody={schemaVersion:8,revision:'0',venue,allocatedVault:'0'};
       } else {
         const immutable=['domain','authority','feeAuthority','reserveAuthority','reserveDestinationOwner','quoteMint','vault','insuranceFeeShareBps'];
         equal(pick(currentVenue(),immutable),pick(change,immutable),'immutable venue');
@@ -109,12 +109,12 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
         accountCheck(!state.markets[change.subject]&&[0,1].includes(change.index),'market registration');
         equal(currentVenue().markets[change.index],change.subject,'registered market');
         const symbol=Buffer.alloc(8);symbol.write(change.index===0?'BTC':'ETH');
-        state.markets[change.subject]={...blank(sdk.getMarketDecoder()),schemaVersion:7,venue,index:change.index,
+        state.markets[change.subject]={...blank(sdk.getMarketDecoder()),schemaVersion:8,venue,index:change.index,
           symbol:symbol.toString('hex'),lotsPerUnit:change.index===0?'1000000':'100000',crossEligible:true,termsEpoch:'1',configEpoch:'1'};
       }
       if(change.kind===2) {
         accountCheck(!state.portfolios[change.subject]&&change.index>=0&&change.index<4,'portfolio registration');
-        state.portfolios[change.subject]={schemaVersion:7,revision:'0',venue,owner:change.actor,index:change.index,children:0};
+        state.portfolios[change.subject]={schemaVersion:8,revision:'0',venue,owner:change.actor,index:change.index,children:0};
       }
       accountCheck(change.members.length<=2&&new Set(change.members.map((member:any)=>member.margin)).size===change.members.length,'custody member shape');
       for(const member of change.members) {
@@ -125,7 +125,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
           accountCheck(member.owner===portfolio.owner&&member.subaccountIndex<=8&&!(portfolio.children&(1<<member.subaccountIndex)),'child identity');
           portfolio.children|=1<<member.subaccountIndex;
           state.members.push(margin);
-          state.roots[margin]={...blank(sdk.getMarginAccountDecoder()),...identity,schemaVersion:7,venue,delegateEpoch:'1'};
+          state.roots[margin]={...blank(sdk.getMarginAccountDecoder()),...identity,schemaVersion:8,venue,delegateEpoch:'1'};
         } else {
           const previous=present(state.roots[margin],'custody root');
           equal(pick(previous,rootIdentity.slice(2)),pick(member,rootIdentity.slice(2)),'immutable custody root');
@@ -150,7 +150,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
         && change.allocatedVault.__option===change.actualVault.__option,'financial token scope');
       if(change.allocatedVault.__option==='Some')custody().allocatedVault=change.allocatedVault.value;equal(safety().epoch,change.safetyEpoch,'financial safety epoch');break;
     case 'AccountBackingChangedV3':
-      accountCheck(change.state.schemaVersion===7&&change.state.venue===venue,'backing identity');
+      accountCheck(change.state.schemaVersion===8&&change.state.venue===venue,'backing identity');
       // BackingSnapshot intentionally omits the journal revision. The enclosing
       // authenticated footer supplies its predecessor, including initialization.
       accountCheck(state.revisions[change.certificate]?.kind===9,'backing revision identity');
@@ -227,7 +227,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       Object.assign(currentVenue(),pick(change,['termsEpoch','configEpoch']));
       equal(totalAccountCash(state).toString(),change.totalCash,'recovered root cash');custody().allocatedVault=change.allocatedVault;change.markets.forEach((value:any)=>market(value));break;
     case 'AccountRetirementProgressV3':
-      state.retirement={schemaVersion:7,revision:state.retirement?.revision??Object.values(state.revisions).find(value=>value.kind===13)?.revision??'0',venue,safetyEpoch:change.safetyEpoch,membershipVersion:change.membershipVersion,
+      state.retirement={schemaVersion:8,revision:state.retirement?.revision??Object.values(state.revisions).find(value=>value.kind===13)?.revision??'0',venue,safetyEpoch:change.safetyEpoch,membershipVersion:change.membershipVersion,
         cash:change.cash,count:change.count,next:change.next,complete:change.complete};break;
     case 'AccountsRetiredV3':
       if(safety().mode===3)present(state.resolution,'terminal resolution').stage=13;
@@ -266,7 +266,7 @@ export function reconcileAccountLedger(state:AccountState) {
   const partial=state.resolution?.stage===9?state.resolution:null;
   equal(roots.reduce((sum,root)=>sum+BigInt(root.cash),0n),partial?BigInt(partial.remainingCash)+BigInt(partial.appliedCash):accountedCash,'root cash sum');
   roots.forEach((root,id)=>{
-    accountCheck(root.schemaVersion===7&&root.id===id&&root.positions.length===2&&root.book.orders.length===4&&root.book.protections.length===2,'bounded root');
+    accountCheck(root.schemaVersion===8&&root.id===id&&root.positions.length===2&&root.book.orders.length===4&&root.book.protections.length===2,'bounded root');
     accountCheck([0,1].includes(root.mode)&&(root.mode===0?root.subaccountIndex===0&&root.isolatedMarketIndex===255&&root.role!==1:
       root.subaccountIndex>=1&&root.subaccountIndex<=8&&[0,1].includes(root.isolatedMarketIndex)),'margin mode');
     if(root.mode===1)root.positions.forEach((position,index)=>{

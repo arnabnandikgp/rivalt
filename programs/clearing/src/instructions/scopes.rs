@@ -9,7 +9,7 @@ macro_rules! context {
     ($context:ident, $($venue:ident).+, $($authority:ident).+;
         [$($($field:ident).+ : $access:ident),* $(,)?];
         [$($($optional:ident).+ : $optional_access:ident),* $(,)?]) => {
-        impl<'info> ScopedContext<'info> for $context<'info> {
+        impl ScopedContext for $context {
             fn visit(&mut self, scope: &mut Scope) -> Result<()> {
                 $(scope.account(&mut self.$($field).+, Access::$access)?;)*
                 $(if let Some(account) = self.$($optional).+.as_deref_mut() {
@@ -17,11 +17,11 @@ macro_rules! context {
                 })*
                 Ok(())
             }
-            fn venue(&self) -> (Pubkey, [u8; 32]) {
-                (self.$($venue).+.key(), self.$($venue).+.domain)
+            fn venue(&self) -> (Address, [u8; 32]) {
+                (self.$($venue).+.address().to_owned(), self.$($venue).+.domain)
             }
-            fn event_authority(&self) -> AccountInfo<'info> {
-                self.$($authority).+.to_account_info()
+            fn event_authority(&self) -> AccountView {
+                self.$($authority).+.account().clone()
             }
         }
     };

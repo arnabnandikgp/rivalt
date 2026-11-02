@@ -2,7 +2,7 @@
 use super::*;
 use crate::instructions::{OrderExecution, OrderTerms, RouteIntent};
 // Internal execution admission values after canonical quote authentication.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq, IdlType)]
 pub(crate) struct ExecutionQuote {
     pub version: u16,
     pub maker_id: u8,
@@ -20,7 +20,7 @@ pub(crate) struct ExecutionQuote {
     pub reference_price: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub enum OrderAction {
     Place {
         expected_id: u64,
@@ -351,7 +351,7 @@ pub(crate) fn candidate_for_version(
     } else {
         model(&trader_next)?.admissible(risks)
     };
-    admitted.map_err(|_| error!(ClearingError::RouteHealth))?;
+    admitted.map_err(|_| ProgramError::from(ClearingError::RouteHealth))?;
     advance(&mut trader_next)?;
     let mut makers_next = makers.to_vec();
     for (maker, next_model) in makers_next.iter_mut().zip(next_makers) {
@@ -398,6 +398,6 @@ pub(crate) fn finish_maker(
     book::refresh(root, market, slot, true)?;
     model(root)?
         .admissible(risks)
-        .map_err(|_| error!(ClearingError::RouteHealth))?;
+        .map_err(|_| ProgramError::from(ClearingError::RouteHealth))?;
     advance(root)
 }

@@ -8,11 +8,10 @@ macro_rules! profile_cu {
         #[cfg(feature = "cu-profiling")]
         {
             anchor_lang::prelude::msg!(concat!("RIVALT_CU:", $label));
-            // Anchor 1.2.1 exposes the syscall through its pinned compatibility
-            // module. It takes no pointers and changes no program/account state.
+            // The pinned Pinocchio runtime exposes this pointer-free logging syscall.
             #[cfg(target_os = "solana")]
             unsafe {
-                anchor_lang::compat::solana_define_syscall::definitions::sol_log_compute_units_();
+                anchor_lang::pinocchio::syscalls::sol_log_compute_units_();
             }
         }
     };
@@ -30,9 +29,14 @@ pub mod error;
 mod event_cpi;
 pub mod events;
 pub mod instructions;
+mod program_accounts;
 #[cfg(any(test, feature = "devnet-test-profile"))]
 mod pyth_core;
 mod scoped_history;
+#[cfg(test)]
+mod test_support;
+mod wire;
+pub use program_accounts::{ClearingProgram, ProgramData, UpgradeableProgramAddress};
 pub mod state;
 
 pub use error::ClearingError;
@@ -53,23 +57,21 @@ declare_id!("BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv");
 compile_error!("local and devnet financial profiles are mutually exclusive");
 
 /// Financial paths require the explicit qualified local profile.
+// Consumers import state only; RC2 no-entrypoint alone still exports a dispatch symbol.
+#[cfg(not(feature = "state-only"))]
 #[program]
 pub mod clearing {
     use super::*;
-
-    #[instruction(discriminator = [166, 6, 187, 7, 126, 14, 139, 6])]
-    pub fn activate_liquidity(ctx: Context<ActivateAccounts>) -> Result<()> {
+    pub fn activate_liquidity(ctx: &mut Context<ActivateAccounts>) -> Result<()> {
         scoped_history::run(
             ctx,
-            [166, 6, 187, 7, 126, 14, 139, 6],
+            [246, 74, 124, 66, 126, 240, 164, 192],
             false,
             |ctx, events| account_trading::activation::activate_liquidity(ctx, events),
         )
     }
-
-    #[instruction(discriminator = [158, 125, 88, 198, 4, 88, 115, 45])]
     pub fn advance_account_resolution(
-        ctx: Context<AdvanceAccountResolution>,
+        ctx: &mut Context<AdvanceAccountResolution>,
         epoch: u64,
         stage: u8,
         start: u16,
@@ -77,125 +79,107 @@ pub mod clearing {
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [158, 125, 88, 198, 4, 88, 115, 45],
+            [126, 218, 57, 229, 217, 138, 41, 255],
             stage == account_safety::resolution::APPLY,
             |ctx, events| {
                 account_safety::resolution::advance(ctx, events, epoch, stage, start, length)
             },
         )
     }
-
-    #[instruction(discriminator = [73, 100, 212, 184, 126, 4, 162, 29])]
     pub fn allocate_market_fees(
-        ctx: Context<AllocateMarketFees>,
+        ctx: &mut Context<AllocateMarketFees>,
         market_index: u8,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [73, 100, 212, 184, 126, 4, 162, 29],
+            [238, 132, 46, 190, 60, 46, 250, 248],
             false,
             |ctx, events| account_cash::fees::allocate(ctx, events, market_index, amount),
         )
     }
-
-    #[instruction(discriminator = [136, 174, 199, 147, 44, 36, 124, 250])]
     pub fn approve_liquidity(
-        ctx: Context<ControlLiquidity>,
+        ctx: &mut Context<ControlLiquidity>,
         expected_authority: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [136, 174, 199, 147, 44, 36, 124, 250],
+            [100, 203, 4, 69, 50, 23, 124, 228],
             false,
             |ctx, events| maker_liquidity::approve(ctx, events, expected_authority),
         )
     }
-
-    #[instruction(discriminator = [24, 254, 55, 247, 185, 141, 200, 14])]
     pub fn check_account_resolution_order(
-        ctx: Context<AdvanceAccountResolution>,
+        ctx: &mut Context<AdvanceAccountResolution>,
         epoch: u64,
         start: u16,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [24, 254, 55, 247, 185, 141, 200, 14],
+            [149, 102, 156, 38, 43, 158, 226, 4],
             false,
             |ctx, events| account_safety::resolution::check_order(ctx, events, epoch, start),
         )
     }
-
-    #[instruction(discriminator = [112, 48, 16, 181, 151, 67, 89, 101])]
     pub fn check_account_retirement(
-        ctx: Context<CheckAccountRetirement>,
+        ctx: &mut Context<CheckAccountRetirement>,
         start: u16,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [112, 48, 16, 181, 151, 67, 89, 101],
+            [249, 193, 141, 17, 196, 101, 226, 246],
             false,
             |ctx, events| account_safety::resolution::retirement::check(ctx, events, start),
         )
     }
-
-    #[instruction(discriminator = [21, 81, 56, 88, 183, 171, 83, 40])]
-    pub fn check_market_backing(ctx: Context<CheckMarketBacking>, start: u16) -> Result<()> {
+    pub fn check_market_backing(ctx: &mut Context<CheckMarketBacking>, start: u16) -> Result<()> {
         scoped_history::run(
             ctx,
-            [21, 81, 56, 88, 183, 171, 83, 40],
+            [66, 145, 239, 19, 111, 19, 186, 239],
             false,
             |ctx, events| account_cash::certificate::check(ctx, events, start),
         )
     }
-
-    #[instruction(discriminator = [167, 119, 199, 63, 133, 98, 213, 253])]
     pub fn classify_market_surplus(
-        ctx: Context<ClassifyMarketSurplus>,
+        ctx: &mut Context<ClassifyMarketSurplus>,
         market_index: u8,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [167, 119, 199, 63, 133, 98, 213, 253],
+            [148, 185, 85, 189, 180, 126, 77, 91],
             false,
             |ctx, events| account_custody::classify_surplus(ctx, events, market_index, amount),
         )
     }
-
-    #[instruction(discriminator = [233, 57, 152, 62, 151, 36, 207, 224])]
     pub fn collect_account_loss(
-        ctx: Context<ChangeAccountClaim>,
+        ctx: &mut Context<ChangeAccountClaim>,
         market_index: u8,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [233, 57, 152, 62, 151, 36, 207, 224],
+            [35, 140, 150, 47, 61, 125, 54, 188],
             false,
             |ctx, events| account_cash::claims::change(ctx, events, market_index, amount, false),
         )
     }
-
-    #[instruction(discriminator = [110, 142, 188, 144, 187, 218, 246, 26])]
     pub fn configure_funding_publisher(
-        ctx: Context<ConfigureFundingPublisher>,
+        ctx: &mut Context<ConfigureFundingPublisher>,
         expected_authority: u64,
-        publisher: Pubkey,
+        publisher: Address,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [110, 142, 188, 144, 187, 218, 246, 26],
+            [209, 153, 177, 143, 74, 92, 77, 95],
             false,
             |ctx, events| {
                 maker_liquidity::publisher::configure(ctx, events, expected_authority, publisher)
             },
         )
     }
-
-    #[instruction(discriminator = [62, 198, 177, 103, 93, 48, 182, 192])]
     pub fn control_liquidity(
-        ctx: Context<ControlLiquidity>,
+        ctx: &mut Context<ControlLiquidity>,
         expected_authority: u64,
         expected_control: u64,
         expected_shape: u64,
@@ -203,7 +187,7 @@ pub mod clearing {
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [62, 198, 177, 103, 93, 48, 182, 192],
+            [236, 205, 59, 14, 74, 203, 241, 34],
             false,
             |ctx, events| {
                 maker_liquidity::control(
@@ -217,76 +201,64 @@ pub mod clearing {
             },
         )
     }
-
-    #[instruction(discriminator = [190, 83, 131, 136, 246, 233, 81, 198])]
-    pub fn create_portfolio(ctx: Context<CreatePortfolio>, index: u16) -> Result<()> {
+    pub fn create_portfolio(ctx: &mut Context<CreatePortfolio>, index: u16) -> Result<()> {
         scoped_history::run(
             ctx,
-            [190, 83, 131, 136, 246, 233, 81, 198],
+            [54, 26, 137, 113, 59, 182, 53, 225],
             false,
             |ctx, events| account_custody::create_portfolio(ctx, events, index),
         )
     }
-
-    #[instruction(discriminator = [135, 248, 38, 135, 220, 118, 42, 215])]
-    pub fn deposit_account(ctx: Context<AccountCash>, amount: u64) -> Result<()> {
+    pub fn deposit_account(ctx: &mut Context<AccountCash>, amount: u64) -> Result<()> {
         scoped_history::run(
             ctx,
-            [135, 248, 38, 135, 220, 118, 42, 215],
+            [177, 65, 65, 203, 1, 157, 104, 213],
             false,
             |ctx, events| account_custody::cash(ctx, events, amount, false),
         )
     }
-
-    #[instruction(discriminator = [212, 85, 15, 174, 43, 247, 199, 170])]
     pub fn execute_liquidity_order(
-        ctx: Context<ExecuteLiquidityRoute>,
+        ctx: &mut Context<ExecuteLiquidityRoute>,
         args: LiquidityOrderExecution,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [212, 85, 15, 174, 43, 247, 199, 170],
+            [128, 46, 100, 204, 183, 230, 53, 135],
             false,
             |ctx, events| maker_liquidity::routes::execute_order(ctx, events, args),
         )
     }
-
-    #[instruction(discriminator = [195, 172, 220, 84, 16, 82, 29, 7])]
     pub fn execute_liquidity_route(
-        ctx: Context<ExecuteLiquidityRoute>,
+        ctx: &mut Context<ExecuteLiquidityRoute>,
         args: LiquidityRouteIntent,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [195, 172, 220, 84, 16, 82, 29, 7],
+            [168, 103, 155, 184, 217, 71, 251, 209],
             false,
             |ctx, events| maker_liquidity::routes::execute(ctx, events, args),
         )
     }
-
-    #[instruction(discriminator = [159, 255, 180, 192, 47, 160, 38, 65])]
     pub fn finalize_account_resolution_rates(
-        ctx: Context<ProposeAccountResolution>,
+        ctx: &mut Context<ProposeAccountResolution>,
         epoch: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [159, 255, 180, 192, 47, 160, 38, 65],
+            [240, 183, 132, 7, 94, 122, 26, 36],
             false,
             |ctx, events| account_safety::resolution::finalize(ctx, events, epoch),
         )
     }
-
-    #[instruction(discriminator = [79, 20, 170, 245, 139, 183, 183, 204])]
     pub fn freeze_accounts(
-        ctx: Context<FreezeAccounts>,
+        ctx: &mut Context<FreezeAccounts>,
         safety_epoch: u64,
         resolution_epoch: u64,
         emergency: bool,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [79, 20, 170, 245, 139, 183, 183, 204],
+            [87, 63, 234, 112, 233, 23, 75, 13],
             false,
             |ctx, events| {
                 account_safety::resolution::freeze(
@@ -299,88 +271,78 @@ pub mod clearing {
             },
         )
     }
-
-    #[instruction(discriminator = [154, 81, 209, 77, 98, 252, 111, 116])]
-    pub fn initialize_account_resolution(ctx: Context<InitializeAccountResolution>) -> Result<()> {
+    pub fn initialize_account_resolution(
+        ctx: &mut Context<InitializeAccountResolution>,
+    ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [154, 81, 209, 77, 98, 252, 111, 116],
+            [183, 78, 104, 116, 183, 15, 47, 61],
             false,
             |ctx, events| account_safety::resolution::initialize(ctx, events),
         )
     }
-
-    #[instruction(discriminator = [128, 207, 5, 82, 159, 26, 204, 242])]
     pub fn initialize_account_resolution_page(
-        ctx: Context<InitializeAccountResolutionPage>,
+        ctx: &mut Context<InitializeAccountResolutionPage>,
         page_index: u16,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [128, 207, 5, 82, 159, 26, 204, 242],
+            [140, 24, 112, 109, 122, 218, 84, 200],
             false,
             |ctx, events| account_safety::resolution::initialize_page(ctx, events, page_index),
         )
     }
-
-    #[instruction(discriminator = [174, 156, 215, 5, 24, 22, 39, 120])]
-    pub fn initialize_account_retirement(ctx: Context<InitializeAccountRetirement>) -> Result<()> {
+    pub fn initialize_account_retirement(
+        ctx: &mut Context<InitializeAccountRetirement>,
+    ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [174, 156, 215, 5, 24, 22, 39, 120],
+            [23, 14, 219, 16, 71, 23, 132, 51],
             false,
             |ctx, events| account_safety::resolution::retirement::initialize(ctx, events),
         )
     }
-
-    #[instruction(discriminator = [46, 125, 193, 138, 25, 29, 38, 77])]
     pub fn initialize_funding_publisher(
-        ctx: Context<InitializeFundingPublisher>,
-        publisher: Pubkey,
+        ctx: &mut Context<InitializeFundingPublisher>,
+        publisher: Address,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [46, 125, 193, 138, 25, 29, 38, 77],
+            [122, 218, 127, 187, 191, 112, 159, 32],
             false,
             |ctx, events| maker_liquidity::publisher::initialize(ctx, events, publisher),
         )
     }
-
-    #[instruction(discriminator = [22, 214, 118, 0, 73, 219, 158, 150])]
-    pub fn initialize_liquidity(ctx: Context<InitializeLiquidity>) -> Result<()> {
+    pub fn initialize_liquidity(ctx: &mut Context<InitializeLiquidity>) -> Result<()> {
         scoped_history::run(
             ctx,
-            [22, 214, 118, 0, 73, 219, 158, 150],
+            [27, 159, 247, 95, 173, 143, 67, 250],
             false,
             |ctx, events| maker_liquidity::initialize(ctx, events),
         )
     }
-
-    #[instruction(discriminator = [25, 98, 80, 222, 78, 170, 247, 2])]
     pub fn initialize_liquidity_oracle(
-        ctx: Context<InitializeAccountOracle>,
-        primary: Pubkey,
-        guard: Pubkey,
+        ctx: &mut Context<InitializeAccountOracle>,
+        primary: Address,
+        guard: Address,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [25, 98, 80, 222, 78, 170, 247, 2],
+            [148, 248, 125, 23, 17, 194, 68, 202],
             false,
             |ctx, events| maker_liquidity::sampling::initialize(ctx, events, primary, guard),
         )
     }
-
-    #[instruction(discriminator = [250, 122, 16, 167, 236, 144, 173, 143])]
     pub fn initialize_liquidity_venue(
-        ctx: Context<InitializeVenue>,
+        ctx: &mut Context<InitializeVenue>,
         domain: [u8; 32],
-        fee_authority: Pubkey,
-        reserve_authority: Pubkey,
-        reserve_destination_owner: Pubkey,
+        fee_authority: Address,
+        reserve_authority: Address,
+        reserve_destination_owner: Address,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [250, 122, 16, 167, 236, 144, 173, 143],
+            [239, 81, 3, 85, 25, 155, 68, 160],
             false,
             |ctx, events| {
                 account_custody::initialize_liquidity(
@@ -394,43 +356,35 @@ pub mod clearing {
             },
         )
     }
-
-    #[instruction(discriminator = [239, 190, 155, 70, 222, 88, 62, 74])]
-    pub fn initialize_market(ctx: Context<InitializeMarket>, index: u8) -> Result<()> {
+    pub fn initialize_market(ctx: &mut Context<InitializeMarket>, index: u8) -> Result<()> {
         scoped_history::run(
             ctx,
-            [239, 190, 155, 70, 222, 88, 62, 74],
+            [35, 35, 189, 193, 155, 48, 170, 203],
             false,
             |ctx, events| account_custody::initialize_market(ctx, events, index),
         )
     }
-
-    #[instruction(discriminator = [83, 98, 92, 176, 125, 128, 185, 8])]
     pub fn initialize_market_backing(
-        ctx: Context<InitializeMarketBacking>,
+        ctx: &mut Context<InitializeMarketBacking>,
         market_index: u8,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [83, 98, 92, 176, 125, 128, 185, 8],
+            [171, 150, 246, 208, 59, 111, 198, 53],
             false,
             |ctx, events| account_cash::certificate::initialize(ctx, events, market_index),
         )
     }
-
-    #[instruction(discriminator = [102, 230, 6, 145, 112, 93, 102, 185])]
-    pub fn initialize_venue_registry(ctx: Context<InitializeVenueRegistry>) -> Result<()> {
+    pub fn initialize_venue_registry(ctx: &mut Context<InitializeVenueRegistry>) -> Result<()> {
         scoped_history::run(
             ctx,
-            [102, 230, 6, 145, 112, 93, 102, 185],
+            [65, 159, 220, 107, 114, 82, 191, 244],
             false,
             |ctx, events| account_custody::initialize_registry(ctx, events),
         )
     }
-
-    #[instruction(discriminator = [131, 207, 144, 94, 233, 148, 193, 145])]
     pub fn liquidate_account(
-        ctx: Context<LiquidateAccount>,
+        ctx: &mut Context<LiquidateAccount>,
         target_guard: account_trading::authority::AccountGuard,
         receiver_guard: account_trading::authority::AccountGuard,
         market_index: u8,
@@ -439,7 +393,7 @@ pub mod clearing {
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [131, 207, 144, 94, 233, 148, 193, 145],
+            [39, 235, 197, 252, 216, 79, 212, 18],
             false,
             |ctx, events| {
                 account_safety::risk::liquidate(
@@ -454,80 +408,68 @@ pub mod clearing {
             },
         )
     }
-
-    #[instruction(discriminator = [222, 137, 80, 44, 228, 144, 103, 165])]
     pub fn manage_account_order(
-        ctx: Context<ManageAccountOrder>,
+        ctx: &mut Context<ManageAccountOrder>,
         guard: account_trading::authority::AccountGuard,
         market_index: u8,
         operation: engine::routes::OrderAction,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [222, 137, 80, 44, 228, 144, 103, 165],
+            [69, 25, 199, 184, 146, 122, 14, 218],
             false,
             |ctx, events| {
                 account_trading::authority::manage(ctx, events, guard, market_index, operation)
             },
         )
     }
-
-    #[instruction(discriminator = [177, 49, 114, 141, 189, 12, 64, 79])]
     pub fn net_account_claims(
-        ctx: Context<NetAccountClaims>,
+        ctx: &mut Context<NetAccountClaims>,
         guard: account_trading::authority::AccountGuard,
         source_market: u8,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [177, 49, 114, 141, 189, 12, 64, 79],
+            [234, 97, 182, 215, 70, 97, 13, 87],
             false,
             |ctx, events| account_cash::claims::net(ctx, events, guard, source_market, amount),
         )
     }
-
-    #[instruction(discriminator = [97, 21, 211, 203, 242, 247, 254, 77])]
     pub fn order_account_resolution(
-        ctx: Context<ProposeAccountResolution>,
+        ctx: &mut Context<ProposeAccountResolution>,
         epoch: u64,
         orders: [Vec<u16>; 2],
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [97, 21, 211, 203, 242, 247, 254, 77],
+            [54, 181, 74, 95, 94, 228, 178, 94],
             false,
             |ctx, events| account_safety::resolution::order(ctx, events, epoch, orders),
         )
     }
-
-    #[instruction(discriminator = [249, 14, 93, 103, 186, 72, 200, 112])]
-    pub fn pause_venue(ctx: Context<PauseVenue>, paused: bool) -> Result<()> {
+    pub fn pause_venue(ctx: &mut Context<PauseVenue>, paused: bool) -> Result<()> {
         scoped_history::run(
             ctx,
-            [249, 14, 93, 103, 186, 72, 200, 112],
+            [95, 78, 87, 119, 226, 152, 10, 227],
             false,
             |ctx, events| account_custody::pause(ctx, events, paused),
         )
     }
-
-    #[instruction(discriminator = [10, 28, 10, 104, 114, 129, 158, 42])]
     pub fn pay_account_gain(
-        ctx: Context<ChangeAccountClaim>,
+        ctx: &mut Context<ChangeAccountClaim>,
         market_index: u8,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [10, 28, 10, 104, 114, 129, 158, 42],
+            [149, 199, 146, 251, 166, 53, 71, 27],
             false,
             |ctx, events| account_cash::claims::change(ctx, events, market_index, amount, true),
         )
     }
-
-    #[instruction(discriminator = [117, 16, 202, 186, 1, 19, 96, 124])]
     pub fn propose_account_resolution(
-        ctx: Context<ProposeAccountResolution>,
+        ctx: &mut Context<ProposeAccountResolution>,
         epoch: u64,
         evaluation: u8,
         proposal_hash: [u8; 32],
@@ -536,7 +478,7 @@ pub mod clearing {
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [117, 16, 202, 186, 1, 19, 96, 124],
+            [5, 94, 130, 146, 21, 228, 47, 102],
             false,
             |ctx, events| {
                 account_safety::resolution::upload(
@@ -551,66 +493,58 @@ pub mod clearing {
             },
         )
     }
-
-    #[instruction(discriminator = [215, 24, 92, 183, 31, 114, 182, 177])]
     pub fn publish_funding_report(
-        ctx: Context<PublishFundingReport>,
+        ctx: &mut Context<PublishFundingReport>,
         report: state::liquidity::FundingReport,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [215, 24, 92, 183, 31, 114, 182, 177],
+            [32, 39, 131, 11, 127, 118, 35, 241],
             false,
             |ctx, events| maker_liquidity::publisher::publish(ctx, events, report),
         )
     }
-
-    #[instruction(discriminator = [241, 172, 102, 0, 106, 204, 141, 71])]
     pub fn quarantine_liquidity(
-        ctx: Context<QuarantineLiquidity>,
+        ctx: &mut Context<QuarantineLiquidity>,
         expected_authority: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [241, 172, 102, 0, 106, 204, 141, 71],
+            [132, 146, 86, 13, 219, 126, 148, 43],
             false,
             |ctx, events| maker_liquidity::quarantine(ctx, events, expected_authority),
         )
     }
-
-    #[instruction(discriminator = [148, 196, 189, 82, 173, 14, 171, 133])]
-    pub fn reactivate_accounts(ctx: Context<RecoverAccounts>, epoch: u64) -> Result<()> {
+    pub fn reactivate_accounts(ctx: &mut Context<RecoverAccounts>, epoch: u64) -> Result<()> {
         scoped_history::run(
             ctx,
-            [148, 196, 189, 82, 173, 14, 171, 133],
+            [162, 89, 139, 133, 40, 94, 178, 191],
             false,
             |ctx, events| account_safety::resolution::reactivate(ctx, events, epoch),
         )
     }
-
-    #[instruction(discriminator = [219, 239, 15, 207, 243, 222, 93, 67])]
-    pub fn recover_accounts(ctx: Context<RecoverAccounts>, epoch: u64, resume: bool) -> Result<()> {
+    pub fn recover_accounts(
+        ctx: &mut Context<RecoverAccounts>,
+        epoch: u64,
+        resume: bool,
+    ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [219, 239, 15, 207, 243, 222, 93, 67],
+            [20, 29, 183, 179, 123, 39, 45, 195],
             false,
             |ctx, events| account_safety::resolution::recover(ctx, events, epoch, resume),
         )
     }
-
-    #[instruction(discriminator = [37, 201, 113, 79, 246, 27, 211, 123])]
-    pub fn register_liquidity(ctx: Context<RegisterLiquidity>, instance: u8) -> Result<()> {
+    pub fn register_liquidity(ctx: &mut Context<RegisterLiquidity>, instance: u8) -> Result<()> {
         scoped_history::run(
             ctx,
-            [37, 201, 113, 79, 246, 27, 211, 123],
+            [238, 192, 252, 155, 240, 56, 252, 251],
             false,
             |ctx, events| maker_liquidity::register(ctx, events, instance),
         )
     }
-
-    #[instruction(discriminator = [18, 5, 57, 115, 223, 186, 54, 240])]
     pub fn register_margin(
-        ctx: Context<RegisterMargin>,
+        ctx: &mut Context<RegisterMargin>,
         subaccount_index: u16,
         mode: u8,
         isolated_market_index: u8,
@@ -618,7 +552,7 @@ pub mod clearing {
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [18, 5, 57, 115, 223, 186, 54, 240],
+            [156, 36, 155, 86, 98, 38, 140, 32],
             false,
             |ctx, events| {
                 account_custody::register(
@@ -632,176 +566,150 @@ pub mod clearing {
             },
         )
     }
-
-    #[instruction(discriminator = [137, 189, 163, 68, 161, 179, 13, 220])]
     pub fn replenish_liquidity(
-        ctx: Context<ControlLiquidity>,
+        ctx: &mut Context<ControlLiquidity>,
         expected_authority: u64,
         expected_depth: u64,
         sides: u8,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [137, 189, 163, 68, 161, 179, 13, 220],
+            [164, 235, 145, 210, 171, 169, 231, 117],
             false,
             |ctx, events| {
                 maker_liquidity::replenish(ctx, events, expected_authority, expected_depth, sides)
             },
         )
     }
-
-    #[instruction(discriminator = [233, 54, 212, 73, 41, 95, 248, 60])]
-    pub fn retire_accounts(ctx: Context<RetireAccounts>, safety_epoch: u64) -> Result<()> {
+    pub fn retire_accounts(ctx: &mut Context<RetireAccounts>, safety_epoch: u64) -> Result<()> {
         scoped_history::run(
             ctx,
-            [233, 54, 212, 73, 41, 95, 248, 60],
+            [205, 185, 237, 201, 15, 220, 100, 203],
             false,
             |ctx, events| account_safety::resolution::retirement::retire(ctx, events, safety_epoch),
         )
     }
-
-    #[instruction(discriminator = [190, 79, 178, 22, 255, 147, 201, 4])]
     pub fn round_account_resolution(
-        ctx: Context<ProposeAccountResolution>,
+        ctx: &mut Context<ProposeAccountResolution>,
         epoch: u64,
         start: u16,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [190, 79, 178, 22, 255, 147, 201, 4],
+            [248, 104, 22, 65, 93, 7, 115, 112],
             false,
             |ctx, events| account_safety::resolution::round(ctx, events, epoch, start),
         )
     }
-
-    #[instruction(discriminator = [9, 220, 8, 208, 93, 107, 35, 66])]
-    pub fn seal_liquidity(ctx: Context<SealLiquidity>) -> Result<()> {
+    pub fn seal_liquidity(ctx: &mut Context<SealLiquidity>) -> Result<()> {
         scoped_history::run(
             ctx,
-            [9, 220, 8, 208, 93, 107, 35, 66],
+            [31, 143, 152, 241, 90, 106, 88, 11],
             false,
             |ctx, events| maker_liquidity::seal(ctx, events),
         )
     }
-
-    #[instruction(discriminator = [152, 240, 176, 200, 131, 225, 171, 192])]
     pub fn seed_market_insurance(
-        ctx: Context<SeedMarketInsurance>,
+        ctx: &mut Context<SeedMarketInsurance>,
         market_index: u8,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [152, 240, 176, 200, 131, 225, 171, 192],
+            [210, 218, 26, 12, 123, 193, 213, 209],
             false,
             |ctx, events| account_custody::seed_insurance(ctx, events, market_index, amount),
         )
     }
-
-    #[instruction(discriminator = [250, 140, 65, 24, 51, 121, 96, 88])]
     pub fn set_account_delegate(
-        ctx: Context<SetAccountDelegate>,
+        ctx: &mut Context<SetAccountDelegate>,
         guard: account_trading::authority::AccountGuard,
-        delegate: Pubkey,
+        delegate: Address,
         expiry_slot: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [250, 140, 65, 24, 51, 121, 96, 88],
+            [253, 87, 79, 111, 165, 50, 87, 251],
             false,
             |ctx, events| {
                 account_trading::authority::delegate(ctx, events, guard, delegate, expiry_slot)
             },
         )
     }
-
-    #[instruction(discriminator = [95, 81, 42, 204, 234, 182, 15, 18])]
     pub fn transfer_account_custody(
-        ctx: Context<TransferAccountCustody>,
+        ctx: &mut Context<TransferAccountCustody>,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [95, 81, 42, 204, 234, 182, 15, 18],
+            [79, 118, 155, 110, 54, 143, 155, 72],
             false,
             |ctx, events| account_custody::transfer(ctx, events, amount),
         )
     }
-
-    #[instruction(discriminator = [192, 145, 33, 83, 250, 178, 221, 180])]
     pub fn transfer_funded_account(
-        ctx: Context<TransferFundedAccount>,
+        ctx: &mut Context<TransferFundedAccount>,
         guard: account_trading::authority::AccountGuard,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [192, 145, 33, 83, 250, 178, 221, 180],
+            [155, 89, 210, 42, 245, 176, 201, 73],
             false,
             |ctx, events| account_cash::cash::transfer(ctx, events, guard, amount),
         )
     }
-
-    #[instruction(discriminator = [139, 215, 4, 127, 183, 174, 98, 189])]
     pub fn value_account_resolution(
-        ctx: Context<ValueAccountResolution>,
+        ctx: &mut Context<ValueAccountResolution>,
         epoch: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [139, 215, 4, 127, 183, 174, 98, 189],
+            [104, 10, 208, 35, 140, 115, 13, 140],
             false,
             |ctx, events| account_safety::resolution::value_sources(ctx, events, epoch),
         )
     }
-
-    #[instruction(discriminator = [8, 125, 77, 6, 124, 105, 113, 123])]
-    pub fn withdraw_account_custody(ctx: Context<AccountCash>, amount: u64) -> Result<()> {
+    pub fn withdraw_account_custody(ctx: &mut Context<AccountCash>, amount: u64) -> Result<()> {
         scoped_history::run(
             ctx,
-            [8, 125, 77, 6, 124, 105, 113, 123],
+            [211, 165, 24, 154, 201, 22, 195, 210],
             false,
             |ctx, events| account_custody::cash(ctx, events, amount, true),
         )
     }
-
-    #[instruction(discriminator = [182, 227, 227, 227, 105, 250, 114, 82])]
     pub fn withdraw_funded_account(
-        ctx: Context<WithdrawFundedAccount>,
+        ctx: &mut Context<WithdrawFundedAccount>,
         guard: account_trading::authority::AccountGuard,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [182, 227, 227, 227, 105, 250, 114, 82],
+            [192, 57, 45, 195, 49, 172, 22, 255],
             false,
             |ctx, events| account_cash::cash::withdraw(ctx, events, guard, amount),
         )
     }
-
-    #[instruction(discriminator = [236, 141, 236, 121, 133, 175, 96, 152])]
     pub fn withdraw_market_fees(
-        ctx: Context<WithdrawMarketFees>,
+        ctx: &mut Context<WithdrawMarketFees>,
         market_index: u8,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [236, 141, 236, 121, 133, 175, 96, 152],
+            [196, 199, 207, 67, 231, 90, 235, 233],
             false,
             |ctx, events| account_cash::fees::withdraw(ctx, events, market_index, amount),
         )
     }
-
-    #[instruction(discriminator = [128, 169, 190, 185, 100, 109, 194, 197])]
     pub fn withdraw_retired_reserve(
-        ctx: Context<WithdrawRetiredReserve>,
+        ctx: &mut Context<WithdrawRetiredReserve>,
         market_index: u8,
         amount: u64,
     ) -> Result<()> {
         scoped_history::run(
             ctx,
-            [128, 169, 190, 185, 100, 109, 194, 197],
+            [143, 109, 72, 169, 117, 203, 249, 57],
             false,
             |ctx, events| {
                 account_safety::resolution::retirement::withdraw(ctx, events, market_index, amount)

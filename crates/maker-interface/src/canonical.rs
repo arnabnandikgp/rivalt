@@ -5,6 +5,8 @@ use anchor_lang::prelude::*;
 use financial_core::{MAX_LOTS, MAX_PRICE};
 
 pub const VERSION: u16 = 4;
+/// Maker-owned account schema; independent of the quote protocol version.
+pub const ACCOUNT_SCHEMA: u16 = 5;
 pub const CAPABILITY: u16 = 1;
 pub const MAX_REGIONS: usize = 8;
 pub const MAX_DEPTH: u64 = 4_096;
@@ -17,7 +19,16 @@ mod ladder;
 pub use ladder::QuoteLadder;
 
 #[derive(
-    AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Copy, Debug, Default, PartialEq, Eq,
+    AnchorSerialize,
+    AnchorDeserialize,
+    InitSpace,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    IdlType,
 )]
 pub struct PriceRegion {
     pub end_lots: u64,
@@ -25,7 +36,9 @@ pub struct PriceRegion {
     pub slope: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(
+    AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Debug, Default, PartialEq, Eq, IdlType,
+)]
 pub struct LiquidityShape {
     /// 0 disabled, 1 enabled, 3 enabled and maker-inventory reduce-only.
     pub mode: u8,
@@ -106,15 +119,15 @@ fn validate_regions(regions: &[PriceRegion; MAX_REGIONS], count: u8) -> QuoteRes
     Ok(())
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Debug, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Debug, PartialEq, Eq, IdlType)]
 pub struct CurveState {
     pub schema_version: u16,
-    pub venue: Pubkey,
-    pub market: Pubkey,
-    pub capital: Pubkey,
-    pub controller: Pubkey,
-    pub owner: Pubkey,
-    pub updater: Pubkey,
+    pub venue: Address,
+    pub market: Address,
+    pub capital: Address,
+    pub controller: Address,
+    pub owner: Address,
+    pub updater: Address,
     pub updater_expiry_slot: u64,
     pub control_epoch: u64,
     pub shape_epoch: u64,
@@ -125,10 +138,10 @@ pub struct CurveState {
     pub bump: u8,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Debug, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Debug, PartialEq, Eq, IdlType)]
 pub struct PriceState {
     pub schema_version: u16,
-    pub config: Pubkey,
+    pub config: Address,
     pub control_epoch: u64,
     pub sequence: u64,
     pub anchor: u64,
@@ -138,10 +151,10 @@ pub struct PriceState {
 }
 
 /// Borsh discriminants 0..3, with no extra vector-length prefix on the payload.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq, IdlType)]
 pub enum CurveControl {
     Shape(LiquidityShape),
-    Updater { updater: Pubkey, expiry_slot: u64 },
+    Updater { updater: Address, expiry_slot: u64 },
     Mode { mode: u8 },
     Invalidate,
 }
@@ -166,7 +179,7 @@ pub fn control(
     action: CurveControl,
     slot: u64,
 ) -> QuoteResult<CurveState> {
-    if config.schema_version != VERSION
+    if config.schema_version != ACCOUNT_SCHEMA
         || config.capability != CAPABILITY
         || config.control_epoch == 0
         || config.shape_epoch == 0
@@ -194,8 +207,8 @@ pub fn control(
             updater,
             expiry_slot,
         } => {
-            if (updater == Pubkey::default() && expiry_slot != 0)
-                || (updater != Pubkey::default() && expiry_slot <= slot)
+            if (updater == Address::default() && expiry_slot != 0)
+                || (updater != Address::default() && expiry_slot <= slot)
             {
                 return Err(QuoteError::Lifetime);
             }
@@ -233,12 +246,12 @@ pub fn control(
     Ok(next)
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq, IdlType)]
 pub struct MakerQuoteRequest {
     pub version: u16,
     pub domain: [u8; 32],
-    pub market: Pubkey,
-    pub capital: Pubkey,
+    pub market: Address,
+    pub capital: Address,
     pub instance: u8,
     pub authority_epoch: u64,
     pub control_epoch: u64,
@@ -250,7 +263,7 @@ pub struct MakerQuoteRequest {
     pub consumed: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq, IdlType)]
 pub struct MakerQuoteResponse {
     pub request: MakerQuoteRequest,
     pub price_sequence: u64,
@@ -472,14 +485,14 @@ fn quote_validated_amount(
 /// Validate a required publication without inventing a positive-size trade.
 /// Complete funding coverage includes valid zero-capacity/one-sided makers.
 pub fn validate_publication(
-    config_key: Pubkey,
+    config_key: Address,
     config: &CurveState,
     price: &PriceState,
     slot: u64,
     now: i64,
 ) -> QuoteResult<(u64, i64)> {
-    if config.schema_version != VERSION
-        || price.schema_version != VERSION
+    if config.schema_version != ACCOUNT_SCHEMA
+        || price.schema_version != ACCOUNT_SCHEMA
         || config.capability != CAPABILITY
         || config.instance > 2
         || price.config != config_key
@@ -514,7 +527,7 @@ pub fn validate_publication(
 }
 
 pub fn quote(
-    config_key: Pubkey,
+    config_key: Address,
     config: &CurveState,
     price: &PriceState,
     request: &MakerQuoteRequest,
@@ -557,10 +570,10 @@ pub fn quote(
 /// Return a new publication only after every authority/CAS/bound check succeeds.
 /// The instruction supplies actual Clock values and authenticates account ownership.
 pub fn reprice(
-    config_key: Pubkey,
+    config_key: Address,
     config: &CurveState,
     price: &PriceState,
-    actor: Pubkey,
+    actor: Address,
     expected_control: u64,
     expected_sequence: u64,
     anchor: u64,
@@ -568,8 +581,8 @@ pub fn reprice(
     now: i64,
 ) -> QuoteResult<PriceState> {
     config.shape.validate()?;
-    if config.schema_version != VERSION
-        || price.schema_version != VERSION
+    if config.schema_version != ACCOUNT_SCHEMA
+        || price.schema_version != ACCOUNT_SCHEMA
         || config.capability != CAPABILITY
         || config.control_epoch == 0
         || price.config != config_key
@@ -602,8 +615,8 @@ pub fn reprice(
 
 pub fn validate_response(
     expected: &MakerQuoteResponse,
-    program: Pubkey,
-    producer: Pubkey,
+    program: Address,
+    producer: Address,
     bytes: &[u8],
 ) -> QuoteResult<()> {
     if program != producer {
@@ -612,7 +625,11 @@ pub fn validate_response(
     if bytes.len() != RESPONSE_BYTES {
         return Err(QuoteError::Response);
     }
-    let actual = MakerQuoteResponse::try_from_slice(bytes).map_err(|_| QuoteError::Response)?;
+    let actual = anchor_lang::wincode::config::deserialize::<MakerQuoteResponse, _>(
+        bytes,
+        anchor_lang::BORSH_CONFIG,
+    )
+    .map_err(|_| QuoteError::Response)?;
     if actual != *expected {
         return Err(QuoteError::Response);
     }
@@ -647,13 +664,13 @@ mod tests {
         assert_eq!(potential(&shape, 1), Err(QuoteError::Arithmetic));
     }
 
-    fn wire<T: AnchorSerialize>(value: &T) -> Vec<u8> {
+    fn wire<T: SchemaWrite<anchor_lang::BorshConfig, Src = T>>(value: &T) -> Vec<u8> {
         let mut bytes = Vec::new();
-        value.serialize(&mut bytes).unwrap();
+        T::write(&mut bytes, value).unwrap();
         bytes
     }
 
-    fn fixture() -> (Pubkey, CurveState, PriceState, MakerQuoteRequest) {
+    fn fixture() -> (Address, CurveState, PriceState, MakerQuoteRequest) {
         let mut shape = LiquidityShape {
             mode: 1,
             ttl_slots: 150,
@@ -689,15 +706,15 @@ mod tests {
                 slope: 0,
             },
         ]);
-        let key = Pubkey::new_from_array([1; 32]);
+        let key = Address::new_from_array([1; 32]);
         let config = CurveState {
-            schema_version: VERSION,
+            schema_version: ACCOUNT_SCHEMA,
             venue: key,
             market: key,
             capital: key,
             controller: key,
             owner: key,
-            updater: Pubkey::new_from_array([2; 32]),
+            updater: Address::new_from_array([2; 32]),
             updater_expiry_slot: 200,
             control_epoch: 1,
             shape_epoch: 1,
@@ -708,7 +725,7 @@ mod tests {
             bump: 0,
         };
         let price = PriceState {
-            schema_version: VERSION,
+            schema_version: ACCOUNT_SCHEMA,
             config: key,
             control_epoch: 1,
             sequence: 1,
@@ -802,7 +819,7 @@ mod tests {
             Err(QuoteError::Binding)
         );
         bad = request.clone();
-        bad.capital = Pubkey::default();
+        bad.capital = Address::default();
         assert_eq!(
             quote(key, &config, &price, &bad, 11, 21),
             Err(QuoteError::Binding)
@@ -842,7 +859,7 @@ mod tests {
         assert!(reprice(key, &config, &published, config.updater, 1, 1, 102, 12, 22).is_err());
         assert!(reprice(key, &config, &price, config.updater, 1, 1, 102, 200, 21).is_err());
         assert!(reprice(key, &config, &price, config.owner, 1, 1, 102, 200, 21).is_ok());
-        assert!(reprice(key, &config, &price, Pubkey::default(), 1, 1, 102, 11, 21).is_err());
+        assert!(reprice(key, &config, &price, Address::default(), 1, 1, 102, 11, 21).is_err());
         let mut exhausted = price.clone();
         exhausted.sequence = u64::MAX;
         assert_eq!(
@@ -867,7 +884,7 @@ mod tests {
         let response = quote(key, &config, &price, &request, 11, 21).unwrap();
         let bytes = wire(&response);
         assert!(validate_response(&response, key, key, &bytes).is_ok());
-        assert!(validate_response(&response, key, Pubkey::default(), &bytes).is_err());
+        assert!(validate_response(&response, key, Address::default(), &bytes).is_err());
         // Every echoed request and quote byte is authenticated, including lengths.
         for index in 0..bytes.len() {
             let mut changed = bytes.clone();
@@ -904,7 +921,7 @@ mod tests {
             2,
             3,
             CurveControl::Updater {
-                updater: Pubkey::default(),
+                updater: Address::default(),
                 expiry_slot: 0,
             },
             11,

@@ -44,7 +44,7 @@ try {
   const unchangedKeys = [...makerKeys, fixture.markets[0], configuration, fixture.custody];
   const readAll = (keys = unchangedKeys) => Promise.all(keys.map(h.read));
   const beforeDisabled = await readAll();
-  await h.send('retired sampler discriminator cannot bypass publisher', [{programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data:Buffer.from([9,149,124,151,174,246,56,42])}], [], 101);
+  await h.send('retired sampler discriminator cannot bypass publisher', [{programAddress:sdk.CLEARING_PROGRAM_ADDRESS,accounts:[],data:Buffer.from([9,149,124,151,174,246,56,42])}], [], 'InvalidInstructionData');
   assert.deepEqual(await readAll(), beforeDisabled);
   const observations: unknown[] = [];
   let publisher = fixture.updater;
@@ -164,7 +164,7 @@ try {
   assert.equal(sdk.getVenueSafetyDecoder().decode((await h.read(fixture.safety))!).mode, 0);
   writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     trackedDirty: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
-    build: JSON.parse(readFileSync('.local/liquidity-execution/build-manifest.json', 'utf8')),
+    build: JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`, 'utf8')),
     runtime: await rpc.call('getVersion'), genesis: await rpc.call('getGenesisHash'), checks, observations, parity,
     fundingLiquidityPolicy: 'restricted-publisher-D76', financialTradingActivated: false, phaseAcceptance: false }));
   console.log(`P32 publisher probe: ${observations.length} reports, ${checks.length} signed RPC/WS outcomes. Trading disabled.`);

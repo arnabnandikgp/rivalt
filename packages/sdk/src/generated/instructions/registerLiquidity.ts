@@ -45,13 +45,14 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCapitalBindingPda,
+  findEventAuthorityPda,
   findLiquidityRegistryPda,
   findVenueSafetyPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const REGISTER_LIQUIDITY_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([37, 201, 113, 79, 246, 27, 211, 123]);
+  new Uint8Array([238, 192, 252, 155, 240, 56, 252, 251]);
 
 export function getRegisterLiquidityDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -203,12 +204,17 @@ export type RegisterLiquidityAsyncInput<
   capital: TAccountCapital;
   registration: TAccountRegistration;
   capitalBinding?: TAccountCapitalBinding;
+  /** CHECK: exact maker owner, discriminator, size, PDA and identity checked below. */
   config: TAccountConfig;
+  /** CHECK: exact maker owner, discriminator, size, PDA and binding checked below. */
   price: TAccountPrice;
+  /** CHECK: executable identity is bound to its loader metadata and approved hash. */
   pricingProgram: TAccountPricingProgram;
   programData: TAccountProgramData;
   systemProgram?: TAccountSystemProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   instance: RegisterLiquidityInstructionDataArgs["instance"];
 };
@@ -438,6 +444,11 @@ export async function getRegisterLiquidityInstructionAsync<
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -563,12 +574,17 @@ export type RegisterLiquidityInput<
   capital: TAccountCapital;
   registration: TAccountRegistration;
   capitalBinding: TAccountCapitalBinding;
+  /** CHECK: exact maker owner, discriminator, size, PDA and identity checked below. */
   config: TAccountConfig;
+  /** CHECK: exact maker owner, discriminator, size, PDA and binding checked below. */
   price: TAccountPrice;
+  /** CHECK: executable identity is bound to its loader metadata and approved hash. */
   pricingProgram: TAccountPricingProgram;
   programData: TAccountProgramData;
   systemProgram?: TAccountSystemProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   instance: RegisterLiquidityInstructionDataArgs["instance"];
 };
@@ -871,12 +887,17 @@ export type ParsedRegisterLiquidityInstruction<
     capital: TAccountMetas[6];
     registration: TAccountMetas[7];
     capitalBinding: TAccountMetas[8];
+    /** CHECK: exact maker owner, discriminator, size, PDA and identity checked below. */
     config: TAccountMetas[9];
+    /** CHECK: exact maker owner, discriminator, size, PDA and binding checked below. */
     price: TAccountMetas[10];
+    /** CHECK: executable identity is bound to its loader metadata and approved hash. */
     pricingProgram: TAccountMetas[11];
     programData: TAccountMetas[12];
     systemProgram: TAccountMetas[13];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[14];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[15];
   };
   data: RegisterLiquidityInstructionData;

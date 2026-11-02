@@ -2,79 +2,79 @@
 //! prerequisite for a funded owner exit. No reserve can leave a live identity.
 use super::*;
 use account_cash::fees::{
-    __client_accounts_treasury_token_identity, __cpi_client_accounts_treasury_token_identity,
+    __client_accounts_treasurytokenidentity, __cpi_accounts_treasurytokenidentity,
     TreasuryTokenIdentity, TreasuryTokenIdentityBumps,
 };
 use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct InitializeAccountRetirement<'info> {
+pub struct InitializeAccountRetirement {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub payer: Signer,
     #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump)]
-    pub venue: Box<Account<'info, Venue>>,
-    #[account(seeds = [b"safety-v3", venue.key().as_ref()], bump = safety.bump, has_one = venue)]
-    pub safety: Box<Account<'info, VenueSafety>>,
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(init, payer = payer, space = 8 + RetirementCertificate::INIT_SPACE,
-        seeds = [b"retirement-v3", venue.key().as_ref()], bump)]
-    pub certificate: Box<Account<'info, RetirementCertificate>>,
-    pub system_program: Program<'info, System>,
+        seeds = [b"retirement-v3", venue.address().as_ref()], bump)]
+    pub certificate: Box<BorshAccount<RetirementCertificate>>,
+    pub system_program: Program<System>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct CheckAccountRetirement<'info> {
-    pub identity: ResolutionIdentity<'info>,
-    #[account(seeds = [b"registry-v3", identity.venue.key().as_ref()], bump = registry.bump,
-        constraint = registry.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub registry: Box<Account<'info, VenueRegistry>>,
-    #[account(mut, seeds = [b"retirement-v3", identity.venue.key().as_ref()], bump = certificate.bump,
-        constraint = certificate.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub certificate: Box<Account<'info, RetirementCertificate>>,
+pub struct CheckAccountRetirement {
+    pub identity: Nested<ResolutionIdentity>,
+    #[account(seeds = [b"registry-v3", identity.venue.address().as_ref()], bump = registry.bump,
+        constraint = registry.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(mut, seeds = [b"retirement-v3", identity.venue.address().as_ref()], bump = certificate.bump,
+        constraint = certificate.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub certificate: Box<BorshAccount<RetirementCertificate>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct RetireAccounts<'info> {
-    pub identity: ResolutionIdentity<'info>,
+pub struct RetireAccounts {
+    pub identity: Nested<ResolutionIdentity>,
     #[account(address = identity.venue.authority @ ClearingError::Authority)]
-    pub authority: Signer<'info>,
-    #[account(seeds = [b"registry-v3", identity.venue.key().as_ref()], bump = registry.bump,
-        constraint = registry.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub registry: Box<Account<'info, VenueRegistry>>,
-    #[account(seeds = [b"retirement-v3", identity.venue.key().as_ref()], bump = certificate.bump,
-        constraint = certificate.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub certificate: Option<Box<Account<'info, RetirementCertificate>>>,
-    #[account(mut, seeds = [b"resolution-v3", identity.venue.key().as_ref()], bump = resolution.bump,
-        constraint = resolution.venue == identity.venue.key() @ ClearingError::Profile)]
-    pub resolution: Option<Box<Account<'info, Resolution>>>,
+    pub authority: Signer,
+    #[account(seeds = [b"registry-v3", identity.venue.address().as_ref()], bump = registry.bump,
+        constraint = registry.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(seeds = [b"retirement-v3", identity.venue.address().as_ref()], bump = certificate.bump,
+        constraint = certificate.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub certificate: Option<Box<BorshAccount<RetirementCertificate>>>,
+    #[account(mut, seeds = [b"resolution-v3", identity.venue.address().as_ref()], bump = resolution.bump,
+        constraint = resolution.venue == identity.venue.address().to_owned() @ ClearingError::Profile)]
+    pub resolution: Option<Box<BorshAccount<Resolution>>>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct WithdrawRetiredReserve<'info> {
-    pub identity: TreasuryTokenIdentity<'info>,
+pub struct WithdrawRetiredReserve {
+    pub identity: Nested<TreasuryTokenIdentity>,
     #[account(address = identity.venue.reserve_authority @ ClearingError::Authority)]
-    pub reserve_authority: Signer<'info>,
+    pub reserve_authority: Signer,
     #[account(address = identity.venue.quote_mint @ ClearingError::Mint)]
-    pub quote_mint: Box<Account<'info, Mint>>,
+    pub quote_mint: Box<Account<Mint>>,
     #[account(mut, token::mint = quote_mint,
-        constraint = destination.owner == identity.venue.reserve_destination_owner @ ClearingError::Authority,
-        constraint = destination.key() == reserve_destination(&identity.venue) @ ClearingError::Mint,
-        constraint = destination.key() != identity.vault.key() @ ClearingError::Alias)]
-    pub destination: Box<Account<'info, TokenAccount>>,
-    pub token_program: Program<'info, Token>,
+        constraint = *destination.owner() == identity.venue.reserve_destination_owner @ ClearingError::Authority,
+        constraint = destination.address().to_owned() == reserve_destination(&identity.venue) @ ClearingError::Mint,
+        constraint = destination.address().to_owned() != identity.vault.address().to_owned() @ ClearingError::Alias)]
+    pub destination: Box<Account<TokenAccount>>,
+    pub token_program: Program<Token>,
 }
 
-fn reserve_destination(venue: &Venue) -> Pubkey {
-    Pubkey::find_program_address(
+fn reserve_destination(venue: &Venue) -> Address {
+    find_program_address(
         &[
             venue.reserve_destination_owner.as_ref(),
             token::ID.as_ref(),
             venue.quote_mint.as_ref(),
         ],
-        &pubkey!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+        &Address::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
     )
     .0
 }
@@ -120,8 +120,9 @@ pub fn initialize(
     ctx: &mut Context<InitializeAccountRetirement>,
     _events: &mut crate::event_cpi::Payloads,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty()
+        remaining_accounts.is_empty()
             && cfg!(feature = "liquidity-execution-qualification")
             && ctx.accounts.venue.schema_version == SCHEMA_VERSION
             && account_trading::supported_profile(&ctx.accounts.venue)
@@ -129,12 +130,12 @@ pub fn initialize(
             && matches!(ctx.accounts.safety.mode, CUSTODY | ACTIVE | RESOLVED),
         ClearingError::Profile
     );
-    ctx.accounts.certificate.set_inner(RetirementCertificate {
+    **ctx.accounts.certificate = RetirementCertificate {
         schema_version: SCHEMA_VERSION,
-        venue: ctx.accounts.venue.key(),
+        venue: ctx.accounts.venue.address().to_owned(),
         bump: ctx.bumps.certificate,
         ..Default::default()
-    });
+    };
     Ok(())
 }
 
@@ -143,7 +144,8 @@ pub fn check(
     events: &mut crate::event_cpi::Payloads,
     start: u16,
 ) -> Result<()> {
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let accounts = &mut ctx.accounts;
     global_flat(&accounts.identity)?;
     require!(
         matches!(accounts.identity.safety.mode, CUSTODY | ACTIVE)
@@ -151,7 +153,7 @@ pub fn check(
         ClearingError::Resolution
     );
     registry_valid(&accounts.registry)?;
-    let length = ctx.remaining_accounts.len();
+    let length = remaining_accounts.len();
     require!(
         (1..=2).contains(&length) || (length == 0 && accounts.registry.count == 0),
         ClearingError::Resolution
@@ -176,7 +178,7 @@ pub fn check(
         certificate.next == start && usize::from(start) + length <= usize::from(certificate.count),
         ClearingError::Resolution
     );
-    for (offset, info) in ctx.remaining_accounts.iter().enumerate() {
+    for (offset, info) in remaining_accounts.iter().enumerate() {
         let root = pages::member(info, &accounts.registry, usize::from(start) + offset, false)?;
         account_custody::liability_free(&root)?;
         certificate.cash = checked(math::cash_add(certificate.cash, root.cash))?;
@@ -198,7 +200,7 @@ pub fn check(
 
     events.emit(
         &crate::events::AccountRetirementProgress {
-            venue: accounts.identity.venue.key(),
+            venue: accounts.identity.venue.address().to_owned(),
 
             slot: Clock::get()?.slot,
             safety_epoch: certificate.safety_epoch,
@@ -208,7 +210,7 @@ pub fn check(
             cash: certificate.cash,
             complete: certificate.complete,
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -217,8 +219,9 @@ pub fn retire(
     events: &mut crate::event_cpi::Payloads,
     safety_epoch: u64,
 ) -> Result<()> {
-    require!(ctx.remaining_accounts.is_empty(), ClearingError::Resolution);
-    let accounts = &mut *ctx.accounts;
+    let mut remaining_accounts = ctx.remaining_accounts()?;
+    require!(remaining_accounts.is_empty(), ClearingError::Resolution);
+    let accounts = &mut ctx.accounts;
     global_flat(&accounts.identity)?;
     registry_valid(&accounts.registry)?;
     require!(
@@ -270,7 +273,7 @@ pub fn retire(
 
     events.emit(
         &crate::events::AccountsRetired {
-            venue: accounts.identity.venue.key(),
+            venue: accounts.identity.venue.address().to_owned(),
 
             slot: Clock::get()?.slot,
             safety_epoch: accounts.identity.safety.epoch,
@@ -281,9 +284,9 @@ pub fn retire(
                 [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
             )?,
             allocated_vault: accounts.identity.custody.allocated_vault,
-            actual_vault: accounts.identity.vault.amount,
+            actual_vault: accounts.identity.vault.amount(),
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 
@@ -293,12 +296,13 @@ pub fn withdraw(
     market_index: u8,
     amount: u64,
 ) -> Result<()> {
+    let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(
-        ctx.remaining_accounts.is_empty() && market_index < 2 && amount > 0,
+        remaining_accounts.is_empty() && market_index < 2 && amount > 0,
         ClearingError::Amount
     );
-    let accounts = &mut *ctx.accounts;
-    let identity = &mut accounts.identity;
+    let accounts = &mut ctx.accounts;
+    let identity = &mut *accounts.identity;
     require!(
         cfg!(feature = "liquidity-execution-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
@@ -309,7 +313,7 @@ pub fn withdraw(
             && !identity.safety.paused,
         ClearingError::Profile
     );
-    account_custody::vault_backed(&identity.custody, identity.vault.amount)?;
+    account_custody::vault_backed(&identity.custody, identity.vault.amount())?;
     account_cash::fees::treasury_profile(
         &identity.venue,
         &identity.safety,
@@ -325,29 +329,29 @@ pub fn withdraw(
     let seeds: &[&[u8]] = &[b"venue-v3", &identity.venue.domain, &bump];
     token::transfer_checked(
         CpiContext::new_with_signer(
-            accounts.token_program.key(),
+            accounts.token_program.address(),
             TransferChecked {
-                from: identity.vault.to_account_info(),
-                to: accounts.destination.to_account_info(),
-                mint: accounts.quote_mint.to_account_info(),
-                authority: identity.venue.to_account_info(),
+                from: identity.vault.try_to_cpi_handle_mut()?,
+                to: accounts.destination.try_to_cpi_handle_mut()?,
+                mint: accounts.quote_mint.to_cpi_handle(),
+                authority: identity.venue.to_cpi_handle(),
             },
             &[seeds],
         ),
         amount,
         6,
     )?;
-    identity.vault.reload()?;
+    identity.vault.revalidate_after_cpi()?;
 
-    account_custody::vault_backed(&identity.custody, identity.vault.amount)?;
+    account_custody::vault_backed(&identity.custody, identity.vault.amount())?;
     let ledger = &identity.ledger;
     events.emit(
         &crate::events::RetiredReserveWithdrawn {
-            venue: identity.venue.key(),
+            venue: identity.venue.address().to_owned(),
 
             slot: Clock::get()?.slot,
-            authority: accounts.reserve_authority.key(),
-            destination: accounts.destination.key(),
+            authority: accounts.reserve_authority.address().to_owned(),
+            destination: accounts.destination.address().to_owned(),
             market_index,
             amount,
             insurance: ledger.insurance,
@@ -355,9 +359,9 @@ pub fn withdraw(
             fee_remainder: ledger.insurance_fee_remainder,
             ledger_version: ledger.version,
             allocated_vault: identity.custody.allocated_vault,
-            actual_vault: identity.vault.amount,
+            actual_vault: identity.vault.amount(),
         },
-        accounts.event_authority.to_account_info(),
+        accounts.event_authority.account().clone(),
     )
 }
 

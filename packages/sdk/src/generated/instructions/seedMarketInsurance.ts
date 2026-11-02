@@ -46,13 +46,14 @@ import {
 } from "@solana/kit/program-client-core";
 import {
   findCustodyPda,
+  findEventAuthorityPda,
   findVenueSafetyPda,
   findVenueVaultPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const SEED_MARKET_INSURANCE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([152, 240, 176, 200, 131, 225, 171, 192]);
+  new Uint8Array([210, 218, 26, 12, 123, 193, 213, 209]);
 
 export function getSeedMarketInsuranceDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
@@ -192,7 +193,9 @@ export type SeedMarketInsuranceAsyncInput<
   vault?: TAccountVault;
   donorToken: TAccountDonorToken;
   tokenProgram?: TAccountTokenProgram;
-  eventAuthority: TAccountEventAuthority;
+  /** CHECK: Only the event authority can invoke self-CPI */
+  eventAuthority?: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: SeedMarketInsuranceInstructionDataArgs["marketIndex"];
   amount: SeedMarketInsuranceInstructionDataArgs["amount"];
@@ -383,6 +386,11 @@ export async function getSeedMarketInsuranceInstructionAsync<
     accounts.tokenProgram.value =
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
   }
+  if (!accounts.eventAuthority.value) {
+    accounts.eventAuthority.value = await findEventAuthorityPda({
+      programAddress,
+    });
+  }
 
   return Object.freeze({
     accounts: [
@@ -483,7 +491,9 @@ export type SeedMarketInsuranceInput<
   vault: TAccountVault;
   donorToken: TAccountDonorToken;
   tokenProgram?: TAccountTokenProgram;
+  /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
+  /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   marketIndex: SeedMarketInsuranceInstructionDataArgs["marketIndex"];
   amount: SeedMarketInsuranceInstructionDataArgs["amount"];
@@ -728,7 +738,9 @@ export type ParsedSeedMarketInsuranceInstruction<
     vault: TAccountMetas[7];
     donorToken: TAccountMetas[8];
     tokenProgram: TAccountMetas[9];
+    /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[10];
+    /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[11];
   };
   data: SeedMarketInsuranceInstructionData;
