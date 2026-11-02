@@ -11,8 +11,9 @@ below; P37's fresh integrated qualification after retirement is recorded separat
 
 ## Anchor RC2 qualification (P47)
 
-P47 local acceptance **passes**; PR integration remains separate in
-[STATUS](../STATUS.md). Normal artifacts are selected only after the financial,
+P47 local acceptance **passes**; P45–P47 integrated at `fb6c26b` with the complete
+tree identical to accepted review tip `c637816`. [STATUS](../STATUS.md) records
+integration separately from runtime evidence. Normal artifacts are selected only after the financial,
 service and resource checks below. Unchanged C0 artifacts and clean verifiers
 are recorded in the bounded
 [coverage summary](../../tests/performance/baselines/p47-c0.json). Its **61/61**
@@ -99,6 +100,21 @@ forgeries rejected before runtime creation; eight existing deployed-code verifie
 tests, typecheck, ABI and shell checks pass. The actual retained `current` and
 immutable `c0-366c7ab` files pass the new gate. No program or IDL changed, and no
 new performance, broad financial, load or endurance result is inferred.
+At clean `c637816`, `bash ops/canonical-maker-smoke.sh` uses the default admitted
+artifacts and passes 123 actual signed RPC/WS outcomes, 246 WS notifications and
+independent fetch/dual decoding. Standalone `liquidity-hostile-svm.ts`, with no
+artifact override, passes five hostile rollback cases across 114 signed VM
+transactions. Raw evidence remains under
+`.local/anchor-rc2/p47-review-{makers,hostile}-c637816/`; the owned Surfpool stops.
+The first sandboxed RPC-launch attempt was refused before runtime creation; the
+authorized local-network rerun supplies the stated pass. Scope/client/report/shell
+CI pass on `c637816` in
+[run 41386710747](https://github.com/arnabnandikgp/rivalt/actions/runs/41386710747).
+Unchanged Rust financial CI is separately pinned to P46. No new SBF build or
+PostgreSQL/service matrix was needed for the preflight/path/documentation changes.
+All five review threads are resolved. P46's automated review was skipped for file
+count; the bounded self-review of codec/loader/CPI/history adapters is not an
+independent audit. Merge tree equality introduces no new runtime claim.
 Clean `0591f10` initially caught confirmed provisioning advancing during the first
 finalized indexer cycle. Startup now retries only typed `ReconciliationAhead` for
 up to 30 seconds before producers start; all other errors remain fatal. Clean
