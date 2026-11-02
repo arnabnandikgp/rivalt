@@ -24,6 +24,7 @@ git show 84c46d4d26b23f25d6f3a7ae4bcbec591fa31503:docs/evidence/P34.md
 | M10 | Canonical maker liquidity/publisher/services | b80bb38; exact reviewed tree 9e6dd07, docs closeout 1f1a5aa |
 | M11 | Repository consolidation | caa47d2; P35–P38 / PRs #50, #51, #53, #54; exact accepted tree 9d3e15f, fresh SBF source 828fe543 |
 | M12 | Contention and pre-migration performance | 6b14e8a; P39–P44 / PRs #55, #56, #58–#62; exact reviewed/tested tree da99664, accepted SBF source fb5d0c5 |
+| M13 | Anchor RC2 migration and qualification | fb6c26b; P45–P47 / PRs #63, #64, #66 merged atomically; exact reviewed/tested tree c637816, qualified C0 SBF source 366c7ab; scoped artifact/launcher fixes, hosted checks and independent RPC/WS fetch/decode pass |
 
 Original WORKLOG contains every actual tested pin, failed attempt, command and raw
 local path. Current [validation](operations/validation.md) retains the applicable

@@ -6,7 +6,7 @@ the clearing/liquidity/application documents own current financial rules and
 layouts. The baseline-A audit below preserves the pre-redesign snapshot. Integration
 is not a public deployment. The completed P47 local
 qualification below compares Anchor RC2 against that immutable pre-migration baseline;
-[STATUS](../STATUS.md) records the open PRs separately from integration.
+[STATUS](../STATUS.md) records the verified P45–P47 stack integration.
 
 ## RC2 qualification measurements (P47)
 

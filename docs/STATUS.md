@@ -4,19 +4,19 @@ Updated 2 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
-P01–P14, P15A/P16A, P17–P44 and M1–M5b/M7–M12 are integrated within their
-recorded engineering scopes. The seven-PR performance stack merged at
-**`6b14e8a4447729a6b55d38c22166c60a23083250`**, with the complete tree identical to
-reviewed/tested tip `da9966401027a6cb92893db29251a2c696ae0fce`.
+P01–P14, P15A/P16A, P17–P47 and M1–M5b/M7–M13 are integrated within their
+recorded engineering scopes. The three-PR Anchor RC2 stack merged atomically at
+**`fb6c26ba4c2ff053a132e271bbd0bc67011cc935`**, with the complete tree identical to
+reviewed/tested tip `c6378166fe11b856324aee06fdacdf6b2b2374b2`.
 [Validation](operations/validation.md) records the exact qualification pins and
 limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| M13 Anchor RC2 migration | Review | P45–P47 accepted and open as #63 → #64 → #66; C0 local qualification and applicable hosted checks pass |
-| P45 migration contract | Review | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) ready; architecture/release research, exact RC2 pins, ABI choice, code gap map and measurement/acceptance plan |
-| P46 RC2 implementation | Review | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) ready above #63; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
-| P47 post-migration qualification | Review | [PR #66](https://github.com/arnabnandikgp/rivalt/pull/66) ready above #64; full C0 matrix, reproducible B/C report, normal demo and applicable CI pass |
+| M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
+| P45 migration contract | Closed | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) merged; accepted architecture/release research, exact pins, ABI and acceptance contract |
+| P46 RC2 implementation | Closed | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) merged; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
+| P47 post-migration qualification | Closed | [PR #66](https://github.com/arnabnandikgp/rivalt/pull/66) merged; full C0 matrix, B/C report, normal demo, artifact review fixes and applicable CI pass |
 | M12 performance and contention | Closed | P39–P44 accepted and integrated; measured pre-migration baseline frozen; no framework migration |
 | P39 dependency audit/baseline | Closed | [PR #55](https://github.com/arnabnandikgp/rivalt/pull/55) merged; focused RPC/WS baseline and 61-entrypoint inventory |
 | P40 scoped events/services | Closed | A and B acceptance passed and integrated |
@@ -36,14 +36,15 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Continuous 24-hour endurance | Deferred | No run scheduled or completion claimed |
 
 Review means accepted work awaiting integration; Closed requires acceptance plus
-integration. The user authorized the performance stack's review fixes and merge on
-1 November 2026; all seven PRs independently report MERGED.
+integration. The user authorized the migration stack's review fixes and merge on
+2 November 2026; all three PRs independently report MERGED. Fetched main has the
+accepted tip as an ancestor and exactly the same complete tree.
 
 ## P46 serialized port checkpoint
 
-Work is on `implementation/p46-anchor-rc2` above ready PR #63 (`696851e`). The
+P46 was implemented above accepted PR #63 (`696851e`). The
 serialized port's scoped acceptance passes; [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64)
-is open and ready with accepted content `44d1251`.
+is merged with accepted content `44d1251` and hosted acceptance at `360a247`.
 [Validation](operations/validation.md#anchor-rc2-serialized-port-p46) records the
 actual checks and exact pins. Frozen P44 artifacts remain untouched.
 
@@ -72,14 +73,14 @@ The initial failed allowlist and boxed native token CPI attempts remain recorded
 the fresh signed custody pass proves the forwarding-handle fix.
 
 P47 completes the remaining qualification below on these unchanged C0 binaries.
-P15B/P16B and deferred endurance are unchanged. Both phase branches remain open;
-qualification is not integration or a funded deployment.
+P15B/P16B and deferred endurance are unchanged. P45–P47 are now integrated;
+local qualification and integration do not establish a funded deployment.
 
 ## P47 qualification
 
-`implementation/p47-rc2-qualification` contains accepted P46 parent `360a247`.
+The P47 stack tip contains accepted P46 parent `360a247`.
 Local acceptance passes; [PR #66](https://github.com/arnabnandikgp/rivalt/pull/66)
-is open and ready. Acceptance/report content is `2b677b597912b2a3e9d7b02dab19088eca66ccc7`.
+is merged. Acceptance/report content is `2b677b597912b2a3e9d7b02dab19088eca66ccc7`.
 All four applicable hosted jobs (scope/client/report/shell) pass in
 [run 41296789385](https://github.com/arnabnandikgp/rivalt/actions/runs/41296789385);
 the unchanged Rust financial job is correctly skipped for this PR. P46’s actual
@@ -149,16 +150,25 @@ findings and one obsolete plan-approval status finding (the plan was subsequentl
 approved). Fixes are carried on the stack tip: shared fixed-hash artifact preflight,
 staged default-build promotion, consistent smoke/demo paths and current schema
 documentation. Fifteen targeted regressions, eight existing artifact-verifier
-tests, typecheck, ABI and shell checks pass on the review worktree; actual retained
+tests, typecheck, ABI and shell checks pass at review fix `c637816`; actual retained
 current/C0 artifacts pass the gate. No programs, IDLs or financial rules changed.
 P46 automated review was skipped for file count. A focused self-review checked the
 registry codec, loader identity/ownership, event/scoped-history encoding, maker
 CPI privilege/return validation and native-token CPI forwarding/revalidation;
 no additional defect was found in those inspected paths. This is not independent
 review. P46's hosted financial acceptance remains separately pinned above.
-Next exact action: commit the review fixes, verify the affected admitted local
-launch path, publish and check CI, then merge stack #65 and verify its final tree.
-P47 remains Review until integration; no new broad qualification is claimed.
+At clean `c637816`, the admitted default-path maker launcher passes 123 signed
+Surfpool RPC/WS outcomes and 246 notifications with independent fetch/dual decode.
+Standalone hostile smoke passes five full-rollback cases across 114 signed VM
+transactions. Raw captures remain in `.local/anchor-rc2/p47-review-{makers,hostile}-c637816/`;
+the owned Surfpool is stopped. All four applicable hosted jobs pass in
+[run 41386710747](https://github.com/arnabnandikgp/rivalt/actions/runs/41386710747);
+unchanged Rust financial CI stays separately pinned to P46. All five threads are
+resolved. No new SBF build, PostgreSQL/service/load/endurance run was needed for
+these launcher/docs fixes; no earlier evidence is relabelled. Stack #65 merged
+atomically with exact tree equality. No blocker remains in this delivery.
+Next exact action: select the next separately authorized task; no additional phase,
+external qualification or deployment is scheduled by this closeout.
 
 ## Accepted performance stack
 
@@ -247,8 +257,8 @@ latest #62 update are not independent approval. No additional program build,
 load/endurance run or external qualification was needed for this queue/docs fix.
 The fetched merge has identical tree and includes the tested fix as an ancestor.
 No implementation blocker remains within this completed scope.
-P45 now uses the frozen B baseline to scope the separately requested RC2 migration;
-the active P46 checkpoint above owns the next action.
+P45 used this frozen B baseline to scope the subsequently accepted RC2 migration;
+the integrated M13 checkpoint above records its implementation and qualification.
 
 ## Deployment and operational limits
 
