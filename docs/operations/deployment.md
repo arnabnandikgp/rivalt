@@ -9,10 +9,10 @@ manifest. Public configuration cannot replace the SDK's executable allowlist.
 Qualify fresh build hashes before promoting them; preserve previous deployment
 manifests and unresolved original transactions.
 
-P42 selects clearing account schema 7 and projection binding 7 with SQL journal
+The retained P42–P44 deployment selected clearing account schema 7 and projection binding 7 with SQL journal
 format 2 under a fresh local domain/genesis. Its scoped rebuilt acceptance is
 recorded in validation; P44 owns full resource qualification. Public configuration
-must specify `accountSchema: 7`. P41 schema-6 and P40B schema-5 deployments remain
+for that historical deployment must specify `accountSchema: 7`. P41 schema-6 and P40B schema-5 deployments remain
 on their historical clients. Canonical
 account/event discriminators and scoped revisions intentionally differ from P40A;
 use historical clients for retained old deployments and databases. There is no

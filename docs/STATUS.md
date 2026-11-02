@@ -1,6 +1,6 @@
 # Current status
 
-Updated 1 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 2 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -143,9 +143,22 @@ remain explicit. Live indexing achieved two coherent cycles / 33 revision-ahead
 retries, so continuous read readiness and sustained TPS remain unproved. The
 64-member cohort includes 56 flat additions; scratch-width cases never Apply.
 Internal makers, P15B/P16B and deferred endurance retain their existing labels/gates.
-Next exact action: review the open #63 → #64 → #66 stack and address findings;
-keep all three ready PRs open until merge is separately authorized. P47 is Review,
-not Closed, and no independent review is claimed.
+The user authorized review fixes and merge of #63 → #64 → #66 on 2 November.
+The five review threads contain four actionable artifact/path/schema-documentation
+findings and one obsolete plan-approval status finding (the plan was subsequently
+approved). Fixes are carried on the stack tip: shared fixed-hash artifact preflight,
+staged default-build promotion, consistent smoke/demo paths and current schema
+documentation. Fifteen targeted regressions, eight existing artifact-verifier
+tests, typecheck, ABI and shell checks pass on the review worktree; actual retained
+current/C0 artifacts pass the gate. No programs, IDLs or financial rules changed.
+P46 automated review was skipped for file count. A focused self-review checked the
+registry codec, loader identity/ownership, event/scoped-history encoding, maker
+CPI privilege/return validation and native-token CPI forwarding/revalidation;
+no additional defect was found in those inspected paths. This is not independent
+review. P46's hosted financial acceptance remains separately pinned above.
+Next exact action: commit the review fixes, verify the affected admitted local
+launch path, publish and check CI, then merge stack #65 and verify its final tree.
+P47 remains Review until integration; no new broad qualification is claimed.
 
 ## Accepted performance stack
 

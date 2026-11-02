@@ -1,6 +1,6 @@
 # Accounts, ownership and wire identity
 
-P46 candidate: schema 8 is not runtime-qualified yet; see [STATUS](../STATUS.md).
+P47 qualifies the RC2 schema-8 local runtime; integration is tracked in [STATUS](../STATUS.md).
 The retained P44 deployment stays on its schema-7 client.
 
 Preserve two markets (BTC index 0, ETH index 1), one classic SPL six-decimal test
@@ -89,8 +89,8 @@ contract's size tests do not establish SBF stack/CU safety.
 
 ## Current-profile additions and activation
 
-Canonical maker registrations and funding publishers are clearing-owned schema 7.
-Maker-owned curve and price accounts retain schema 4. Their exact layouts are in
+Canonical maker registrations and funding publishers are clearing-owned schema 8.
+Maker-owned curve and price accounts use schema 5. Their exact layouts are in
 [quoting](../liquidity/quoting.md) and [funding](../liquidity/funding.md).
 The older fixed-maker registration is retired, not reinterpreted as the current
 canonical registration. Unknown schema/profile combinations reject even if fields decode.

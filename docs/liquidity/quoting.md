@@ -4,7 +4,7 @@
 
 - Fresh local venue/domain with `Venue.schema_version=8`, immutable
   `profile_version=4`; clearing accounts use schema 8 with scoped revisions.
-  Maker-owned accounts use schema 5; quote ABI retains version 4. P46 runtime acceptance is pending. No in-place profile-3 upgrade or account rewrite.
+  Maker-owned accounts use schema 5; quote ABI retains version 4. P47 qualifies this bounded local runtime. No in-place profile-3 upgrade or account rewrite.
   The default/devnet build rejects profile-4 financial activation. An explicit local qualification build gates execution.
 - Exactly three registry slots per market, IDs 0,1,2. All must be provisioned and
   registry sealed before funding or trading. At least two instances share a maker

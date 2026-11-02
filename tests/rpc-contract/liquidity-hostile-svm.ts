@@ -15,8 +15,10 @@ import {ORACLE_FIXTURE} from './oracle-fixture.js';
 import type {CanonicalHarness} from './canonical-maker-cases.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
+import {verifyLiquidityArtifactDirectory} from '../../ops/verify-liquidity-artifacts.js';
 
-const directory=process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate';
+const directory=process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/current';
+verifyLiquidityArtifactDirectory(directory);
 const svm=new LiteSVM().withSigverify(true).withBlockhashCheck(true),payer=await payerKey();
 svm.airdrop(payer.address,lamports(100_000_000_000n));
 for(const [name,program] of [['clearing',sdk.CLEARING_PROGRAM_ADDRESS],['maker_a',sdk.makerA.MAKER_A_PROGRAM_ADDRESS],

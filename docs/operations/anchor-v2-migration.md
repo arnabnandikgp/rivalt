@@ -160,7 +160,7 @@ old configuration in their own environment, not decoding new accounts as old one
 | Oracle adapter and fixture programs | `AccountView` access and foreign-owner decoding with exact data/range checks | Existing source freshness/confidence/identity rejection and retained Pyth Core decoding; default/devnet stay gated |
 | `crates/financial-core`, `crates/maker-interface` and program boundary helpers | Keep financial math independent; adapt serialization and `core`/`alloc` APIs where RC2 requires them | No rounding/rate/quantity changes; checked overflow behavior and independent expected vectors remain; no hidden dependency on the host runtime |
 | `ops/generate-sdk.ts`, `packages/sdk/idl`, generated SDK, `ops/wire_contract.py` | Generate actual RC2 IDLs, bounded approved ABI delta, deterministic current Codama output | All 61 builders/metas/arguments and all accounts/events/errors compared; generated output cannot bless its own changed expected bytes |
-| SDK, gateway, router, publisher, maker kit, indexer and UI | Explicit schema-8/artifact binding and revised discriminators; preserve original-byte submission | Old config/original/journal refusal, real signing and finalized RPC/WS/PG replay, API-independent cash exits |
+| SDK, gateway, router, publisher, maker kit, indexer and UI | Explicit clearing-schema-8 and maker-schema-5/artifact bindings; projection binding 8 and SQL journal format 2; revised discriminators and preserved original-byte submission | Old config/original/journal refusal, real signing and finalized RPC/WS/PG replay, API-independent cash exits |
 | `tests/performance/full-baseline.ts`, `receipt-metrics.ts` | Add a separate candidate reader/comparator parameterized by pinned IDLs/artifacts | Frozen B remains reproducible; same scenario pairs with explicit permitted byte deltas; no comparison of mismatched populations |
 
 Existing helper functions already take mutable contexts in some places, but public
@@ -383,6 +383,11 @@ P46 candidate binaries used `.local/anchor-rc2/candidate`, never the frozen P44
 artifact directory, and required explicit candidate selection. After P47 acceptance,
 normal builds/probes/demo use `.local/anchor-rc2/current`; exact admitted hashes
 and fresh-domain checks remain mandatory. Frozen B/C0 files stay untouched.
+Default builds retain a staging directory and check the fixed SDK allowlist before
+copying binaries into `current`. Explicit alternate build destinations are only
+candidates. The shared runtime/continuation/smoke preflight checks actual file
+lengths/hashes and both account schemas against the SDK pins before deployment;
+a self-consistent manifest alone is insufficient.
 Isolated conformance processes use unchanged core 1.2.1/web3.js 1.99.0
 and new core 2.0.0-rc.2/Kit 8.3.0 respectively. Production stays on Kit 8.5.0.
 

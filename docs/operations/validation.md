@@ -86,6 +86,19 @@ Normal launchers/builds select `.local/anchor-rc2/current`, preserving frozen B 
 immutable C0. Its actual binary hashes must still match the SDK allowlist. The
 artifact binding remains `p46-anchor-rc2-c0-candidate-v1` to preserve the qualified
 journal identity; its historical name does not select arbitrary binaries.
+The stack review found that runtime/continuation launchers checked only a
+self-consistent manifest, while the SDK separately enforced the qualified hashes.
+The shared `ops/verify-liquidity-artifacts.ts` preflight now enforces both account
+schemas, clean qualification metadata, actual lengths and the fixed SDK hashes
+before any normal/continuation/broad-smoke runtime starts. The default build uses
+retained staging and validates before copying into `current`; explicit alternate
+build outputs remain candidates, not admitted runtime artifacts. Standalone
+hostile-maker smoke now selects `current` and applies the same preflight.
+Fifteen focused file/manifest/launcher regressions pass, including self-consistent
+forgeries rejected before runtime creation; eight existing deployed-code verifier
+tests, typecheck, ABI and shell checks pass. The actual retained `current` and
+immutable `c0-366c7ab` files pass the new gate. No program or IDL changed, and no
+new performance, broad financial, load or endurance result is inferred.
 Clean `0591f10` initially caught confirmed provisioning advancing during the first
 finalized indexer cycle. Startup now retries only typed `ReconciliationAhead` for
 up to 30 seconds before producers start; all other errors remain fatal. Clean

@@ -32,6 +32,12 @@ The RC2 toolchain uses `bash ops/install-anchor-rc2.sh`, followed by
 must match the SDK's admitted hashes; changing a manifest does not qualify code.
 `RIVALT_ARTIFACT_DIR` may explicitly select another directory containing those
 same qualified artifacts. `RIVALT_LIQUIDITY_ARTIFACTS` changes a build destination.
+Builds retain a separate staging directory and logs; the default destination is
+updated only after fixed SDK hash verification passes. An explicit alternate build
+destination may contain unqualified candidates, but runtime probes still reject
+them until separately qualified and admitted. Run
+`node --import tsx ops/verify-liquidity-artifacts.ts <directory>` for the same
+preflight used by normal probes and the broad smoke launcher.
 The frozen P44 directory and `.tools/bin/anchor` remain untouched; RC2 build scripts
 select `.tools/anchor-v2-rc2/bin/anchor`. Install the isolated test client with
 `pnpm --dir tests/anchor-rc2-conformance install --frozen-lockfile`.
@@ -96,8 +102,9 @@ only owned processes. Fixtures do not fabricate fills or settlements.
 ## Interactive local demo
 
 `bash ops/demo.sh start|status|stop|reset` launches the same current canonical
-profile as the SDK and services. It needs qualified `.local/liquidity-execution/`
-artifacts and frozen dependencies; [STATUS](../STATUS.md) records the current
+profile as the SDK and services. It needs qualified `.local/anchor-rc2/current/`
+artifacts (or `RIVALT_ARTIFACT_DIR` pointing to the same admitted binaries) and
+frozen dependencies; [STATUS](../STATUS.md) records the current
 launcher's acceptance checkpoint. Open `http://127.0.0.1:18083`, select **Rivalt
 Local Demo**, get test funds, create portfolio/cross or isolated account, deposit,
 trade BTC/ETH, place/cancel existing-position TP/SL, close and withdraw admissible

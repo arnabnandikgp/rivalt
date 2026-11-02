@@ -8,6 +8,10 @@ test "$(anchor --version)" = 'anchor-cli 2.0.0-rc.2'
 export CARGO_PROFILE_TEST_DEBUG=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
 node ops/local-keys.mjs
 export RIVALT_LIQUIDITY_ARTIFACTS="${RIVALT_LIQUIDITY_ARTIFACTS:-.local/anchor-rc2/current}"
+# Build into retained staging storage. A failed build/admission cannot replace
+# the normal runtime. Explicit alternate destinations remain candidate builds;
+# runtime launchers still require the fixed qualified hashes before using them.
+RIVALT_BUILD_DESTINATION="$(python3 -c 'import os; print(os.path.realpath(os.environ["RIVALT_LIQUIDITY_ARTIFACTS"]))')"
 python3 - <<'PY'
 from pathlib import Path
 import os
@@ -15,6 +19,7 @@ candidate = Path(os.environ['RIVALT_LIQUIDITY_ARTIFACTS']).resolve()
 frozen = Path('.local/liquidity-execution').resolve()
 assert candidate != frozen and frozen not in candidate.parents, 'RC2 cannot overwrite frozen P44 artifacts'
 PY
+export RIVALT_LIQUIDITY_ARTIFACTS="$RIVALT_BUILD_DESTINATION.build-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 mkdir -p "$RIVALT_LIQUIDITY_ARTIFACTS" target/deploy
 RIVALT_LIQUIDITY_BUILD_LOG="$RIVALT_LIQUIDITY_ARTIFACTS/build-$(date -u +%Y%m%dT%H%M%SZ)-$$.log"
 checked_sbf() {
@@ -61,3 +66,9 @@ manifest = {
 }
 (directory / 'build-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
 PY
+if [[ "$RIVALT_BUILD_DESTINATION" == "$(python3 -c 'from pathlib import Path; print(Path(".local/anchor-rc2/current").resolve())')" ]]; then
+  node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_LIQUIDITY_ARTIFACTS"
+fi
+mkdir -p "$RIVALT_BUILD_DESTINATION"
+cp "$RIVALT_LIQUIDITY_ARTIFACTS/"*.so "$RIVALT_LIQUIDITY_ARTIFACTS/build-manifest.json" "$RIVALT_BUILD_DESTINATION/"
+printf 'Built artifacts: %s (staging and logs retained: %s)\n' "$RIVALT_BUILD_DESTINATION" "$RIVALT_LIQUIDITY_ARTIFACTS"

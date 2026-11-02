@@ -32,9 +32,9 @@ complete default. Maker execution pricing belongs to [liquidity](../liquidity/RE
   [financial core](../../crates/financial-core/src/) and
   [independent expectations](../../tests/financial/).
 
-The P42 local profile uses schema-7 clearing accounts under immutable profile 4.
-Scoped rebuilt qualification is recorded in STATUS and validation; P44 owns full
-performance qualification. Shared records live in `state/records.rs`; `engine/` uses
+The P47-qualified RC2 local profile uses schema-8 clearing accounts under immutable
+profile 4; retained P44 deployments use their historical schema-7 clients.
+Qualification and integration are recorded in STATUS and validation. Shared records live in `state/records.rs`; `engine/` uses
 current account records directly for both isolated and cross accounts. The earlier
 standalone/group/fixed-maker runtimes are retired, with historical reproduction
 pinned in [HISTORY](../HISTORY.md). This is source retirement, not a deployed-account
