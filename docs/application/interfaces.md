@@ -54,6 +54,11 @@ response is not instruction authority. Rebuild and authenticate instructions in
 the SDK with user size, side, limits, fee cap and exact account bindings. Current
 price may improve/change within signed bounds; structural-epoch changes reject.
 
+An unfinished exact route search reports `liquidity-search-budget-exhausted` with
+bounded search metrics, distinct from insufficient depth or failed account health.
+It supplies no provisional winning allocation or transaction to sign. Direct SDK
+callers receive `LiquiditySearchLimitError` for the same condition.
+
 Public submission accepts one allowlisted measured wallet action, one wallet
 signer, exact decoded venue/actor/owner identity and explicit resource/zero-priority
 policy. No arbitrary operator instruction or implicit sponsorship. The executor

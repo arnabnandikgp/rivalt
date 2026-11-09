@@ -1,6 +1,6 @@
 # Current status
 
-Updated 2 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 10 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -13,6 +13,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| P48 exact interval allocation | In progress | D91: scalable exact single/pair search, independent exhaustive comparison and explicit exhausted-search handling; old size limits retained |
+| P49 expanded quantities | Planned — authorized | Remove inherited maker/action ceilings within checked numeric bounds; larger actual routes, orders/protection, liquidation and RPC/WS/PostgreSQL reconciliation |
 | M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
 | P45 migration contract | Closed | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) merged; accepted architecture/release research, exact pins, ABI and acceptance contract |
 | P46 RC2 implementation | Closed | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) merged; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
@@ -39,6 +41,17 @@ Review means accepted work awaiting integration; Closed requires acceptance plus
 integration. The user authorized the migration stack's review fixes and merge on
 2 November 2026; all three PRs independently report MERGED. Fetched main has the
 accepted tip as an ancestor and exactly the same complete tree.
+
+## Active quantity work
+
+The user authorized removing both inherited quantity ceilings on 10 November.
+P48 changes only search/client behavior and preserves program limits and artifacts.
+Initial scoped checks pass: 715 independently enumerated financial/price cases
+(264 allocated, 379 unavailable, 72 rejected), 21 SDK/service checks and typecheck
+on the working tree. Additional boundary checks and clean-revision acceptance are
+pending; no new SBF, integrated flow or larger quantity is qualified yet.
+Next exact action: finish P48's clean-revision focused verification and publish its
+ready PR, then implement P49 above it. P15B/P16B and deferred endurance are unchanged.
 
 ## P46 serialized port checkpoint
 
@@ -167,8 +180,8 @@ unchanged Rust financial CI stays separately pinned to P46. All five threads are
 resolved. No new SBF build, PostgreSQL/service/load/endurance run was needed for
 these launcher/docs fixes; no earlier evidence is relabelled. Stack #65 merged
 atomically with exact tree equality. No blocker remains in this delivery.
-Next exact action: select the next separately authorized task; no additional phase,
-external qualification or deployment is scheduled by this closeout.
+That closeout scheduled no further work. D91 above now records the separately
+authorized quantity work; no external qualification or deployment is scheduled.
 
 ## Accepted performance stack
 

@@ -9,7 +9,7 @@ const cases = [0,1,2,3].map(index => {
   const { input,root,makers } = liquidityFixture();
   input.lots = 4097n;input.side = (index < 2 ? 0 : 1) as 0|1;
   input.allInLimit = input.side === 0 ? 10n**12n : 0n;
-  root.cash = index % 2 === 0 ? 10n**12n : 0n; // Failed trader admission forces every pair candidate to be valued.
+  root.cash = index % 2 === 0 ? 10n**12n : 0n; // Include financially unavailable books.
   root.positions[1].lots = 3n;root.positions[1].virtualScaled = -30000n*10n**9n;
   input.funding = [3n,7n];
   for (const account of [root,...makers.map(maker => maker.capital)]) {
@@ -45,5 +45,6 @@ const report = { revision: execFileSync('git',['rev-parse','HEAD'],{ encoding: '
   maxTraderAdmissionChecks: Math.max(...samples.map(sample => sample.metrics.traderAdmissionChecks)),samples };
 if (process.env.RIVALT_BENCHMARK_REPORT) writeFileSync(process.env.RIVALT_BENCHMARK_REPORT,JSON.stringify(report,null,2)+'\n');
 assert(p95 <= 250 && p99 <= 500,'P31 search latency gate');
-assert.equal(report.maxCompositions,12288);assert.equal(report.maxQuantityQuotes,12288);assert.equal(report.maxTraderAdmissionChecks,12288);
+assert(report.maxCompositions <= 32 && report.maxQuantityQuotes <= 256 && report.maxTraderAdmissionChecks <= 32,
+  'Interval search regressed to quantity enumeration on the fixed full-book workloads');
 console.log(JSON.stringify({ ...report,samples: undefined }));

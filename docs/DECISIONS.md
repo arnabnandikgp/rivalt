@@ -5,6 +5,31 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D91 — quantity bounds and exact scalable allocation (10 November 2026)
+
+The user authorized retiring both inherited 4,608-lot action and 4,096-lot maker
+depth ceilings, including the router, program, SDK and application changes needed
+to support larger quantities. P48 first replaces per-lot exhaustive allocation
+with exact, conservatively pruned interval search while retaining existing on-chain
+limits. P49 expands quantities within the existing checked financial numeric
+domain and qualifies actual larger financial transitions. Both PRs stay open as a
+stack; no merge or funded deployment is authorized by this task.
+
+This deliberately supersedes D23's inherited quantity envelope and D69–D72's
+exhaustive-enumeration implementation requirement, not the best-admissible-route
+objective or deterministic ties. Never assume maker health is a monotone prefix.
+Search may explicitly report an exhausted computational budget, but cannot return
+an unproven best allocation or label unfinished search as absent liquidity.
+The proof and resource contract belong to [routing](liquidity/routing.md).
+
+Keep two selected makers, eight curve regions, whole-account risk/reservations,
+2 bps/zero provider fees and 25% insurance, independent risk valuation, signed
+authority, causal funding and complete default. Order totals, single executions,
+maker depth and liquidation quantities are distinct constraints. Retain finite
+integer/exposure/cash limits; large quantities never imply guaranteed available
+liquidity or automatic depth replenishment. P15B/P16B remain external and
+continuous 24-hour endurance stays Deferred.
+
 | Original decision(s) | Current choice and reason | Contract owner |
 |---|---|---|
 | D01–D05, D56–D60 | Rivalt is common clearing with separate maker programs; BTC/ETH, one mint, portfolios and isolated/cross roots; market-attributed accounting replaces the old common-loss group for the current profile | [Accounts](clearing/accounts.md) |
