@@ -2,7 +2,7 @@
 
 ## Supported boundary
 
-The P47-qualified RC2 profile is explicit local `liquidity-execution-qualification`.
+The P49-qualified RC2 profile is explicit local `liquidity-execution-qualification`.
 Pin actual clearing/maker A/maker B/oracle-fixture binaries, IDLs, domain/mint/venue,
 registry, genesis, initialization signature/hash and resource settings in an explicit
 manifest. Public configuration cannot replace the SDK's executable allowlist.
@@ -38,9 +38,12 @@ P46 introduces, and P47 qualifies, a separate RC2 deployment with clearing/bindi
 maker account schema 5 and unchanged SQL journal format 2. It requires new
 instruction/maker discriminators, genesis, domain, mint and empty database. Existing
 schema-7 originals and journals stay with the previous executor. Normal builds/probes/demo select `.local/anchor-rc2/current`; their executable
-allowlist remains the exact qualified C0 hashes. Retained P44 binaries and journals
-remain separate. This promotion does not change the persisted artifact-set ID
-used by the qualification originals.
+allowlist now selects the P49 expanded-quantity hashes from clean SBF `49c343e`.
+P49 preserves all IDLs, account schemas, seeds and layouts, while changing accepted
+quantity bounds and executable bytes. Its artifact-set ID is distinct from C0.
+Use a fresh local genesis and empty database; existing C0 journals and unresolved
+originals retain their old artifact binding and executor. Retained P44/C0 files
+remain separate, and no persisted qualification original is rewritten.
 
 ## Running an operator against an explicit deployment
 

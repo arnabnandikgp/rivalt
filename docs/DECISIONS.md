@@ -45,6 +45,13 @@ qualification. Existing journal bindings/artifacts remain historical; no in-plac
 funded migration or implicit acceptance of old binaries with expanded clients.
 Source implementation and qualification status are separate in STATUS/validation.
 
+D91 qualification (10 November 2026): clean SBF `49c343e` and verifier `125a2b3`
+pass the larger signed financial lifecycle, independent default/fee/funding audits,
+188-event PostgreSQL replay and matched full-book resource check. Generated IDLs
+remain identical. Promote the new exact artifact identity for fresh local use;
+retain C0 files and journal bindings. Acceptance is engineering-local and does not
+close external or deferred gates. The two implementation PRs remain open.
+
 | Original decision(s) | Current choice and reason | Contract owner |
 |---|---|---|
 | D01–D05, D56–D60 | Rivalt is common clearing with separate maker programs; BTC/ETH, one mint, portfolios and isolated/cross roots; market-attributed accounting replaces the old common-loss group for the current profile | [Accounts](clearing/accounts.md) |

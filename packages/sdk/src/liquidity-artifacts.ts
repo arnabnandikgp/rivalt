@@ -5,8 +5,8 @@ import {MAKER_B_PROGRAM_ADDRESS} from './generatedMakerB/index.js';
 import {ArtifactVerifier} from './artifacts.js';
 import type {UserRpc} from './wallet-client.js';
 
-// P49 larger-quantity candidate: clean SBF source 49c343e. Qualification status
-// lives in STATUS; this new binding never rewrites existing C0 journals.
+// P49-qualified expanded quantities: clean SBF source 49c343e, verifier 125a2b3.
+// Preserve the candidate binding used by actual originals; never rewrite C0 journals.
 // Public configuration never supplies replacement hashes or default/devnet code.
 export const LIQUIDITY_ARTIFACT_SET='p49-expanded-quantities-candidate-v1';
 export const LIQUIDITY_ARTIFACTS=Object.freeze([

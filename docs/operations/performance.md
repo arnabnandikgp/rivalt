@@ -8,6 +8,39 @@ is not a public deployment. The completed P47 local
 qualification below compares Anchor RC2 against that immutable pre-migration baseline;
 [STATUS](../STATUS.md) records the verified P45–P47 stack integration.
 
+## Expanded quantity measurements (P49)
+
+Clean SBF `49c343e`, clean verifier `125a2b3`, same Anchor RC2/platform-tools v1.52,
+Surfpool 1.7.0, SBPF v0 and serialized account layouts. Actual finalized receipts
+come from the large-quantity and matched resource runs listed in validation.
+Transaction CU includes CPI; observations below are distinct workloads, not a
+worst-case guarantee or a recommendation to lower requested budgets.
+
+| Actual transaction | Lots | Observed CU | Signed bytes / format | Loaded keys |
+|---|---:|---:|---|---:|
+| Single maker, eight regions, open at numeric position/gross boundary | 100,000,000 | 166,449 | 1,006 / v0 | 19 |
+| Same position, full close | 100,000,000 | 166,450 | 1,006 / v0 | 19 |
+| Production SDK-selected singleton with scoped market dependencies | 1,000,000 | 157,689 | 950 / v0 | 17 |
+| Stored protective stop, partial | 400,001 | 167,946 | 867 / v0 | 18 |
+| Stored entry, two maker programs, partial | 400,001 | 287,747 | 1,099 / v0 | 24 |
+| Stored entry, two maker programs, completion | 599,999 | 289,481 | 1,099 / v0 | 24 |
+| Cross ETH, two maker programs with BTC funding dependency | 1,000,000 | 285,767 | 1,196 / v1 | 24 |
+| Funded receiver liquidation, whole-account post-fee progress | 500,000 | 52,127 | 715 / v0 | 13 |
+| Matched P47 eight-region / three full protection books, two programs | 4,608 | 305,112 | 1,196 / v1 | 24 |
+
+The matched full-book route was 305,080 CU at P47: **+32 CU (0.011%)**. The large
+run's maximum observed transaction was 308,087 CU during complete default. Route
+requests remain 800,000 CU, with zero priority price; ordinary signed routes and
+liquidation paid 10,000 lamports (two signatures), keeper stored fills 5,000 (one).
+Eight-region price integration and fixed account books do not iterate once per
+lot. Larger sizes can change arithmetic branches, margin admission, inventory and
+price impact; adding lots does not add maker/account dependencies. These measurements
+do not justify adding a third selected maker or widening any other resource bound.
+
+Clearing is 1,537,888 bytes (+64 from C0); both maker binaries remain 166,712 bytes.
+All generated IDLs are unchanged. Current program pins are in `liquidity-artifacts.ts`;
+P47's frozen inventory/comparison below is retained without rewriting its evidence.
+
 ## RC2 qualification measurements (P47)
 
 The focused observations below belong to P47’s completed local qualification. The

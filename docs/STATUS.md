@@ -14,7 +14,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
 | P48 exact interval allocation | Review | Clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; [ready PR #68](https://github.com/arnabnandikgp/rivalt/pull/68); old size limits retained |
-| P49 expanded quantities | In progress | Remove inherited maker/action ceilings within checked numeric bounds; larger actual routes, orders/protection, liquidation and RPC/WS/PostgreSQL reconciliation |
+| P49 expanded quantities | Review | Clean SBF `49c343e`, verifier `125a2b3`: 231 large-quantity RPC/WS outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; ready PR publication pending |
 | M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
 | P45 migration contract | Closed | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) merged; accepted architecture/release research, exact pins, ABI and acceptance contract |
 | P46 RC2 implementation | Closed | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) merged; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
@@ -54,17 +54,34 @@ iterations, p95 0.302 ms / p99 0.355 ms on this Apple M3; at most 151 distinct
 quantity quotes and one full candidate/trader admission. This is a bounded fixture
 measurement, not worst-case latency. Local evidence is `.local/quantity/p48-5e5aede*`.
 No new SBF, PG replay or larger quantity is qualified by P48. P49 owns those checks.
-P49 implements the existing 100m-lot numeric domain in programs, SDK/API/UI and
-orders/liquidations, expands signed order fee input to the existing cash domain,
-and starts bounded worker probes at remaining quantity. Working-tree checks pass:
-three new native financial/pricing cases, 31 affected SDK/UI checks, five service
-checks, 715 independent router cases and 27 independent curve-contract checks.
-A fresh signed larger-size RPC/WS/PostgreSQL harness is prepared but unrun. Apple
-Command Line Tools were absent; the user restored them and native linking now
-works. No program build, larger deployed transition or phase acceptance is claimed.
-Next exact action: commit this source checkpoint, build the new pinned programs,
-then execute the large-quantity RPC/WS/PostgreSQL qualification. P15B/P16B and
-deferred endurance are unchanged. P48/#68 remains open below P49.
+P49 removes both inherited ceilings within the existing **100,000,000-lot**
+financial domain. Programs, SDK/API/UI, order reservations and liquidation agree;
+signed order fee input uses the existing cash domain, and worker size probes start
+at remaining quantity. Two makers, eight regions, position/gross/cash bounds,
+2 bps fees, insurance, funding and all risk checks remain enforced.
+
+Clean SBF **`49c343e6e77a327fc9fa00c5b2a2e172dceb380d`** has safe stack frames and
+fresh generated IDLs identical to the existing contract. Clean verifier
+**`125a2b3eafaa4413a31ba82a4dfcf183258f9f79`** passes **231 signed RPC/WS outcomes**:
+100m-lot open/close, million-lot SDK routing and two-program stored partials,
+large TP/SL, reservations/transfer/withdrawal, whole-account funding, 500k-lot
+liquidation and complete default. Independent raw-byte audits check nine fills,
+eight exact Fraction payouts and mutation rejection. The fresh PostgreSQL replay
+matches all **188 events**. A separate **146-outcome** matched full-book probe
+measures 305,112 CU, versus P47's 305,080; the 100m singleton uses 166,449 CU.
+[Validation](operations/validation.md#expanded-quantities-p49) records checks and
+[performance](operations/performance.md#expanded-quantity-measurements-p49) records
+resource assumptions. Raw evidence remains `.local/quantity/p49-*`.
+
+Thirty-one affected native checks, 62 SDK/UI/service checks, 3,172 independent Rust
+quote vectors, 715 independent router cases and 27 curve-contract cases pass.
+The new artifact identity is pinned and promoted to `.local/anchor-rc2/current`;
+prior C0 files/journals remain retained. No account/IDL layout changed. Both owned
+Surfpool runs and their test PostgreSQL container are stopped. Compiler tools were
+restored; there is no access blocker. P48's applicable hosted CI passed on #68;
+P49 hosted CI is not yet observed. Next exact action: publish P49's ready PR above
+#68 and check its affected CI jobs. Keep both PRs open. P15B/P16B and deferred
+endurance are unchanged; no public/funded deployment is qualified.
 
 ## P46 serialized port checkpoint
 

@@ -11,6 +11,17 @@ deletes none of them. Recovery example:
 git show 84c46d4d26b23f25d6f3a7ae4bcbec591fa31503:docs/evidence/P34.md
 ```
 
+## Accepted quantity work awaiting integration
+
+P48/P49 (10 November 2026) replace per-lot route enumeration with exact bounded
+interval search and retire inherited maker/action lot ceilings within the existing
+financial domain. P48 clean `5e5aede` passes independent financial enumeration and
+130 signed outcomes on unchanged C0; P49 clean SBF `49c343e` / verifier `125a2b3`
+passes 231 larger-size signed outcomes, independent fill/default audits, 188-event
+fresh PostgreSQL replay and 146 matched resource outcomes. Current specs and
+[validation](operations/validation.md) own exact limits and omissions. This is
+local qualification with open stacked PRs, not integration or funded deployment.
+
 ## Integrated milestones
 
 | Milestone | Scope | Integration / retained actual checks |

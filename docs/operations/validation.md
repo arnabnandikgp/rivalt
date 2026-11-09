@@ -1,21 +1,52 @@
 # Validation and measured limits
 
-## Expanded quantities (P49 — acceptance pending)
+## Expanded quantities (P49)
 
-Source removes inherited 4,096/4,608-lot ceilings within the existing 100m-lot
-financial domain. Working-tree checks pass three new native cases (full-width
-pricing, order reservations and fractional post-fee liquidation), 31 affected
-SDK/UI checks, five service checks, 715 independent router cases and 27 curve
-contract checks. Apple Command Line Tools were initially absent; installation
-restored linking and native tests passed. No new SBF or deployed large-quantity
-acceptance is claimed yet. Exact clean revisions and actual resource results
-will replace this preparatory checkpoint after qualification.
+Clean SBF source **`49c343e6e77a327fc9fa00c5b2a2e172dceb380d`**, clean integrated
+verifier **`125a2b3eafaa4413a31ba82a4dfcf183258f9f79`**. Default/qualification
+clearing and both makers build without unsafe stack diagnostics. Fresh actual
+Anchor IDLs for all three programs are identical to the existing generated
+contract; generated SDK and D90 wire-contract checks pass. The fixed allowlist
+uses `p49-expanded-quantities-candidate-v1`; old bindings remain historical.
+Normal local files are promoted to `.local/anchor-rc2/current`, after preserving
+all previous files at `.local/quantity/pre-p49-current` and immutable C0.
 
-The prepared `quantities` probe in `ops/current-runtime-smoke.sh` requires owned
-PostgreSQL and pinned new artifacts. It targets actual 100m-lot open/close, a
-million-lot SDK route, two-program stored partials, large TP/SL and transfers,
-whole-account funding/withdrawal, half-million liquidation, complete default,
-independent raw-byte financial audits and identical fresh PostgreSQL replay.
+Affected native checks: 15 financial-core order/liquidation/safety cases, ten
+maker-interface cases and six clearing route cases, all passing. These include
+independent literal large-order reservation, 100m-depth prefix arithmetic and a
+500k-lot liquidation preserving one scaled fractional unit with strict progress
+after fees. Sixty-two affected SDK/UI/service checks pass. Independent Python
+comparison passes 715 router cases, 3,172 Rust quote vectors (1,547 exact quotes /
+1,625 expected rejects) and 27 curve-contract cases. Typecheck, SDK generation and
+ABI checks pass; 23 artifact-verifier/launcher checks also pass after updating pins.
+The initial native linking failure was absent Apple compiler
+tools; the user restored them before successful native/SBF acceptance.
+
+Actual signed acceptance:
+
+| Fresh run (under `.local/quantity/`) | Result |
+|---|---|
+| `p49-125a2b3-rpc` | 231 signed RPC/WS outcomes; 100m open/close, million-lot SDK route, two-program stored partials, large TP/SL, numeric/replay/over-close rejections with rollback, reserved transfer/withdrawal, whole-account funding, 500k liquidation, complete default and terminal funded exit |
+| Independent raw audits | Nine fills checked against literal flat prices and whole-account funding; eight exact Fraction default payouts; eight route and ten default/accounting corruptions rejected |
+| Same run's real PostgreSQL | 188 authenticated finalized events; on-chain cash agrees; fresh database/refetched RPC replay produces identical complete projection |
+| `p49-125a2b3-resource` | 146 outcomes retaining the P47 full-book 4,608-lot workload, both program routes, skew crossing and depth-epoch rollback |
+| `p49-49c343e/default-gates-svm.json` | All three newly compiled default binaries reject valid initialization with rollback |
+
+Reproduce the larger flow with pinned artifacts and an unused run directory:
+
+```sh
+RIVALT_LIQUIDITY_PROBE=quantities RIVALT_LIQUIDITY_POSTGRES=1 \
+RIVALT_PG_PORT=18943 RIVALT_RUN_DIR=.local/quantity/new-run \
+bash ops/current-runtime-smoke.sh
+```
+
+[Performance](performance.md#expanded-quantity-measurements-p49) records exact CU,
+wire and account counts. The numeric envelope is finite, not guaranteed liquidity;
+source, margin, inventory, gross exposure, signed fee limits and search-work
+exhaustion can reject smaller trades. Worker halving is a bounded operational
+policy, not an exhaustive subfill feasibility proof. No new endurance, production,
+external maker, paid oracle or public deployment acceptance is inferred. Owned
+Surfpool and the test PostgreSQL container were stopped; raw evidence stays local.
 
 ## Exact quantity search (P48)
 
