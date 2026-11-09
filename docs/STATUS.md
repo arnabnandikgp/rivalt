@@ -13,7 +13,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| P48 exact interval allocation | In progress | D91: scalable exact single/pair search, independent exhaustive comparison and explicit exhausted-search handling; old size limits retained |
+| P48 exact interval allocation | Review | Clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; ready PR publication pending; old size limits retained |
 | P49 expanded quantities | Planned — authorized | Remove inherited maker/action ceilings within checked numeric bounds; larger actual routes, orders/protection, liquidation and RPC/WS/PostgreSQL reconciliation |
 | M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
 | P45 migration contract | Closed | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) merged; accepted architecture/release research, exact pins, ABI and acceptance contract |
@@ -46,12 +46,16 @@ accepted tip as an ancestor and exactly the same complete tree.
 
 The user authorized removing both inherited quantity ceilings on 10 November.
 P48 changes only search/client behavior and preserves program limits and artifacts.
-Initial scoped checks pass: 715 independently enumerated financial/price cases
-(264 allocated, 379 unavailable, 72 rejected), 21 SDK/service checks and typecheck
-on the working tree. Additional boundary checks and clean-revision acceptance are
-pending; no new SBF, integrated flow or larger quantity is qualified yet.
-Next exact action: finish P48's clean-revision focused verification and publish its
-ready PR, then implement P49 above it. P15B/P16B and deferred endurance are unchanged.
+Clean `5e5aede846c27bb1c352aa06c14a25ccfc6fe06c` passes 715 independently enumerated
+financial/price cases (264 allocated, 379 unavailable, 72 rejected), 23 affected
+SDK/service checks, typecheck and 130 signed Surfpool RPC/WS outcomes against the
+unchanged qualified C0 programs. Full-book four-scenario search benchmark: 1,000
+iterations, p95 0.302 ms / p99 0.355 ms on this Apple M3; at most 151 distinct
+quantity quotes and one full candidate/trader admission. This is a bounded fixture
+measurement, not worst-case latency. Local evidence is `.local/quantity/p48-5e5aede*`.
+No new SBF, PG replay or larger quantity is qualified by P48. P49 owns those checks.
+Next exact action: publish P48's ready PR and implement P49 above it. P15B/P16B and
+deferred endurance are unchanged; there is no blocker.
 
 ## P46 serialized port checkpoint
 

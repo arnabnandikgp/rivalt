@@ -1,5 +1,33 @@
 # Validation and measured limits
 
+## Exact quantity search (P48)
+
+Clean verifier `5e5aede846c27bb1c352aa06c14a25ccfc6fe06c` replaces exhaustive
+allocation with the interval proof in [routing](../liquidity/routing.md), retaining
+4,096/4,608 program limits and the qualified C0 binaries. Independent Python
+per-lot/exhaustive full-financial comparison passes 715 cases: 264 allocations,
+379 unavailable and 72 invalid requests. Three hundred added cases cover complete
+maker books, flat/generation boundaries and nonprefix health. Twenty-three focused
+SDK/service tests pass, including interior VWAP bands, a net-proceeds fee-step tie
+and exhausted search withholding an otherwise feasible singleton and instructions.
+Typecheck passes. The initial test/benchmark failures asserted retired exhaustive
+operation counts; their financial expectations passed and the resource assertions
+now check bounded search work.
+
+The unchanged four full-book benchmark workloads, 24 warmups / 1,000 iterations,
+measure p95 0.302 ms / p99 0.355 ms on Apple M3 / Node 24.22.0. Maximum distinct
+quantity quotes is 151, compositions and trader admissions one. This does not
+establish a worst-case or larger-domain latency claim. The algorithm explicitly
+refuses uncertified results on work-budget exhaustion.
+
+`RIVALT_RUN_DIR=.local/quantity/p48-5e5aede-rpc bash ops/liquidity-execution-smoke.sh`
+passes 130 real signed, independently fetched RPC/WS outcomes: current-price and
+two-program routes, source/funding dependencies, stored partial fills and rejected
+pause/replay cases with rollback. Raw evidence and the clean benchmark are local
+under `.local/quantity/p48-5e5aede*`; the owned Surfpool was stopped. There is no new
+program build, PostgreSQL run or larger-size acceptance in P48. P49 separately owns
+expanded numeric bounds, new artifacts and integrated larger-size qualification.
+
 A pass applies to its exact code, binaries, environment and population. The
 consolidation stack integrates P35–P38 at `caa47d2`, with complete tree equal to
 accepted `9d3e15f`. Merge verification introduces no new runtime-test claim.
