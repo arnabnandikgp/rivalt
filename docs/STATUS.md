@@ -13,6 +13,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| P50 architecture constraint audit | Review | Source/provenance inspection of `2a77c24`; [ranked findings and proposed priorities](operations/constraints.md); documentation-only, no policy changes; ready PR publication pending |
 | P48 exact interval allocation | Review | Clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; [ready PR #68](https://github.com/arnabnandikgp/rivalt/pull/68); old size limits retained |
 | P49 expanded quantities | Review | Clean SBF `49c343e`, verifier `125a2b3`: 231 large-quantity RPC/WS outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; [ready PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) above #68 |
 | M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
@@ -95,6 +96,24 @@ The user authorized review fixes and stack merge on 10 November. Next exact
 action: publish this fix, restack P50, verify hosted checks and merge stack #70.
 P15B/P16B and deferred endurance are unchanged; no public/funded deployment is
 qualified.
+
+## Architecture constraint review
+
+The user requested a detailed audit of inherited prototype assumptions after the
+quantity work. P50 inspects current source and targeted local Git provenance at
+`2a77c2419a6b80acf452a8604ba0fe904d3f35ff`; it changes documentation only. Findings
+cover lifetime membership/complete-default capacity, price bands, funding impact
+size, liquidation compensation, indexer progress, maker admission, numeric/OI and
+funding lifetime bounds, account/order capacity, client fees and worker scheduling.
+Confirmed vestiges include an unused pagination option and reference-only Rust
+funding enumeration. The [audit](operations/constraints.md) separates source facts,
+constructed examples, proposed remedies and protected deliberate scope.
+
+Validation: source/call-site searches, historical decision checks, exact unit
+arithmetic and document/path checks. No new financial test, runtime benchmark,
+security certification or production readiness is inferred. There is no blocker.
+Next exact action: publish the documentation-only P50 review above #69; proposed
+policy/economic remedies await selection of their scope.
 
 ## P46 serialized port checkpoint
 

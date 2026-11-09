@@ -10,6 +10,9 @@ successful devnet checks apply to their recorded implementation only.
   resource limits and remaining evidence boundaries.
 - [Performance](performance.md): P39–P44 contention contract, workload methodology,
   executable access audit, immutable pre-Anchor-v2 baseline and RC2 comparison.
+- [Architecture constraints](constraints.md): P50 source/provenance audit of inherited
+  profile limits, operational assumptions and proposed priorities; not authority to
+  change the current financial contracts.
 - [Anchor v2 migration](anchor-v2-migration.md): accepted P45 contract and qualified P46/P47
   implementation; STATUS separates acceptance from integration.
 
