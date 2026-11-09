@@ -13,7 +13,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| P50 architecture constraint audit | Review | Source/provenance inspection of `2a77c24`; [ranked findings and proposed priorities](operations/constraints.md); documentation-only, no policy changes; ready PR publication pending |
+| P50 architecture constraint audit | Review | Source/provenance inspection of `2a77c24`; [ranked findings and proposed priorities](operations/constraints.md); documentation-only, no policy changes; [ready PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) above #69 |
 | P48 exact interval allocation | Review | Clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; [ready PR #68](https://github.com/arnabnandikgp/rivalt/pull/68); old size limits retained |
 | P49 expanded quantities | Review | Clean SBF `49c343e`, verifier `125a2b3`: 231 large-quantity RPC/WS outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; [ready PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) above #68 |
 | M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
@@ -112,8 +112,9 @@ constructed examples, proposed remedies and protected deliberate scope.
 Validation: source/call-site searches, historical decision checks, exact unit
 arithmetic and document/path checks. No new financial test, runtime benchmark,
 security certification or production readiness is inferred. There is no blocker.
-Next exact action: publish the documentation-only P50 review above #69; proposed
-policy/economic remedies await selection of their scope.
+P50 is published ready as [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71)
+above #69/#68; all three remain open. Next exact action: select the first remediation
+scope from the audit priorities; no policy/economic remedy is authorized by this review.
 
 ## P46 serialized port checkpoint
 
