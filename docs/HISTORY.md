@@ -20,7 +20,8 @@ financial domain. P48 clean `5e5aede` passes independent financial enumeration a
 passes 231 larger-size signed outcomes, independent fill/default audits, 188-event
 fresh PostgreSQL replay and 146 matched resource outcomes. Current specs and
 [validation](operations/validation.md) own exact limits and omissions. This is
-local qualification with open stacked PRs, not integration or funded deployment.
+local qualification with open stacked [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68)
+and [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69), not integration or funded deployment.
 
 ## Integrated milestones
 

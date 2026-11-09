@@ -14,7 +14,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
 | P48 exact interval allocation | Review | Clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; [ready PR #68](https://github.com/arnabnandikgp/rivalt/pull/68); old size limits retained |
-| P49 expanded quantities | Review | Clean SBF `49c343e`, verifier `125a2b3`: 231 large-quantity RPC/WS outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; ready PR publication pending |
+| P49 expanded quantities | Review | Clean SBF `49c343e`, verifier `125a2b3`: 231 large-quantity RPC/WS outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; [ready PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) above #68 |
 | M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
 | P45 migration contract | Closed | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) merged; accepted architecture/release research, exact pins, ABI and acceptance contract |
 | P46 RC2 implementation | Closed | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) merged; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
@@ -79,8 +79,10 @@ The new artifact identity is pinned and promoted to `.local/anchor-rc2/current`;
 prior C0 files/journals remain retained. No account/IDL layout changed. Both owned
 Surfpool runs and their test PostgreSQL container are stopped. Compiler tools were
 restored; there is no access blocker. P48's applicable hosted CI passed on #68;
-P49 hosted CI is not yet observed. Next exact action: publish P49's ready PR above
-#68 and check its affected CI jobs. Keep both PRs open. P15B/P16B and deferred
+P49 is published ready in [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69)
+above #68; its latest hosted checks are tracked on that PR, independently of the
+clean local acceptance pins. Next exact action: inspect #69's hosted checks and
+review the two open PRs; integration awaits separate authorization. P15B/P16B and deferred
 endurance are unchanged; no public/funded deployment is qualified.
 
 ## P46 serialized port checkpoint
