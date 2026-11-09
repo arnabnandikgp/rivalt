@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import {address} from '@solana/kit';
+import {MAX_ACTION_LOTS} from '@rivalt/sdk';
 import {json} from '../../indexer/src/events.js';
 import type {AccountRuntime} from './account-runtime.js';
 import {AccountQuoteUnavailable} from './account-runtime.js';
@@ -15,7 +16,7 @@ export function accountServiceApi(runtime:AccountRuntime){
   app.get('/ready',async(_,reply)=>{try{await runtime.snapshot();return {ready:true,schemaVersion:runtime.profile};}catch{return reply.code(503).send({ready:false});}});
   app.post(`${prefix}/quote`,async request=>{
     const input=request.body as any;
-    if(!input||![0,1].includes(input.marketIndex)||![0,1].includes(input.side)||typeof input.lots!=='string'||!/^[1-9][0-9]{0,3}$/.test(input.lots)||BigInt(input.lots)>4608n)throw new Error('Invalid account quote');
+    if(!input||![0,1].includes(input.marketIndex)||![0,1].includes(input.side)||typeof input.lots!=='string'||!/^[1-9][0-9]{0,8}$/.test(input.lots)||BigInt(input.lots)>MAX_ACTION_LOTS)throw new Error('Invalid account quote');
     const quote=await runtime.quote(address(input.actor),address(input.margin),input.marketIndex,input.side,BigInt(input.lots));
     if(!quote.available)return quote;
     return {...quote,instructions:quote.instructions.map(instruction=>({programAddress:instruction.programAddress,

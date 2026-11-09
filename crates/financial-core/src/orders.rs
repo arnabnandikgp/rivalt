@@ -32,7 +32,7 @@ impl ReservationRate {
     ) -> Result<Self> {
         if side > 1
             || !(9_000..=110_000).contains(&limit)
-            || fee_left > 1_000_000
+            || fee_left > MAX_CASH
             || lower == 0
             || lower > upper
             || upper > MAX_PRICE
@@ -52,7 +52,7 @@ impl ReservationRate {
     }
 
     pub fn for_lots(&self, lots: u64) -> Result<u64> {
-        if lots > 4_608 {
+        if lots > MAX_LOTS as u64 {
             return Err(Error::Bounds);
         }
         if lots == 0 {

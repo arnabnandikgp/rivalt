@@ -20,6 +20,23 @@ Public amounts are integer decimal strings with units; internal arithmetic uses
 bigint. Never serialize a monetary bigint as an IEEE-754 number. Keep cash,
 unpaid claims, risk equity, reservations, fees and insurance separate.
 
+## Quantity contract (P49)
+
+Immediate requests, stored order totals and maker side depth share the existing
+100,000,000-lot financial domain; signed positions and aggregate gross exposure
+retain their separate existing checks. `/v4/quote` accepts canonical positive
+decimal strings through that bound. The UI converts BTC/ETH exactly and rejects
+larger quantities before requesting a quote. Fee budgets remain owner-signed:
+expanding the input domain to the existing cash bound does not change 2 bps fees.
+
+Order and liquidation workers first try the remaining quantity, then halve on
+unavailability, for at most 27 probes across the numeric domain. Each probe still
+needs full quote/admission or successful liquidation simulation, and only one
+accepted action is durably queued. This operational schedule is not an exhaustive
+proof that no smaller admissible size exists. Persistent send/fee budgets and
+unknown-original recovery are unchanged. Router search work remains independently
+bounded and explicitly reports exhaustion without a transaction.
+
 ## Direct accounts and actions
 
 The shared account snapshot discovers immutable portfolios and then reads the

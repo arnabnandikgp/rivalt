@@ -5,6 +5,7 @@ import { MAKER_B_PROGRAM_ADDRESS } from './generatedMakerB/index.js';
 import { quoteCanonical, validateCanonicalShape, type CanonicalShape } from './canonical-quote.js';
 import { deriveMarginAccount } from './account-addresses.js';
 import { fromBase64, hex, requireValue, rpcInteger, type UserRpc } from './wallet-client.js';
+import {MAX_MAKER_DEPTH_LOTS} from './quantity-limits.js';
 
 const LOADER = address('BPFLoaderUpgradeab1e11111111111111111111111');
 const KEY = getAddressEncoder();
@@ -119,7 +120,8 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
       clearing.getMakerRegistrationDecoder());
     requireValue(registrationKey === expectedRegistration && registration.bump === registrationBump && registration.schemaVersion === 8
       && registration.venue === snapshot.venue && registration.market === snapshot.market && registration.instance === instance
-      && registration.authorityEpoch > 0n && registration.depthEpoch > 0n && registration.buyConsumed <= 4096n && registration.sellConsumed <= 4096n,
+      && registration.authorityEpoch > 0n && registration.depthEpoch > 0n
+      && registration.buyConsumed <= MAX_MAKER_DEPTH_LOTS && registration.sellConsumed <= MAX_MAKER_DEPTH_LOTS,
       'Invalid maker registration binding.');
     requireValue(!seenCapital.has(registration.capital), 'Aliased maker capital.'); seenCapital.add(registration.capital);
     const capital = decode(bytes(accounts,registration.capital,clearing.CLEARING_PROGRAM_ADDRESS), clearing.MARGIN_ACCOUNT_DISCRIMINATOR,

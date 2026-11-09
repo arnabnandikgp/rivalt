@@ -2,10 +2,9 @@ import { marginBalanceView, marginOrderRemaining, type MarginFinancialRoot, type
 import { orderTriggered } from './order-policy.js';
 import type { MarginRouteIntent } from './route-intent.js';
 import { requireValue } from './wallet-client.js';
+import {MAX_ACTION_LOTS,MAX_POSITION_LOTS as MAX_LOTS,MAX_CASH_ATOMS as MAX_CASH} from './quantity-limits.js';
 
 const SCALE = 1_000_000_000n;
-const MAX_CASH = 1_000_000_000_000_000n;
-const MAX_LOTS = 100_000_000n;
 const MAX_SCALED = 10n ** 26n;
 const MAX_U64 = (1n << 64n)-1n;
 const abs = (value: bigint) => value < 0n ? -value : value;
@@ -21,7 +20,7 @@ export type LiquidityMarginInput = MarginRouteIntent & {
 export function prepareLiquidityMargin(input: LiquidityMarginInput) {
   const { root, marketIndex, markets, funding, sources, side, lots, slot, now } = input;
   requireValue(markets.length === 2 && funding.length === 2 && sources.length === 2
-    && [0,1].includes(marketIndex) && [0,1].includes(side) && lots > 0n && lots <= 4608n
+    && [0,1].includes(marketIndex) && [0,1].includes(side) && lots > 0n && lots <= MAX_ACTION_LOTS
     && input.maxFee >= 0n && input.maxFee <= MAX_CASH && input.allInLimit >= 0n && input.allInLimit <= MAX_CASH,
     'Invalid liquidity financial context.');
   const market = markets[marketIndex];

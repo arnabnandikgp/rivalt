@@ -28,7 +28,7 @@ The canonical adapter exposes exact gross quotes, depth hints and fully bound pu
 quote requests. Depth hints describe price capacity, not financial feasibility.
 `allocateLiquidityRoute` covers all singletons and every unordered pair with
 positive integer quantities summing to the full requested size. Each leg is at
-most 4,096 lots and the request at most 4,608. It never executes three capitals,
+most 100,000,000 lots and the request at most 100,000,000. It never executes three capitals,
 partially fills the request or prunes maker health as a monotone prefix. Zero
 mathematical capacity is classified separately from no feasible financial quote.
 
@@ -113,8 +113,10 @@ Wallet admission requires both formats; actual external-wallet compatibility is 
 separate check from instrumented local signing.
 
 A route submits <=800,000 CU with measured maximum <=640,000, <=32 loaded keys,
-and default 32 KiB heap. At most 4,608 total lots / 4,096 per maker, eight regions
-per side, and complete four-order/two-protection books remain the bound. The RPC
+and default 32 KiB heap. P49 expands total quantity and maker depth to the existing
+100,000,000-lot numeric domain; its fresh program/resource acceptance is tracked in
+validation. Eight regions per side and complete four-order/two-protection books
+remain the bound. Earlier CU observations retain their original quantity workload. The RPC
 snapshot's 48-key ceiling is not a transaction loaded-key allowance. Combined
 transfer/control operations require their own measured packet/compute fit.
 
@@ -125,7 +127,10 @@ request, independent of the numeric quantity domain. Exceeding either throws
 `liquidity-search-budget-exhausted`, with no allocation or signed transaction.
 It must not report insufficient liquidity or return an uncertified incumbent.
 This is a computational availability bound, not permission to relax financial
-admission. P48 retains the existing 4,096/4,608 program limits; P49 owns expansion.
+admission. P48 retains the old program limits; P49 applies the existing numeric
+domain to maker depth, action/order and liquidation quantities. This equals at most
+100 BTC or 1,000 ETH per action, before inventory, collateral, gross exposure and
+available depth impose tighter limits. Price/region work does not grow per lot.
 
 For canonical capability 1, buy gross is integer convex and sell gross is integer
 concave: region offsets have ordered marginal increments and the inventory

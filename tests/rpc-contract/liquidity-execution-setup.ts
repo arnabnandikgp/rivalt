@@ -15,7 +15,7 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; verifyRejections?: boolean } = {}) {
+  options: { shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; verifyRejections?: boolean } = {}) {
   const region = (offset: bigint) => [{ endLots: 4096n, offset, slope: 0n },
     ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
   const shape = { ...goldenShape, skewTick: 0n, longCap: 4096n, shortCap: 4096n,
@@ -39,7 +39,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   await h.send('mint test trader collateral', [getCreateAccountInstruction({ payer, newAccount: traderToken,
     lamports: await h.rent(165), space: 165n, programAddress: TOKEN_PROGRAM_ADDRESS }),
     getInitializeAccount3Instruction({ account: traderToken.address, mint: fixture.mint.address, owner: traderOwner.address }),
-    getMintToInstruction({ mint: fixture.mint.address, token: traderToken.address, mintAuthority: payer, amount: 2_000_000n })], [traderToken]);
+    getMintToInstruction({ mint: fixture.mint.address, token: traderToken.address, mintAuthority: payer, amount: (options.traderCash ?? 1_000_000n) * 2n })], [traderToken]);
   const [portfolio] = await sdk.deriveAccountPortfolio(venue, traderOwner.address, 0);
   await h.send('create test trader portfolio', [await sdk.getCreatePortfolioInstructionAsync({
     ...common, owner: traderOwner, portfolio, index: 0 })], [traderOwner]);
@@ -50,7 +50,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       owner: traderOwner, portfolio, margin, subaccountIndex, mode: subaccountIndex === 0 ? 0 : 1,
       isolatedMarketIndex: subaccountIndex === 0 ? 255 : 0, role: 0 })], [traderOwner]);
     await h.send('deposit actual test trader collateral', [await sdk.getDepositAccountInstructionAsync({ ...common,
-      owner: traderOwner, margin, quoteMint: fixture.mint.address, userToken: traderToken.address, amount: 1_000_000n })], [traderOwner]);
+      owner: traderOwner, margin, quoteMint: fixture.mint.address, userToken: traderToken.address, amount: options.traderCash ?? 1_000_000n })], [traderOwner]);
     roots.push(margin);
   }
   const feeds: { index: number; feed: Address; authority: typeof primary }[] = [];

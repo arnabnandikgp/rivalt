@@ -30,6 +30,21 @@ integer/exposure/cash limits; large quantities never imply guaranteed available
 liquidity or automatic depth replenishment. P15B/P16B remain external and
 continuous 24-hour endurance stays Deferred.
 
+D91 implementation (10 November 2026): P49 uses the existing `MAX_LOTS =
+100,000,000` for maker published depth, immediate/stored action quantity, order
+quantity and liquidation quantity. Retain signed position ±100m, aggregate gross
+200m, price 1m atoms/lot, cash 10^15 atoms and scaled-value bounds. The stored-order
+fee input expands from 1m atoms to the existing cash bound so a large order can
+reserve its actual signed fee budget. No fee rate, liquidation fee cap, insurance
+share, risk band, account width, discriminator, seed or instruction layout changes.
+Operational workers start at remaining exposure and halve in at most 27 probes;
+this removes the small fixed starting batch without claiming exhaustive feasibility.
+
+New program bytes require a distinct pinned artifact identity and fresh local
+qualification. Existing journal bindings/artifacts remain historical; no in-place
+funded migration or implicit acceptance of old binaries with expanded clients.
+Source implementation and qualification status are separate in STATUS/validation.
+
 | Original decision(s) | Current choice and reason | Contract owner |
 |---|---|---|
 | D01–D05, D56–D60 | Rivalt is common clearing with separate maker programs; BTC/ETH, one mint, portfolios and isolated/cross roots; market-attributed accounting replaces the old common-loss group for the current profile | [Accounts](clearing/accounts.md) |

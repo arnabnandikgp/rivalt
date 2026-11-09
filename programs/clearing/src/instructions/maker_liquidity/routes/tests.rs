@@ -314,7 +314,7 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
         |leg| leg.shape_epoch += 1,
         |leg| leg.depth_epoch += 1,
         |leg| leg.lots = 0,
-        |leg| leg.lots = 4097,
+        |leg| leg.lots = canonical::MAX_DEPTH + 1,
     ] {
         let mut invalid = leg();
         mutate(&mut invalid);

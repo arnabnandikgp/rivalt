@@ -6,6 +6,7 @@ import {accountWorkerKeys} from './account-worker-state.js';
 import {settleAccounts} from './account-settlement-worker.js';
 import {accountRiskWork} from './account-risk-worker.js';
 import {publishLiquidityFunding,repriceLiquidity,quoteLiquidity} from './liquidity-workers.js';
+import {quantityCandidates} from './quantity-candidates.js';
 
 export type AccountWorkerOutcome={status:'idle'|'queued'|'blocked';reason:string};
 export class AccountQuoteUnavailable extends Error {
@@ -48,7 +49,7 @@ export class AccountRuntime extends AccountExecution {
         const marketIndex=stored.marketIndex as 0|1,market=snapshot.marketStates[marketIndex];if(!market)continue;
         const remaining=sdk.accountOrderRemaining(root,stored,market,snapshot.slot);
         if(!remaining||!sdk.orderTriggered(stored.order,market.referencePrice,snapshot.slot))continue;
-        for(let lots=remaining<64n?remaining:64n;lots>0n;lots/=2n) {
+        for(const lots of quantityCandidates(remaining)) {
           try {
             const quote=await this.quote(key.address,trader,marketIndex,stored.order.side as 0|1,lots,
               {id:stored.order.id,version:stored.order.version,filled:stored.order.filled});

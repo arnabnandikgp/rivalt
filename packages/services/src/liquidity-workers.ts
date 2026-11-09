@@ -70,7 +70,7 @@ export async function quoteLiquidity(runtime:AccountRuntime,actor:Address,trader
   if(!['Normal','Degraded'].includes(diagnostic.sourceModes[marketIndex]))return {available:false as const,code:'required-market-source-unavailable',diagnostic};
   let quote:Awaited<ReturnType<typeof sdk.buildLiquidityRoute>>;
   try {quote=await sdk.buildLiquidityRoute({snapshot,trader,marketIndex,side,lots,stored,
-    maxFee:1_000_000_000n,allInLimit:side===0?1_000_000_000_000_000n:0n},actor);}
+    maxFee:sdk.MAX_CASH_ATOMS,allInLimit:side===0?sdk.MAX_CASH_ATOMS:0n},actor);}
   catch(error){if(error instanceof sdk.LiquiditySearchLimitError)return {available:false as const,
     code:error.code,diagnostic:{...diagnostic,search:error.metrics}};throw error;}
   if(!quote)return {available:false as const,code:'maker-depth-or-whole-account-health',diagnostic};

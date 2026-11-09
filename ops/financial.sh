@@ -5,6 +5,7 @@ source ops/env.sh
 export CARGO_PROFILE_TEST_DEBUG=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
 python3 tests/financial/test_maker_curve_contract.py
 cargo test --locked -p maker-interface --lib canonical::tests
+cargo test --locked -p maker-interface --test large_quantities
 cargo build --locked -p maker-interface --bin curve-reference-driver
 python3 tests/financial/check_maker_curve_parity.py --implementation rust
 python3 tests/financial/test_account_contract.py

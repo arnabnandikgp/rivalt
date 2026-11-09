@@ -13,8 +13,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| P48 exact interval allocation | Review | Clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; ready PR publication pending; old size limits retained |
-| P49 expanded quantities | Planned — authorized | Remove inherited maker/action ceilings within checked numeric bounds; larger actual routes, orders/protection, liquidation and RPC/WS/PostgreSQL reconciliation |
+| P48 exact interval allocation | Review | Clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; [ready PR #68](https://github.com/arnabnandikgp/rivalt/pull/68); old size limits retained |
+| P49 expanded quantities | In progress | Remove inherited maker/action ceilings within checked numeric bounds; larger actual routes, orders/protection, liquidation and RPC/WS/PostgreSQL reconciliation |
 | M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
 | P45 migration contract | Closed | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) merged; accepted architecture/release research, exact pins, ABI and acceptance contract |
 | P46 RC2 implementation | Closed | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) merged; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
@@ -54,8 +54,17 @@ iterations, p95 0.302 ms / p99 0.355 ms on this Apple M3; at most 151 distinct
 quantity quotes and one full candidate/trader admission. This is a bounded fixture
 measurement, not worst-case latency. Local evidence is `.local/quantity/p48-5e5aede*`.
 No new SBF, PG replay or larger quantity is qualified by P48. P49 owns those checks.
-Next exact action: publish P48's ready PR and implement P49 above it. P15B/P16B and
-deferred endurance are unchanged; there is no blocker.
+P49 implements the existing 100m-lot numeric domain in programs, SDK/API/UI and
+orders/liquidations, expands signed order fee input to the existing cash domain,
+and starts bounded worker probes at remaining quantity. Working-tree checks pass:
+three new native financial/pricing cases, 31 affected SDK/UI checks, five service
+checks, 715 independent router cases and 27 independent curve-contract checks.
+A fresh signed larger-size RPC/WS/PostgreSQL harness is prepared but unrun. Apple
+Command Line Tools were absent; the user restored them and native linking now
+works. No program build, larger deployed transition or phase acceptance is claimed.
+Next exact action: commit this source checkpoint, build the new pinned programs,
+then execute the large-quantity RPC/WS/PostgreSQL qualification. P15B/P16B and
+deferred endurance are unchanged. P48/#68 remains open below P49.
 
 ## P46 serialized port checkpoint
 

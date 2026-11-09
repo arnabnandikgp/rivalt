@@ -1,6 +1,6 @@
 //! Funded receiver transfer for the finite local liquidation profile.
 use super::*;
-pub const MAX_LIQUIDATION_LOTS: u64 = 4_608;
+pub const MAX_LIQUIDATION_LOTS: u64 = MAX_LOTS as u64;
 pub const MAX_LIQUIDATION_FEE: u64 = 10_000;
 
 pub fn deficit(p: &Participant, lower: u64, upper: u64, funding: i128) -> Result<i128> {

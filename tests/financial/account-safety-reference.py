@@ -161,7 +161,7 @@ def audit_liquidation(report,step):
     funding=[integer(data,84,16,True) for data in markets]
     lower=[integer(data,132) for data in markets];upper=[integer(data,140) for data in markets]
     lots,price=int(step['lots']),int(step['price'])
-    assert 0 < lots <= 4608 and previous[target]['positions'][0][0] > lots
+    assert 0 < lots <= 100_000_000 and previous[target]['positions'][0][0] > lots
     fee=min((lots*price+1999)//2000,10_000,previous[target]['cash'])
     expected=copy.deepcopy(previous)
     for key,direction in [(target,-1),(receiver,1)]:

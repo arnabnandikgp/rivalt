@@ -11,11 +11,11 @@ import {Queue} from './queue.js';
 import {dispatchWire,dispatchMockRows} from '../test-support/dispatch-fixture.js';
 
 /** Encoded RPC consumer fixture: no claim of simulated financial acceptance. */
-async function fixture(freezeAccepted=false) {
+async function fixture(freezeAccepted=false,quantity=10n) {
   const test=await accountTradeFixture(),[target,receiver]=test.margins,venue=test.config.venue;
   const readRoot=(key:string)=>sdk.getMarginAccountDecoder().decode(Buffer.from(test.accounts.get(key).data[0],'base64'));
   const distressed=readRoot(target);
-  distressed.cash=1n;distressed.positions[0]={lots:10n,virtualScaled:-100_000_000_000_000n,fundingCheckpointScaled:0n,generation:1n};
+  distressed.cash=1n;distressed.positions[0]={lots:quantity,virtualScaled:-quantity*10_000n*1_000_000_000n,fundingCheckpointScaled:0n,generation:1n};
   const capital={...readRoot(receiver),role:2,stateVersion:27n,isolatedMarketIndex:0};
   test.put(target,sdk.getMarginAccountEncoder().encode(distressed));test.put(receiver,sdk.getMarginAccountEncoder().encode(capital));
   const keys=await accountWorkerKeys(venue);
@@ -70,4 +70,10 @@ it('keeps permissionless freeze without an invented receiver expiry proof',async
   const test=await fixture(true);
   expect(test.outcome).toEqual({status:'queued',reason:'authenticated-net-insolvency'});
   expect(test.submissions).toHaveLength(1);expect(test.submissions[0].authority).toBeNull();
+});
+it('proposes a large liquidation without the former operational 64-lot batch cap',async()=>{
+  const test=await fixture(false,1_000_000n);
+  expect(test.outcome).toEqual({status:'queued',reason:'funded-whole-account-liquidation'});
+  const wire=sdk.getLiquidateAccountInstructionDataDecoder().decode(test.submissions.at(-1)!.instructions[1].data!);
+  expect(wire.lots).toBe(1_000_000n);
 });

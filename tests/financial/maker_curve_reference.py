@@ -8,9 +8,9 @@ from dataclasses import dataclass, replace
 from itertools import combinations
 from typing import Callable
 
-MAX_DEPTH = 4096
-MAX_ROUTE = 4608
 MAX_POSITION = 100_000_000
+MAX_DEPTH = MAX_POSITION
+MAX_ROUTE = MAX_POSITION
 MAX_PRICE = 1_000_000
 SCALE = 1_000_000_000
 

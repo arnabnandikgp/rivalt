@@ -20,6 +20,7 @@ export * from './liquidity-adapter.js';
 export * from './liquidity-margin.js';
 export * from './liquidity-allocation.js';
 export {LiquiditySearchLimitError,LIQUIDITY_SEARCH_BUDGET} from './quantity-search.js';
+export * from './quantity-limits.js';
 export * from './liquidity-route.js';
 export * from './funding-publisher.js';
 export * from './funding-impact.js';

@@ -1,5 +1,22 @@
 # Validation and measured limits
 
+## Expanded quantities (P49 — acceptance pending)
+
+Source removes inherited 4,096/4,608-lot ceilings within the existing 100m-lot
+financial domain. Working-tree checks pass three new native cases (full-width
+pricing, order reservations and fractional post-fee liquidation), 31 affected
+SDK/UI checks, five service checks, 715 independent router cases and 27 curve
+contract checks. Apple Command Line Tools were initially absent; installation
+restored linking and native tests passed. No new SBF or deployed large-quantity
+acceptance is claimed yet. Exact clean revisions and actual resource results
+will replace this preparatory checkpoint after qualification.
+
+The prepared `quantities` probe in `ops/current-runtime-smoke.sh` requires owned
+PostgreSQL and pinned new artifacts. It targets actual 100m-lot open/close, a
+million-lot SDK route, two-program stored partials, large TP/SL and transfers,
+whole-account funding/withdrawal, half-million liquidation, complete default,
+independent raw-byte financial audits and identical fresh PostgreSQL replay.
+
 ## Exact quantity search (P48)
 
 Clean verifier `5e5aede846c27bb1c352aa06c14a25ccfc6fe06c` replaces exhaustive
