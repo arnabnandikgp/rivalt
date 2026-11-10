@@ -80,10 +80,21 @@ prior C0 files/journals remain retained. No account/IDL layout changed. Both own
 Surfpool runs and their test PostgreSQL container are stopped. Compiler tools were
 restored; there is no access blocker. P48's applicable hosted CI passed on #68;
 P49 is published ready in [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69)
-above #68; its latest hosted checks are tracked on that PR, independently of the
-clean local acceptance pins. Next exact action: inspect #69's hosted checks and
-review the two open PRs; integration awaits separate authorization. P15B/P16B and deferred
-endurance are unchanged; no public/funded deployment is qualified.
+above #68. Scope/client/financial/shell hosted checks pass on `2a77c24` in
+[run 42714724245](https://github.com/arnabnandikgp/rivalt/actions/runs/42714724245);
+report is correctly skipped. The subsequent P49 review identified two valid
+interface-documentation corrections and unnecessary source-unavailable order
+probes. The worker now stops that order's current pass after a missing-source
+result; smaller expiry/depth/health/search-budget probes remain eligible because
+allocation can change. Seventeen focused worker/route tests and typecheck pass.
+These are consumer/control-flow checks, not new signed integration evidence;
+programs, financial admission and durable-original handling are unchanged.
+Pending acceptance detail was removed from HISTORY; integration will be recorded
+only after merge. P48's publication-status finding is already corrected here.
+The user authorized review fixes and stack merge on 10 November. Next exact
+action: publish this fix, restack P50, verify hosted checks and merge stack #70.
+P15B/P16B and deferred endurance are unchanged; no public/funded deployment is
+qualified.
 
 ## P46 serialized port checkpoint
 

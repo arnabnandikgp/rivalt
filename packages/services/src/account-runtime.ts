@@ -58,6 +58,9 @@ export class AccountRuntime extends AccountExecution {
                 quote.instructions,key,budget,{kind:'accountStateVersion',venue:snapshot.venue,account:trader,value:quote.guard.stateVersion.toString()},true);
               return {status:'queued',reason:'durable-account-order-fill'};
             }
+            // Smaller quantities cannot repair a missing market source in this pass.
+            // Expiry can improve when a smaller route selects different makers.
+            if(quote.code==='required-market-source-unavailable')break;
           } catch(error) {if(error instanceof AccountQuoteUnavailable||error instanceof Error&&error.message==='Risk action presently unavailable')break;throw error;}
         }
       }

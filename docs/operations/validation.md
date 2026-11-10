@@ -48,6 +48,15 @@ policy, not an exhaustive subfill feasibility proof. No new endurance, productio
 external maker, paid oracle or public deployment acceptance is inferred. Owned
 Surfpool and the test PostgreSQL container were stopped; raw evidence stays local.
 
+The 10 November review correction stops order-size probing for a missing required
+market source, while preserving smaller probes for allocation-dependent expiry,
+depth/health and search-budget refusals. Seventeen focused worker/route tests and
+typecheck pass: eight order-loop cases, five existing liquidity-worker cases,
+one quantity schedule and three route-builder cases including different expiry
+at different sizes. Queue/quote doubles establish control flow only; no new
+Surfpool/PostgreSQL, SBF or financial acceptance is claimed for this early-stop
+change. Existing exact integration pins above remain unchanged.
+
 ## Exact quantity search (P48)
 
 Clean verifier `5e5aede846c27bb1c352aa06c14a25ccfc6fe06c` replaces exhaustive
