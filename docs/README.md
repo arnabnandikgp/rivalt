@@ -39,6 +39,9 @@ historical references. Current source has canonical domain names and one support
 local runtime; numeric wire schemas and persisted journal tags remain explicit.
 The [consolidation plan](REPOSITORY-CONSOLIDATION.md) records retirement dispositions;
 STATUS distinguishes accepted open PRs from the integrated baseline.
+The [audit remediation plan](operations/remediation-plan.md) defines the P51–P62
+successor PR sequence, acceptance gates and coverage of inherited constraints;
+planned behavior does not replace the current component contracts.
 
 ## Product boundaries
 

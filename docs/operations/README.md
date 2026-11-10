@@ -13,6 +13,9 @@ successful devnet checks apply to their recorded implementation only.
 - [Architecture constraints](constraints.md): P50 source/provenance audit of inherited
   profile limits, operational assumptions and proposed priorities; not authority to
   change the current financial contracts.
+- [Audit remediation plan](remediation-plan.md): P51–P62 PR scopes, dependencies,
+  decision gates and acceptance for all findings, beginning with scalable accounts
+  and complete settlement feasibility. STATUS records actual implementation progress.
 - [Anchor v2 migration](anchor-v2-migration.md): accepted P45 contract and qualified P46/P47
   implementation; STATUS separates acceptance from integration.
 

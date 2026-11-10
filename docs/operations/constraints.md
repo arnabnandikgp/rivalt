@@ -194,21 +194,18 @@ that those same defaults are suitable operating policy indefinitely.
 
 ## Recommended work order
 
-1. Define the intended operating envelope: active accounts, simultaneous makers,
-   market OI, order counts, funding impact notional, update cadence and fee budget.
-   Distinguish compiled numeric proof limits, versioned market/risk parameters and
-   ordinary service configuration. Do not replace old unexplained numbers with
-   larger unexplained numbers.
-2. Address price-policy coupling and indexer bounded progress as separate scoped
-   changes. Together these remove a legitimate-price availability cliff and a
-   deterministic backlog cliff without redesigning loss attribution.
-3. Design membership/account lifecycle and complete settlement scaling together;
-   treat this as the largest architectural item. Decide maker-population changes
-   alongside it, preserving two-leg execution and explicit funding-set epochs.
-4. Calibrate impact notional, liquidation incentives, risk/OI limits and timing;
-   then qualify long-running funding-index maintenance and operational fee bidding.
-5. Expand order/account convenience limits and remove confirmed vestiges once the
-   core operating envelope is supported.
+After integration, the user requested a complete staged plan. The
+[P51–P62 remediation plan](remediation-plan.md) now owns delivery order, scope,
+dependencies, decision gates and the F01–F20 coverage matrix. It starts account/
+settlement design and feasibility first, ships bounded indexer progress and price
+policy before larger-cohort qualification, then addresses maker scale, economic/
+lifetime policy, operations, user capacity and vestiges. This replaces the audit's
+initial prioritization without changing its inspected baseline or claiming fixes.
+
+Distinguish compiled numeric proof limits, versioned market/risk parameters and
+ordinary service configuration. Do not replace old unexplained numbers with larger
+unexplained numbers. The plan preserves protected scope and explicitly separates
+implementation acceptance from independent/funded readiness.
 
 Two initial markets, one collateral mint, isolated maker capital, no positive
 unpaid-profit margin credit, no correlation discounts, 2 bps/zero provider fees,
