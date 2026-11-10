@@ -4,18 +4,19 @@ Updated 10 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
-P01–P14, P15A/P16A, P17–P47 and M1–M5b/M7–M13 are integrated within their
-recorded engineering scopes. The three-PR Anchor RC2 stack merged atomically at
-**`fb6c26ba4c2ff053a132e271bbd0bc67011cc935`**, with the complete tree identical to
-reviewed/tested tip `c6378166fe11b856324aee06fdacdf6b2b2374b2`.
+P01–P14, P15A/P16A, P17–P50 and M1–M5b/M7–M13 are integrated within their
+recorded engineering scopes. The quantity/audit stack #68 → #69 → #71 merged
+atomically at **`28db412378317a493459c8cc9e0f7310cb38e151`**, with the complete tree
+identical to accepted tip `953cd1fbf40af8e22e7e7a0a60bc396a83966df2` and review fix
+`d63e3b17631d8275aaf0e1afac371f1fd03ca8b6` retained as an ancestor.
 [Validation](operations/validation.md) records the exact qualification pins and
 limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| P50 architecture constraint audit | Review | Source/provenance inspection of `2a77c24`; [ranked findings and proposed priorities](operations/constraints.md); documentation-only, no policy changes; [ready PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) above #69 |
-| P48 exact interval allocation | Review | Clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; [ready PR #68](https://github.com/arnabnandikgp/rivalt/pull/68); old size limits retained |
-| P49 expanded quantities | Review | Clean SBF `49c343e`, verifier `125a2b3`: 231 large-quantity RPC/WS outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; [ready PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) above #68 |
+| P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) recorded, remediation deferred by the user |
+| P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
+| P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
 | M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
 | P45 migration contract | Closed | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) merged; accepted architecture/release research, exact pins, ABI and acceptance contract |
 | P46 RC2 implementation | Closed | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) merged; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
@@ -39,11 +40,13 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Continuous 24-hour endurance | Deferred | No run scheduled or completion claimed |
 
 Review means accepted work awaiting integration; Closed requires acceptance plus
-integration. The user authorized the migration stack's review fixes and merge on
-2 November 2026; all three PRs independently report MERGED. Fetched main has the
-accepted tip as an ancestor and exactly the same complete tree.
+integration. The user authorized this stack's review fixes and merge on
+10 November 2026; all three PRs independently report MERGED, and the open-PR query
+returns none. The fetched merge has the accepted tip's exact complete tree.
+Next exact action: await the user's choice of follow-up scope from the audit;
+no architecture remediation is started or scheduled.
 
-## Active quantity work
+## Integrated quantity work
 
 The user authorized removing both inherited quantity ceilings on 10 November.
 P48 changes only search/client behavior and preserves program limits and artifacts.
@@ -80,10 +83,10 @@ The new artifact identity is pinned and promoted to `.local/anchor-rc2/current`;
 prior C0 files/journals remain retained. No account/IDL layout changed. Both owned
 Surfpool runs and their test PostgreSQL container are stopped. Compiler tools were
 restored; there is no access blocker. P48's applicable hosted CI passed on #68;
-P49 is published ready in [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69)
-above #68. Scope/client/financial/shell hosted checks pass on `2a77c24` in
-[run 42714724245](https://github.com/arnabnandikgp/rivalt/actions/runs/42714724245);
-report is correctly skipped. The subsequent P49 review identified two valid
+P49 is merged as [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69).
+Scope/client/financial/shell hosted checks pass on review fix `d63e3b1` in
+[run 42850851592](https://github.com/arnabnandikgp/rivalt/actions/runs/42850851592);
+report is correctly skipped. The P49 review identified two valid
 interface-documentation corrections and unnecessary source-unavailable order
 probes. The worker now stops that order's current pass after a missing-source
 result; smaller expiry/depth/health/search-budget probes remain eligible because
@@ -91,10 +94,13 @@ allocation can change. Seventeen focused worker/route tests and typecheck pass
 on review fix `d63e3b1`.
 These are consumer/control-flow checks, not new signed integration evidence;
 programs, financial admission and durable-original handling are unchanged.
-Pending acceptance detail was removed from HISTORY; integration will be recorded
-only after merge. P48's publication-status finding is already corrected here.
-The user authorized review fixes and stack merge on 10 November. P50 is restacked
-above the fix. Next exact action: verify hosted checks and merge stack #70.
+Pending acceptance detail was removed from HISTORY and replaced with the verified
+integration. P48's publication-status finding is corrected here. All three inline
+review threads were resolved before the atomic merge. The expiry-shortcut portion
+of a review suggestion was rejected with the allocation-dependent counterexample.
+The latest P49 automated re-review was still running at merge; no completed
+re-review is inferred. No new runtime integration or unrelated local suite was
+needed for the early-stop/docs correction; exact earlier evidence stays pinned.
 P15B/P16B and deferred endurance are unchanged; no public/funded deployment is
 qualified.
 
@@ -113,8 +119,9 @@ constructed examples, proposed remedies and protected deliberate scope.
 Validation: source/call-site searches, historical decision checks, exact unit
 arithmetic and document/path checks. No new financial test, runtime benchmark,
 security certification or production readiness is inferred. There is no blocker.
-P50 is published ready as [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71)
-above #69/#68; all three remain open pending the authorized merge. Its automated
+P50 is merged as [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71).
+Its documentation-only delta is outside the hosted code-workflow paths; no P50
+hosted code test is claimed. Its automated
 review was rate-limited; this is not independent approval. The user deferred audit
 remediation, including the 64-account redesign, until after integration. No remedy
 is started or authorized by the audit itself.

@@ -11,6 +11,23 @@ deletes none of them. Recovery example:
 git show 84c46d4d26b23f25d6f3a7ae4bcbec591fa31503:docs/evidence/P34.md
 ```
 
+## Quantity expansion and constraint audit integration
+
+On 10 November 2026, stack #70 integrated P48/P49/P50 as
+[PR #68](https://github.com/arnabnandikgp/rivalt/pull/68),
+[PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) and
+[PR #71](https://github.com/arnabnandikgp/rivalt/pull/71). Atomic merge
+`28db412378317a493459c8cc9e0f7310cb38e151` has the exact complete tree of accepted
+tip `953cd1f` and retains review fix `d63e3b1`. It integrates exact interval routing,
+expanded quantities within the existing financial domain, the source-unavailable
+worker correction and the documentation-only architecture audit.
+
+[Validation](operations/validation.md) owns the original program/RPC/WS/PostgreSQL
+pins and scoped review checks. All three inline review threads were resolved;
+applicable hosted checks passed. P50 automated review was rate-limited and P49's
+latest automated re-review was still pending at merge. Audit remediation remains
+deferred; this integration changes no independent/funded/endurance gate.
+
 ## Integrated milestones
 
 | Milestone | Scope | Integration / retained actual checks |

@@ -56,6 +56,10 @@ one quantity schedule and three route-builder cases including different expiry
 at different sizes. Queue/quote doubles establish control flow only; no new
 Surfpool/PostgreSQL, SBF or financial acceptance is claimed for this early-stop
 change. Existing exact integration pins above remain unchanged.
+Scope/client/financial/shell hosted jobs pass on `d63e3b1` in
+[run 42850851592](https://github.com/arnabnandikgp/rivalt/actions/runs/42850851592);
+report is correctly skipped. P48/P49/P50 integrate at `28db412` with the complete
+tree equal to accepted `953cd1f`. Merge equality is not a new runtime measurement.
 
 ## Exact quantity search (P48)
 
