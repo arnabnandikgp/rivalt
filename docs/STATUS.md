@@ -15,7 +15,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
-| P51B account/settlement contract and feasibility | Verified locally; publication pending | Clean `a5ac218`: contract/envelope, 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
+| P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
 | P52–P62 successor implementation | Planned | P52 bounded-progress indexer next after P51B's interface/envelope acceptance; compiled settlement, paged membership and expanded activation remain later gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -48,8 +48,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: publish the verified P51B ready PR above #72, then start P52's
-bounded-progress finalized indexer against the accepted interface/envelope contract.
+Next exact action: start P52's bounded-progress finalized indexer as a separate
+branch above #73, preserving staged coverage versus reconciled read readiness.
 
 ## Remediation planning
 
@@ -92,7 +92,8 @@ links, whitespace and evidence-policy checks pass. The new suites join financial
 CI; no hosted or larger-runtime acceptance is claimed. Full details and limitations
 are in [validation](operations/validation.md#account-scale-native-feasibility-p51b).
 
-A ready PR is pending publication; this is contract/native acceptance only.
+P51B is published ready as #73 above #72 in stack #74; both remain open.
+This is contract/native acceptance only, not larger-account runtime qualification.
 No access blocker is known. P54/P55 still own compiled paging, complete mutation
 coverage, worst-case storage provisioning and bounded continuation costs; P56B alone
 can enable expanded local trading after actual RPC/WS/PostgreSQL qualification.
