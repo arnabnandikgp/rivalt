@@ -90,11 +90,15 @@ take about 24–25 seconds in Python, not SBF CU or landed recovery time.
 The maintained-backing model completes a 256-row scan under mutations with 1,536
 independently enumerated price/funding-corner comparisons. Shell, Python compilation,
 links, whitespace and evidence-policy checks pass. The new suites join financial
-CI; no hosted or larger-runtime acceptance is claimed. Full details and limitations
+CI; no larger-runtime acceptance is claimed. Full details and limitations
 are in [validation](operations/validation.md#account-scale-native-feasibility-p51b).
 
 P51B is published ready as #73 above #72 in stack #74; both remain open.
 This is contract/native acceptance only, not larger-account runtime qualification.
+Hosted [run 42872021846](https://github.com/arnabnandikgp/rivalt/actions/runs/42872021846)
+completed successfully on exact published tip `b7d7686`: scope, financial and shell
+pass; client/report are skipped. CodeRabbit is skipped, so no external review is
+claimed. This later hosted result is separate from the clean native measurements.
 No access blocker is known. P54/P55 still own compiled paging, complete mutation
 coverage, worst-case storage provisioning and bounded continuation costs; P56B alone
 can enable expanded local trading after actual RPC/WS/PostgreSQL qualification.
@@ -107,6 +111,8 @@ single commit and three-retry live reconciliation loop. The planned contract kee
 durable coverage distinct from published reconciled data and records the API,
 worker and immutable-original implications. No P52 code or integration result is
 claimed by this design checkpoint; no additional program build is needed for it.
+The P52 design checkpoint is committed as `2ff4649`; its two changed documents pass
+relative link/anchor and whitespace checks. No P52 PR has been opened yet.
 
 ## Integrated quantity work
 
