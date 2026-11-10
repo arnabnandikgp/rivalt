@@ -12,6 +12,16 @@ claim changes here. P51B is the next executable design/prototype deliverable. La
 PR scopes are planned, with the economic and architectural decisions below still
 explicit. A plan, native model or passing sample is not acceptance of deployed code.
 
+Implementation authorization (10 November 2026): the user accepted this roadmap.
+P51B's D93 candidate now lives in the existing [account](../clearing/accounts.md#account-scale-successor-contract-p51b),
+[resolution](../clearing/risk-and-resolution.md#scalable-exact-resolution-candidate-p51b),
+[ordinary backing](../clearing/accounting.md#incremental-backing-candidate-p51b) and
+[client](../application/interfaces.md#planned-account-scale-interface-p51b) contracts.
+It selects exact compact arithmetic and maintained backing for feasibility, with
+compiled resource, complete mutation coverage and activation gates still explicit.
+See STATUS/validation for actual checked revisions; planned fields are not deployed
+layouts and native diagnostics do not enable a larger financial cohort.
+
 Read the [wave overview](#outcome-and-order), [decision gates](#boundaries-and-decision-gates)
 and [PR sequence](#pr-sequence-and-dependencies) first. The detailed scopes and
 [audit coverage matrix](#complete-audit-coverage) are the implementation handoff.

@@ -15,7 +15,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
-| P51B–P62 successor work | Planned | P51B account/settlement contract and executable feasibility first; no implementation or new financial qualification started |
+| P51B account/settlement contract and feasibility | In progress | D93 candidate, dependency/layout/lifecycle contracts, exact compact settlement and maintained-backing native models; clean-commit verification/publication next; no program or activation change |
+| P52–P62 successor implementation | Planned | P52 bounded-progress indexer next after P51B's interface/envelope acceptance; compiled settlement, paged membership and expanded activation remain later gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -45,9 +46,10 @@ Review means accepted work awaiting integration; Closed requires acceptance plus
 integration. The user authorized this stack's review fixes and merge on
 10 November 2026; all three PRs independently report MERGED, and the open-PR query
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
-The user subsequently requested the complete remediation planning documents.
-Next exact action: begin P51B's account/settlement dependency inventory and executable
-feasibility against this plan, as a separate deliverable above #72.
+The user subsequently requested and accepted the complete remediation roadmap,
+authorizing implementation through its dependencies. New PRs stay open and stacked.
+Next exact action: verify the P51B candidate on a clean commit, then publish its
+ready PR above #72 before starting P52's bounded-progress indexer.
 
 ## Remediation planning
 
@@ -60,15 +62,39 @@ and confirmed vestiges. P51B's executable design decides the detailed settlement
 mechanism; the roadmap does not assume paging solves exact arithmetic or approve
 different payouts. Later changes remain subject to their stated decision gates.
 
-Only documentation changes in this run. No tests of financial behavior, new
-benchmarks, program builds, runtime integrations or deployments are claimed.
-Validation at clean `4025168cb3d4bfcc4e3ee0e7e0d42cc6415892b0` passes for six
+P51A changed only documentation. Validation at clean
+`4025168cb3d4bfcc4e3ee0e7e0d42cc6415892b0` passes for six
 changed Markdown files, 129 local links/anchors, all
 25 phase headings and ordered dependencies, all 20 findings, six decision gates,
 whitespace and the tracked-evidence policy. No runtime suite was needed.
 P15B/P16B remain Open and 24-hour endurance Deferred. No access blocker is known.
-P51A is published ready as #72 and remains open; no merge or implementation
-completion is claimed. The later handoff update adds only publication metadata.
+P51A is published ready as #72 and remains open. Its later handoff update adds
+only publication metadata; P51B's newly authorized work is distinguished below.
+
+## Account-scale feasibility
+
+P51B branches from accepted planning tip `0e864d98dc1243e83ee4af113048f9021980fe2b`.
+D93 and the existing component documents record the code-to-design matrix,
+identity/financial-membership boundaries, versioned layout targets, authority,
+retirement, frozen recovery, migration and G1–G3 recommendations. Schema 8 remains
+the actual program; no account cap, economic rule, artifact or IDL changed.
+
+The native candidate replaces Cartesian rate search with exact interval composition,
+reduces proportional collection denominators exactly, and compares dense versus
+compact conserving rounding with identical atom owners. Preliminary focused checks
+pass against the independent branch oracle and actual retained Rust row/rounding
+kernel. The dense 10,000-row diagnostic hit explicit work/storage budgets; compact
+recomputation and active-arc skipping completed all three synthetic shapes.
+The maintained-backing model completes a 256-row scan under mutations with
+independently enumerated funding/price corners. These are model/native results,
+not signed larger-account/default acceptance or production throughput.
+
+Clean revision/results and a ready PR are pending the next targeted verification.
+No access blocker is known. P54/P55 still own compiled paging, complete mutation
+coverage, worst-case storage provisioning and bounded continuation costs; P56B alone
+can enable expanded local trading after actual RPC/WS/PostgreSQL qualification.
+P15B/P16B remain Open, 24-hour endurance Deferred, and no external/funded action
+has been performed.
 
 ## Integrated quantity work
 
