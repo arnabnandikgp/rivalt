@@ -1,5 +1,74 @@
 # Validation and measured limits
 
+## Account-scale native feasibility (P51B)
+
+Clean candidate **`a5ac218d6e439be74fc136bed67c2d5b9e733a41`**, based on planning
+tip `0e864d9`. This is a contract/model deliverable. No program, IDL, current schema,
+activation limit, artifact or runtime configuration changes. The actual retained
+financial-core row and atom drivers were rebuilt with the pinned toolchain.
+
+- Six focused Python tests pass. Across 254 complete <=64-row cohorts, the new
+  exact solver and compact schedule match the independently implemented Fraction/
+  branch oracle; **508 actual Rust rate/mutated-proposal cases** and **508 actual
+  Rust atom/continuation cases** also match. Dense and compact schedules preserve
+  the same atom owners/augmentation counts, including reverse-path repairs.
+- Literal cashless cycles, external creditors, own-cash proportional debts,
+  fractional claims, no/partial insurance, sequential insurance clipping and
+  numeric-edge rows are included. Repeated-fraction goldens at 128/1,024/10,000
+  roots independently require rates 1/3, preserve fees and conserve every market.
+- The backing model passes **1,536 independent explicit-corner comparisons**
+  during a 256-row scan with mutations between every step. New shortfalls remain
+  visible; repair restores eligibility, invalid sources and out-of-region points
+  refuse readiness. This is a maintained-summary proof model, not authorization,
+  source-validation or signed transaction/rollback evidence.
+- Shell syntax, Python compilation, relative documentation links/anchors,
+  whitespace and tracked-evidence policy pass. The two focused suites are added
+  to financial CI; no hosted result is inferred from local success.
+
+The reproducible sweep runs four shapes at 64/128/1,024/10,000 registered rows:
+cycle plus external creditor, repeated proportional fractions, distinct large
+denominators, and mixed large denominators plus cross links. Counts of populated
+rows are explicit; remaining rows are zero-state identities. These inputs are
+already-valued synthetic claims, **not proof of live position admission**. All
+16 compact runs finish; the dense baseline finishes 13 and explicitly declines
+three at the configured diagnostic budgets. No partial output is treated as payout.
+
+| 10,000-row native shape | Financial rows | Reduced L bits | Dense flow storage lower bound | Dense / compact visited arcs | Compact solve + round time |
+|---|---:|---:|---:|---:|---:|
+| Cycle with external creditor | 9,999 | 1 | 160,000 bytes | 30,001 / 13,336 | 0.456 s |
+| Repeated fraction | 9,999 | 2 | 160,000 bytes | stopped at 2,000,001 / 16,665 | 0.245 s |
+| Distinct fraction | 9,999 | 256,232 | 640,640,000 bytes | dense storage budget / 16,665 | 24.288 s |
+| Mixed wide fractions/links | 10,000 | 155,324 | 388,320,000 bytes | dense storage budget / 10,000 | 24.994 s |
+
+Single observed Python runs on Apple M3; these are neither percentiles nor CU.
+The 64 MiB dense-flow budget is checked against a lower bound on serialized
+numerators, not measured Python peak memory. The 2m-arc cutoff is diagnostic, not
+a proposed financial limit. Compact storage uses shared wide work/recomputation;
+its timing includes exact ordering/conservation checks. Counted limb visits and
+remainder comparisons are abstract operations, not a complete CPU/CU cost model.
+The distinct 10,000-row product L was 284,554 bits: exact reduction helps but does
+not cure adversarial denominator growth. Streaming response segments also avoids
+retaining a wide intercept for every link threshold in the mixed case.
+
+Reproduce only the affected checks:
+
+```sh
+source ops/env.sh
+cargo build --locked -p financial-core --bin clearing-row-driver --bin clearing-atoms-driver
+python3 tests/financial/test_scalable_clearing.py
+python3 tests/financial/test_incremental_backing.py
+python3 tests/financial/measure_scalable_clearing.py
+python3 tests/financial/measure_scalable_clearing.py --compact
+```
+
+Raw diagnostics remain `.local/scalable-clearing/p51b-a5ac218-{dense,compact}.jsonl`.
+No SBF, Surfpool/RPC/WS, PostgreSQL, new CU/fee/rent or deployed-account result is
+claimed. P54/P55 must prove bounded paged arithmetic/graph execution, complete
+membership/mutation coverage, worst-case storage provisioning and current-source
+backing progress, then measure the stated G1 recovery/resource budgets. P56B still
+requires actual larger-cohort integration before enabling local financial paths.
+The model does not qualify 10,000 live accounts or close P15B/P16B/endurance gates.
+
 ## Expanded quantities (P49)
 
 Clean SBF source **`49c343e6e77a327fc9fa00c5b2a2e172dceb380d`**, clean integrated

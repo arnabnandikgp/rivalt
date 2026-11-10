@@ -15,7 +15,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
-| P51B account/settlement contract and feasibility | In progress | D93 candidate, dependency/layout/lifecycle contracts, exact compact settlement and maintained-backing native models; clean-commit verification/publication next; no program or activation change |
+| P51B account/settlement contract and feasibility | Verified locally; publication pending | Clean `a5ac218`: contract/envelope, 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
 | P52–P62 successor implementation | Planned | P52 bounded-progress indexer next after P51B's interface/envelope acceptance; compiled settlement, paged membership and expanded activation remain later gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -48,8 +48,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: verify the P51B candidate on a clean commit, then publish its
-ready PR above #72 before starting P52's bounded-progress indexer.
+Next exact action: publish the verified P51B ready PR above #72, then start P52's
+bounded-progress finalized indexer against the accepted interface/envelope contract.
 
 ## Remediation planning
 
@@ -79,17 +79,20 @@ identity/financial-membership boundaries, versioned layout targets, authority,
 retirement, frozen recovery, migration and G1–G3 recommendations. Schema 8 remains
 the actual program; no account cap, economic rule, artifact or IDL changed.
 
-The native candidate replaces Cartesian rate search with exact interval composition,
-reduces proportional collection denominators exactly, and compares dense versus
-compact conserving rounding with identical atom owners. Preliminary focused checks
-pass against the independent branch oracle and actual retained Rust row/rounding
-kernel. The dense 10,000-row diagnostic hit explicit work/storage budgets; compact
-recomputation and active-arc skipping completed all three synthetic shapes.
-The maintained-backing model completes a 256-row scan under mutations with
-independently enumerated funding/price corners. These are model/native results,
-not signed larger-account/default acceptance or production throughput.
+Clean **`a5ac218d6e439be74fc136bed67c2d5b9e733a41`** passes six focused tests:
+254 cohorts match the independent branch oracle and 1,016 actual retained Rust
+rate/mutation/atom/continuation cases. Exact interval composition, reduced LCM and
+compact conserving rounding preserve current atom owners. All 16 compact native
+scale diagnostics finish, including four 10,000-row shapes; the dense baseline
+explicitly stops three at its work/storage budgets. The hardest compact shapes
+take about 24–25 seconds in Python, not SBF CU or landed recovery time.
+The maintained-backing model completes a 256-row scan under mutations with 1,536
+independently enumerated price/funding-corner comparisons. Shell, Python compilation,
+links, whitespace and evidence-policy checks pass. The new suites join financial
+CI; no hosted or larger-runtime acceptance is claimed. Full details and limitations
+are in [validation](operations/validation.md#account-scale-native-feasibility-p51b).
 
-Clean revision/results and a ready PR are pending the next targeted verification.
+A ready PR is pending publication; this is contract/native acceptance only.
 No access blocker is known. P54/P55 still own compiled paging, complete mutation
 coverage, worst-case storage provisioning and bounded continuation costs; P56B alone
 can enable expanded local trading after actual RPC/WS/PostgreSQL qualification.
