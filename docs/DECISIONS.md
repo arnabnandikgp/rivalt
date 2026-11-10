@@ -5,6 +5,30 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D92 — audit remediation sequence and explicit policy gates (10 November 2026)
+
+After P48–P50 integration, the user requested a complete PR-scoped roadmap for the
+audit findings, beginning with the 64-account restriction. The
+[remediation plan](operations/remediation-plan.md) owns P51A–P62 delivery scopes.
+P51A is documentation only; P51B must first establish the operating envelope and
+an executable scalable-settlement candidate. Indexer progress and unit-aware price
+policy precede larger-cohort qualification. Membership, ordinary profit backing
+and complete default are one coordinated architectural workstream.
+
+The objective is to remove inherited small population restrictions while retaining
+bounded per-transaction work and complete resolvability of every admitted obligation.
+No new loss-sharing groups, trusted payout proposer, weaker financial checks or
+silent rounding change is selected. Exact current economics is the first candidate;
+infeasibility requires an explicit alternative and approval of material departures.
+Later maker, funding, liquidation, margin, lifetime and operations changes have
+their own stated acceptance and authority/economic decision gates.
+
+This supersedes only the audit's initial delivery prioritization, not D57/D59/D60/
+D64 settlement rules or the existing numeric, maker, risk and funding contracts.
+Each implementation names its actual supersessions when justified. Planning does
+not activate expanded accounts or choose economic parameters. P15B/P16B and
+deferred endurance remain separate, and no funded deployment or outreach is added.
+
 ## D91 — quantity bounds and exact scalable allocation (10 November 2026)
 
 The user authorized retiring both inherited 4,608-lot action and 4,096-lot maker
@@ -12,8 +36,9 @@ depth ceilings, including the router, program, SDK and application changes neede
 to support larger quantities. P48 first replaces per-lot exhaustive allocation
 with exact, conservatively pruned interval search while retaining existing on-chain
 limits. P49 expands quantities within the existing checked financial numeric
-domain and qualifies actual larger financial transitions. Both PRs stay open as a
-stack; no merge or funded deployment is authorized by this task.
+domain and qualifies actual larger financial transitions. The original task called
+for open stacked PRs; later merge authorization is recorded below. Funded deployment
+is outside both scopes.
 
 This deliberately supersedes D23's inherited quantity envelope and D69–D72's
 exhaustive-enumeration implementation requirement, not the best-admissible-route
@@ -50,7 +75,9 @@ pass the larger signed financial lifecycle, independent default/fee/funding audi
 188-event PostgreSQL replay and matched full-book resource check. Generated IDLs
 remain identical. Promote the new exact artifact identity for fresh local use;
 retain C0 files and journal bindings. Acceptance is engineering-local and does not
-close external or deferred gates. The two implementation PRs remain open.
+close external or deferred gates. Subsequent user authorization integrated both
+implementation PRs and the P50 audit at `28db412`, including review fix `d63e3b1`;
+[STATUS](STATUS.md) and [HISTORY](HISTORY.md) record the exact merge verification.
 
 | Original decision(s) | Current choice and reason | Contract owner |
 |---|---|---|

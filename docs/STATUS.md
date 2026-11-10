@@ -14,7 +14,9 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) recorded, remediation deferred by the user |
+| P51A audit-remediation roadmap | Review | [P51–P62 plan](operations/remediation-plan.md): all 20 findings mapped to 25 proposed PR scopes, dependencies, six decision gates and acceptance; documentation checks pass, publication pending |
+| P51B–P62 successor work | Planned | P51B account/settlement contract and executable feasibility first; no implementation or new financial qualification started |
+| P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
 | M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
@@ -42,9 +44,27 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 Review means accepted work awaiting integration; Closed requires acceptance plus
 integration. The user authorized this stack's review fixes and merge on
 10 November 2026; all three PRs independently report MERGED, and the open-PR query
-returns none. The fetched merge has the accepted tip's exact complete tree.
-Next exact action: await the user's choice of follow-up scope from the audit;
-no architecture remediation is started or scheduled.
+at that closeout returned none. The fetched merge has the accepted tip's exact tree.
+The user subsequently requested the complete remediation planning documents.
+Next exact action: validate and publish P51A as the ready base of the new stack.
+
+## Remediation planning
+
+P51A uses integrated baseline `e9eb320f65ca62f4bffefe9f1cd73a6f9feb4f1a` and D92.
+One [roadmap](operations/remediation-plan.md) owns the human overview and detailed
+agent acceptance rather than adding a document per phase. It covers scalable
+membership/default/backing, indexer progress, price policy, maker admission,
+economic and funding-index calibration, operator costs/scheduling, user capacity
+and confirmed vestiges. P51B's executable design decides the detailed settlement
+mechanism; the roadmap does not assume paging solves exact arithmetic or approve
+different payouts. Later changes remain subject to their stated decision gates.
+
+Only documentation changes in this run. No tests of financial behavior, new
+benchmarks, program builds, runtime integrations or deployments are claimed.
+Validation passes for six changed Markdown files, 129 local links/anchors, all
+25 phase headings and ordered dependencies, all 20 findings, six decision gates,
+whitespace and the tracked-evidence policy. No runtime suite was needed.
+P15B/P16B remain Open and 24-hour endurance Deferred. No access blocker is known.
 
 ## Integrated quantity work
 
@@ -123,8 +143,9 @@ P50 is merged as [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71).
 Its documentation-only delta is outside the hosted code-workflow paths; no P50
 hosted code test is claimed. Its automated
 review was rate-limited; this is not independent approval. The user deferred audit
-remediation, including the 64-account redesign, until after integration. No remedy
-is started or authorized by the audit itself.
+remediation, including the 64-account redesign, until after integration. The new
+P51A planning request is recorded above; no remedy is implemented by the audit or
+the planning document itself.
 
 ## P46 serialized port checkpoint
 
