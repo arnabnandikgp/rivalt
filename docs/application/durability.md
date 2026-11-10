@@ -1,5 +1,98 @@
 # Finalized state and durable execution
 
+## Bounded-progress successor contract (P52, in implementation)
+
+The existing runtime below still requires one complete catch-up/reconciliation
+before committing. P52 changes that transport contract, with no change to program
+schemas, financial authority, event bytes or original-signature recovery. This
+section is the implementation target, not a claim of deployed progress/readiness.
+
+Keep two explicit frontiers:
+
+- **Covered:** the complete authenticated finalized block prefix durably stored
+  with its ordered invocation projection. Interrupted recovery resumes after this
+  prefix; a later unavailable block or newer account revision cannot erase it.
+- **Reconciled:** a covered prefix whose financial projection has passed independent
+  finalized account/vault reconciliation. Public facts and discovery use this
+  immutable published state/cursor, never a partially advanced covered state.
+
+Each covered chunk checks genesis/initialization binding, complete signature
+manifests, canonical parents, transaction outcomes, scoped revision dependencies
+and exact projector invariants. Persist blocks, original transaction bytes,
+invocations, projection and covered checkpoint atomically. Duplicate identical
+bytes are idempotent; conflicting duplicates, gaps and impossible revision orders
+reject. A chunk boundary cannot split an atomic transaction or manufacture a full
+block fence from its prefix. Canonical block transaction order alone is insufficient
+where scoped read/write dependencies require a different order within that block.
+
+`pageSize` must actually bound requested block-range pagination; the old accepted
+but unused option is retired as an inert setting. The transaction work budget
+governs one recovery chunk/cycle, not the total historical backlog. Define the
+single-block/transaction treatment explicitly before implementation: either stage
+its authenticated contents with a resumable cursor or use a measured bounded
+complete-block unit. Do not replace the 10,000-transaction backlog cliff with
+another undocumented permanent failure at a chunk boundary. RPC concurrency,
+retained memory, per-commit payload/work and SQL duration are measured separately.
+The 4,096-invocation *whole backlog* check cannot remain a completion prerequisite.
+
+### Attainable reconciliation while the head advances
+
+P52 must validate a fixed candidate checkpoint instead of chasing the latest head
+through repeated full-state restarts. The selected design is a captured account
+witness tied to complete finalized history:
+
+1. Catch up to a captured finalized head and retain that candidate state/checkpoint.
+   Enumerate its complete canonical entity set plus the vault.
+2. Read bounded account batches at finalized commitment with context no earlier
+   than the candidate. Record the exact owner/data and context slot of each batch.
+   These observations may be at different later slots; never combine them into a
+   fictitious atomic account snapshot.
+3. Durably ingest complete blocks through the maximum captured observation slot,
+   a finite target independent of subsequent head advancement.
+4. Replay authenticated changes from the candidate through each observation's slot
+   and compare its captured accounts against the corresponding projected state.
+   Include type/schema/PDA/revision/financial fields, partial-resolution semantics
+   and actual token custody at that observation's own point. Unknown or missing
+   history cannot be excused as merely newer state.
+5. Publish **the original candidate prefix**, after complete witness coverage and
+   conservation checks. Later covered state stays unpublished until independently
+   checked. New accounts created after that prefix do not belong to its claimed
+   membership. A restart may redo a bounded witness; it retains covered history.
+
+This is an implementation design requiring adversarial tests, not permission to
+compare only revision numbers or trust an indexer's own output twice. Same-revision
+changed bytes, omitted account fields, missing independent writers, mismatched
+vault timing and foreign observations must reject. Program artifact binding and
+canonical initialization remain independently verified. If the exact witness
+construction fails, keep public readiness closed while retaining safe coverage.
+
+Public/API freshness uses the candidate's captured freshness time, never the end
+of a long replay as a way to renew stale data. Events/trades are capped at the
+published payload cursor, including repeatable-read pagination. Advancing covered
+history alone does not advance `/ready`, user balances, discovery or public outbox
+delivery. Expose covered versus reconciled progress explicitly. A readiness error
+does not authorize replacing or abandoning any pending signed original; immutable
+binding checks and pending-signature recovery must remain available independently.
+
+### Persistence and acceptance boundary
+
+Use a deliberate journal transport-version boundary for the new covered/published
+fields and writer protocol. Old writers/readers must reject a new journal rather
+than renew stale readiness or serve staged balances accidentally. Final schema and
+migration checks are part of P52; preserve existing databases/originals and require
+an explicitly fresh local journal for qualification. Program/account schema stays 8.
+
+Acceptance uses the actual qualified programs, signed Surfpool RPC/WS traffic and
+PostgreSQL: backlog above both former whole-run thresholds, unrelated transactions,
+continuously advancing relevant accounts, disconnects and process death on both
+sides of a chunk commit. Every restart must advance or stop at an identified
+invalid/unavailable input. Independent fresh replay must equal the complete
+published projection. Include same-block atomicity/order, large-block/chunk edges,
+missing/conflicting manifests, revision gaps, false publication, stale API/event
+pagination and pending-original recovery during indexing lag. Record actual RPC,
+memory/SQL/chunk sizes and completion latency; no inherited runtime result qualifies
+this new journal protocol.
+
 ## Projection and intermediate states
 
 Amounts and signed fractions are decimal strings in JSON; bytes are hex. Cash,

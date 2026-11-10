@@ -16,7 +16,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
-| P52–P62 successor implementation | Planned | P52 bounded-progress indexer next after P51B's interface/envelope acceptance; compiled settlement, paged membership and expanded activation remain later gates |
+| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; dependency/readiness inventory and [covered/reconciled contract](application/durability.md#bounded-progress-successor-contract-p52-in-implementation) prepared; runtime implementation and real backlog qualification remain |
+| P53–P62 successor implementation | Planned | Price policy, compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -48,8 +49,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: start P52's bounded-progress finalized indexer as a separate
-branch above #73, preserving staged coverage versus reconciled read readiness.
+Next exact action: implement P52's durable covered/published journal frontiers and
+captured-checkpoint reconciliation, beginning with the store/transport boundary.
 
 ## Remediation planning
 
@@ -99,6 +100,13 @@ coverage, worst-case storage provisioning and bounded continuation costs; P56B a
 can enable expanded local trading after actual RPC/WS/PostgreSQL qualification.
 P15B/P16B remain Open, 24-hour endurance Deferred, and no external/funded action
 has been performed.
+
+P52 starts above verified #73 tip `b7d768696547c688e4d1de30f2f5c3c78d14092f`.
+Inspection confirms the two backlog-wide limits, unused block `pageSize`, delayed
+single commit and three-retry live reconciliation loop. The planned contract keeps
+durable coverage distinct from published reconciled data and records the API,
+worker and immutable-original implications. No P52 code or integration result is
+claimed by this design checkpoint; no additional program build is needed for it.
 
 ## Integrated quantity work
 
