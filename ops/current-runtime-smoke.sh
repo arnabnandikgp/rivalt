@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-# P47 qualifies the exact C0 hashes; retained P44 artifacts remain separate.
+# The SDK pins the qualified local artifacts; retained P44/C0 remain separate.
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
 test "$(surfpool --version)" = 'surfpool 1.7.0'
@@ -52,6 +52,7 @@ case "${RIVALT_LIQUIDITY_PROBE:?explicit probe required}" in
   funding-publisher) node --import tsx tests/rpc-contract/funding-publisher-rpc.ts ;;
   execution) node --import tsx tests/rpc-contract/liquidity-execution-rpc.ts ;;
   resources) node --import tsx tests/rpc-contract/liquidity-resource-rpc.ts ;;
+  quantities) node --import tsx tests/rpc-contract/liquidity-quantity-rpc.ts ;;
   market-dependencies) node --import tsx tests/rpc-contract/market-dependencies-rpc.ts ;;
   performance) node --import tsx tests/performance/profile-rpc.ts ;;
   performance-load) node --import tsx tests/rpc-contract/performance-load-rpc.ts ;;

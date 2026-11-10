@@ -112,8 +112,8 @@ try {
     await route([first, empty], [1n, 1n]), sdk.CLEARING_ERROR__ROUTE_HEALTH);
 
   await setup.sample();
-  await reject('total quantity cannot exceed preserved 4608-lot route bound',
-    await route([first, second], [4094n, 4094n]), sdk.CLEARING_ERROR__ROUTE_INTENT);
+  // Retain the matched 4,608-lot resource workload below. Numeric-domain
+  // rejection and larger quantities are exercised by liquidity-quantity-rpc.
   await setup.fresh();
   // Literal independent per-lot sum: j=2..2305, ask spread 3 for j<256,
   // otherwise 3+j; skew 2*floor(j/512). No SDK/program pricing is used here.

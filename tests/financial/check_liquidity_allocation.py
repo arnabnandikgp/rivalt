@@ -223,6 +223,22 @@ def vectors():
         vector['makers'][0]['regions'] = [[20, 10, 4]]
         for maker in vector['makers'][1:]: maker['regions'] = [[20, 30, 0]]
         result.append(vector)
+    # Exercise interval exclusion around maker flattening/generation changes,
+    # with complete maker books and nonprefix admissibility. Independent brute
+    # force still visits every split and every marginal price.
+    for iteration in range(300):
+        vector = case(); vector.update(lots=rng.randrange(2, 33), side=iteration % 2)
+        vector['limit'] = 10**9 if vector['side'] == 0 else 0
+        for maker in vector['makers']:
+            inventory = rng.randrange(-24, 25)
+            maker['positions'][0].update(q=inventory, v=-inventory*10000*SCALE+rng.randrange(-2000, 2001)*SCALE-1, g=1)
+            maker.update(cash=rng.randrange(0, 30000), cap=64, target=rng.randrange(-20,21),
+                         step=rng.randrange(1,9), tick=rng.randrange(0,20), consumed=rng.randrange(0,4),
+                         regions=[[16,10,2],[64,50,0]])
+            for index in range(4):
+                maker['orders'].append(dict(market=0,state=1,side=index%2,lots=rng.randrange(1,17),filled=0,
+                    prefix=0,paid=0,budget=rng.randrange(0,101),limit=10020,reduce=index%3!=0,g=1))
+        result.append(vector)
     return result
 
 

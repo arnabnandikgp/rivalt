@@ -1,4 +1,5 @@
 /** Profile-4 canonical arithmetic. A quote is not capital admission or a reservation. */
+import {MAX_POSITION_LOTS as MAX_POSITION,MAX_MAKER_DEPTH_LOTS as MAX_DEPTH} from './quantity-limits.js';
 export type CanonicalRegion = Readonly<{
   endLots: bigint;
   offset: bigint;
@@ -17,9 +18,7 @@ export type CanonicalShape = Readonly<{
   asks: readonly CanonicalRegion[];
 }>;
 
-const MAX_POSITION = 100_000_000n;
 const MAX_PRICE = 1_000_000n;
-const MAX_DEPTH = 4_096n;
 const min = (left: bigint, right: bigint) => left < right ? left : right;
 const max = (left: bigint, right: bigint) => left > right ? left : right;
 const abs = (value: bigint) => value < 0n ? -value : value;

@@ -2,10 +2,9 @@ import { marginBalanceView, marginOrderRemaining, type MarginFinancialRoot, type
 import { orderTriggered } from './order-policy.js';
 import type { MarginRouteIntent } from './route-intent.js';
 import { requireValue } from './wallet-client.js';
+import {MAX_ACTION_LOTS,MAX_POSITION_LOTS as MAX_LOTS,MAX_CASH_ATOMS as MAX_CASH} from './quantity-limits.js';
 
 const SCALE = 1_000_000_000n;
-const MAX_CASH = 1_000_000_000_000_000n;
-const MAX_LOTS = 100_000_000n;
 const MAX_SCALED = 10n ** 26n;
 const MAX_U64 = (1n << 64n)-1n;
 const abs = (value: bigint) => value < 0n ? -value : value;
@@ -21,7 +20,7 @@ export type LiquidityMarginInput = MarginRouteIntent & {
 export function prepareLiquidityMargin(input: LiquidityMarginInput) {
   const { root, marketIndex, markets, funding, sources, side, lots, slot, now } = input;
   requireValue(markets.length === 2 && funding.length === 2 && sources.length === 2
-    && [0,1].includes(marketIndex) && [0,1].includes(side) && lots > 0n && lots <= 4608n
+    && [0,1].includes(marketIndex) && [0,1].includes(side) && lots > 0n && lots <= MAX_ACTION_LOTS
     && input.maxFee >= 0n && input.maxFee <= MAX_CASH && input.allInLimit >= 0n && input.allInLimit <= MAX_CASH,
     'Invalid liquidity financial context.');
   const market = markets[marketIndex];
@@ -104,12 +103,63 @@ export function prepareLiquidityMargin(input: LiquidityMarginInput) {
         && BigInt(nextView.maintenanceDeficitScaled) < BigInt(previousTrader.maintenanceDeficitScaled);
     } catch { return false; }
   }
+
+  /** Conservative exclusion only. Maker claim is convex in quantity on either
+   * side of flat: received buy cost, or minus paid sell proceeds, is convex.
+   * Its maximum is at an endpoint or flat. IM has its minimum nearest flat;
+   * surviving reduce-only reservations are monotone in |position| between
+   * generation changes. Probe flat and its neighbours for those discontinuities.
+   * Combining independent extrema enlarges feasibility; it cannot discard a
+   * valid fill. Exact admission is still required at every returned quantity. */
+  function makerPossible(before: MarginFinancialRoot, lower: bigint, upper: bigint, quote: (quantity: bigint) => bigint): boolean {
+    const flat = side === 0 ? before.positions[marketIndex].lots : -before.positions[marketIndex].lots;
+    const points = new Set([lower, upper, ...[flat-1n, flat, flat+1n].filter(value => value >= lower && value <= upper)]);
+    try {
+      const views = [...points].map(quantity => view(afterFill(before,side === 0 ? -quantity : quantity,quote(quantity),0n,false)));
+      if (views.some(result => result.riskEquityScaled === null || result.initialMargin === null)) return true;
+      const maximumEquity = views.map(result => BigInt(result.riskEquityScaled!)).reduce((left,right) => left > right ? left : right);
+      const minimumInitial = views.map(result => BigInt(result.initialMargin!)).reduce((left,right) => left < right ? left : right);
+      const minimumReserve = views.map(result => BigInt(result.reserved)).reduce((left,right) => left < right ? left : right);
+      return maximumEquity >= (minimumInitial+minimumReserve)*SCALE;
+    } catch { return true; } // An uncertain enclosure never proves infeasibility.
+  }
+
   return { trader, reduceOnly, maxFee, allInLimit, notionalPrefix,
+    traderPossible(minimumGross: bigint, maximumGross: bigint) {
+      try {
+        const feeAt = (gross: bigint) => (notionalPrefix+gross+4999n)/5000n-(notionalPrefix+4999n)/5000n;
+        const minimumFee = feeAt(minimumGross), maximumFee = feeAt(maximumGross);
+        if (trader.cash < minimumFee) return false;
+        const delta = side === 0 ? lots : -lots;
+        const views = [view(afterFill(trader,delta,minimumGross,minimumFee,true)),
+          view(afterFill(trader,delta,maximumGross,maximumFee,true))];
+        if (views.some(result => result.riskEquityScaled === null)) return true;
+        // Independent maxima avoid treating sell-side equity as monotone: it
+        // can peak when a negative claim crosses zero and fees keep increasing.
+        const nextPosition = trader.positions[marketIndex].lots+delta;
+        const riskPrice = nextPosition < 0n ? market.upper : market.lower;
+        let maximumEquity = (trader.cash-minimumFee)*SCALE;
+        for (const [index,position] of trader.positions.entries()) {
+          const claim = index === marketIndex
+            ? position.virtualScaled+(side === 0 ? -minimumGross : maximumGross)*SCALE+nextPosition*riskPrice*SCALE
+            : position.virtualScaled+position.lots*(position.lots < 0n ? markets[index].upper : markets[index].lower)*SCALE;
+          maximumEquity += claim < 0n ? claim : 0n;
+        }
+        const minimumReserve = BigInt(views[0].reserved) < BigInt(views[1].reserved) ? BigInt(views[0].reserved) : BigInt(views[1].reserved);
+        if (maximumEquity >= (BigInt(views[0].initialMargin!)+minimumReserve)*SCALE) return true;
+        const optimisticDeficit = BigInt(views[0].maintenanceMargin!)*SCALE-maximumEquity;
+        return reduceOnly && previousTrader.maintenanceDeficitScaled !== null
+          && (optimisticDeficit > 0n ? optimisticDeficit : 0n) < BigInt(previousTrader.maintenanceDeficitScaled);
+      } catch { return true; }
+    },
     prepareMaker(capital: MarginFinancialRoot) {
       requireValue(capital.role === 1 && capital.mode === 1 && capital.isolatedMarketIndex === marketIndex
         && capital.id !== root.id && capital.owner !== root.owner, 'Invalid/self maker capital.');
       const accrued = accrue(capital);
-      return (quantity: bigint, gross: bigint) => admissible(accrued,(side === 0 ? -quantity : quantity),gross,0n,false);
+      return {
+        admissible: (quantity: bigint, gross: bigint) => admissible(accrued,(side === 0 ? -quantity : quantity),gross,0n,false),
+        possible: (lower: bigint, upper: bigint, quote: (quantity: bigint) => bigint) => makerPossible(accrued,lower,upper,quote),
+      };
     },
     traderAdmissible(gross: bigint, fee: bigint) { return admissible(trader,side === 0 ? lots : -lots,gross,fee,true); },
   };

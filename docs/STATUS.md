@@ -1,6 +1,6 @@
 # Current status
 
-Updated 2 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 10 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -13,6 +13,9 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| P50 architecture constraint audit | Review | Source/provenance inspection of `2a77c24`; [ranked findings and proposed priorities](operations/constraints.md); documentation-only, no policy changes; [ready PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) above #69 |
+| P48 exact interval allocation | Review | Clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; [ready PR #68](https://github.com/arnabnandikgp/rivalt/pull/68); old size limits retained |
+| P49 expanded quantities | Review | Clean SBF `49c343e`, verifier `125a2b3`: 231 large-quantity RPC/WS outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; [ready PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) above #68 |
 | M13 Anchor RC2 migration | Closed | P45–P47 accepted and integrated as #63 → #64 → #66; qualified C0, review fixes and applicable hosted checks pass |
 | P45 migration contract | Closed | [PR #63](https://github.com/arnabnandikgp/rivalt/pull/63) merged; accepted architecture/release research, exact pins, ABI and acceptance contract |
 | P46 RC2 implementation | Closed | [PR #64](https://github.com/arnabnandikgp/rivalt/pull/64) merged; serialized C0 and scoped signed RPC/WS/PostgreSQL acceptance pass |
@@ -39,6 +42,82 @@ Review means accepted work awaiting integration; Closed requires acceptance plus
 integration. The user authorized the migration stack's review fixes and merge on
 2 November 2026; all three PRs independently report MERGED. Fetched main has the
 accepted tip as an ancestor and exactly the same complete tree.
+
+## Active quantity work
+
+The user authorized removing both inherited quantity ceilings on 10 November.
+P48 changes only search/client behavior and preserves program limits and artifacts.
+Clean `5e5aede846c27bb1c352aa06c14a25ccfc6fe06c` passes 715 independently enumerated
+financial/price cases (264 allocated, 379 unavailable, 72 rejected), 23 affected
+SDK/service checks, typecheck and 130 signed Surfpool RPC/WS outcomes against the
+unchanged qualified C0 programs. Full-book four-scenario search benchmark: 1,000
+iterations, p95 0.302 ms / p99 0.355 ms on this Apple M3; at most 151 distinct
+quantity quotes and one full candidate/trader admission. This is a bounded fixture
+measurement, not worst-case latency. Local evidence is `.local/quantity/p48-5e5aede*`.
+No new SBF, PG replay or larger quantity is qualified by P48. P49 owns those checks.
+P49 removes both inherited ceilings within the existing **100,000,000-lot**
+financial domain. Programs, SDK/API/UI, order reservations and liquidation agree;
+signed order fee input uses the existing cash domain, and worker size probes start
+at remaining quantity. Two makers, eight regions, position/gross/cash bounds,
+2 bps fees, insurance, funding and all risk checks remain enforced.
+
+Clean SBF **`49c343e6e77a327fc9fa00c5b2a2e172dceb380d`** has safe stack frames and
+fresh generated IDLs identical to the existing contract. Clean verifier
+**`125a2b3eafaa4413a31ba82a4dfcf183258f9f79`** passes **231 signed RPC/WS outcomes**:
+100m-lot open/close, million-lot SDK routing and two-program stored partials,
+large TP/SL, reservations/transfer/withdrawal, whole-account funding, 500k-lot
+liquidation and complete default. Independent raw-byte audits check nine fills,
+eight exact Fraction payouts and mutation rejection. The fresh PostgreSQL replay
+matches all **188 events**. A separate **146-outcome** matched full-book probe
+measures 305,112 CU, versus P47's 305,080; the 100m singleton uses 166,449 CU.
+[Validation](operations/validation.md#expanded-quantities-p49) records checks and
+[performance](operations/performance.md#expanded-quantity-measurements-p49) records
+resource assumptions. Raw evidence remains `.local/quantity/p49-*`.
+
+Thirty-one affected native checks, 62 SDK/UI/service checks, 3,172 independent Rust
+quote vectors, 715 independent router cases and 27 curve-contract cases pass.
+The new artifact identity is pinned and promoted to `.local/anchor-rc2/current`;
+prior C0 files/journals remain retained. No account/IDL layout changed. Both owned
+Surfpool runs and their test PostgreSQL container are stopped. Compiler tools were
+restored; there is no access blocker. P48's applicable hosted CI passed on #68;
+P49 is published ready in [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69)
+above #68. Scope/client/financial/shell hosted checks pass on `2a77c24` in
+[run 42714724245](https://github.com/arnabnandikgp/rivalt/actions/runs/42714724245);
+report is correctly skipped. The subsequent P49 review identified two valid
+interface-documentation corrections and unnecessary source-unavailable order
+probes. The worker now stops that order's current pass after a missing-source
+result; smaller expiry/depth/health/search-budget probes remain eligible because
+allocation can change. Seventeen focused worker/route tests and typecheck pass
+on review fix `d63e3b1`.
+These are consumer/control-flow checks, not new signed integration evidence;
+programs, financial admission and durable-original handling are unchanged.
+Pending acceptance detail was removed from HISTORY; integration will be recorded
+only after merge. P48's publication-status finding is already corrected here.
+The user authorized review fixes and stack merge on 10 November. P50 is restacked
+above the fix. Next exact action: verify hosted checks and merge stack #70.
+P15B/P16B and deferred endurance are unchanged; no public/funded deployment is
+qualified.
+
+## Architecture constraint review
+
+The user requested a detailed audit of inherited prototype assumptions after the
+quantity work. P50 inspects current source and targeted local Git provenance at
+`2a77c2419a6b80acf452a8604ba0fe904d3f35ff`; it changes documentation only. Findings
+cover lifetime membership/complete-default capacity, price bands, funding impact
+size, liquidation compensation, indexer progress, maker admission, numeric/OI and
+funding lifetime bounds, account/order capacity, client fees and worker scheduling.
+Confirmed vestiges include an unused pagination option and reference-only Rust
+funding enumeration. The [audit](operations/constraints.md) separates source facts,
+constructed examples, proposed remedies and protected deliberate scope.
+
+Validation: source/call-site searches, historical decision checks, exact unit
+arithmetic and document/path checks. No new financial test, runtime benchmark,
+security certification or production readiness is inferred. There is no blocker.
+P50 is published ready as [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71)
+above #69/#68; all three remain open pending the authorized merge. Its automated
+review was rate-limited; this is not independent approval. The user deferred audit
+remediation, including the 64-account redesign, until after integration. No remedy
+is started or authorized by the audit itself.
 
 ## P46 serialized port checkpoint
 
@@ -167,8 +246,8 @@ unchanged Rust financial CI stays separately pinned to P46. All five threads are
 resolved. No new SBF build, PostgreSQL/service/load/endurance run was needed for
 these launcher/docs fixes; no earlier evidence is relabelled. Stack #65 merged
 atomically with exact tree equality. No blocker remains in this delivery.
-Next exact action: select the next separately authorized task; no additional phase,
-external qualification or deployment is scheduled by this closeout.
+That closeout scheduled no further work. D91 above now records the separately
+authorized quantity work; no external qualification or deployment is scheduled.
 
 ## Accepted performance stack
 

@@ -53,6 +53,12 @@ it('keeps the selected distinct two-maker allocation and caps expiry by every se
   expect(parsed.data.expirySlot).toBe(140n);
   expect(parsed.accounts.firstCapital.address).toBe(financial.makers[0].registrationState.capital);
   expect(parsed.accounts.secondCapital?.address).toBe(financial.makers[1].registrationState.capital);
+  // Expiry is allocation-dependent: a smaller route need not include the
+  // short-lived second maker, so workers must not treat it as size-independent.
+  const smaller = (await buildLiquidityRoute(input, financial.root.owner))!;
+  expect(smaller.allocation.legs).toHaveLength(1);
+  expect(smaller.allocation.legs[0].registration).toBe(financial.makers[0].registration);
+  expect(smaller.expirySlot).toBe(250n);
 });
 
 it('cannot activate custody, paused or historical snapshots and refuses an unrelated actor', async () => {

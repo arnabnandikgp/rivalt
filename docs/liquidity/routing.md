@@ -26,9 +26,9 @@ requests get independent domain bytes.
 
 The canonical adapter exposes exact gross quotes, depth hints and fully bound pure
 quote requests. Depth hints describe price capacity, not financial feasibility.
-`allocateLiquidityRoute` searches all singletons and every unordered pair with
+`allocateLiquidityRoute` covers all singletons and every unordered pair with
 positive integer quantities summing to the full requested size. Each leg is at
-most 4,096 lots and the request at most 4,608. It never executes three capitals,
+most 100,000,000 lots and the request at most 100,000,000. It never executes three capitals,
 partially fills the request or prunes maker health as a monotone prefix. Zero
 mathematical capacity is classified separately from no feasible financial quote.
 
@@ -113,14 +113,48 @@ Wallet admission requires both formats; actual external-wallet compatibility is 
 separate check from instrumented local signing.
 
 A route submits <=800,000 CU with measured maximum <=640,000, <=32 loaded keys,
-and default 32 KiB heap. At most 4,608 total lots / 4,096 per maker, eight regions
-per side, and complete four-order/two-protection books remain the bound. The RPC
+and default 32 KiB heap. P49 expands total quantity and maker depth to the existing
+100,000,000-lot numeric domain; its fresh program/resource acceptance is tracked in
+validation. Eight regions per side and complete four-order/two-protection books
+remain the bound. Earlier CU observations retain their original quantity workload. The RPC
 snapshot's 48-key ceiling is not a transaction loaded-key allowance. Combined
 transfer/control operations require their own measured packet/compute fit.
 
-The exhaustive search bound is 12,291 compositions; the implemented maximum is
-12,288, with at most 12,288 distinct nonzero quantity quotes. Prune only with a
-sound objective bound, never assume financial health is a monotone quantity prefix.
+P48 replaces exhaustive quantity enumeration with exact interval search. Its
+work budget is 65,536 visited intervals and 131,072 distinct quantity quotes per
+request, independent of the numeric quantity domain. Exceeding either throws
+`LiquiditySearchLimitError`; the quote service reports
+`liquidity-search-budget-exhausted`, with no allocation or signed transaction.
+It must not report insufficient liquidity or return an uncertified incumbent.
+This is a computational availability bound, not permission to relax financial
+admission. P48 retains the old program limits; P49 applies the existing numeric
+domain to maker depth, action/order and liquidation quantities. This equals at most
+100 BTC or 1,000 ETH per action, before inventory, collateral, gross exposure and
+available depth impose tighter limits. Price/region work does not grow per lot.
+
+For canonical capability 1, buy gross is integer convex and sell gross is integer
+concave: region offsets have ordered marginal increments and the inventory
+potential is convex. Valid marginal prices form a prefix; the independent VWAP
+band forms an interval. These price facts do not imply monotone account health.
+Within each singleton/pair domain, binary search finds the gross optimum. Net
+sell proceeds can tie across a fee step; a separate search finds the rightmost
+net optimum for the existing deterministic tie order. This gives an optimistic
+bound for every integer split in that interval. A feasible optimum certifies the
+interval; a bound dominated by an already feasible route excludes it. Otherwise
+balanced subdivision preserves both halves, including nonprefix health islands.
+
+Financial enclosures exclude only provably impossible intervals. For an isolated
+maker, risk claim is convex on each side of flat; maximum equity is attained at an
+endpoint or flat. Initial margin has its minimum nearest flat. Remaining maker
+reservations are monotone in absolute exposure between generation changes;
+endpoints and flat neighbours bound their minimum. Combining independent maxima
+and minima overestimates admissibility. Trader quantity is fixed; bound cash with
+the minimum fee and claims with the most favourable gross, independently, and
+bound remaining reservations from gross endpoints. This handles sell equity
+peaking at zero claim, where cash fees continue to increase. An uncertain bound
+never excludes a range. Every accepted allocation still runs exact full-account
+admission, numeric bounds, gross exposure, fee prefixes and signed limits.
+
 Tie order is part of the API. Snapshot optimality does not prove global exchange
 best execution, future-state optimality or validator throughput. [Validation](../operations/validation.md)
 records actual latency/resource limits and contention caveats.

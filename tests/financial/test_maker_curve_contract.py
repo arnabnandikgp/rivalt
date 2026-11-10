@@ -99,7 +99,7 @@ class PricingContract(unittest.TestCase):
             self.assertGreaterEqual(bought - sold, 0)
 
     def test_curves_reject_bad_regions_and_limits(self):
-        for regions in ((Region(0, 0, 0),), (Region(4097, 0, 0),),
+        for regions in ((Region(0, 0, 0),), (Region(MAX_DEPTH + 1, 0, 0),),
                         (Region(3, 10, 1), Region(5, 11, 0)),
                         (Region(2, 0, 1001),), (Region(2, 1_000_000, 1),),
                         tuple(Region(index + 1, index, 0) for index in range(9))):
@@ -253,10 +253,10 @@ class AllocationContract(unittest.TestCase):
         self.assertLess(health(10, (neutral,), reserved=1)[0], health(10, (neutral,), reserved=1)[1])
         self.assertLess(health(9, (neutral,))[0], initial)  # aggregate taker fee
 
-    def test_maximum_enumeration_bound(self):
+    def test_small_exhaustive_reference_population(self):
         for quantity in (1, 4096, 4097, 4608):
             count = sum(1 for _ in allocations(self.candidates, quantity))
-            self.assertLessEqual(count, 12_291)
+            self.assertEqual(count, 3 * quantity)
         self.assertEqual(sum(1 for _ in allocations(self.candidates, 4097)), 12_291)
 
     def test_funding_quantity_rounding_and_signed_truncation(self):

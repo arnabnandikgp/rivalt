@@ -17,7 +17,10 @@ it('converts BTC and ETH UI units to exact distinct program lots/prices', () => 
   expect(() => parsePrice('60000.5', 0)).toThrow(/multiple of 1/);
   expect(() => parsePrice('3000.01', 1)).toThrow(/multiple of 0.1/);
   expect(() => parseQuantity('0.000001', 1)).toThrow(/at most 5/);
-  expect(() => parseQuantity('0.004609', 0)).toThrow(/bounded route/);
+  expect(parseQuantity('0.004609', 0)).toBe(4609n);
+  expect(parseQuantity('100', 0)).toBe(100_000_000n);
+  expect(parseQuantity('1000', 1)).toBe(100_000_000n);
+  expect(() => parseQuantity('100.000001', 0)).toThrow(/supported position/);
 });
 it('checks market-specific persistent limit and trigger ranges before asking for a signature', () => {
   expect(orderPrice('9000', 0)).toBe(9000n);
@@ -50,8 +53,9 @@ it('ordinary orders after closing a position use zero generation; reductions bin
     orderTerms({ ...input, lots: 6n, reduceOnly: true }, { lots: -5n, generation: 3n }),
   ).toThrow(/fit/);
   expect(() =>
-    orderTerms({ ...input, feeBudget: 1000001n }, { lots: 0n, generation: 2n }),
-  ).toThrow(/cannot exceed/);
+    orderTerms({ ...input, feeBudget: 1_000_000_000_000_001n }, { lots: 0n, generation: 2n }),
+  ).toThrow(/supported cash/);
+  expect(orderTerms({...input,feeBudget:12_000_000n},{lots:0n,generation:2n}).feeBudget).toBe(12_000_000n);
 });
 it('replacement retains generation/side and charged fee prefixes, accounting for already filled lots', () => {
   const input: Omit<OrderTerms, 'generation'> = {

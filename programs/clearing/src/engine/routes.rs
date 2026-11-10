@@ -243,7 +243,7 @@ pub(crate) fn candidate_for_version(
             && intent.observation_sequence == market.observation_sequence
             && intent.nonce == trader.nonce
             && intent.side <= 1
-            && (1..=4608).contains(&intent.lots)
+            && (1..=crate::constants::routes::MAX_ROUTE_LOTS).contains(&intent.lots)
             && clock.slot >= intent.start_slot
             && clock.slot < intent.expiry_slot
             && intent

@@ -9,7 +9,8 @@ pub const VERSION: u16 = 4;
 pub const ACCOUNT_SCHEMA: u16 = 5;
 pub const CAPABILITY: u16 = 1;
 pub const MAX_REGIONS: usize = 8;
-pub const MAX_DEPTH: u64 = 4_096;
+/// Declared side depth shares the checked quantity domain, not a small test book.
+pub const MAX_DEPTH: u64 = MAX_LOTS as u64;
 pub const MAX_TTL_SLOTS: u16 = 150;
 pub const TTL_SECONDS: i64 = 6;
 pub const REQUEST_BYTES: usize = 156;
@@ -299,8 +300,9 @@ fn offset_prefix(regions: &[PriceRegion], quantity: u64) -> QuoteResult<i128> {
             .min(region.end_lots)
             .checked_sub(start)
             .ok_or(QuoteError::Arithmetic)?;
-        // Validated depth <=4096, offset <=1e6, slope <=1000. Keep every
-        // operation checked; the complete spread prefix is well within u64.
+        // Validated width <=1e8 and last offset <=1e6 imply
+        // slope*width*(width-1) <= width*1e6 <=1e14. Prefix <=1e14;
+        // checked u64 intermediates remain sufficient at the full domain.
         let rising = region
             .slope
             .checked_mul(width)

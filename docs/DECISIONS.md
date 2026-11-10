@@ -5,6 +5,53 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D91 — quantity bounds and exact scalable allocation (10 November 2026)
+
+The user authorized retiring both inherited 4,608-lot action and 4,096-lot maker
+depth ceilings, including the router, program, SDK and application changes needed
+to support larger quantities. P48 first replaces per-lot exhaustive allocation
+with exact, conservatively pruned interval search while retaining existing on-chain
+limits. P49 expands quantities within the existing checked financial numeric
+domain and qualifies actual larger financial transitions. Both PRs stay open as a
+stack; no merge or funded deployment is authorized by this task.
+
+This deliberately supersedes D23's inherited quantity envelope and D69–D72's
+exhaustive-enumeration implementation requirement, not the best-admissible-route
+objective or deterministic ties. Never assume maker health is a monotone prefix.
+Search may explicitly report an exhausted computational budget, but cannot return
+an unproven best allocation or label unfinished search as absent liquidity.
+The proof and resource contract belong to [routing](liquidity/routing.md).
+
+Keep two selected makers, eight curve regions, whole-account risk/reservations,
+2 bps/zero provider fees and 25% insurance, independent risk valuation, signed
+authority, causal funding and complete default. Order totals, single executions,
+maker depth and liquidation quantities are distinct constraints. Retain finite
+integer/exposure/cash limits; large quantities never imply guaranteed available
+liquidity or automatic depth replenishment. P15B/P16B remain external and
+continuous 24-hour endurance stays Deferred.
+
+D91 implementation (10 November 2026): P49 uses the existing `MAX_LOTS =
+100,000,000` for maker published depth, immediate/stored action quantity, order
+quantity and liquidation quantity. Retain signed position ±100m, aggregate gross
+200m, price 1m atoms/lot, cash 10^15 atoms and scaled-value bounds. The stored-order
+fee input expands from 1m atoms to the existing cash bound so a large order can
+reserve its actual signed fee budget. No fee rate, liquidation fee cap, insurance
+share, risk band, account width, discriminator, seed or instruction layout changes.
+Operational workers start at remaining exposure and halve in at most 27 probes;
+this removes the small fixed starting batch without claiming exhaustive feasibility.
+
+New program bytes require a distinct pinned artifact identity and fresh local
+qualification. Existing journal bindings/artifacts remain historical; no in-place
+funded migration or implicit acceptance of old binaries with expanded clients.
+Source implementation and qualification status are separate in STATUS/validation.
+
+D91 qualification (10 November 2026): clean SBF `49c343e` and verifier `125a2b3`
+pass the larger signed financial lifecycle, independent default/fee/funding audits,
+188-event PostgreSQL replay and matched full-book resource check. Generated IDLs
+remain identical. Promote the new exact artifact identity for fresh local use;
+retain C0 files and journal bindings. Acceptance is engineering-local and does not
+close external or deferred gates. The two implementation PRs remain open.
+
 | Original decision(s) | Current choice and reason | Contract owner |
 |---|---|---|
 | D01–D05, D56–D60 | Rivalt is common clearing with separate maker programs; BTC/ETH, one mint, portfolios and isolated/cross roots; market-attributed accounting replaces the old common-loss group for the current profile | [Accounts](clearing/accounts.md) |

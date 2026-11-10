@@ -40,10 +40,10 @@ All prices/offsets are integer quote atoms **per market lot**; notionals are quo
 atoms. JSON uses decimal strings. Checked signed i128 intermediates, checked
 u64 results; no floating point, saturating arithmetic or implicit wrapping.
 Inventory/target bounds are ±100,000,000 lots; price bounds 1…1,000,000 atoms/lot;
-route size 1…4,608 lots. Existing minimum notional remains 1,000 atoms.
+route size 1…100,000,000 lots. Existing minimum notional remains 1,000 atoms.
 
 Each side has 0…8 regions `(end_lots:u64, offset:u64, slope:u64)`. Ends strictly
-increase, final end ≤4,096. Offsets 0…1,000,000 and slopes 0…1,000; every region's
+increase, final end ≤100,000,000. Offsets 0…1,000,000 and slopes 0…1,000; every region's
 last offset is ≤1,000,000. The next region starts at least at the prior region's
 last offset. At quantity index `j` in `[start,end)`, offset is
 `offset + slope*(j-start)`. Empty side is allowed; both sides empty reject.

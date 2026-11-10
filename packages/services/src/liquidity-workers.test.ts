@@ -1,9 +1,9 @@
-import {it,expect} from 'vitest';
+import {it,expect,vi} from 'vitest';
 import {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {accountFixture} from '../../sdk/src/account-test-fixture.js';
 import type {AccountRuntime} from './account-runtime.js';
-import {repriceLiquidity} from './liquidity-workers.js';
+import {repriceLiquidity,quoteLiquidity} from './liquidity-workers.js';
 import {accountBudget} from './account-execution.js';
 
 async function fixture() {
@@ -50,4 +50,14 @@ it('does not refresh an unauthorized, disabled, frozen or sourceless publication
     if(kind==='source')test.snapshot.marketStates[0].oracle.sourceDeadline=0n;
     expect((await repriceLiquidity(test.runtime,0,2,test.key)).status).toBe('blocked');expect(test.queued).toHaveLength(0);
   }
+});
+it('classifies unfinished search separately and supplies no allocation or instructions',async()=>{
+  const test=await fixture();
+  const mode=vi.spyOn(sdk,'accountSourceMode').mockReturnValue('Normal');
+  const build=vi.spyOn(sdk,'buildLiquidityRoute').mockRejectedValue(new sdk.LiquiditySearchLimitError({intervals:65537,quantityQuotes:200}));
+  try {
+    const result=await quoteLiquidity(test.runtime,test.key.address,test.snapshot.roots[Object.keys(test.snapshot.roots)[0]].owner,0,0,10n);
+    expect(result).toMatchObject({available:false,code:'liquidity-search-budget-exhausted',diagnostic:{search:{intervals:65537}}});
+    expect(result).not.toHaveProperty('instructions');expect(result).not.toHaveProperty('allocation');
+  } finally {mode.mockRestore();build.mockRestore();}
 });

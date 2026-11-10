@@ -1,5 +1,6 @@
 import type { Address } from '@solana/kit';
 import type { AccountSnapshot, MarginAccount, OrderTerms, OrderRecord } from '@rivalt/sdk';
+import {MAX_ACTION_LOTS,MAX_CASH_ATOMS} from '@rivalt/sdk';
 import { units } from '../amount.js';
 export const MARKETS = [
   { name: 'BTC', decimals: 6, lotsPerUnit: 1_000_000n },
@@ -27,7 +28,7 @@ export function parseQuantity(input: string, marketIndex: 0 | 1) {
     MARKETS[marketIndex].decimals,
     `${MARKETS[marketIndex].name} quantity`,
   );
-  if (lots > 4608n) throw new Error('Quantity exceeds the bounded route limit.');
+  if (lots > MAX_ACTION_LOTS) throw new Error('Quantity exceeds the supported position size.');
   return lots;
 }
 
@@ -55,8 +56,8 @@ export function orderTerms(
   const filled = previous?.filled ?? 0n;
   if (terms.lots <= filled)
     throw new Error('Total quantity must exceed the already filled quantity.');
-  if (terms.feeBudget > 1_000_000n)
-    throw new Error('Lifetime venue fee budget cannot exceed 1 test USD.');
+  if (terms.feeBudget < 0n || terms.feeBudget > MAX_CASH_ATOMS)
+    throw new Error('Lifetime venue fee budget exceeds the supported cash range.');
   if (
     terms.reduceOnly &&
     (position.lots === 0n ||

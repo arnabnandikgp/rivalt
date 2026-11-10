@@ -1,5 +1,90 @@
 # Validation and measured limits
 
+## Expanded quantities (P49)
+
+Clean SBF source **`49c343e6e77a327fc9fa00c5b2a2e172dceb380d`**, clean integrated
+verifier **`125a2b3eafaa4413a31ba82a4dfcf183258f9f79`**. Default/qualification
+clearing and both makers build without unsafe stack diagnostics. Fresh actual
+Anchor IDLs for all three programs are identical to the existing generated
+contract; generated SDK and D90 wire-contract checks pass. The fixed allowlist
+uses `p49-expanded-quantities-candidate-v1`; old bindings remain historical.
+Normal local files are promoted to `.local/anchor-rc2/current`, after preserving
+all previous files at `.local/quantity/pre-p49-current` and immutable C0.
+
+Affected native checks: 15 financial-core order/liquidation/safety cases, ten
+maker-interface cases and six clearing route cases, all passing. These include
+independent literal large-order reservation, 100m-depth prefix arithmetic and a
+500k-lot liquidation preserving one scaled fractional unit with strict progress
+after fees. Sixty-two affected SDK/UI/service checks pass. Independent Python
+comparison passes 715 router cases, 3,172 Rust quote vectors (1,547 exact quotes /
+1,625 expected rejects) and 27 curve-contract cases. Typecheck, SDK generation and
+ABI checks pass; 23 artifact-verifier/launcher checks also pass after updating pins.
+The initial native linking failure was absent Apple compiler
+tools; the user restored them before successful native/SBF acceptance.
+
+Actual signed acceptance:
+
+| Fresh run (under `.local/quantity/`) | Result |
+|---|---|
+| `p49-125a2b3-rpc` | 231 signed RPC/WS outcomes; 100m open/close, million-lot SDK route, two-program stored partials, large TP/SL, numeric/replay/over-close rejections with rollback, reserved transfer/withdrawal, whole-account funding, 500k liquidation, complete default and terminal funded exit |
+| Independent raw audits | Nine fills checked against literal flat prices and whole-account funding; eight exact Fraction default payouts; eight route and ten default/accounting corruptions rejected |
+| Same run's real PostgreSQL | 188 authenticated finalized events; on-chain cash agrees; fresh database/refetched RPC replay produces identical complete projection |
+| `p49-125a2b3-resource` | 146 outcomes retaining the P47 full-book 4,608-lot workload, both program routes, skew crossing and depth-epoch rollback |
+| `p49-49c343e/default-gates-svm.json` | All three newly compiled default binaries reject valid initialization with rollback |
+
+Reproduce the larger flow with pinned artifacts and an unused run directory:
+
+```sh
+RIVALT_LIQUIDITY_PROBE=quantities RIVALT_LIQUIDITY_POSTGRES=1 \
+RIVALT_PG_PORT=18943 RIVALT_RUN_DIR=.local/quantity/new-run \
+bash ops/current-runtime-smoke.sh
+```
+
+[Performance](performance.md#expanded-quantity-measurements-p49) records exact CU,
+wire and account counts. The numeric envelope is finite, not guaranteed liquidity;
+source, margin, inventory, gross exposure, signed fee limits and search-work
+exhaustion can reject smaller trades. Worker halving is a bounded operational
+policy, not an exhaustive subfill feasibility proof. No new endurance, production,
+external maker, paid oracle or public deployment acceptance is inferred. Owned
+Surfpool and the test PostgreSQL container were stopped; raw evidence stays local.
+
+The 10 November review correction `d63e3b1` stops order-size probing for a missing required
+market source, while preserving smaller probes for allocation-dependent expiry,
+depth/health and search-budget refusals. Seventeen focused worker/route tests and
+typecheck pass: eight order-loop cases, five existing liquidity-worker cases,
+one quantity schedule and three route-builder cases including different expiry
+at different sizes. Queue/quote doubles establish control flow only; no new
+Surfpool/PostgreSQL, SBF or financial acceptance is claimed for this early-stop
+change. Existing exact integration pins above remain unchanged.
+
+## Exact quantity search (P48)
+
+Clean verifier `5e5aede846c27bb1c352aa06c14a25ccfc6fe06c` replaces exhaustive
+allocation with the interval proof in [routing](../liquidity/routing.md), retaining
+4,096/4,608 program limits and the qualified C0 binaries. Independent Python
+per-lot/exhaustive full-financial comparison passes 715 cases: 264 allocations,
+379 unavailable and 72 invalid requests. Three hundred added cases cover complete
+maker books, flat/generation boundaries and nonprefix health. Twenty-three focused
+SDK/service tests pass, including interior VWAP bands, a net-proceeds fee-step tie
+and exhausted search withholding an otherwise feasible singleton and instructions.
+Typecheck passes. The initial test/benchmark failures asserted retired exhaustive
+operation counts; their financial expectations passed and the resource assertions
+now check bounded search work.
+
+The unchanged four full-book benchmark workloads, 24 warmups / 1,000 iterations,
+measure p95 0.302 ms / p99 0.355 ms on Apple M3 / Node 24.22.0. Maximum distinct
+quantity quotes is 151, compositions and trader admissions one. This does not
+establish a worst-case or larger-domain latency claim. The algorithm explicitly
+refuses uncertified results on work-budget exhaustion.
+
+`RIVALT_RUN_DIR=.local/quantity/p48-5e5aede-rpc bash ops/liquidity-execution-smoke.sh`
+passes 130 real signed, independently fetched RPC/WS outcomes: current-price and
+two-program routes, source/funding dependencies, stored partial fills and rejected
+pause/replay cases with rollback. Raw evidence and the clean benchmark are local
+under `.local/quantity/p48-5e5aede*`; the owned Surfpool was stopped. There is no new
+program build, PostgreSQL run or larger-size acceptance in P48. P49 separately owns
+expanded numeric bounds, new artifacts and integrated larger-size qualification.
+
 A pass applies to its exact code, binaries, environment and population. The
 consolidation stack integrates P35–P38 at `caa47d2`, with complete tree equal to
 accepted `9d3e15f`. Merge verification introduces no new runtime-test claim.

@@ -38,8 +38,8 @@ Cancellation outside frozen ownership needs no source or maker quote.
 
 Four records and two protective pairs are embedded in each root. Inclusive start,
 exclusive expiry; order lifetime and placement horizon at most 216,000 slots;
-quantity 1–4,608 lots; per-lot all-in limit 9,000–110,000 atoms; lifetime fee budget
-at most 1,000,000 atoms; index triggers 10,000–100,000 atoms. Every submitted
+quantity 1–100,000,000 lots; per-lot all-in limit 9,000–110,000 atoms; lifetime fee budget
+at most 1,000,000,000,000,000 atoms (the existing cash domain); index triggers 10,000–100,000 atoms. Every submitted
 subfill is exact-base atomic with at most two distinct maker capitals.
 
 For each remaining risk-increasing buy lot reserve `ceil(upper/10) + max(limit-lower,0)`;
@@ -67,7 +67,7 @@ No entry-linked growth, trailing stop, trigger latch or keeper-created user auth
 
 A receiver signs consent and supplies funded capital; verify its canonical root,
 current version, full funding/reservations and final IM. Target must have a positive
-whole-account MM deficit. Transfer 1–4,608 lots within held quantity, without flipping,
+whole-account MM deficit. Transfer 1–100,000,000 lots within held quantity, without flipping,
 at a price inside 90–110% of independent reference. Cancel target risk orders
 atomically; their cancelled authority cannot create a false extra source dependency.
 Receiver surviving orders still count. Fee is `min(ceil(notional/2000), 10,000,

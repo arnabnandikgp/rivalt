@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {AccountRole,address,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
+import {quantityCandidates} from './quantity-candidates.js';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
 import {accountRemainderOrders,accountRiskSources,readAccountResolution} from './account-worker-state.js';
@@ -100,7 +101,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
     for(const marketIndex of [0,1] as const) {
       if(capital.mode===1&&capital.isolatedMarketIndex!==marketIndex)continue;
       const quantity=root.positions[marketIndex].lots,absolute=quantity<0n?-quantity:quantity;
-      for(let lots=absolute<64n?absolute:64n;lots>0n;lots/=2n) {
+      for(const lots of quantityCandidates(absolute)) {
         const instruction=sdk.getLiquidateAccountInstruction({...current,receiverOwner:key,target,receiver,
           ...sdk.accountMarketMetas(current.markets,[root,capital],1<<marketIndex),
           ...sdk.accountLiabilityMetas(current.ledgers,[root,capital]),

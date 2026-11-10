@@ -20,6 +20,29 @@ Public amounts are integer decimal strings with units; internal arithmetic uses
 bigint. Never serialize a monetary bigint as an IEEE-754 number. Keep cash,
 unpaid claims, risk equity, reservations, fees and insurance separate.
 
+## Quantity contract (P49)
+
+Immediate requests, stored order totals and maker side depth share the existing
+100,000,000-lot financial domain; signed positions and aggregate gross exposure
+retain their separate existing checks. `/v4/quote` accepts canonical positive
+decimal strings through that bound. The UI converts BTC/ETH exactly and rejects
+larger quantities before requesting a quote. Fee budgets are signed by the owner
+or an authorized, unexpired delegate:
+expanding the input domain to the existing cash bound does not change 2 bps fees.
+
+Order and liquidation workers first try the remaining quantity, then halve on
+size-dependent unavailability, for at most 27 probes across the numeric domain.
+The order worker stops probing that order for the current pass if its required
+market source is unavailable, quote construction throws `AccountQuoteUnavailable`,
+or enqueue preflight simulation fails. A later pass can retry. A `quote-expiring`
+result still permits smaller probes because selecting different makers can change
+route expiry; depth/health and search-budget refusals also permit smaller probes.
+Each probe still needs full quote/admission or successful liquidation simulation,
+and only one accepted action is durably queued. This operational schedule is not an exhaustive
+proof that no smaller admissible size exists. Persistent send/fee budgets and
+unknown-original recovery are unchanged. Router search work remains independently
+bounded and explicitly reports exhaustion without a transaction.
+
 ## Direct accounts and actions
 
 The shared account snapshot discovers immutable portfolios and then reads the
@@ -53,6 +76,11 @@ freshness and classified unavailability. Quote validity is provisional; an HTTP
 response is not instruction authority. Rebuild and authenticate instructions in
 the SDK with user size, side, limits, fee cap and exact account bindings. Current
 price may improve/change within signed bounds; structural-epoch changes reject.
+
+An unfinished exact route search reports `liquidity-search-budget-exhausted` with
+bounded search metrics, distinct from insufficient depth or failed account health.
+It supplies no provisional winning allocation or transaction to sign. Direct SDK
+callers receive `LiquiditySearchLimitError` for the same condition.
 
 Public submission accepts one allowlisted measured wallet action, one wallet
 signer, exact decoded venue/actor/owner identity and explicit resource/zero-priority

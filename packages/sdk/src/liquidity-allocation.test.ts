@@ -97,13 +97,24 @@ it('does not mutate inputs and never uses three capitals to satisfy an exact-siz
   expect(allocate({ ...input,lots: 4n,maxFee: 9n,allInLimit: 40049n })).not.toBeNull();
   expect(allocate({ ...input,lots: 4n,maxFee: 8n })).toBeNull(); // ceil(40040/5000)=9, not per-leg fees.
 });
-it('fills the 4,608-lot ceiling exactly within the search budget',() => {
+it('preserves the previous 4,608-lot allocation and admits the next quantity',() => {
   const { input } = liquidityFixture();
   const result = allocateLiquidityRoute({ ...input,lots: 4608n });
   expect(result.allocation).toMatchObject({ grossQuote: 46_126_080n,fee: 9226n,allIn: 46_135_306n,
     legs: [{ instance: 0,lots: 4096n },{ instance: 1,lots: 512n }] });
-  expect(result.metrics.compositions).toBe(10755);expect(result.metrics.quantityQuotes).toBe(12288);
-  expect(() => allocate({ ...input,lots: 4609n })).toThrow(/financial context/);
+  expect(result.metrics.compositions).toBeLessThan(10);expect(result.metrics.quantityQuotes).toBeLessThan(200);
+  expect(allocate({ ...input,lots: 4609n })!.lots).toBe(4609n);
+});
+it('keeps the rightmost net-proceeds tie across a stored-prefix fee step',() => {
+  const {input,root,makers}=liquidityFixture();makers[2].unavailable='quarantined';
+  for(const [index,maker] of makers.slice(0,2).entries()) maker.shape={...maker.shape,
+    bids:[{endLots:4n,offset:index===0?1n:0n,slope:0n}]};
+  Object.assign(root.book.orders[0].order,{id:1n,version:1n,state:2,termsEpoch:1n,side:1,lots:6n,filled:1n,
+    notional:5002n,feeCharged:2n,feeBudget:100n,limit:9000n,startSlot:1n,expirySlot:1000n});
+  // Split 1/4: gross 49,999, fee 10. Split 2/3: gross 49,998,
+  // fee 9. Both return 49,989; larger quantity on first instance wins.
+  expect(allocate({...input,side:1,lots:5n,allInLimit:0n,stored:{id:1n,version:1n,filled:1n}})).toMatchObject({
+    grossQuote:49998n,fee:9n,allIn:49989n,legs:[{instance:0,lots:2n},{instance:1,lots:3n}]});
 });
 it('applies per-leg index bands, aggregate minimum notional and exact user limits',() => {
   const { input,makers,markets } = liquidityFixture();
@@ -114,4 +125,13 @@ it('applies per-leg index bands, aggregate minimum notional and exact user limit
   Object.assign(markets[0],{ lower: 90n,referencePrice: 100n,upper: 110n });
   expect(allocate(input)).toBeNull(); // Every quote is in-band, but gross=110<1000.
   expect(allocate({ ...input,lots: 10n })).not.toBeNull();
+});
+it('finds an interior VWAP band even when the first quantity is outside it',()=>{
+  const {input,makers}=liquidityFixture();
+  makers[1].unavailable=makers[2].unavailable='quarantined';
+  makers[0].price.anchor=8000n;makers[0].shape={...makers[0].shape,asks:[{endLots:4096n,offset:0n,slope:2n}]};
+  expect(allocate({...input,lots:1000n})).toBeNull();
+  expect(allocate({...input,lots:1001n})).toMatchObject({grossQuote:9009000n});
+  expect(allocate({...input,lots:3001n})).toMatchObject({grossQuote:33011000n});
+  expect(allocate({...input,lots:3002n})).toBeNull();
 });

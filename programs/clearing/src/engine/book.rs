@@ -37,7 +37,7 @@ pub(crate) fn validate(root: &MarginAccount) -> Result<()> {
                     && order.version > 0
                     && order.side <= 1
                     && order.filled < order.lots
-                    && order.lots <= 4608
+                    && order.lots <= math::MAX_LOTS as u64
                     && order.fee_charged == checked(math::fee_total(order.notional))?
                     && order.fee_charged <= order.fee_budget
                     && !root.book.orders[..index]
@@ -197,9 +197,9 @@ fn terms(
     require!(
         terms.side <= 1
             && terms.lots > filled
-            && terms.lots <= 4608
+            && terms.lots <= math::MAX_LOTS as u64
             && (9_000..=110_000).contains(&terms.limit)
-            && terms.fee_budget <= 1_000_000
+            && terms.fee_budget <= math::MAX_CASH
             && terms.expiry_slot > slot
             && terms.expiry_slot > terms.start_slot
             && terms.expiry_slot - terms.start_slot <= MAX_ORDER_SLOTS

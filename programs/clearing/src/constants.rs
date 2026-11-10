@@ -30,6 +30,6 @@ pub mod makers {
 }
 
 pub mod routes {
-    pub const MAX_ROUTE_LOTS: u64 = 4_608;
+    pub const MAX_ROUTE_LOTS: u64 = financial_core::MAX_LOTS as u64;
     pub const MAX_INTENT_SLOTS: u64 = 150;
 }
