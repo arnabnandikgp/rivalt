@@ -1,6 +1,6 @@
 # Current status
 
-Updated 10 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 11 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -16,7 +16,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
-| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; dependency/readiness inventory and [covered/reconciled contract](application/durability.md#bounded-progress-successor-contract-p52-in-implementation) prepared; runtime implementation and real backlog qualification remain |
+| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; bounded per-block coverage, common-fence publication and format-3 storage implemented; 40 focused checks pass; real signed backlog/crash/SQL qualification is next |
 | P53–P62 successor implementation | Planned | Price policy, compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -49,8 +49,9 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P52's durable covered/published journal frontiers and
-captured-checkpoint reconciliation, beginning with the store/transport boundary.
+Next exact action: run P52’s signed `indexer-progress` Surfpool/WS/PostgreSQL
+qualification on the committed candidate, address failures, then publish its ready
+PR above #73 and continue P53.
 
 ## Remediation planning
 
@@ -106,13 +107,23 @@ P15B/P16B remain Open, 24-hour endurance Deferred, and no external/funded action
 has been performed.
 
 P52 starts above verified #73 tip `b7d768696547c688e4d1de30f2f5c3c78d14092f`.
-Inspection confirms the two backlog-wide limits, unused block `pageSize`, delayed
-single commit and three-retry live reconciliation loop. The planned contract keeps
-durable coverage distinct from published reconciled data and records the API,
-worker and immutable-original implications. No P52 code or integration result is
-claimed by this design checkpoint; no additional program build is needed for it.
-The P52 design checkpoint is committed as `2ff4649`; its two changed documents pass
-relative link/anchor and whitespace checks. No P52 PR has been opened yet.
+The implementation now commits one complete block at a time, applies the block
+range/work budgets, separates covered/published snapshots and caps API events at
+the reconciled cursor. D94 corrects the initial capture proposal: publication needs
+one common historical revision vector and complete matching financial fields;
+forward-overwriting an older candidate is insufficient proof. SQL format 3 requires
+a fresh journal, preserving earlier databases/originals. Program artifacts and
+account schema 8 remain unchanged.
+
+Typecheck and 40 focused indexer/API/service checks pass in the implementation
+working tree: bounded reads/progress, publication and stale API behavior, account
+capture, >4,096 scoped invocations, stream byte limits and existing order scheduling.
+These are transport/control checks, not deployed financial evidence. The new real
+probe prepares >10,000 signed transactions, >4,096 clearing invocations, three
+SIGKILL boundaries, WS recovery, pending-original execution during lag, continuous
+relevant writes and independent fresh SQL replay. Its actual result is still
+pending. No P52 PR or phase acceptance is claimed. No access blocker is known;
+the local container service was started for the owned qualification runtime.
 
 ## Integrated quantity work
 

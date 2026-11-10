@@ -35,7 +35,7 @@ unpaid claims/fractions, orders, fees/reserves and signed originals never migrat
 by relabeling database rows. Keep any needed compatibility reader explicitly scoped.
 
 P46 introduces, and P47 qualifies, a separate RC2 deployment with clearing/binding schema 8,
-maker account schema 5 and unchanged SQL journal format 2. It requires new
+maker account schema 5 and, at that qualification, SQL journal format 2. It requires new
 instruction/maker discriminators, genesis, domain, mint and empty database. Existing
 schema-7 originals and journals stay with the previous executor. Normal builds/probes/demo select `.local/anchor-rc2/current`; their executable
 allowlist now selects the P49 expanded-quantity hashes from clean SBF `49c343e`.
@@ -44,6 +44,13 @@ quantity bounds and executable bytes. Its artifact-set ID is distinct from C0.
 Use a fresh local genesis and empty database; existing C0 journals and unresolved
 originals retain their old artifact binding and executor. Retained P44/C0 files
 remain separate, and no persisted qualification original is rewritten.
+
+P52 uses SQL journal format **3** with separate covered and reconciled frontiers;
+program/account schema 8 and qualified executable hashes are unchanged. Start a
+fresh local database and replay actual initialization history. Preserve format-2
+databases and unresolved originals with their original executor; do not relabel,
+delete or copy pending financial intents into a new journal. Mixed-format startup
+rejects explicitly. P52 qualification needs no new program build.
 
 ## Running an operator against an explicit deployment
 

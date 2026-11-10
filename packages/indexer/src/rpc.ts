@@ -1,15 +1,28 @@
 export class Rpc {
   private id = 0;
-  constructor(readonly url: string) {}
+  readonly metrics={requests:0,responseBytes:0,peakResponseBytes:0};
+  constructor(readonly url: string,readonly maxResponseBytes=64*1024*1024) {
+    if(!Number.isSafeInteger(maxResponseBytes)||maxResponseBytes<1)throw new Error('Invalid RPC response byte budget');
+  }
   async call(method: string, params: unknown[] = []): Promise<any> {
-    const id = ++this.id;
+    const id = ++this.id;this.metrics.requests++;
     const response = await fetch(this.url, {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`RPC HTTP ${response.status}`);
-    const body = await response.json();
+    // Bound each in-flight body before JSON decoding; never buffer the entire
+    // historical backlog. An oversized block remains retryable with an explicit
+    // larger operator budget, never silently skipped or marked covered.
+    const reader=response.body?.getReader();if(!reader)throw new Error('Missing RPC response body');
+    const parts:Uint8Array[]=[];let bytes=0;
+    try {
+      for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;
+        if(bytes>this.maxResponseBytes)throw new Error('RPC response exceeds byte budget');parts.push(part.value);}
+    }catch(error){await reader.cancel().catch(()=>{});throw error;}finally{reader.releaseLock();}
+    this.metrics.responseBytes+=bytes;this.metrics.peakResponseBytes=Math.max(this.metrics.peakResponseBytes,bytes);
+    const body = JSON.parse(Buffer.concat(parts,bytes).toString('utf8'));
     if (body.id !== id || body.error || !('result' in body)) throw new Error(`RPC ${method} failed`);
     return body.result;
   }

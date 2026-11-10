@@ -8,10 +8,44 @@ import {accountFields,reconcileAccountLedger,type AccountState} from './account-
 import type {LiquidityBinding} from './liquidity-store.js';
 import type {AccountBatch} from './rpc.js';
 
+type AccountValue=Awaited<ReturnType<AccountBatch>>['value'][number];
+export type CapturedAccount={slot:number;value:AccountValue};
+
+/** Find a genuinely common historical revision fence, rather than assuming a
+ * later overwritten snapshot proves an earlier version's financial fields. */
+export async function captureAccountReconciliation(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'>,
+  read:AccountBatch,minimumSlot:number) {
+  const venue=address(binding.venue),program=address(binding.program);
+  const [custody]=await sdk.deriveVenueComponent(venue,'custody',program),[vault]=await sdk.deriveVenueComponent(venue,'vault',program);
+  // Custody and the token account must share one actual bank observation. This
+  // binds controlled vault transfers to the same scoped custody revision.
+  const keys=[...new Set([custody,vault,...Object.keys(state.revisions)])];
+  const captured=new Map<string,CapturedAccount>(),revisions=new Map<string,bigint>();
+  let maxSlot=minimumSlot;
+  for(let offset=0;offset<keys.length;offset+=100) {
+    const chunk=keys.slice(offset,offset+100),response=await read(chunk);
+    const slot=integer(response.context.slot);
+    assert(slot>=minimumSlot,'Captured account bank precedes candidate');assert.equal(response.value.length,chunk.length);
+    maxSlot=Math.max(maxSlot,slot);
+    for(const [index,key] of chunk.entries()) {
+      const value=response.value[index];captured.set(key,{slot,value:structuredClone(value)});
+      if(key===vault)continue;
+      assert(value?.owner===program&&value.data[1]==='base64',`Captured scoped owner ${key}`);
+      const bytes=Buffer.from(value.data[0],'base64');assert(bytes.length>=18&&bytes.readUInt16LE(8)===8,'Captured scoped schema');
+      assert(bytes.readBigUInt64LE(10)>=BigInt(state.revisions[key].revision),'Captured finalized revision behind candidate');
+      revisions.set(key,bytes.readBigUInt64LE(10));
+    }
+  }
+  return {maxSlot,captured,
+    matches:(candidate:AccountState)=>Object.entries(candidate.revisions).every(([key,entity])=>revisions.get(key)===BigInt(entity.revision)),
+    verify:(candidate:AccountState)=>reconcileAccountSnapshot(candidate,binding,read,captured)};
+}
+
 /** Every entity is pinned to its authenticated journal revision. A second pass
  * fences all chunks before combining their financial fields. A newer relevant
  * revision requests only tail catch-up, never an unrelated historical rescan. */
-export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'>,read:AccountBatch) {
+export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'>,read:AccountBatch,
+  captured?:ReadonlyMap<string,CapturedAccount>) {
   reconcileAccountLedger(state);
   const venue=address(binding.venue),program=address(binding.program);
   const identities=new Map<string,{bump:number;decoder:{decode(bytes:Uint8Array):unknown};discriminator:ReadonlyUint8Array;expected:unknown}>();
@@ -58,12 +92,14 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
   let minSlot:number|undefined,maxSlot=0;
-  for(let pass=0;pass<2;pass++)for(let offset=0;offset<keys.length;offset+=100) {
-    const chunk=keys.slice(offset,offset+100),response=await read(chunk);
-    integer(response.context.slot);assert.equal(response.value.length,chunk.length);
-    minSlot=Math.min(minSlot??response.context.slot,response.context.slot);maxSlot=Math.max(maxSlot,response.context.slot);
+  for(let pass=0;pass<(captured?1:2);pass++)for(let offset=0;offset<keys.length;offset+=100) {
+    const chunk=keys.slice(offset,offset+100),response=captured?undefined:await read(chunk);
+    if(response){integer(response.context.slot);assert.equal(response.value.length,chunk.length);}
     for(const [index,key] of chunk.entries()) {
-      const current=response.value[index],entity=state.revisions[key];
+      const observation=captured?.get(key);if(captured)assert(observation,`Missing captured account ${key}`);
+      const slot=observation?.slot??response!.context.slot;
+      minSlot=Math.min(minSlot??slot,slot);maxSlot=Math.max(maxSlot,slot);
+      const current=observation?observation.value:response!.value[index],entity=state.revisions[key];
       if(entity) {
         assert(current?.owner===program&&current.data[1]==='base64',`Scoped owner/encoding ${key}`);
         const bytes=Buffer.from(current.data[0],'base64'),descriptor=descriptors[entity.kind];

@@ -49,3 +49,14 @@ it('rejects alias, kind, noncanonical integer, overflow and duplicate invocation
   ])expect(()=>orderScopedTransactions([invalid],{a:root('1')})).toThrow();
   expect(()=>orderScopedTransactions([valid,valid],{a:root('1')})).toThrow('Duplicate scoped invocation');
 });
+
+it('orders more than 4096 invocations across complete transactions without a backlog-wide ceiling',()=>{
+  const envelopes=Array.from({length:4200},(_,index)=>event(`tx-${index}`,index,[['a',String(index),String(index+1)]]));
+  const result=orderScopedTransactions(envelopes.reverse(),{});
+  expect(result.transactions).toHaveLength(4200);expect(result.revisions.a.revision).toBe('4200');
+  expect(result.transactions[0].signature).toBe('tx-0');expect(result.transactions[4199].signature).toBe('tx-4199');
+});
+it('retains the per-transaction invocation resource bound',()=>{
+  const envelopes=Array.from({length:4097},(_,index)=>event('single',0,[['a',String(index),String(index+1)]],[],index));
+  expect(()=>orderScopedTransactions(envelopes,{})).toThrow('Scoped transaction exceeds invocation bound');
+});

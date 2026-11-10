@@ -2,17 +2,17 @@ import { getProgramDerivedAddress } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import { Rpc, Subscription, integer } from './rpc.js';
 import { hash, type JournalEvent } from './events.js';
-import { JournalStore, type JournalBinding, type JournalInvocation } from './store.js';
+import { JournalStore, PUBLICATION_MAX_AGE_MS, type JournalSnapshot, type JournalBinding, type JournalInvocation } from './store.js';
 import {readFinalizedBlock,validateBlockChain,type FinalizedBlock,type BlockFence} from './finalized-block.js';
 import type {RevisionVector} from './scoped-history.js';
-import {ReconciliationAhead} from './reconciliation-progress.js';
 
-export const MAX_RECONCILIATION_CATCHUPS=3;
+
+export type ReconciliationWitness<State>={maxSlot:number;matches(state:State):boolean;verify(state:State):Promise<unknown>};
 // Each block has two authenticated reads (body + signature manifest). Bound
 // network concurrency while retaining canonical slot/transaction application.
 export const FINALIZED_BLOCK_READ_WIDTH=8;
 export type TransportConfig = { rpcUrl:string; wsUrl:string; databaseUrl:string; runId:string; anchor:string;
-  pageSize?:number; maxRecoveryTransactions?:number; chain?:sdk.TestChain; maxTransactionVersion?:0|1 };
+  pageSize?:number; maxRecoveryTransactions?:number; maxRpcResponseBytes?:number; chain?:sdk.TestChain; maxTransactionVersion?:0|1 };
 
 export abstract class FinalizedIndexer<State extends {sequence:string;revisions:RevisionVector}, Binding extends JournalBinding, Event extends JournalEvent> {
   readonly rpc: Rpc;
@@ -22,7 +22,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
   ws?: Subscription;
   eventAuthority = '';
   healthy = false;
-  metrics = { cycles: 0, pages: 0, fetched: 0, notifications: 0, reconnects: 0, failures: 0, catchups: 0, historyRestarts: 0 };
+  metrics = { cycles: 0, pages: 0, fetched: 0, notifications: 0, reconnects: 0, failures: 0, catchups: 0, historyRestarts: 0, chunks: 0, pending: 0, peakBlockTransactions: 0, peakCommitMs: 0 };
   private busy = false;
   private anchorSlot=0;
   constructor(readonly config: TransportConfig, store: JournalStore<State, Binding, Event>) {
@@ -31,7 +31,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
     sdk.testRpcUrl(config.rpcUrl, this.deployment.chain);
     sdk.testRpcUrl(config.wsUrl, this.deployment.chain, true);
     if (!Number.isSafeInteger(config.maxRecoveryTransactions ?? 10_000) || (config.maxRecoveryTransactions ?? 10_000) < 1 || (config.maxRecoveryTransactions ?? 10_000) > 200_000) throw new Error('Invalid bounded history recovery limit');
-    this.rpc = new Rpc(config.rpcUrl); this.store = store;
+    this.rpc = new Rpc(config.rpcUrl,config.maxRpcResponseBytes); this.store = store;
     if (!Number.isInteger(config.pageSize ?? 100) || (config.pageSize ?? 100) < 1 || (config.pageSize ?? 100) > 1000) throw new Error('Invalid history page size');
   }
   async transaction(signature: string) {
@@ -54,11 +54,11 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
   }
   async cycle() {
     if (this.busy) throw new Error('Concurrent indexing cycle');
-    this.busy = true; this.healthy = false;
+    this.busy = true;
     try {
       await this.ingest();
     } catch (error) {
-      this.metrics.failures++;
+      this.healthy=false;this.metrics.failures++;
       await this.store.health(error instanceof Error ? error.message : 'Indexer failure').catch(() => {});
       throw error;
     } finally { this.busy = false; }
@@ -72,59 +72,26 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
     const row = await this.store.snapshot();
     if (row.binding.genesis !== await this.rpc.call('getGenesisHash') ||
         row.binding.anchorHash !== hash((await this.transaction(this.config.anchor)).transaction)) throw new Error('Chain identity changed');
-    const blocks:FinalizedBlock[]=[],invocations:JournalInvocation<Event>[]=[];
-    let candidate=structuredClone(row.state),fence:BlockFence|null=row.checkpoint?{slot:Number(row.checkpoint_slot),blockhash:row.checkpoint}:null;
-    const previous=fence;
-    let transactionCount=0;
-    for(let attempt=0;;attempt++) {
-      const finalized=integer(await this.rpc.call('getSlot',[{commitment:'finalized'}]));
-      const start=fence?fence.slot+1:this.anchorSlot;
-      if(finalized<start-1)throw new Error('Finalized block fence regressed');
-      const added:JournalInvocation<Event>[]=[];
-      for(let first=start;first<=finalized;first+=1000) {
-        const last=Math.min(finalized,first+999);
-        const slots=await this.rpc.call('getBlocks',[first,last,{commitment:'finalized'}]);this.metrics.pages++;
-        if(!Array.isArray(slots)||slots.some((slot:unknown,index:number)=>integer(slot)<first||integer(slot)>last||(index>0&&integer(slot)<=slots[index-1])))
-          throw new Error('Invalid finalized block range');
-        for(let offset=0;offset<slots.length;offset+=FINALIZED_BLOCK_READ_WIDTH) {
-          const responses=await Promise.allSettled(slots.slice(offset,offset+FINALIZED_BLOCK_READ_WIDTH).map((slot:number)=>
-            readFinalizedBlock(this.rpc,slot,this.config.maxTransactionVersion??0)));
-          const batch=responses.map(response=>{
-            if(response.status==='rejected')throw response.reason;
-            return response.value;
-          });
-          for(const block of batch) {
-            transactionCount+=block.transactions.length;
-            if(transactionCount>(this.config.maxRecoveryTransactions??10_000))throw new Error('History recovery exceeds transaction bound');
-            for(const [index,{signature,tx}] of block.transactions.entries()) {
-              this.metrics.fetched++;
-              const keys=[...tx.transaction.message.accountKeys,...(tx.meta.loadedAddresses?.writable??[]),...(tx.meta.loadedAddresses?.readonly??[])];
-              if(keys.includes(this.deployment.clearing)) {
-                await this.store.observe('rpc-finalized',signature,tx);
-                added.push(...this.decodeTransaction(signature,tx,index,row.binding));
-              }
-            }
-            blocks.push(block);
-          }
-        }
-      }
-      // getSlot identifies an actual finalized bank. Missing its full block, or
-      // skipping any produced parent, is an incomplete fence even if no known
-      // account revision happens to be missing.
-      const head=blocks.at(-1)??fence;
-      if(!head||head.slot!==finalized)throw new Error('Finalized head block unavailable');
-      fence={slot:head.slot,blockhash:head.blockhash};
-      validateBlockChain(blocks,previous,fence);
-      invocations.push(...added);
-      if(invocations.length>4096)throw new Error('Scoped history batch exceeds bound');
-      candidate=this.store.projection.apply(row.state,invocations,row.binding).state;
-      try {await this.reconcile({state:candidate,binding:row.binding});break;}
-      catch(error) {
-        if(!(error instanceof ReconciliationAhead)||attempt>=MAX_RECONCILIATION_CATCHUPS)throw error;
-        this.metrics.catchups++;
-      }
+    const capturedAt=new Date(),target=integer(await this.rpc.call('getSlot',[{commitment:'finalized'}]));
+    const budget={transactions:this.config.maxRecoveryTransactions??10_000};
+    const covered=await this.cover(target,budget);
+    if(!covered||Date.now()-capturedAt.getTime()>=PUBLICATION_MAX_AGE_MS){this.healthy=false;this.metrics.pending++;return;}
+    const candidate=await this.store.snapshot();
+    const witness=await this.capture(candidate,target);
+    if(!await this.cover(witness.maxSlot,budget)){this.healthy=false;this.metrics.pending++;return;}
+    // Every published entity must match the captured bytes at the SAME complete
+    // historical revision fence. Forward-overwriting an old bad snapshot is not
+    // proof of that old snapshot. Search only this finite captured interval.
+    let replay=candidate,best=witness.matches(candidate.state)?candidate:null;
+    for await(const block of this.store.blocksAfter(target,witness.maxSlot)) {
+      validateBlockChain([block],{slot:Number(replay.checkpoint_slot),blockhash:replay.checkpoint!},{slot:block.slot,blockhash:block.blockhash});
+      const state=this.store.projection.apply(replay.state,this.decodeBlock(block,row.binding),row.binding).state;
+      replay={...replay,state,checkpoint:block.blockhash,checkpoint_slot:String(block.slot)};
+      if(witness.matches(state))best=replay;
     }
-    await this.store.commit(blocks,invocations,fence!,row.checkpoint);
+    if(!best||Date.now()-capturedAt.getTime()>=PUBLICATION_MAX_AGE_MS){this.healthy=false;this.metrics.pending++;return;}
+    await witness.verify(best.state);
+    const fence={slot:Number(replay.checkpoint_slot),blockhash:replay.checkpoint!};
     // A missing status is not proof of a fork or nonexecution. Keep it retryable.
     const jobs=(await this.store.pool.query(`SELECT signature FROM jobs WHERE run_id=$1 AND status IN ('pending','unresolved')
       AND next_attempt<=now() ORDER BY next_attempt LIMIT 100`,[this.config.runId])).rows;
@@ -137,8 +104,52 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
       }
     }
     if (this.ws!.error) throw this.ws!.error;
-    await this.store.health(null); this.healthy = true; this.metrics.cycles++;
+    await this.store.publish(best,capturedAt); this.healthy = true; this.metrics.cycles++;
   }
+  private decodeBlock(block:FinalizedBlock,binding:Binding):JournalInvocation<Event>[] {
+    return block.transactions.flatMap(({signature,tx},index)=>{
+      const keys=[...tx.transaction.message.accountKeys,...(tx.meta.loadedAddresses?.writable??[]),...(tx.meta.loadedAddresses?.readonly??[])];
+      return keys.includes(this.deployment.clearing)?this.decodeTransaction(signature,tx,index,binding):[];
+    });
+  }
+  /** One complete block per SQL transaction; at most one bounded RPC batch in
+   * memory. The work budget may overshoot by one indivisible block, never reject
+   * an otherwise valid historical prefix because the whole backlog is large. */
+  private async cover(target:number,budget:{transactions:number}) {
+    let row=await this.store.snapshot();
+    let fence:BlockFence|null=row.checkpoint?{slot:Number(row.checkpoint_slot),blockhash:row.checkpoint}:null;
+    const start=fence?fence.slot+1:this.anchorSlot;
+    if(target<start-1)throw new Error('Finalized block fence regressed');
+    const pageSize=this.config.pageSize??100;
+    for(let first=start;first<=target;first+=pageSize) {
+      if(budget.transactions<=0)return false;
+      const last=Math.min(target,first+pageSize-1);
+      const slots=await this.rpc.call('getBlocks',[first,last,{commitment:'finalized'}]);this.metrics.pages++;
+      if(!Array.isArray(slots)||slots.some((slot:unknown,index:number)=>integer(slot)<first||integer(slot)>last||(index>0&&integer(slot)<=slots[index-1])))
+        throw new Error('Invalid finalized block range');
+      for(let offset=0;offset<slots.length;offset+=FINALIZED_BLOCK_READ_WIDTH) {
+        if(budget.transactions<=0)return false;
+        const responses=await Promise.allSettled(slots.slice(offset,offset+FINALIZED_BLOCK_READ_WIDTH).map((slot:number)=>
+          readFinalizedBlock(this.rpc,slot,this.config.maxTransactionVersion??0)));
+        // Drain all reads even on error, preserving the network concurrency bound.
+        const batch=responses.map(response=>{if(response.status==='rejected')throw response.reason;return response.value;});
+        for(const block of batch) {
+          if(budget.transactions<=0)return false;
+          const next={slot:block.slot,blockhash:block.blockhash};
+          validateBlockChain([block],fence,next);
+          this.metrics.peakBlockTransactions=Math.max(this.metrics.peakBlockTransactions,block.transactions.length);
+          this.metrics.fetched+=block.transactions.length;
+          const commitStarted=performance.now();
+          await this.store.commit([block],this.decodeBlock(block,row.binding),next,fence?.blockhash??null);
+          this.metrics.peakCommitMs=Math.max(this.metrics.peakCommitMs,performance.now()-commitStarted);
+          this.metrics.chunks++;budget.transactions-=block.transactions.length;fence=next;
+        }
+      }
+    }
+    if(!fence||fence.slot!==target)throw new Error('Finalized head block unavailable');
+    return true;
+  }
+  protected abstract capture(snapshot:JournalSnapshot<State,Binding>,minimumSlot:number):Promise<ReconciliationWitness<State>>;
   protected get historyAddress(): string { return this.deployment.clearing; }
   protected abstract initializeBinding(anchor: any, genesis: string): Promise<Binding>;
   protected abstract decodeTransaction(signature:string,transaction:any,transactionIndex:number,binding:Binding):JournalInvocation<Event>[];

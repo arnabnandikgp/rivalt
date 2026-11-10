@@ -52,6 +52,9 @@ export class AccountExecution {
     await this.queue.prepare();
   }
   async environment() {
+    // This reads immutable deployment identity from authenticated covered history,
+    // not financial discovery. Pending original recovery must work during indexer
+    // lag; fresh work uses AccountRuntime.discovery's reconciled publication.
     const {binding,state}=await this.store.snapshot();
     if(binding.program!==sdk.CLEARING_PROGRAM_ADDRESS||binding.profile!=='liquidity-execution-qualification'
       ||binding.artifactSet!==sdk.LIQUIDITY_ARTIFACT_SET||state.venue?.profileVersion!==this.profile)

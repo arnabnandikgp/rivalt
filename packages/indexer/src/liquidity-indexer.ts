@@ -5,7 +5,7 @@ import {LiquidityStore,type LiquidityBinding} from './liquidity-store.js';
 import {decodeAccountInvocations,eventDomain,type AccountEvent} from './account-events.js';
 import type {AccountState} from './account-projection.js';
 import {hash} from './events.js';
-import {reconcileAccountSnapshot} from './account-reconcile.js';
+import {captureAccountReconciliation,reconcileAccountSnapshot} from './account-reconcile.js';
 
 export type LiquidityConfig=Omit<TransportConfig,'chain'|'maxTransactionVersion'>&{venue:string;profile:'liquidity-execution-qualification'};
 export class LiquidityIndexer extends FinalizedIndexer<AccountState,LiquidityBinding,AccountEvent> {
@@ -37,5 +37,12 @@ export class LiquidityIndexer extends FinalizedIndexer<AccountState,LiquidityBin
       throw new Error('Unqualified liquidity journal deployment');
     await this.artifacts.verify(address(row.state.venue.authority));
     return reconcileAccountSnapshot(row.state,row.binding,keys=>this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized'}]));
+  }
+  protected async capture(snapshot:{state:AccountState;binding:LiquidityBinding},minimumSlot:number) {
+    if(snapshot.binding.artifactSet!==LIQUIDITY_ARTIFACT_SET||snapshot.state.venue?.profileVersion!==4||!snapshot.state.liquidity)
+      throw new Error('Unqualified liquidity journal deployment');
+    await this.artifacts.verify(address(snapshot.state.venue.authority));
+    return captureAccountReconciliation(snapshot.state,snapshot.binding,keys=>this.rpc.call('getMultipleAccounts',
+      [keys,{encoding:'base64',commitment:'finalized',minContextSlot:minimumSlot}]),minimumSlot);
   }
 }

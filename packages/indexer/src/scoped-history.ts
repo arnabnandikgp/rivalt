@@ -21,7 +21,6 @@ type AtomicTransaction={signature:string;slot:bigint;transactionIndex:number;env
   dependencies:Map<string,Dependency>};
 
 function atomicTransactions(envelopes:readonly ScopedEnvelope[]) {
-  if(envelopes.length>4096)throw new Error('Scoped history batch exceeds bound');
   const grouped=new Map<string,AtomicTransaction>();
   for(const envelope of envelopes) {
     if(!envelope.signature||envelope.slot<0n||envelope.slot>u64Maximum)throw new Error('Invalid scoped identity');
@@ -33,6 +32,7 @@ function atomicTransactions(envelopes:readonly ScopedEnvelope[]) {
     if(transaction.slot!==envelope.slot||transaction.transactionIndex!==envelope.transactionIndex)
       throw new Error('Conflicting transaction position');
     transaction.envelopes.push(envelope);
+    if(transaction.envelopes.length>4096)throw new Error('Scoped transaction exceeds invocation bound');
   }
   const positions=new Set<string>();
   for(const transaction of grouped.values()) {

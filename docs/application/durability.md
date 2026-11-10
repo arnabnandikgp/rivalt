@@ -2,10 +2,9 @@
 
 ## Bounded-progress successor contract (P52, in implementation)
 
-The existing runtime below still requires one complete catch-up/reconciliation
-before committing. P52 changes that transport contract, with no change to program
-schemas, financial authority, event bytes or original-signature recovery. This
-section is the implementation target, not a claim of deployed progress/readiness.
+P52 separates durable catch-up from reconciled publication, with no change to
+program schemas, financial authority, event bytes or original-signature recovery.
+The implementation is under qualification; STATUS records actual tested revisions.
 
 Keep two explicit frontiers:
 
@@ -25,15 +24,23 @@ reject. A chunk boundary cannot split an atomic transaction or manufacture a ful
 block fence from its prefix. Canonical block transaction order alone is insufficient
 where scoped read/write dependencies require a different order within that block.
 
-`pageSize` must actually bound requested block-range pagination; the old accepted
-but unused option is retired as an inert setting. The transaction work budget
-governs one recovery chunk/cycle, not the total historical backlog. Define the
-single-block/transaction treatment explicitly before implementation: either stage
-its authenticated contents with a resumable cursor or use a measured bounded
-complete-block unit. Do not replace the 10,000-transaction backlog cliff with
-another undocumented permanent failure at a chunk boundary. RPC concurrency,
-retained memory, per-commit payload/work and SQL duration are measured separately.
-The 4,096-invocation *whole backlog* check cannot remain a completion prerequisite.
+`pageSize` bounds requested slot ranges (default 100, allowed 1–1,000). One
+complete block is one SQL commit. `maxRecoveryTransactions` is a per-cycle work
+budget (default 10,000); an indivisible block can exceed the remaining budget.
+Reaching the budget saves progress and defers remaining work to the next cycle,
+without rejecting a large backlog. At most eight block bodies and their eight
+independent signature manifests are in flight. Each RPC response is streamed
+under an explicit 64 MiB default byte budget; `maxRpcResponseBytes` can be raised
+for an operator's measured environment. Oversized/unavailable blocks retain the
+previous prefix and close readiness; they are never skipped. Parsed object/SQL
+memory also depends on the largest block and current entity set. This is bounded
+network batching, not a hard process RSS guarantee.
+
+The old 4,096-invocation whole-batch limit is removed. A separate 4,096-invocation
+per-transaction decoder resource bound remains; transaction atomicity, causal
+ordering and revision continuity remain enforced. No account-population limit is
+changed by P52. SQL updates only changed entity revisions; unchanged entities do
+not cause one SQL request each for every empty block.
 
 ### Attainable reconciliation while the head advances
 
@@ -49,16 +56,23 @@ witness tied to complete finalized history:
    fictitious atomic account snapshot.
 3. Durably ingest complete blocks through the maximum captured observation slot,
    a finite target independent of subsequent head advancement.
-4. Replay authenticated changes from the candidate through each observation's slot
-   and compare its captured accounts against the corresponding projected state.
-   Include type/schema/PDA/revision/financial fields, partial-resolution semantics
-   and actual token custody at that observation's own point. Unknown or missing
-   history cannot be excused as merely newer state.
-5. Publish **the original candidate prefix**, after complete witness coverage and
-   conservation checks. Later covered state stays unpublished until independently
-   checked. New accounts created after that prefix do not belong to its claimed
-   membership. A restart may redo a bounded witness; it retains covered history.
+4. Replay authenticated complete blocks within this finite interval. Select the
+   latest complete-block state whose **entire entity revision vector** matches
+   the captured bytes. New entities absent from the capture prevent a match.
+5. Compare every required financial/authority field, canonical type/schema/PDA,
+   partial-resolution value and conservation identity at that exact state against
+   captured account bytes. Custody and the token vault are captured in the same
+   actual RPC batch, binding controlled token movements to its custody revision.
+6. Publish only that verified common historical checkpoint. Later coverage stays
+   unpublished. Never treat overwriting a bad earlier value with a correct later
+   event as proof of the earlier state. If no common checkpoint exists, retain
+   coverage, keep readiness closed and retry with a fresh capture.
 
+Account reads need not all have the same bank slot: unchanged revisions can span
+slots. They must still match one genuine historical complete-block state. More
+than 100 continuously changing accounts can prevent a common captured vector;
+this implementation does not promise wait-free publication for that case. Its
+local live acceptance and later expanded-cohort acceptance remain separate.
 This is an implementation design requiring adversarial tests, not permission to
 compare only revision numbers or trust an indexer's own output twice. Same-revision
 changed bytes, omitted account fields, missing independent writers, mismatched
@@ -76,11 +90,10 @@ binding checks and pending-signature recovery must remain available independentl
 
 ### Persistence and acceptance boundary
 
-Use a deliberate journal transport-version boundary for the new covered/published
-fields and writer protocol. Old writers/readers must reject a new journal rather
-than renew stale readiness or serve staged balances accidentally. Final schema and
-migration checks are part of P52; preserve existing databases/originals and require
-an explicitly fresh local journal for qualification. Program/account schema stays 8.
+SQL transport format **3** adds separate published fields and immutable covered
+checkpoint digests. Fresh databases are required; format-2 databases and their
+signed originals stay with the old executor. Startup migration rejects the wrong
+format. Program/account binding remains schema 8; no on-chain layout changes.
 
 Acceptance uses the actual qualified programs, signed Surfpool RPC/WS traffic and
 PostgreSQL: backlog above both former whole-run thresholds, unrelated transactions,
@@ -113,9 +126,9 @@ against remaining original cash plus applied cash; only the completion event ado
 the canonical resolution header/pages against the event-derived fields. Wide
 registers and DFS scratch are solver continuation state, not spendable balances.
 
-RPC reconciliation reads the complete entity revision vector and financial bodies
-twice across bounded chunks. A relevant advance requests tail catch-up; it never
-silently combines incompatible states. Storage precreation has a zero-payload
+The standalone diagnostic reconciler reads the complete revision vector and
+financial bodies twice across bounded chunks. Publication uses the captured common
+checkpoint described above; neither combines incompatible entity versions. Storage precreation has a zero-payload
 scoped transition, so its creation remains part of authenticated history.
 The settlement worker combines final backing page and gain payment in one durable
 original. The receiver pre-state guard remains the payment nonexecution proof;
