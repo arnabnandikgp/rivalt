@@ -14,7 +14,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| P51A audit-remediation roadmap | Review | [P51–P62 plan](operations/remediation-plan.md): all 20 findings mapped to 25 proposed PR scopes, dependencies, six decision gates and acceptance; documentation checks pass, publication pending |
+| P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B–P62 successor work | Planned | P51B account/settlement contract and executable feasibility first; no implementation or new financial qualification started |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -46,7 +46,8 @@ integration. The user authorized this stack's review fixes and merge on
 10 November 2026; all three PRs independently report MERGED, and the open-PR query
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested the complete remediation planning documents.
-Next exact action: validate and publish P51A as the ready base of the new stack.
+Next exact action: begin P51B's account/settlement dependency inventory and executable
+feasibility against this plan, as a separate deliverable above #72.
 
 ## Remediation planning
 
@@ -61,10 +62,13 @@ different payouts. Later changes remain subject to their stated decision gates.
 
 Only documentation changes in this run. No tests of financial behavior, new
 benchmarks, program builds, runtime integrations or deployments are claimed.
-Validation passes for six changed Markdown files, 129 local links/anchors, all
+Validation at clean `4025168cb3d4bfcc4e3ee0e7e0d42cc6415892b0` passes for six
+changed Markdown files, 129 local links/anchors, all
 25 phase headings and ordered dependencies, all 20 findings, six decision gates,
 whitespace and the tracked-evidence policy. No runtime suite was needed.
 P15B/P16B remain Open and 24-hour endurance Deferred. No access blocker is known.
+P51A is published ready as #72 and remains open; no merge or implementation
+completion is claimed. The later handoff update adds only publication metadata.
 
 ## Integrated quantity work
 
