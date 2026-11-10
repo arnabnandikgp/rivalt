@@ -1,5 +1,31 @@
 # SDK, API and wallet contracts
 
+## Planned account-scale interface (P51B)
+
+The schema-9/profile-5 [account contract](../clearing/accounts.md#account-scale-successor-contract-p51b)
+is a design candidate only; current clients below remain schema 8. P56A must add an
+explicit fresh deployment binding, generated IDL/codecs and staged completeness
+before any expanded profile is enabled. u64 member IDs/cursors are decimal strings
+in JSON and bigint internally; u32 portfolio/child keys have explicit bounds.
+Never cast a member ID into a JS number or confuse a page slot with a global ID.
+
+Paginate authenticated identities separately from the live financial index.
+Responses distinguish Registered, Financial, Retired and frozen/apply-pending
+state. A retired namespace is unavailable for reuse; a hidden zero balance does
+not prove retirement eligibility. Display funding cash and fractional/unpaid claims
+as before. SDK activation must name its storage/rent payer and include the actual
+atomic activation/deposit instructions; a provisioned page is not a funded account.
+Do not claim a complete portfolio/venue from one page or a partially caught-up DB.
+
+Default workers follow authenticated epoch/stage/cursors and upload untrusted rate/
+order proposals in bounded transactions. Retry the same persisted signed original
+after ambiguity, and reconcile its actual finalized transition before new work.
+Expose classified missing-storage, proposal-rejected, in-progress, invalidated-
+region and genuinely unbacked payment states. Neither a solver's model nor a local
+database can declare a root applied or a creditor paid. P52's staged indexer may
+land first with the current schema; it must preserve that schema's financial
+readiness rules rather than invent the future layout.
+
 ## Explicit deployment identity
 
 `AccountUserClient` validates version-4 local configuration, immutable artifact

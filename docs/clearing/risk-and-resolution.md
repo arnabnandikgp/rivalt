@@ -1,5 +1,124 @@
 # Risk, orders and complete resolution
 
+## Scalable exact resolution candidate (P51B)
+
+This section specifies the selected **native feasibility candidate**, not the
+implemented schema-8 default path documented below. P54 must still implement and
+qualify bounded SBF continuations; P56B owns expanded local activation. See the
+[account contract](accounts.md#account-scale-successor-contract-p51b) for membership,
+authority and deployment. No payer, keeper or off-chain solver becomes trusted.
+
+### Exact arithmetic and work representation
+
+Retain own whole-cash collection, proportional market allocation, greatest recovery
+rates, each market's insurance priority/clipping, fractional ownership and the
+existing deterministic circulation's atom owners. The changes are representations
+and search schedules, not a different payout rule:
+
+1. Reduce each double-debt collection's denominator **exactly**, then use their
+   LCM instead of blindly multiplying every total debt. For scaled debts a,b and
+   own collection k, the necessary divisor is `(a+b)/gcd(a+b,k*S*a)`; the second
+   collection has the same denominator because their sum is integer k*S.
+   Computing LCM requires a wide remainder/division by a <=88-bit divisor and
+   small Euclid, not an unbounded wide-by-wide gcd. Euclid can be bounded by 176
+   small iterations; wide scans have persisted limb cursors.
+2. Off chain, construct each continuous nondecreasing piecewise-affine market
+   response using sorted link thresholds and coefficient prefixes. Compose
+   `F0(F1(r0))` with a monotone interval merge. Every boundary is crossed at most
+   once; solve exact affine equalities, including identity intervals at their
+   greatest endpoint. This replaces Cartesian branch enumeration. On chain still
+   verify every original equation and the greatest-solution right-slope condition.
+3. Store frozen scalar rows and three **whole-flow floors/flags**, not two wide
+   numerators for every root. Shared paged registers reconstruct exact flows and
+   remainders when needed. An untrusted proposer supplies market remainder order;
+   verify a complete permutation and every adjacent ordering/tie before rounding.
+   Local root edge order is checked too. Stable member ID breaks ties as before.
+4. Preserve the existing residual DFS, but skip zero-capacity arcs with ordered
+   active-bit summaries. Skipping an unavailable arc cannot change the first
+   reachable path. Updates include both forward and reverse arcs; reverse repair
+   paths remain essential. A paged bit hierarchy must find the next active index
+   with bounded work; a large Python bit operation is not its SBF implementation.
+
+The [candidate](../../tests/financial/scalable_clearing_candidate.py) implements
+both dense and compact schedules; the retained independent Fraction/branch oracle
+and actual Rust kernel check the <=64 domain. The compact schedule stores O(N+B)
+scalar/limb words rather than O(N*B) wide row values, where B is the exact common
+width. Recomputing/sorting does extra arithmetic. On-chain adjacent verification
+needs linear comparisons after the untrusted off-chain sort, but storage reduction
+does **not** make all arithmetic linear in population: adversarial B grows with N.
+
+For `b=87+ceil(log2(max(N,1)))`, positive/linked totals are below 2^b and a rate
+factor below 2^(2b) suffices. Conservative scheduled width is `88*N+4*b+16` bits,
+rounded up to limbs, before checked allocation/index bounds. This is an upper
+bound, not a promise that the reduced LCM stays small. Later price, funding or
+claim-domain changes must rederive K and this bound. Retain factored writeoff
+records; never expand arbitrary products into ordinary margin state. Whole-flow
+quotients retain the existing <2^58 bound; exact flow rounding remains <one atom.
+
+### Frozen work, completion and adversarial proposals
+
+The successor stages are `Freeze → Value → Denominator → Propose → VerifyRates →
+VerifyOrder → Round → Apply → Reconcile → Resolved`, with the existing optional
+valuation wait and insurance clipping loop. Freeze commits safety/membership,
+complete live-index count/root, terms, source prices, both funding endpoints and
+allocated custody/pools. Unvalued pages cannot be omitted, duplicated or reordered;
+the cursor follows authenticated index paths, not an uploader's private list.
+Value checks every root's role/mode, q/claim/cash bounds and complete conservation.
+
+Proposal bytes are bounded by the proved count-derived width, tagged by epoch and
+attempt, and never written into arbitrary program-owned accounts. A new attempt
+can replace incomplete/unverified proposal work; it cannot reset frozen input,
+spend reserves or undo any applied root. Verification recomputes rates/flows and
+checks greatestness, integral insurance usage and complete sorted membership.
+After verification locks a plan, permissionless helpers resume the same deterministic
+work. No timeout awards a keeper's proposed cash or permits a creditor subset.
+
+Every continuation commits an opcode-specific progress cursor and authenticated
+page revisions; repeated/out-of-order/stale calls reject or resume the same prefix.
+Only verified Apply writes margin roots, exactly once. Partial application uses the
+existing mixed original/applied reconciliation rule; no payout/withdrawal before
+complete finalization. Reconcile checks cash, q, claims, pools, insurance, retained
+fees and actual vault, then clears obligations/orders/delegates and advances
+generations without resetting replay history. Recovery remains separate.
+
+Storage must be provisioned before financial activation, including enough shared
+scratch for the admitted numeric envelope. A forged/stalled proposer can consume
+only a bounded attempt allocation; it cannot force unlimited account creation.
+Specify and test reclaim/refund ownership, unavailable keeper recovery and retry
+funding before activation. Ordinary collateral/insurance cannot pay these SOL costs.
+
+### Operating envelope and release gates (G1–G3)
+
+These are engineering acceptance targets, **not new account registration ceilings**:
+
+| Dimension | Initial target and rationale |
+|---|---|
+| Native diagnostics | 64, 128, 1,024 and 10,000 registered rows; report the actual financial/empty/exposed counts separately |
+| First compiled cohort | 128 financial roots including mixed isolated/cross debt, six current makers and funded receivers; exceeds the old cap without conflating account and maker expansion |
+| Extended compiled diagnostic | 1,024 financial roots with adversarial fractions and connected cycles; 10,000 stays native until compiled storage/work budgets pass |
+| Active markets, collateral, OI | BTC/ETH, one mint; retain existing 100m position/200m gross lots, cash and claim bounds; no OI expansion inferred from account count |
+| Orders / makers | Four orders/two protections per root; three maker instances per market, two selected per route; P57/P60 own subsequent changes |
+| Per-transaction resources | Measured <=1m CU target, no unsafe stack frame, v0/v1 within their measured wire limits; no whole-cohort instruction; exceptional over-target step must be split and remeasured |
+| Recovery target | At 128 roots, <=2,000 signed continuation transactions, <=15 minutes at an explicitly measured local submission rate, <=16 MiB temporary state; report p50/p95 and failure/restart paths |
+| Network/storage budget | At most 10m lamports base-fee budget for the 2,000 one-signature target, plus separately measured rent; no priority bids assumed; these are test ceilings, not observed fees or live-network guarantees |
+| Larger-cohort decision | Publish total calls, CU, peak account bytes, actual rent/fees and recovery time for 1,024 before enabling that workload; no extrapolated production claim or silent capacity cap |
+| Ordinary profit payments | Make progress while relevant economic mutations and in-region fresh observations continue; retained current financial/oracle checks; no mandatory coordinated pause |
+
+The CU/time/storage targets are deliberately conservative review triggers for the
+first doubled cohort, not profitability calibration. Native counts/time do not
+establish these compiled targets. An enabled domain must have worst-case checked
+storage and finite continuation bounds; measured convenient cases alone cannot
+justify admitting an unresolvable state. P54/P55 must derive and measure those
+bounds before P56B removes the local financial gate. If the candidate cannot meet
+them, revise its schedule or return a concrete G2 economics/trust decision; do not
+silently weaken rounding, membership or insurance.
+
+G2 recommends the exact compact candidate without an economic departure. G3
+recommends [maintained backing proofs](accounting.md#incremental-backing-candidate-p51b),
+subject to its explicit mutation/validity proof and resource gate. The finite native
+diagnostics are feasibility evidence only; unproved SBF work or ordinary-payment
+liveness remains open, not acceptance supplied by old P16A/P49 results.
+
 ## Risk sources and account admission
 
 Risk uses independent index bounds, never maker execution prices or attested impact

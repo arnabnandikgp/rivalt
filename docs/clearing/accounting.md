@@ -1,5 +1,76 @@
 # Cash, claims and ordinary settlement
 
+## Incremental backing candidate (P51B)
+
+**Proposed successor, not implemented ordinary payment authority.** Schema 8 still
+uses the restartable certificate below. G3 recommends maintaining proof contributions
+as financial state changes, while separating an arithmetic validity region from
+the freshness of the actual source accounts. This requires no user-visible pause
+and does not make positive profit spendable without complete backing/pool cash.
+
+For each market, a certificate epoch specifies a conservative rectangular range of
+price and funding endpoints for **both** markets. The range includes the currently
+admitted source/held-funding possibilities. For each root use checkpoint-adjusted
+`z_m = v_m + q_m*F_checkpoint,m`, so `U_m = q_m*(M_m*S-F_m)+z_m`.
+Moving a consumed funding checkpoint preserves z exactly; a new price does not
+rewrite the root. At each corner compute own total negative claims, counting cash
+once and no positive claims/reserves. An entry is bad for market m if it can owe m
+anywhere in the region and its cash cannot cover the maximum gross debt in that
+region. This sufficient condition may withhold a payout; it cannot excuse a losing
+other-market claim. Claim conservation can be checked symbolically:
+`sum(q_m)=0` and `sum(z_m)=P_m*S`, without restarting for every in-region observation.
+
+Paged scans mark each entry's contribution processed for this certificate epoch.
+Every later economic mutation of a processed entry atomically removes its old
+contribution and installs the new one, in the **same clearing invocation** as cash/
+q/v/claim changes. An unprocessed entry remains owed by the scan. Do not reject an
+otherwise valid trade merely to keep its proof green: a newly unbacked entry sets
+bad and blocks payment instead. Page summaries and a selected-market aggregate
+track processed count, bad count and exact q/z sums; a payment cannot sum a private
+subset of convenient pages. The complete financial index authenticates coverage.
+
+This gives monotone scan progress within a fixed region despite changes to already
+processed roots. It does not promise completion under infinitely fast new financial
+membership or arbitrary oracle jumps. Membership changes must install a complete
+neutral contribution or an explicit unprocessed entry atomically; no reuse of old
+page coverage bits. Safety/terms or region changes start a new proof epoch. The
+old epoch cannot silently certify an out-of-region source or funding endpoint.
+
+At payment, still require current credible/fresh required sources, the actual
+current/held funding endpoints **inside** the certified region, complete coverage,
+zero bad entries, exact symbolic conservation, available P and recipient final
+whole-account health/reservations. Fresh new observations inside the region need
+not destroy an unchanged arithmetic proof. They must independently satisfy all
+existing age, confidence, divergence and recovery rules. A region is not a way to
+renew an old source timestamp or ignore unconsumed funding. If current points leave
+the region, withhold payment and start a new region proof; funded-cash exits retain
+their own local checks and never wait for that certificate.
+
+P55B must specify the versioned certificate/summary layouts and authenticate every
+mutation path: deposit, withdrawal, transfer, direct/stored fills, loss/gain, flat
+netting, liquidation, entry/retirement, fee-driven cash changes and resolution/
+recovery. Orders/delegation alone do not change economic proof contributions.
+Pool changes update the selected symbolic identity; terminal changes invalidate
+ordinary proof epochs. Every SDK/event/indexer path must carry the added declared
+writes. This can add page/aggregate write contention; measure it against P40–P44
+rather than assume an arithmetic improvement improves throughput.
+
+The [executable summary model](../../tests/financial/incremental_backing_candidate.py)
+checks already-admitted root mutations; its independent test enumerates all 16
+two-market price/funding corners. It models neither authorization nor Solana
+rollback, membership page authentication, source freshness validation or whole-
+account trading admission. It cannot qualify P55B. Required signed acceptance is
+continuous relevant sampling/trading with real RPC/WS/PG, interrupted scan/restart,
+membership churn, newly bad/then repaired roots, mixed funding corners, exact
+generation/revision checks and final-page/payment rollback. A fixed-region scan
+must finish without resetting its cursor under bounded admitted mutation load.
+Out-of-region movement and genuine insolvency must remain classified refusals.
+
+Do not install a compulsory market pause, reserve positive profit as cash or accept
+a stale proof to meet that test. If safe progress needs a coordinated window after
+all, G3 requires a concrete scope/duration/exit-effects proposal and explicit user
+approval. The current candidate makes no such departure.
+
 ## Cash, claims and normal transitions
 
 Use the existing 10^9 claim/funding scale, i128 normal claims/checkpoints, exact

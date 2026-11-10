@@ -5,6 +5,45 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D93 — exact account-scale feasibility direction (10 November 2026)
+
+The user accepted D92's roadmap and authorized implementation. P51B explores a
+successor with paged immutable identity, a separately authenticated complete
+financial index and owner-authorized empty retirement. Empty registration does
+not consume a fixed lifetime economic slot. Every admitted obligation remains in
+complete two-market default; no additional loss-sharing groups are introduced.
+
+Select exact reduced LCM, compact scalar frozen rows/shared paged arithmetic,
+verified remainder ordering and the same canonical conserving DFS with inactive
+arc skipping for implementation feasibility. The rate proposer remains untrusted.
+Native comparisons preserve the current kernel's exact atom owners, insurance
+clipping and greatest solution, including reciprocal cycles and outside creditors.
+Dynamic allocation alone failed the larger dense-storage diagnostic; compact
+representation avoids storing a full wide numerator per account. It does not
+prove production-scale resources or replace the later signed SBF acceptance.
+
+Recommend maintaining ordinary backing contributions inside a conservative
+price/funding region, while independently checking current source validity and
+whole-account payment health. Financial mutations update scanned contributions
+atomically; they cannot preserve a green proof by hiding a new shortfall. No new
+mandatory pause, unpaid-profit credit or relaxed oracle rule is authorized.
+Actual write contention, full mutation coverage and bounded progress remain gates.
+
+This deliberately proposes to supersede D59's fixed 64-row/96-limb storage schedule
+and product-denominator implementation, and D60's lifetime registry representation,
+**not their financial priorities**. D63/P42 source-stamp invalidation is replaced
+only if P55B proves the maintained-region contract. Component docs label these as
+successor candidates; schema 8 and all deployed rules remain normative until the
+owning implementation/qualification. Reserve schema 9/profile 5 for a fresh local
+domain/journal, with no in-place migration or implicit artifact promotion.
+
+G1 resource targets and G2/G3 recommendations are recorded in
+[resolution](clearing/risk-and-resolution.md#scalable-exact-resolution-candidate-p51b),
+[accounts](clearing/accounts.md#account-scale-successor-contract-p51b) and
+[accounting](clearing/accounting.md#incremental-backing-candidate-p51b).
+Any required payout/trust change or compulsory coordination window returns for
+explicit approval. P15B/P16B and deferred endurance remain separate.
+
 ## D92 — audit remediation sequence and explicit policy gates (10 November 2026)
 
 After P48–P50 integration, the user requested a complete PR-scoped roadmap for the
