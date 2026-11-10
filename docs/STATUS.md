@@ -87,13 +87,14 @@ report is correctly skipped. The subsequent P49 review identified two valid
 interface-documentation corrections and unnecessary source-unavailable order
 probes. The worker now stops that order's current pass after a missing-source
 result; smaller expiry/depth/health/search-budget probes remain eligible because
-allocation can change. Seventeen focused worker/route tests and typecheck pass.
+allocation can change. Seventeen focused worker/route tests and typecheck pass
+on review fix `d63e3b1`.
 These are consumer/control-flow checks, not new signed integration evidence;
 programs, financial admission and durable-original handling are unchanged.
 Pending acceptance detail was removed from HISTORY; integration will be recorded
 only after merge. P48's publication-status finding is already corrected here.
-The user authorized review fixes and stack merge on 10 November. Next exact
-action: publish this fix, restack P50, verify hosted checks and merge stack #70.
+The user authorized review fixes and stack merge on 10 November. P50 is restacked
+above the fix. Next exact action: verify hosted checks and merge stack #70.
 P15B/P16B and deferred endurance are unchanged; no public/funded deployment is
 qualified.
 
@@ -113,8 +114,10 @@ Validation: source/call-site searches, historical decision checks, exact unit
 arithmetic and document/path checks. No new financial test, runtime benchmark,
 security certification or production readiness is inferred. There is no blocker.
 P50 is published ready as [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71)
-above #69/#68; all three remain open. Next exact action: select the first remediation
-scope from the audit priorities; no policy/economic remedy is authorized by this review.
+above #69/#68; all three remain open pending the authorized merge. Its automated
+review was rate-limited; this is not independent approval. The user deferred audit
+remediation, including the 64-account redesign, until after integration. No remedy
+is started or authorized by the audit itself.
 
 ## P46 serialized port checkpoint
 
