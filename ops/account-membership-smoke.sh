@@ -9,9 +9,9 @@ from pathlib import Path
 import hashlib,json,os
 root=Path(os.environ['RIVALT_MEMBERSHIP_ARTIFACT_DIR'])
 manifest=json.loads((root/'build-manifest.json').read_text())
-assert manifest['revision']=='174b3b2a9659b873b6ac037f9050fee27d3ac31f'
-assert manifest['trackedDirty'] is False and manifest['scratchSchema']==9
-expected='189320a7a9ed4ebf419dd421f8b3aee639775827535f2afa25ac854092cde85f'
+assert manifest['revision']=='65c14bf0ff24122f051bb57faedddf0b291dcc77'
+assert manifest['trackedDirty'] is False and manifest['accountSchema']==9 and manifest['profileVersion']==5
+expected='2db51e364f0a8acc2aebe0da9c407a62d95e6b648a035c9954ee0aa86c0d0e01'
 assert manifest['binaries']['clearing.so']==expected
 assert hashlib.sha256((root/'clearing.so').read_bytes()).hexdigest()==expected
 PY

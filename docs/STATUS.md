@@ -701,10 +701,14 @@ Those changes are committed at `bfd10e8`; its first SBF build was rejected becau
 `account_cash::certificate::check` exceeded the 4,096-byte stack-offset limit by
 584 bytes (estimated frame 4,800 bytes). No binary from that build is admitted.
 The fix keeps one market snapshot and places bounded traversal in a separate
-non-inlined call; fresh compilation and signed acceptance remain required.
+non-inlined call. Clean **`65c14bf`** builds all three qualification SBF programs
+without oversized-stack diagnostics; clearing is 2,335,664 bytes, SHA-256
+`2db51e364f0a8acc2aebe0da9c407a62d95e6b648a035c9954ee0aa86c0d0e01`.
+The signed lifecycle probe now targets that candidate; no signed schema-9 result
+is claimed before the fresh run completes.
 
 Service controllers, existing RPC harnesses and remaining consumer tests still
-need migration; full typecheck is not yet green. Fresh SBF, signed lifecycle/race/
+need migration; full typecheck is not yet green. Signed lifecycle/race/
 default/refund checks and PostgreSQL reconciliation remain outstanding. No new PR
 or artifact promotion is claimed. No user decision/access blocker is known.
 Next exact action: build the canonical SBF candidate, migrate the signed lifecycle

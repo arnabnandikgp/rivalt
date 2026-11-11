@@ -9,6 +9,7 @@ import {getCreateAccountInstruction,getTransferSolInstruction} from '@solana-pro
 import {TOKEN_PROGRAM_ADDRESS,getInitializeMint2Instruction} from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import {addresses,fixtureKey,payerKey} from './harness.js';
+import {prepareMembershipLifecycle} from './account-membership-lifecycle.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 
 const directory=process.env.RIVALT_RUN_DIR!;
@@ -23,7 +24,7 @@ type Allocation={kind:number;register:number;page:bigint;key:Address;receipt:Add
 try {
   const payer=await payerKey(),mint=await fixtureKey('p55a2-storage-mint'),attacker=await fixtureKey('p55a2-storage-attacker');
   const deployment=await addresses();
-  const domain=createHash('sha256').update('rivalt/p55a2/pre-funded-recovery-storage/provisioning-only').digest();
+  const domain=createHash('sha256').update('rivalt/p55a2/schema9/profile5/lifecycle').digest();
   const venue=await derive(Buffer.from('venue-v3'),domain);
   const pda=(prefix:string,...indices:ReadonlyUint8Array[])=>derive(Buffer.from(prefix),bytes.encode(venue),...indices);
   const custody=await pda('custody-v3'),safety=await pda('safety-v3'),vault=await pda('vault-v3');
@@ -46,6 +47,7 @@ try {
   const reject=async(label:string,instruction:Instruction,error=sdk.CLEARING_ERROR__RESOLUTION,signers:typeof payer[]=[])=>{
     const before=await snapshot();await h.send(`P55 reject ${label}`,[instruction],signers,error);assert.deepEqual(await snapshot(),before,label);
   };
+  const lifecycle=await prepareMembershipLifecycle(h,rpc,flush,{...common,custody,vault},mint.address,markets,ledgers,tracked);
   await reject('non-authority growth',sdk.getBeginRecoveryProvisionInstruction({...admin,authority:attacker,capacity:128n,revision:(await state()).revision}),2001,[attacker]);
   await reject('zero capacity',sdk.getBeginRecoveryProvisionInstruction({...admin,capacity:0n,revision:(await state()).revision}));
   await reject('overflow capacity',sdk.getBeginRecoveryProvisionInstruction({...admin,capacity:0xffffffffffffffffn,revision:(await state()).revision}));
@@ -57,7 +59,7 @@ try {
     const receipt=await pda('storage-funding',bytes.encode(key));
     tracked.add(key);tracked.add(receipt);
     return {kind,register,page,key,receipt,name:['preparedSettlement','settlementRates','settlementPlan','frozenMarginPage','settlementLimbPage'][kind],
-      size:[1463,1204,1181,1156,2129][kind]};
+      size:[1460,1204,1181,1156,2129][kind]};
   };
   const firstAllocations=await Promise.all([0,1].map(kind=>allocation(kind,0,0n)));
   let totalContribution=0n,totalRent=0n;
@@ -122,16 +124,18 @@ try {
   await reject('decrease funded capacity',sdk.getBeginRecoveryProvisionInstruction({...admin,capacity:127n,revision:complete.revision}));
   assert.equal(sdk.getCustodyDecoder().decode((await h.read(custody))!).allocatedVault,0n);
   assert.equal((await rpc.call('getTokenAccountBalance',[vault,{commitment:'confirmed'}])).value.amount,'0');
+  const lifecycleResult=await lifecycle.complete(expected);
   await flush();
   for(const outcome of checks)assert.deepEqual(outcome.signatureWsError,outcome.error);
   writeFileSync(`${directory}/outcomes.json`,encode(checks));
   const parity=await conformance.finish(directory,[{program:sdk.CLEARING_PROGRAM_ADDRESS,name:'recoveryStorage',key:storage},
-    ...expected.flatMap(item=>[{program:sdk.CLEARING_PROGRAM_ADDRESS,name:item.name,key:item.key},
-      {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'storageFunding',key:item.receipt}])],h.read);
+    ...expected.flatMap(item=>[{program:sdk.CLEARING_PROGRAM_ADDRESS,name:lifecycle.parity.get(item.key)??item.name,key:item.key},
+      {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'storageFunding',key:item.receipt}]),
+    ...[...lifecycle.parity].filter(([key])=>!expected.some(item=>item.key===key)).map(([key,name])=>({program:sdk.CLEARING_PROGRAM_ADDRESS,key,name}))],h.read);
   const result={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     build:JSON.parse(readFileSync(`${process.env.RIVALT_MEMBERSHIP_ARTIFACT_DIR}/build-manifest.json`,'utf8')),
-    scope:'provisioning-only; no Financial membership, default or PostgreSQL acceptance',checks,parity,
+    scope:'storage, owner lifecycle and terminal refunds; default and PostgreSQL still separate acceptance',checks,parity,lifecycle:lifecycleResult,
     allocations:expected.length,readyCapacity:complete.readyCapacity,totalAllocationAndReceiptRent:totalRent,totalContribution,
     financialCollateral:0n,rawAccounts:await snapshot()};
   writeFileSync(`${directory}/result.json`,encode(result));
