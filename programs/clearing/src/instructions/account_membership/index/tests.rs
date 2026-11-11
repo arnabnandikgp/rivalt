@@ -17,7 +17,7 @@ fn path(venue: Address, id: u64) -> Vec<TestAccount> {
                 &crate::ID,
             );
             let mut bytes = MemberIndexNode::DISCRIMINATOR.to_vec();
-            bytes.extend_from_slice(&9u16.to_le_bytes());
+            bytes.extend_from_slice(&10u16.to_le_bytes());
             bytes.extend_from_slice(&7u64.to_le_bytes());
             bytes.extend_from_slice(venue.as_ref());
             bytes.push(level);

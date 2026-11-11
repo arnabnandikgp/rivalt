@@ -53,7 +53,7 @@ fn allocation(venue: Address, kind: Allocation, epoch: u64) -> (TestAccount, Tes
     let (key, bump) = find_program_address(&seeds, &crate::ID);
     let mut bytes = vec![0x55; length];
     bytes[..8].copy_from_slice(discriminator);
-    bytes[8..10].copy_from_slice(&9u16.to_le_bytes());
+    bytes[8..10].copy_from_slice(&10u16.to_le_bytes());
     bytes[10..18].copy_from_slice(&11u64.to_le_bytes());
     bytes[18..50].copy_from_slice(venue.as_ref());
     bytes[50..58].copy_from_slice(&epoch.to_le_bytes());
@@ -71,7 +71,7 @@ fn allocation(venue: Address, kind: Allocation, epoch: u64) -> (TestAccount, Tes
         &crate::ID,
     );
     let mut receipt_bytes = StorageFunding::DISCRIMINATOR.to_vec();
-    receipt_bytes.extend_from_slice(&9u16.to_le_bytes());
+    receipt_bytes.extend_from_slice(&10u16.to_le_bytes());
     receipt_bytes.extend_from_slice(&1u64.to_le_bytes());
     receipt_bytes.extend_from_slice(venue.as_ref());
     receipt_bytes.extend_from_slice(key.as_ref());

@@ -4,7 +4,7 @@ use anchor_lang::AccountDeserialize;
 
 fn common(name: &[u8], venue: Address) -> Vec<u8> {
     let mut bytes = solana_sha256_hasher::hash(name).to_bytes()[..8].to_vec();
-    bytes.extend_from_slice(&9u16.to_le_bytes());
+    bytes.extend_from_slice(&10u16.to_le_bytes());
     bytes.extend_from_slice(&7u64.to_le_bytes());
     bytes.extend_from_slice(venue.as_ref());
     bytes

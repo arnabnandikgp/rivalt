@@ -161,7 +161,7 @@ mod tests {
         safety.paused = true;
         assert!(activated(&venue, &custody, &safety).is_err());
         safety.paused = false;
-        for version in [0, 1, 2, 3, 4, 6] {
+        for version in [0, 1, 2, 3, 4, 5, 7] {
             venue.profile_version = version;
             assert!(activated(&venue, &custody, &safety).is_err());
         }

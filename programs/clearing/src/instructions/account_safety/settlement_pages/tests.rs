@@ -15,7 +15,7 @@ fn page(venue: Address, register: u32, index: u64, words: u16) -> (Address, Vec<
     );
     let mut bytes =
         solana_sha256_hasher::hash(b"account:SettlementLimbPage").to_bytes()[..8].to_vec();
-    bytes.extend_from_slice(&9u16.to_le_bytes());
+    bytes.extend_from_slice(&10u16.to_le_bytes());
     bytes.extend_from_slice(&11u64.to_le_bytes());
     bytes.extend_from_slice(venue.as_ref());
     bytes.extend_from_slice(&19u64.to_le_bytes());
