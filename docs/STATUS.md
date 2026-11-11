@@ -179,8 +179,11 @@ Policy-2 source and canonical logarithmic funding search are being implemented
 on `implementation/p53b-price-range` above `b6fbcb8`. Selected P53A artifacts remain
 unchanged until fresh signed acceptance. Scoped source checks pass: 23 financial-core and 29 clearing-engine tests;
 52 affected client/UI checks include 1,536 independent per-lot exhaustive funding
-comparisons. Generated SDK/policy and pinned ABI checks pass. No new runtime
-result is claimed. P54A follows
+comparisons. Generated SDK/policy and pinned ABI checks pass. Clean SBF `afeb7ea` built without unsafe stack diagnostics; candidate clearing is
+1,538,848 bytes. The same clean revision measured 1,800 canonical funding searches:
+maximum 329 distinct quotes, p95 0.394 ms / p99 0.535 ms on this Mac. These are
+bounded CPU scenarios, not worst-case latency or landed CU. Signed runtime
+acceptance is next; no completed runtime result is claimed. P54A follows
 P53B on the unchanged arithmetic proof. P15B/P16B and deferred endurance are unchanged.
 
 ## Integrated quantity work

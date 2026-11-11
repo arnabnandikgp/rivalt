@@ -9,11 +9,12 @@ import {json} from '../../packages/indexer/src/events.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
+import {pricePolicyCases,pricePolicyShape} from './price-policy-cases.js';
 
 const runDir=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATABASE_URL!;
 assert(databaseUrl,'Owned real PostgreSQL required');
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,runDir,{
-  deferFinality:true,computeUnitLimit:label=>label.startsWith('P33 route')?800_000:label.startsWith('P32 publisher')?200_000:400_000,
+  deferFinality:true,computeUnitLimit:label=>label.startsWith('P33 route')||label.startsWith('P53B route')?800_000:label.startsWith('P32 publisher')?200_000:400_000,
   maxLoadedAccounts:label=>label.startsWith('P32 publisher')?20:label.startsWith('P33 route')||label.startsWith('refresh independent')?32:undefined,
 });
 async function published(indexer:LiquidityIndexer) {
@@ -26,7 +27,9 @@ async function published(indexer:LiquidityIndexer) {
 }
 let indexer:LiquidityIndexer|undefined,replay:LiquidityIndexer|undefined;
 try {
-  const setup=await liquidityExecutionSetup(h,rpc),margin=setup.roots[0],owner=setup.traderOwner;
+  const pricePolicy=process.env.RIVALT_PRICE_POLICY==='1';
+  const setup=await liquidityExecutionSetup(h,rpc,pricePolicy?{shape:pricePolicyShape}:{}),margin=setup.roots[0],owner=setup.traderOwner;
+  const policyEvidence=pricePolicy?await pricePolicyCases(h,setup):null;
   const {root,guard,route}=executionTestHelpers(h,setup);
   const trade=()=>route({trader:margin,actor:owner,marketIndex:0,side:0,makers:[setup.instances[0]],lots:[1n]});
   await setup.sample();await h.send('P33 route first actual indexed fill',[await trade()],[owner]);await flush();
@@ -61,7 +64,7 @@ try {
     assert.equal((await api.inject({url:'/v3/venue'})).statusCode,404);
     const venue=await api.inject({url:'/v4/venue'});assert.equal(venue.statusCode,200);
     assert.equal(venue.json().schemaVersion,4);assert.equal(venue.json().fundingTrust,'restricted-publisher-attestation');
-    const fills=await api.inject({url:'/v4/trades?latest=true'});assert.equal(fills.statusCode,200);assert.equal(fills.json().items.length,2);
+    const fills=await api.inject({url:'/v4/trades?latest=true'});assert.equal(fills.statusCode,200);assert.equal(fills.json().items.length,pricePolicy?18:2);
     indexer.healthy=false;assert.equal((await api.inject({url:'/v4/venue'})).statusCode,503);indexer.healthy=true;
   }finally{await api.close();}
   await indexer.store.pool.query('CREATE DATABASE rivalt_p33_replay');
@@ -81,13 +84,14 @@ try {
   // Independently expected two one-lot fills: cumulative 26-atom fees, 6 reserve,
   // 20 protocol and remainder 2. This is not an implementation-derived oracle.
   const ledger=snapshot.state.ledgers[setup.ledgers[0]];
-  assert.deepEqual([ledger.insurance,ledger.fees,ledger.insuranceFeeRemainder],['6','20',2]);
-  assert.equal(Object.values(snapshot.state.roots).reduce((sum,value)=>sum+BigInt(value.cash),0n)+26n,8_000_000n);
+  assert.deepEqual([ledger.insurance,ledger.fees,ledger.insuranceFeeRemainder],pricePolicy?['109','327',0]:['6','20',2]);
+  if(pricePolicy){const eth=snapshot.state.ledgers[setup.ledgers[1]];assert.deepEqual([eth.insurance,eth.fees,eth.insuranceFeeRemainder],['103','309',0]);}
+  assert.equal(Object.values(snapshot.state.roots).reduce((sum,value)=>sum+BigInt(value.cash),0n)+(pricePolicy?848n:26n),8_000_000n);
   const summary={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),checks,
     binding:snapshot.binding,counts,reconciliation,state:snapshot.state,metrics:indexer.metrics,replayMetrics:replay.metrics,
-    replayPublished:true,replayedEvents:replayEvents.rows.length,
+    replayPublished:true,replayedEvents:replayEvents.rows.length,policyEvidence,
     scope:'P33 finalized projection slice; durable workers and browser acceptance remain separate',phaseAcceptance:false};
   writeFileSync(`${runDir}/summary.json`,json(summary));console.log(json({stage:'p33-indexer-pass',counts,reconciliation,phaseAcceptance:false}));
 }finally{await replay?.close();await indexer?.close();try{await flush();}finally{ws.close();}}
