@@ -61,3 +61,18 @@ export function accountRiskSources(snapshot:sdk.AccountSnapshot) {
   const btc=snapshot.marketStates[0].oracle.sources,eth=snapshot.marketStates[1].oracle.sources;
   return {primaryBtc:btc[0],primaryCollateral:btc[1],guardBtc:btc[2],guardCollateral:btc[3],primaryEth:eth[0],guardEth:eth[2]};
 }
+
+/** Frozen work selects no live financial candidate: its canonical source and
+ * cursor already bind the complete cohort. Do not make it depend on read-API
+ * publication freshness. The program authenticates every derived account again. */
+export async function accountDefaultContext(rpc:Pick<Rpc,'call'>,state:Awaited<ReturnType<typeof readAccountResolution>>) {
+  const venue=state.registryState.venue;
+  assert([2,14,15,16].includes(state.header.stage),'No authenticated frozen continuation');
+  const [[custody],[safety],[vault],[btc],[eth]]=await Promise.all([
+    sdk.deriveVenueComponent(venue,'custody'),sdk.deriveVenueComponent(venue,'safety'),sdk.deriveVenueComponent(venue,'vault'),
+    sdk.deriveAccountMarket(venue,0),sdk.deriveAccountMarket(venue,1)]);
+  const [[btcLedger],[ethLedger]]=await Promise.all([sdk.deriveMarketLedger(btc),sdk.deriveMarketLedger(eth)]);
+  const slot=await rpc.call('getSlot',[{commitment:'confirmed',minContextSlot:Number(state.contextSlot)}]);
+  assert(Number.isSafeInteger(slot)&&BigInt(slot)>=state.contextSlot,'Default clock predates continuation');
+  return {...state,venue,custody,safety,vault,btc,eth,btcLedger,ethLedger,slot:BigInt(slot)};
+}

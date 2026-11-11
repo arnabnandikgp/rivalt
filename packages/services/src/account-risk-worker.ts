@@ -5,7 +5,7 @@ import * as sdk from '@rivalt/sdk';
 import {quantityCandidates} from './quantity-candidates.js';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
-import {accountRiskSources,readAccountResolution} from './account-worker-state.js';
+import {accountRiskSources,readAccountResolution,accountDefaultContext} from './account-worker-state.js';
 
 import {accountDefaultStep} from './account-default-worker.js';
 
@@ -16,8 +16,6 @@ export const CANONICAL_DEFAULT_AUTOMATION_READY=false;
 export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receiver?:Address):Promise<AccountWorkerOutcome> {
   const budget=await runtime.budget('risk',key);
   if(await runtime.pendingBudget(budget))return {status:'blocked',reason:'original-risk-intent-pending'};
-  const {state}=await runtime.discovery(),snapshot=await runtime.snapshot();
-  const continuation=await readAccountResolution(runtime.rpc,snapshot.venue),{header}=continuation;
   const submit=async(id:string,instruction:Instruction,resolution=false,authority:AccountAuthority|null=null)=>{
     try {
       // Frozen continuation has no invented expiry proof. Unknown originals hold
@@ -26,17 +24,24 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
       return true;
     } catch(error) {if(error instanceof Error&&error.message==='Risk action presently unavailable')return false;throw error;}
   };
-  const common={...snapshot,...continuation,...accountRiskSources(snapshot)};
-  if(snapshot.safetyState.mode===2) {
-    if(header.stage===1)return await submit(`value:${header.epoch}`,sdk.getValueAccountResolutionInstruction({...common,epoch:header.epoch}),true)?
-      {status:'queued',reason:'awaited-complete-cohort-valuation'}:{status:'blocked',reason:'closeout-sources-unavailable'};
-    if([2,14,15,16].includes(header.stage)) {
-      if(runtime.deploymentSelection!=='account-scale-candidate')return {status:'blocked',reason:'default-candidate-binding-required'};
-      const step=await accountDefaultStep(runtime,key,continuation,common);
+  // An already frozen source supplies complete membership authority. Continuing
+  // it needs immutable deployment binding, not fresh live candidate discovery.
+  if(runtime.deploymentSelection==='account-scale-candidate') {
+    const binding=await runtime.environment(),frozen=await readAccountResolution(runtime.rpc,address(binding.venue));
+    if([2,14,15,16].includes(frozen.header.stage)) {
+      const step=await accountDefaultStep(runtime,key,frozen,await accountDefaultContext(runtime.rpc,frozen));
       if(step.status==='blocked')return step;
       return await submit(step.id,step.instruction,true)?{status:'queued',reason:step.reason}:
         {status:'blocked',reason:'default-step-presently-unavailable'};
     }
+  }
+  const {state}=await runtime.discovery(),snapshot=await runtime.snapshot();
+  const continuation=await readAccountResolution(runtime.rpc,snapshot.venue),{header}=continuation;
+  const common={...snapshot,...continuation,...accountRiskSources(snapshot)};
+  if(snapshot.safetyState.mode===2) {
+    if(header.stage===1)return await submit(`value:${header.epoch}`,sdk.getValueAccountResolutionInstruction({...common,epoch:header.epoch}),true)?
+      {status:'queued',reason:'awaited-complete-cohort-valuation'}:{status:'blocked',reason:'closeout-sources-unavailable'};
+    if([2,14,15,16].includes(header.stage))return {status:'blocked',reason:'default-candidate-binding-required'};
     return {status:'blocked',reason:'unsupported-frozen-stage'};
   }
   if(snapshot.safetyState.mode===3&&header.stage===11) {

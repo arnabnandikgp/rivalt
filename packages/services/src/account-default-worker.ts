@@ -5,7 +5,7 @@ import {AccountRole,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime} from './account-runtime.js';
-import {decodeAccountWorker,readAccountResolution} from './account-worker-state.js';
+import {decodeAccountWorker,readAccountResolution,accountDefaultContext} from './account-worker-state.js';
 import {SettlementPages,type SettlementPageRequest} from './settlement-pages.js';
 import {defaultProposal,proposeMarketOrder} from './account-default-proposal.js';
 
@@ -16,7 +16,7 @@ function transport(runtime:AccountRuntime) {
   let value=transports.get(runtime);if(!value){value=new SettlementPages();transports.set(runtime,value);}return value;
 }
 export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,state:Continuation,
-  common:sdk.AccountSnapshot&Continuation):Promise<DefaultStep> {
+  common:Awaited<ReturnType<typeof accountDefaultContext>>):Promise<DefaultStep> {
   const {header,preparedState:prepared,ratesState:rates,planState:plan}=state,epoch=header.epoch,venue=prepared.venue;
   const args={...common,epoch};
   const ready=(reason:string,instruction:Instruction):DefaultStep=>({status:'ready',reason,instruction,

@@ -604,7 +604,9 @@ genesis, owner and executable hash checks remain mandatory.
 
 `account-default-worker.ts` proposes one bounded current transition after checking
 that no unresolved risk original owns the budget. The source, prepared, rates and
-plan headers share a coherent RPC fence. Canonical frozen/limb pages are provisioned
+plan headers share a coherent RPC fence. Frozen continuation uses this complete
+on-chain source directly and remains available during read-API publication lag.
+Live liquidation/freeze discovery still requires fresh reconciled publication. Canonical frozen/limb pages are provisioned
 before Financial admission; the worker initializes/reuses those allocations and
 never spends collateral for SOL rent. Rate and complete market-order proposals are
 untrusted. They are recomputed from fenced frozen rows on process restart and cached
