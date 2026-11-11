@@ -4,8 +4,10 @@
 //! maintains every economic mutation atomically, and separately admits current
 //! oracle/held funding, safety/terms, available pool and recipient health. Region
 //! membership is an arithmetic fact, never source freshness or margin credit.
-use crate::{clearing::scalable::snapshot::ClaimTotal, margin::Margin, Error, Result,
-    MAX_CASH, MAX_FUNDING, MAX_LOTS, MAX_PRICE, MAX_SCALED};
+use crate::{
+    clearing::scalable::snapshot::ClaimTotal, margin::Margin, Error, Result, MAX_CASH, MAX_FUNDING,
+    MAX_LOTS, MAX_PRICE, MAX_SCALED,
+};
 
 /// |v + q*checkpoint| < 2^87. At most u64::MAX contributors sum to < 2^151.
 pub const MAX_FIXED: u128 = MAX_SCALED as u128 + MAX_LOTS as u128 * MAX_FUNDING as u128;
@@ -21,10 +23,13 @@ pub struct MarketRegion {
 }
 impl MarketRegion {
     fn validate(&self) -> Result<()> {
-        if self.price_low == 0 || self.price_low > self.price_high || self.price_high > MAX_PRICE
+        if self.price_low == 0
+            || self.price_low > self.price_high
+            || self.price_high > MAX_PRICE
             || self.funding_low > self.funding_high
             || self.funding_low.unsigned_abs() > MAX_FUNDING as u128
-            || self.funding_high.unsigned_abs() > MAX_FUNDING as u128 {
+            || self.funding_high.unsigned_abs() > MAX_FUNDING as u128
+        {
             return Err(Error::Bounds);
         }
         Ok(())
@@ -37,29 +42,45 @@ pub struct Region {
 }
 impl Region {
     pub fn validate(&self) -> Result<()> {
-        for market in self.markets { market.validate()?; }
+        for market in self.markets {
+            market.validate()?;
+        }
         Ok(())
     }
 
     /// Cover all supplied current risk prices and held funding endpoints for
     /// each required market. Callers must authenticate the mask and those inputs.
-    pub fn contains(&self, required: u8, prices: [[u64; 2]; 2], funding: [[i128; 2]; 2]) -> Result<bool> {
+    pub fn contains(
+        &self,
+        required: u8,
+        prices: [[u64; 2]; 2],
+        funding: [[i128; 2]; 2],
+    ) -> Result<bool> {
         self.validate()?;
-        if required > 3 { return Err(Error::Bounds); }
+        if required > 3 {
+            return Err(Error::Bounds);
+        }
         let mut inside = true;
         for index in 0..2 {
-            if required & (1 << index) == 0 { continue; }
+            if required & (1 << index) == 0 {
+                continue;
+            }
             let range = self.markets[index];
             let [price_low, price_high] = prices[index];
             let [funding_low, funding_high] = funding[index];
-            if price_low == 0 || price_low > price_high || price_high > MAX_PRICE
+            if price_low == 0
+                || price_low > price_high
+                || price_high > MAX_PRICE
                 || funding_low > funding_high
                 || funding_low.unsigned_abs() > MAX_FUNDING as u128
-                || funding_high.unsigned_abs() > MAX_FUNDING as u128 {
+                || funding_high.unsigned_abs() > MAX_FUNDING as u128
+            {
                 return Err(Error::Bounds);
             }
-            inside &= range.price_low <= price_low && price_high <= range.price_high
-                && range.funding_low <= funding_low && funding_high <= range.funding_high;
+            inside &= range.price_low <= price_low
+                && price_high <= range.price_high
+                && range.funding_low <= funding_low
+                && funding_high <= range.funding_high;
         }
         Ok(inside)
     }
@@ -67,25 +88,32 @@ impl Region {
     pub fn contribution(&self, root: &Margin, selected: usize) -> Result<Contribution> {
         self.validate()?;
         root.validate()?;
-        if selected >= 2 { return Err(Error::Bounds); }
+        if selected >= 2 {
+            return Err(Error::Bounds);
+        }
         let mut fixed = [0i128; 2];
         let mut minimum = [0i128; 2];
         for index in 0..2 {
             let position = root.positions[index];
             let quantity = i128::from(position.lots);
-            fixed[index] = crate::add(position.virtual_scaled,
-                crate::mul(quantity, position.funding_checkpoint)?)?;
+            fixed[index] = crate::add(
+                position.virtual_scaled,
+                crate::mul(quantity, position.funding_checkpoint)?,
+            )?;
             let range = self.markets[index];
             let (price, funding) = if quantity >= 0 {
                 (range.price_low, range.funding_high)
             } else {
                 (range.price_high, range.funding_low)
             };
-            minimum[index] = crate::add(fixed[index], crate::mul(quantity,
-                crate::sub(crate::scaled(price)?, funding)?)?)?;
+            minimum[index] = crate::add(
+                fixed[index],
+                crate::mul(quantity, crate::sub(crate::scaled(price)?, funding)?)?,
+            )?;
         }
-        let gross_debt = minimum.into_iter().try_fold(0i128, |sum, claim|
-            crate::add(sum, crate::sub(0, claim.min(0))?))?;
+        let gross_debt = minimum.into_iter().try_fold(0i128, |sum, claim| {
+            crate::add(sum, crate::sub(0, claim.min(0))?)
+        })?;
         let may_owe = minimum[selected] < 0;
         let mut required = 0;
         for index in 0..2 {
@@ -93,8 +121,12 @@ impl Region {
                 required |= 1 << index;
             }
         }
-        Ok(Contribution { quantity: root.positions[selected].lots, fixed: fixed[selected],
-            bad: may_owe && crate::scaled(root.cash)? < gross_debt, required })
+        Ok(Contribution {
+            quantity: root.positions[selected].lots,
+            fixed: fixed[selected],
+            bad: may_owe && crate::scaled(root.cash)? < gross_debt,
+            required,
+        })
     }
 }
 
@@ -108,7 +140,9 @@ pub struct Contribution {
 impl Contribution {
     fn validate(&self) -> Result<()> {
         if self.quantity.unsigned_abs() > MAX_LOTS as u64
-            || self.fixed.unsigned_abs() > MAX_FIXED || self.required > 3 {
+            || self.fixed.unsigned_abs() > MAX_FIXED
+            || self.required > 3
+        {
             return Err(Error::Bounds);
         }
         Ok(())
@@ -127,16 +161,22 @@ pub struct Summary {
     required: [u64; 2],
 }
 impl Summary {
-    pub fn count(&self) -> u64 { self.count }
-    pub fn bad(&self) -> u64 { self.bad }
+    pub fn count(&self) -> u64 {
+        self.count
+    }
+    pub fn bad(&self) -> u64 {
+        self.bad
+    }
     pub fn required_mask(&self) -> u8 {
         u8::from(self.required[0] != 0) | (u8::from(self.required[1] != 0) << 1)
     }
     fn validate(&self) -> Result<()> {
         let bound = product(MAX_FIXED, self.count)?;
-        if self.bad > self.count || self.required.iter().any(|count| *count > self.count)
+        if self.bad > self.count
+            || self.required.iter().any(|count| *count > self.count)
             || self.quantity.unsigned_abs() > u128::from(self.count) * MAX_LOTS as u128
-            || compare(self.positive.add(self.negative)?, bound).is_gt() {
+            || compare(self.positive.add(self.negative)?, bound).is_gt()
+        {
             return Err(Error::Bounds);
         }
         Ok(())
@@ -169,20 +209,37 @@ impl Summary {
     }
     fn adjust(&mut self, contribution: Contribution, add: bool) -> Result<()> {
         contribution.validate()?;
-        let count_change = |count: u64, change: u64| if add {
-            count.checked_add(change).ok_or(Error::Overflow)
-        } else { count.checked_sub(change).ok_or(Error::Cohort) };
+        let count_change = |count: u64, change: u64| {
+            if add {
+                count.checked_add(change).ok_or(Error::Overflow)
+            } else {
+                count.checked_sub(change).ok_or(Error::Cohort)
+            }
+        };
         self.count = count_change(self.count, 1)?;
         self.bad = count_change(self.bad, u64::from(contribution.bad))?;
         for index in 0..2 {
-            self.required[index] = count_change(self.required[index],
-                u64::from(contribution.required & (1 << index) != 0))?;
+            self.required[index] = count_change(
+                self.required[index],
+                u64::from(contribution.required & (1 << index) != 0),
+            )?;
         }
-        self.quantity = if add { crate::add(self.quantity, i128::from(contribution.quantity))? }
-            else { crate::sub(self.quantity, i128::from(contribution.quantity))? };
-        let total = if contribution.fixed >= 0 { &mut self.positive } else { &mut self.negative };
+        self.quantity = if add {
+            crate::add(self.quantity, i128::from(contribution.quantity))?
+        } else {
+            crate::sub(self.quantity, i128::from(contribution.quantity))?
+        };
+        let total = if contribution.fixed >= 0 {
+            &mut self.positive
+        } else {
+            &mut self.negative
+        };
         let magnitude = scalar(contribution.fixed.unsigned_abs())?;
-        *total = if add { total.add(magnitude)? } else { subtract(*total, magnitude)? };
+        *total = if add {
+            total.add(magnitude)?
+        } else {
+            subtract(*total, magnitude)?
+        };
         Ok(())
     }
     /// ONLY the arithmetic half of eligibility. The program must also prove
@@ -190,8 +247,12 @@ impl Summary {
     /// availability, recipient health and all existing signed authority rules.
     pub fn arithmetically_ready(&self, expected_count: u64, pool: u64) -> Result<bool> {
         self.validate()?;
-        if expected_count == 0 || pool > MAX_CASH { return Err(Error::Bounds); }
-        Ok(self.count == expected_count && self.bad == 0 && self.quantity == 0
+        if expected_count == 0 || pool > MAX_CASH {
+            return Err(Error::Bounds);
+        }
+        Ok(self.count == expected_count
+            && self.bad == 0
+            && self.quantity == 0
             && self.positive == self.negative.add(scalar(crate::scaled(pool)? as u128)?)?)
     }
     pub fn checkpoint(&self) -> [u8; CHECKPOINT_BYTES] {
@@ -202,7 +263,8 @@ impl Summary {
         bytes[24..40].copy_from_slice(&self.quantity.to_le_bytes());
         for (offset, total) in [(40, self.positive), (64, self.negative)] {
             for (index, word) in total.words().iter().enumerate() {
-                bytes[offset + index * 8..offset + (index + 1) * 8].copy_from_slice(&word.to_le_bytes());
+                bytes[offset + index * 8..offset + (index + 1) * 8]
+                    .copy_from_slice(&word.to_le_bytes());
             }
         }
         bytes[88..96].copy_from_slice(&self.required[0].to_le_bytes());
@@ -210,12 +272,20 @@ impl Summary {
         bytes
     }
     pub fn from_checkpoint(bytes: &[u8]) -> Result<Self> {
-        if bytes.len() != CHECKPOINT_BYTES || &bytes[..8] != CHECKPOINT_DOMAIN { return Err(Error::Bounds); }
+        if bytes.len() != CHECKPOINT_BYTES || &bytes[..8] != CHECKPOINT_DOMAIN {
+            return Err(Error::Bounds);
+        }
         let word = |offset| u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
-        let total = |offset| ClaimTotal::from_words([word(offset), word(offset + 8), word(offset + 16)]);
-        let summary = Self { count: word(8), bad: word(16),
+        let total =
+            |offset| ClaimTotal::from_words([word(offset), word(offset + 8), word(offset + 16)]);
+        let summary = Self {
+            count: word(8),
+            bad: word(16),
             quantity: i128::from_le_bytes(bytes[24..40].try_into().unwrap()),
-            positive: total(40)?, negative: total(64)?, required: [word(88), word(96)] };
+            positive: total(40)?,
+            negative: total(64)?,
+            required: [word(88), word(96)],
+        };
         summary.validate()?;
         Ok(summary)
     }
@@ -236,7 +306,9 @@ fn subtract(left: ClaimTotal, right: ClaimTotal) -> Result<ClaimTotal> {
         *word = difference;
         borrow = first || second;
     }
-    if borrow { return Err(Error::Cohort); }
+    if borrow {
+        return Err(Error::Cohort);
+    }
     ClaimTotal::from_words(words)
 }
 fn product(value: u128, count: u64) -> Result<ClaimTotal> {
@@ -249,4 +321,51 @@ fn product(value: u128, count: u64) -> Result<ClaimTotal> {
     }
     words[2] = carry as u64;
     ClaimTotal::from_words(words)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const NEUTRAL: Contribution = Contribution {
+        quantity: 0,
+        fixed: 0,
+        bad: false,
+        required: 0,
+    };
+
+    #[test]
+    fn removal_and_failed_replacement_never_publish_partial_totals() {
+        let contribution = Contribution {
+            quantity: -2,
+            fixed: -60 * crate::SCALE,
+            bad: true,
+            required: 3,
+        };
+        let summary = Summary::default().insert(contribution).unwrap();
+        assert_eq!(
+            (summary.count(), summary.bad(), summary.required_mask()),
+            (1, 1, 3)
+        );
+        let before = summary.checkpoint();
+        let forged = Contribution {
+            fixed: -61 * crate::SCALE,
+            ..contribution
+        };
+        assert_eq!(summary.replace(forged, NEUTRAL), Err(Error::Cohort));
+        assert_eq!(summary.checkpoint(), before);
+        assert_eq!(summary.remove(contribution).unwrap(), Summary::default());
+        assert!(Summary::default().remove(NEUTRAL).is_err());
+    }
+
+    #[test]
+    fn checked_count_exhaustion_and_bad_population_cannot_wrap() {
+        let mut bytes = Summary::default().checkpoint();
+        bytes[8..16].copy_from_slice(&u64::MAX.to_le_bytes());
+        let summary = Summary::from_checkpoint(&bytes).unwrap();
+        assert_eq!(summary.insert(NEUTRAL), Err(Error::Overflow));
+        assert_eq!(summary.checkpoint(), bytes);
+        bytes[8..16].copy_from_slice(&1u64.to_le_bytes());
+        bytes[16..24].copy_from_slice(&2u64.to_le_bytes());
+        assert_eq!(Summary::from_checkpoint(&bytes), Err(Error::Bounds));
+    }
 }
