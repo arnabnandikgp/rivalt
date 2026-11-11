@@ -18,7 +18,7 @@ nine lengths, including sparse u64 boundaries; per-operation bounds remain eleve
 update and 21 successor word steps. Flow and graph codec tests cover immutable
 bindings, invalid domains and substitution of a write cursor for a successor read.
 Pinned SBF metadata compilation and evidence-policy checks pass. This does not
-link or execute a Solana binary. No current result qualifies
+link or execute a Solana binary. Those native results do not qualify
 on-chain graph construction, payouts, token exits, SQL replay, larger populations,
 CU, heap/stack, latency or affordability. Raw development logs remain at
 `.local/scalable-settlement/p54c-flow-development/`.
@@ -31,7 +31,7 @@ record accesses. Exact order verification accepts 835 independent valid sequence
 and rejects 1,197 reversed/tied/duplicate/incomplete sequences; maximum 1,981 word
 steps/cohort in these fixtures. Permutation markers are still native test transport,
 not authenticated program records. Two additional codec tests and SBF metadata
-compilation pass. Program acceptance remains pending.
+compilation pass. The separate signed construction checkpoint follows below.
 
 Clean **`c08aa495804a1740e109c7ef24b21f982c1495ed`** adds six public entrypoints, a 1,181-byte
 owned plan and scalar records inside the existing authenticated limb pages. Three
@@ -47,16 +47,39 @@ The same clean source links a **2,168,808-byte** SBF with SHA-256
 `08eca403915e5c8a35b68b03d29ab92e2c13a585f754a4f3e6fa9f528a616ed5` and no unsafe
 stack-frame diagnostics. It is separately retained at
 `.local/scalable-settlement/p54c-c08aa49/`, not selected for ordinary runtime.
-Actual new instruction execution and financial acceptance remain pending. No new
-CU, financial population or deployment claim follows.
+Financial application remains pending; the construction-only execution below
+does not qualify a larger financial population or select a deployment.
 
 The extended signed construction harness is prepared with explicit
 `RIVALT_SETTLEMENT_PLAN=1` and that candidate artifact directory. Its native
 `settlement-plan-pages` example transports next-page requests from public RPC
 bytes; it is not an independent financial oracle. The Python Fraction/circulation
 reference independently derives every floor, fractional flag, order and terminal
-atom owner. Signed results are still pending; this harness cannot establish Apply
-or SQL acceptance because neither is implemented yet.
+atom owner.
+
+Clean verifier **`2205ada0cd198f3c106b425636f4bb204925ef22`** passes **968 signed
+RPC/WS outcomes**, including **35 deliberate atomic rejections**, on that exact
+SBF. The construction extension contributes **489 outcomes / eight rejections**,
+including 416 bounded continuations and all six new entrypoints. Each of the eight
+actual frozen rows matches independently derived flow floors, fractional flags,
+local order and final cash/market atom ownership. Both complete market orders,
+current-revision duplicate rejection, stale replay, real 64-slot foreign recovery,
+construction-reset refusal and terminal replay are exercised. All original
+financial account bytes remain identical through verification and construction.
+
+Successful construction transactions use **33,049–114,841 CU**, at most **858
+wire bytes** and **20 loaded accounts**, with v0 throughout. Their requested limit
+is 1,000,000 CU, zero priority price and the default heap. The extension (including
+allocation and rejected originals) consumes **30,773,527 CU / 2,455,000 fee
+lamports** and adds **339,150,960 rent lamports** for 30 accounts. Total verification
+storage rent is 685,754,280 lamports. These are eight-root observations, not G1
+affordability, a dense larger-cohort bound or measured peak heap/stack.
+
+Legacy and RC2 clients agree on **950 clearing instruction encodings/full metas,
+74 verification accounts and 984 events**; both maker clients also agree. Captures
+are local at `.local/scalable-settlement/runs/p54c-construction-2205ada/`; the owned
+Surfpool is stopped. Apply, financial recovery, token exits, PostgreSQL replay and
+full P54C acceptance remain unfinished. No new financial writer is enabled.
 
 ## Authenticated frozen and rate verification (P54B)
 

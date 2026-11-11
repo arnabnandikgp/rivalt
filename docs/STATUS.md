@@ -21,7 +21,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
-| P54C conserving settlement | In progress | Native flow/order/graph vectors and initial owned controller/page checks pass; compiled construction, Apply/recovery and signed token/SQL acceptance remain; no PR or activation yet |
+| P54C conserving settlement | In progress | Clean `2205ada` / SBF `c08aa49`: 968 signed outcomes with exact independently checked plan construction; Apply/recovery and token/SQL acceptance remain; no PR or activation yet |
 | P55A–P62 successor implementation | Planned | Membership, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -54,8 +54,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: compile and qualify P54C authenticated flow/order/graph construction, then
-exactly-once application/recovery and signed token/SQL acceptance above #79; leave every PR open.
+Next exact action: implement P54C exclusive adoption and exactly-once application,
+then recovery and signed token/SQL acceptance above #79; leave every PR open.
 
 ## Remediation planning
 
@@ -636,13 +636,18 @@ authority/progress boundaries. Scalar codecs, generated SDK, literal ABI and
 83-entrypoint access inventory agree. Five page-adapter, ten scoped-history and two
 scalar-codec tests pass at the same pin. The linked SBF is 2,168,808 bytes, with no
 unsafe stack-frame diagnostics; its exact hash and separate candidate path are in
-validation. Signed construction execution remains pending; these native checks do
-not qualify a larger live cohort. The extended RPC harness is ready for that run.
+validation. Clean verifier **`2205ada`** passes **968 signed RPC/WS outcomes** with
+35 intended atomic rejections; the new construction segment contributes 489
+outcomes, all six entrypoints and 416 continuations. Independent Fraction/graph
+expectations match every floor, fraction, ordering and terminal atom owner.
+Original financial bytes stay unchanged. New successful calls peak at 114,841 CU /
+858 wire bytes / 20 loaded accounts; legacy/RC2 parity agrees on 950 clearing
+instructions, 74 accounts and 984 events. The owned Surfpool is stopped.
 
 Exactly-once Apply/Reconcile, recovery, token exits and fresh PostgreSQL replay
 remain. No financial writer, selected artifact or admitted population changes.
 No P54C PR is opened and no user decision/access blocker is known. Exact next
-action: run signed construction on the pinned candidate, implement exclusive adoption and
+action: implement exclusive adoption and
 exactly-once application, then qualify recovery and SQL/token exits. P15B/P16B stay Open and
 24-hour endurance Deferred.
 
