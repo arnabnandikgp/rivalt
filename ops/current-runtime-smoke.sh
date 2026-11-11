@@ -3,10 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-# A long backlog qualification must not suspend its RPC deadlines while the
+# An owned qualification must not suspend its RPC deadlines while the
 # operator is away. This temporary inhibitor ends with this supervisor; it does
 # not alter system settings or keep the display awake.
-if [[ "${RIVALT_LIQUIDITY_PROBE:-}" == indexer-progress ]] && command -v caffeinate >/dev/null; then
+if command -v caffeinate >/dev/null; then
   caffeinate -i -w $$ &
 fi
 # The SDK pins the qualified local artifacts; retained P44/C0 remain separate.

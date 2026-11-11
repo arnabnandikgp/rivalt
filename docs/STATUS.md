@@ -165,8 +165,11 @@ P49 artifact files remain untouched. Clean verifier `55426dc` passes 99 signed p
 120 indexer-slice outcomes with a matching 72-event projection. The latter
 identified a stale test assumption: one successful recovery cycle does not always
 publish a fresh replay. The scoped harness now waits for published readiness and
-compares every retained event byte; that stronger check is next. No source or
-financial rule changed in this test correction. P53B's G5 calibration and lower-price funding-search coupling remain
+compares every retained event byte. Its first rerun timed out after macOS entered
+Idle Sleep at 12:21:19 for 170 seconds (confirmed by `pmset`), exceeding its
+unchanged 60-second readiness deadline. Extend the existing supervisor-owned
+idle-sleep inhibitor to all finite runtime probes; rerun only this affected
+check. No source, freshness or financial rule changes. P53B's G5 calibration and lower-price funding-search coupling remain
 explicit. P15B/P16B and deferred endurance are unchanged.
 
 ## Integrated quantity work

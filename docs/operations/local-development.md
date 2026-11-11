@@ -156,3 +156,10 @@ RPC deadlines from expiring while the operator is away; it ends with the supervi
 and does not keep the display awake or change power settings. The fixture deliberately exceeds 10,000 transactions
 and 4,096 clearing invocations; this is backlog recovery, not a throughput or
 larger-account claim. `/ready` reports covered and reconciled progress separately.
+
+
+On macOS, finite `ops/current-runtime-smoke.sh` qualification runs hold a temporary
+`caffeinate -i` assertion tied to the supervisor PID. It ends with that run, keeps
+no display awake and changes no persistent system settings. Host suspension can
+otherwise invalidate real freshness/timeout measurements; it is not repaired by
+extending oracle validity or relabelling a timed-out test as successful.
