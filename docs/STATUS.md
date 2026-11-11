@@ -220,8 +220,10 @@ The pinned platform-tools compiler reports `target_arch="sbf"`, so the initial
 `target_os="solana"`, with a targeted host cfg declaration. Host checking and actual
 SBF-target metadata probes pass: the word cursor remains available and all four
 native orchestration modules are absent. This is a compiler-boundary correction,
-not a program build/deployment or changed financial result. Exact guard pin follows
-its clean verification; the native acceptance below remains at its original pin.
+not a program build/deployment or changed financial result. Clean guard pin
+**`7aef54f1d6908f9cef0e9186a386ddb79341793b`** also passes the 774 settlement,
+307 rejection and 980 division checks again. The larger native measurements below
+remain at their original pin; CI for the guard update is pending.
 
 The complete native kernel now checks count-derived aggregate conservation, exact
 rate/greatestness equations, all insurance-clipping evaluations and deterministic

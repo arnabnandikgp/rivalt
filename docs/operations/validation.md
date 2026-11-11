@@ -65,8 +65,11 @@ cfg linting. Host `cargo check` and a pinned SBF `rustc --emit=metadata` pass.
 A positive metadata probe imports the word cursor; a negative probe fails with
 E0432 for all four native modules. Raw probes stay at
 `.local/scalable-settlement/p54a-target-guard/`. These are target metadata checks,
-not a complete SBF program build, stack/CU measurement or deployment. Exact clean
-guard pin remains to be recorded after commit; native kernel semantics are unchanged.
+not a complete SBF program build, stack/CU measurement or deployment. Clean guard
+revision **`7aef54f1d6908f9cef0e9186a386ddb79341793b`** passes both probes, scoped
+formatting and all four complete-settlement Python checks again (774 settlements,
+307 refusals, 980 divisions and three aggregate/product vectors). No native financial
+semantics change; the scale observations remain pinned to `60c2141`.
 
 Reproduce the scoped checks with `cargo build --locked -p financial-core --bin scalable-wide-driver --bin scalable-settlement-driver`,
 `python3 tests/financial/test_scalable_wide.py`,
