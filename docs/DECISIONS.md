@@ -24,8 +24,18 @@ Split the approved P53 scope into P53A consolidation and P53B calibrated ranges.
 The second remains disabled until literal values, source/order boundary scenarios
 and funding-search cost are accepted: lower reference increases sample Q, and the
 current per-quantity publisher search is not automatically scalable. P54A can
-proceed on the unchanged numeric proof while G5 remains open. This is not approval
-to widen prices or relax source confidence, freshness, depeg or recovery safeguards.
+proceed on the unchanged numeric proof independently of price calibration.
+
+The user explicitly approved G5's numeric-bound local prototype policy on
+11 November 2026: reference/trigger 2–909,090, stored limits 1–1,000,000 collateral
+atoms per lot, positive checked raw asset sources with complete interval admission.
+This supersedes the fixture-derived asset USD and converted-price bands, not the
+numeric arithmetic envelope or any confidence, freshness, depeg, margin, fee or
+recovery safeguard. Policy version 2 requires a fresh domain and artifact binding;
+it is not an in-place migration. P53B brings forward P58A's exact canonical funding
+search, retaining the six-token notional, complete coverage, two legs and ties.
+Activation remains conditional on signed boundary/lifecycle and reconciliation
+acceptance. G5's other economic topics are not approved by this specific decision.
 
 
 ## D94 — bounded covered history and independently reconciled publication (11 November 2026)

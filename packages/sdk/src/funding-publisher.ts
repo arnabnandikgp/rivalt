@@ -103,7 +103,10 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
         if (unavailable) coverageReason = `${unavailable.registrationState.instance}:${unavailable.unavailable}`;
         else {
           const quantity = (FUNDING_REFERENCE_NOTIONAL + reference - 1n) / reference;
-          allocations = { bid: allocateFundingSide(adapters, reference, quantity, 1), ask: allocateFundingSide(adapters, reference, quantity, 0) };
+          const curves = adapters.map(maker => ({ shape: maker.shape, anchor: maker.price.anchor,
+            inventory: maker.capital.positions[marketIndex].lots,
+            buyConsumed: maker.registrationState.buyConsumed, sellConsumed: maker.registrationState.sellConsumed }));
+          allocations = { bid: allocateFundingSide(curves, reference, quantity, 1), ask: allocateFundingSide(curves, reference, quantity, 0) };
           report.outcome = 3;
           if (allocations.bid && allocations.ask && allocations.ask.gross >= allocations.bid.gross) {
             report.outcome = 0;

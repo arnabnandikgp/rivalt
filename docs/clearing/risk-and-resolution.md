@@ -122,8 +122,8 @@ liveness remains open, not acceptance supplied by old P16A/P49 results.
 ## Versioned price policy (P53A)
 
 [`financial-core::price_policy`](../../crates/financial-core/src/price_policy.rs)
-is the canonical literal definition for **price policy 1**, preserving the existing
-profile-4 economic ranges below. Price policy version, account schema 8 and venue
+is the canonical literal definition. P53A preserved price policy 1; P53B source
+implements approved **price policy 2**, pending compiled acceptance. Price policy version, account schema 8 and venue
 profile 4 are distinct identifiers; this refactor changes no account bytes, PDA,
 event, signed domain, epoch, error number or instruction interface. `MAX_PRICE`
 (1–1,000,000 quote atoms per lot) is the proved arithmetic domain, not permission
@@ -135,7 +135,7 @@ BTC has 1,000,000 lots per unit, ETH 100,000; normalize asset **value and confid
 by 1 and 10 respectively before ratio rounding. Unsupported lot sizes reject. Maker
 curve arithmetic and liquidation retain the full numeric domain; actual admission
 also checks independent current bounds and the 90–110% execution band. Persistent
-orders retain their narrower price/trigger policy and original signed terms.
+orders use the explicit limit/trigger policy and preserve original signed terms.
 
 Policy selection is immutable for this bounded deployment. An updater, publisher,
 keeper or venue authority has no instruction to replace these parameters. Existing
@@ -146,21 +146,21 @@ Old orders/originals remain with their old deployment/executor; never rewrite th
 signed limit, revive authority or copy claims. Live parameter changes would require
 a separate concrete transition/epoch contract, not an edit to constants.
 
-P53B owns G5's explicit proposed risk range and actual widened-boundary acceptance.
-The range remains unchanged and no new policy is enabled by P53A. Numeric admission
+P53B owns G5's approved risk range and actual widened-boundary acceptance.
+No new policy was enabled by P53A. Numeric admission
 proofs, source age/confidence/depeg/recovery, deposit/cancel/eligible exit rules and
 default/devnet gates remain unchanged. Validation separates current source checks
 from qualification of rebuilt binaries.
 
-### Proposed P53B calibration (G5, not enabled)
+### Approved P53B calibration (G5, acceptance pending)
 
-Recommendation for the test prototype: remove the old raw BTC/ETH USD fixture
+User-approved on 11 November 2026 for the test prototype: remove the old raw BTC/ETH USD fixture
 bands and accept authenticated positive source values only when checked unit
 normalization and the complete risk interval fit the existing numeric envelope.
 Keep collateral $0.5–1.5 / Normal $0.95–1.05, confidence, disagreement, ages,
 recovery, fees, margin and cash/claim bounds unchanged.
 
-| Proposed policy-2 term | Literal value / rationale |
+| Approved policy-2 term | Literal value / rationale |
 |---|---|
 | Converted reference / trigger | 2–909,090 collateral atoms per lot. At 2, the worst confidence-adjusted lower interval is still at least 1; the upper ceiling is floor(1,000,000 × 10/11), keeping the whole execution band in numeric range. |
 | Persistent order limit | 1–1,000,000 collateral atoms per lot, with unchanged full reservation/financial admission and signed-price preservation |
@@ -168,11 +168,11 @@ recovery, fees, margin and cash/claim bounds unchanged.
 | Existing numeric domain | Unchanged: risk/marginal prices 1–1,000,000, cash <=10^15, q <=10^8 and scaled-claim bounds |
 | Deployment | New policy version and fresh local genesis/domain/artifact binding; no in-place position/order/original migration, default/devnet remain closed |
 
-At collateral parity, the proposed reference range corresponds to BTC 2–909,090
+At collateral parity, the approved reference range corresponds to BTC 2–909,090
 and ETH 0.2–90,909 collateral tokens per whole asset. Those are representation-
 derived limits, **not forecasts, calibrated leverage recommendations or a promise
 that prices near them are economically desirable**. This materially widens accepted
-risk sources; G5 approval and fresh signed acceptance remain required.
+risk sources; G5 is approved, while fresh signed acceptance remains required.
 
 Exact conservative bound: at the largest reference r=909,090, an accepted guard
 has floor ratio at most r+floor(r/100)=918,180. Its actual ratio is <918,181.
@@ -196,7 +196,7 @@ lifetime maintenance, without erasing earned funding.
 Before enabling, qualify independently derived extreme and old-edge values in
 native/client code and real signed deployed paths, plus source-failure cancellation,
 deposit, eligible reduction/exit/default and whole-account reservations. Preserve
-the current policy if approval or any required acceptance is missing. P54A can
+the selected P53A artifacts until all required acceptance passes. P54A can
 continue independently because its admitted arithmetic envelope does not change.
 
 ## Risk sources and account admission
@@ -215,12 +215,12 @@ policy failure. Sources are signed test fixtures, not independent upstream oracl
 
 | Policy | Current local bound |
 |---|---|
-| BTC / ETH USD ranges | 10,000–100,000 / 1,000–10,000; ETH value/confidence multiplied by ten before common ratio rounding |
+| Asset USD values | Positive checked i64 micro-USD values; ETH value/confidence multiplied by ten before reference and complete interval admission |
 | Asset / collateral confidence | At most 50 / 25 bps |
 | Collateral USD range / Normal | 0.5–1.5 / both sources 0.95–1.05 |
 | Source age / future skew | At most 20 / 2 seconds at on-chain Clock |
 | Primary/guard divergence | At most 1% of primary converted reference |
-| Reference / risk price | 10,000–100,000 / finite 1–1,000,000 atoms per lot |
+| Reference / risk price | 2–909,090 / finite 1–1,000,000 atoms per lot; reject rather than clip the full interval |
 | Risk envelope | Confidence interval plus 1% model envelope, union with guard; valid primary with missing/invalid guard gives at least ±3% and Degraded |
 | Recovery / hold | Six seconds sustained qualified samples; gaps at most six seconds |
 | Funding outage / catch-up | Risk increase blocked after 12 seconds; unverified catch-up at most 30 seconds |
@@ -237,8 +237,8 @@ Cancellation outside frozen ownership needs no source or maker quote.
 
 Four records and two protective pairs are embedded in each root. Inclusive start,
 exclusive expiry; order lifetime and placement horizon at most 216,000 slots;
-quantity 1–100,000,000 lots; per-lot all-in limit 9,000–110,000 atoms; lifetime fee budget
-at most 1,000,000,000,000,000 atoms (the existing cash domain); index triggers 10,000–100,000 atoms. Every submitted
+quantity 1–100,000,000 lots; per-lot all-in limit 1–1,000,000 atoms; lifetime fee budget
+at most 1,000,000,000,000,000 atoms (the existing cash domain); index triggers 2–909,090 atoms. Every submitted
 subfill is exact-base atomic with at most two distinct maker capitals.
 
 For each remaining risk-increasing buy lot reserve `ceil(upper/10) + max(limit-lower,0)`;

@@ -4,7 +4,6 @@ import { expect, it } from 'vitest';
 import { allocateFundingSide } from './funding-impact.js';
 import { fundingReference } from './funding-sources.js';
 import { fundingSnapshotDigest } from './funding-publisher.js';
-import { quoteCanonical } from './canonical-quote.js';
 import { testAddress } from '../test-support/liquidity-fixture.js';
 import type { LiquidityAccountMap } from './liquidity-adapter.js';
 import type { Market } from './generated/index.js';
@@ -17,25 +16,17 @@ it.each([
   [60_000n, 100n, 5_999_900n, 6_000_300n, [100n, 0n, 0n]],
   [10_000n, 600n, 5_999_400n, 6_001_800n, [512n, 88n, 0n]],
 ])('matches literal independent funding optimum at index %s', (reference, quantity, bid, ask, quantities) => {
-  const makers = Array.from({ length: 3 }, () => ({ quote: (side: 0 | 1, lots: bigint) => quoteCanonical(shape, reference, side, lots, 0n, 0n) }));
+  const makers = Array.from({ length: 3 }, () => ({ shape, anchor: reference, inventory: 0n, buyConsumed: 0n, sellConsumed: 0n }));
   expect(allocateFundingSide(makers, reference, quantity, 1)).toEqual({ gross: bid, quantities });
   expect(allocateFundingSide(makers, reference, quantity, 0)).toEqual({ gross: ask, quantities });
 });
 
-it('enumerates disconnected valid quantities and never uses a third leg', () => {
-  const makers = [new Set([2n]), new Set([3n]), new Set([4n])].map(valid => ({ quote: (_side: 0 | 1, lots: bigint) => {
-    if (!valid.has(lots)) throw new Error('outside curve domain');
-    return { gross: lots * 10_000n, remaining: 0n };
-  } }));
-  expect(allocateFundingSide(makers, 10_000n, 5n, 0)).toEqual({ gross: 50_000n, quantities: [2n, 3n, 0n] });
-  expect(allocateFundingSide(makers, 10_000n, 9n, 0)).toBeNull();
-});
-
 it('excludes out-of-band prices and zero capacity without inventing a fill', () => {
-  const makers = [8_999n, 11_001n, 10_000n].map(price => ({ quote: (_side: 0 | 1, lots: bigint) => ({ gross: price * lots, remaining: 0n }) }));
+  const flat = { ...shape, skewTick: 0n, bids: [{ endLots: 4096n, offset: 0n, slope: 0n }], asks: [{ endLots: 4096n, offset: 0n, slope: 0n }] };
+  const makers = [8_999n, 11_001n, 10_000n].map(anchor => ({ shape: flat, anchor, inventory: 0n, buyConsumed: 0n, sellConsumed: 0n }));
   expect(allocateFundingSide(makers, 10_000n, 100n, 0)?.quantities).toEqual([0n, 0n, 100n]);
   expect(allocateFundingSide(makers, 10_000n, 100n, 1)?.quantities).toEqual([0n, 0n, 100n]);
-  const empty = { quote() { throw new Error('zero capacity'); } };
+  const empty = { ...makers[0], shape: { ...flat, shortCap: 0n, longCap: 0n } };
   expect(allocateFundingSide([empty, empty, empty], 10_000n, 100n, 0)).toBeNull();
 });
 
@@ -93,9 +84,9 @@ it('digest is ordered, domain separated and sensitive to bytes, owners, absence 
 });
 
 
-it('preserves literal BTC/ETH source edges and distinguishes USD from collateral atoms', async () => {
-  for (const [marketIndex, minimum, maximum] of [[0, 10_000_000_000n, 100_000_000_000n], [1, 1_000_000_000n, 10_000_000_000n]] as const) {
-    for (const [value, expected] of [[minimum - 1n, null], [minimum, 10_000n], [maximum, 100_000n], [maximum + 1n, null]] as const) {
+it('checks approved BTC/ETH reference edges and distinguishes USD from collateral atoms', async () => {
+  for (const [marketIndex, minimum, maximum] of [[0, 2_000_000n, 909_091_000_000n], [1, 200_000n, 90_909_100_000n]] as const) {
+    for (const [value, expected] of [[minimum - 1n, null], [minimum, 2n], [maximum - 1n, 909_090n], [maximum, null]] as const) {
       const fixture = sources(marketIndex);
       fixture.raw[0].writeBigInt64LE(value, 113); fixture.raw[2].writeBigInt64LE(value, 113);
       expect(await fundingReference(fixture.market, fixture.accounts(), 100n)).toBe(expected);

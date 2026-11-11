@@ -18,7 +18,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
 | P52 bounded-progress finalized indexer | Review | [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
-| P53B calibrated ranges | Decision pending — disabled | Literal G5 proposal prepared and user decision requested; exact funding-search and signed acceptance still required |
+| P53B calibrated ranges | In progress — activation disabled | User approved numeric-bound G5 policy; implementing exact scalable funding search and independent boundary checks before signed acceptance |
 | P54–P62 successor implementation | Planned | Compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -51,8 +51,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: start P54A's exact scalable settlement kernel above ready #76
-while the requested P53B G5 decision remains pending; leave every PR open.
+Next exact action: qualify P53B's approved range and exact canonical funding search
+on a clean candidate build and signed boundary/lifecycle replay; leave every PR open.
 
 ## Remediation planning
 
@@ -172,12 +172,16 @@ freshness/deadlines and a temporary supervisor-owned idle-sleep inhibitor.
 exact pins, results and limitations. [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76)
 contains acceptance closeout `a24251e`; hosted checks are pending. P53A is not integrated.
 
-P53B's [literal G5 proposal](clearing/risk-and-resolution.md#proposed-p53b-calibration-g5-not-enabled)
-is reviewable and disabled: reference/trigger 2–909,090 and order limit 1–1,000,000
-atoms per lot, unchanged safeguards and numeric envelope. The user decision has
-been requested; no approval is inferred. It requires exact scalable funding search
-and signed acceptance before activation. P54A can proceed independently
-on the unchanged arithmetic proof. P15B/P16B and deferred endurance are unchanged.
+P53B's [literal G5 proposal](clearing/risk-and-resolution.md#approved-p53b-calibration-g5-acceptance-pending)
+was explicitly approved by the user on 11 November: reference/trigger 2–909,090
+and order limit 1–1,000,000 atoms per lot, unchanged safeguards and numeric envelope.
+Policy-2 source and canonical logarithmic funding search are being implemented
+on `implementation/p53b-price-range` above `b6fbcb8`. Selected P53A artifacts remain
+unchanged until fresh signed acceptance. Scoped source checks pass: 23 financial-core and 29 clearing-engine tests;
+52 affected client/UI checks include 1,536 independent per-lot exhaustive funding
+comparisons. Generated SDK/policy and pinned ABI checks pass. No new runtime
+result is claimed. P54A follows
+P53B on the unchanged arithmetic proof. P15B/P16B and deferred endurance are unchanged.
 
 ## Integrated quantity work
 

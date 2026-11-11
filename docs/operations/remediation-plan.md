@@ -192,11 +192,15 @@ ranges, approval and new-range signed acceptance below. This adds one reviewable
 scope (26 total). P54A may use P53A's unchanged 1–1,000,000 arithmetic domain while
 calibration remains disabled; a later numeric-domain change must rederive its proof.
 
-Lower reference prices increase `ceil(6,000,000/reference)`: current funding search
+Lower reference prices increase `ceil(6,000,000/reference)`: P53A funding search
 enumerates every quantity up to 600. A wider range cannot silently introduce
 millions of publisher quote calls or claim source availability where funding is
 unsupported. P53B must measure this coupling, and bring forward the needed P58A
 search work if its proposed values require it. No impact-notional change is implied.
+On 11 November the user approved the concrete numeric-bound policy: reference/
+trigger 2–909,090 and order limits 1–1,000,000 atoms/lot. P53B implements canonical
+logarithmic depth search first; activation still requires the acceptance below.
+G5 remains open for the separate P58 economic topics.
 
 **Deliver:** one unit-aware, versioned price policy shared by oracle normalization,
 orders/triggers, maker bands, funding, liquidation, SDK and UI. Separate hard proved

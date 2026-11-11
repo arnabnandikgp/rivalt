@@ -26,9 +26,14 @@ it('checks market-specific persistent limit and trigger ranges before asking for
   expect(orderPrice('9000', 0)).toBe(9000n);
   expect(orderPrice('11000', 1)).toBe(110000n);
   expect(orderPrice('10000', 1, true)).toBe(100000n);
-  expect(() => orderPrice('100000', 1, true)).toThrow(/1000 and 10000/);
-  expect(() => orderPrice('899.9', 1)).toThrow(/900 and 11000/);
-  expect(() => orderPrice('110001', 0)).toThrow(/9000 and 110000/);
+  expect(orderPrice('0.1', 1)).toBe(1n);
+  expect(orderPrice('1000000', 0)).toBe(1_000_000n);
+  expect(orderPrice('0.2', 1, true)).toBe(2n);
+  expect(orderPrice('909090', 0, true)).toBe(909090n);
+  expect(() => orderPrice('100000', 1, true)).toThrow(/0.2 and 90909/);
+  expect(() => orderPrice('0.1', 1, true)).toThrow(/0.2 and 90909/);
+  expect(() => orderPrice('1', 0, true)).toThrow(/2 and 909090/);
+  expect(() => orderPrice('1000001', 0)).toThrow(/outside the test market bounds/);
 });
 it('ordinary orders after closing a position use zero generation; reductions bind the live position', () => {
   const input: Omit<OrderTerms, 'generation'> = {

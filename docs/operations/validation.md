@@ -46,7 +46,8 @@ The accepted files are selected in `.local/anchor-rc2/current`; the prior conten
 are retained in `.local/price-policy/pre-p53a-current`. Use a fresh local domain/
 database; do not run old journals/originals against a replacement artifact binding.
 No new browser, full-book/load/endurance or external deployment is claimed.
-P53B range calibration remains unapproved/disabled; P15B/P16B remain external.
+P53B range calibration is now user-approved but awaits its own signed acceptance;
+this P53A evidence qualifies only policy 1. P15B/P16B remain external.
 
 Reproduction uses `ops/build-liquidity-execution.sh` with an explicit candidate
 destination, `ops/funding-publisher-smoke.sh`, and
