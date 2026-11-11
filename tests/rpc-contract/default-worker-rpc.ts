@@ -57,6 +57,15 @@ try {
   await journal.checkpoint('default-worker-start',true);
   const open=async()=>{const result=new AccountRuntime(databaseUrl,'p55b2-application',rpcUrl,4,'account-scale-candidate');await result.open();return result;};
   runtime=await open();const started=performance.now();let previousStage=2;
+  const captureSimulation=(value:AccountRuntime)=>{
+    const call=value.rpc.call.bind(value.rpc);
+    value.rpc.call=async(method:string,params:any[]=[])=>{
+      const result=await call(method,params);
+      if(method==='simulateTransaction'&&result.value?.err)writeFileSync(`${directory}/failed-simulation.json`,json({request:params,result}));
+      return result;
+    };
+  };
+  captureSimulation(runtime);
   while((await source()).stage!==11) {
     assert(originals.length<1200,'Bounded worker continuation safety budget');
     const outcome=await runtime.riskWork(setup.payer);outcomes.push(outcome);persist();
@@ -69,7 +78,7 @@ try {
     if(faultKind&&!faults.some(fault=>fault.kind===faultKind)) {
       const fault=await liquidityQueueFault(runtime,{databaseUrl,rpcUrl,directory},original.request_id);
       assert.equal(fault.receipt.status,'finalized');faults.push({kind:faultKind,...fault});persist();
-      await runtime.close();runtime=await open();
+      await runtime.close();runtime=await open();captureSimulation(runtime);
     } else {
       await eventually(async()=>{await runtime!.queue.step(original.request_id);return runtime!.queue.get(original.request_id);},
         receipt=>['finalized','failed'].includes(receipt?.status),'default worker original finality');
