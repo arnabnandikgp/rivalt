@@ -16,7 +16,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
-| P52 bounded-progress finalized indexer | Accepted locally — publication pending | Clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay; ready PR above #73 is next |
+| P52 bounded-progress finalized indexer | Review | [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
 | P53–P62 successor implementation | Planned | Price policy, compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -49,8 +49,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: publish the accepted P52 change as a ready PR above #73 using
-`gh stack`, leave all PRs open, then start P53's coherent price/order policy.
+Next exact action: start P53's coherent price/order policy above ready #75; keep
+the accepted stack open while continuing through the approved dependencies.
 
 ## Remediation planning
 
@@ -137,7 +137,9 @@ financial comparisons, canonical finalized history and ten-second freshness.
 Full and diagnostic evidence remain at their original ignored paths under
 `.local/indexer-progress/`. Failed attempts remain retained; none substitute for
 the accepted full run. The owned qualification runtime stopped successfully.
-No P52 PR has been opened yet; publication is next. No access blocker is known.
+[Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75) contains acceptance
+closeout `1eb86ff` above #73. Hosted checks are pending; no external review is
+claimed. No access blocker is known.
 P15B/P16B remain Open and 24-hour endurance Deferred.
 
 ## Integrated quantity work
