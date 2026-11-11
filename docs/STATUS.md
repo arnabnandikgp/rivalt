@@ -140,8 +140,10 @@ Full and diagnostic evidence remain at their original ignored paths under
 `.local/indexer-progress/`. Failed attempts remain retained; none substitute for
 the accepted full run. The owned qualification runtime stopped successfully.
 [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75) contains acceptance
-closeout `1eb86ff` above #73. Hosted checks are pending; no external review is
-claimed. No access blocker is known.
+closeout `1eb86ff` above #73. All applicable hosted checks (scope/client/shell) pass at `c6913b2` in
+[run 42970638033](https://github.com/arnabnandikgp/rivalt/actions/runs/42970638033);
+report/financial are correctly skipped. Automated CodeRabbit check also reports
+success; this is not independent financial review. No access blocker is known.
 P15B/P16B remain Open and 24-hour endurance Deferred.
 
 ## Price-policy consolidation
@@ -156,8 +158,11 @@ At this working revision, typecheck, 59 focused SDK/UI tests, 22 financial-core
 integration tests and 29 actual clearing-engine native tests pass. These include
 literal BTC/ETH source edges, depeg conversion, full-range fallback reservations,
 post-fee liquidation and stored-order behavior. They are not SBF/RPC evidence.
-Fresh compiled acceptance is next; the current qualified P49 artifacts remain
-untouched. P53B's G5 calibration and lower-price funding-search coupling remain
+Clean `2136106` builds all SBF artifacts with no unsafe stack diagnostic. Only
+qualified-profile clearing changes (1,538,784 bytes); makers, default clearing
+and fixtures are byte-identical to P49. Candidate SDK hash binding is explicit;
+P49 artifact files remain untouched. Signed publisher/boundary and PostgreSQL
+replay acceptance are next. P53B's G5 calibration and lower-price funding-search coupling remain
 explicit. P15B/P16B and deferred endurance are unchanged.
 
 ## Integrated quantity work
