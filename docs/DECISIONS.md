@@ -15,15 +15,23 @@ subtraction and division take width steps; multiplication takes width times one
 plus its at-most-five factor limbs. Half-word division keeps an exact remainder
 below 2^88 inside u128 without a 152-bit intermediate.
 
-These primitives provide no custody, account authentication, rate acceptance or
-payout authority. P54B must map registers to authenticated epoch/attempt pages
-and persist progress atomically. A failed scratch operation is not committable;
-replayed completed cursors reject. Native storage and cursor copying test arithmetic
-continuation only. Per-row collection reduction and used-width LCM steps preserve exact denominators
-without a population-maximum scan for every small value. Full rate/insurance
-verification, compact flow rounding and measured end-to-end completion still belong
-to P54A; expanded financial
-activation remains at P56B. Preserve atom ownership, fees and complete coverage.
+The complete native kernel recomputes cohort conservation, original rate equations,
+greatestness and at most three insurance evaluations before constructing a compact
+canonical rounding graph. Exact normalized atom division replaces a 58-pass search;
+hierarchical active arcs and generation marks remove inactive scans and whole-graph
+resets. Market permutation/order checks preserve the original deterministic atom
+owners. Row attribution stays factored, with separate cash, unpaid impairment,
+market insurance and retained fees. The risk contract owns finite work/storage bounds.
+
+This is native execution, not custody or account authentication. Vector-backed
+orchestration is excluded from SBF; P54B/P54C must map every operation and graph
+step to authenticated epoch/attempt pages and persist progress atomically. A failed
+scratch operation is not committable; completed cursors reject replay. Native
+cursor copying is not a crash-durability test. Per-row collection reduction and
+used-width LCM avoid population-maximum scans for small values, but adversarial
+exact denominators still grow with N. Measured native completion does not establish
+transaction/rent affordability. Expanded financial activation remains at P56B;
+the current 64-member runtime and selected artifacts are unchanged.
 
 ## D95 — separate price-policy consolidation from calibration (11 November 2026)
 

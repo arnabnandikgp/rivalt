@@ -19,7 +19,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P52 bounded-progress finalized indexer | Review | [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
-| P54A scalable settlement kernel | In progress — inactive | Resumable word arithmetic, reduced collections and LCM primitives implemented; full rate/insurance verification and conserving rounding still required |
+| P54A scalable settlement kernel | In progress — inactive | Complete native rate/insurance verification, conserving rounding and factored attribution implemented; clean pinned acceptance and ready PR remain |
 | P54B–P62 successor implementation | Planned | Authenticated paging, membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -215,22 +215,23 @@ Open, endurance Deferred, and P58's other economic decision gates remain separat
 
 P54A starts on `implementation/p54a-scalable-settlement` above ready #77 tip
 `c7fdfb9`. D96 and the risk contract specify the bounded logical-register cursor.
-Rust primitives implement checked add/subtract, five-limb multiplication and exact
-small division over caller-owned storage, plus exact reduced own-collection splits
-and used-width LCM continuation. Population determines capacity; each step touches
-at most three words and no population-sized stack or heap value. No program handler, account layout, selected
-artifact or account-count activation changes. The native driver is only a test seam.
+The complete native kernel now checks count-derived aggregate conservation, exact
+rate/greatestness equations, all insurance-clipping evaluations and deterministic
+conserving rounding. Hierarchical active arcs and generation marks replace fixed
+graphs and resets; normalized atom division avoids repeated whole-width searches.
+Cash, market writeoffs/impairment, insurance and retained fees stay explicit.
+The word primitives remain pinned to clean `47ba74e`; current development checks
+also pass independent full-settlement comparisons and 16 complete 64/128/1,024/
+10,000-row diagnostics. Final clean-pin checks remain before acceptance/publication.
 
-Clean **`47ba74e36c03379560e7ed2eba6392b212c91deb`** passes four focused native
-tests: 1,338 independent Python-integer arithmetic comparisons, 462 resumable LCM
-comparisons and 305 collection splits against exact independent Fractions. They
-cover overflow/underflow, 1/7/128-step resume budgets, the 96-to-97-limb crossing,
-13,757-word storage, stale scratch tails and factor/divisor edges. Scoped formatting,
-Python compilation, shell syntax and evidence checks pass. No P54A PR is opened
-before the cohesive kernel is complete. Full-cohort rate/insurance equations, exact compact rounding and scaled
-completion remain unfinished. No SBF/RPC or full settlement acceptance is inferred.
-Next exact action: implement and independently verify P54A's cohort totals, exact
-rate/flow equations and conserving rounding on these primitives.
+No program handler, account layout, selected artifact or account-count activation
+changes. Native vector orchestration is excluded from SBF. The hardest development
+10,000-row case uses 2.67 billion arithmetic word steps: completion is not a claim
+of affordable on-chain resolution. P54B/P54C must measure authenticated continuations
+and their total cost before expanded activation. P15B/P16B remain Open and 24-hour
+endurance Deferred. No access blocker is known.
+Next exact action: finish clean pinned P54A acceptance, publish its ready PR above
+#77, then implement P54B's authenticated frozen input and rate work.
 
 ## Integrated quantity work
 

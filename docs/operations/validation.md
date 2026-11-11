@@ -1,6 +1,6 @@
 # Validation and measured limits
 
-## Scalable arithmetic checkpoint (P54A, incomplete)
+## Scalable native settlement (P54A)
 
 Clean **`47ba74e36c03379560e7ed2eba6392b212c91deb`** builds the native
 `scalable-wide-driver` and passes four focused tests against independent Python
@@ -13,13 +13,28 @@ The affected source format, Python compilation, shell and evidence checks pass.
 The optional whole-workspace format check detects pre-existing formatting outside
 this change; no unrelated files were reformatted.
 
-Reproduce with `cargo build --locked -p financial-core --bin scalable-wide-driver`
-and `python3 tests/financial/test_scalable_wide.py`; the scoped suite joins financial
-CI. This is native arithmetic only. Full cohort rate/insurance verification,
-conserving rounding, practical population completion and P54B's authenticated SBF
-pages are unfinished. No new selected program, runtime transaction, account
-capacity, financial activation or complete P54A PR is qualified by this checkpoint.
+The subsequent complete native implementation adds verified rates/greatestness,
+insurance clipping, exact conserving rounding, factored attribution and a
+hierarchical active-arc index. Development checks match independent branch/Fraction
+expectations and complete all 16 scale cases at 64/128/1,024/10,000 rows. Clean
+tested revision, final results and ready PR are pending. The largest development
+distinct-denominator case uses 2,665,849,459 arithmetic word steps and 4,009 maximum
+used words; this is not a claim of feasible on-chain transaction counts.
 
+Reproduce the scoped checks with `cargo build --locked -p financial-core --bin scalable-wide-driver --bin scalable-settlement-driver`,
+`python3 tests/financial/test_scalable_wide.py`,
+`python3 tests/financial/test_scalable_settlement.py` and
+`cargo test --locked -p financial-core --lib clearing::scalable::active::tests`.
+The independent settlement suite joins financial CI. The separate scale diagnostic
+uses `cargo build --release --locked -p financial-core --bin scalable-settlement-driver`
+and `RIVALT_SCALABLE_DRIVER=target/release/scalable-settlement-driver python3 tests/financial/measure_compiled_settlement.py`.
+Raw development evidence remains in `.local/scalable-settlement/`.
+
+This is native arithmetic/graph acceptance only. Vector orchestration is excluded
+from SBF; frozen account authentication, physical pages/cursors, transactional
+rollback, continuation CU/rent and token effects belong to P54B/P54C. No new selected
+program, runtime transaction, enabled account capacity or financial activation is
+qualified. No RPC/WS/PostgreSQL, browser, endurance or external run is inferred.
 
 ## Numeric-bound price policy (P53B)
 

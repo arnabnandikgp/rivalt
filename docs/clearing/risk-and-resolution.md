@@ -2,9 +2,9 @@
 
 ## Scalable exact resolution candidate (P51B)
 
-This section specifies the selected **native feasibility candidate**, not the
-implemented schema-8 default path documented below. P54 must still implement and
-qualify bounded SBF continuations; P56B owns expanded local activation. See the
+This section specifies the selected **native successor kernel**, not the
+implemented schema-8 default path documented below. P54B/P54C must still implement
+and qualify authenticated bounded SBF continuations; P56B owns expanded local activation. See the
 [account contract](accounts.md#account-scale-successor-contract-p51b) for membership,
 authority and deployment. No payer, keeper or off-chain solver becomes trusted.
 
@@ -40,8 +40,9 @@ and search schedules, not a different payout rule:
    with bounded work; a large Python bit operation is not its SBF implementation.
 
 The [candidate](../../tests/financial/scalable_clearing_candidate.py) implements
-both dense and compact schedules; the retained independent Fraction/branch oracle
-and actual Rust kernel check the <=64 domain. The compact schedule stores O(N+B)
+both dense and compact schedules. P54A's compiled native kernel compares the <=64
+domain with the independent Fraction/branch oracle and larger populations with
+the streaming candidate and literal financial invariants. The compact schedule stores O(N+B)
 scalar/limb words rather than O(N*B) wide row values, where B is the exact common
 width. Recomputing/sorting does extra arithmetic. On-chain adjacent verification
 needs linear comparisons after the untrusted off-chain sort, but storage reduction
@@ -55,7 +56,7 @@ claim-domain changes must rederive K and this bound. Retain factored writeoff
 records; never expand arbitrary products into ordinary margin state. Whole-flow
 quotients retain the existing <2^58 bound; exact flow rounding remains <one atom.
 
-### Compiled scratch arithmetic (P54A, incomplete settlement candidate)
+### Compiled native kernel and work bounds (P54A)
 
 `financial-core::clearing::scalable::wide` supplies the first compiled successor
 primitives. Logical registers implement `LimbStorage`; `Cursor::step` performs
@@ -84,11 +85,80 @@ an extension needs at most 5*W+11 steps, each touching at most three storage wor
 the one small gcd is bounded to 176 scalar iterations. This is an algorithmic work
 bound, not measured SBF CU. Output remains unusable on any failure.
 
-The `scalable-wide-driver` is a native independent-test transport. Full-cohort rate/insurance
-verification, compact conserving rounding and cohort-scale completion
-are still unfinished P54A work. No program path uses these primitives yet, no
-account/PDA layout changes, and no expanded trading or default is enabled. P54B
-owns authenticated physical paging and on-chain continuation/replay acceptance.
+`scalable::number` drives those word operations with normalized native registers.
+Whole-atom division uses a normalized two-word numerator / one-word divisor
+estimate, at most two downward corrections, then full exact product/remainder
+checks. Its quotient remains strictly below 2^58. This replaces a 58-pass search
+without floating-point approximation or relaxed precision. Comparison, register
+initialization/normalization and orchestration must also acquire persisted cursors
+in P54B; the vector-backed native runner is deliberately excluded from SBF builds.
+
+`scalable::settlement::verify` checks every bounded row, allocated cash including
+both markets' insurance/fees and complete per-market claim conservation. Positive
+and negative totals can exceed u128; count-derived aggregates need at most 151
+bits and slope products at most 302. It recomputes the reduced common LCM, each
+flow, the original two min equations and greatestness at the exact proposed rates.
+Each rate factor is positive and bounded by 2b bits. An absent positive population
+requires rate one. If neither rate is one, the product of strict right slopes must
+be below the product of positive claims; an interior point of an identity interval
+rejects. Supplying a fixed point alone is insufficient.
+
+Insurance starts from the frozen reserves. A fractional usage clips that market's
+next budget to its exact floor; each market can clip only once. At most three
+verified proposals are accepted, with no omitted or extra evaluations. A caller
+cannot supply a lower starting budget. The verified plan owns only scalar flow
+floors/fraction flags per root. Reconstructed rows supply own collections, claim
+flows, cash entitlement and creditor impairment. Debtor writeoffs remain factored
+as `row_residual * market_loss / market_residual / D`; no wide-by-wide product is
+stored in an ordinary root. Exact market loss equals creditor impairment, and
+remaining insurance and retained fees reconcile with final cash and original V.
+
+`scalable::rounding` accepts only a constructed verified plan. It checks each
+market's complete ID permutation and every adjacent positive-claim remainder/tie;
+root-local outgoing order is independently derived. It constructs the canonical
+graph itself. Three scalar floors/flags per root replace retained wide flow arrays.
+`scalable::active` supplies an ordered hierarchy over contiguous adjacency ranges.
+Successor search reads at most 21 words and capacity changes update at most eleven
+levels for u64-addressable storage, including reverse arcs. No giant integer bitset
+or unavailable-arc scan is used. Generation marks avoid resetting every node after
+an augmentation while preserving the exact DFS path/ties.
+
+One rounding continuation advances one DFS transition, one minimum/apply path
+edge, or one audit item. Each original edge is floor or ceil of its exact value;
+the terminal audit checks every node and auxiliary capacity before exposing a
+result. Results remain unavailable at every unfinished prefix; a completed graph
+rejects replay. Rust borrowing binds results to the exact frozen verified plan.
+This native binding is not a substitute for authenticated program pages.
+
+Finite bounds, with N roots and W count-derived register capacity:
+
+- At most `8*N+6` residual arcs and `N+5` nodes; indices/capacities and allocations
+  reject unrepresentable sizes. Required remainder flow is at most `3*N` atoms,
+  so there are at most `3*N` augmentations. Each augmentation visits each outgoing
+  slot at most once and has at most `N+4` path edges. A conservative total is
+  `3*N*(11*N+32) + 4*N+5` graph steps, plus bounded hierarchy word work.
+- Verification/floors/order use a constant number of complete row passes. No
+  Cartesian branch enumeration occurs in verification. Each row has at most two
+  collection/link terms and three floor/remainder terms; multiplying factors has
+  at most five columns. `2048*(N+1)*(W+16)` bounds arithmetic and comparison word
+  work conservatively, including three insurance evaluations and row attribution.
+  Native allocation, normalization/copying and input parsing are separate CPU work;
+  each is also linear in its value or population, never a fixed-cost CU claim.
+- Storage is O(N+W). On the qualified 64-bit native host, `512*N+512*W+4096` bytes
+  conservatively bounds scalar/register payload, excluding allocator metadata,
+  transport text and native test snapshots. It is **not** a Solana account/rent
+  measurement. Sorted proposals retain IDs, never N wide remainder numerators.
+
+The independent branch/Fraction oracle tests exact cash, collections, insurance,
+writeoffs and atom ownership against the compiled kernel. Larger diagnostics
+separately compare the selected streaming model and literal repeated-fraction
+invariants. Native completion does not establish SBF affordability: distinct
+denominators still give O(N*W) work and adversarial W grows with N. See
+[validation](../operations/validation.md#scalable-native-settlement-p54a) for exact
+pins, actual counts and omissions. Neither native driver is a program instruction.
+No account/PDA layout, selected artifact, enabled account count or default path
+changes. P54B/P54C own authentication, physical paging, replay/recovery, actual
+signed continuation costs and token effects before P56B can activate any expansion.
 
 ### Frozen work, completion and adversarial proposals
 
