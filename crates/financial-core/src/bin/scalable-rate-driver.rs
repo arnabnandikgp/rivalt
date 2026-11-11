@@ -3,6 +3,7 @@ use financial_core::{
     clearing::{
         row::Row,
         scalable::{
+            flow_work::FlowWork,
             normalized::Magnitude,
             pages::PagePlan,
             rate_work::{RateInput, RateWork},
@@ -102,7 +103,7 @@ fn hex(store: &Store, value: Magnitude) -> String {
 }
 fn execute(text: &str) -> Result<String> {
     let fields: Vec<_> = text.split('|').collect();
-    if fields.len() != 7 || fields[0] != "rates" {
+    if fields.len() != 7 || !["rates", "flows"].contains(&fields[0]) {
         return Err(Error::Bounds);
     }
     let rows = fields[1]
@@ -163,7 +164,7 @@ fn execute(text: &str) -> Result<String> {
         budgets,
     };
     let mut store = Store {
-        words: vec![vec![u64::MAX; capacity as usize]; 25],
+        words: vec![vec![u64::MAX; capacity as usize]; if fields[0] == "flows" { 41 } else { 25 }],
         allowed: [None; 3],
         accesses: std::cell::Cell::new(0),
     };
@@ -238,6 +239,51 @@ fn execute(text: &str) -> Result<String> {
         || work.step(&mut store).is_ok()
     {
         return Err(Error::Invariant);
+    }
+    if fields[0] == "flows" {
+        let binding = work.verified_values()?;
+        let mut outcomes = Vec::new();
+        for (ordinal, row) in rows.iter().enumerate() {
+            let mut flow = FlowWork::new(binding, ordinal as u64, ordinal as u64 * 2, *row)?;
+            if flow.result().is_ok() {
+                return Err(Error::Invariant);
+            }
+            let mut flow_steps = 0;
+            while !flow.is_done() {
+                for _ in 0..budget {
+                    if flow.is_done() {
+                        break;
+                    }
+                    store.allowed = flow.accesses()?;
+                    let before = store.accesses.get();
+                    flow.step(&mut store)?;
+                    if store.accesses.get() - before > 3 {
+                        return Err(Error::Invariant);
+                    }
+                    flow_steps += 1;
+                }
+                flow = FlowWork::from_checkpoint(&flow.checkpoint(), binding)?;
+            }
+            let result = flow.result()?;
+            if flow.step(&mut store).is_ok()
+                || flow.identity() != (ordinal as u64, ordinal as u64 * 2)
+            {
+                return Err(Error::Invariant);
+            }
+            outcomes.push(format!(
+                "{}|{}|{}|{}|{}|{}",
+                result.whole.map(|value| value.to_string()).join(","),
+                result
+                    .fractional
+                    .map(|value| u8::from(value).to_string())
+                    .join(","),
+                result.flows.map(|value| hex(&store, value)).join(","),
+                result.remainders.map(|value| hex(&store, value)).join(","),
+                result.order.map(|value| value.to_string()).join(","),
+                flow_steps
+            ));
+        }
+        return Ok(outcomes.join(";"));
     }
     let result = work.result()?;
     Ok(format!(

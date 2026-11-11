@@ -76,7 +76,7 @@ fn execute(line: &str) -> Result<String> {
             arithmetic.steps
         ));
     }
-    if fields.len() != 9 || !["full", "compact"].contains(&fields[0]) {
+    if fields.len() != 9 || !["full", "compact", "paged"].contains(&fields[0]) {
         return Err(Error::Bounds);
     }
     let rows = fields[1]
@@ -120,6 +120,11 @@ fn execute(line: &str) -> Result<String> {
         .map(|text| text.split(',').map(decimal).collect::<Result<Vec<u64>>>());
     let [first, second] = orders;
     let mut graph = Circulation::new(&plan, [&first?, &second?], &mut arithmetic)?;
+    let paged = if fields[0] == "paged" {
+        Some(graph.run_paged(budget)?)
+    } else {
+        None
+    };
     if graph.result().is_ok() {
         return Err(Error::Invariant);
     }
@@ -144,7 +149,22 @@ fn execute(line: &str) -> Result<String> {
     if graph.step().is_ok() {
         return Err(Error::Invariant);
     }
-    let result = graph.result()?;
+    let mut result = graph.result()?;
+    let paged_metrics = paged.as_ref().map(|value| {
+        format!(
+            "{},{},{},{}",
+            value.steps, value.reads, value.writes, value.augmentations
+        )
+    });
+    if let Some(paged) = paged {
+        if result.cash != paged.rounded.cash
+            || result.movements != paged.rounded.movements
+            || graph.augmentations != paged.augmentations
+        {
+            return Err(Error::Invariant);
+        }
+        result = paged.rounded;
+    }
     let movements = result
         .movements
         .iter()
@@ -152,7 +172,7 @@ fn execute(line: &str) -> Result<String> {
         .collect::<Vec<_>>()
         .join(";");
     let mut attribution = Vec::new();
-    if fields[0] == "full" {
+    if ["full", "paged"].contains(&fields[0]) {
         for index in 0..rows.len() {
             let row = plan.attribution(index, &mut arithmetic)?;
             attribution.push(
@@ -167,7 +187,7 @@ fn execute(line: &str) -> Result<String> {
             );
         }
     }
-    Ok(format!(
+    let mut output = format!(
         "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{},{},{},{},{},{},{},{},{}|{}|{}",
         hex(plan.common()),
         hex(plan.denominator()),
@@ -198,7 +218,12 @@ fn execute(line: &str) -> Result<String> {
         graph.payload_bytes(),
         decimals(result.remaining_insurance),
         decimals(result.retained_fees)
-    ))
+    );
+    if let Some(metrics) = paged_metrics {
+        output.push('|');
+        output.push_str(&metrics);
+    }
+    Ok(output)
 }
 fn main() {
     for line in io::stdin().lock().lines() {

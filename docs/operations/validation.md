@@ -1,5 +1,27 @@
 # Validation and measured limits
 
+## Conserving flow and graph primitives (P54C in progress)
+
+The current development tree passes 10,920 exact per-root flow/retained-cash/
+floor/fraction/order comparisons against the independent Fraction oracle and
+rejects flow authorization for 137 fractional-insurance evaluations. Maximum
+observed flow work is 2,453 word steps/root. A separate 774-case persisted graph
+matrix reproduces independent canonical cash and market atom owners at checkpoint
+budgets 1/7/128: 3,639 augmentations total, maximum 3,478 steps, 352,956 scalar
+record reads and 116,778 writes across the fixtures. Undeclared reads/writes reject;
+each transition accesses at most three records and performs at most four reads/
+writes. The graph constructor is still the native P54A implementation, explicitly
+not program-page authentication or financial application.
+
+Two hierarchy tests compare 90,000 updates/queries against an ordered set across
+nine lengths, including sparse u64 boundaries; per-operation bounds remain eleven
+update and 21 successor word steps. Flow and graph codec tests cover immutable
+bindings, invalid domains and substitution of a write cursor for a successor read.
+Clean source pin and SBF metadata check are pending. No current result qualifies
+on-chain graph construction, payouts, token exits, SQL replay, larger populations,
+CU, heap/stack, latency or affordability. Raw development logs remain at
+`.local/scalable-settlement/p54c-flow-development/`.
+
 ## Authenticated frozen and rate verification (P54B)
 
 Clean verifier **`22736dc5f870413029394106e5545ff64d6f0dc9`** runs on linked clean
@@ -131,7 +153,9 @@ Qualification-only positive tests now run with their feature; a separate default
 case proves preparation rejects before writing any output. No runtime source,
 IDL, financial gate or accepted SBF artifact changes. Clean correction **`9a223a3`** passes 13 ABI cases, five qualified settlement
 cases, two default cases, exact inventory, D90 extension and evidence-policy
-checks. Hosted rerun is pending; broad suites remain delegated to CI.
+checks. All five hosted jobs pass at **`d2f7810`** in
+[run 43058428703](https://github.com/arnabnandikgp/rivalt/actions/runs/43058428703).
+No additional SBF rebuild or signed financial rerun was needed for this test-only correction.
 
 ## Scalable native settlement (P54A)
 

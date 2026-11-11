@@ -21,7 +21,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
-| P54C–P62 successor implementation | Planned | Conserving on-chain application, membership and expanded activation follow their existing gates |
+| P54C conserving settlement | In progress | Exact per-root flows/order and persisted graph primitives pass native independent cases; authenticated construction, Apply/recovery and signed token/SQL acceptance remain; no PR or activation yet |
+| P55A–P62 successor implementation | Planned | Membership, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -53,8 +54,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: publish the P54B CI correction, verify its hosted rerun, then
-resume P54C conserving rounding/application above #79; leave every PR open.
+Next exact action: implement P54C authenticated flow/order/graph construction, then
+exactly-once application/recovery and signed token/SQL acceptance above #79; leave every PR open.
 
 ## Remediation planning
 
@@ -263,7 +264,8 @@ inventory, and positive preparation fixtures incorrectly expected success in the
 disabled-default build. Financial arithmetic passed. The focused corrections pass
 on clean **`9a223a3`**: 13 ABI tests (including six rejected extension mutations), exact 77-entry
 inventory, five qualified settlement tests and two default tests. No runtime source
-or artifact changes. Hosted rerun is pending. P54C's
+or artifact changes. All five hosted jobs (scope/report/client/financial/shell)
+pass at **`d2f7810`** in [run 43058428703](https://github.com/arnabnandikgp/rivalt/actions/runs/43058428703). P54C's
 in-progress per-root flow/order work is preserved on its child branch; it is not
 accepted financial application. No user decision/access blocker is known.
 
@@ -300,7 +302,8 @@ Nine focused scoped-history tests cover the corrected kind-22 registration;
 generated SDK/typecheck and literal extension preserve D90. No PostgreSQL replay,
 wallet/browser, payout, larger-population, endurance, devnet or external acceptance
 is claimed here. No access blocker is known. P15B/P16B remain Open and endurance
-Deferred. Hosted checks/review for #79 are not yet claimed. Next exact action:
+Deferred. Hosted checks pass as recorded above; independent external review is
+not inferred. Next exact action:
 begin P54C's conserving flow/round/application work on its child; keep all PRs open.
 
 ## Integrated quantity work
@@ -603,6 +606,27 @@ The fetched merge has identical tree and includes the tested fix as an ancestor.
 No implementation blocker remains within this completed scope.
 P45 used this frozen B baseline to scope the subsequently accepted RC2 migration;
 the integrated M13 checkpoint above records its implementation and qualification.
+
+## Conserving settlement in progress
+
+P54C branches above ready #79 / `d2f7810`. Native flow work now derives exact
+payments/cash, atom floors and canonical local remainder order. Persisted graph
+work uses bounded declared record accesses and resumes its canonical traversal
+from serialized checkpoints. Development checks match 10,920 independent per-root
+flows and 774 complete independent atom-owner cases; 137 fractional insurance
+evaluations reject flow authorization. Graph cases cover 3,639 augmentations,
+with at most 3,478 steps in these fixtures. A separate ordered-set comparison
+covers 90,000 hierarchy updates/queries, including sparse u64 address boundaries.
+Four focused codec/hierarchy tests pass. These are native development results,
+not clean-pin, SBF, RPC or larger-cohort acceptance yet.
+
+Authenticated graph construction and permutation verification, exactly-once
+Apply/Reconcile, recovery, token exits and fresh PostgreSQL replay remain.
+No financial instruction, selected artifact or admitted population changes.
+No P54C PR is opened and no user decision/access blocker is known. Exact next
+action: finish the authenticated construction controller above these primitives,
+then qualify its complete application/recovery path. P15B/P16B stay Open and
+24-hour endurance Deferred.
 
 ## Deployment and operational limits
 

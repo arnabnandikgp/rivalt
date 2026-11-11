@@ -264,6 +264,38 @@ word. Mathematical rejection is recorded separately from guard failures. Actual
 signed rate/recovery/resource acceptance is recorded in [validation](../operations/validation.md#authenticated-frozen-and-rate-verification-p54b). Current schema-8 financial accounts, selected binaries and
 enabled capacity are unchanged. This is verification-only acceptance, not complete on-chain settlement.
 
+### Persisted flow and graph primitives (P54C in progress)
+
+`scalable::flow_work` consumes a completed, integral-insurance rate evaluation and
+an authenticated frozen row. Its 768-byte checkpoint derives both exact market
+payments and cash, checks retained uncollected cash, derives three atom floors,
+retains exact fractional remainders and orders them descending with kind as the
+stable tie-break. It preserves all verified rate registers and uses only fixed
+scratch registers 25–40; each word step declares at most three accesses. A
+fractional insurance evaluation cannot authorize this flow work. The owner must
+also authenticate the complete insurance-round history; a native result type is
+not on-chain authority.
+
+`scalable::active_work` persists each word of the ordered active hierarchy in a
+64-byte checkpoint, with at most eleven update or 21 successor steps even at the
+u64 address boundary. `scalable::graph_work` persists canonical DFS, path minimum,
+residual updates and complete edge/node audit in 352 bytes. Each transition declares
+at most three scalar records and performs at most four record accesses. Following
+parent arcs replaces the native path vector without changing visitation order.
+Generation marks avoid population-sized clearing after each augmentation. Active
+index updates occur before search resumes; an interrupted pair update cannot make
+an unfinished graph available for Apply.
+
+The graph controller must independently construct every edge, balance and
+adjacency from verified flow floors and complete canonical order before creating
+this work. Current native transport obtains that construction from P54A and
+compares final payouts against independent atom owners; it is **not yet** an
+on-chain construction proof. Checkpoint codecs validate structure, exact bindings
+and nested operation types, but cannot authenticate caller-provided progress.
+Program-owned pages, canonical order/permutation verification, application,
+reconciliation and recovery remain required before financial exposure. No new
+entrypoint, financial writer or expanded population is enabled by these modules.
+
 ### Frozen work, completion and adversarial proposals
 
 The successor stages are `Freeze → Value → Denominator → Propose → VerifyRates →
