@@ -20,7 +20,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
-| P54B authenticated frozen/rate work | In progress — inactive | Complete verification acceptance passes at clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations, complete prefix/ABI/recovery checks; ready publication next |
+| P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
 | P54C–P62 successor implementation | Planned | Conserving on-chain application, membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -53,7 +53,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: publish accepted P54B above ready #78 in stack #74, then implement P54C; leave every PR open.
+Next exact action: implement P54C above ready #79 in stack #74; leave every PR open.
 
 ## Remediation planning
 
@@ -256,8 +256,8 @@ client/report correctly skip. Automated review is still pending; no external rev
 is claimed. Next exact action: implement P54B's authenticated frozen input and rate
 work on its child branch, leaving the stack open.
 
-P54B is accepted locally on `implementation/p54b-authenticated-settlement`, above
-published P54A tip `6b8392e`; ready publication is next. D97/D98 implement complete
+P54B is published ready as [PR #79](https://github.com/arnabnandikgp/rivalt/pull/79),
+above #78 / exact parent `6b8392e` in stack #74. It remains open. D97/D98 implement complete
 source-bound valuation, denominator construction, uploaded rate verification,
 original-budget insurance clipping and permissionless stalled-attempt recovery.
 Six new schema-9 record types and 16 new entrypoints leave existing financial
@@ -289,9 +289,8 @@ Nine focused scoped-history tests cover the corrected kind-22 registration;
 generated SDK/typecheck and literal extension preserve D90. No PostgreSQL replay,
 wallet/browser, payout, larger-population, endurance, devnet or external acceptance
 is claimed here. No access blocker is known. P15B/P16B remain Open and endurance
-Deferred. Next exact action: publish cohesive P54B ready above #78 with `gh stack`,
-then begin P54C's conserving flow/round/application work on its child; keep all PRs
-open.
+Deferred. Hosted checks/review for #79 are not yet claimed. Next exact action:
+begin P54C's conserving flow/round/application work on its child; keep all PRs open.
 
 ## Integrated quantity work
 
