@@ -3,8 +3,9 @@
 ## Scalable exact resolution candidate (P51B)
 
 This section specifies the selected **native successor kernel**, not the
-implemented schema-8 default path documented below. P54B/P54C must still implement
-and qualify authenticated bounded SBF continuations; P56B owns expanded local activation. See the
+implemented schema-8 default path documented below. P54B now qualifies authenticated
+bounded SBF valuation/rate continuations. P54C still owns conserving rounding and
+application; P56B owns expanded local activation. See the
 [account contract](accounts.md#account-scale-successor-contract-p51b) for membership,
 authority and deployment. No payer, keeper or off-chain solver becomes trusted.
 
@@ -162,7 +163,7 @@ No account/PDA layout, selected artifact, enabled account count or default path
 changes. P54B/P54C own authentication, physical paging, replay/recovery, actual
 signed continuation costs and token effects before P56B can activate any expansion.
 
-### Persisted scratch cursor foundation (P54B, incomplete)
+### Authenticated paged verification (P54B)
 
 The word, LCM and comparison cursors now have explicit internal checkpoint format
 **1**, distinct from the reserved account schema 9 and current price policy 2.
@@ -260,8 +261,8 @@ owned checkpoints (D98). Numerator normalization follows complete contiguous
 upload with a nonzero final used word; callers cannot upload a cursor or opcode.
 Metadata-only steps use an empty remaining-account plan, which permits no physical
 word. Mathematical rejection is recorded separately from guard failures. Actual
-signed rate/recovery/resource acceptance remains unfinished. Current schema-8 financial accounts, selected binaries and
-enabled capacity are unchanged. This is not acceptance of on-chain settlement.
+signed rate/recovery/resource acceptance is recorded in [validation](../operations/validation.md#authenticated-frozen-and-rate-verification-p54b). Current schema-8 financial accounts, selected binaries and
+enabled capacity are unchanged. This is verification-only acceptance, not complete on-chain settlement.
 
 ### Frozen work, completion and adversarial proposals
 

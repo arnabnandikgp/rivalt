@@ -1,180 +1,124 @@
 # Validation and measured limits
 
-## Persisted scratch foundation (P54B, incomplete)
+## Authenticated frozen and rate verification (P54B)
 
-The current D97 controller adds source binding, actual margin valuation, complete
-ancestor closure and bounded public denominator steps. Native source/margin vectors,
-schema-specific scoped revisions and the literal ABI extension are implemented.
-Clean **`38fc788e82a21c7920d6eda9a35d0272c1bdf771`** passes four actual model/source
-native tests and eight scoped-history tests. They check literal layout offsets,
-whole-account funding/fractional claims, complete count/conservation, changed
-source bindings and rollback of failed native prefixes; scoped writes increment
-exactly once and schema 9 cannot substitute for financial schema 8. Generated
-client parity/typecheck, literal ABI, evidence and whitespace checks pass. Its
-linked qualification SBF builds without unsafe stack diagnostics, SHA-256
-`2f1f90825a429da58ef3fd4691cf869d1507c617264311df340b71c1dc27b9d6`.
-Logs and candidate remain at `.local/scalable-settlement/p54b-38fc788/`.
-The signed prefix check below passes; rate proposals/reset and full P54B acceptance
-remain pending. The selected ordinary
-runtime is unchanged. Reproduce this scoped candidate probe with
-`RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/scalable-settlement/p54b-38fc788 bash ops/scalable-settlement-smoke.sh`.
-The launcher checks the exact candidate hash separately from admitted maker/oracle
-artifacts and uses an owned offline Surfpool. It never promotes the candidate to
-normal runtime. The new probe derives a real frozen cohort from signed deposits,
-fills and an adverse synthetic price move; signed continuation acceptance is
-recorded below for the completed prefix scope.
+Clean verifier **`22736dc5f870413029394106e5545ff64d6f0dc9`** runs on linked clean
+SBF **`89b6129404ca7914bf5a8ba588079f798e6e4445`**, SHA-256
+`0bb44610f6ed17d51582830999fbcd66d1047f47990b0560d073d2ca055a6547`.
+The program is 1,947,576 bytes. Build output contains no unsafe stack-frame
+diagnostics. The candidate is retained at `.local/scalable-settlement/p54b-89b6129/`
+and is not selected for ordinary runtime.
 
-Clean verifier **`ce146e0695797fe9b40d3cd2a6b7cd86f8146b9e`**, SBF **`38fc788`**,
-passes **194 actual signed RPC/WS outcomes**, with every finalized original fetched,
-independently decoded and compared byte-for-byte. Signed fills and adverse synthetic
-prices produce a real eight-root freeze; no fixture injects successful financial
-state. All nine new entrypoints execute. Each frozen row's cash, accrued claims,
-quantities, ID/root/revision and collected cash matches independent arithmetic;
-complete totals reconcile. Five arithmetic continuations at budgets 1/7/128 produce
-LCM **30,006,000,277,777**, matching independent BigInt rational reduction.
+**479 actual signed RPC/WS outcomes** pass, including **27 intentional atomic
+transaction rejections**. Finalized originals are independently fetched and decoded;
+signature WS outcomes agree. Actual signed deposits, fills, withdrawal, insurance
+contributions and an adverse synthetic price move establish the eight-root frozen
+cohort. No fixture injects a successful financial effect. The successor verifies
+this existing-size frozen source; P55/P56 own live lifecycle and expanded admission.
 
-| New verification transaction | Actual CU | Maximum wire bytes |
+All **16 new public entrypoints** execute. Complete membership includes ancestor
+count closure; row cash, whole-account accrued/fractional claims, quantities,
+identity/revision and collected cash match independent arithmetic. Five bounded
+denominator calls produce **30,006,000,555,553**, matching independent rational
+reduction. **156 rate continuations** cover an invalid proposal and both valid
+insurance evaluations; **16 completed valid row prefixes** exactly match the
+independent Fraction/branch oracle. Exact market residual/creditor-loss numerators,
+insurance floor and fractional flags agree at each completed evaluation.
+
+Original market insurance is **[2,000,150, 1,000,075]** test atoms. The first
+verified evaluation requires fractional consumption whose floors are
+**[600,771, 300,430]**. Each market clips its planned budget once; the second complete
+evaluation consumes those integral amounts. This changes only verification work:
+all venue/custody/safety/registry/market/ledger/margin/vault and original resolution
+bytes remain identical through valuation, rejection, reset and successful verification.
+No insurance is spent and no cash is paid by this phase.
+
+The signed negative matrix covers stale frozen revision/epoch, wrong index level,
+omitted/duplicated root, stale revision and attempt, missing/foreign/reordered/
+duplicated limb pages, same-transaction continuation rollback, zero factor,
+oversized width/chunk, skipped/duplicated/non-normalized upload, incomplete work,
+completed replay and attempted reset of a verified plan. A correctly encoded but
+wrong rate records Rejected and leaves the original insurance checkpoint unchanged.
+A different signer recovers both an incomplete upload and a completely uploaded,
+stalled verification after actual 64-slot inactivity; early reset rejects. Reordered
+and duplicated-page checks have mandatory execution assertions, rather than being
+silently skipped when the first arithmetic step needs only one page.
+
+| Transaction (complete actual context) | Actual CU | Maximum wire bytes |
 |---|---:|---:|
-| Initialize prepared source | 22,914 | 686 |
-| Initialize count node | 22,727–24,432 | 720 |
-| Initialize complete member page | 26,172 | 719 |
-| Initialize frozen row page | 23,173 | 719 |
-| Initialize limb register page | 23,015 | 723 |
-| Advance membership / close ancestors | 23,794–28,048 | 685 |
-| Value actual root | 35,620–36,639 | 751 |
-| Accept frozen denominator row | 24,121–32,920 | 685 |
-| Continue bounded arithmetic | 27,203–31,267 | 744 |
+| Initialize prepared source | 22,975 | 686 |
+| Initialize count node | 22,792–24,497 | 720 |
+| Initialize complete member page | 26,237 | 719 |
+| Initialize frozen row page | 23,238 | 719 |
+| Initialize denominator/rate limb page | 22,752–23,805 | 723 |
+| Traverse membership / close ancestor | 23,856–28,110 | 685 |
+| Value actual margin root | 35,693–36,713 | 751 |
+| Accept frozen denominator row | 24,199–34,402 | 685 |
+| Continue denominator | 27,265–31,333 | 744 |
+| Initialize rate verification | 23,254 | 711 |
+| Start untrusted rate attempt | 28,195–28,204 | 742 |
+| Upload numerator words | 23,146–23,154 | 756 |
+| Retag scratch for current attempt | 22,316 | 718 |
+| Accept frozen rate row | 35,003–45,618 | 726 |
+| Continue rate arithmetic | 55,654–100,058 | 818 |
+| Reset rejected/stalled proposal | 21,437–21,450 | 790 |
 
-Eight controller rejection/atomic-failure transactions preserve all tracked bytes:
-stale frozen revision, wrong radix level, replay, omitted/duplicated root, missing
-limb page, a second identical continuation rolling back its first instruction, and
-completed-denominator replay. Existing financial accounts remain byte-identical
-through successful verification too. Legacy and RC2 isolated Anchor clients match
-177 clearing instruction encodings/metas, 21 new account decodings and 236 clearing
-events (including setup); maker parity also passes. New verification accounts lock
-**87,594,440 test lamports** of rent in this fixture, not total venue provisioning.
-The owned Surfpool stops after completion. Evidence stays at
-`.local/scalable-settlement/runs/p54b-ce146e0/`.
+All successful new transactions fit v0's 1,232-byte packet envelope; the oversized
+rejected upload is 1,005 bytes. Existing setup includes its separately supported v1
+publisher/repricing calls. The harness requests 1,000,000 CU, 8 MiB loaded-account
+data and zero priority fee for P54 calls; it requests no heap-frame increase.
+The observed new contexts load at most 19 accounts. Success under the runtime's
+default heap and absence of 4,096-byte stack overflow diagnostics establish this
+fixture's bounded execution; exact peak heap/stack high-water marks are **not**
+instrumented. Native vector orchestration remains excluded from SBF.
 
-This is eight-root valuation/denominator acceptance only. No rate proposal/reset,
-Apply/payout, larger population, PostgreSQL replay, browser, endurance, devnet or
-production qualification is inferred; no new artifact is selected for normal use. These checks will use a fresh existing-size frozen cohort;
-P55/P56 still own live lifecycle and expanded population qualification.
+Forty-four verification accounts lock **346,603,320 test lamports** of rent,
+including all 25 one-page registers; this excludes ordinary venue provisioning.
+The verification segment, including provisioning/negative/recovery checks, has
+**363 transactions**, **14,813,084 observed CU** and **1,835,000 actual fee lamports**.
+Do not extrapolate these fixture totals to a dense 128-/1,024-account default or
+claim G1 affordability. P54C/P56 must measure full settlement and activation costs.
 
-Clean **`a7adbaf7c1bee16cbc47c304e830f11c393ed507`**, restacked above P54A's
-compiler-guard fix, passes five focused Python tests: 774 exact comparisons plus
-1,338 arithmetic, 462 LCM and 305 collection vectors. The native adapter enforces
-exact next-word permissions and restores checkpoint bytes at 1/7/128-step boundaries.
-Four Rust codec regressions and the page-planner regression pass. Pinned SBF
-metadata compilation passes; no linked program or resource measurement is inferred.
-Logs remain at `.local/scalable-settlement/p54b-a7adbaf/`.
+The isolated legacy and RC2 Anchor conformance clients agree on **461 clearing
+instruction encodings/full metas**, **44 new account records** and **503 clearing
+events**, including setup; maker conformance also passes. The original D90 ABI is
+unchanged after checking the literal new extension. Generated SDK/typecheck,
+five source/layout tests, nine scoped-history tests and two page-plan tests pass
+on the affected source. The first signed candidate (`60f7ec8`) rejected rate-account
+creation because a duplicate scope allowlist stopped at kind 21; the corrected
+source uses the single schema mapping and explicitly tests kind 22. That failure
+and the earlier 471-outcome pass remain retained, not counted as the final matrix.
 
-Clean **`1bd8e2e67a1e5b5e203e2d7de76000912ea76a44`** adds and verifies the next
-inactive checkpoint:
+| Earlier clean native pin (unchanged primitives retained) | Independent acceptance |
+|---|---|
+| `a7adbaf` | 774 exact comparisons; 1,338 arithmetic, 462 LCM, 305 collection vectors; four cursor codecs and page-plan checks |
+| `1bd8e2e` | 120 denominator passes; 256 valuations / 3,637 persisted prefixes; 304 aggregate vectors; 22 rejected cohort/domain inputs; six codecs and four canonical page-loader tests |
+| `6f051bc` | Complete radix traversal through 11 dense/sparse populations / 22,448 entries; two core and three canonical-reader tests, including foreign identities and count/order failures |
+| `999ce4d` | 1,440 normalized integer operations up to 32,768 bits with dirty tails; ten invalid domains and two codec/alias checks |
+| `0ff7c53` | 642 exact atom divisions including three corrected estimates; four invalid domains and checkpoint corruption; normalized regressions retained |
+| `f1cd4a7` | 1,185 complete persisted rate evaluations / every incoming prefix, 74 hostile or non-greatest requests, three checkpoint/order/insurance-clipping tests |
 
-- **120 complete denominator passes** match independently reduced Python Fractions
-  and LCMs at budgets 1/7/128, with populations through 1,024 and common values
-  crossing the 256-word page boundary. Eight incomplete/count/order/domain cases
-  reject. Native progress refuses a result until the complete row sequence finishes.
-- **256 complete valuations / 3,637 encoded prefixes** match independent integer
-  sums. Tests check root cash, net/gross lots, positive/negative claims, separate
-  pools/insurance/fees and exact final conservation. Fourteen incorrect total,
-  count, ordering and position cases reject without committing the failed scalar
-  prefix. Claims are already-valued inputs: no oracle/funding/account-admission
-  acceptance is inferred.
-- **304** independent <2^151 aggregate domain/carry cases and **six** Rust cursor
-  regressions pass, including literal formats, frozen binding corruption, failed
-  final-row conservation, nested register fences and completed replay rejection.
-- **Four clearing native-loader tests** pass: literal Borsh/discriminator/offset
-  parity for the 2,129-byte page, all 81 corrupted header-byte positions, foreign/
-  wrong-owner/permission/epoch/attempt/revision/length refusals, page-boundary carry,
-  dirty-only revision updates and exhausted/stale revision rejection. They use real
-  Pinocchio account views over native test memory, not signed transactions or VM
-  rollback. The initial missing trait import/mutable-view compile errors were fixed
-  before this clean acceptance; development logs are retained separately.
-- Affected Rust formatting, Python compilation, shell syntax, evidence policy and
-  pinned SBF **metadata** compilation pass. No new selected binary, generated ABI
-  qualification, program initialization, RPC/WS/PostgreSQL or financial activation
-  is claimed. This child branch has no phase PR yet.
+Those primitives restore owned checkpoints at 1/7/128-step boundaries and deny
+undeclared word access; pinned SBF metadata compilation passes. Native population
+or bit-width tests do not constitute signed larger-cohort acceptance.
 
-Clean **`6f051bcea8fb5a67f53eebdbfa408f0116e192e8`** adds the read-side financial
-index. Two core tests exercise **11 dense/sparse populations, 22,448 total native
-entries**, including 10,002 entries in the largest case and u64-maximum IDs. Every
-encoded traversal prefix restores exactly; the resulting ordered IDs equal the
-independently enumerated list. The exact logical request bound is checked. Missing/
-duplicate/out-of-order requests, wrong child counts/masks, unreachable namespace
-branches, malformed checkpoints and terminal replay reject. These are synthetic
-index entries, not admitted trading accounts.
+Reproduce the signed matrix from the verifier pin with:
 
-Three clearing native-loader tests independently check literal 190-/2,699-byte
-node/page codecs, complete two-entry traversal and corrupted discriminator/venue/
-PDA/count/mask/owner/size/entry-lifecycle bindings. Frozen safety/membership locking
-and actual root valuation are not supplied by these readers and remain required.
-Scoped formatting, pinned SBF metadata and evidence policy pass. The initial
-legacy error-macro compile issue was corrected for RC2 before this clean pin.
-Raw logs remain at `.local/scalable-settlement/p54b-6f051bc/`; no signed transaction,
-linked SBF build, CU/rent or expanded-capacity acceptance follows from this result.
-Reproduce with `cargo test --locked -p financial-core --test scalable_membership`
-and `cargo test --locked -p clearing --lib --features liquidity-execution-qualification instructions::account_safety::settlement_membership::tests`.
+```sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/scalable-settlement/p54b-89b6129 \
+  bash ops/scalable-settlement-smoke.sh
+```
 
-Reproduce the new checks with `cargo build --locked -p financial-core --bin scalable-wide-driver --bin scalable-snapshot-driver`,
-`python3 tests/financial/test_cohort_denominator.py`,
-`python3 tests/financial/test_scalable_snapshot.py`,
-`cargo test --locked -p financial-core --test scalable_checkpoints` and
-`cargo test --locked -p clearing --lib --features liquidity-execution-qualification instructions::account_safety::settlement_pages::tests`.
-Logs remain at `.local/scalable-settlement/p54b-1bd8e2e/`; raw evidence is untracked.
-The new independent arithmetic checks join financial CI; broader inherited suites
-were not rerun locally for this inactive checkpoint. Frozen complete membership,
-source binding, the owning on-chain controller, rate/proposal reset and actual
-signed full-context resource/rollback acceptance remain P54B work. P54C owns
-rounding/Apply/recovery; P56B remains the financial expansion gate.
+The launcher checks this exact source/hash independently of admitted maker/oracle
+artifacts, runs an owned offline Surfpool and stops it on completion. Raw originals,
+logs and references stay at
+`.local/scalable-settlement/runs/p54b-rates-final-89b6129/`; native pins keep their
+existing `.local/scalable-settlement/p54b-*/` paths. No raw evidence is tracked.
 
-Clean **`999ce4d`** adds normalized paged arithmetic for later rate work. **1,440**
-independent Python integer cases match at resume budgets 1/7/128, across 96-/256-word
-boundaries and values through 32,768 bits. Every unused source word is deliberately
-nonzero and every physical read/write must match the exact declared plan. Each
-step performs at most three word accesses; output normalization is also resumable.
-Ten invalid arithmetic/domain cases and two Rust checkpoint/alias tests pass.
-Pinned SBF metadata, affected formatting, shell, whitespace and evidence checks
-pass. This primitive has no public rate/proposal consumer yet; no new linked SBF,
-RPC or financial acceptance follows. Logs remain at
-`.local/scalable-settlement/p54b-999ce4d/`. Reproduce with
-`cargo build --locked -p financial-core --bin scalable-wide-driver`,
-`cargo test --locked -p financial-core --test scalable_normalized` and
-`python3 tests/financial/test_normalized_pages.py`.
-
-Clean **`0ff7c53d8a344ba73cf42546778561887091a403`** passes **642** exact persisted
-atom divisions against Python `divmod`, at 1/7/128-step boundaries. Three cases
-exercise the full-product correction of an overestimated quotient. Inputs cross
-96-/256-word boundaries and reach 32,768-bit divisors; poisoned tails remain
-inaccessible. Four invalid denominator/quotient/budget cases and the 384-byte
-checkpoint's source/scratch/stage/operand corruption checks pass. The affected
-1,440 normalized arithmetic cases and two earlier codec tests also pass. Pinned
-SBF metadata, scoped formatting, shell, whitespace and evidence checks pass.
-Logs remain at `.local/scalable-settlement/p54b-0ff7c53/`; reproduce with
-`cargo test --locked -p financial-core --test scalable_atom_division` and
-`python3 tests/financial/test_paged_atom_division.py` after building the wide driver.
-This is a prerequisite arithmetic schedule, not complete on-chain rate verification
-or insurance/payout acceptance.
-
-Clean **`f1cd4a7`** passes **1,185** complete persisted rate evaluations against
-independent Fraction/branch equations at 1/7/128-step boundaries. Every incoming
-row prefix, strict greatestness, final market residual/loss identities, insurance
-floor and fractional flag agrees; **74** hostile/domain/non-greatest requests
-reject. Three Rust tests cover checkpoint/input/nested-operation corruption,
-ordered complete membership and the separate original-budget clipping controller,
-including at-most-once market clipping and the required final integral pass.
-Pinned SBF metadata compilation passes. Logs remain at
-`.local/scalable-settlement/p54b-f1cd4a7/`; reproduce with
-`cargo test --locked -p financial-core --test scalable_rate_work`,
-`cargo build --locked -p financial-core --bin scalable-rate-driver` and
-`python3 tests/financial/test_paged_rates.py`. This pin is native rate arithmetic,
-not signed proposal or settlement acceptance.
-
-D98's subsequent public proposal/upload/recovery implementation is under
-qualification. Its source/layout, scoped-history and empty-page-plan development
-checks pass; the development linked SBF has no stack diagnostics. No clean pinned
-signed rate/recovery result or phase completion is inferred from those checks.
+P54B qualifies verification only. It does **not** qualify Apply/payouts, expanded
+accounts, complete default recovery, PostgreSQL replay, browser, endurance, devnet,
+independent review or production. P54C owns conserving rounding/application and
+actual exits/replay. P15B/P16B remain Open; 24-hour endurance stays Deferred.
 
 ## Scalable native settlement (P54A)
 

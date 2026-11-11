@@ -20,7 +20,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
-| P54B authenticated frozen/rate work | In progress — inactive | Signed frozen-source valuation/denominator prefix acceptance passes at `ce146e0` / SBF `38fc788`; native rate equations pass at `f1cd4a7`; public proposal/recovery is implemented, signed rate/resource acceptance remains |
+| P54B authenticated frozen/rate work | In progress — inactive | Complete verification acceptance passes at clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations, complete prefix/ABI/recovery checks; ready publication next |
 | P54C–P62 successor implementation | Planned | Conserving on-chain application, membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -53,8 +53,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P54B's authenticated frozen input and rate verification
-above ready #78 in stack #74; leave every PR open.
+Next exact action: publish accepted P54B above ready #78 in stack #74, then implement P54C; leave every PR open.
 
 ## Remediation planning
 
@@ -257,84 +256,42 @@ client/report correctly skip. Automated review is still pending; no external rev
 is claimed. Next exact action: implement P54B's authenticated frozen input and rate
 work on its child branch, leaving the stack open.
 
-P54B continues on `implementation/p54b-authenticated-settlement`, restacked above
-published P54A tip `6b8392e`. Clean **`a7adbaf7c1bee16cbc47c304e830f11c393ed507`**
-passes 774 exact comparisons, 2,105 arithmetic/LCM/collection vectors, four codec
-regressions and the bounded page-planner regression. Target metadata also compiles
-with the pinned SBF compiler; this is not a linked program or deployment. Earlier
-clean `98601b3` results remain retained before restacking. Evidence stays at
-`.local/scalable-settlement/p54b-a7adbaf/` and the earlier local paths.
+P54B is accepted locally on `implementation/p54b-authenticated-settlement`, above
+published P54A tip `6b8392e`; ready publication is next. D97/D98 implement complete
+source-bound valuation, denominator construction, uploaded rate verification,
+original-budget insurance clipping and permissionless stalled-attempt recovery.
+Six new schema-9 record types and 16 new entrypoints leave existing financial
+accounts read-only. Current schema-8 admission, normal artifacts and default/devnet
+gates remain unchanged; this is not larger-population activation or Apply.
 
-Clean **`1bd8e2e67a1e5b5e203e2d7de76000912ea76a44`** adds the direct account-page
-adapter, complete-row denominator schedule and constant-space valuation totals.
-The scoped run passes 120 independent denominator cases, 256 valuations / 3,637
-persisted prefixes, 304 aggregate vectors, 22 rejected cohort/domain cases, six
-codec tests and four native page-loader tests. Scoped formatting, Python/shell,
-evidence checks and pinned SBF metadata compilation pass. Evidence remains at
-`.local/scalable-settlement/p54b-1bd8e2e/`; [validation](operations/validation.md)
-records commands and scope. This remains inactive: no public initializer/financial handler, generated ABI acceptance, selected
-artifact or larger-account acceptance is inferred. The cohesive P54B PR awaits its
-actual signed acceptance. Remaining work is frozen complete membership/source
-binding, owning on-chain control, rate/proposal reset and signed RPC/WS verification
-with full-context CU/wire/stack/rent measurements. P54C still owns Apply and recovery.
-Clean **`6f051bcea8fb5a67f53eebdbfa408f0116e192e8`** adds bounded complete
-financial-index traversal and canonical node/page/entry readers. Two core tests
-pass across 11 dense/sparse populations (22,448 native entries, up to 10,002 per
-case); three clearing native-reader tests pass. Every encoded traversal prefix,
-exact request bound, literal account codec and invalid identity/count/order case
-is checked. Formatting, evidence policy and pinned SBF metadata pass. These are
-native index/reader checks, not admitted trading accounts or frozen on-chain
-transitions. Logs stay at `.local/scalable-settlement/p54b-6f051bc/`.
-D97 now adds verification-only public source/valuation/denominator handlers above
-these foundations. They bind the actual existing freeze, derive whole-account
-claims from real roots, and journal atomic page/work revisions. The schema-8 source
-remains bounded; no payout or expanded admission is enabled. Clean **`38fc788e82a21c7920d6eda9a35d0272c1bdf771`** passes four source/valuation
-native tests and eight scoped-history tests, generated-client/typecheck/literal ABI
-and evidence checks. Its linked qualification SBF builds without stack diagnostics;
-SHA-256 is `2f1f90825a429da58ef3fd4691cf869d1507c617264311df340b71c1dc27b9d6`.
-This candidate remains separate from normal-runtime admission. Generated additions have a separate literal ABI checker,
-with the retained D90 surface unchanged. No phase PR or new selected artifact is claimed.
-Clean **`ce146e0695797fe9b40d3cd2a6b7cd86f8146b9e`** executes 194 actual signed
-RPC/WS outcomes on SBF `38fc788`, including all nine new entrypoints. Eight real
-margin roots value to independent funded-cash/fractional-claim totals; five bounded
-arithmetic calls produce the independently reduced common denominator. Replay,
-wrong-order/missing-page and same-transaction rollback checks pass, and every
-financial account stays byte-identical during verification. Both isolated legacy
-and RC2 Anchor clients agree on full instruction metas/data, 21 new account records
-and events. Maximum new-entrypoint CU is 36,639 and packet size is 751 bytes in this
-fixture. Owned Surfpool is stopped. Rate/proposal/reset and full P54B acceptance,
-not a larger-runtime or PostgreSQL claim, remain open. The next arithmetic layer
-now implements 192-byte normalized magnitude continuations. Clean `999ce4d` passes
-1,440 independent integer cases at budgets 1/7/128, ten invalid domains and two
-codec/alias tests, plus pinned SBF metadata and scoped policy/format checks. No
-on-chain rate path uses it yet. Persisted exact atom division is now implemented with a 384-byte checkpoint;
-clean `0ff7c53` passes 642 independent division cases (including three corrected
-estimates), four invalid domains, its codec test and 1,440 normalized regressions.
-Pinned SBF metadata/format/policy checks pass. No new on-chain consumer or linked
-program is inferred. Next exact action: implement the authenticated complete-rate
-schedule and proposal/reset handlers without exposing Apply. The complete bounded
-rate schedule and insurance-round controller are now implemented in source.
-Clean `f1cd4a7` passes 1,185 independent persisted evaluations (including every
-row prefix), 74 hostile proposals, three checkpoint/order/clipping tests and
-pinned SBF metadata compilation. Public proposal, normalization, rate and recovery
-handlers are now implemented; development checks pass five source/layout tests,
-eight scope tests and two page-plan tests. The linked development SBF has no stack
-diagnostics and the literal ABI extension passes. These are not signed rate
-acceptance. Next exact action: pin this candidate, execute actual signed
-rate/clipping/recovery acceptance, and compare all observed prefixes with the
-independent rational reference. The first signed rate run at `7ab291f` / SBF
-`60f7ec8` reached rate initialization and exposed a duplicate scoped-history
-allowlist still ending at kind 21; creation rejected atomically with Profile.
-The fix makes kind validation use its single schema mapping and adds a creation/
-read regression for kind 22. The failed run remains retained, not acceptance.
-Clean `44cd6c3` on corrected SBF `89b6129` passes 471 signed RPC/WS outcomes,
-156 rate continuations, two insurance evaluations and 16 independent row prefixes.
-All financial bytes remain unchanged; 44 new account records and instruction/event
-bytes agree with both Anchor clients. Inspection found the first-step-only negative
-page-order tests had not executed because that step used one page. The harness now
-requires that coverage, plus explicit stale-epoch and stalled-verification reset.
-Next action is the final signed matrix on the same pinned SBF. No P54B PR or
-runtime promotion is claimed.
+Clean verifier **`22736dc5f870413029394106e5545ff64d6f0dc9`** on clean SBF
+**`89b6129404ca7914bf5a8ba588079f798e6e4445`** passes **479 actual signed RPC/WS
+outcomes**, including 27 intentional atomic transaction rejections. All 16 new
+entrypoints execute; eight actual frozen roots match independent cash/claim totals,
+156 rate continuations complete two insurance evaluations and 16 independent row
+prefixes. Both markets clip fractional planned insurance once, then pass a final
+integral evaluation. Stale epochs, reordered/duplicated/foreign pages, malformed
+uploads, replay, wrong equations and both stalled Upload/Verify recoveries pass.
+Every financial account stays byte-identical. Both Anchor conformance clients
+match 461 clearing instruction encodings/metas, 44 new accounts and 503 events.
+
+Maximum successful new-transaction usage is **100,058 CU / 818 bytes** in this
+fixture. Verification storage locks **346,603,320 test lamports**; the measured
+verification segment uses 363 transactions and 1,835,000 fee lamports. This is a
+small-cohort cost observation, not G1 affordability or production performance.
+The linked SBF is 1,947,576 bytes with no stack diagnostics; calls request no heap
+increase. Exact peak heap/stack usage is not instrumented. Owned Surfpool is stopped.
+Native foundational pins, independent vectors, exact resource table, reproduction
+and the retained initial failure are in
+[validation](operations/validation.md#authenticated-frozen-and-rate-verification-p54b).
+
+Nine focused scoped-history tests cover the corrected kind-22 registration;
+generated SDK/typecheck and literal extension preserve D90. No PostgreSQL replay,
+wallet/browser, payout, larger-population, endurance, devnet or external acceptance
+is claimed here. No access blocker is known. P15B/P16B remain Open and endurance
+Deferred. Next exact action: publish cohesive P54B ready above #78 with `gh stack`,
+then begin P54C's conserving flow/round/application work on its child; keep all PRs
+open.
 
 ## Integrated quantity work
 

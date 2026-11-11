@@ -105,15 +105,16 @@ for the arithmetic, LCM and comparison cursors. Checkpoint format 1 is separate
 from account schema 9; zero reserved fields and strict scalar bounds reject malformed
 encodings. Only program-owned authenticated work may restore them. Structural
 validity is not proof of execution, and no caller-supplied cursor can authorize
-payout or skipping work. Frozen-cohort authentication, atomic persistence and signed replay/continuation
-acceptance remain unfinished P54B responsibilities.
+payout or skipping work. D97/D98 now bind frozen-cohort authentication and atomic
+persistence to the signed verification acceptance recorded in validation.
 The subsequent inactive foundation uses 256-word pages with direct validated word
 access, a complete-row denominator schedule and constant-space valuation totals.
 Its 2,129-byte scratch layout and 320-/288-byte controller checkpoints are recorded
 in the current account/risk contracts. Three-word unsigned claim totals preserve
 the <2^151 aggregate bound; no u128 population sum or early positive/negative
 cancellation replaces it. Native prefix/loader checks do not authenticate frozen
-membership or authorize a payout; public handlers and signed acceptance remain open.
+membership or authorize a payout; D97/D98 public handlers supply that authentication
+and their own signed acceptance. Full payout/application remains P54C work.
 P54B now implements the read side of P51B's reserved financial-index interfaces.
 Its 15 radix levels derive from u64 IDs and 64 entries/page; the fixed 544-byte
 cursor verifies complete count-conserving traversal in stable ID order. Node/page
