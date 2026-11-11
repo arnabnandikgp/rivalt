@@ -162,6 +162,36 @@ No account/PDA layout, selected artifact, enabled account count or default path
 changes. P54B/P54C own authentication, physical paging, replay/recovery, actual
 signed continuation costs and token effects before P56B can activate any expansion.
 
+### Persisted scratch cursor foundation (P54B, incomplete)
+
+The word, LCM and comparison cursors now have explicit internal checkpoint format
+**1**, distinct from the reserved account schema 9 and current price policy 2.
+Encodings use little-endian integers and zero reserved/unused opcode bytes:
+
+| Cursor | Bytes | Encoded state / structural validation |
+|---|---:|---|
+| Arithmetic | 128 | Operation/flags/column/factor length; width and three register IDs; position/carry; five factor words or small divisor. Check width against trusted allocation, output/source separation, carry domain and exact pending/completed position relationships. |
+| LCM | 224 | Stage, three IDs, used/span/divisor, scan/result lengths and the complete arithmetic checkpoint. Check stage-specific operand bindings, divisor relationships, used+2 span, scan/completion consistency and reserved bytes. |
+| Comparison | 40 | Width, two IDs, remaining high-to-low words and pending/less/equal/greater result. Check range/completion consistency; equal is terminal only after all words. |
+
+`accesses()` returns the exact next register/word permissions before execution.
+Arithmetic/LCM use at most three descriptors; comparison reads exactly two words
+and finishes after at most W steps. A writable descriptor permits the multiply
+accumulator read as well as its write. Source aliases may share a read page, but
+an arithmetic output cannot alias an input. Completed cursors reject more work.
+The native test adapter denies any undeclared word access and restores encoded
+bytes at 1/7/128-step boundaries, including every LCM stage.
+
+These codecs validate syntax and internal scalar consistency, **not historical
+execution**. They must be decoded only from authenticated program-owned work state;
+an instruction must never accept a caller's arbitrary cursor as proof of completed
+work. P54B's still-unimplemented adapter must bind venue, frozen membership,
+epoch/attempt/revision, operation descriptors and canonical page identities, then
+commit work/page updates atomically. It must also provide bounded normalization,
+whole-cohort control flow, proposal reset and actual signed verification. No
+program handler, account layout, selected binary or enabled capacity changes in
+this foundation. It is not acceptance of authenticated on-chain settlement.
+
 ### Frozen work, completion and adversarial proposals
 
 The successor stages are `Freeze → Value → Denominator → Propose → VerifyRates →

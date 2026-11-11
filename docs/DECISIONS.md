@@ -33,6 +33,14 @@ exact denominators still grow with N. Measured native completion does not establ
 transaction/rent affordability. Expanded financial activation remains at P56B;
 the current 64-member runtime and selected artifacts are unchanged.
 
+P54B adds fixed internal byte checkpoints and exact next-word access descriptors
+for the arithmetic, LCM and comparison cursors. Checkpoint format 1 is separate
+from account schema 9; zero reserved fields and strict scalar bounds reject malformed
+encodings. Only program-owned authenticated work may restore them. Structural
+validity is not proof of execution, and no caller-supplied cursor can authorize
+payout or skipping work. Physical account authentication, atomic persistence and
+signed replay/continuation acceptance remain unfinished P54B responsibilities.
+
 ## D95 — separate price-policy consolidation from calibration (11 November 2026)
 
 P53A centralizes the existing price policy in financial-core and generates SDK

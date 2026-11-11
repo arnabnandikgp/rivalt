@@ -2,6 +2,7 @@
 //! or expanded account admission is exposed by these arithmetic primitives.
 //! P54B owns authenticated account pages and persisted continuation fences.
 pub mod collection;
+pub mod comparison;
 pub mod denominator;
 pub mod wide;
 

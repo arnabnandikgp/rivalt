@@ -10,9 +10,17 @@ struct Memory {
     registers: [Vec<u64>; 3],
     reads: std::cell::Cell<u64>,
     writes: u64,
+    allowed: Vec<financial_core::clearing::scalable::wide::WordAccess>,
 }
 impl LimbStorage for Memory {
     fn read(&self, register: u32, limb: u64) -> Result<u64> {
+        if !self
+            .allowed
+            .iter()
+            .any(|access| access.register == register && access.limb == limb)
+        {
+            return Err(Error::Invariant);
+        }
         self.reads.set(self.reads.get() + 1);
         self.registers
             .get(register as usize)
@@ -21,6 +29,13 @@ impl LimbStorage for Memory {
             .ok_or(Error::Bounds)
     }
     fn write(&mut self, register: u32, limb: u64, value: u64) -> Result<()> {
+        if !self
+            .allowed
+            .iter()
+            .any(|access| access.register == register && access.limb == limb && access.writable)
+        {
+            return Err(Error::Invariant);
+        }
         *self
             .registers
             .get_mut(register as usize)
@@ -88,6 +103,41 @@ fn execute(text: &str) -> Result<String> {
         return Err(Error::Bounds);
     }
     let left = parse_words(fields[3], width)?;
+    if fields[0] == "cmp" {
+        use financial_core::clearing::scalable::comparison::CompareCursor;
+        let mut memory = Memory {
+            registers: [
+                left,
+                parse_words(fields[4], width)?,
+                parse_words("0", width)?,
+            ],
+            reads: std::cell::Cell::new(0),
+            writes: 0,
+            allowed: Vec::new(),
+        };
+        let mut cursor = CompareCursor::new(width as u64, 0, 1)?;
+        let mut steps = 0u64;
+        while !cursor.is_done() {
+            for _ in 0..budget {
+                if cursor.is_done() {
+                    break;
+                }
+                memory.allowed = cursor.accesses()?.into_iter().flatten().collect();
+                cursor.step(&memory)?;
+                steps += 1;
+            }
+            cursor = CompareCursor::from_checkpoint(&cursor.checkpoint(), width as u64)?;
+        }
+        if cursor.step(&memory).is_ok() || memory.writes != 0 || memory.reads.get() != 2 * steps {
+            return Err(Error::Invariant);
+        }
+        let order = match cursor.result()? {
+            std::cmp::Ordering::Less => -1,
+            std::cmp::Ordering::Equal => 0,
+            std::cmp::Ordering::Greater => 1,
+        };
+        return Ok(format!("{order}|{steps}"));
+    }
     if fields[0] == "lcm" {
         let used = left
             .iter()
@@ -98,6 +148,7 @@ fn execute(text: &str) -> Result<String> {
             registers: [left, parse_words("0", width)?, parse_words("0", width)?],
             reads: std::cell::Cell::new(0),
             writes: 0,
+            allowed: Vec::new(),
         };
         // Nonzero scratch tails deliberately test clearing before wider reuse.
         memory.registers[1].fill(u64::MAX);
@@ -109,13 +160,14 @@ fn execute(text: &str) -> Result<String> {
                     break;
                 }
                 let before = memory.reads.get() + memory.writes;
+                memory.allowed = cursor.accesses()?.into_iter().flatten().collect();
                 cursor.step(&mut memory)?;
                 steps += 1;
                 if memory.reads.get() + memory.writes - before > 3 {
                     return Err(Error::Invariant);
                 }
             }
-            cursor = cursor.clone();
+            cursor = LcmCursor::from_checkpoint(&cursor.checkpoint(), width as u64)?;
         }
         if cursor.step(&mut memory).is_ok() {
             return Err(Error::Invariant);
@@ -156,6 +208,7 @@ fn execute(text: &str) -> Result<String> {
         registers: [left, right, parse_words("0", width)?],
         reads: std::cell::Cell::new(0),
         writes: 0,
+        allowed: Vec::new(),
     };
     let mut cursor = Cursor::new(operation, width as u64, 0, 1, 2)?;
     let mut steps = 0u64;
@@ -165,15 +218,16 @@ fn execute(text: &str) -> Result<String> {
                 break;
             }
             let before = memory.reads.get() + memory.writes;
+            memory.allowed = cursor.accesses()?.into_iter().flatten().collect();
             cursor.step(&mut memory)?;
             steps += 1;
             if memory.reads.get() + memory.writes - before > 3 {
                 return Err(Error::Invariant);
             }
         }
-        // Native persisted-state seam: moving/cloning a cursor must preserve
-        // the exact next operation, not restart or skip a limb.
-        cursor = cursor.clone();
+        // Real byte roundtrip at every budget boundary; authentication and
+        // transactional durability remain the program adapter's obligation.
+        cursor = Cursor::from_checkpoint(&cursor.checkpoint(), width as u64)?;
     }
     if cursor.step(&mut memory).is_ok() {
         return Err(Error::Invariant);

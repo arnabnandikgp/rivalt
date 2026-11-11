@@ -13,6 +13,19 @@ pub trait LimbStorage {
     fn write(&mut self, register: u32, limb: u64, value: u64) -> Result<()>;
 }
 
+/// Versioned internal cursor encoding, separate from account or price schemas.
+/// It may be restored only from authenticated program-owned work state. Syntax
+/// validation cannot prove that an untrusted claimed arithmetic prefix happened.
+pub const CHECKPOINT_BYTES: usize = 128;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct WordAccess {
+    pub register: u32,
+    pub limb: u64,
+    /// A writable word may also be read by the step (multiply accumulation).
+    pub writable: bool,
+}
+
 /// Count-derived bound from K<2^87 and the selected reduced-LCM rate contract.
 /// Allocation/rent limits are checked separately; this does not promise that a
 /// machine can provision every representable population.
@@ -103,6 +116,186 @@ impl Cursor {
             return Err(Error::Bounds);
         }
         Ok(self.carry)
+    }
+
+    pub(crate) fn specification(&self) -> (Operation, u64, u32, u32, u32) {
+        (
+            self.operation,
+            self.width,
+            self.left,
+            self.right,
+            self.output,
+        )
+    }
+
+    pub(crate) fn position(&self) -> u64 {
+        self.position
+    }
+
+    /// Exact next-word dependencies. An adapter can derive bounded canonical
+    /// pages before executing; it must not infer writes from caller-supplied
+    /// accounts. Repeated source words are harmless and may share a read page.
+    pub fn accesses(&self) -> Result<[Option<WordAccess>; 3]> {
+        if self.done {
+            return Err(Error::Bounds);
+        }
+        let access = |register, limb, writable| {
+            Some(WordAccess {
+                register,
+                limb,
+                writable,
+            })
+        };
+        if self.clearing {
+            return Ok([access(self.output, self.position, true), None, None]);
+        }
+        match self.operation {
+            Operation::Add | Operation::Subtract => Ok([
+                access(self.left, self.position, false),
+                access(self.right, self.position, false),
+                access(self.output, self.position, true),
+            ]),
+            Operation::Multiply { .. } => {
+                let output = self
+                    .position
+                    .checked_add(u64::from(self.column))
+                    .ok_or(Error::Overflow)?;
+                Ok([
+                    access(self.left, self.position, false),
+                    if output < self.width {
+                        access(self.output, output, true)
+                    } else {
+                        None
+                    },
+                    None,
+                ])
+            }
+            Operation::Divide { .. } => {
+                let position = self.width - self.position - 1;
+                Ok([
+                    access(self.left, position, false),
+                    access(self.output, position, true),
+                    None,
+                ])
+            }
+        }
+    }
+
+    /// All integers are little endian; reserved and unused opcode fields are
+    /// zero. Do not commit this encoding after a failing arithmetic/storage step.
+    pub fn checkpoint(&self) -> [u8; CHECKPOINT_BYTES] {
+        let mut bytes = [0; CHECKPOINT_BYTES];
+        bytes[0] = 1;
+        bytes[1] = match self.operation {
+            Operation::Add => 0,
+            Operation::Subtract => 1,
+            Operation::Multiply { factor, length } => {
+                bytes[4] = length;
+                for (index, value) in factor.iter().enumerate() {
+                    bytes[56 + 8 * index..64 + 8 * index].copy_from_slice(&value.to_le_bytes());
+                }
+                2
+            }
+            Operation::Divide { divisor } => {
+                bytes[96..112].copy_from_slice(&divisor.to_le_bytes());
+                3
+            }
+        };
+        bytes[2] = u8::from(self.clearing) | (u8::from(self.done) << 1);
+        bytes[3] = self.column;
+        bytes[8..16].copy_from_slice(&self.width.to_le_bytes());
+        bytes[16..20].copy_from_slice(&self.left.to_le_bytes());
+        bytes[20..24].copy_from_slice(&self.right.to_le_bytes());
+        bytes[24..28].copy_from_slice(&self.output.to_le_bytes());
+        bytes[32..40].copy_from_slice(&self.position.to_le_bytes());
+        bytes[40..56].copy_from_slice(&self.carry.to_le_bytes());
+        bytes
+    }
+
+    /// Decode only from trusted work-account bytes, never instruction arguments.
+    /// The owning adapter binds epoch/attempt/revision, operands, capacity and
+    /// account identities; this codec checks structural/internal scalar bounds.
+    pub fn from_checkpoint(bytes: &[u8], capacity: u64) -> Result<Self> {
+        if bytes.len() != CHECKPOINT_BYTES
+            || bytes[0] != 1
+            || bytes[2] > 3
+            || bytes[5..8]
+                .iter()
+                .chain(&bytes[28..32])
+                .chain(&bytes[112..])
+                .any(|byte| *byte != 0)
+        {
+            return Err(Error::Bounds);
+        }
+        let read_u64 = |start| u64::from_le_bytes(bytes[start..start + 8].try_into().unwrap());
+        let read_u32 = |start| u32::from_le_bytes(bytes[start..start + 4].try_into().unwrap());
+        let divisor = u128::from_le_bytes(bytes[96..112].try_into().unwrap());
+        let factor = core::array::from_fn(|index| read_u64(56 + 8 * index));
+        let operation = match bytes[1] {
+            0 => Operation::Add,
+            1 => Operation::Subtract,
+            2 => Operation::Multiply {
+                factor,
+                length: bytes[4],
+            },
+            3 => Operation::Divide { divisor },
+            _ => return Err(Error::Bounds),
+        };
+        if (bytes[1] != 2 && (bytes[4] != 0 || factor != [0; 5])) || (bytes[1] != 3 && divisor != 0)
+        {
+            return Err(Error::Bounds);
+        }
+        let mut cursor = Self::new(
+            operation,
+            read_u64(8),
+            read_u32(16),
+            read_u32(20),
+            read_u32(24),
+        )?;
+        if cursor.width > capacity {
+            return Err(Error::Bounds);
+        }
+        cursor.clearing = bytes[2] & 1 != 0;
+        cursor.done = bytes[2] & 2 != 0;
+        cursor.column = bytes[3];
+        cursor.position = read_u64(32);
+        cursor.carry = u128::from_le_bytes(bytes[40..56].try_into().unwrap());
+        match operation {
+            Operation::Multiply { length, .. } => {
+                if cursor.position >= cursor.width
+                    || cursor.column > length
+                    || cursor.carry > u128::from(u64::MAX)
+                    || (cursor.position == 0 && cursor.carry != 0)
+                    || (cursor.clearing && (cursor.done || cursor.column != 0 || cursor.carry != 0))
+                    || (!cursor.clearing && cursor.done != (cursor.column == length))
+                    || (cursor.done && (cursor.position != 0 || cursor.carry != 0))
+                {
+                    return Err(Error::Bounds);
+                }
+            }
+            _ => {
+                if cursor.clearing
+                    || cursor.column != 0
+                    || cursor.position > cursor.width
+                    || cursor.done != (cursor.position == cursor.width)
+                    || (cursor.position == 0 && cursor.carry != 0)
+                {
+                    return Err(Error::Bounds);
+                }
+                match operation {
+                    Operation::Divide { divisor } if cursor.carry >= divisor => {
+                        return Err(Error::Bounds)
+                    }
+                    Operation::Add | Operation::Subtract
+                        if cursor.carry > 1 || (cursor.done && cursor.carry != 0) =>
+                    {
+                        return Err(Error::Bounds)
+                    }
+                    _ => {}
+                }
+            }
+        }
+        Ok(cursor)
     }
     /// One limb of work; no allocation, width-sized local value or unbounded
     /// scan. Completed cursors reject instead of silently replaying a write.
