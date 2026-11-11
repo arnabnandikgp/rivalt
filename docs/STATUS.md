@@ -25,7 +25,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
-| P55B2 on-chain maintained backing | In progress | D102 candidate storage/hooks, schema-10 IDL/SDK/indexer and worker implemented; focused native/client checks in progress; no new SBF/deployment or signed acceptance yet |
+| P55B2 on-chain maintained backing | In progress | SBF `bc9f029`; clean progress harness `3c44c0e` passes 402 signed outcomes, two non-resetting 39-step scans and 214-event exact SQL replay; remaining boundary/default acceptance in progress |
 | P56A–P62 successor implementation | Planned | Full clients/workers, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -783,8 +783,28 @@ promotion or signed acceptance is claimed. The next harness exercises overlappin
 scan/fill submissions, processed/unprocessed roots, custody changes, final closure
 with payment/rollback, exact wide summary reconstruction and PostgreSQL replay.
 
-Next exact action: run that fresh signed maintained-backing workload, fix any
-observed failures, then extend the remaining hostile/lifecycle/economic cases. No user decision is blocking this work.
+Clean harness `3c44c0ef7443b1e4afca341887153f3465d989d1` passes **402 signed outcomes**,
+including six expected rejections. Both eight-member market scans finish in 39
+steps (22.90 / 22.91 seconds) without any reset after their initial epochs, despite
+ongoing source publication, four overlapping independently paid scan/fill pairs and
+six processed cross cash operations. Final closure/payment rolls back together on
+an inadmissible amount, then pays one real funded atom in the same transaction.
+The independent Python audit matches **135 summaries across 98 captured frames**.
+Both isolated Anchor clients agree on 389 clearing instructions, five account
+decodes and 595 clearing events. Actual PostgreSQL replay reproduces **214 events**;
+226 accounts/eight members and the 8,000,000-atom actual/allocated SPL vault reconcile.
+End tracked tree is clean. Raw evidence: `.local/scalable-settlement/runs/p55b2-progress-initial`.
+
+Measured continuation CU is 32,091–39,321; final closure/payment 81,937–81,973;
+overlapping fills 166,738–167,141. Member scans write the selected ledger/root;
+actual signed lock extraction confirms contention there, without a new writable
+venue membership registry on ordinary fills. This is a small-population overlapping
+workload, not a saturated throughput or external fee result. No complete P55B2
+acceptance is claimed: stale/out-of-region/membership boundaries, bad repair,
+reservations/TP-SL, liquidation/default and worker recovery cases remain.
+
+Next exact action: extend the pinned signed workload with those boundary/economic
+cases, then qualify the full changed default/recovery boundary. No user decision is blocking this work.
 
 ## Deployment and operational limits
 

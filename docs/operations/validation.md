@@ -21,7 +21,31 @@ Separate snapshot construction frames fix this at clean
 `bc9f029fa0f541a7407384a0bc7715bcee9c0f08`: all three default and qualification
 programs build without oversized-stack diagnostics. Clearing is 2,374,856 bytes,
 SHA-256 `62523299a7f1629dc40e56cd99c6b858a74a247bc5eecca46debab0ec0ab65a9`.
-Actual signed progress/payment and SQL acceptance remain pending.
+Clean harness `3c44c0ef7443b1e4afca341887153f3465d989d1` passes 402 signed outcomes
+(six expected rejections), RPC/WS receipt equality and exact 214-event fresh
+PostgreSQL replay. Both eight-member market scans finish 39 continuations in
+22.90 / 22.91 seconds without resetting after initial epoch creation, while sources
+continue sampling, four independently paid scan/fill pairs overlap and six processed
+cross cash mutations land. Two failed atomic closure/payment transactions preserve
+all tracked bytes; two valid closures pay one actual funded atom each. The Python
+16-corner auditor matches 135 summaries across 98 actual RPC captures. Both isolated
+Anchor clients agree on 389 clearing instructions, five final accounts and 595
+clearing events. The actual/allocated vault is 8,000,000 atoms, with zero surplus;
+226 accounts/eight members reconcile. End tracked tree remains clean.
+
+| Observed transaction | CU range | Maximum bytes |
+|---|---:|---:|
+| Backing continuation | 32,091–39,321 | 579 |
+| Atomic final closure/payment | 81,937–81,973 | 738 |
+| Overlapping admitted fill | 166,738–167,141 | 910 |
+| Processed cross transfer/withdraw/deposit | 33,752–66,858 | 806 |
+
+Actual signed messages confirm selected-ledger/root contention without adding a
+writable venue registry to ordinary fills. Raw logs/transactions/SQL captures stay
+at `.local/scalable-settlement/runs/p55b2-progress-initial`. This is eight populated
+roots and bounded overlapping activity, not saturated throughput or public-network
+fee evidence. P55B2 remains incomplete pending stale/region/membership boundaries,
+bad-debtor repair, reservations/TP-SL, liquidation/default and worker recovery checks.
 
 ## Maintained backing arithmetic (P55B1)
 
