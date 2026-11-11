@@ -4449,7 +4449,8 @@
           }
         },
         {
-          "name": "ledger"
+          "name": "ledger",
+          "writable": true
         },
         {
           "name": "certificate",
@@ -20767,6 +20768,36 @@
                 "name": "BackingSnapshot"
               }
             }
+          },
+          {
+            "name": "ledger",
+            "docs": [
+              "Initialization has no summary/root mutation. Every scan emits its ledger",
+              "and, on a member step, the exact root whose processed marker changed."
+            ],
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "MarketLedgerSnapshot"
+                }
+              }
+            }
+          },
+          {
+            "name": "margin",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "root_state",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "MarginAccountSnapshot"
+                }
+              }
+            }
           }
         ]
       }
@@ -22246,6 +22277,42 @@
       }
     },
     {
+      "name": "BackingRegion",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "prices",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u64",
+                    2
+                  ]
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "funding",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "i128",
+                    2
+                  ]
+                },
+                2
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "BackingSnapshot",
       "type": {
         "kind": "struct",
@@ -22263,52 +22330,8 @@
             "type": "u8"
           },
           {
-            "name": "safety_epoch",
+            "name": "backing_epoch",
             "type": "u64"
-          },
-          {
-            "name": "membership_version",
-            "type": "u64"
-          },
-          {
-            "name": "liability_version",
-            "type": "u64"
-          },
-          {
-            "name": "observations",
-            "type": {
-              "array": [
-                "u64",
-                2
-              ]
-            }
-          },
-          {
-            "name": "funding_bounds",
-            "type": {
-              "array": [
-                {
-                  "array": [
-                    "i128",
-                    2
-                  ]
-                },
-                2
-              ]
-            }
-          },
-          {
-            "name": "source_deadlines",
-            "type": {
-              "array": [
-                "i64",
-                2
-              ]
-            }
-          },
-          {
-            "name": "required_market_mask",
-            "type": "u8"
           },
           {
             "name": "count",
@@ -22317,23 +22340,6 @@
           {
             "name": "next",
             "type": "u64"
-          },
-          {
-            "name": "cash",
-            "type": "u64"
-          },
-          {
-            "name": "lots",
-            "type": {
-              "array": [
-                "i128",
-                2
-              ]
-            }
-          },
-          {
-            "name": "claim_sum",
-            "type": "i128"
           },
           {
             "name": "complete",
@@ -22350,6 +22356,56 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BackingState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "safety_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "membership_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "terms_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "config_epochs",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "region",
+            "type": {
+              "defined": {
+                "name": "BackingRegion"
+              }
+            }
+          },
+          {
+            "name": "summary",
+            "type": {
+              "array": [
+                "u8",
+                104
+              ]
+            }
           }
         ]
       }
@@ -23737,6 +23793,19 @@
             "type": "u64"
           },
           {
+            "name": "backing_epochs",
+            "docs": [
+              "Selected-market proof epochs in which this root was actually scanned.",
+              "Economic commits preserve these; only authenticated scans may set them."
+            ],
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -23844,6 +23913,15 @@
           {
             "name": "activation_generation",
             "type": "u64"
+          },
+          {
+            "name": "backing_epochs",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
           },
           {
             "name": "bump",
@@ -24134,6 +24212,14 @@
             "type": "u64"
           },
           {
+            "name": "backing",
+            "type": {
+              "defined": {
+                "name": "BackingState"
+              }
+            }
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -24180,6 +24266,14 @@
           {
             "name": "liability_version",
             "type": "u64"
+          },
+          {
+            "name": "backing",
+            "type": {
+              "defined": {
+                "name": "BackingState"
+              }
+            }
           }
         ]
       }
@@ -25712,52 +25806,8 @@
             "type": "u8"
           },
           {
-            "name": "safety_epoch",
+            "name": "backing_epoch",
             "type": "u64"
-          },
-          {
-            "name": "membership_version",
-            "type": "u64"
-          },
-          {
-            "name": "liability_version",
-            "type": "u64"
-          },
-          {
-            "name": "observations",
-            "type": {
-              "array": [
-                "u64",
-                2
-              ]
-            }
-          },
-          {
-            "name": "funding_bounds",
-            "type": {
-              "array": [
-                {
-                  "array": [
-                    "i128",
-                    2
-                  ]
-                },
-                2
-              ]
-            }
-          },
-          {
-            "name": "source_deadlines",
-            "type": {
-              "array": [
-                "i64",
-                2
-              ]
-            }
-          },
-          {
-            "name": "required_market_mask",
-            "type": "u8"
           },
           {
             "name": "count",
@@ -25766,23 +25816,6 @@
           {
             "name": "next",
             "type": "u64"
-          },
-          {
-            "name": "cash",
-            "type": "u64"
-          },
-          {
-            "name": "lots",
-            "type": {
-              "array": [
-                "i128",
-                2
-              ]
-            }
-          },
-          {
-            "name": "claim_sum",
-            "type": "i128"
           },
           {
             "name": "complete",

@@ -24,10 +24,10 @@ pub struct AccountRouteIdentity {
 }
 
 impl AccountRouteIdentity {
-    pub(crate) fn invalidate_positions(
+    pub(crate) fn maintain_root(
         &mut self,
-        before: [Position; 2],
-        after: [Position; 2],
+        before: &MarginAccount,
+        after: &MarginAccount,
     ) -> Result<()> {
         let other = self.other_ledger.as_deref_mut().map(|ledger| &mut **ledger);
         let ledgers = if self.market.index == 0 {
@@ -35,6 +35,13 @@ impl AccountRouteIdentity {
         } else {
             [other, Some(&mut **self.ledger)]
         };
-        invalidate(ledgers, before, after)
+        super::super::account_cash::maintained::update(ledgers, before, after, &self.safety)
+    }
+    pub(crate) fn maintain_trader(&mut self, after: &MarginAccount) -> Result<()> {
+        let other = self.other_ledger.as_deref_mut().map(|ledger| &mut **ledger);
+        let ledgers = if self.market.index == 0 {
+            [Some(&mut **self.ledger), other]
+        } else { [other, Some(&mut **self.ledger)] };
+        super::super::account_cash::maintained::update(ledgers, &self.trader, after, &self.safety)
     }
 }

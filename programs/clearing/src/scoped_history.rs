@@ -578,20 +578,27 @@ pub(crate) fn run_membership_scan<'context, T: ScopedContext>(
     instruction: [u8; 8],
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
 ) -> Result<()> {
-    run_with_remaining(context, instruction, Remaining::MembershipScan, handler)
+    run_with_remaining(context, instruction, Remaining::MembershipScan(false), handler)
+}
+
+pub(crate) fn run_backing_scan<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>, instruction: [u8; 8],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::MembershipScan(true), handler)
 }
 
 #[derive(Clone, Copy)]
 enum Remaining {
     MembershipPath,
-    MembershipScan,
+    MembershipScan(bool),
     Roots(bool),
     Limbs(financial_core::clearing::scalable::pages::PagePlan),
 }
 impl Remaining {
     fn visit(self, scope: &mut Scope, accounts: &mut [AccountView]) -> Result<()> {
         match self {
-            Self::MembershipScan => {
+            Self::MembershipScan(root_write) => {
                 require!(accounts.len() <= 2, ClearingError::Resolution);
                 for account in accounts {
                     let discriminator = account
@@ -604,7 +611,7 @@ impl Remaining {
                     } else if discriminator == MemberPage::DISCRIMINATOR {
                         scope.raw::<MemberPage>(account, Access::Read)?;
                     } else {
-                        scope.raw::<MarginAccount>(account, Access::Read)?;
+                        scope.raw::<MarginAccount>(account, if root_write { Access::Write } else { Access::Read })?;
                     }
                 }
                 Ok(())

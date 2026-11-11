@@ -38,12 +38,14 @@ it('distinguishes final ancestor work from done and refuses incomplete terminal 
 it('resolves a root only through the canonical authenticated Financial member slot',async()=>{
   const fixture=await accountFixture(),venue=fixture.config.venue,{id}=sparseMember();
   const [page,bump]=await sdk.deriveMemberPage(venue,id/64n),state=fixture.empty(sdk.getMemberPageDecoder());
-  Object.assign(state,{schemaVersion:9,revision:1n,venue,pageIndex:id/64n,allocatedMask:2n,financialMask:2n,bump});
+  Object.assign(state,{schemaVersion:10,revision:1n,venue,pageIndex:id/64n,allocatedMask:2n,financialMask:2n,bump});
   state.members.entries[1]={root:fixture.margins[0],lifecycle:2,activationGeneration:7n};
   fixture.put(page,sdk.getMemberPageEncoder().encode(state));
   const rpc={call:async()=>({value:fixture.accounts.get(page)})};
   expect((await membershipRequestAccounts(rpc,venue,{kind:'member',ordinal:1n,id})).map(meta=>meta.address))
     .toEqual([page,fixture.margins[0]]);
+  expect((await membershipRequestAccounts(rpc,venue,{kind:'member',ordinal:1n,id},true)).map(meta=>meta.role)).toEqual([0,1]);
+  expect((await membershipRequestAccounts(rpc,venue,{kind:'member',ordinal:1n,id})).map(meta=>meta.role)).toEqual([0,0]);
   for(const patch of [{financialMask:0n},{schemaVersion:8},{pageIndex:0n}]) {
     fixture.put(page,sdk.getMemberPageEncoder().encode({...state,...patch}));
     await expect(membershipRequestAccounts(rpc,venue,{kind:'member',ordinal:1n,id})).rejects.toThrow();

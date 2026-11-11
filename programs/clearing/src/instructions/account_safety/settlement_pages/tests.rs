@@ -15,7 +15,7 @@ fn page(venue: Address, register: u32, index: u64, words: u16) -> (Address, Vec<
     );
     let mut bytes =
         solana_sha256_hasher::hash(b"account:SettlementLimbPage").to_bytes()[..8].to_vec();
-    bytes.extend_from_slice(&9u16.to_le_bytes());
+    bytes.extend_from_slice(&10u16.to_le_bytes());
     bytes.extend_from_slice(&11u64.to_le_bytes());
     bytes.extend_from_slice(venue.as_ref());
     bytes.extend_from_slice(&19u64.to_le_bytes());
@@ -60,7 +60,7 @@ fn literal_page_encoding_matches_account_type_and_direct_word_offsets() {
     bytes[81..89].copy_from_slice(&42u64.to_le_bytes());
     let decoded = SettlementLimbPage::try_deserialize(&mut bytes.as_slice()).unwrap();
     assert_eq!(decoded.payload.words[0], 42);
-    assert_eq!(decoded.schema_version, 9);
+    assert_eq!(decoded.schema_version, crate::state::accounts::SCHEMA_VERSION);
     assert_eq!(decoded.venue, venue);
     assert_eq!(decoded.register, 7);
     assert_eq!(decoded.page_index, 1);

@@ -73,7 +73,7 @@ export async function prepareMembershipLifecycle(h:CanonicalHarness,rpc:WireRpc,
     const tomb=sdk.getMarginTombstoneDecoder().decode((await h.read(root.margin))!);
     assert.equal(tomb.id,before.id);assert.equal(tomb.activationGeneration,before.activationGeneration);
     assert.equal(tomb.revision,before.revision+1n);
-    assert.equal(await balances(root.owner.address)-balance,await h.rent(995)-await h.rent(135));
+    assert.equal(await balances(root.owner.address)-balance,await h.rent(1011)-await h.rent(135));
     assert.equal((await registryState()).membershipEpoch,registryBefore.membershipEpoch);
     assert.equal((await registryState()).registeredCount,registryBefore.registeredCount-1n);
     assert.equal(sdk.getPortfolioDecoder().decode((await h.read(root.portfolio))!).activeChildren,0);

@@ -27,7 +27,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
   const payer = await payerKey(), owner = await fixtureKey('p30-owner'), updater = await fixtureKey('p30-updater');
   const mint = await fixtureKey('p30-mint'), token = await fixtureKey('p30-token');
   const deployment = await addresses();
-  const domain = createHash('sha256').update('rivalt/p55/schema9/canonical-makers/profile5').digest();
+  const domain = createHash('sha256').update('rivalt/p55b2/schema10/canonical-makers/profile6').digest();
   const venue = await accountPda('venue-v3', domain);
   const registry = await accountPda('registry-v3', keyBytes.encode(venue));
   const vault = await accountPda('vault-v3', keyBytes.encode(venue));
@@ -54,8 +54,8 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
     lamports: await h.rent(165), space: 165n, programAddress: TOKEN_PROGRAM_ADDRESS }),
     getInitializeAccount3Instruction({ account: token.address, mint: mint.address, owner: owner.address }),
     getMintToInstruction({ mint: mint.address, token: token.address, mintAuthority: payer, amount: initialCash * 6n })], [token]);
-  await h.send('initialize fresh profile5 custody', [await sdk.getInitializeLiquidityVenueInstructionAsync({ ...admin, domain })]);
-  assert.equal(sdk.getVenueDecoder().decode((await h.read(venue))!).profileVersion, 5);
+  await h.send('initialize fresh profile6 custody', [await sdk.getInitializeLiquidityVenueInstructionAsync({ ...admin, domain })]);
+  assert.equal(sdk.getVenueDecoder().decode((await h.read(venue))!).profileVersion, sdk.ACCOUNT_PROFILE);
   await h.send('initialize venue registry', [await sdk.getInitializeVenueRegistryInstructionAsync(admin)]);
   for (const marketIndex of [0, 1]) {
     await h.send(`initialize market ${marketIndex}`, [sdk.getInitializeMarketInstruction({ ...admin, index: marketIndex,

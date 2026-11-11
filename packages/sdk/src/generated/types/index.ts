@@ -8,7 +8,9 @@
 
 export * from "./accountCashSnapshot.js";
 export * from "./accountGuard.js";
+export * from "./backingRegion.js";
 export * from "./backingSnapshot.js";
+export * from "./backingState.js";
 export * from "./curveControl.js";
 export * from "./executedLeg.js";
 export * from "./frozenMargin.js";

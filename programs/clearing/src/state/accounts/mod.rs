@@ -7,6 +7,7 @@ use crate::state::{
 use anchor_lang::prelude::*;
 
 mod layouts;
+mod backing;
 mod membership;
 mod prepared_settlement;
 mod recovery_storage;
@@ -15,6 +16,7 @@ mod settlement;
 mod settlement_plan;
 mod settlement_rates;
 pub use layouts::*;
+pub use backing::*;
 pub use membership::*;
 pub use prepared_settlement::*;
 pub use recovery_storage::*;
@@ -23,8 +25,8 @@ pub use settlement::*;
 pub use settlement_plan::*;
 pub use settlement_rates::*;
 
-pub const SCHEMA_VERSION: u16 = 9;
-pub const PROFILE_VERSION: u16 = 5;
+pub const SCHEMA_VERSION: u16 = 10;
+pub const PROFILE_VERSION: u16 = 6;
 pub use crate::state::identity::{MARKET_COUNT, MAX_MEMBERS};
 pub const RESOLUTION_PAGE_ROWS: usize = 2;
 pub const WIDE_LIMBS: usize = 96;

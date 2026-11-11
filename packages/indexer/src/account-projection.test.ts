@@ -11,22 +11,22 @@ const zero=address('11111111111111111111111111111111'),venue=fixtureVenue,domain
 const blank=(decoder:{fixedSize:number;decode(bytes:Uint8Array):unknown})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize))) as any;
 function state():AccountState {
   const value=emptyLiquidity();
-  value.venue={...blank(sdk.getVenueDecoder()),schemaVersion:9,revision:'1',profileVersion:5,domain,markets:['btc','eth'],marketCount:2};
-  value.custody={schemaVersion:9,revision:'1',venue,allocatedVault:'210',};
-  value.safety={schemaVersion:9,revision:'1',venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
+  value.venue={...blank(sdk.getVenueDecoder()),schemaVersion:10,revision:'1',profileVersion:6,domain,markets:['btc','eth'],marketCount:2};
+  value.custody={schemaVersion:10,revision:'1',venue,allocatedVault:'210',};
+  value.safety={schemaVersion:10,revision:'1',venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
   value.members=['debtor','winner'];value.membershipVersion='3';
   for(const [index,key] of ['btc','eth'].entries()) {
-    value.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:9,revision:'1',venue,index,lotsPerUnit:index===0?'1000000':'100000'};
-    value.ledgers[`${key}-ledger`]={schemaVersion:9,revision:'1',venue,market:key,marketIndex:index,settlement:'0',insurance:index===0?'10':'0',fees:'0',insuranceFeeRemainder:0,version:'1',liabilityVersion:'0'};
+    value.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:10,revision:'1',venue,index,lotsPerUnit:index===0?'1000000':'100000'};
+    value.ledgers[`${key}-ledger`]={...blank(sdk.getMarketLedgerDecoder()),schemaVersion:10,revision:'1',venue,market:key,marketIndex:index,settlement:'0',insurance:index===0?'10':'0',fees:'0',insuranceFeeRemainder:0,version:'1',liabilityVersion:'0'};
   }
-  for(const [id,key] of value.members.entries())value.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:9,revision:'1',venue,
+  for(const [id,key] of value.members.entries())value.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:10,revision:'1',venue,
     id:String(id),lifecycle:2,activationGeneration:'1',mode:0,subaccountIndex:0,isolatedMarketIndex:255,cash:'100',delegateEpoch:'1'};
   value.identities=Object.fromEntries(value.members.map((key,index)=>[String(index),key]));value.nextMemberId=String(value.members.length);value.registeredCount=value.nextMemberId;
   return value;
 }
 const event=(type:AccountEvent['type'],data:any):AccountEvent=>({type,data:{venue,sequence:'1',slot:'10',...data},
   signature:'signed',outer:0,inner:0,ordinal:0,slot:10,blockTime:10,bytes:'bounded-test-vector'});
-const init=()=>sdk.getAccountCustodyChangedEventEncoder().encode({schemaVersion:9,profileVersion:5,
+const init=()=>sdk.getAccountCustodyChangedEventEncoder().encode({schemaVersion:10,profileVersion:6,
   domain:new Uint8Array(32),venue,slot:10n,kind:0,actor:zero,subject:venue,index:0,amount:0n,
   members:[],ledgers:[],authority:zero,feeAuthority:zero,reserveAuthority:zero,reserveDestinationOwner:zero,
   quoteMint:zero,vault:zero,markets:[zero,zero],marketCount:0,insuranceFeeShareBps:2500,mode:0,paused:false,

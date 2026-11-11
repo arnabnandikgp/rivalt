@@ -531,7 +531,7 @@ pub mod clearing {
         )
     }
     pub fn check_market_backing(ctx: &mut Context<CheckMarketBacking>, revision: u64, restart: bool) -> Result<()> {
-        scoped_history::run_membership_scan(
+        scoped_history::run_backing_scan(
             ctx,
             [66, 145, 239, 19, 111, 19, 186, 239],
             |ctx, events| account_cash::certificate::check(ctx, events, revision, restart),

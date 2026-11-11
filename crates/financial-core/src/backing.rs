@@ -246,12 +246,16 @@ impl Summary {
     /// complete canonical coverage, fresh sources/held endpoints, epochs, pool
     /// availability, recipient health and all existing signed authority rules.
     pub fn arithmetically_ready(&self, expected_count: u64, pool: u64) -> Result<bool> {
+        Ok(self.conserved(expected_count, pool)? && self.bad == 0)
+    }
+    /// A bad cohort can finish scanning without being payable. Completion still
+    /// requires the exact whole-population symbolic claim identity.
+    pub fn conserved(&self, expected_count: u64, pool: u64) -> Result<bool> {
         self.validate()?;
         if expected_count == 0 || pool > MAX_CASH {
             return Err(Error::Bounds);
         }
         Ok(self.count == expected_count
-            && self.bad == 0
             && self.quantity == 0
             && self.positive == self.negative.add(scalar(crate::scaled(pool)? as u128)?)?)
     }

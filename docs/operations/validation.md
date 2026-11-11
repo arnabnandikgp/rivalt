@@ -1,5 +1,120 @@
 # Validation and measured limits
 
+## Maintained backing integration (P55B2)
+
+The gated schema-10/profile-6 candidate has source-derived IDL/SDK outputs and an
+explicit D102 wire delta against immutable P55B1 `c650265`. Before its first clean
+build pin, affected checks pass: 18 cash/certificate tests, four region/layout tests,
+13 scoped journal tests, one dependency test, 65 client tests across ten affected
+files, 15 ABI-guard regressions, typecheck and the all-three-program ABI comparison.
+The changed kernel passes the independent five-method reference again (1,274
+corner contributions and 89,720 summary/restoration prefixes; native only).
+The worker completes an unpayable cohort's scan without attaching a doomed payment.
+
+The selected runtime remains schema 8. Candidate manifests now read actual source
+schema/profile constants; they do not bypass the selected runtime hash allowlist.
+Candidate `bbd3398` is rejected by the SBF guard: backing-event construction has
+maximum stack offset 4,192, 96 bytes over the allowed frame. It was not deployed.
+Separate snapshot construction frames fix this at clean
+`bc9f029fa0f541a7407384a0bc7715bcee9c0f08`: all three default and qualification
+programs build without oversized-stack diagnostics. Clearing is 2,374,856 bytes,
+SHA-256 `62523299a7f1629dc40e56cd99c6b858a74a247bc5eecca46debab0ec0ab65a9`.
+Clean harness `3c44c0ef7443b1e4afca341887153f3465d989d1` passes 402 signed outcomes
+(six expected rejections), RPC/WS receipt equality and exact 214-event fresh
+PostgreSQL replay. Both eight-member market scans finish 39 continuations in
+22.90 / 22.91 seconds without resetting after initial epoch creation, while sources
+continue sampling, four independently paid scan/fill pairs overlap and six processed
+cross cash mutations land. Two failed atomic closure/payment transactions preserve
+all tracked bytes; two valid closures pay one actual funded atom each. The Python
+16-corner auditor matches 135 summaries across 98 actual RPC captures. Both isolated
+Anchor clients agree on 389 clearing instructions, five final accounts and 595
+clearing events. The actual/allocated vault is 8,000,000 atoms, with zero surplus;
+226 accounts/eight members reconcile. End tracked tree remains clean.
+
+| Observed transaction | CU range | Maximum bytes |
+|---|---:|---:|
+| Backing continuation | 32,091–39,321 | 579 |
+| Atomic final closure/payment | 81,937–81,973 | 738 |
+| Overlapping admitted fill | 166,738–167,141 | 910 |
+| Processed cross transfer/withdraw/deposit | 33,752–66,858 | 806 |
+
+Actual signed messages confirm selected-ledger/root contention without adding a
+writable venue registry to ordinary fills. Raw logs/transactions/SQL captures stay
+at `.local/scalable-settlement/runs/p55b2-progress-initial`. This is eight populated
+roots and bounded overlapping activity, not saturated throughput or public-network
+fee evidence.
+
+The expanded clean harness **`cf128c0e9840867a8eff054e845bd46966903ff1`** passes
+**1,474 signed RPC/WS outcomes / 61 expected atomic rejections** on the same pinned
+SBF. Its two initial scans take 22.51 / 22.59 seconds and never reset under ongoing
+in-region activity. Added acceptance covers stale-source refusal/recovery without
+proof erasure, actual Financial entry/exit with restored-count rejection, TP/SL and
+reservation/replay guards, conservative bad-debtor blocking and actual 1,000-atom
+repair, flat-only one-atom closed-claim netting, and liquidation repair with a literal
+27-atom funded reward. Invalid size and no post-fee deficit improvement reject.
+Complete default and one actual SPL exit pass the independent Fraction/graph
+expectations; sustained source recovery cannot revive pre-default proof authority.
+
+Python's direct 16-corner audit matches **269 summaries across 227 actual frames**.
+Both isolated Anchor clients match 1,457 clearing instructions, five account decodes
+and 1,862 clearing events. SQL checkpoints cover partial Apply, distribution,
+completion and recovery; **469 events** replay identically into a fresh database.
+All **227 accounts / eight Financial roots** reconcile to **7,199,891 actual and
+allocated vault atoms**, zero surplus. End tracked tree is clean. Evidence remains
+at `.local/scalable-settlement/runs/p55b2-complete-recovery`.
+
+Failed harness attempts are retained: `3f8dca7` used a one-lot price-2 trade below
+the unchanged 1,000-atom minimum notional; `716d56c` passed its 500-lot replacement
+but required normal source recovery after the SQL section. No risk rule was relaxed.
+The focused worker run at `cf128c0` lands 41 original transactions and completes
+lost-ack/SIGKILL recovery and SQL checks, but the final independent audit stops on a
+missing certificate capture. The corrected clean **`831d352a5b95043c4aca11c1202e5b102d021c87`** worker run
+passes: **278 setup/publication outcomes plus 41 durable worker originals**, all
+independently fetched with signature WS checks. A real SIGKILL after RPC acceptance
+and before acknowledgement recovers the same persisted signed bytes (one observed
+broadcast); producer calls remain blocked while that original is unresolved.
+The proof completes epoch 1 in 39 scan steps, with loss collection/certificate
+initialization making 41 originals total. Exactly five atoms are collected and
+paid; final closure/payment is atomic. The independent auditor matches **39
+summaries / 41 frames**. Fresh PostgreSQL replay is identical across **136 events**,
+225 accounts/eight Financial roots, with **8,000,000 actual/allocated vault atoms**
+and zero surplus. The settlement budget spends exactly **205,000 test lamports**,
+with zero retained fee/access reservations. Worker CU spans **15,876–79,589**. The
+128.55-second worker-loop measurement includes source renewal, executor death,
+reopening, checks and SQL replay; it is not saturated throughput. The tracked tree
+is clean. Raw evidence is `.local/scalable-settlement/runs/p55b2-worker-complete`.
+
+The expanded financial run additionally measures one flat net at **51,858 CU**,
+liquidation at **68,970 CU**, and eight default Apply actions at **84,008–86,064 CU**
+(up to 915 bytes). Its peak is 181,941 CU and whole-harness fees are 9,720,000 local
+test lamports, including setup and expected rejection cases, not a default-only
+cost claim. Full population/default-worker/UI activation remains P56A/P56B.
+
+Reproduce using `source ops/env.sh`, explicit
+`RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/scalable-settlement/p55b2-frame-fix`, a fresh
+`RIVALT_RUN_DIR`, and `bash ops/scalable-settlement-smoke.sh`. The financial workload
+selects `RIVALT_SETTLEMENT_PROBE=maintained-backing` with
+`RIVALT_SETTLEMENT_PLAN=1 RIVALT_SETTLEMENT_APPLY=1`; the separate worker workload
+selects `RIVALT_SETTLEMENT_PROBE=backing-worker`. Both own actual Surfpool and
+PostgreSQL, and the supervisor stops them after completion. The worker harness
+binds only the explicit candidate hashes; no production financial method is replaced.
+P55B2 is accepted for Review on these pins. No larger population, runtime promotion, endurance or external
+validation follows from these checks.
+
+P55B2 CI correction: hosted run 43120447567 at `7487cc3` caught raw native
+schema-9 fixtures, a rejected-profile list containing the new valid profile 6, and
+an outdated generated lock inventory. Clean `1b42a2c` passes 14 affected native
+qualification checks, both disabled-default activation checks and the regenerated
+90-entrypoint inventory. The reviewed access delta is `check_market_backing`'s
+writable ledger, already implemented/measured by D102. Other changes are IDL hashes.
+Only tests and the bounded inventory change; the accepted program binary and signed
+financial results above remain the same. Hosted run 43122151935 passes financial,
+scope, report and shell. Its client suite catches the stale profile-5 frozen-proposal
+reader; clean `f560b05` updates that guard to profile 6 and passes all three focused
+proposal tests. A first worktree test attempt lacked workspace dependency links and
+ran no tests; after reusing existing dependencies the complete focused run passes.
+No SBF/economic change or additional signed acceptance is claimed for this guard fix.
+
 ## Maintained backing arithmetic (P55B1)
 
 Clean **`1715d20ceda111591bc1e8addbfa95ea4208c9f0`** compiles the actual

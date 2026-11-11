@@ -2,8 +2,9 @@
 
 ## Incremental backing candidate (P51B)
 
-**Proposed successor, not implemented ordinary payment authority.** Schema 8 still
-uses the restartable certificate below. G3 recommends maintaining proof contributions
+**Candidate source, signed acceptance pending.** The selected schema-8 runtime still
+uses the restartable certificate below. D102 implements the maintained successor in
+fresh schema 10 / profile 6; it has not been promoted into that selected runtime. G3 recommends maintaining proof contributions
 as financial state changes, while separating an arithmetic validity region from
 the freshness of the actual source accounts. This requires no user-visible pause
 and does not make positive profit spendable without complete backing/pool cash.
@@ -25,15 +26,15 @@ Every later economic mutation of a processed entry atomically removes its old
 contribution and installs the new one, in the **same clearing invocation** as cash/
 q/v/claim changes. An unprocessed entry remains owed by the scan. Do not reject an
 otherwise valid trade merely to keep its proof green: a newly unbacked entry sets
-bad and blocks payment instead. Page summaries and a selected-market aggregate
-track processed count, bad count and exact q/z sums; a payment cannot sum a private
-subset of convenient pages. The complete financial index authenticates coverage.
+bad and blocks payment instead. The selected MarketLedger tracks processed count,
+bad count and exact q/z sums; each root stores its two processed epochs. A payment
+cannot sum a private subset of convenient pages. The complete financial index authenticates coverage.
 
 This gives monotone scan progress within a fixed region despite changes to already
 processed roots. It does not promise completion under infinitely fast new financial
-membership or arbitrary oracle jumps. Membership changes must install a complete
-neutral contribution or an explicit unprocessed entry atomically; no reuse of old
-page coverage bits. Safety/terms or region changes start a new proof epoch. The
+membership or arbitrary oracle jumps. Financial membership changes invalidate the membership-bound certificate; the
+next market epoch makes every root explicitly unprocessed. Empty registration and
+retirement do not invalidate it. No old processed marker certifies a new cohort. Safety/terms or region changes start a new proof epoch. The
 old epoch cannot silently certify an out-of-region source or funding endpoint.
 
 At payment, still require current credible/fresh required sources, the actual
@@ -74,7 +75,8 @@ approval. The current candidate makes no such departure.
 ### Checked maintained-backing kernel (P55B1)
 
 `crates/financial-core/src/backing.rs` implements the arithmetic candidate; it is
-not called by current program payment authority. `Region` contains two inclusive
+called by the schema-10 candidate's scan/mutation/payment paths; it is not activated
+in the selected schema-8 runtime. `Region` contains two inclusive
 price/funding rectangles within the existing numeric domains. `contribution`
 validates an actual `margin::Margin`, then returns selected q, checkpoint-adjusted
 z, a bad-debtor flag and the market source-dependency mask. Cash is counted once;
@@ -131,15 +133,44 @@ to preserve an optimistic certificate.
 | Oracle sampling, funding publication/materialization and terms/config changes | In-region fresh samples and pure checkpoint consumption preserve arithmetic. At use, recheck current sources, all relevant held endpoints and epoch/terms. Out-of-region or incompatible terms require a fresh proof, never timestamp renewal |
 | Insurance seed/fee allocation/retained-fee withdrawal, liquidity updater/control | These do not directly change root cash/q/z or settlement pools; retain their existing authority/bucket and route fences. No insurance, retained fee or published maker quote becomes backing credit |
 
-P55B2 must choose and measure the physical summary placement. Existing relevant
-market ledgers already serialize financial changes; storing maintained totals
-there with per-root processed epochs may avoid adding a new page write to every
-trade. This is an implementation candidate, not an accepted lock/CU improvement.
-A bounded scan would write the scanned root's processed marker and selected-market
-summary; it must retain the complete live-index and final-page/payment rollback
-proof. Any membership restart must be observable and include an invalidation/retry
-denominator. No new global writable registry is permitted on ordinary trading
-merely to simplify proof maintenance. No mandatory pause is authorized here.
+### On-chain maintained proof (P55B2 candidate)
+
+D102 places the 248-byte `BackingState` in each existing MarketLedger: epoch,
+safety/membership/terms epochs, two config epochs, a 96-byte region and the exact
+104-byte `RVBACK01` summary. The ledger is 373 bytes including discriminator.
+MarginAccount is 1,011 bytes with two processed u64 epochs before its bump.
+The 621-byte SettlementCertificate holds identity, backing epoch, count/next,
+completion and the authenticated 544-byte membership cursor. Schema 10/profile 6
+uses fresh domains/databases; no earlier account is reinterpreted or resized.
+
+`account_cash/maintained.rs` owns ordinary contribution replacement. It uses actual
+before/after cash, quantities and adjusted claims in the same atomic invocation.
+A root with q=z=0 before and after contributes no selected debt or source dependency,
+so an irrelevant ledger may remain absent. Processed epochs survive normal commits;
+exceptional default Apply clears them after the safety epoch has already fenced old
+proofs. Orders/delegation must explicitly preserve cash/q/z even when consuming
+funding or changing reservations. Maker CPI receives no proof-write authority.
+
+`account_cash/certificate.rs` writes the selected ledger, cursor and one authenticated
+root marker per member step. It authenticates the fixed Financial index on every
+bounded continuation; final closure checks exact q/z/pool conservation even if a
+bad debtor prevents payment. A current complete proof cannot be reset solely for
+source staleness. A partial scan can restart when an as-yet-unseen market leaves its
+region; completed proofs consult only their actual dependency mask. Actual current
+sources and every held funding endpoint are checked at payment.
+
+The deterministic region extends each current price interval by its width (minimum
+one atom) and each funding interval by one hour of the existing capped premium at
+the region's upper price, clamped to numeric bounds. This supplies conservative
+arithmetic bounds only; it does not extend source validity or accrue extra funding.
+Admitted mutations may make a summary bad. The worker finishes coverage without an
+atomic payment in that case, preventing endless rollback of the final scan step;
+subsequent cash repair can make the same completed proof payable.
+
+No ordinary trade gains a new global registry/page write. Backing scans now contend
+with writes to their selected ledger and scanned root. CU, wire size, exact locks,
+concurrent progress, hostile rollback and PostgreSQL replay remain required signed
+acceptance; native tests or source layout sizes are not those measurements.
 
 ## Cash, claims and normal transitions
 

@@ -8,15 +8,15 @@ import {proposeAccountRates,type AccountRateInputs} from './account-rate-proposa
 /** Bounded page reads with a final exact-header fence. Frozen rows are immutable
  * until Apply, which is excluded here. A mixed revision/epoch never supplies a
  * rate proposal. The program independently checks every uploaded limb/row. */
-export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:5=5) {
-  assert(expectedProfile===5,'Unsupported frozen proposal profile.');
+export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:6=6) {
+  assert(expectedProfile===6,'Unsupported frozen proposal profile.');
   const before=await readAccountResolution(rpc,venue),header=before.preparedState;
   assert(before.header.epoch===epoch&&before.header.stage===2&&header.epoch===epoch&&header.stage===3&&header.count>0n
     &&header.count===before.header.count&&header.membershipEpoch===before.header.membershipEpoch,'No complete frozen cohort awaiting proposal.');
   const venueRaw=await rpc.call('getAccountInfo',[venue,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(before.contextSlot)}]);
   const venueState=decodeAccountWorker(venueRaw.value,sdk.VENUE_DISCRIMINATOR,sdk.getVenueDecoder());
   const [canonical,bump]=await sdk.deriveAccountVenue(Uint8Array.from(venueState.domain));
-  assert(canonical===venue&&venueState.bump===bump&&venueState.schemaVersion===9&&venueState.profileVersion===expectedProfile
+  assert(canonical===venue&&venueState.bump===bump&&venueState.schemaVersion===10&&venueState.profileVersion===expectedProfile
     &&venueState.marketCount===2&&venueState.insuranceFeeShareBps===2500,'Foreign proposal venue/profile.');
   const pageCount=(header.count+7n)/8n,rows:sdk.FrozenMargin[]=[],pages:Address[]=[];
   for(let start=0n;start<pageCount;start+=8n) {
@@ -26,7 +26,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
     for(const [offset,[key,pageBump]] of keys.entries()) {
       const index=start+BigInt(offset),page=decodeAccountWorker(response.value[offset],sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,sdk.getFrozenMarginPageDecoder());
       const length=Number(header.count-index*8n<8n?header.count-index*8n:8n);
-      assert(page.schemaVersion===9&&page.venue===venue&&page.bump===pageBump&&page.epoch===epoch&&page.pageIndex===index
+      assert(page.schemaVersion===10&&page.venue===venue&&page.bump===pageBump&&page.epoch===epoch&&page.pageIndex===index
         &&page.rowCount===length&&page.revision>0n,'Incomplete or foreign frozen page.');
       for(const row of page.rows.slice(0,length)) {
         assert(row.activationGeneration>0n&&row.originalRevision>0n
@@ -54,7 +54,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
     const [key,pageBump]=await sdk.deriveSettlementLimbPage(venue,register,index);
     const response=await rpc.call('getAccountInfo',[key,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(before.contextSlot)}]);
     const page=decodeAccountWorker(response.value,sdk.SETTLEMENT_LIMB_PAGE_DISCRIMINATOR,sdk.getSettlementLimbPageDecoder());
-    assert(page.schemaVersion===9&&page.venue===venue&&page.bump===pageBump&&page.epoch===epoch&&page.register===register&&page.pageIndex===index,'Foreign common denominator page.');
+    assert(page.schemaVersion===10&&page.venue===venue&&page.bump===pageBump&&page.epoch===epoch&&page.register===register&&page.pageIndex===index,'Foreign common denominator page.');
     limbs.push(...page.payload.words.slice(0,Number(used-index*256n<256n?used-index*256n:256n)));
   }
   assert(limbs.reduceRight((total,word)=>(total<<64n)+word,0n)===proposal.common,'Frozen common denominator mismatch.');

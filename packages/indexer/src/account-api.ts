@@ -21,7 +21,7 @@ export function accountApi(indexer:LiquidityIndexer) {
   app.addHook('preHandler',async(request,reply)=>{
     if(request.url.startsWith(`${prefix}/`)&&!await healthy())return reply.code(503).send({error:'ProjectionUnavailable'});
   });
-  const envelope=(row:Awaited<ReturnType<typeof indexer.store.published>>)=>({schemaVersion:version,accountSchema:9,venue:row.binding.venue,
+  const envelope=(row:Awaited<ReturnType<typeof indexer.store.published>>)=>({schemaVersion:version,accountSchema:10,venue:row.binding.venue,
     deployment:{anchor:row.binding.anchor,genesis:row.binding.genesis,domain:row.binding.domain,profile:row.binding.profile,artifactSet:row.binding.artifactSet},
     asOf:{commitment:'finalized',cursor:row.state.sequence,cursorScope:'local-payload-stream',blockhash:row.checkpoint,slot:row.checkpoint_slot},
     units:{cash:'six-decimal collateral atoms',scaled:'1e9',price:'collateral atoms/lot'}});

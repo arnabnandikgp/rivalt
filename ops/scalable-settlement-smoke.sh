@@ -6,24 +6,8 @@ source ops/env.sh
 export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explicit pinned candidate required}"
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
-python3 - <<'PY'
-from pathlib import Path
-import hashlib,json,os
-folder=Path(os.environ['RIVALT_SETTLEMENT_ARTIFACT_DIR'])
-manifest=json.loads((folder/'build-manifest.json').read_text())
-construction=os.environ.get('RIVALT_SETTLEMENT_PLAN')=='1'
-application=os.environ.get('RIVALT_SETTLEMENT_APPLY')=='1'
-assert not application or construction
-assert manifest['revision']=='583dbcb53a748db8f2fa21d0594eaaafdd7e5f85'
-assert manifest['trackedDirty'] is False and manifest['accountSchema']==9 and manifest['profileVersion']==5
-expected={
- 'clearing.so':'d48d562762208c50a5566c9ea640e23fbe01bc10729e8cf0e9681544aae68074',
- 'maker_a.so':'267a775305e9454eeb2fe3e425a0fc8169fab5fd19da066b4b2d10b9a6a691c8',
- 'maker_b.so':'6dfc65a4db5951c8f6be36c357a0b20f9d31bd8617c85e141168e1214a3bb344'}
-for name,digest in expected.items():
- assert manifest['binaries'][name]==digest
- assert hashlib.sha256((folder/name).read_bytes()).hexdigest()==digest
-PY
+node --import tsx --input-type=module -e 'import {verifyBackingBuild} from "./tests/rpc-contract/backing-artifacts.ts"; verifyBackingBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR);'
+
 if [[ "${RIVALT_SETTLEMENT_PLAN:-0}" == 1 ]]; then
   cargo build --locked -p clearing --example settlement-plan-pages --features state-only
 fi
@@ -60,9 +44,11 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
-if [[ "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 ]]; then source ops/postgres.sh; fi
+if [[ "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 || "${RIVALT_SETTLEMENT_PROBE:-default}" == maintained-backing* || "${RIVALT_SETTLEMENT_PROBE:-default}" == backing-worker ]]; then source ops/postgres.sh; fi
 case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   default) node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts ;;
+  maintained-backing) node --import tsx tests/rpc-contract/maintained-backing-rpc.ts ;;
+  backing-worker) node --import tsx tests/rpc-contract/maintained-backing-worker-rpc.ts ;;
   membership-races) node --import tsx tests/rpc-contract/membership-races-rpc.ts ;;
   *) echo 'Unknown settlement probe' >&2; exit 1 ;;
 esac

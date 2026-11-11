@@ -36,8 +36,8 @@ export async function fetchScopedHistory(rpc:WireRpc,anchor:string,authority:str
 export async function journalBinding(rpc:WireRpc,anchor:string,history:Awaited<ReturnType<typeof fetchScopedHistory>>,
   venue:string,domain:string):Promise<LiquidityBinding> {
   const first=history.events.find(event=>event.signature===anchor&&event.type==='AccountCustodyChangedV3'&&event.data.kind===0);
-  assert(first);assert.equal(first.data.schemaVersion,9);assert.equal(first.data.profileVersion,5);
-  return {schema:9,profile:'liquidity-execution-qualification',artifactSet:sdk.LIQUIDITY_ARTIFACT_SET,
+  assert(first);assert.equal(first.data.schemaVersion,10);assert.equal(first.data.profileVersion,sdk.ACCOUNT_PROFILE);
+  return {schema:10,profile:'liquidity-execution-qualification',artifactSet:sdk.LIQUIDITY_ARTIFACT_SET,
     genesis:await rpc.call('getGenesisHash',[]),domain,anchor,anchorHash:hash(history.original.transaction),program:sdk.CLEARING_PROGRAM_ADDRESS,venue};
 }
 export async function initializationSignature(rpc:WireRpc,signatures:string[],authority:string) {

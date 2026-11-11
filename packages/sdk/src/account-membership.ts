@@ -4,8 +4,8 @@ import {deriveAccountPortfolio,deriveCapitalBinding,deriveMarginAccount,deriveMe
   deriveRecoveryStorage,deriveVenueComponent} from './account-addresses.js';
 import {fromBase64,hex,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
-export const ACCOUNT_SCHEMA=9;
-export const ACCOUNT_PROFILE=5;
+export const ACCOUNT_SCHEMA=10;
+export const ACCOUNT_PROFILE=6;
 export const MEMBER_REGISTERED=1;
 export const MEMBER_FINANCIAL=2;
 export const MEMBER_RETIRED=3;

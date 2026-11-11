@@ -30,11 +30,11 @@ fn exact_contract_sizes_and_roundtrips() {
     );
     wire(VenueRegistry::default(), 115);
     wire(Portfolio::default(), 91);
-    wire(MarginAccount::default(), 995);
+    wire(MarginAccount::default(), 1011);
     wire(Market::default(), 455);
-    wire(MarketLedger::default(), 125);
+    wire(MarketLedger::default(), 373);
     wire(CapitalBinding::default(), 114);
-    wire(SettlementCertificate::default(), 790);
+    wire(SettlementCertificate::default(), 621);
     wire(Resolution::default(), 572);
     wire(RecoveryStorage::default(), 99);
     wire(StorageFunding::default(), 123);

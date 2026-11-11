@@ -49,6 +49,7 @@ pub struct MarketLedgerSnapshot {
     pub insurance_fee_remainder: u8,
     pub version: u64,
     pub liability_version: u64,
+    pub backing: crate::state::accounts::BackingState,
 }
 
 #[event]
@@ -112,6 +113,7 @@ pub struct MarginAccountSnapshot {
     pub book: crate::state::OrderBook,
     pub lifecycle: u8,
     pub activation_generation: u64,
+    pub backing_epochs: [u64; 2],
     pub bump: u8,
 }
 
@@ -139,6 +141,7 @@ impl From<&crate::state::accounts::MarginAccount> for MarginAccountSnapshot {
             book: state.book,
             lifecycle: state.lifecycle,
             activation_generation: state.activation_generation,
+            backing_epochs: state.backing_epochs,
             bump: state.bump,
         }
     }
@@ -298,6 +301,11 @@ pub struct AccountBackingChanged {
     pub slot: u64,
     pub certificate: Address,
     pub state: BackingSnapshot,
+    /// Initialization has no summary/root mutation. Every scan emits its ledger
+    /// and, on a member step, the exact root whose processed marker changed.
+    pub ledger: Option<MarketLedgerSnapshot>,
+    pub margin: Option<Address>,
+    pub root_state: Option<MarginAccountSnapshot>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
@@ -305,18 +313,9 @@ pub struct BackingSnapshot {
     pub schema_version: u16,
     pub venue: Address,
     pub market_index: u8,
-    pub safety_epoch: u64,
-    pub membership_version: u64,
-    pub liability_version: u64,
-    pub observations: [u64; 2],
-    pub funding_bounds: [[i128; 2]; 2],
-    pub source_deadlines: [i64; 2],
-    pub required_market_mask: u8,
+    pub backing_epoch: u64,
     pub count: u64,
     pub next: u64,
-    pub cash: u64,
-    pub lots: [i128; 2],
-    pub claim_sum: i128,
     pub complete: bool,
     pub membership: crate::state::accounts::MembershipState,
     pub bump: u8,
@@ -328,18 +327,9 @@ impl From<&crate::state::accounts::SettlementCertificate> for BackingSnapshot {
             schema_version: state.schema_version,
             venue: state.venue,
             market_index: state.market_index,
-            safety_epoch: state.safety_epoch,
-            membership_version: state.membership_version,
-            liability_version: state.liability_version,
-            observations: state.observations,
-            funding_bounds: state.funding_bounds,
-            source_deadlines: state.source_deadlines,
-            required_market_mask: state.required_market_mask,
+            backing_epoch: state.backing_epoch,
             count: state.count,
             next: state.next,
-            cash: state.cash,
-            lots: state.lots,
-            claim_sum: state.claim_sum,
             complete: state.complete,
             membership: state.membership.clone(),
             bump: state.bump,

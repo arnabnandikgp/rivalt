@@ -25,7 +25,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
-| P55B2–P62 successor implementation | Planned | Atomic maintained backing, expanded activation and later remediation follow their existing gates |
+| P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
+| P56A–P62 successor implementation | Planned | Full clients/workers, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -57,7 +58,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P55A2 above ready #81;
+Next exact action: implement P56A above ready #84;
 leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
@@ -724,7 +725,7 @@ decimal-string zero generation. All three affected native checks, eight SDK marg
 checks and typecheck pass locally. Run 43108366267 passes client/scope/report/shell
 and all qualified native cases; its default build found a refund test which
 incorrectly expected an enabled action. That test now explicitly asserts the
-default gate; both focused build-profile checks pass. The next hosted run is pending. Next exact action:
+default gate; both focused build-profile checks pass. Hosted run 43109440280 passes all five jobs at `3b9e15e`. Next exact action:
 implement P55B maintained backing against its conservative-region contract. P56A retains full UI,
 durable automatic default and the remaining historical raw-audit adapters; P56B
 retains populated-cohort qualification and runtime promotion.
@@ -750,6 +751,72 @@ does not authenticate membership, accept a source, update a program account or p
 a claim. No P55B2 integration, SBF/CU/lock result, RPC/WS/SQL progress, larger live
 population or runtime promotion is claimed. P55B1 is open as ready PR #83 above #82. Next exact action: implement P55B2's
 versioned summary storage and atomic mutation hooks, then its signed acceptance.
+
+## P55B2 candidate checkpoint
+
+D102's schema-10/profile-6 candidate stores maintained summaries in existing market
+ledgers and processed epochs in roots, with atomic cash/fill/order/liquidation hooks.
+Default/devnet stay disabled; selected schema-8 artifacts remain unpromoted. Clean
+SBF `bc9f029fa0f541a7407384a0bc7715bcee9c0f08` builds all three default/qualification
+programs without oversized-stack diagnostics. Clearing is 2,374,856 bytes, SHA-256
+`62523299a7f1629dc40e56cd99c6b858a74a247bc5eecca46debab0ec0ab65a9`.
+Affected native/client/ABI checks and independent backing arithmetic pass as recorded
+in [validation](operations/validation.md#maintained-backing-integration-p55b2).
+
+Clean harness **`cf128c0e9840867a8eff054e845bd46966903ff1`** passes **1,474 signed
+RPC/WS outcomes / 61 expected atomic rejections** on that binary. Both eight-root
+scans finish in 39 steps (22.51 / 22.59 seconds), without reset during in-region
+sampling, four overlapping independently paid scan/fill pairs and six processed
+cross cash actions. Tests cover stale-source refusal without proof erasure, source
+recovery, membership invalidation even after the count is restored, TP/SL and replay,
+actual 1,000-atom debtor repair, explicit flat-only one-atom netting, and consenting
+liquidation with its exact 27-atom funded reward. Repair and liquidation unblock the
+same completed proof without rescanning. Strict post-fee progress and over-size
+liquidation reject. Complete eight-root default clears processed markers, preserves
+independently computed ownership, permits an actual SPL exit and completes sustained
+recovery; old proof authority remains rejected after reactivation.
+
+The separate Python 16-corner audit matches **269 summaries / 227 RPC frames**.
+Both isolated Anchor clients match 1,457 clearing instructions, five account decodes
+and 1,862 clearing events. PostgreSQL reopens through partial Apply, distribution,
+completion and recovery; fresh replay matches **469 events**, with 227 accounts /
+eight members and actual/allocated vault **7,199,891 atoms**, zero surplus. The
+tracked tree remains clean. Raw files stay in
+`.local/scalable-settlement/runs/p55b2-complete-recovery`.
+
+Earlier failed attempts remain recorded locally: the initial event construction
+exceeded the SBF frame by 96 bytes and was never deployed; a low-price test violated
+the unchanged 1,000-atom minimum notional; a later section needed sustained source
+recovery after SQL reconciliation. Those harness fixes changed no economic rule.
+The focused worker at `cf128c0` lands **41 durable originals**, completes same-epoch
+coverage/payment and executor lost-ack/SIGKILL recovery, reconciles the eight-million-
+atom vault and reaches fresh SQL replay. Its final independent audit failed because
+its capture omitted certificates; that failed run is retained. The corrected clean
+**`831d352a5b95043c4aca11c1202e5b102d021c87`** run passes with **41 durable originals**,
+278 separately fetched setup/publication outcomes, 39 independent summary comparisons
+and **136-event identical fresh replay**. All 225 accounts/eight members reconcile
+to **8,000,000 actual/allocated atoms**. One actual post-acceptance SIGKILL/lost-ack
+recovers the same signed original, with a single observed broadcast and no duplicated
+financial effect. Collection and payment each move exactly five atoms; final closure
+and payment are atomic. The settlement budget spends exactly **205,000 test lamports**,
+retains zero reservation/access rows, and observed worker CU spans **15,876–79,589**.
+End tracked tree is clean. Raw files remain in
+`.local/scalable-settlement/runs/p55b2-worker-complete`.
+
+P55B2 is open for Review as ready [PR #84](https://github.com/arnabnandikgp/rivalt/pull/84)
+above #83 at `bd7c0df`. Hosted run 43120447567 at `7487cc3` passed scope/report/shell but failed
+native fixture literals and the generated lock inventory. Clean `1b42a2c` fixes
+only those fixtures/baselines: 14 affected qualification tests, two disabled-default
+activation tests and the 90-entrypoint inventory check pass. The only access-set
+change is the intended writable backing ledger; SBF/financial semantics are unchanged.
+Hosted run 43122151935 passes financial/scope/report/shell and exposes the
+remaining frozen-proposal reader still expecting profile 5. Clean `f560b05` binds
+that reader to profile 6; all three focused proposal checks pass. No program or
+financial semantics changed. A new hosted client result is pending. Next exact action:
+start P56A above #84 without waiting for merge.
+No user decision or access blocker is known. Expanded population and runtime
+promotion remain P56B; automatic default continuation and wallet/UI acceptance
+remain P56A. P15B/P16B remain Open and 24-hour endurance Deferred.
 
 ## Deployment and operational limits
 

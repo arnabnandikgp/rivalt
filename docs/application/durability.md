@@ -2,9 +2,9 @@
 
 ## Canonical membership migration (P55A2)
 
-The new source uses immutable journal binding schema 9 and profile 5; transport
+P55A2 established schema 9/profile 5; D102 now uses schema 10/profile 6. Transport
 API version 4 and persisted semantic event names remain unchanged. A fresh
-binding/database is required. Historical schema-8 runs cannot be reopened with the
+binding/database is required. Historical schema-8/schema-9 runs cannot be reopened with the
 new account codecs or treated as new qualification evidence.
 
 Projection separates allocated stable identities, non-retired roots and Financial
@@ -567,3 +567,27 @@ During partial Apply, `Resolution` remains the frozen source certificate.
 its checkpoints and applied roots must reconcile separately. Source terminal
 counters change only after complete root/vault reconciliation. Reading partial
 plan progress as if it lived in the source is a decoder/projection error.
+
+## Maintained backing candidate journal
+
+D102's schema-10/profile-6 candidate requires a fresh domain and database binding.
+Backing events include the optional selected-ledger summary and paired root/address
+snapshot when a member is marked processed. Scoped footer writes authenticate all
+three entities; projection may not update a readonly ledger/root. Ordinary route,
+cash and liquidation snapshots carry the maintained summary and processed epochs.
+RPC reconciliation pins the new exact account sizes and schema; it never infers
+summary effects from an off-chain accounting model. Signed normal, partial-default,
+recovery and fresh SQL replay checks are recorded in [validation](../operations/validation.md#maintained-backing-integration-p55b2).
+
+The backing worker separates arithmetic validity, current source availability and
+payment readiness. In-region observations/liability discovery versions do not reset
+coverage; stale required sources block use without granting a reset. Only a payable
+summary combines final traversal closure and gain into one durable original. A bad
+cohort completes traversal without payment, so a later admissible repair can unblock
+it. Required live-source checks, exact-byte retries and unresolved-original fences
+remain unchanged. The broader default-automation gate still belongs to P56A.
+
+The candidate worker acceptance retains a real lost-ack original through SIGKILL
+and process restart, then completes the same proof epoch and reconciles fresh SQL
+replay. See validation for exact pins and scope. This does not qualify the still-
+gated full default worker or promote the selected deployment.

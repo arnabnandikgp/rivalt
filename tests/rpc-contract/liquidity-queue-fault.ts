@@ -9,7 +9,7 @@ import {dispatchAccess} from '../../packages/services/src/dispatch.js';
 
 /** Kill a real executor after upstream accepted the original, before its HTTP
  * acknowledgement. Restart must retrieve that original, never rebuild it. */
-export async function liquidityQueueFault(runtime:AccountRuntime,config:{databaseUrl:string;rpcUrl:string;directory:string},requestId:string) {
+export async function liquidityQueueFault(runtime:AccountRuntime,config:{databaseUrl:string;rpcUrl:string;directory:string;executorModule?:string},requestId:string) {
   const original=(await runtime.store.pool.query('SELECT * FROM service_intents WHERE run_id=$1 AND request_id=$2',[runtime.runId,requestId])).rows[0];
   assert(original&&original.status==='pending');
   let executor:ChildProcess|undefined,dropped=false,persisted=false;
@@ -39,7 +39,7 @@ export async function liquidityQueueFault(runtime:AccountRuntime,config:{databas
     await new Promise<void>(resolve=>proxy.listen(0,'127.0.0.1',resolve));
     const port=(proxy.address() as import('node:net').AddressInfo).port;
     const start=()=>{
-      const child=spawn(process.execPath,['--import','tsx','packages/services/src/account-executor-main.ts'],{cwd:process.cwd(),
+      const child=spawn(process.execPath,['--import','tsx',config.executorModule??'packages/services/src/account-executor-main.ts'],{cwd:process.cwd(),
         env:{...process.env,RIVALT_ACCOUNT_PROFILE:'liquidity-execution-qualification',RIVALT_DATABASE_URL:config.databaseUrl,
           RIVALT_RUN_ID:runtime.runId,RIVALT_RPC_URL:`http://127.0.0.1:${port}`},stdio:['ignore','pipe','pipe']});
       const output=createWriteStream(`${config.directory}/executor-fault-${requestId.replaceAll(':','-')}-${children.length}.log`);

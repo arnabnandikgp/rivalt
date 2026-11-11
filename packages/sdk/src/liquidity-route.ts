@@ -16,7 +16,7 @@ export type LiquidityRouteInput = MarginRouteIntent & {
 export function previewLiquidityRoute(input: LiquidityRouteInput) {
   const { snapshot,trader,marketIndex } = input;
   const root = snapshot.roots[trader];
-  requireValue(snapshot.venueState.profileVersion === 5 && snapshot.liquidity && root?.schemaVersion === 9
+  requireValue(snapshot.venueState.profileVersion === 6 && snapshot.liquidity && root?.schemaVersion === 10
     && root.venue === snapshot.venue && root.role === 0 && !snapshot.safetyState.paused
     && ![2,3,4].includes(snapshot.safetyState.mode), 'Liquidity preview unavailable.');
   requireValue(root.mode !== 0 || snapshot.marketStates[marketIndex].crossEligible, 'Market is not cross eligible.');

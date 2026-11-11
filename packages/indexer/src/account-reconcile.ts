@@ -63,7 +63,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   await expect(venue,sdk.deriveAccountVenue(Buffer.from(binding.domain,'hex'),program),sdk.getVenueDecoder(),sdk.VENUE_DISCRIMINATOR,state.venue);
   await expect(safety,component('safety'),sdk.getVenueSafetyDecoder(),sdk.VENUE_SAFETY_DISCRIMINATOR,state.safety);
   if(state.membershipVersion!==null)await expect(registry,component('registry'),sdk.getVenueRegistryDecoder(),sdk.VENUE_REGISTRY_DISCRIMINATOR,
-    {schemaVersion:9,revision:state.revisions[registry]?.revision,venue,membershipEpoch:state.membershipVersion,nextId:state.nextMemberId,
+    {schemaVersion:10,revision:state.revisions[registry]?.revision,venue,membershipEpoch:state.membershipVersion,nextId:state.nextMemberId,
       registeredCount:state.registeredCount,financialCount:String(state.members.length),liveIndex:(await sdk.deriveMemberIndex(venue,14,0n,program))[0]});
   for(const [key,value] of Object.entries(state.markets))await expect(key,sdk.deriveAccountMarket(venue,value.index,program),sdk.getMarketDecoder(),sdk.MARKET_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.ledgers))await expect(key,sdk.deriveMarketLedger(address(value.market),program),sdk.getMarketLedgerDecoder(),sdk.MARKET_LEDGER_DISCRIMINATOR,value);
@@ -80,7 +80,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   }
   await requireMembershipCoverage(state,venue,program);
   if(state.liquidity) {
-    assert.equal(state.venue!.profileVersion,5);
+    assert.equal(state.venue!.profileVersion,sdk.ACCOUNT_PROFILE);
     for(const [key,value] of Object.entries(state.liquidity.registries))await expect(key,sdk.findLiquidityRegistryPda({market:address(value.market)},{programAddress:program}),sdk.getLiquidityRegistryDecoder(),sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,value);
     for(const [key,value] of Object.entries(state.liquidity.makers))await expect(key,getProgramDerivedAddress({programAddress:program,
       seeds:[Buffer.from('maker-v4'),getAddressEncoder().encode(address(value.market)),Uint8Array.of(value.instance)]}),sdk.getMakerRegistrationDecoder(),sdk.MAKER_REGISTRATION_DISCRIMINATOR,value);
@@ -95,9 +95,9 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   }
   const descriptors=[
     [sdk.VENUE_DISCRIMINATOR,329],[sdk.CUSTODY_DISCRIMINATOR,59],[sdk.VENUE_SAFETY_DISCRIMINATOR,85],
-    [sdk.VENUE_REGISTRY_DISCRIMINATOR,115],[sdk.PORTFOLIO_DISCRIMINATOR,91],[sdk.MARGIN_ACCOUNT_DISCRIMINATOR,995],
-    [sdk.MARKET_DISCRIMINATOR,455],[sdk.MARKET_LEDGER_DISCRIMINATOR,125],[sdk.CAPITAL_BINDING_DISCRIMINATOR,114],
-    [sdk.SETTLEMENT_CERTIFICATE_DISCRIMINATOR,790],[sdk.RESOLUTION_DISCRIMINATOR,572],
+    [sdk.VENUE_REGISTRY_DISCRIMINATOR,115],[sdk.PORTFOLIO_DISCRIMINATOR,91],[sdk.MARGIN_ACCOUNT_DISCRIMINATOR,1011],
+    [sdk.MARKET_DISCRIMINATOR,455],[sdk.MARKET_LEDGER_DISCRIMINATOR,373],[sdk.CAPITAL_BINDING_DISCRIMINATOR,114],
+    [sdk.SETTLEMENT_CERTIFICATE_DISCRIMINATOR,621],[sdk.RESOLUTION_DISCRIMINATOR,572],
     null,null,
     [sdk.RETIREMENT_CERTIFICATE_DISCRIMINATOR,636],[sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,181],
     [sdk.MAKER_REGISTRATION_DISCRIMINATOR,341],[sdk.FUNDING_PUBLISHER_DISCRIMINATOR,148],
@@ -151,7 +151,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   if(state.resolution) {
     const expected=state.resolution;
     const header=JSON.parse(json(sdk.getResolutionDecoder().decode(raw(resolutionKeys[0],sdk.RESOLUTION_DISCRIMINATOR))));
-    assert.equal(header.bump,(await component('resolution'))[1]);assert.equal(header.schemaVersion,9);assert.equal(header.venue,venue);
+    assert.equal(header.bump,(await component('resolution'))[1]);assert.equal(header.schemaVersion,10);assert.equal(header.venue,venue);
     for(const field of ['epoch','stage','cursor','count','registryHash','termsEpoch','configEpochs','sourceObservations','sourceDeadlines','prices','funding','frozenAt',
       'cashBefore','poolsBefore','insuranceBefore','feesBefore','allocatedBefore'] as const)
       assert.deepEqual(header[field],expected[field],`Resolution ${field}`);

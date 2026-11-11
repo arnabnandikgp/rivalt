@@ -20,9 +20,9 @@ async function fixture(freezeAccepted=false,quantity=10n) {
   test.put(target,sdk.getMarginAccountEncoder().encode(distressed));test.put(receiver,sdk.getMarginAccountEncoder().encode(capital));
   const keys=await accountWorkerKeys(venue);
   const [,resolutionBump]=await sdk.deriveVenueComponent(venue,'resolution');
-  test.put(keys.resolution,sdk.getResolutionEncoder().encode({...test.empty(sdk.getResolutionDecoder()),schemaVersion:9,revision:1n,venue,bump:resolutionBump}));
+  test.put(keys.resolution,sdk.getResolutionEncoder().encode({...test.empty(sdk.getResolutionDecoder()),schemaVersion:10,revision:1n,venue,bump:resolutionBump}));
   const [,registryBump]=await sdk.deriveVenueComponent(venue,'registry');
-  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:9,revision:1n,venue,nextId:2n,registeredCount:2n,
+  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:10,revision:1n,venue,nextId:2n,registeredCount:2n,
     financialCount:2n,membershipEpoch:1n,liveIndex:(await sdk.deriveMemberIndex(venue,14,0n))[0],bump:registryBump}));
   for(const [field,tag,decoder,encoder] of [
     ['storage','storage',sdk.getRecoveryStorageDecoder(),sdk.getRecoveryStorageEncoder()],
@@ -31,7 +31,7 @@ async function fixture(freezeAccepted=false,quantity=10n) {
     ['plan','plan',sdk.getSettlementPlanDecoder(),sdk.getSettlementPlanEncoder()],
   ] as const) {
     const [,bump]=tag==='storage'?await sdk.deriveRecoveryStorage(venue):await sdk.deriveSettlementWorkspace(venue,tag);
-    const state={...(test.empty(decoder as any) as Record<string,unknown>),schemaVersion:9,revision:1n,venue,bump};
+    const state={...(test.empty(decoder as any) as Record<string,unknown>),schemaVersion:10,revision:1n,venue,bump};
     test.put(keys[field],encoder.encode(state as never));
   }
   const submissions:{instructions:Instruction[];authority:AccountAuthority|null}[]=[];

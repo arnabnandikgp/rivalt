@@ -455,6 +455,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         consumed_after: 11 + u64::from(instance),
     });
     let ledger = MarketLedgerSnapshot {
+        backing: Default::default(),
         ledger: Address::new_unique(),
         market: Address::new_unique(),
         market_index: 0,

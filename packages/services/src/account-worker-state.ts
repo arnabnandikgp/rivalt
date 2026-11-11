@@ -45,7 +45,7 @@ export async function readAccountResolution(rpc:Pick<Rpc,'call'>,venue:Address) 
   const [registry,header,storage,prepared,rates,plan]=decoded as [sdk.VenueRegistry,sdk.Resolution,sdk.RecoveryStorage,sdk.PreparedSettlement,sdk.SettlementRates,sdk.SettlementPlan];
   const bumps=await Promise.all([sdk.deriveVenueComponent(venue,'registry'),sdk.deriveVenueComponent(venue,'resolution'),sdk.deriveRecoveryStorage(venue),
     sdk.deriveSettlementWorkspace(venue,'prepared'),sdk.deriveSettlementWorkspace(venue,'rates'),sdk.deriveSettlementWorkspace(venue,'plan')]);
-  decoded.forEach((value,index)=>assert(value.schemaVersion===9&&value.venue===venue&&value.bump===bumps[index][1]&&value.revision>0n,'Foreign resolution continuation'));
+  decoded.forEach((value,index)=>assert(value.schemaVersion===10&&value.venue===venue&&value.bump===bumps[index][1]&&value.revision>0n,'Foreign resolution continuation'));
   assert(registry.financialCount<=registry.registeredCount&&registry.registeredCount<=registry.nextId&&registry.membershipEpoch>0n
     &&registry.liveIndex===(await sdk.deriveMemberIndex(venue,14,0n))[0],'Invalid Financial registry');
   if([1,2,14,15,16].includes(header.stage)) {
