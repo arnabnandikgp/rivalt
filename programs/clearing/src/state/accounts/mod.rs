@@ -8,8 +8,10 @@ use anchor_lang::prelude::*;
 
 mod layouts;
 mod resolution;
+mod settlement;
 pub use layouts::*;
 pub use resolution::*;
+pub use settlement::*;
 
 pub const SCHEMA_VERSION: u16 = 8;
 pub const PROFILE_VERSION: u16 = 4;

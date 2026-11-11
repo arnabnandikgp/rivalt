@@ -173,6 +173,8 @@ Encodings use little-endian integers and zero reserved/unused opcode bytes:
 | Arithmetic | 128 | Operation/flags/column/factor length; width and three register IDs; position/carry; five factor words or small divisor. Check width against trusted allocation, output/source separation, carry domain and exact pending/completed position relationships. |
 | LCM | 224 | Stage, three IDs, used/span/divisor, scan/result lengths and the complete arithmetic checkpoint. Check stage-specific operand bindings, divisor relationships, used+2 span, scan/completion consistency and reserved bytes. |
 | Comparison | 40 | Width, two IDs, remaining high-to-low words and pending/less/equal/greater result. Check range/completion consistency; equal is terminal only after all words. |
+| Cohort denominator | 320 | Frozen count, processed ordinal, last stable ID, used common length, alternating common register and nested LCM checkpoint. Check stage/operand bindings and expose the denominator only after every row. |
+| Valuation totals | 288 | Frozen count/custody/pool/insurance/fee/gross-OI bindings; processed ordinal/last ID; cash, signed quantities and gross totals; separate unsigned positive/negative claim totals. Check complete conservation before accepting the final row. |
 
 `accesses()` returns the exact next register/word permissions before execution.
 Arithmetic/LCM use at most three descriptors; comparison reads exactly two words
@@ -186,15 +188,41 @@ permissions and trusted-capacity checks. Pages contain 256 words (2 KiB payload)
 an I/O size rather than a population limit. Physical PDA/owner validation remains
 the program adapter's responsibility; a page request alone supplies no authority.
 
+`SnapshotScan` consumes already-accrued whole-account claims and position lots in
+stable ID order. Each accepted row updates constant-size totals; positive and
+negative claim sums use three words with an explicit <2^151 bound. Completion
+requires exact root cash, zero net lots, frozen gross OI and
+`positive_m = negative_m + pool_m*S`. Insurance and retained fees remain separate
+frozen buckets; they do not enter claim sums. An invalid final row preserves the
+previous scalar prefix. The program must independently authenticate membership,
+role/mode and derive claims from the actual root and frozen prices/funding.
+
+`DenominatorPass` initializes common=1, consumes each frozen ordinal once and
+extends the reduced LCM with the existing bounded word cursor. Registers 0 and 1
+alternate; register 2 is quotient scratch. The keeper cannot choose register IDs
+or operations. Integral rows advance without an unnecessary LCM pass. Used lengths
+exclude dirty unused tails; widening clears the words it will read. A result is
+unavailable until all frozen rows complete. Each arithmetic step still accesses at
+most three words, including across physical page boundaries.
+
+The program's `PageWindow` adapter now authenticates the reserved
+[SettlementLimbPage layout](accounts.md#successor-limb-page-layout-p54b-inactive)
+directly: exact discriminator/size/owner, venue, epoch, attempt, revision, register,
+page index, addressable word count and PDA. It reads/writes individual words without
+copying the 2 KiB payload. A batch must stop before an unavailable next page; missing
+words never become implicit zeros. Only dirty pages advance revision, once per
+invocation. Writable revision exhaustion rejects before writes. The eventual
+handler must derive the plan/bindings from authenticated work and commit the work
+checkpoint and page revisions in the same successful transaction.
+
 These codecs validate syntax and internal scalar consistency, **not historical
-execution**. They must be decoded only from authenticated program-owned work state;
-an instruction must never accept a caller's arbitrary cursor as proof of completed
-work. P54B's still-unimplemented adapter must bind venue, frozen membership,
-epoch/attempt/revision, operation descriptors and canonical page identities, then
-commit work/page updates atomically. It must also provide bounded normalization,
-whole-cohort control flow, proposal reset and actual signed verification. No
-program handler, account layout, selected binary or enabled capacity changes in
-this foundation. It is not acceptance of authenticated on-chain settlement.
+execution**. Decode only authenticated program-owned work; a caller's cursor is
+never proof of completed work. Native account-loader tests do not establish a
+signed chain transition. Frozen membership/source authentication, the owning
+controller, rate/proposal reset, bounded normalization and actual signed resource
+acceptance remain unfinished. No public handler initializes or consumes these
+reserved accounts yet; current schema-8 financial accounts, selected binaries and
+enabled capacity are unchanged. This is not acceptance of on-chain settlement.
 
 ### Frozen work, completion and adversarial proposals
 

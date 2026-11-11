@@ -20,7 +20,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
-| P54B authenticated frozen/rate work | In progress — inactive | Fixed arithmetic/LCM/comparison checkpoint codecs and bounded next-word dependencies implemented; authenticated pages/controller and signed acceptance remain |
+| P54B authenticated frozen/rate work | In progress — inactive | Cursor codecs, direct account-page loader and bounded valuation/denominator schedules implemented; frozen membership/controller, rate work and signed acceptance remain |
 | P54C–P62 successor implementation | Planned | Conserving on-chain application, membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -224,7 +224,9 @@ native orchestration modules are absent. This is a compiler-boundary correction,
 not a program build/deployment or changed financial result. Clean guard pin
 **`7aef54f1d6908f9cef0e9186a386ddb79341793b`** also passes the 774 settlement,
 307 rejection and 980 division checks again. The larger native measurements below
-remain at their original pin; CI for the guard update is pending.
+remain at their original pin. Scope/financial/shell CI also pass at `6b8392e` in
+[run 43023501187](https://github.com/arnabnandikgp/rivalt/actions/runs/43023501187);
+client/report correctly skip.
 
 The complete native kernel now checks count-derived aggregate conservation, exact
 rate/greatestness equations, all insurance-clipping evaluations and deterministic
@@ -255,28 +257,24 @@ client/report correctly skip. Automated review is still pending; no external rev
 is claimed. Next exact action: implement P54B's authenticated frozen input and rate
 work on its child branch, leaving the stack open.
 
-P54B starts on `implementation/p54b-authenticated-settlement` above published
-P54A tip `023574b`. The first implementation adds canonical 128-/224-/40-byte
-arithmetic/LCM/comparison checkpoints, strict scalar/reserved-field checks and
-exact bounded next-word dependencies. The native adapter now rejects undeclared
-reads/writes and restores bytes at continuation boundaries. Clean
-**`98601b3665abf7fa1e877c63420c65869885c855`** passes 774 comparisons plus the existing
-2,105 arithmetic/LCM/collection vectors and four explicit codec/stage regressions.
-Scoped format, Python compilation and evidence checks pass; logs stay at
-`.local/scalable-settlement/p54b-98601b3/`. This remains a local checkpoint; the
-cohesive P54B PR awaits its actual signed acceptance.
+P54B continues on `implementation/p54b-authenticated-settlement`, restacked above
+published P54A tip `6b8392e`. Clean **`a7adbaf7c1bee16cbc47c304e830f11c393ed507`**
+passes 774 exact comparisons, 2,105 arithmetic/LCM/collection vectors, four codec
+regressions and the bounded page-planner regression. Target metadata also compiles
+with the pinned SBF compiler; this is not a linked program or deployment. Earlier
+clean `98601b3` results remain retained before restacking. Evidence stays at
+`.local/scalable-settlement/p54b-a7adbaf/` and the earlier local paths.
 
-No authenticated page, financial handler, new artifact or larger-account acceptance
-is inferred. Remaining P54B work is physical account authentication, frozen complete
-input, deterministic operation control, proposal reset and actual signed RPC/WS
-rate verification with measured full-context resources. P54C still owns Apply and
-recovery. No access blocker is known. Next exact action: bind the bounded cursor
-formats to authenticated epoch/attempt-owned pages and the frozen-input controller.
-The page-request planner now groups exact word accesses into at most three
-256-word pages and rejects capacity/permission violations; its focused development
-checks pass, but physical account authentication is still unfinished. The pinned
-SBF compiler reports target architecture `sbf`, so the parent P54A native-module
-exclusion guard is being corrected before any successor program build.
+The next local checkpoint adds the direct authenticated account-page adapter,
+complete-row denominator schedule and constant-space valuation totals. Development
+checks pass for the changed code; a clean pinned rerun is next. This remains
+inactive: no public initializer/financial handler, generated ABI acceptance, selected
+artifact or larger-account acceptance is inferred. The cohesive P54B PR awaits its
+actual signed acceptance. Remaining work is frozen complete membership/source
+binding, owning on-chain control, rate/proposal reset and signed RPC/WS verification
+with full-context CU/wire/stack/rent measurements. P54C still owns Apply and recovery.
+No access blocker is known. Next exact action: pin and verify the new page/valuation/
+denominator checkpoint, then bind it to the authenticated frozen-input controller.
 
 ## Integrated quantity work
 

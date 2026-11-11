@@ -78,6 +78,78 @@ fn parse_words(text: &str, width: usize) -> Result<Vec<u64>> {
 }
 fn execute(text: &str) -> Result<String> {
     let fields: Vec<_> = text.split('|').collect();
+    if fields.len() == 4 && fields[0] == "denominators" {
+        use financial_core::clearing::scalable::cohort_denominator::DenominatorPass;
+        let budget: u64 = fields[1].parse().map_err(|_| Error::Bounds)?;
+        let count: u64 = fields[2].parse().map_err(|_| Error::Bounds)?;
+        if budget == 0 {
+            return Err(Error::Bounds);
+        }
+        let capacity = required_limbs(count)?;
+        let width = usize::try_from(capacity).map_err(|_| Error::Bounds)?;
+        let mut memory = Memory {
+            registers: core::array::from_fn(|_| vec![u64::MAX; width]),
+            reads: std::cell::Cell::new(0),
+            writes: 0,
+            allowed: Vec::new(),
+        };
+        let mut pass = DenominatorPass::new(count, capacity)?;
+        let mut rows = fields[3].split(';').enumerate();
+        let mut steps = 0u64;
+        loop {
+            if pass.is_done() {
+                if rows.next().is_some() {
+                    return Err(Error::Bounds);
+                }
+                break;
+            }
+            if pass.result().is_ok() {
+                return Err(Error::Invariant);
+            }
+            if pass.row_index().is_ok() {
+                let (ordinal, text) = rows.next().ok_or(Error::Bounds)?;
+                let values: Vec<_> = text.split(':').collect();
+                if values.len() != 4 {
+                    return Err(Error::Bounds);
+                }
+                pass.accept(
+                    ordinal as u64,
+                    values[0].parse().map_err(|_| Error::Bounds)?,
+                    &Row {
+                        cash: values[1].parse().map_err(|_| Error::Bounds)?,
+                        claims: [
+                            values[2].parse().map_err(|_| Error::Bounds)?,
+                            values[3].parse().map_err(|_| Error::Bounds)?,
+                        ],
+                    },
+                )?;
+            } else {
+                for _ in 0..budget {
+                    if pass.is_done() || pass.row_index().is_ok() {
+                        break;
+                    }
+                    memory.allowed = pass.accesses()?.into_iter().flatten().collect();
+                    let before = memory.reads.get() + memory.writes;
+                    pass.step(&mut memory)?;
+                    steps += 1;
+                    if memory.reads.get() + memory.writes - before > 3 {
+                        return Err(Error::Invariant);
+                    }
+                }
+            }
+            pass = DenominatorPass::from_checkpoint(&pass.checkpoint(), count, capacity)?;
+        }
+        let (register, used) = pass.result()?;
+        if pass.step(&mut memory).is_ok() || pass.accept(count, u64::MAX, &Row::default()).is_ok() {
+            return Err(Error::Invariant);
+        }
+        let encoded = memory.registers[register as usize][..used as usize]
+            .iter()
+            .rev()
+            .map(|word| format!("{word:016x}"))
+            .collect::<String>();
+        return Ok(format!("{encoded}|{used}|{steps}"));
+    }
     if fields.len() == 2 && fields[0] == "width" {
         return Ok(required_limbs(fields[1].parse().map_err(|_| Error::Bounds)?)?.to_string());
     }

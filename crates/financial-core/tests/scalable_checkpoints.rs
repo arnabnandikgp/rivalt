@@ -1,5 +1,6 @@
 //! Cursor format/domain regressions. Native bytes are not account authentication.
 use financial_core::clearing::scalable::{
+    cohort_denominator::DenominatorPass,
     comparison::CompareCursor,
     denominator::LcmCursor,
     wide::{Cursor, LimbStorage, Operation},
@@ -170,4 +171,146 @@ fn comparison_rejects_invalid_terminal_or_pending_state() {
     invalid[24..32].copy_from_slice(&2u64.to_le_bytes());
     assert!(CompareCursor::from_checkpoint(&invalid, 2).is_err());
     assert!(restored.step(&memory).is_err());
+}
+
+#[test]
+fn denominator_schedule_binds_count_registers_rows_and_every_stage() {
+    use financial_core::clearing::row::Row;
+    let count = 3;
+    let capacity = financial_core::clearing::scalable::wide::required_limbs(count).unwrap();
+    let mut memory = Memory([[u64::MAX; 4]; 3]);
+    let mut pass = DenominatorPass::new(count, capacity).unwrap();
+    let mut initial = [0u8; 320];
+    initial[0] = 1;
+    initial[8] = 3;
+    initial[24] = 1;
+    assert_eq!(pass.checkpoint(), initial);
+    assert!(pass.row_index().is_err());
+    assert!(DenominatorPass::new(3, capacity - 1).is_err());
+    let mut stages = 0u8;
+    let mut next = 0;
+    loop {
+        let bytes = pass.checkpoint();
+        stages |= 1 << bytes[1];
+        pass = DenominatorPass::from_checkpoint(&bytes, count, capacity).unwrap();
+        assert_eq!(bytes, pass.checkpoint());
+        for offset in [0, 3, 7, 40, 47, 272, 319] {
+            let mut corrupt = bytes;
+            corrupt[offset] = 8;
+            assert!(DenominatorPass::from_checkpoint(&corrupt, count, capacity).is_err());
+        }
+        assert!(DenominatorPass::from_checkpoint(&bytes, count + 1, capacity).is_err());
+        assert!(DenominatorPass::from_checkpoint(&bytes[..319], count, capacity).is_err());
+        if pass.is_done() {
+            break;
+        }
+        assert!(pass.result().is_err());
+        if let Ok(ordinal) = pass.row_index() {
+            assert_eq!(ordinal, next);
+            let row = Row {
+                cash: 1,
+                claims: [-2_000_000_000, -1_000_000_000],
+            };
+            assert!(pass.accept(ordinal + 1, 100 + next, &row).is_err());
+            if next != 0 {
+                assert!(pass.accept(ordinal, 100 + next - 1, &row).is_err());
+            }
+            assert_eq!(pass.checkpoint(), bytes);
+            pass.accept(ordinal, 100 + next, &row).unwrap();
+            next += 1;
+            let mut wrong_register = pass.checkpoint();
+            wrong_register[2] ^= 1;
+            assert!(DenominatorPass::from_checkpoint(&wrong_register, count, capacity).is_err());
+            assert!(pass.accept(ordinal, 100 + next, &row).is_err());
+        } else {
+            pass.step(&mut memory).unwrap();
+        }
+    }
+    assert_eq!(stages, 0b1111);
+    let (register, used) = pass.result().unwrap();
+    assert_eq!(used, 1);
+    assert_eq!(memory.0[register as usize][0], 3);
+    assert!(pass.step(&mut memory).is_err());
+    assert!(pass.accesses().is_err());
+    assert!(pass.accept(3, 200, &Row::default()).is_err());
+}
+
+#[test]
+fn snapshot_checkpoints_bind_frozen_buckets_and_preserve_failed_prefix() {
+    use financial_core::clearing::{
+        row::Row,
+        scalable::snapshot::{SnapshotBinding, SnapshotScan},
+    };
+    let binding = SnapshotBinding {
+        count: 2,
+        allocated: 39,
+        pools: [2, 0],
+        insurance: [3, 4],
+        fees: [5, 5],
+        gross: [4, 0],
+    };
+    let mut scan = SnapshotScan::new(binding).unwrap();
+    scan.accept(
+        0,
+        100,
+        &Row {
+            cash: 20,
+            claims: [-8_000_000_000, 0],
+        },
+        [2, 0],
+    )
+    .unwrap();
+    let prefix = scan.checkpoint();
+    scan = SnapshotScan::from_checkpoint(&prefix, binding).unwrap();
+    assert_eq!(scan.checkpoint(), prefix);
+    for offset in [0, 1, 7, 264, 287] {
+        let mut corrupt = prefix;
+        corrupt[offset] = 9;
+        assert!(SnapshotScan::from_checkpoint(&corrupt, binding).is_err());
+    }
+    for offset in [8, 40, 48, 56, 64, 120, 128, 136, 144, 152, 160] {
+        let mut corrupt = prefix;
+        corrupt[offset] ^= 1;
+        assert!(
+            SnapshotScan::from_checkpoint(&corrupt, binding).is_err(),
+            "offset {offset}"
+        );
+    }
+    for (offset, value) in [(16, 3u64), (32, 21), (72, 5)] {
+        let mut corrupt = prefix;
+        corrupt[offset..offset + 8].copy_from_slice(&value.to_le_bytes());
+        assert!(SnapshotScan::from_checkpoint(&corrupt, binding).is_err());
+    }
+    let mut too_wide = prefix;
+    too_wide[184..192].copy_from_slice(&(1u64 << 23).to_le_bytes());
+    assert!(SnapshotScan::from_checkpoint(&too_wide, binding).is_err());
+    let bad = Row {
+        cash: 0,
+        claims: [9_000_000_000, 0],
+    };
+    assert!(scan.accept(1, 150, &bad, [-2, 0]).is_err());
+    assert_eq!(scan.checkpoint(), prefix);
+    assert!(scan.result().is_err());
+    scan.accept(
+        1,
+        150,
+        &Row {
+            claims: [10_000_000_000, 0],
+            ..bad
+        },
+        [-2, 0],
+    )
+    .unwrap();
+    assert_eq!(scan.result().unwrap().cash, 20);
+    let terminal = scan.checkpoint();
+    assert_eq!(
+        SnapshotScan::from_checkpoint(&terminal, binding)
+            .unwrap()
+            .result()
+            .unwrap(),
+        scan.result().unwrap()
+    );
+    assert!(scan.next().is_err());
+    assert!(scan.accept(2, 151, &Row::default(), [0; 2]).is_err());
+    assert_eq!(scan.checkpoint(), terminal);
 }

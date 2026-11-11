@@ -125,6 +125,43 @@ market gross OI stay unchanged. Funding-index rebasing in P58D must preserve eac
 economic claim exactly; P60 namespace/order expansion must rerun the relevant
 arithmetic and retirement proofs rather than exploit spare field widths silently.
 
+### Successor limb-page layout (P54B, inactive)
+
+The first concrete scratch type is `SettlementLimbPage`; it is reserved schema 9,
+not a change to schema-8 venue/margin accounts. No public instruction initializes
+or consumes it yet. Fields are Borsh little endian with discriminator
+`sha256("account:SettlementLimbPage")[0..8]`:
+
+| Byte offset | Field / bytes |
+|---|---|
+| 0 | Discriminator / 8 |
+| 8 | Schema u16 / 2 |
+| 10 | Internal scratch revision u64 / 8 |
+| 18 | Venue address / 32 |
+| 50 | Resolution epoch u64 / 8 |
+| 58 | Attempt u64 / 8 |
+| 66 | Logical register u32 / 4 |
+| 70 | Page index u64 / 8 |
+| 78 | Addressable word count u16 / 2 |
+| 80 | PDA bump / 1 |
+| 81 | Fixed 256-u64 payload / 2,048 |
+
+Total **2,129 bytes**. PDA seeds are `resolution-limbs`, venue, epoch LE-u64,
+register LE-u32, page-index LE-u64 and bump. Attempt is a fenced reuse tag, not a
+seed that permits unbounded allocation on every proposal. The last page permits
+only `min(256, capacity-page_index*256)` words; its unused payload is inaccessible.
+The loader checks exact ownership, size, header, seeded address and required write
+permission. Read-only requests cannot write even if transaction privilege merging
+makes the account writable. Signed accounts/executable accounts are rejected.
+
+The page is temporary arithmetic, never collateral or a claim. Revision overflow
+rejects before a writable window opens. A successful invocation increments each
+changed page once and must atomically persist its controller checkpoint. The future
+controller must own the epoch/attempt, descriptors and expected revisions; passing
+structurally valid bytes or arbitrary keeper versions establishes no progress.
+Allocation/refund ownership, initialization and complete signed/IDL qualification
+remain P54/P55 obligations, with financial expansion disabled until P56B.
+
 ### Deployment and phase gates
 
 Use a new local domain/genesis/mint, exact new artifact hashes and empty schema-9

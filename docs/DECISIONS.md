@@ -40,6 +40,13 @@ encodings. Only program-owned authenticated work may restore them. Structural
 validity is not proof of execution, and no caller-supplied cursor can authorize
 payout or skipping work. Physical account authentication, atomic persistence and
 signed replay/continuation acceptance remain unfinished P54B responsibilities.
+The subsequent inactive foundation uses 256-word pages with direct validated word
+access, a complete-row denominator schedule and constant-space valuation totals.
+Its 2,129-byte scratch layout and 320-/288-byte controller checkpoints are recorded
+in the current account/risk contracts. Three-word unsigned claim totals preserve
+the <2^151 aggregate bound; no u128 population sum or early positive/negative
+cancellation replaces it. Native prefix/loader checks do not authenticate frozen
+membership or authorize a payout; public handlers and signed acceptance remain open.
 
 ## D95 — separate price-policy consolidation from calibration (11 November 2026)
 

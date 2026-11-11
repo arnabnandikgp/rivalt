@@ -66,6 +66,9 @@ impl PagePlan {
     pub fn requests(&self) -> &[PageRequest] {
         &self.requests[..usize::from(self.count)]
     }
+    pub fn capacity(&self) -> u64 {
+        self.capacity
+    }
     pub fn permits(&self, register: u32, limb: u64, writable: bool) -> bool {
         limb < self.capacity
             && self.requests().iter().any(|request| {
