@@ -2,15 +2,17 @@
 
 ## Persisted scratch foundation (P54B, incomplete)
 
-The current development tree passes five focused Python tests: 774 exact bounded
+Clean **`98601b3665abf7fa1e877c63420c65869885c855`** passes five focused Python tests:
+774 exact bounded
 comparisons plus the existing 1,338 arithmetic, 462 LCM and 305 collection vectors.
 The native storage adapter enforces declared next-word permissions and restores
 actual checkpoint bytes at 1/7/128-step boundaries. Four Rust regressions check
 literal encoding, invalid/reserved fields, partial carry, terminal replay and all
 six LCM stages. This is structural/native continuation only; account authentication,
 atomic rollback, complete frozen/rate control and signed resource acceptance remain
-unfinished. Clean tested revision is pending. No SBF/RPC/WS/PostgreSQL or changed
-selected program is claimed.
+unfinished. Scoped formatting, Python compilation and evidence policy pass. Raw
+logs stay at `.local/scalable-settlement/p54b-98601b3/`. No SBF/RPC/WS/PostgreSQL or
+changed selected program is claimed.
 
 Reproduce with `cargo build --locked -p financial-core --bin scalable-wide-driver`,
 `python3 tests/financial/test_scalable_wide.py` and

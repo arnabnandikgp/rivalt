@@ -249,17 +249,22 @@ authenticated continuations and total cost before expanded activation. No SBF,
 RPC/WS/PostgreSQL, browser or external qualification is inferred. P15B/P16B remain
 Open and 24-hour endurance Deferred. No access blocker is known.
 [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78) contains cohesive P54A
-acceptance above #77 in stack #74. Hosted checks are pending; no external review is
-claimed. Next exact action: implement P54B's authenticated frozen input and rate
+acceptance above #77 in stack #74. Scope/financial/shell CI pass at `023574b` in
+[run 43019766671](https://github.com/arnabnandikgp/rivalt/actions/runs/43019766671);
+client/report correctly skip. Automated review is still pending; no external review
+is claimed. Next exact action: implement P54B's authenticated frozen input and rate
 work on its child branch, leaving the stack open.
 
 P54B starts on `implementation/p54b-authenticated-settlement` above published
 P54A tip `023574b`. The first implementation adds canonical 128-/224-/40-byte
 arithmetic/LCM/comparison checkpoints, strict scalar/reserved-field checks and
 exact bounded next-word dependencies. The native adapter now rejects undeclared
-reads/writes and restores bytes at continuation boundaries. Development checks
-pass 774 comparisons plus the existing 2,105 arithmetic/LCM/collection vectors and
-four explicit codec/stage regressions. Clean checkpoint pinning remains pending.
+reads/writes and restores bytes at continuation boundaries. Clean
+**`98601b3665abf7fa1e877c63420c65869885c855`** passes 774 comparisons plus the existing
+2,105 arithmetic/LCM/collection vectors and four explicit codec/stage regressions.
+Scoped format, Python compilation and evidence checks pass; logs stay at
+`.local/scalable-settlement/p54b-98601b3/`. This remains a local checkpoint; the
+cohesive P54B PR awaits its actual signed acceptance.
 
 No authenticated page, financial handler, new artifact or larger-account acceptance
 is inferred. Remaining P54B work is physical account authentication, frozen complete
