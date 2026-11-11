@@ -229,6 +229,13 @@ Check every account and market conservation equation, stable ties and cashless
 cycles. Larger state must have a demonstrated completion path; bounded transaction
 work alone is insufficient if total work/storage is impractical.
 
+The implementation separates complete native orchestration from bounded word
+and graph steps. Exact contracts and conservative progress/storage bounds live in
+[risk and resolution](../clearing/risk-and-resolution.md#compiled-native-kernel-and-work-bounds-p54a).
+P54A native completion never activates a larger cohort. P54B/P54C still own actual
+physical paging, full-context costs and continuation/recovery feasibility; native
+CPU measurements and logical word counts cannot substitute for those gates.
+
 ### P54B — frozen input and rate verification
 
 **Deliver:** compiled paged storage, complete authenticated snapshot/value passes,

@@ -219,7 +219,7 @@ def exact_flows(row, common, factor, numerators, work):
     return tuple(flows)
 
 
-def solve(rows, pools=(0, 0), insurance=(0, 0), *, strategy="reduced-lcm", compact=False, fees=(0, 0)):
+def solve(rows, pools=(0, 0), insurance=(0, 0), *, strategy="reduced-lcm", compact=False, fees=(0, 0), proposal_sink=None):
     validate(rows, pools, insurance, fees)
     work = Work()
     common = common_denominator(rows, strategy, work)
@@ -244,6 +244,10 @@ def solve(rows, pools=(0, 0), insurance=(0, 0), *, strategy="reduced-lcm", compa
         factor = rate_lcm // gcd(common, rate_lcm)
         rate_denominator = common * factor
         numerators = tuple(int(rate * rate_denominator) for rate in rates)
+        # Optional untrusted proposal transport for the separately compiled
+        # P54A verifier. Capturing a proposal cannot make it pass that verifier.
+        if proposal_sink is not None:
+            proposal_sink(factor, numerators)
         denominator = SCALE * rate_denominator
         work.rate_bits = max(work.rate_bits, rate_denominator.bit_length())
         flows = None if compact else []

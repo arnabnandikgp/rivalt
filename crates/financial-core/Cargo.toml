@@ -6,3 +6,7 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
+[lints.rust]
+# Solana platform-tools adds this target OS to its patched Rust compiler.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
