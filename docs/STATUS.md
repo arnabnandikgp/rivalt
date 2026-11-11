@@ -18,7 +18,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
 | P52 bounded-progress finalized indexer | Review | [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
-| P53B calibrated ranges | Review — publication pending | User-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
+| P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54–P62 successor implementation | Planned | Compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -51,8 +51,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: publish accepted P53B above ready #76 in stack #74; leave every
-PR open, then continue P54A's exact scalable settlement kernel.
+Next exact action: implement P54A's exact scalable settlement kernel above ready
+#77 in stack #74; leave every PR open.
 
 ## Remediation planning
 
@@ -203,8 +203,9 @@ records pins, commands, limitations and the first Clock-wait harness failure.
 
 The accepted candidate is selected locally, with prior artifacts/failed runs retained
 under existing ignored paths. All owned runtimes stopped. No external/funded action,
-new browser or endurance run is claimed. P53B is accepted locally pending ready PR
-publication above #76; P54A follows on the unchanged numeric proof. P15B/P16B remain
+new browser or endurance run is claimed. P53B is published as [ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77)
+above #76 in stack #74; all five PRs remain open. Hosted checks are pending.
+P54A follows on the unchanged numeric proof. P15B/P16B remain
 Open, endurance Deferred, and P58's other economic decision gates remain separate.
 
 ## Integrated quantity work
