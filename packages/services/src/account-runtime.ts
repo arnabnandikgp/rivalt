@@ -17,7 +17,7 @@ export const ACCOUNT_HEARTBEAT_MS=3000;
 export class AccountRuntime extends AccountExecution {
   riskProbeCursor=0;
   async discovery() {
-    const binding=await this.environment(),{state}=await this.store.snapshot();
+    const binding=await this.environment(),{state}=await this.store.published();
     if(!state.venue||state.members.length===0)throw new Error('Account discovery unavailable');
     return {binding,state,identity:{venue:address(binding.venue),mint:address(state.venue.quoteMint),domain:binding.domain}};
   }

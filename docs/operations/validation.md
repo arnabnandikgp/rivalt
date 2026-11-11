@@ -1,5 +1,79 @@
 # Validation and measured limits
 
+## Bounded-progress indexer (P52)
+
+Clean **`fe1c754e985b56e653b03795af8daf2b8ca59e62`** passes full signed
+Surfpool/RPC/WS/PostgreSQL qualification. Runtime code is identical to clean
+`32988bb`, which passes typecheck and 44 focused indexer/API/service tests. No
+program, IDL, financial rule or account-schema change; freshly deployed programs
+are the existing P49-qualified artifacts, with Surfpool 1.7.0 / PostgreSQL 18.6.
+SQL transport format 3 requires a fresh journal, preserving earlier databases and
+signed originals with their existing executor.
+
+- Backlog reconciliation contains **10,642 transactions / 4,306 clearing
+  invocations**, including 10,100 independently signed/finalized unrelated SOL
+  transfers and 4,200 successful delegate changes. Recovery makes durable progress
+  through the per-cycle 500-unit budget instead of failing a total-backlog limit.
+- Actual subprocess SIGKILL before writes, during SQL before COMMIT and after
+  COMMIT leaves the expected covered checkpoints (1731, 1731, 1732), with no false
+  publication. WS reconnect recovers through complete RPC history. A pending wallet
+  original finalizes with identical bytes/signature while publication is stale.
+- Conflicting retained blocks/invocations, forged or regressing publication,
+  expired witnesses, append-only mutation and format-2 startup reject. A deliberately
+  reverted two-instruction delegate transaction leaves no economic event. Focused
+  tests also cover missing blocks/manifests, scoped revision gaps, multi-instruction
+  atomicity, oversized/empty-block work, API cursor/freshness fences and RPC byte caps.
+- Two actual fills independently require 26 fee atoms: six insurance, 20 retained
+  fees and carry two. Root cash plus fees remains 8,000,000 collateral atoms.
+- During 74 continuous delegate updates, three distinct nonces (4205, 4229, 4253)
+  are published at verified finalized checkpoints. Complete state and **4,353 ordered
+  event-byte records** match fresh PostgreSQL replay; 70 entities/eight margin roots
+  and 8,000,000 actual/allocated vault atoms reconcile with no surplus.
+
+The [fixed-witness proof](../application/durability.md#attainable-reconciliation-while-the-head-advances)
+handles the demonstrated Surfpool account/context skew by waiting for one captured
+observation ceiling to finalize; it never serves nonfinalized history or replaces
+the captured account bytes while catching up. It retains full financial-field
+comparisons and the original ten-second freshness deadline. The smaller diagnostic
+at `32988bb` was useful for isolating this issue but is not substituted for the full
+run above. Its `phaseAcceptance:false` remains explicit.
+
+| Full run observation | Measured value / scope |
+|---|---|
+| End-to-end qualification | 306.954 seconds, including provisioning, faults and replay |
+| Main recovery | 2,799 committed blocks after the crash checkpoints; 23 pending cycles, zero recorded cycle failures |
+| Fresh replay | 5,676 complete blocks / 10,679 transactions; 29 pending cycles before publication |
+| Largest observed block | 200 transactions; one complete block per SQL commit |
+| Largest observed SQL commit | 140.567 ms in the main recovery process; not a percentile or global worst case |
+| RPC | Main recovery 6,052 requests / 40,144,224 response bytes; replay 11,867 / 40,690,414 |
+| Largest observed RPC response | 2,576,464 bytes, including artifact checks; configured per-response budget 64 MiB |
+| Database size | 106,947,087 bytes at the backlog checkpoint, before live tail/replay database |
+| Sampled process RSS peak | 665,387,008 bytes for the combined test harness/indexer, not standalone indexer memory |
+
+This is one Apple M3 local observation at 50 ms simulated slots, not validator TPS,
+production capacity, 10,000 live margin accounts or continuous endurance. Changing
+accounts across multiple RPC batches may still lack a common witness; oversized
+responses and slow finality retain coverage and close readiness. Larger-cohort and
+production limits require their own acceptance. The demo caller now waits for
+published readiness across bounded cycles. Typecheck and 11 existing demo transport
+checks pass after this entrypoint-only adjustment; they do not execute browser
+startup, and no fresh browser qualification is claimed.
+
+Reproduce only the affected checks:
+
+```sh
+source ops/env.sh
+pnpm typecheck
+pnpm exec vitest run packages/indexer/src/finalized-indexer.test.ts packages/indexer/src/account-reconcile.test.ts packages/indexer/src/account-api.test.ts packages/indexer/src/scoped-history.test.ts packages/indexer/src/rpc.test.ts packages/services/src/account-runtime.test.ts
+RIVALT_LIQUIDITY_PROBE=indexer-progress RIVALT_LIQUIDITY_POSTGRES=1 RIVALT_PG_PORT=15452 bash ops/current-runtime-smoke.sh
+```
+
+Raw accepted evidence remains `.local/indexer-progress/fe1c754-20261111-full`;
+small live diagnosis remains `32988bb-20261111-live` in that same parent directory.
+`RIVALT_INDEXER_DIAGNOSTIC=live` deliberately selects smaller traffic and cannot
+satisfy full phase acceptance. Owned runtimes stop and local data/evidence remain.
+P15B/P16B remain external, and 24-hour endurance remains Deferred.
+
 ## Account-scale native feasibility (P51B)
 
 Clean candidate **`a5ac218d6e439be74fc136bed67c2d5b9e733a41`**, based on planning

@@ -146,3 +146,10 @@ The current RC2 account-schema-8 deployment retains API version 4 but requires
 is the journal-local financial-payload cursor, `asOf.cursorScope` identifies that
 scope, and `asOf.blockhash`/`slot` identify its complete finalized block fence.
 Scoped revisions authenticate protocol history; UI pagination cursors do not.
+
+P52 API reads and event/trade pagination use only the reconciled published state
+and cursor, even when durable history has advanced farther. `/ready` distinguishes
+`covered` slot/cursor from `reconciled` slot/cursor/capture time. Readiness requires
+an error-free publication less than ten seconds old and a connected indexer.
+Coverage alone cannot refresh financial facts or worker discovery. Pending original
+execution uses immutable deployment identity independently of this read fence.

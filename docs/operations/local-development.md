@@ -43,7 +43,9 @@ select `.tools/anchor-v2-rc2/bin/anchor`. Install the isolated test client with
 `pnpm --dir tests/anchor-rc2-conformance install --frozen-lockfile`.
 Fresh schema-8 domains/databases are required; no old accounts or signed originals
 are relabeled. [STATUS](../STATUS.md) distinguishes qualification and PR integration.
-The demo starts workers only after a coherent finalized provisioning journal.
+The demo starts workers only after a coherent published finalized provisioning
+journal, waiting across bounded recovery cycles for up to 60 seconds. A completed
+catch-up cycle alone is not readiness.
 It retries typed revision-ahead catch-up for at most 30 seconds; other initial
 projection/reconciliation errors fail startup and preserve the local records.
 Six maker updaters and two funding publishers each use a separately funded local
@@ -142,3 +144,15 @@ captures as an automatic cleanup. Reuse a stopped owned qualification cluster wi
 artifacts; it is not a default PR check. Earlier launchers/feature profiles are
 retired; reproduction uses the immutable baseline in [HISTORY](../HISTORY.md). Do not point an
 old suite at new accounts or claim its results validate a new implementation.
+
+### Bounded indexer recovery
+
+P52 requires a fresh format-3 PostgreSQL journal; retain older journals and pending
+signed originals. Run its scoped signed RPC/WS/PostgreSQL probe with
+`RIVALT_LIQUIDITY_PROBE=indexer-progress RIVALT_LIQUIDITY_POSTGRES=1 RIVALT_PG_PORT=15452 bash ops/current-runtime-smoke.sh`.
+The supervisor starts/stops only its own Surfpool and PostgreSQL processes and
+retains local evidence/data. On macOS a process-scoped idle-sleep inhibitor keeps
+RPC deadlines from expiring while the operator is away; it ends with the supervisor
+and does not keep the display awake or change power settings. The fixture deliberately exceeds 10,000 transactions
+and 4,096 clearing invocations; this is backlog recovery, not a throughput or
+larger-account claim. `/ready` reports covered and reconciled progress separately.

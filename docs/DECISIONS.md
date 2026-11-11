@@ -5,6 +5,37 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D94 — bounded covered history and independently reconciled publication (11 November 2026)
+
+P52 implements the authorized remediation roadmap without changing on-chain
+schemas or financial rules. Replace the whole-backlog limits and all-or-nothing
+catch-up with one complete authenticated block per PostgreSQL commit. A bounded
+per-cycle work budget defers further recovery; it does not invalidate old history.
+SQL format 3 separates durable coverage from a reconciled published snapshot and
+requires a fresh journal, preserving old databases and pending originals.
+
+Account observations must match one genuine complete-block revision vector and
+its full financial fields before publication. Capturing later values and replaying
+forward from an earlier candidate cannot prove overwritten earlier values; the
+initial P52 design proposal's original-prefix publication is deliberately replaced
+with a common historical checkpoint. Custody/vault share one read batch. No common
+checkpoint means saved coverage with closed readiness, not relaxed reconciliation.
+The signed local diagnostic exposed current account values ahead of their
+reported finalized context. Retain one captured witness and, only if the reported
+interval has no common match, extend once to a processed-slot ceiling observed
+after all reads. That ceiling must finalize before complete canonical history is
+read; every account field must match one covered finalized state before publishing.
+No nonfinalized projection is served. Freshness starts before capturing the target,
+never after waiting or lengthy replay. API
+history is capped at the published cursor. Pending signed-original recovery keeps
+immutable deployment checks independent of financial discovery readiness.
+
+This removes backlog-size cliffs, not every throughput limit. Account batching can
+still lack a common fence under continuous writes across multiple RPC batches;
+RPC response/transaction resource budgets are explicit and oversized inputs are
+retryable after operator sizing. Actual runtime measurements belong in validation;
+none imply expanded-account activation, independent review or production capacity.
+
 ## D93 — exact account-scale feasibility direction (10 November 2026)
 
 The user accepted D92's roadmap and authorized implementation. P51B explores a

@@ -3,7 +3,7 @@ import {getAddressDecoder,getAddressEncoder,type Address,type ReadonlyUint8Array
 import * as sdk from '@rivalt/sdk';
 import {emptyLiquidity} from './liquidity-projection.js';
 import {accountFields} from './account-projection.js';
-import {reconcileAccountSnapshot} from './account-reconcile.js';
+import {captureAccountReconciliation,reconcileAccountSnapshot} from './account-reconcile.js';
 import {ReconciliationAhead} from './reconciliation-progress.js';
 
 /** Transport/snapshot fixture, not signed financial evidence. Enough independent
@@ -56,4 +56,29 @@ it('rejects unversioned data mutation and older finalized accounts without treat
   })).rejects.toThrow(/without revision/);
   test.mutate(test.portfolios[0],0n);
   await expect(reconcileAccountSnapshot(test.state,test.binding,test.read)).rejects.toThrow(/behind candidate/);
+});
+
+it('captures custody and vault together and verifies a common historical revision vector across chunks',async()=>{
+  const test=await fixture(),witness=await captureAccountReconciliation(test.state,test.binding,test.read,100);
+  expect(witness.maxSlot).toBe(102);expect(test.chunks.map(keys=>keys.length)).toEqual([100,9]);
+  expect(test.chunks[0].slice(0,2)).toEqual([
+    (await sdk.deriveVenueComponent(test.binding.venue,'custody'))[0],(await sdk.deriveVenueComponent(test.binding.venue,'vault'))[0]]);
+  expect(witness.matches(test.state)).toBe(true);
+  test.mutate(test.portfolios[0],2n); // Subsequent writes do not invalidate captured historical bytes.
+  expect(await witness.verify(test.state)).toMatchObject({accounts:109,actualVault:'0'});
+  expect(test.calls()).toBe(2);
+  const later=structuredClone(test.state);later.revisions[test.portfolios[0]].revision='2';
+  expect(witness.matches(later)).toBe(false);
+  later.revisions['uncaptured-account']={kind:4,revision:'1'};expect(witness.matches(later)).toBe(false);
+});
+it('rejects captured wrong financial bodies even when revisions match',async()=>{
+  const test=await fixture();test.mutate(test.portfolios[0],1n,true);
+  const witness=await captureAccountReconciliation(test.state,test.binding,test.read,100);
+  expect(witness.matches(test.state)).toBe(true);await expect(witness.verify(test.state)).rejects.toThrow(/Financial projection/);
+});
+it('rejects stale captured bank contexts and finalized revisions',async()=>{
+  const test=await fixture();
+  await expect(captureAccountReconciliation(test.state,test.binding,test.read,200)).rejects.toThrow(/precedes candidate/);
+  test.mutate(test.portfolios[0],0n);
+  await expect(captureAccountReconciliation(test.state,test.binding,test.read,100)).rejects.toThrow(/behind candidate/);
 });

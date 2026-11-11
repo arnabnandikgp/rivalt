@@ -1,5 +1,129 @@
 # Finalized state and durable execution
 
+## Bounded-progress successor contract (P52)
+
+P52 separates durable catch-up from reconciled publication, with no change to
+program schemas, financial authority, event bytes or original-signature recovery.
+STATUS and validation record the qualified revisions and observed operating limits.
+
+Keep two explicit frontiers:
+
+- **Covered:** the complete authenticated finalized block prefix durably stored
+  with its ordered invocation projection. Interrupted recovery resumes after this
+  prefix; a later unavailable block or newer account revision cannot erase it.
+- **Reconciled:** a covered prefix whose financial projection has passed independent
+  finalized account/vault reconciliation. Public facts and discovery use this
+  immutable published state/cursor, never a partially advanced covered state.
+
+Each covered chunk checks genesis/initialization binding, complete signature
+manifests, canonical parents, transaction outcomes, scoped revision dependencies
+and exact projector invariants. Persist blocks, original transaction bytes,
+invocations, projection and covered checkpoint atomically. Duplicate identical
+bytes are idempotent; conflicting duplicates, gaps and impossible revision orders
+reject. A chunk boundary cannot split an atomic transaction or manufacture a full
+block fence from its prefix. Canonical block transaction order alone is insufficient
+where scoped read/write dependencies require a different order within that block.
+
+`pageSize` bounds requested slot ranges (default 100, allowed 1–1,000). One
+complete block is one SQL commit. `maxRecoveryTransactions` is a per-cycle work
+budget (default 10,000); empty blocks cost one work unit, and an indivisible
+nonempty block can exceed the remaining budget.
+Reaching the budget saves progress and defers remaining work to the next cycle,
+without rejecting a large backlog. At most eight block bodies and their eight
+independent signature manifests are in flight. Each RPC response is streamed
+under an explicit 64 MiB default byte budget; `maxRpcResponseBytes` can be raised
+for an operator's measured environment. Oversized/unavailable blocks retain the
+previous prefix and close readiness; they are never skipped. Parsed object/SQL
+memory also depends on the largest block and current entity set. This is bounded
+network batching, not a hard process RSS guarantee.
+
+The old 4,096-invocation whole-batch limit is removed. A separate 4,096-invocation
+per-transaction decoder resource bound remains; transaction atomicity, causal
+ordering and revision continuity remain enforced. No account-population limit is
+changed by P52. SQL updates only changed entity revisions; unchanged entities do
+not cause one SQL request each for every empty block.
+
+### Attainable reconciliation while the head advances
+
+P52 must validate a fixed candidate checkpoint instead of chasing the latest head
+through repeated full-state restarts. The selected design is a captured account
+witness tied to complete finalized history:
+
+1. Catch up to a captured finalized head and retain that candidate state/checkpoint.
+   Enumerate its complete canonical entity set plus the vault.
+2. Read bounded account batches at finalized commitment with context no earlier
+   than the candidate. Record the exact owner/data and context slot of each batch.
+   These observations may be at different later slots; never combine them into a
+   fictitious atomic account snapshot.
+3. Durably ingest complete blocks through the maximum captured observation slot,
+   a finite target independent of subsequent head advancement. Also record one
+   processed-slot ceiling **after** all reads; it is a bounded recovery target,
+   never publication authority.
+4. Replay authenticated complete blocks within this finite interval. Select the
+   latest complete-block state whose **entire entity revision vector** matches
+   the captured bytes. New entities absent from the capture prevent a match.
+5. Compare every required financial/authority field, canonical type/schema/PDA,
+   partial-resolution value and conservation identity at that exact state against
+   captured account bytes. Custody and the token vault are captured in the same
+   actual RPC batch, binding controlled token movements to its custody revision.
+6. If no common state matches within the reported contexts, retain the same
+   captured bytes and extend once to that fixed processed-slot ceiling. First
+   wait for its finalization within the original ten-second freshness window,
+   then ingest only finalized block bodies/manifests and look for the same exact
+   common match. Never fetch a newer witness while chasing this one. This covers
+   local RPC responses whose context is older than their returned live bytes.
+7. Publish only that verified common historical checkpoint. Later coverage stays
+   unpublished. Never treat overwriting a bad earlier value with a correct later
+   event as proof of the earlier state. If no common checkpoint exists, retain
+   coverage, keep readiness closed and retry with a fresh capture.
+
+Account reads need not all have the same bank slot: unchanged revisions can span
+slots. They must still match one genuine historical complete-block state. Writes
+spanning multiple RPC batches can prevent a common captured vector;
+this implementation does not promise wait-free publication for that case. Its
+local live acceptance and later expanded-cohort acceptance remain separate.
+Surfpool 1.7.0's [account handler](https://github.com/solana-foundation/surfpool/blob/v1.7.0/crates/core/src/rpc/accounts_data.rs#L408)
+selects the response context before fetching current account values. The signed
+P52 diagnostic observed revision 93 under finalized context 2376 while complete
+coverage at that slot had revision 75. The one-time fixed extension treats those
+bytes as an untrusted witness until every field matches a canonical finalized
+prefix; neither the processed slot nor the RPC commitment label proves readiness.
+A fork, missing history, no common revision vector or expired witness still closes
+readiness. The freshness limit is unchanged; a long finality lag is not excused.
+
+This is not permission to
+compare only revision numbers or trust an indexer's own output twice. Same-revision
+changed bytes, omitted account fields, missing independent writers, mismatched
+vault timing and foreign observations must reject. Program artifact binding and
+canonical initialization remain independently verified. If the exact witness
+construction fails, keep public readiness closed while retaining safe coverage.
+
+Public/API freshness uses the candidate's captured freshness time, never the end
+of a long replay as a way to renew stale data. Events/trades are capped at the
+published payload cursor, including repeatable-read pagination. Advancing covered
+history alone does not advance `/ready`, user balances, discovery or public outbox
+delivery. Expose covered versus reconciled progress explicitly. A readiness error
+does not authorize replacing or abandoning any pending signed original; immutable
+binding checks and pending-signature recovery must remain available independently.
+
+### Persistence and acceptance boundary
+
+SQL transport format **3** adds separate published fields and immutable covered
+checkpoint digests. Fresh databases are required; format-2 databases and their
+signed originals stay with the old executor. Startup migration rejects the wrong
+format. Program/account binding remains schema 8; no on-chain layout changes.
+
+Acceptance uses the actual qualified programs, signed Surfpool RPC/WS traffic and
+PostgreSQL: backlog above both former whole-run thresholds, unrelated transactions,
+continuously advancing relevant accounts, disconnects and process death on both
+sides of a chunk commit. Every restart must advance or stop at an identified
+invalid/unavailable input. Independent fresh replay must equal the complete
+published projection. Include same-block atomicity/order, large-block/chunk edges,
+missing/conflicting manifests, revision gaps, false publication, stale API/event
+pagination and pending-original recovery during indexing lag. Record actual RPC,
+memory/SQL/chunk sizes and completion latency; no inherited runtime result qualifies
+this new journal protocol.
+
 ## Projection and intermediate states
 
 Amounts and signed fractions are decimal strings in JSON; bytes are hex. Cash,
@@ -20,9 +144,9 @@ against remaining original cash plus applied cash; only the completion event ado
 the canonical resolution header/pages against the event-derived fields. Wide
 registers and DFS scratch are solver continuation state, not spendable balances.
 
-RPC reconciliation reads the complete entity revision vector and financial bodies
-twice across bounded chunks. A relevant advance requests tail catch-up; it never
-silently combines incompatible states. Storage precreation has a zero-payload
+The standalone diagnostic reconciler reads the complete revision vector and
+financial bodies twice across bounded chunks. Publication uses the captured common
+checkpoint described above; neither combines incompatible entity versions. Storage precreation has a zero-payload
 scoped transition, so its creation remains part of authenticated history.
 The settlement worker combines final backing page and gain payment in one durable
 original. The receiver pre-state guard remains the payment nonexecution proof;
