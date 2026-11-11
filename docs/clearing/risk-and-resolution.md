@@ -73,8 +73,19 @@ and page changes in one atomic invocation. Register identifiers are private work
 addresses, never signer or account authority. Native tests use vector storage;
 this does not claim that all words fit a Solana heap or one account.
 
-The `scalable-wide-driver` is a native independent-test transport. Full LCM/rate/
-insurance verification, compact conserving rounding and cohort-scale completion
+`scalable::collection::ReducedCollection` cancels bounded factors before computing
+own-cash proportional numerators; the intermediate product can exceed u128 and is
+kept in three exact limbs. Both markets share the same reduced denominator.
+`scalable::denominator::LcmCursor` computes exact LCM extensions by small remainder,
+bounded gcd, exact division and multiplication. It scans the **used** common width,
+not every word of the population-derived maximum. Input length is canonical and
+nonzero; two scratch high words are cleared before widening. For W used words,
+an extension needs at most 5*W+11 steps, each touching at most three storage words;
+the one small gcd is bounded to 176 scalar iterations. This is an algorithmic work
+bound, not measured SBF CU. Output remains unusable on any failure.
+
+The `scalable-wide-driver` is a native independent-test transport. Full-cohort rate/insurance
+verification, compact conserving rounding and cohort-scale completion
 are still unfinished P54A work. No program path uses these primitives yet, no
 account/PDA layout changes, and no expanded trading or default is enabled. P54B
 owns authenticated physical paging and on-chain continuation/replay acceptance.

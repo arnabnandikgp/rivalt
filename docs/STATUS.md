@@ -19,7 +19,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P52 bounded-progress finalized indexer | Review | [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
-| P54A scalable settlement kernel | In progress — inactive | Resumable word arithmetic implemented; independent native checks underway. Complete rate/insurance verification and conserving rounding still required |
+| P54A scalable settlement kernel | In progress — inactive | Resumable word arithmetic, reduced collections and LCM primitives implemented; full rate/insurance verification and conserving rounding still required |
 | P54B–P62 successor implementation | Planned | Authenticated paging, membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -215,17 +215,20 @@ Open, endurance Deferred, and P58's other economic decision gates remain separat
 
 P54A starts on `implementation/p54a-scalable-settlement` above ready #77 tip
 `c7fdfb9`. D96 and the risk contract specify the bounded logical-register cursor.
-The initial Rust primitives implement checked add/subtract, five-limb multiplication
-and exact small division over caller-owned storage, with count-derived width and
-at most three word accesses per step. No program handler, account layout, selected
+Rust primitives implement checked add/subtract, five-limb multiplication and exact
+small division over caller-owned storage, plus exact reduced own-collection splits
+and used-width LCM continuation. Population determines capacity; each step touches
+at most three words and no population-sized stack or heap value. No program handler, account layout, selected
 artifact or account-count activation changes. The native driver is only a test seam.
 
-Independent Python-integer comparisons cover overflow/underflow, 1/7/128-step
-resume budgets, 96-to-97-limb crossing and 13,757-word storage. Initial 1,335 cases
-pass; the final factor-bound check is being pinned and rerun. Full reduced LCM,
-rate/insurance equations, exact compact rounding and scaled completion remain
-unfinished. Next exact action: finish and independently verify the P54A kernel,
-starting with reduced collection denominators and exact rate/flow primitives.
+Clean `2f9cb37` passed 1,338 independent Python-integer arithmetic comparisons,
+including overflow/underflow, 1/7/128-step resume budgets, the 96-to-97-limb crossing
+and 13,757-word storage. The extended working tree also passes 462 resumable LCM
+comparisons and 305 collection splits against exact independent Fractions; its clean
+pin is next. Full-cohort rate/insurance equations, exact compact rounding and scaled
+completion remain unfinished. No SBF/RPC or full settlement acceptance is inferred.
+Next exact action: implement and independently verify P54A's cohort totals, exact
+rate/flow equations and conserving rounding on these primitives.
 
 ## Integrated quantity work
 

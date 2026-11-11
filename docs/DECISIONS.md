@@ -19,8 +19,10 @@ These primitives provide no custody, account authentication, rate acceptance or
 payout authority. P54B must map registers to authenticated epoch/attempt pages
 and persist progress atomically. A failed scratch operation is not committable;
 replayed completed cursors reject. Native storage and cursor copying test arithmetic
-continuation only. The exact LCM, full rate/insurance verification, compact flow
-rounding and measured end-to-end completion still belong to P54A; expanded financial
+continuation only. Per-row collection reduction and used-width LCM steps preserve exact denominators
+without a population-maximum scan for every small value. Full rate/insurance
+verification, compact flow rounding and measured end-to-end completion still belong
+to P54A; expanded financial
 activation remains at P56B. Preserve atom ownership, fees and complete coverage.
 
 ## D95 — separate price-policy consolidation from calibration (11 November 2026)
