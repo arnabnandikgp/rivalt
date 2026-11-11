@@ -695,7 +695,11 @@ Current consumer work replaces fixed-member scan adapters and old solver calls,
 regenerates **all three** source IDLs (including maker-imported clearing layouts),
 and adds the explicit D101 ABI delta over immutable P55A1. Eleven focused
 conformance/economics tests, fourteen wire-guard tests and typecheck pass. The
-refactored custody runner uses the canonical v0/v1 transport and remains unrun.
+first refactored custody run (`7574fde`) completed its signed financial assertions
+but failed parity because it compared the deliberately removed owner-signer bit
+with a valid IDL-generated instruction. That one malformed-meta case now remains
+an actual signed rejection, explicitly omitted only from builder parity; a fresh
+custody run is required. No custody acceptance is claimed from that failed run.
 The historical fixed-width SVM scratch probe and retained-schema-8 projection
 runner are retired at their `7b0ab07` Git provenance; paged arithmetic tests,
 signed resource measurements and actual PostgreSQL reconciliation replace them.
