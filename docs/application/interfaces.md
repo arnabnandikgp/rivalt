@@ -162,7 +162,16 @@ financial core by `python3 ops/generate-price-policy.py`. `pnpm generate` and
 `pnpm generate:check` include this step. Financial values are BigInts, serialized
 as decimal strings; policy version and source exponent are integer metadata.
 Funding source decoding/search, maker/routing bands, risk fallback prices and
-trader price entry use these shared definitions. Units and unchanged policy-1
+trader price entry use these shared definitions. Units and approved policy-2
 activation rules live in [risk and resolution](../clearing/risk-and-resolution.md#versioned-price-policy-p53a).
 The generated values describe the pinned program; a client constant grants no
 on-chain authority and cannot expand accepted prices by itself.
+
+`allocateFundingSide` accepts three canonical `FundingCurve` records (shape,
+anchor, inventory and directional consumption), replacing the old quote-callback
+input. It performs no cash/reservation/health checks. `readFundingReport` derives
+these records only after authenticating the complete frozen maker snapshot; the
+low-level function itself is not an authentication boundary. Arbitrary/disconnected
+quote callbacks are unsupported by its convex-search contract. The optional
+`FundingSearchMetrics` records distinct quantity evaluations and compositions;
+report wire format, publisher authority and actual trade admission are unchanged.

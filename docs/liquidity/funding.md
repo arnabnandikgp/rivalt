@@ -120,7 +120,12 @@ uses the approved reference domain below. The canonical funding search uses
 monotone marginal-price bounds to find each valid quantity interval and a binary
 search for each pair's exact convex optimum. Stable ties choose one leg, then
 ascending instance IDs, then the largest first quantity. Work is O(m² log Q × R),
-with m=3 and R<=8; it never allocates a Q-sized price table. Inputs are canonical
+with m=3 and R<=8; it never allocates a Q-sized price table. Q<=3,000,000 gives
+at most 22 iterations per binary search: three domain/band searches plus the
+first quote per maker, and at most four quote reads per pair-minimum iteration.
+Including singleton/final candidates, a conservative bound is 474 distinct quote
+evaluations per side. The measured 18-scenario diagnostic peaks at 329; see
+[validation](../operations/validation.md#numeric-bound-price-policy-p53b). Inputs are canonical
 shape/anchor/inventory/consumption, not arbitrary quote callbacks. Only authenticated
 complete snapshots reach this search; disconnected financial feasibility belongs
 to the separate trading allocator. P58A still owns impact-notional calibration.

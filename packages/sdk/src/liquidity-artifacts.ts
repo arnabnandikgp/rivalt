@@ -5,7 +5,7 @@ import {MAKER_B_PROGRAM_ADDRESS} from './generatedMakerB/index.js';
 import {ArtifactVerifier} from './artifacts.js';
 import type {UserRpc} from './wallet-client.js';
 
-// P53B candidate policy 2: clean SBF afeb7ea; signed acceptance pending.
+// P53B qualified policy 2: SBF afeb7ea; publisher 10cadb7, boundary/replay/safety 82d2c6a.
 // Preserve the candidate binding used by actual originals; never rewrite C0 journals.
 // Public configuration never supplies replacement hashes or default/devnet code.
 export const LIQUIDITY_ARTIFACT_SET='p53b-numeric-price-policy-candidate-v2';

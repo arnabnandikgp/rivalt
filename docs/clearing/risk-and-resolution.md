@@ -123,7 +123,7 @@ liveness remains open, not acceptance supplied by old P16A/P49 results.
 
 [`financial-core::price_policy`](../../crates/financial-core/src/price_policy.rs)
 is the canonical literal definition. P53A preserved price policy 1; P53B source
-implements approved **price policy 2**, pending compiled acceptance. Price policy version, account schema 8 and venue
+implements qualified local **price policy 2**. Price policy version, account schema 8 and venue
 profile 4 are distinct identifiers; this refactor changes no account bytes, PDA,
 event, signed domain, epoch, error number or instruction interface. `MAX_PRICE`
 (1–1,000,000 quote atoms per lot) is the proved arithmetic domain, not permission
@@ -152,7 +152,7 @@ proofs, source age/confidence/depeg/recovery, deposit/cancel/eligible exit rules
 default/devnet gates remain unchanged. Validation separates current source checks
 from qualification of rebuilt binaries.
 
-### Approved P53B calibration (G5, acceptance pending)
+### Approved P53B calibration
 
 User-approved on 11 November 2026 for the test prototype: remove the old raw BTC/ETH USD fixture
 bands and accept authenticated positive source values only when checked unit
@@ -172,7 +172,8 @@ At collateral parity, the approved reference range corresponds to BTC 2–909,09
 and ETH 0.2–90,909 collateral tokens per whole asset. Those are representation-
 derived limits, **not forecasts, calibrated leverage recommendations or a promise
 that prices near them are economically desirable**. This materially widens accepted
-risk sources; G5 is approved, while fresh signed acceptance remains required.
+risk sources; G5 approval and fresh signed local acceptance are recorded in
+[validation](../operations/validation.md#numeric-bound-price-policy-p53b).
 
 Exact conservative bound: at the largest reference r=909,090, an accepted guard
 has floor ratio at most r+floor(r/100)=918,180. Its actual ratio is <918,181.
@@ -184,8 +185,8 @@ implementation-test evidence. Independent exact cases must check floors, ceiling
 confidences, invalid guard handling, depegs and both market unit conversions.
 
 Funding coupling: unchanged six-token impact notional gives Q=7–3,000,000 lots,
-so the old 600-quantity enumeration cannot qualify this policy. Bring the exact
-canonical published-depth search portion of P58A forward into P53B, retaining
+so P53B replaces the old 600-quantity enumeration with the exact canonical
+published-depth search portion brought forward from P58A, retaining
 complete maker coverage, two-leg limits and all existing ties. Measure actual
 worst-case work; do not discard financially unavailable quotes or invent maker
 margin admission for funding. The ceil means realized reference notional is at
@@ -193,10 +194,10 @@ least six and less than 6.909090 collateral tokens. Higher maximum premium also
 can exhaust the unchanged finite funding index sooner; P58D remains required for
 lifetime maintenance, without erasing earned funding.
 
-Before enabling, qualify independently derived extreme and old-edge values in
+Acceptance requires independently derived extreme and old-edge values in
 native/client code and real signed deployed paths, plus source-failure cancellation,
-deposit, eligible reduction/exit/default and whole-account reservations. Preserve
-the selected P53A artifacts until all required acceptance passes. P54A can
+deposit, eligible reduction/exit/default and whole-account reservations. P53B passes this scoped acceptance with fresh local artifacts; prior P53A files
+and original bindings remain retained. P54A can
 continue independently because its admitted arithmetic envelope does not change.
 
 ## Risk sources and account admission
