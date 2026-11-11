@@ -6,7 +6,10 @@ import {once} from 'node:events';
 import {address,getBase58Decoder} from '@solana/kit';
 import {Connection,SystemProgram,TransactionMessage,VersionedTransaction} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
+import {getTransferSolInstruction} from '@solana-program/system';
 import {LiquidityIndexer,type LiquidityConfig} from '../../packages/indexer/src/liquidity-indexer.js';
+import {LiquidityStore} from '../../packages/indexer/src/liquidity-store.js';
+import {decodeAccountInvocations} from '../../packages/indexer/src/account-events.js';
 import {accountApi} from '../../packages/indexer/src/account-api.js';
 import {json} from '../../packages/indexer/src/events.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
@@ -62,10 +65,16 @@ try {
   // >4096 authentic scoped invocations, including multiple atomic instructions
   // per transaction. Authority changes leave cash/claims untouched.
   for(let batch=0;batch<420;batch++)await delegates(10);
-  await flush();
+  const beforeRejection=await root(margin);
+  const rejectedInstruction=sdk.getSetAccountDelegateInstruction({...setup.common,owner,margin,guard:await guard(margin),
+    delegate:setup.updater.address,expirySlot:await setup.slot()+100_000n});
+  await h.send('P52 reverted duplicate delegate',[rejectedInstruction,rejectedInstruction],[owner],sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);
+  assert.deepEqual(await root(margin),beforeRejection);await flush();
+  const failedSignature=String(checks.find(check=>check.label==='P52 reverted duplicate delegate')!.signature);
   // >10000 independently signed unrelated transactions. Their signatures and
   // complete finalized block bodies must all be retained, not filtered away.
   const connection=new Connection(config.rpcUrl,'confirmed'),sink=await fixtureKey('p52-unrelated-sink');
+  await h.send('P52 fund unrelated transaction sink',[getTransferSolInstruction({source:setup.payer,destination:sink.address,amount:1_000_000n})]);
   const unrelated:string[]=[];
   for(let offset=0;offset<10_100;offset+=100){
     const {blockhash}=await connection.getLatestBlockhash('confirmed');
@@ -78,6 +87,11 @@ try {
     for(let first=0;first<wires.length;first+=16)await Promise.all(wires.slice(first,first+16).map(async entry=>{
       assert.equal(await rpc.call('sendTransaction',[entry.wire,{encoding:'base64',skipPreflight:true}]),entry.signature);unrelated.push(entry.signature);
     }));
+    if(offset===0){const deadline=Date.now()+20_000;for(;;){
+      const statuses=await rpc.call('getSignatureStatuses',[wires.map(entry=>entry.signature),{searchTransactionHistory:true}]);
+      if(statuses.value.every((value:any)=>value?.confirmationStatus==='finalized')){for(const value of statuses.value)assert.equal(value.err,null);break;}
+      assert(Date.now()<deadline,'First traffic batch finality');await delay(100);
+    }}
     if(offset%1000===0)console.log(`Unrelated signed transactions submitted: ${offset+wires.length}`);
   }
   const finalityDeadline=Date.now()+30_000;
@@ -150,6 +164,31 @@ try {
   assert.equal(counts.events,settled.state.sequence);assert.equal(counts.events,counts.outbox);
   const retained=await indexer.store.pool.query('SELECT signature FROM transactions WHERE run_id=$1 AND signature=ANY($2)',[config.runId,unrelated]);
   assert.equal(retained.rowCount,unrelated.length);
+  assert.equal((await indexer.store.pool.query('SELECT failed FROM transactions WHERE run_id=$1 AND signature=$2',[config.runId,failedSignature])).rows[0].failed,true);
+  assert.equal((await indexer.store.pool.query('SELECT 1 FROM events WHERE run_id=$1 AND signature=$2',[config.runId,failedSignature])).rowCount,0);
+  // Recheck a retained authentic block idempotently; then corrupt its bytes and
+  // independently supplied projection. Neither may mutate a covered checkpoint.
+  const block=await indexer.store.block(Number((await indexer.store.pool.query('SELECT slot FROM transactions WHERE run_id=$1 AND signature=$2',
+    [config.runId,checks.find(check=>check.label==='P52 delegate 0-10')!.signature])).rows[0].slot));
+  const invocations=block.transactions.flatMap(({signature,tx},position)=>decodeAccountInvocations(signature,tx,position,
+    {...settled.binding,eventAuthority:indexer!.eventAuthority}));
+  const fence={slot:Number(settled.checkpoint_slot),blockhash:settled.checkpoint!};
+  await indexer.store.commit([block],invocations,fence,settled.checkpoint);
+  const badBlock=structuredClone(block);badBlock.previousBlockhash='foreign';
+  await assert.rejects(()=>indexer!.store.commit([badBlock],invocations,fence,settled.checkpoint),/Conflicting finalized block/);
+  const badInvocations=structuredClone(invocations);assert(badInvocations.length>0);badInvocations[0].footerBytes='wrong';
+  await assert.rejects(()=>indexer!.store.commit([block],badInvocations,fence,settled.checkpoint),/authenticated invocation/);
+  assert.deepEqual((await indexer.store.snapshot()).state,settled.state);
+  await assert.rejects(()=>indexer!.store.pool.query('UPDATE covered_checkpoints SET state_digest=state_digest WHERE run_id=$1',[config.runId]),/append-only/);
+  await indexer.store.pool.query('CREATE DATABASE rivalt_p52_legacy');
+  const legacyUrl=new URL(databaseUrl);legacyUrl.pathname='/rivalt_p52_legacy';
+  const legacy=new LiquidityStore(legacyUrl.toString(),'legacy-format-check');
+  try{
+    await legacy.pool.query('CREATE TABLE schema_version(version integer PRIMARY KEY CHECK(version=2)); INSERT INTO schema_version VALUES(2)');
+    await assert.rejects(()=>legacy.migrate(),/Fresh format-3 journal required/);
+    assert.equal((await legacy.pool.query('SELECT version FROM schema_version')).rows[0].version,2);
+  }finally{await legacy.close();}
+
   const ledger=settled.state.ledgers[setup.ledgers[0]];
   assert.deepEqual([ledger.insurance,ledger.fees,ledger.insuranceFeeRemainder],['6','20',2]);
   assert.equal(Object.values(settled.state.roots).reduce((sum,value)=>sum+BigInt(value.cash),0n)+26n,8_000_000n);
@@ -157,17 +196,22 @@ try {
   await assert.rejects(()=>indexer!.store.publish(forged,new Date()),/Uncovered/);
   await assert.rejects(()=>indexer!.store.publish(initial,new Date()),/regressing/);
   await assert.rejects(()=>indexer!.store.publish(settled,new Date(Date.now()-11_000)),/expired/);
+  await catchUp(indexer,'after-integrity-checks');
   const api=accountApi(indexer);
   try{const response=await api.inject('/v4/trades?latest=true');assert.equal(response.statusCode,200);assert.equal(response.json().items.length,2);}finally{await api.close();}
   // Continuous relevant writes fit in one account batch in this local cohort.
   // Account capture must be able to publish an actual common historical fence.
   let producing=true,producerError:unknown,produced=0;
   const producer=(async()=>{try{while(producing){await delegates(2);produced+=2;await delay(75);}}catch(error){producerError=error;}})();
-  const live=[];
-  try{for(let cycle=0;cycle<5;cycle++){await indexer.cycle();live.push({ready:indexer.healthy,covered:(await indexer.store.snapshot()).checkpoint_slot});}}
+  const live:{ready:boolean;covered:string|null;nonce:string|null}[]=[],liveDeadline=Date.now()+30_000;
+  const publishedNonces=()=>new Set(live.filter(value=>value.ready).map(value=>value.nonce));
+  try{while(Date.now()<liveDeadline&&publishedNonces().size<3){
+    await indexer.cycle();const row=await indexer.store.snapshot();
+    live.push({ready:indexer.healthy,covered:row.checkpoint_slot,nonce:row.published_state?.roots[margin].nonce??null});await delay(100);
+  }}
   finally{producing=false;await producer;await flush();}
   if(producerError)throw producerError;
-  assert(produced>0);assert(live.some(value=>value.ready),'No publication under continuous relevant writes');
+  assert(produced>0);assert(publishedNonces().size>=3,'No advancing publications under continuous relevant writes');
   await catchUp(indexer,'final');const final=await indexer.store.published();
   const reconciliation=await indexer.reconcile();
   await indexer.store.pool.query('CREATE DATABASE rivalt_p52_replay');
@@ -180,7 +224,7 @@ try {
   const summary={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR}/build-manifest.json`,'utf8')),
-    elapsedMs:Date.now()-started,counts,pendingOriginal,delegateInstructions,unrelated:unrelated.length,faults,cycles,live,produced,reconciliation,
+    elapsedMs:Date.now()-started,backlogCounts:counts,finalEventCount:events.rows.length,pendingOriginal,delegateInstructions,unrelated:unrelated.length,faults,cycles,live,produced,reconciliation,
     metrics:indexer.metrics,rpcMetrics:indexer.rpc.metrics,replayMetrics:replay.metrics,replayRpcMetrics:replay.rpc.metrics,peakRssBytes:Math.max(...memory),checks,state:final.state};
   writeFileSync(`${runDir}/summary.json`,json(summary));console.log(json({stage:'p52-progress-pass',counts,delegateInstructions,elapsedMs:summary.elapsedMs}));
 }finally{await replay?.close();await indexer?.close();try{await flush();}finally{ws.close();}}

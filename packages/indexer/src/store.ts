@@ -40,7 +40,9 @@ export class JournalStore<State extends {sequence:string;revisions:RevisionVecto
   async migrate() {
     const { rows } = await this.pool.query('SHOW server_version_num');
     if (rows[0].server_version_num !== '180006') throw new Error('PostgreSQL 18.6 required');
-    await this.pool.query(readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'));
+    const client=await this.pool.connect();
+    try{await client.query(readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'));}
+    catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
   }
   async bind(binding: Binding) {
     if (binding.schema !== this.projection.schema) throw new Error('Incompatible projection schema');

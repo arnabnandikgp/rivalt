@@ -16,7 +16,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
-| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; bounded per-block coverage, common-fence publication and format-3 storage implemented; 40 focused checks pass at `7615b45`; first live run timed out after a host pause; bounded empty-block work and rerun are next |
+| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; bounded per-block coverage, common-fence publication and format-3 storage implemented; 42 focused checks across `7615b45`/`a47cd10`; signed 4,200-invocation backlog generated; fix unrelated-traffic rent fixture and finish SQL/crash acceptance |
 | P53–P62 successor implementation | Planned | Price policy, compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -127,7 +127,13 @@ saved timeout diagnostic already reports finalized success; the complete backlog
 crash and replay acceptance did not finish. Evidence remains under
 `.local/indexer-progress/7615b45-20261111-a`. The next candidate adds a process-scoped
 idle-sleep inhibitor and charges empty blocks to the per-cycle work budget; neither
-weakens oracle, reconciliation or finality checks. Full acceptance remains pending. No P52 PR or phase acceptance is claimed. No access blocker is known;
+weakens oracle, reconciliation or finality checks. Clean `a47cd10` passes typecheck and 16 transport tests (including two new
+empty/oversized-block edges), publishes its initial reconciled SQL state, and
+independently fetches all 4,200 successful delegate invocations. Its unrelated SOL
+transfer fixture then rejects because the new recipient lacks rent-exempt balance;
+10,100 submitted originals are retained and no full-backlog pass is claimed. The
+fixture now funds that recipient and checks its first finalized batch before
+producing the remainder. Full crash/backlog/fresh-replay acceptance remains pending. No P52 PR or phase acceptance is claimed. No access blocker is known;
 the local container service was started for the owned qualification runtime.
 
 ## Integrated quantity work
