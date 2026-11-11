@@ -19,7 +19,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P52 bounded-progress finalized indexer | Review | [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
-| P54A scalable settlement kernel | In progress — inactive | Complete native rate/insurance verification, conserving rounding and factored attribution implemented; clean pinned acceptance and ready PR remain |
+| P54A scalable settlement kernel | Accepted locally — publication pending | Clean `60c2141`: 774 independently checked settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
 | P54B–P62 successor implementation | Planned | Authenticated paging, membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -52,8 +52,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P54A's exact scalable settlement kernel above ready
-#77 in stack #74; leave every PR open.
+Next exact action: publish accepted P54A above #77 in stack #74, then implement
+P54B's authenticated frozen input and rate verification; leave every PR open.
 
 ## Remediation planning
 
@@ -220,18 +220,25 @@ rate/greatestness equations, all insurance-clipping evaluations and deterministi
 conserving rounding. Hierarchical active arcs and generation marks replace fixed
 graphs and resets; normalized atom division avoids repeated whole-width searches.
 Cash, market writeoffs/impairment, insurance and retained fees stay explicit.
-The word primitives remain pinned to clean `47ba74e`; current development checks
-also pass independent full-settlement comparisons and 16 complete 64/128/1,024/
-10,000-row diagnostics. Final clean-pin checks remain before acceptance/publication.
+Clean **`60c2141eb2a7af30bc8a6d99dd752167549c3263`** passes native acceptance: 774 complete
+settlements across 258 independent cohorts and 1/7/128-step budgets, 307 rejected
+requests, 980 exact division cases and three aggregate/product boundary vectors.
+The earlier 2,105 arithmetic/LCM/collection comparisons pass again. The active
+hierarchy passes 80,000 independent ordered-set update/search pairs. All 16 scale
+cases finish across 64/128/1,024/10,000 rows, with exact cash and atom-owner equality.
+Scoped format, documentation, Python/shell and evidence checks pass.
+[Validation](operations/validation.md#scalable-native-settlement-p54a) records actual
+commands, populations, CPU/work/storage observations and limitations.
 
 No program handler, account layout, selected artifact or account-count activation
-changes. Native vector orchestration is excluded from SBF. The hardest development
-10,000-row case uses 2.67 billion arithmetic word steps: completion is not a claim
-of affordable on-chain resolution. P54B/P54C must measure authenticated continuations
-and their total cost before expanded activation. P15B/P16B remain Open and 24-hour
-endurance Deferred. No access blocker is known.
-Next exact action: finish clean pinned P54A acceptance, publish its ready PR above
-#77, then implement P54B's authenticated frozen input and rate work.
+changes. Native vector orchestration is excluded from SBF. The hardest 10,000-row
+case takes 7.917139 native seconds but uses 2.67 billion arithmetic word steps;
+completion does not establish affordable on-chain resolution. P54B/P54C must measure
+authenticated continuations and total cost before expanded activation. No SBF,
+RPC/WS/PostgreSQL, browser or external qualification is inferred. P15B/P16B remain
+Open and 24-hour endurance Deferred. No access blocker is known.
+Next exact action: publish the cohesive ready P54A PR above #77, then implement
+P54B's authenticated frozen input and rate work on its child branch.
 
 ## Integrated quantity work
 

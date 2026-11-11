@@ -114,7 +114,7 @@ stored in an ordinary root. Exact market loss equals creditor impairment, and
 remaining insurance and retained fees reconcile with final cash and original V.
 
 `scalable::rounding` accepts only a constructed verified plan. It checks each
-market's complete ID permutation and every adjacent positive-claim remainder/tie;
+market's complete frozen-row permutation and every adjacent positive-claim remainder/tie;
 root-local outgoing order is independently derived. It constructs the canonical
 graph itself. Three scalar floors/flags per root replace retained wide flow arrays.
 `scalable::active` supplies an ordered hierarchy over contiguous adjacency ranges.
@@ -128,7 +128,9 @@ edge, or one audit item. Each original edge is floor or ceil of its exact value;
 the terminal audit checks every node and auxiliary capacity before exposing a
 result. Results remain unavailable at every unfinished prefix; a completed graph
 rejects replay. Rust borrowing binds results to the exact frozen verified plan.
-This native binding is not a substitute for authenticated program pages.
+Native row ordinals follow ascending stable member identity; omitted identities
+or a reordered freeze cannot be excused by reassigning ordinals. P54B must authenticate
+that mapping. This native binding is not a substitute for authenticated program pages.
 
 Finite bounds, with N roots and W count-derived register capacity:
 

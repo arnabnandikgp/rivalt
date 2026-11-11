@@ -13,13 +13,50 @@ The affected source format, Python compilation, shell and evidence checks pass.
 The optional whole-workspace format check detects pre-existing formatting outside
 this change; no unrelated files were reformatted.
 
-The subsequent complete native implementation adds verified rates/greatestness,
-insurance clipping, exact conserving rounding, factored attribution and a
-hierarchical active-arc index. Development checks match independent branch/Fraction
-expectations and complete all 16 scale cases at 64/128/1,024/10,000 rows. Clean
-tested revision, final results and ready PR are pending. The largest development
-distinct-denominator case uses 2,665,849,459 arithmetic word steps and 4,009 maximum
-used words; this is not a claim of feasible on-chain transaction counts.
+Clean **`60c2141eb2a7af30bc8a6d99dd752167549c3263`** passes complete native acceptance:
+
+- **258 independent cohorts × three continuation budgets = 774 compiled settlements**
+  match the retained branch/Fraction oracle for rates, collections, cash, insurance
+  budgets/usage, debtor writeoffs, creditor impairments and every atom owner and
+  rounding adjustment. Budgets are 1/7/128 steps. Cases include cashless cycles,
+  external creditors, two insurance-clipping passes, maximum claims/cash, unused
+  insurance and separate retained fees.
+- **307** malformed, incomplete, non-greatest, out-of-domain, missing/duplicate/
+  foreign/order-corrupted requests reject. Every unfinished graph prefix refuses
+  results and completed graph/cursor replay rejects. This is native continuation,
+  not authenticated account replay or process-crash durability.
+- **980** normalized atom-division comparisons match independent Python `divmod`,
+  plus three literal 151-bit aggregate / 302-bit product cases. All prior **1,338**
+  word arithmetic, **462** LCM and **305** collection cases pass again at this pin.
+- The active hierarchy matches an independent ordered set across **80,000** paired
+  updates/searches, emptying and boundary failures, with tested per-query/per-update
+  word limits. Affected literal model regression, scoped format, Python compilation,
+  shell syntax, evidence policy and **91** local documentation targets pass.
+- All **16** release-build scale diagnostics complete: four shapes at 64, 128,
+  1,024 and 10,000 rows. Exact cash/movements and augmentation counts match the
+  streaming model, with independent repeated-fraction `1/3` recovery/cash identities.
+  These use synthetic already-valued claims; registered, claim-participating,
+  empty and funded counts are distinct. No exposed-position admission is claimed.
+
+Representative distinct-denominator cases, on Apple M3 / Rust 1.97.1 release:
+
+| Rows / claim-participating / funded | Used words peak | Arithmetic word steps | Compiled process seconds | Native graph payload bytes |
+|---|---:|---:|---:|---:|
+| 64 / 63 / 21 | 33 | 133,433 | 0.006383 | 24,832 |
+| 128 / 126 / 42 | 60 | 495,525 | 0.005770 | 49,104 |
+| 1,024 / 1,023 / 341 | 433 | 29,384,846 | 0.093212 | 389,336 |
+| 10,000 / 9,999 / 3,333 | 4,009 | 2,665,849,459 | 7.917139 | 3,797,360 |
+
+The 10,000-row common denominator is 256,232 bits. Its untrusted proposal and
+separate Python rounding comparison take 4.481841 / 20.482780 seconds. The all-
+participating 10,000-row mixed-link case takes 4.955804 compiled seconds and uses
+3,818,720 graph payload bytes. Process timings include startup, transport parsing
+and result decoding; the first 64-row cycle launch takes 0.397770 seconds. These
+are individual diagnostics, not latency percentiles. Payload excludes scalar rows,
+registers, allocator/transport overhead and native test copies; it is not peak RSS
+or account rent. Logical steps exclude host allocation/copying. The conservative
+O(N+W) storage and finite work bounds in the risk contract are checked in each case.
+The large word count explicitly leaves SBF affordability unproved.
 
 Reproduce the scoped checks with `cargo build --locked -p financial-core --bin scalable-wide-driver --bin scalable-settlement-driver`,
 `python3 tests/financial/test_scalable_wide.py`,
@@ -28,7 +65,8 @@ Reproduce the scoped checks with `cargo build --locked -p financial-core --bin s
 The independent settlement suite joins financial CI. The separate scale diagnostic
 uses `cargo build --release --locked -p financial-core --bin scalable-settlement-driver`
 and `RIVALT_SCALABLE_DRIVER=target/release/scalable-settlement-driver python3 tests/financial/measure_compiled_settlement.py`.
-Raw development evidence remains in `.local/scalable-settlement/`.
+Exact clean logs/results remain in `.local/scalable-settlement/p54a-60c2141/`;
+earlier development captures remain separate and retained. No evidence is tracked.
 
 This is native arithmetic/graph acceptance only. Vector orchestration is excluded
 from SBF; frozen account authentication, physical pages/cursors, transactional
