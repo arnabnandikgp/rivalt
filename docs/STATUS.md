@@ -811,8 +811,15 @@ notional. That simulation was not broadcast. The replacement uses 500 lots, the
 same minimum notional/risk rules, and an independently derived retained cash bound.
 No expanded-run pass or SQL replay is claimed from this failed attempt.
 
-Next exact action: run the corrected boundary workload with exact flat netting,
-liquidation repair and complete default/recovery reconciliation. No user decision is blocking this work.
+The next clean harness `716d56c` passes the corrected 500-lot boundary, actual
+1,000-atom debtor repair and same-epoch payment. It stops at the subsequent close
+with OraclePolicy after the intervening PostgreSQL reconciliation outlasts source
+freshness. The section now performs the existing sustained qualification before
+resuming financial actions. No financial/risk rule changes and no full-run pass is
+claimed. A separate candidate-bound actual settlement-worker/SIGKILL probe is added.
+
+Next exact action: finish boundary/default acceptance with normal source recovery,
+then verify the persisted settlement-worker original across executor death. No user decision is blocking this work.
 
 ## Deployment and operational limits
 

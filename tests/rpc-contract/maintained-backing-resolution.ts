@@ -20,7 +20,7 @@ export async function backingResolution(context:Parameters<typeof backingBoundar
     makers:[setup.instances[marketIndex*3]],lots:[lots]});
   const net=async()=>sdk.getNetAccountClaimsInstruction({...identity,owner,margin:cross,certificate:certificates[0],
     guard:await guard(cross),sourceMarket:0,amount:1n});
-  await setup.sample();
+  await setup.qualify();
   await reject('netting cannot silently close an open short',[await net()],sdk.CLEARING_ERROR__ORDER_STATE);
   await mutate('close low-price short preserving fractions',[await trade(0,0,500n)]);
   await mutate('fund cross lifecycle from sibling own cash',[sdk.getTransferFundedAccountInstruction({...identity,
@@ -74,6 +74,7 @@ export async function backingResolution(context:Parameters<typeof backingBoundar
   await mutate('liquidation-repaired completed proof pays funded gain',[payment()]);
   await flush();await checkpoint('after-net-and-liquidation');
 
+  await setup.qualify();
   await mutate('fund actual new default exposure',[await sdk.getDepositAccountInstructionAsync({...setup.common,
     owner,margin:cross,quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:200_000n})]);
   await setup.sample();await mutate('open actual default exposure',[await trade(0,0,20n)]);

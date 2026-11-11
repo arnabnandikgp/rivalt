@@ -20,17 +20,19 @@ export async function openSettlementJournal(rpc:WireRpc,setup:Awaited<ReturnType
   let store:LiquidityStore|undefined;const captures:any[]=[];
   const open=async()=>{const result=new LiquidityStore(databaseUrl,'p55b2-application');await result.migrate();await result.bind(binding);return result;};
   const read=(keys:string[])=>rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized'}]);
-  const checkpoint=async(name:string)=>{
+  const checkpoint=async(name:string,publish=false)=>{
     store=await open();
     try {
       const prior=await store.snapshot(),current=await history();
       await store.commit(current.blocks,current.invocations,current.head,prior.checkpoint);
       const snapshot=await store.snapshot();
+      const capturedAt=new Date();
       const reads:{keys:string[];response:unknown}[]=[];
       let reconciliation;
       try {reconciliation=await reconcileAccountSnapshot(snapshot.state,binding,async keys=>{
         const response=await read(keys);reads.push({keys,response});return response;
       });} finally {writeFileSync(`${process.env.RIVALT_RUN_DIR}/sql-${name}-snapshot.json`,json({state:snapshot.state,binding,reads}));}
+      if(publish)await store.publish(snapshot,capturedAt);
       captures.push({name,state:snapshot.state,reconciliation});
       writeFileSync(`${process.env.RIVALT_RUN_DIR}/application-sql-checkpoints.json`,json(captures));
     } finally {await store.close();store=undefined;}
