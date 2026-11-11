@@ -304,10 +304,11 @@ and RC2 Anchor clients agree on full instruction metas/data, 21 new account reco
 and events. Maximum new-entrypoint CU is 36,639 and packet size is 751 bytes in this
 fixture. Owned Surfpool is stopped. Rate/proposal/reset and full P54B acceptance,
 not a larger-runtime or PostgreSQL claim, remain open. The next arithmetic layer
-now implements 192-byte normalized magnitude continuations with poisoned-tail
-native vectors; clean pinning remains pending. No on-chain rate path uses it yet.
-Next exact action: qualify this bounded primitive, then implement persisted exact
-atom division and the complete-rate verifier without exposing Apply.
+now implements 192-byte normalized magnitude continuations. Clean `999ce4d` passes
+1,440 independent integer cases at budgets 1/7/128, ten invalid domains and two
+codec/alias tests, plus pinned SBF metadata and scoped policy/format checks. No
+on-chain rate path uses it yet. Next exact action: implement persisted exact atom
+division and the complete-rate verifier without exposing Apply.
 
 ## Integrated quantity work
 

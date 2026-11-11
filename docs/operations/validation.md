@@ -129,6 +129,20 @@ source binding, the owning on-chain controller, rate/proposal reset and actual
 signed full-context resource/rollback acceptance remain P54B work. P54C owns
 rounding/Apply/recovery; P56B remains the financial expansion gate.
 
+Clean **`999ce4d`** adds normalized paged arithmetic for later rate work. **1,440**
+independent Python integer cases match at resume budgets 1/7/128, across 96-/256-word
+boundaries and values through 32,768 bits. Every unused source word is deliberately
+nonzero and every physical read/write must match the exact declared plan. Each
+step performs at most three word accesses; output normalization is also resumable.
+Ten invalid arithmetic/domain cases and two Rust checkpoint/alias tests pass.
+Pinned SBF metadata, affected formatting, shell, whitespace and evidence checks
+pass. This primitive has no public rate/proposal consumer yet; no new linked SBF,
+RPC or financial acceptance follows. Logs remain at
+`.local/scalable-settlement/p54b-999ce4d/`. Reproduce with
+`cargo build --locked -p financial-core --bin scalable-wide-driver`,
+`cargo test --locked -p financial-core --test scalable_normalized` and
+`python3 tests/financial/test_normalized_pages.py`.
+
 ## Scalable native settlement (P54A)
 
 Clean **`47ba74e36c03379560e7ed2eba6392b212c91deb`** builds the native
