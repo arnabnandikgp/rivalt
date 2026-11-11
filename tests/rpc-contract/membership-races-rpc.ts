@@ -75,7 +75,11 @@ try {
   await reject('race pre-freeze activation cannot alter cohort',frozenEntry,sdk.CLEARING_ERROR__RESOLUTION);
   await reject('race pre-freeze empty retirement cannot alter registry',frozenRetirement,sdk.CLEARING_ERROR__RESOLUTION);
   await reject('race pre-freeze registration cannot enter frozen venue',third.instruction,sdk.CLEARING_ERROR__PROFILE);
-  await reject('race pre-freeze trade cannot execute',pendingTrade,sdk.CLEARING_ERROR__PROFILE);
+  // Freeze advances the safety epoch: the already prepared trade fails its signed
+  // epoch guard before action-mode admission. A rebuilt guard must still fail.
+  await reject('race pre-freeze trade cannot execute',pendingTrade,sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);
+  await reject('race current-epoch trade cannot execute while frozen',await route({trader:cross,actor:owner,
+    marketIndex:0,side:1,makers:[setup.instances[0]],lots:[1n]}),sdk.CLEARING_ERROR__PROFILE);
   assert.equal(await h.read(third.margin),null);
   const frozen=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
   assert.equal(frozen.count,8n);assert.equal((await registry()).financialCount,8n);
