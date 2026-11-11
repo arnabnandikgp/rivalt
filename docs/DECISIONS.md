@@ -31,7 +31,10 @@ both scope visits. Supplied page revisions are optimistic replay guards, never
 proof of completed arithmetic. The scope advances each declared writer once;
 standalone native dirty-page commit is not called by these public handlers.
 The literal extension is checked separately before comparing the entire retained
-ABI with the immutable D90 baseline. Signed and resource acceptance remains a
+ABI with the immutable D90 baseline. Rate arithmetic uses program-owned normalized
+lengths, with explicit virtual-zero tails and bounded output normalization; reuse
+of scratch pages cannot turn stale high words into value or missing live words
+into zero. Signed and resource acceptance remains a
 required P54B gate, alongside rate proposal/reset verification.
 
 ## D96 — bounded scratch steps for scalable exact settlement (11 November 2026)

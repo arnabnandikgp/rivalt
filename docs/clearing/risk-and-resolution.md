@@ -173,6 +173,7 @@ Encodings use little-endian integers and zero reserved/unused opcode bytes:
 | Arithmetic | 128 | Operation/flags/column/factor length; width and three register IDs; position/carry; five factor words or small divisor. Check width against trusted allocation, output/source separation, carry domain and exact pending/completed position relationships. |
 | LCM | 224 | Stage, three IDs, used/span/divisor, scan/result lengths and the complete arithmetic checkpoint. Check stage-specific operand bindings, divisor relationships, used+2 span, scan/completion consistency and reserved bytes. |
 | Comparison | 40 | Width, two IDs, remaining high-to-low words and pending/less/equal/greater result. Check range/completion consistency; equal is terminal only after all words. |
+| Normalized magnitude | 192 | Trusted allocation capacity and input used lengths; arithmetic checkpoint and output normalization scan. Source words above used length are virtual zero, never fetched from dirty scratch tails. Output length becomes available only after bounded normalization completes. |
 | Cohort denominator | 320 | Frozen count, processed ordinal, last stable ID, used common length, alternating common register and nested LCM checkpoint. Check stage/operand bindings and expose the denominator only after every row. |
 | Membership | 544 | Frozen count, path depth/stage, page mask/count and fifteen radix traversal frames. Check complete subtree counts, canonical child path, processed ordinal and terminal replay. Program-owned nodes/pages and a frozen membership epoch are separate required authority. |
 | Valuation totals | 288 | Frozen count/custody/pool/insurance/fee/gross-OI bindings; processed ordinal/last ID; cash, signed quantities and gross totals; separate unsigned positive/negative claim totals. Check complete conservation before accepting the final row. |
@@ -202,7 +203,15 @@ role/mode and derive claims from the actual root and frozen prices/funding.
 extends the reduced LCM with the existing bounded word cursor. Registers 0 and 1
 alternate; register 2 is quotient scratch. The keeper cannot choose register IDs
 or operations. Integral rows advance without an unnecessary LCM pass. Used lengths
-exclude dirty unused tails; widening clears the words it will read. A result is
+exclude dirty unused tails; widening clears the words it will read.
+`normalized::NumberCursor` gives later rate operations the same contract for
+addition/subtraction, bounded-factor multiplication and small division: used lengths
+come from authenticated preceding work, while a missing word inside that length
+is an error. It performs at most three physical word accesses per step and one
+output-normalization read per step. Some zero-tail operations are metadata-only
+steps; they still consume the controller budget. Capacity limits allocation, never
+forces a scan of all allocated words. This is arithmetic infrastructure, not
+proposal authorization or a completed rate verifier. A result is
 unavailable until all frozen rows complete. Each arithmetic step still accesses at
 most three words, including across physical page boundaries.
 

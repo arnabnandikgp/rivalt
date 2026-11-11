@@ -78,6 +78,95 @@ fn parse_words(text: &str, width: usize) -> Result<Vec<u64>> {
 }
 fn execute(text: &str) -> Result<String> {
     let fields: Vec<_> = text.split('|').collect();
+    if fields.len() == 7 && fields[0] == "normalized" {
+        use financial_core::clearing::scalable::normalized::{Magnitude, NumberCursor};
+        let width: usize = fields[2].parse().map_err(|_| Error::Bounds)?;
+        let budget: u64 = fields[3].parse().map_err(|_| Error::Bounds)?;
+        if width == 0 || budget == 0 {
+            return Err(Error::Bounds);
+        }
+        let mut left = parse_words(fields[4], width)?;
+        let mut right = parse_words(fields[5], width)?;
+        let used = |words: &[u64]| {
+            words
+                .iter()
+                .rposition(|word| *word != 0)
+                .map_or(0, |index| index + 1) as u64
+        };
+        let left_used = used(&left);
+        let right_used = used(&right);
+        let factor = parse_words(fields[6], 5)?;
+        let operation = match fields[1] {
+            "add" => Operation::Add,
+            "sub" => Operation::Subtract,
+            "mul" => Operation::Multiply {
+                factor: factor.try_into().unwrap(),
+                length: used(&parse_words(fields[6], 5)?).max(1) as u8,
+            },
+            "div" => Operation::Divide {
+                divisor: u128::from_str_radix(fields[6], 16).map_err(|_| Error::Bounds)?,
+            },
+            _ => return Err(Error::Bounds),
+        };
+        // Poison *every* unused source word: accidentally reading dirty tail
+        // storage must change the result or fail the exact access guard.
+        left[left_used as usize..].fill(u64::MAX);
+        right[right_used as usize..].fill(0xBAD0_BAD0_BAD0_BAD0);
+        let mut memory = Memory {
+            registers: [left, right, vec![0xDEAD_BEEF; width]],
+            reads: std::cell::Cell::new(0),
+            writes: 0,
+            allowed: Vec::new(),
+        };
+        let mut cursor = NumberCursor::new(
+            operation,
+            Magnitude {
+                register: 0,
+                used: left_used,
+            },
+            Magnitude {
+                register: 1,
+                used: right_used,
+            },
+            2,
+            width as u64,
+        )?;
+        let mut steps = 0;
+        while !cursor.is_done() {
+            for _ in 0..budget {
+                if cursor.is_done() {
+                    break;
+                }
+                if cursor.result().is_ok() {
+                    return Err(Error::Invariant);
+                }
+                memory.allowed = cursor.accesses()?.into_iter().flatten().collect();
+                let before = memory.reads.get() + memory.writes;
+                cursor.step(&mut memory)?;
+                steps += 1;
+                if memory.reads.get() + memory.writes - before > 3 {
+                    return Err(Error::Invariant);
+                }
+            }
+            cursor = NumberCursor::from_checkpoint(&cursor.checkpoint(), width as u64)?;
+        }
+        let result = cursor.result()?;
+        if cursor.step(&mut memory).is_ok() {
+            return Err(Error::Invariant);
+        }
+        let encoded = memory.registers[2][..result.used as usize]
+            .iter()
+            .rev()
+            .map(|word| format!("{word:016x}"))
+            .collect::<String>();
+        return Ok(format!(
+            "{}|{}|{:x}|{}",
+            if encoded.is_empty() { "0" } else { &encoded },
+            result.used,
+            cursor.remainder().unwrap_or(0),
+            steps
+        ));
+    }
     if fields.len() == 4 && fields[0] == "denominators" {
         use financial_core::clearing::scalable::cohort_denominator::DenominatorPass;
         let budget: u64 = fields[1].parse().map_err(|_| Error::Bounds)?;
