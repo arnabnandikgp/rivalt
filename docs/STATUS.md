@@ -23,7 +23,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
 | P54C conserving settlement | Review | [Ready PR #80](https://github.com/arnabnandikgp/rivalt/pull/80), above #79; clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, recovery and identical 131-event fresh PostgreSQL replay; population activation unchanged |
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
-| P55A2 on-chain membership/lifecycle | Planned | Versioned registration, financially active membership, storage funding, retirement and complete frozen-source integration; signed acceptance required |
+| P55A2 on-chain membership/lifecycle | In progress | D100 reusable recovery-capacity provisioning is implemented locally; canonical lifecycle/wire integration and signed acceptance remain unfinished |
 | P55B–P62 successor implementation | Planned | Backing, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -666,9 +666,22 @@ now separates this foundation from P55A2's complete on-chain lifecycle and stora
 integration. P55A as a whole is unfinished. P55A2 must implement the canonical
 schema-9 layouts/consumers, Registered/Financial/Retired authority, funded recovery
 storage, complete live-index freeze/default and signed entry/exit/race acceptance.
-P55A1 is ready as #81 above #80 and remains open; hosted CI is pending.
+P55A1 is ready as #81 above #80 and remains open. Hosted scope and financial CI
+pass at `7b0ab07` in run 43086442927; other scoped jobs are correctly skipped.
+Automated review was still pending at the last observation.
 No decision/access blocker is known. Next exact action: implement P55A2 above #81
 without waiting for merge; continue through P62's dependencies.
+
+P55A2 is active above exact `7b0ab07`. D100 specifies reusable, pre-funded recovery
+capacity. The local implementation has the count-derived allocation schedule,
+replay/epoch controller, canonical rent/payer verification and provisioning
+entrypoints. Four native capacity cases, two hostile actual-account-loader cases,
+one scoped-history creation case and qualification-feature `cargo check` pass in
+the working tree. They are not a signed deployment or completed lifecycle claim.
+Canonical schema-9 roots, registration/Financial/retirement transitions, live-index
+freeze/default and minimum SDK/indexer consumers still require implementation and
+acceptance. Next exact action: build the provisioning candidate, verify actual
+signed account allocation, then connect the complete P55A2 lifecycle.
 
 ## Deployment and operational limits
 

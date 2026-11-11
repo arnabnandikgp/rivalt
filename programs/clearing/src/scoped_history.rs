@@ -49,12 +49,13 @@ revisioned! {
     14 => LiquidityRegistry, 15 => MakerRegistration, 16 => FundingPublisher,
     17 => PreparedSettlement, 18 => FrozenMarginPage, 19 => MemberIndexNode,
     20 => MemberPage, 21 => SettlementLimbPage, 22 => SettlementRates, 23 => SettlementPlan,
+    24 => RecoveryStorage, 25 => StorageFunding,
 }
 
 fn schema_for_kind(kind: u8) -> Result<u16> {
     match kind {
         0..=16 => Ok(SCHEMA_VERSION),
-        17..=23 => Ok(SETTLEMENT_SCHEMA),
+        17..=25 => Ok(SETTLEMENT_SCHEMA),
         _ => Err(ClearingError::Profile.into()),
     }
 }
@@ -186,6 +187,28 @@ impl Scope {
         drop(bytes);
         let next = self.visit(*account.address(), T::KIND, schema, revision, access)?;
         if self.cursor.is_some() && access != Access::Read {
+            account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
+        }
+        Ok(())
+    }
+
+    /// Canonical PDA initialization inside the handler lets the rent receipt
+    /// record the exact payer top-up even when somebody donated lamport dust.
+    pub(crate) fn created_raw<T: Revisioned + Discriminator + Space>(
+        &mut self, account: &mut AccountView,
+    ) -> Result<()> {
+        require!(account.is_writable() && !account.executable() && !account.is_signer(), ClearingError::Profile);
+        let (schema, revision) = if self.cursor.is_none() {
+            require!(account.owner() == &anchor_lang::system_program::ID && account.data_len() == 0, ClearingError::Profile);
+            (0, 0)
+        } else {
+            require!(account.owner() == &crate::ID, ClearingError::Profile);
+            let bytes = account.try_borrow()?;
+            require!(bytes.len() == 8 + T::INIT_SPACE && bytes[..8] == *T::DISCRIMINATOR, ClearingError::Profile);
+            (u16::from_le_bytes(bytes[8..10].try_into().unwrap()), u64::from_le_bytes(bytes[10..18].try_into().unwrap()))
+        };
+        let next = self.visit(*account.address(), T::KIND, schema, revision, Access::Create)?;
+        if self.cursor.is_some() {
             account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
         }
         Ok(())

@@ -27,6 +27,54 @@ macro_rules! context {
     };
 }
 
+context!(InitializeRecoveryStorage, venue, event_authority;
+[venue: Read, safety: Read, storage: Create]; []);
+context!(ConfigureRecoveryStorage, venue, event_authority;
+[venue: Read, safety: Read, storage: Write]; []);
+
+impl ScopedContext for FundRecoveryAllocation {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.account(&mut self.storage, Access::Read)?;
+        let state = self.storage.model();
+        let allocation = state.expected(state.generation, state.next_allocation)
+            .map_err(|_| crate::ClearingError::Resolution)?;
+        let account = &mut self.allocation.account().clone();
+        use financial_core::clearing::scalable::recovery_storage::Allocation;
+        use crate::state::accounts::*;
+        match allocation {
+            Allocation::Prepared => scope.created_raw::<PreparedSettlement>(account)?,
+            Allocation::Rates => scope.created_raw::<SettlementRates>(account)?,
+            Allocation::Plan => scope.created_raw::<SettlementPlan>(account)?,
+            Allocation::FrozenRows { .. } => scope.created_raw::<FrozenMarginPage>(account)?,
+            Allocation::Limbs { .. } => scope.created_raw::<SettlementLimbPage>(account)?,
+        }
+        scope.account(&mut self.receipt, Access::Create)
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}
+impl ScopedContext for VerifyRecoveryAllocation {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.account(&mut self.storage, Access::Write)?;
+        let account = &mut self.allocation.account().clone();
+        let discriminator = account.try_borrow()?.get(..8).ok_or(crate::ClearingError::Resolution)?.to_vec();
+        use crate::state::accounts::*;
+        if discriminator == PreparedSettlement::DISCRIMINATOR { scope.raw::<PreparedSettlement>(account, Access::Read)?; }
+        else if discriminator == SettlementRates::DISCRIMINATOR { scope.raw::<SettlementRates>(account, Access::Read)?; }
+        else if discriminator == SettlementPlan::DISCRIMINATOR { scope.raw::<SettlementPlan>(account, Access::Read)?; }
+        else if discriminator == FrozenMarginPage::DISCRIMINATOR { scope.raw::<FrozenMarginPage>(account, Access::Read)?; }
+        else if discriminator == SettlementLimbPage::DISCRIMINATOR { scope.raw::<SettlementLimbPage>(account, Access::Read)?; }
+        else { return Err(crate::ClearingError::Resolution.into()); }
+        scope.account(&mut self.receipt, Access::Read)
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}
+
 context!(AccountCash, venue, event_authority;
 [
     venue: Read,

@@ -19,6 +19,7 @@ pub mod normalized;
 pub mod order_work;
 pub mod pages;
 pub mod rate_work;
+pub mod recovery_storage;
 pub mod snapshot;
 pub mod wide;
 

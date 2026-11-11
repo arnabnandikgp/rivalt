@@ -2,6 +2,41 @@ use super::*;
 use anchor_lang::AccountDeserialize;
 use anchor_lang::Event;
 
+#[test]
+fn manual_storage_creation_requires_system_empty_then_exact_owned_new_layout() {
+    use crate::test_support::TestAccount;
+    let key = Address::new_unique();
+    let mut empty = TestAccount::new(key, anchor_lang::system_program::ID, &[], true, false);
+    empty.view().set_lamports(37); // a prior donation must not block creation
+    let mut bytes = vec![0; 8 + PreparedSettlement::INIT_SPACE];
+    bytes[..8].copy_from_slice(PreparedSettlement::DISCRIMINATOR);
+    bytes[8..10].copy_from_slice(&9u16.to_le_bytes());
+    for (owner, size, schema, revision) in [
+        (crate::ID, bytes.len(), 9, 0),
+        (anchor_lang::system_program::ID, bytes.len(), 9, 0),
+        (crate::ID, bytes.len() - 1, 9, 0),
+        (crate::ID, bytes.len(), 8, 0),
+        (crate::ID, bytes.len(), 9, 1),
+    ] {
+        let mut scope = Scope::new();
+        scope.created_raw::<PreparedSettlement>(&mut empty.view()).unwrap();
+        let mut candidate = bytes[..size].to_vec();
+        candidate[8..10].copy_from_slice(&(schema as u16).to_le_bytes());
+        candidate[10..18].copy_from_slice(&(revision as u64).to_le_bytes());
+        let mut initialized = TestAccount::new(key, owner, &candidate, true, false);
+        let mut account = initialized.view();
+        scope.cursor = Some(0);
+        let result = scope.created_raw::<PreparedSettlement>(&mut account);
+        if owner == crate::ID && size == bytes.len() && schema == 9 && revision == 0 {
+            result.unwrap();
+            assert_eq!(&account.try_borrow().unwrap()[10..18], &1u64.to_le_bytes());
+            assert_eq!(owned(&scope.finish(Address::default(), [0; 32], [0; 8], 0, 1).unwrap()).writes[0].kind, 17);
+        } else { assert!(result.is_err()); }
+    }
+    let mut already_owned = TestAccount::new(key, crate::ID, &bytes, true, false);
+    assert!(Scope::new().created_raw::<PreparedSettlement>(&mut already_owned.view()).is_err());
+}
+
 fn with_margin(
     value: MarginAccount,
     writable: bool,

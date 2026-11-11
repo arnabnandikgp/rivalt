@@ -344,3 +344,23 @@ pub(crate) use account_safety::settlement::__client_accounts_completionsourceide
 #[cfg(feature = "cpi")]
 pub(crate) use account_safety::settlement::__cpi_accounts_completionsourceidentity;
 pub use account_safety::settlement::CompletionSourceIdentity;
+
+pub use account_membership::InitializeRecoveryStorage;
+pub(crate) use account_membership::__client_accounts_initializerecoverystorage;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_initializerecoverystorage;
+
+pub use account_membership::ConfigureRecoveryStorage;
+pub(crate) use account_membership::__client_accounts_configurerecoverystorage;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_configurerecoverystorage;
+
+pub use account_membership::FundRecoveryAllocation;
+pub(crate) use account_membership::__client_accounts_fundrecoveryallocation;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_fundrecoveryallocation;
+
+pub use account_membership::VerifyRecoveryAllocation;
+pub(crate) use account_membership::__client_accounts_verifyrecoveryallocation;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_verifyrecoveryallocation;

@@ -62,6 +62,21 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 #[program]
 pub mod clearing {
     use super::*;
+    pub fn initialize_recovery_storage(ctx: &mut Context<InitializeRecoveryStorage>) -> Result<()> {
+        scoped_history::run(ctx, [106, 158, 29, 233, 151, 19, 14, 179], false, |ctx, _events| account_membership::provision::initialize(ctx))
+    }
+    pub fn begin_recovery_provision(ctx: &mut Context<ConfigureRecoveryStorage>, capacity: u64, revision: u64) -> Result<()> {
+        scoped_history::run(ctx, [135, 74, 63, 142, 165, 222, 140, 251], false, |ctx, _events| account_membership::provision::begin(ctx, capacity, revision))
+    }
+    pub fn cancel_recovery_provision(ctx: &mut Context<ConfigureRecoveryStorage>, generation: u64, revision: u64) -> Result<()> {
+        scoped_history::run(ctx, [16, 233, 73, 117, 122, 173, 100, 221], false, |ctx, _events| account_membership::provision::cancel(ctx, generation, revision))
+    }
+    pub fn fund_recovery_allocation(ctx: &mut Context<FundRecoveryAllocation>, kind: u8, register: u32, page: u64, generation: u64, ordinal: u64) -> Result<()> {
+        scoped_history::run(ctx, [244, 52, 71, 227, 190, 76, 39, 38], false, |ctx, _events| account_membership::provision::fund(ctx, kind, register, page, generation, ordinal))
+    }
+    pub fn verify_recovery_allocation(ctx: &mut Context<VerifyRecoveryAllocation>, generation: u64, ordinal: u64, revision: u64) -> Result<()> {
+        scoped_history::run(ctx, [204, 213, 63, 59, 88, 246, 243, 60], false, |ctx, _events| account_membership::provision::verify(ctx, generation, ordinal, revision))
+    }
     pub fn initialize_prepared_settlement(
         ctx: &mut Context<InitializePreparedSettlement>,
         epoch: u64,

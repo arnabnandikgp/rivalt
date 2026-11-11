@@ -44,6 +44,8 @@ fn exact_contract_sizes_and_roundtrips() {
     wire(ResolutionPage::default(), 3408);
     wire(Resolution::default(), 3652);
     wire(ResolutionWork::default(), 7926);
+    wire(RecoveryStorage::default(), 99);
+    wire(StorageFunding::default(), 123);
 }
 
 #[test]

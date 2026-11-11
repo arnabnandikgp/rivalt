@@ -5,6 +5,43 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D100 — pre-funded reusable recovery workspace (12 November 2026)
+
+P55A2 implements D93's requirement that recovery storage be funded before financial
+admission. Use one canonical reusable workspace per venue, with a bounded proof
+over every required physical allocation. Capacity depends on the Financial count,
+not the highest stable member ID or Registered-only population. The schedule covers
+all frozen rows, exact-width arithmetic registers and conserving graph/order work.
+The program must authenticate actual program-owned, rent-exempt accounts and their
+immutable payer receipts; a keeper's claimed capacity or a lamport balance alone
+cannot authorize a funded root.
+
+The venue authority starts/cancels capacity growth. Anyone may fund and verify its
+next required allocation. Incomplete growth admits no additional capacity; an
+already completed smaller capacity remains usable. Each proof has a monotone
+generation and exact cursor. Cancellation retains allocated accounts and payer
+records. A freeze locks the workspace to its resolution epoch, preventing growth,
+reuse or refund while that work remains active. Completion must be authenticated
+by the financial controller before unlocking; no timeout or admin assertion may
+release it. P55A2 must connect these fences to the complete default/recovery path
+before membership activation can use the capacity.
+
+This deliberately supersedes D97/D99's **epoch-specific scratch allocation** in the
+successor profile. Scratch PDA seeds omit epoch; payloads retain epoch/attempt and
+monotone scoped revisions. Reinitialization may discard only completed old-epoch
+scratch, never current results or applied financial effects. There is no in-place
+conversion of the schema-8 deployment or automatic selection of the new artifact.
+
+Rent uses explicitly signed operator/payer SOL, never collateral, insurance or
+trading fees. A payer receipt records the actual top-up; pre-existing donations
+cannot block canonical account creation. The receipt creator owns the eventual
+allocation-rent refund (including voluntarily donated lamports), not a trader
+claim. Refund requires terminal venue authority and proof that no active/frozen
+work can reference the allocation. The central workspace lock replaces D93's
+proposed per-receipt locked epoch, avoiding a write to every receipt on freeze.
+The complete cost, lifecycle and signed acceptance gates remain open; storage
+provisioning alone does not expand membership or qualify financial trading.
+
 ## D99 — conserving plan ownership before financial application (11 November 2026)
 
 P54C extends D97's local frozen-source bridge with a separate, fully verified
