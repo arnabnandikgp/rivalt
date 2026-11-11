@@ -58,6 +58,16 @@ or account rent. Logical steps exclude host allocation/copying. The conservative
 O(N+W) storage and finite work bounds in the risk contract are checked in each case.
 The large word count explicitly leaves SBF affordability unproved.
 
+A follow-up compiler-boundary check found that pinned platform-tools v1.52 reports
+`target_arch="sbf"`, not `bpf`. The native-module guard now checks the actual
+`target_os="solana"`; Cargo explicitly recognizes that patched target OS for host
+cfg linting. Host `cargo check` and a pinned SBF `rustc --emit=metadata` pass.
+A positive metadata probe imports the word cursor; a negative probe fails with
+E0432 for all four native modules. Raw probes stay at
+`.local/scalable-settlement/p54a-target-guard/`. These are target metadata checks,
+not a complete SBF program build, stack/CU measurement or deployment. Exact clean
+guard pin remains to be recorded after commit; native kernel semantics are unchanged.
+
 Reproduce the scoped checks with `cargo build --locked -p financial-core --bin scalable-wide-driver --bin scalable-settlement-driver`,
 `python3 tests/financial/test_scalable_wide.py`,
 `python3 tests/financial/test_scalable_settlement.py` and

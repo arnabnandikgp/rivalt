@@ -8,11 +8,11 @@ pub mod wide;
 // Native complete-kernel orchestration. These vector-backed schedules supply
 // arithmetic/rounding evidence, not on-chain pages or activation. P54B/P54C bind
 // the bounded steps to authenticated storage before any runtime can use them.
-#[cfg(not(target_arch = "bpf"))]
+#[cfg(not(target_os = "solana"))]
 pub mod active;
-#[cfg(not(target_arch = "bpf"))]
+#[cfg(not(target_os = "solana"))]
 pub mod number;
-#[cfg(not(target_arch = "bpf"))]
+#[cfg(not(target_os = "solana"))]
 pub mod rounding;
-#[cfg(not(target_arch = "bpf"))]
+#[cfg(not(target_os = "solana"))]
 pub mod settlement;

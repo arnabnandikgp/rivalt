@@ -215,6 +215,14 @@ Open, endurance Deferred, and P58's other economic decision gates remain separat
 
 P54A starts on `implementation/p54a-scalable-settlement` above ready #77 tip
 `c7fdfb9`. D96 and the risk contract specify the bounded logical-register cursor.
+The pinned platform-tools compiler reports `target_arch="sbf"`, so the initial
+`bpf`-architecture exclusion was insufficient. The follow-up guard uses the actual
+`target_os="solana"`, with a targeted host cfg declaration. Host checking and actual
+SBF-target metadata probes pass: the word cursor remains available and all four
+native orchestration modules are absent. This is a compiler-boundary correction,
+not a program build/deployment or changed financial result. Exact guard pin follows
+its clean verification; the native acceptance below remains at its original pin.
+
 The complete native kernel now checks count-derived aggregate conservation, exact
 rate/greatestness equations, all insurance-clipping evaluations and deterministic
 conserving rounding. Hierarchical active arcs and generation marks replace fixed
