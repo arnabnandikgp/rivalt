@@ -371,3 +371,30 @@ fn successor_schema_is_kind_bound_and_raw_page_writes_advance_once() {
         .raw::<MemberPage>(&mut view, Access::Read)
         .is_err());
 }
+
+#[test]
+fn rate_work_creation_and_read_use_the_successor_schema_mapping() {
+    let kind = <SettlementRates as Revisioned>::KIND;
+    let key = Address::new_unique();
+    let mut scope = Scope::new();
+    assert_eq!(scope.visit(key, kind, 0, 0, Access::Create).unwrap(), 0);
+    scope.cursor = Some(0);
+    assert_eq!(
+        scope
+            .visit(key, kind, SETTLEMENT_SCHEMA, 0, Access::Create)
+            .unwrap(),
+        1
+    );
+    let mut read = Scope::new();
+    assert_eq!(
+        read.visit(key, kind, SETTLEMENT_SCHEMA, 1, Access::Read)
+            .unwrap(),
+        1
+    );
+    assert!(Scope::new()
+        .visit(key, kind, SCHEMA_VERSION, 1, Access::Read)
+        .is_err());
+    assert!(Scope::new()
+        .visit(key, u8::MAX, 0, 0, Access::Create)
+        .is_err());
+}

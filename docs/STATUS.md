@@ -322,7 +322,12 @@ eight scope tests and two page-plan tests. The linked development SBF has no sta
 diagnostics and the literal ABI extension passes. These are not signed rate
 acceptance. Next exact action: pin this candidate, execute actual signed
 rate/clipping/recovery acceptance, and compare all observed prefixes with the
-independent rational reference. No P54B PR or runtime promotion is claimed.
+independent rational reference. The first signed rate run at `7ab291f` / SBF
+`60f7ec8` reached rate initialization and exposed a duplicate scoped-history
+allowlist still ending at kind 21; creation rejected atomically with Profile.
+The fix makes kind validation use its single schema mapping and adds a creation/
+read regression for kind 22. The failed run remains retained, not acceptance.
+No P54B PR or runtime promotion is claimed.
 
 ## Integrated quantity work
 

@@ -95,6 +95,7 @@ impl Scope {
         revision: u64,
         access: Access,
     ) -> Result<u64> {
+        let expected_schema = schema_for_kind(kind)?;
         if let Some(cursor) = self.cursor {
             let entry = self.entries.get(cursor).ok_or(ClearingError::Profile)?;
             require!(
@@ -102,7 +103,7 @@ impl Scope {
                     && entry.kind == kind
                     && entry.access == access
                     && entry.revision == revision
-                    && schema == schema_for_kind(kind)?,
+                    && schema == expected_schema,
                 ClearingError::Profile
             );
             self.cursor = Some(cursor + 1);
@@ -114,10 +115,7 @@ impl Scope {
                     .ok_or_else(|| ProgramError::from(ClearingError::Arithmetic))
             }
         } else {
-            require!(
-                self.entries.len() < MAX_ENTITIES && kind <= 21,
-                ClearingError::Profile
-            );
+            require!(self.entries.len() < MAX_ENTITIES, ClearingError::Profile);
             require!(
                 !self.entries.iter().any(|entry| entry.account == account),
                 ClearingError::Alias
@@ -126,7 +124,7 @@ impl Scope {
                 if access == Access::Create {
                     schema == 0 && revision == 0
                 } else {
-                    schema == schema_for_kind(kind)? && revision > 0
+                    schema == expected_schema && revision > 0
                 },
                 ClearingError::Profile
             );
