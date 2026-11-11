@@ -103,7 +103,8 @@ update this table and STATUS rather than silently combining unrelated work.
 | P54C | On-chain rounding, application and recovery | P54B |
 | P55A1 | u64 financial identity and authenticated index-update foundation | P51B identity contract, P54C safety path |
 | P55A2 | On-chain membership, recovery storage and safe account lifecycle | P55A1 |
-| P55B | Scalable ordinary backing/payment progress | P55A2, G3 |
+| P55B1 | Checked maintained-backing arithmetic and complete mutation contract | P55A2, G3 |
+| P55B2 | On-chain maintained backing and signed payment-progress acceptance | P55B1 |
 | P56A | Account-scale services, SDK and UI | P52, P55A–P55B |
 | P56B | Larger-cohort acceptance and local activation | P53–P56A |
 | P57A | General maker admission/lifecycle | P56B |
@@ -310,6 +311,14 @@ Demonstrate progress under the declared workload and report invalidation/retry
 denominators. Verify transfers, withdrawals, fractional unpaid claims and TP/SL
 reservations independently. Any coordinated window required by the design must
 meet G3; a more permissive stamp check is not an acceptable shortcut.
+
+Refinement (12 November 2026): P55B1 first lands the actual checked Rust region/
+contribution/summary kernel, independently compared against explicit-corner Python
+arithmetic, plus the complete code mutation inventory. It changes no callable
+program authority or deployed layout. P55B2 wires every mutation, lifecycle and
+source/terms fence, then owns the original signed RPC/WS/PostgreSQL concurrency,
+rollback, resource and liveness acceptance above. P55B is complete only after both;
+a passing native kernel cannot authorize a payout.
 
 ### P56A — account-scale clients and services
 
