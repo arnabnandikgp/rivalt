@@ -312,7 +312,12 @@ clean `0ff7c53` passes 642 independent division cases (including three corrected
 estimates), four invalid domains, its codec test and 1,440 normalized regressions.
 Pinned SBF metadata/format/policy checks pass. No new on-chain consumer or linked
 program is inferred. Next exact action: implement the authenticated complete-rate
-schedule and proposal/reset handlers without exposing Apply.
+schedule and proposal/reset handlers without exposing Apply. The complete bounded
+rate schedule and insurance-round controller are now implemented in source.
+Development checks pass 1,185 independent persisted evaluations (including every
+row prefix), 74 hostile proposals and three checkpoint/order/clipping tests.
+These are native results, not new signed program acceptance. The public proposal,
+normalization and recovery handlers remain the exact next action.
 
 ## Integrated quantity work
 

@@ -175,6 +175,8 @@ Encodings use little-endian integers and zero reserved/unused opcode bytes:
 | Comparison | 40 | Width, two IDs, remaining high-to-low words and pending/less/equal/greater result. Check range/completion consistency; equal is terminal only after all words. |
 | Normalized magnitude | 192 | Trusted allocation capacity and input used lengths; arithmetic checkpoint and output normalization scan. Source words above used length are virtual zero, never fetched from dirty scratch tails. Output length becomes available only after bounded normalization completes. |
 | Atom division | 384 | Normalized numerator/divisor, two private scratch IDs, exact prefix/quotient/correction count, nested normalized-arithmetic/comparison checkpoints. Quotient is derived on chain, bounded below 2^58, corrected at most twice, and exposed only with a verified remainder strictly below the divisor. |
+| Complete rate evaluation | 960 | Authenticated common denominator, proposed numerator lengths/factor, complete claim totals and current insurance budgets; exact row ordinal, incoming sums, strict slopes, residual/loss identities and derived whole-atom insurance use. Nested arithmetic/comparison/division work follows a program-owned named schedule. |
+| Insurance rounds | 64 | Original and current budget pairs, exact spent atoms, clipped-market mask and completed evaluation count. Each market clips at most once; at most three complete evaluations, ending with integral use. Invalid attempts consume no evaluation. |
 | Cohort denominator | 320 | Frozen count, processed ordinal, last stable ID, used common length, alternating common register and nested LCM checkpoint. Check stage/operand bindings and expose the denominator only after every row. |
 | Membership | 544 | Frozen count, path depth/stage, page mask/count and fifteen radix traversal frames. Check complete subtree counts, canonical child path, processed ordinal and terminal replay. Program-owned nodes/pages and a frozen membership epoch are separate required authority. |
 | Valuation totals | 288 | Frozen count/custody/pool/insurance/fee/gross-OI bindings; processed ordinal/last ID; cash, signed quantities and gross totals; separate unsigned positive/negative claim totals. Check complete conservation before accepting the final row. |
@@ -243,8 +245,18 @@ signed chain transition. The bounded membership traversal and canonical account 
 D97 now implements source/root binding and public valuation/denominator control
 against the existing actual frozen cohort. The exact bridge, layouts and authority
 limits are in [accounts](accounts.md#prepared-frozen-verification-p54b-inactive-financial-paths).
-Rate/proposal reset, bounded normalization and actual signed resource acceptance
-remain unfinished. Current schema-8 financial accounts, selected binaries and
+The bounded `rate_work::RateWork` schedule now recomputes both rate equations,
+every row's incoming debt payments, strict right slopes/greatestness, market
+residual/creditor-loss equality and exact whole-atom insurance floors. A row uses
+only its own whole-cash collection plus its capped opposite-market recovery;
+it cannot consume sibling cash or exceed its debt. `InsuranceRounds` preserves
+original reserves across rejected proposals and permits each market's fractional
+budget to clip once. These primitives do not authenticate uploaded numerators:
+the owning handler must verify normalized lengths, frozen row order and current
+attempt, then advance rounds only from a complete `RateWork::result()`.
+Per-root final cash and deterministic atom attribution remain P54C work.
+Public rate/proposal/reset and their actual signed resource acceptance remain
+unfinished. Current schema-8 financial accounts, selected binaries and
 enabled capacity are unchanged. This is not acceptance of on-chain settlement.
 
 ### Frozen work, completion and adversarial proposals

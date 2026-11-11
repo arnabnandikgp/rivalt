@@ -19,10 +19,11 @@ cargo build --locked -p financial-core --bin clearing-wide-driver --bin clearing
 python3 tests/financial/test_clearing_wide.py
 python3 tests/financial/test_clearing_rows.py
 python3 tests/financial/test_clearing_atoms.py
-cargo build --locked -p financial-core --bin scalable-wide-driver --bin scalable-settlement-driver --bin scalable-snapshot-driver
+cargo build --locked -p financial-core --bin scalable-wide-driver --bin scalable-settlement-driver --bin scalable-snapshot-driver --bin scalable-rate-driver
 python3 tests/financial/test_scalable_wide.py
 python3 tests/financial/test_normalized_pages.py
 python3 tests/financial/test_paged_atom_division.py
+python3 tests/financial/test_paged_rates.py
 python3 tests/financial/test_cohort_denominator.py
 python3 tests/financial/test_scalable_snapshot.py
 python3 tests/financial/test_scalable_settlement.py

@@ -6,9 +6,11 @@ pub mod cohort_denominator;
 pub mod collection;
 pub mod comparison;
 pub mod denominator;
+pub mod insurance_rounds;
 pub mod membership;
 pub mod normalized;
 pub mod pages;
+pub mod rate_work;
 pub mod snapshot;
 pub mod wide;
 
