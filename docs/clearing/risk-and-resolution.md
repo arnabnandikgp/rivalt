@@ -927,3 +927,40 @@ stages allow one/two rows without crossing a two-row storage page. Default heap 
 32 KiB; bounded wide scratch must not be copied onto the 4,096-byte SBF stack.
 See [validation](../operations/validation.md) for measured full-context limits and
 the distinction between actual financial lifecycles and resource-only scratch cases.
+
+### Exclusive paged application (P54C, awaiting signed qualification)
+
+The source now exposes five local-qualified instructions: `adopt_settlement_plan`,
+`apply_settlement_margin`, `complete_settlement_application`,
+`reconcile_settlement_margin` and `complete_settlement_plan`. Their presence in the
+IDL is not acceptance of the new deployment. Default/devnet remain disabled.
+The selected runtime is unchanged until signed payout/recovery/SQL qualification.
+
+Adoption requires the complete audited graph and exact original source revision.
+It atomically moves the legacy source to PagedApply (14) and records its next
+scoped revision in the child plan. The source then stays read-only until final
+completion. Its original totals are not mixed with modified roots. Old solver,
+proposal and graph writers reject the adopted stage; continuation has no timeout
+or fallback to a competing plan.
+
+Plan stages 9/10/11/12 are Apply/Reconcile/Reconciled/Complete. Apply consumes one
+canonical frozen ordinal, its fixed flow page and at most three read-only graph
+pages; the reverse capacities supply the three atom increments. It checks the
+actual original root and updates root, flow applied bit, plan prefix and both
+remaining market exposures atomically. Original cash remaining, applied cash and
+market movements are explicit; the persisted scan retains wide positive/negative
+claim totals. Both order and protection IDs remain monotone, while executable
+orders, reservations and delegates clear and generations/nonces advance once.
+
+Only `complete_settlement_application` may debit both markets' settlement and
+verified insurance expenditure, after all original and final conservation
+identities hold. Fees and unused insurance stay untouched. A separate full root
+reconciliation verifies every payout, cleared obligation and generation. Final
+completion checks the actual vault and populates the legacy Complete header,
+allowing the unchanged source-recovery and owner-resume procedure. None of this
+admits more than the existing 64 financial members; P55/P56 own that change.
+
+Financial events `SettlementMarginApplied` and `SettlementPlanProgress` use u64
+ordinals/IDs and explicit plan stages. Indexer support and signed acceptance must
+land before this candidate is selected. The controller's development checks do
+not establish token exits or PostgreSQL replay.

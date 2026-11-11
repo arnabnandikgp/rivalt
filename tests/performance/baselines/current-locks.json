@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "88d2f6391821912cd7b16643c978ee047a7479428544a66c1439c0dee56ec4bb",
+    "clearing": "764d1fc20056d2df901617f574bd5ebf43f334a2e1abba70b732ccac78b47e48",
     "maker_a": "93bd2c26308933be8889930744f5d893d4ed5c13bcb837ffc49156cd63dbd68f",
     "maker_b": "0299ea05e89c51298e4c0acf524bac1e432bb31f287e90da65f30a8deabff25b"
   },
@@ -111,6 +111,31 @@
     },
     {
       "program": "clearing",
+      "name": "adopt_settlement_plan",
+      "write": [
+        "resolution",
+        "plan"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "rates",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "advance_account_resolution",
       "write": [
         "venue",
@@ -173,6 +198,34 @@
       "signers": [
         "fee_authority"
       ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "apply_settlement_margin",
+      "write": [
+        "btc",
+        "eth",
+        "plan",
+        "margin",
+        "flow_page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "rates",
+        "page",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
       "optional": []
     },
     {
@@ -374,6 +427,56 @@
         "eth_ledger",
         "certificate"
       ]
+    },
+    {
+      "program": "clearing",
+      "name": "complete_settlement_application",
+      "write": [
+        "btc_ledger",
+        "eth_ledger",
+        "plan"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "vault",
+        "prepared",
+        "rates",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "complete_settlement_plan",
+      "write": [
+        "safety",
+        "resolution",
+        "plan"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "registry",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "rates",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
     },
     {
       "program": "clearing",
@@ -1391,6 +1494,34 @@
       "signers": [
         "caller"
       ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "reconcile_settlement_margin",
+      "write": [
+        "plan"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "rates",
+        "page",
+        "margin",
+        "flow_page",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
       "optional": []
     },
     {

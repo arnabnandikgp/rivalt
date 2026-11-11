@@ -34,3 +34,5 @@ export * from "./liquidityMakerChanged.js";
 export * from "./liquidityRegistryChanged.js";
 export * from "./liquidityRouteExecuted.js";
 export * from "./retiredReserveWithdrawn.js";
+export * from "./settlementMarginApplied.js";
+export * from "./settlementPlanProgress.js";

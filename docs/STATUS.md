@@ -651,11 +651,15 @@ isolated/cross cleanup, monotone order/protection IDs and exhausted counters. SB
 metadata compilation passes. This newer helper work has no public financial entrypoint;
 the signed construction result above remains separate.
 
-Exclusive adoption and public Apply/Reconcile, recovery, token exits and fresh PostgreSQL replay
-remain. No financial writer, selected artifact or admitted population changes.
+The working P54C controller now exposes exclusive adoption, one-root Apply,
+complete-cohort pool/insurance distribution and full Reconcile/Complete. Development
+native checks cover the controller and protected source binding; no signed financial
+acceptance is claimed yet. Indexer projection/reconciliation, recovery, token exits
+and fresh PostgreSQL replay remain. The selected artifact and admitted population
+are unchanged.
 No P54C PR is opened and no user decision/access blocker is known. Exact next
-action: implement exclusive adoption and
-exactly-once application, then qualify recovery and SQL/token exits. P15B/P16B stay Open and
+action: qualify the application binary and wire exact paged-plan indexer
+reconciliation, then run signed recovery and SQL/token exits. P15B/P16B stay Open and
 24-hour endurance Deferred.
 
 ## Deployment and operational limits

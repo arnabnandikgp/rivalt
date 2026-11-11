@@ -896,3 +896,94 @@ context!(ContinueSettlementPlan, source.venue, event_authority;
     plan: Write,
 ];
 []);
+
+context!(AdoptSettlementPlan, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Write,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);
+
+context!(ApplySettlementMargin, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Write,
+    source.eth: Write,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+    page: Read,
+    margin: Write,
+    flow_page: Write,
+];
+[]);
+
+context!(CompleteSettlementApplication, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Write,
+    source.eth_ledger: Write,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);
+
+context!(ReconcileSettlementMargin, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+    page: Read,
+    margin: Read,
+    flow_page: Read,
+];
+[]);
+
+context!(CompleteSettlementPlan, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Write,
+    source.registry: Read,
+    source.resolution: Write,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);

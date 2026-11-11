@@ -1,4 +1,4 @@
-"""Literal P54 verification-only ABI additions; never recapture old ABI baselines."""
+"""Literal P54 paged settlement ABI additions; never recapture old ABI baselines."""
 import hashlib
 from copy import deepcopy
 
@@ -33,8 +33,14 @@ TYPES = {
     'PreparationState': 'membership:u8[544] valuation:u8[288] denominator:u8[320]',
     'PreparedSettlement': PREFIX+'epoch:u64 source:pubkey source_revision:u64 registry_revision:u64 membership_epoch:u64 registry_hash:u8[32] count:u64 safety_epoch:u64 terms_epoch:u64 config_epochs:u64[2] prices:u64[2] funding:i128[2] allocated:u64 pools:u64[2] insurance:u64[2] fees:u64[2] gross:u64[2] stage:u8 index_initialized:u16 member_page_initialized:bool state:PreparationState bump:u8',
 }
+EVENTS = {
+    'SettlementPlanProgress': 'venue:pubkey slot:u64 epoch:u64 plan:pubkey stage:u8 cursor:u64 count:u64 adoption_revision:u64 remaining_cash:u64 applied_cash:u64 market_movements:i128[2] gross:u64[2] pools:u64[2] insurance:u64[2] insurance_spent:u64[2] fees:u64[2] ledger_versions:u64[2] liability_versions:u64[2] insurance_fee_remainders:u8[2] allocated:u64 actual_vault:u64 resolution_stage:u8 mode:u8 paused:bool safety_epoch:u64',
+    'SettlementMarginApplied': 'venue:pubkey slot:u64 epoch:u64 ordinal:u64 id:u64 member:pubkey cash_before:u64 claims:i128[2] lots:i64[2] flows:u64[2] state:MarginAccountSnapshot',
+}
+TYPES.update(EVENTS)
+
 ACCOUNTS = {'FrozenMarginPage','SettlementLimbPage','MemberPage','MemberIndexNode','PreparedSettlement','SettlementRates','SettlementPlan'}
-# Readonly source fields cannot become a hidden mutation of current finances.
+# Existing verification contexts stay readonly; Apply's exact writers are explicit.
 SOURCE = 'venue custody safety registry resolution btc eth btc_ledger eth_ledger vault'
 TAIL = 'event_authority program'
 INSTRUCTIONS = {
@@ -61,6 +67,17 @@ INSTRUCTIONS = {
     'reset_settlement_plan_order': (f'{SOURCE} prepared rates plan+ actor^ {TAIL}', 'epoch:u64 revision:u64 attempt:u64'),
     'continue_settlement_plan': (f'{SOURCE} prepared rates plan+ {TAIL}', 'epoch:u64 revision:u64 attempt:u64 steps:u16 revisions:u64[3]'),
 }
+def source_writes(*names):
+    return ' '.join(name+'+' if name in names else name for name in SOURCE.split())
+
+INSTRUCTIONS.update({
+    'adopt_settlement_plan': (f'{source_writes("resolution")} prepared rates plan+ {TAIL}', 'epoch:u64 revision:u64'),
+    'apply_settlement_margin': (f'{source_writes("btc", "eth")} prepared rates plan+ page margin+ flow_page+ {TAIL}', 'epoch:u64 revision:u64 ordinal:u64 revisions:u64[3]'),
+    'complete_settlement_application': (f'{source_writes("btc_ledger", "eth_ledger")} prepared rates plan+ {TAIL}', 'epoch:u64 revision:u64'),
+    'reconcile_settlement_margin': (f'{SOURCE} prepared rates plan+ page margin flow_page {TAIL}', 'epoch:u64 revision:u64 ordinal:u64'),
+    'complete_settlement_plan': (f'{source_writes("safety", "resolution")} prepared rates plan+ {TAIL}', 'epoch:u64 revision:u64'),
+})
+
 DOMAINS = ['account:MemberIndexNode','account:MemberPage','account:PreparedSettlement',
            'account:SettlementLimbPage','frozen-margin-page','member-index',
            'member-page','prepared-settlement','resolution-limbs','settlement-rates','account:SettlementRates',
@@ -85,6 +102,9 @@ def strip_additions(idl):
         assert observed == expected, (name, observed, expected)
         assert clean(item['args']) == fields(arguments), name
         assert not item.get('returns'), name
-    for category, names in [('instructions',INSTRUCTIONS),('accounts',ACCOUNTS),('types',TYPES)]:
+    events = {item['name']: item for item in idl['events']}
+    for name in EVENTS:
+        assert events[name] == {'name':name,'discriminator':list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])}, name
+    for category, names in [('instructions',INSTRUCTIONS),('accounts',ACCOUNTS),('types',TYPES),('events',EVENTS)]:
         result[category]=[item for item in result[category] if item['name'] not in names]
     return result

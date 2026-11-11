@@ -585,3 +585,47 @@ pub struct AccountTransition {
     pub reads: Vec<crate::scoped_history::ScopedRead>,
     pub writes: Vec<crate::scoped_history::ScopedWrite>,
 }
+
+/// Exact financial prefix of the adopted paged plan, distinct from legacy work.
+#[event]
+pub struct SettlementPlanProgress {
+    pub venue: Address,
+    pub slot: u64,
+    pub epoch: u64,
+    pub plan: Address,
+    pub stage: u8,
+    pub cursor: u64,
+    pub count: u64,
+    pub adoption_revision: u64,
+    pub remaining_cash: u64,
+    pub applied_cash: u64,
+    pub market_movements: [i128; 2],
+    pub gross: [u64; 2],
+    pub pools: [u64; 2],
+    pub insurance: [u64; 2],
+    pub insurance_spent: [u64; 2],
+    pub fees: [u64; 2],
+    pub ledger_versions: [u64; 2],
+    pub liability_versions: [u64; 2],
+    pub insurance_fee_remainders: [u8; 2],
+    pub allocated: u64,
+    pub actual_vault: u64,
+    pub resolution_stage: u8,
+    pub mode: u8,
+    pub paused: bool,
+    pub safety_epoch: u64,
+}
+#[event]
+pub struct SettlementMarginApplied {
+    pub venue: Address,
+    pub slot: u64,
+    pub epoch: u64,
+    pub ordinal: u64,
+    pub id: u64,
+    pub member: Address,
+    pub cash_before: u64,
+    pub claims: [i128; 2],
+    pub lots: [i64; 2],
+    pub flows: [u64; 2],
+    pub state: MarginAccountSnapshot,
+}

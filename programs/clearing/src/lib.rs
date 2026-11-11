@@ -395,6 +395,83 @@ pub mod clearing {
             },
         )
     }
+    pub fn adopt_settlement_plan(
+        ctx: &mut Context<AdoptSettlementPlan>,
+        epoch: u64,
+        revision: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [84, 50, 146, 53, 66, 253, 189, 153],
+            false,
+            |ctx, events| account_safety::settlement::adopt_plan(ctx, events, epoch, revision),
+        )
+    }
+    pub fn apply_settlement_margin(
+        ctx: &mut Context<ApplySettlementMargin>,
+        epoch: u64,
+        revision: u64,
+        ordinal: u64,
+        revisions: [u64; 3],
+    ) -> Result<()> {
+        let pages = account_safety::settlement::settlement_application_pages(
+            &ctx.accounts.prepared,
+            &ctx.accounts.plan,
+        )?;
+        scoped_history::run_pages(
+            ctx,
+            [190, 16, 144, 204, 176, 176, 181, 193],
+            pages,
+            |ctx, events| {
+                account_safety::settlement::apply_plan_margin(
+                    ctx, events, epoch, revision, ordinal, revisions,
+                )
+            },
+        )
+    }
+    pub fn complete_settlement_application(
+        ctx: &mut Context<CompleteSettlementApplication>,
+        epoch: u64,
+        revision: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [10, 70, 22, 12, 253, 92, 57, 0],
+            false,
+            |ctx, events| {
+                account_safety::settlement::complete_application(ctx, events, epoch, revision)
+            },
+        )
+    }
+    pub fn reconcile_settlement_margin(
+        ctx: &mut Context<ReconcileSettlementMargin>,
+        epoch: u64,
+        revision: u64,
+        ordinal: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [99, 140, 60, 92, 22, 220, 254, 2],
+            false,
+            |ctx, events| {
+                account_safety::settlement::reconcile_plan_margin(
+                    ctx, events, epoch, revision, ordinal,
+                )
+            },
+        )
+    }
+    pub fn complete_settlement_plan(
+        ctx: &mut Context<CompleteSettlementPlan>,
+        epoch: u64,
+        revision: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [34, 107, 111, 142, 145, 94, 77, 189],
+            false,
+            |ctx, events| account_safety::settlement::complete_plan(ctx, events, epoch, revision),
+        )
+    }
     pub fn activate_liquidity(ctx: &mut Context<ActivateAccounts>) -> Result<()> {
         scoped_history::run(
             ctx,

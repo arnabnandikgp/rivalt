@@ -453,3 +453,67 @@ fn default_build_rejects_frozen_preparation_before_any_state_write() {
     crate::wire::write_discriminated(&header, &mut after).unwrap();
     assert_eq!(after, before);
 }
+
+#[test]
+#[cfg(feature = "liquidity-execution-qualification")]
+fn adopted_source_fences_legacy_and_authenticates_partial_exposure_and_final_buckets() {
+    let mut fixture = Fixture::new();
+    let header = fixture.header();
+    let plan = SettlementPlan {
+        adoption_revision: 11,
+        insurance_spent: [1, 2],
+        ..Default::default()
+    };
+    assert!(fixture
+        .source()
+        .adopted(&header, &plan, [4, 2], false)
+        .is_err());
+    fixture.resolution.stage = PAGED_APPLY;
+    fixture.resolution.revision += 1;
+    assert!(fixture.source().matches(&header).is_err());
+    fixture
+        .source()
+        .adopted(&header, &plan, [4, 2], false)
+        .unwrap();
+    fixture.markets[0].gross_lots = 2;
+    assert!(fixture
+        .source()
+        .adopted(&header, &plan, [4, 2], false)
+        .is_err());
+    fixture
+        .source()
+        .adopted(&header, &plan, [2, 2], false)
+        .unwrap();
+    fixture.ledgers[0].insurance -= 1;
+    assert!(fixture
+        .source()
+        .adopted(&header, &plan, [2, 2], false)
+        .is_err());
+    fixture.ledgers[0].insurance += 1;
+    fixture.resolution.revision += 1;
+    assert!(fixture
+        .source()
+        .adopted(&header, &plan, [2, 2], false)
+        .is_err());
+    fixture.resolution.revision -= 1;
+    for market in 0..2 {
+        fixture.markets[market].gross_lots = 0;
+        fixture.ledgers[market].insurance -= plan.insurance_spent[market];
+        fixture.ledgers[market].settlement = 0;
+    }
+    fixture
+        .source()
+        .adopted(&header, &plan, [0; 2], true)
+        .unwrap();
+    fixture.ledgers[1].fees -= 1;
+    assert!(fixture
+        .source()
+        .adopted(&header, &plan, [0; 2], true)
+        .is_err());
+    fixture.ledgers[1].fees += 1;
+    fixture.custody.allocated_vault -= 1;
+    assert!(fixture
+        .source()
+        .adopted(&header, &plan, [0; 2], true)
+        .is_err());
+}

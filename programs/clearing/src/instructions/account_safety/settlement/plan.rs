@@ -635,3 +635,6 @@ pub fn continue_plan(
 mod tests;
 
 mod application;
+
+mod lifecycle;
+pub use lifecycle::*;

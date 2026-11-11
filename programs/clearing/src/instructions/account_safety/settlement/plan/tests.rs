@@ -9,7 +9,7 @@ use financial_core::{
 };
 use std::collections::BTreeMap;
 
-struct Words(BTreeMap<(u32, u64), u64>);
+pub(super) struct Words(BTreeMap<(u32, u64), u64>);
 impl LimbStorage for Words {
     fn read(&self, register: u32, limb: u64) -> financial_core::Result<u64> {
         Ok(*self.0.get(&(register, limb)).unwrap_or(&u64::MAX))
@@ -19,7 +19,7 @@ impl LimbStorage for Words {
         Ok(())
     }
 }
-struct Pages {
+pub(super) struct Pages {
     bytes: BTreeMap<(u32, u64), (Address, Vec<u8>)>,
 }
 impl Pages {
@@ -63,7 +63,7 @@ impl Pages {
         }
         pages
     }
-    fn execute<T>(
+    pub(super) fn execute<T>(
         &mut self,
         header: &PreparedSettlement,
         plan: &SettlementPlan,
@@ -91,7 +91,7 @@ impl Pages {
         }
         result
     }
-    fn words(&self) -> Words {
+    pub(super) fn words(&self) -> Words {
         let mut result = Words(BTreeMap::new());
         for ((register, index), (_, bytes)) in &self.bytes {
             for offset in 0..256 {
@@ -113,7 +113,7 @@ impl Pages {
 /// two equal creditors each own 1 BTC-claim atom. Rate is 1/2, each exact payout
 /// is 1/2 atom, and canonical stable-ID ordering awards the single atom to ID 1.
 /// Added roots have no claims/cash and must still appear exactly once per order.
-fn fixture(
+pub(super) fn fixture(
     count: u64,
 ) -> (
     PreparedSettlement,
@@ -234,7 +234,7 @@ fn fixture(
     let pages = Pages::new(&header, &rates, &words);
     (header, rates, plan, rows, pages)
 }
-fn round_trip(plan: &mut SettlementPlan) {
+pub(super) fn round_trip(plan: &mut SettlementPlan) {
     let mut bytes = Vec::new();
     crate::wire::write_discriminated(plan, &mut bytes).unwrap();
     assert_eq!(bytes.len(), 1181);
@@ -245,7 +245,7 @@ fn round_trip(plan: &mut SettlementPlan) {
     assert_eq!(8 + SettlementPlan::INIT_SPACE, 1181);
     *plan = SettlementPlan::try_deserialize(&mut bytes.as_slice()).unwrap();
 }
-fn advance(
+pub(super) fn advance(
     header: &PreparedSettlement,
     rates: &SettlementRates,
     plan: &mut SettlementPlan,
@@ -273,7 +273,7 @@ fn advance(
     work.save(header, rates, plan).unwrap();
     round_trip(plan);
 }
-fn accept(
+pub(super) fn accept(
     header: &PreparedSettlement,
     rates: &SettlementRates,
     plan: &mut SettlementPlan,
@@ -304,7 +304,7 @@ fn accept(
         )
     })
 }
-fn flows(
+pub(super) fn flows(
     header: &PreparedSettlement,
     rates: &SettlementRates,
     plan: &mut SettlementPlan,
@@ -325,7 +325,11 @@ fn flows(
     }
     assert_eq!(plan.stage, PLAN_ORDER_AWAIT);
 }
-fn begin_order(header: &PreparedSettlement, rates: &SettlementRates, plan: &mut SettlementPlan) {
+pub(super) fn begin_order(
+    header: &PreparedSettlement,
+    rates: &SettlementRates,
+    plan: &mut SettlementPlan,
+) {
     start_order(
         header,
         rates,
