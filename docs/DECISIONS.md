@@ -838,3 +838,32 @@ publication. Journal readonly comparison ignores only object-key order. Risk/sou
 default/devnet activation gates and external/deferred gates are unchanged. This
 records local qualification, not stack integration, independent review or funded
 deployment authority.
+
+
+## D103 — Bounded native descriptors and durable paged default services
+
+12 November 2026. P56A1 packages a production native page-descriptor helper using
+the same checked public checkpoint parsers as clearing. The service passes only
+three fixed-size authenticated RPC headers and an operation/optional ordinal,
+with a 32 KiB input ceiling, five-second process timeout and at most three canonical
+page descriptors returned. It invokes a fixed local binary verified against its
+build manifest; no shell command, test executable or Python financial oracle enters
+the production path. The helper supplies account metas, never signed authority,
+rates, graph edges or final balances. Clearing independently derives the required
+pages and verifies all arithmetic, membership and revision guards.
+
+This avoids a second hand-maintained decoder for nested arithmetic/graph cursors.
+Exact rate and complete-order proposals remain untrusted TypeScript calculations;
+independent financial expected values remain in tests. The controller reads bounded
+workspaces/pages, resumes actual committed stage/cursors, and uses the existing
+immutable-original queue. Unknown originals retain reservations and block new wire.
+Foreign incomplete proposals respect the existing 64-slot recovery rules; no new
+expiry proof or liveness timeout awards money. Frozen continuation does not require
+fresh live prices after valuation, but recovery retains the existing source hold.
+
+API/budget version 4 is explicitly distinct from on-chain schema 10/profile 6.
+Only the fixed candidate artifact binding opts into this controller; the selected
+runtime is unchanged until P56B qualification. P56A2 owns full wallet/discovery
+acceptance. No economics, on-chain ABI, larger-population admission or deployment
+promotion changes here. Acceptance remains pending until STATUS/validation record
+actual signed default, upload/Apply crash recovery and exact PostgreSQL replay.

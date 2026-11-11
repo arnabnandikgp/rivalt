@@ -2,7 +2,7 @@ import {readFileSync,statSync} from 'node:fs';
 import {address} from '@solana/kit';
 import {Keypair} from '@solana/web3.js';
 import {AccountRuntime} from './account-runtime.js';
-import {accountExecutionProfile} from './account-profile.js';
+import {accountExecutionProfile,accountDeploymentSelection} from './account-profile.js';
 
 const required=(name:string)=>{const value=process.env[name];if(!value)throw new Error(`Missing ${name}`);return value;};
 const role=required('RIVALT_ACCOUNT_ROLE'),marketText=['orders','settlement','risk'].includes(role)?undefined:required('RIVALT_MARKET_INDEX');
@@ -16,7 +16,7 @@ const cadence=process.env.RIVALT_FUNDING_INTERVAL_SECONDS??'2';if(!/^[2-5]$/.tes
 const signerPath=required('RIVALT_SIGNER_PATH'),stat=statSync(signerPath);
 if(!stat.isFile()||(stat.mode&0o077)!==0)throw new Error('Worker signer must be a private local file');
 const signer=await Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(signerPath,'utf8'))));
-const runtime=new AccountRuntime(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),required('RIVALT_RPC_URL'),profile);
+const runtime=new AccountRuntime(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),required('RIVALT_RPC_URL'),profile,accountDeploymentSelection());
 let lease:import('pg').PoolClient|undefined;
 let stopping=false,lastStatus='';for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>{stopping=true;});
 try{

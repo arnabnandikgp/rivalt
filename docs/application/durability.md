@@ -591,3 +591,37 @@ The candidate worker acceptance retains a real lost-ack original through SIGKILL
 and process restart, then completes the same proof epoch and reconciles fresh SQL
 replay. See validation for exact pins and scope. This does not qualify the still-
 gated full default worker or promote the selected deployment.
+
+
+## Paged default controller (P56A1 candidate)
+
+The explicit `account-scale-candidate` service binding recognizes only the accepted
+schema-10/profile-6 binary set. It does not reinterpret old databases or replace the
+selected runtime. `RIVALT_ACCOUNT_PROFILE=liquidity-execution-qualification` retains
+API/budget policy 4; `RIVALT_ACCOUNT_DEPLOYMENT=account-scale-candidate` selects the
+separate exact program binding for the producer and executor. All initialization,
+genesis, owner and executable hash checks remain mandatory.
+
+`account-default-worker.ts` proposes one bounded current transition after checking
+that no unresolved risk original owns the budget. The source, prepared, rates and
+plan headers share a coherent RPC fence. Canonical frozen/limb pages are provisioned
+before Financial admission; the worker initializes/reuses those allocations and
+never spends collateral for SOL rent. Rate and complete market-order proposals are
+untrusted. They are recomputed from fenced frozen rows on process restart and cached
+only by venue/epoch/prepared revision/insurance checkpoint. The program independently
+checks normalized uploads, greatest rates, exact remainder order and full membership.
+
+The native `rivalt-settlement-pages` helper returns only the next bounded page
+metas. Build it using `bash ops/build-settlement-helper.sh`; its local binary and
+SHA-256 manifest live in ignored `.local/settlement-helper/`. Input/output limits,
+exact schema/size, canonical page ordering and a five-second process deadline fail
+closed. A changed manifest or native error cannot declare financial progress.
+The helper is not needed for retail transactions and requires no signing key.
+
+Every successful producer step enters the existing durable queue before broadcast.
+A restarted producer rereads committed stages and cannot replace a pending original;
+an executor recovers the same signature/wire after a lost acknowledgement. Missing
+storage, foreign active proposals, unavailable input and failed preflight remain
+classified failures. No continuation can skip Apply or complete reconciliation.
+Selected-runtime automatic default and full UI qualification remain gated until
+the owning acceptance phases; candidate service qualification is recorded separately.

@@ -13,6 +13,7 @@ import {enqueueOperator} from './operator-enqueue.js';
 import {publicRequestId} from './quote-window.js';
 import type {LiquidityInputs} from './liquidity-inputs.js';
 import {boundedDispatch} from './dispatch.js';
+import {accountDeployment,type AccountDeployment} from './account-deployment.js';
 
 type OperatorRole='maker'|'funding'|'orders'|'settlement'|'risk';
 /** Local operator lamports only; never collateral, fees or market insurance. */
@@ -39,12 +40,14 @@ export class AccountExecution {
   readonly rpc:Rpc;
   readonly connection:Connection;
   readonly queue:Queue;
-  private readonly artifacts:sdk.LiquidityArtifactVerifier;
-  constructor(database:string,readonly runId:string,url:string,readonly profile:4=4) {
+  private readonly artifacts:sdk.ArtifactVerifier;
+  private readonly deployment;
+  constructor(database:string,readonly runId:string,url:string,readonly profile:4=4,readonly deploymentSelection:AccountDeployment='selected') {
     if(profile!==4)throw new Error('Unsupported account service profile');
     sdk.testRpcUrl(url,'solana:localnet');this.store=new LiquidityStore(database,runId);this.rpc=new Rpc(url);
     this.connection=new Connection(url,'confirmed');this.queue=new Queue(this.store,this.rpc,sdk.CLEARING_PROGRAM_ADDRESS,1);
-    this.artifacts=new sdk.LiquidityArtifactVerifier(this.rpc);
+    this.deployment=accountDeployment(deploymentSelection);
+    this.artifacts=new sdk.ArtifactVerifier(this.rpc,this.deployment.artifacts);
   }
   async open() {
     await this.store.migrate();await this.store.pool.query(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));
@@ -57,10 +60,10 @@ export class AccountExecution {
     // lag; fresh work uses AccountRuntime.discovery's reconciled publication.
     const {binding,state}=await this.store.snapshot();
     if(binding.program!==sdk.CLEARING_PROGRAM_ADDRESS||binding.profile!=='liquidity-execution-qualification'
-      ||binding.artifactSet!==sdk.LIQUIDITY_ARTIFACT_SET||state.venue?.profileVersion!==this.profile)
+      ||binding.artifactSet!==this.deployment.artifactSet||binding.schema!==this.deployment.schema||state.venue?.profileVersion!==this.deployment.programProfile)
       throw new Error('Account service deployment mismatch');
     if(await this.rpc.call('getGenesisHash')!==binding.genesis)throw new Error('Account service genesis mismatch');
-    const anchor=await this.rpc.call('getTransaction',[binding.anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:0}]);
+    const anchor=await this.rpc.call('getTransaction',[binding.anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     if(anchor?.meta?.err!==null||anchor.transaction?.signatures?.[0]!==binding.anchor||hash(anchor.transaction)!==binding.anchorHash)
       throw new Error('Account service initialization mismatch');
     await this.artifacts.verify(address(state.venue.authority));return binding;

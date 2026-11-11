@@ -105,8 +105,9 @@ update this table and STATUS rather than silently combining unrelated work.
 | P55A2 | On-chain membership, recovery storage and safe account lifecycle | P55A1 |
 | P55B1 | Checked maintained-backing arithmetic and complete mutation contract | P55A2, G3 |
 | P55B2 | On-chain maintained backing and signed payment-progress acceptance | P55B1 |
-| P56A | Account-scale services, SDK and UI | P52, P55A–P55B |
-| P56B | Larger-cohort acceptance and local activation | P53–P56A |
+| P56A1 | Durable paged default controller and explicit candidate service binding | P52, P55A–P55B |
+| P56A2 | Account discovery, SDK/API and wallet lifecycle integration | P56A1 |
+| P56B | Larger-cohort acceptance and local activation | P53–P56A2 |
 | P57A | General maker admission/lifecycle | P56B |
 | P57B | Larger maker discovery/routing/funding coverage | P57A, G4 |
 | P58A | Impact notional and scalable funding search | P53, P57B, G5 |
@@ -332,6 +333,16 @@ TP-SL/transfer/withdraw/retire flows; missing/mixed pages fail closed. Actual wo
 resume after crash/lost acknowledgement using the same persisted original. Fresh
 PostgreSQL replay and reload match account-level ownership. No pending original is
 silently migrated to a new deployment or decoder.
+
+Refinement (12 November 2026): P56A1 packages the bounded native page-descriptor
+transport, untrusted exact rate/order proposals and the durable default controller.
+It qualifies real upload/Apply process death and same-original recovery against the
+schema-10 candidate, with complete financial reconciliation. The helper suggests
+account metas only; clearing authenticates pages and verifies all financial effects.
+No test oracle or test executable is a production dependency. A fixed supported
+candidate binding is explicit and does not replace the selected runtime. P56A2 then
+owns coherent discovery, lifecycle API/builders and complete wallet/UI qualification.
+Both are required before P56B; neither activates a larger Financial population.
 
 ### P56B — larger-cohort qualification and activation
 

@@ -171,3 +171,21 @@ On macOS, finite `ops/current-runtime-smoke.sh` qualification runs hold a tempor
 no display awake and changes no persistent system settings. Host suspension can
 otherwise invalidate real freshness/timeout measurements; it is not repaired by
 extending oracle validity or relabelling a timed-out test as successful.
+
+
+### Candidate paged-default operator helper
+
+P56A1's explicit account-scale service candidate uses a bounded native descriptor
+helper; normal retail SDK calls do not need it. With the pinned Rust toolchain:
+
+```sh
+bash ops/build-settlement-helper.sh
+```
+
+The command builds `rivalt-settlement-pages` from locked workspace dependencies and
+writes the executable/hash/revision manifest under ignored `.local/settlement-helper/`.
+Rebuild after changing its checkpoint dependencies. This is descriptor transport,
+not a deployment or financial qualification. Select the same explicit
+`RIVALT_ACCOUNT_DEPLOYMENT=account-scale-candidate` on worker and executor only with
+its fixed schema-10 artifact/database binding. Default selection and runtime
+promotion remain unchanged; see [durability](../application/durability.md#paged-default-controller-p56a1-candidate).

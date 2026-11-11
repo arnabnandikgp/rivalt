@@ -78,5 +78,5 @@ it('does not publish a rate proposal when another continuation advances during p
     return result;
   }};
   await expect(readAccountRateProposal(rpc,test.venue,1n)).rejects.toThrow(/revision changed/);
-  await expect(readAccountRateProposal(test.rpc,test.venue,1n,4 as 5)).rejects.toThrow(/Unsupported/);
+  await expect(readAccountRateProposal(test.rpc,test.venue,1n,4 as 6)).rejects.toThrow(/Unsupported/);
 });

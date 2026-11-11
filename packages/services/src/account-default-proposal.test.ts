@@ -1,0 +1,29 @@
+import {expect,it} from 'vitest';
+import {proposeMarketOrder} from './account-default-proposal.js';
+import {decodeSettlementPages} from './settlement-pages.js';
+import {accountDeployment} from './account-deployment.js';
+import {accountDeploymentSelection} from './account-profile.js';
+it('orders literal fractions, stable u64 ties and a complete nonpositive tail',()=>{
+  // At 1/3 recovery: payouts 2/3, 5/3, 1/3 and 0. Stable IDs settle equal 2/3 remainders.
+  const rows=[{id:9007199254740994n,claims:[2_000_000_000n,0n]},
+    {id:9007199254740993n,claims:[5_000_000_000n,0n]},
+    {id:77n,claims:[1_000_000_000n,0n]},{id:3n,claims:[-8_000_000_000n,0n]}];
+  expect(proposeMarketOrder(rows,0,{numerator:1n,denominator:3n})).toEqual([1n,0n,2n,3n]);
+  expect(proposeMarketOrder(rows,1,{numerator:1n,denominator:1n})).toEqual([3n,2n,1n,0n]);
+  expect(()=>proposeMarketOrder([...rows,rows[0]],0,{numerator:1n,denominator:1n})).toThrow(/Duplicate/);
+});
+it('rejects duplicate, oversized, noncanonical or future helper responses',()=>{
+  const encode=(pages:any[],extra={})=>JSON.stringify({version:1,schema:10,pages,...extra});
+  const page={register:3,index:'9007199254740993',writable:false};
+  expect(decodeSettlementPages(encode([page]))).toEqual([{...page,index:9007199254740993n}]);
+  for(const value of [encode([page,page]),encode([page],{schema:11}),encode([{...page,index:'01'}]),
+    encode([{...page,index:String(2n**64n)}]),encode([{...page,register:71}]),encode([{...page,writable:1}]),
+    encode(Array(4).fill(page))])expect(()=>decodeSettlementPages(value)).toThrow();
+});
+it('keeps candidate artifacts explicit and separate from API budget version',()=>{
+  expect(accountDeployment('selected')).toMatchObject({schema:8,programProfile:4});
+  const candidate=accountDeployment(accountDeploymentSelection('account-scale-candidate'));
+  expect(candidate).toMatchObject({schema:10,programProfile:6,artifactSet:'p55b2-maintained-bc9f029'});
+  expect(candidate.artifacts.find(value=>value.name==='clearing')?.sha256).toBe('62523299a7f1629dc40e56cd99c6b858a74a247bc5eecca46debab0ec0ab65a9');
+  expect(()=>accountDeploymentSelection('anything')).toThrow();
+});

@@ -7,9 +7,10 @@ import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
 import {accountRiskSources,readAccountResolution} from './account-worker-state.js';
 
-/** Schema-9 valuation/adoption is driven by the signed operator harness until
- * P56A qualifies a durable automatic continuation. Never invoke removed schema-8
- * instructions or treat an unimplemented financial step as successful. */
+import {accountDefaultStep} from './account-default-worker.js';
+
+/** The selected baseline remains gated; the explicit schema-10 candidate alone
+ * enables the new controller pending P56A acceptance and P56B promotion. */
 export const CANONICAL_DEFAULT_AUTOMATION_READY=false;
 
 export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receiver?:Address):Promise<AccountWorkerOutcome> {
@@ -29,7 +30,13 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   if(snapshot.safetyState.mode===2) {
     if(header.stage===1)return await submit(`value:${header.epoch}`,sdk.getValueAccountResolutionInstruction({...common,epoch:header.epoch}),true)?
       {status:'queued',reason:'awaited-complete-cohort-valuation'}:{status:'blocked',reason:'closeout-sources-unavailable'};
-    if([2,14,15,16].includes(header.stage))return {status:'blocked',reason:'canonical-default-automation-awaiting-p56a'};
+    if([2,14,15,16].includes(header.stage)) {
+      if(runtime.deploymentSelection!=='account-scale-candidate')return {status:'blocked',reason:'default-candidate-binding-required'};
+      const step=await accountDefaultStep(runtime,key,continuation,common);
+      if(step.status==='blocked')return step;
+      return await submit(step.id,step.instruction,true)?{status:'queued',reason:step.reason}:
+        {status:'blocked',reason:'default-step-presently-unavailable'};
+    }
     return {status:'blocked',reason:'unsupported-frozen-stage'};
   }
   if(snapshot.safetyState.mode===3&&header.stage===11) {
