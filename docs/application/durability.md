@@ -518,5 +518,7 @@ frozen rows and final applied-flow records against the journal.
 The normal runtime executable allowlist remains P53B. The P54C candidate harness
 uses a separate fixed-hash ArtifactVerifier and actual LiquidityStore/PostgreSQL,
 finalized block fetch, scoped decoder and account reconciliation. It does not
-silently promote the new program through public runtime configuration. Signed
-payout/recovery/replay results remain pending in STATUS until observed.
+silently promote the new program through public runtime configuration. Clean
+`c6e08f9` passes partial-Apply/distributed/recovered reconciliation and byte-identical
+131-event fresh replay; [validation](../operations/validation.md#conserving-settlement-p54c)
+records the exact binary, actual token effects and remaining activation limits.

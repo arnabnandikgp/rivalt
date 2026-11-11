@@ -1,20 +1,91 @@
 # Validation and measured limits
 
-## Conserving flow and graph primitives (P54C in progress)
+## Conserving settlement (P54C)
 
-The application candidate from clean **`efa45951e01b9586469b48294de24d3f0f5fd02a`**
-links at **2,331,160 bytes**, SHA-256
-`c943fafd89ddd7688e693384acdc650b8284689f1c5822689c38c36998873af0`,
-with no oversized-stack diagnostic. Clean verifier `d6669ac` passes the 13 scoped
-native and 23 affected indexer tests. Its first signed run stops before default at
-a duplicate test-page allocation; this is a harness failure, not payout evidence. It is retained separately at
-`.local/scalable-settlement/p54c-efa4595/`. Development checks pass 13 scoped native
-settlement tests (including complete 3-/64-root application), typecheck, generated
-SDK, literal ABI and 13 wire-contract checks; those development test results are
-not a signed deployment. Clean `ca26fcfc817c0b005e5bab0800546c33849e7d2b` passes all five
-new financial entrypoints, nine-root payouts, seven actual token exits, sustained
-source recovery and fresh PostgreSQL replay (118 events / 146 reconciled accounts).
-Cross-creditor signed coverage is being added before final phase publication. The selected runtime remains unchanged.
+Clean SBF **`efa45951e01b9586469b48294de24d3f0f5fd02a`** links at
+**2,331,160 bytes**, SHA-256
+`c943fafd89ddd7688e693384acdc650b8284689f1c5822689c38c36998873af0`, with no
+oversized-stack diagnostic. It remains separately stored at
+`.local/scalable-settlement/p54c-efa4595/`; normal runtime selection remains P53B.
+Clean verifier **`c6e08f95e694cd70768830f4e45e5bd0b63cec87`** passes **1,405
+signed deployed RPC/WS outcomes**, including **68 intended atomic rejections**.
+The ten-root cohort has isolated/cross debtors and creditors, both markets,
+internal makers and a healthy receiver holding one atom. Signed positions and
+funding generate the frozen claims; independent Python Fraction/circulation
+expectations determine rates, flows, cash and exact terminal atom owners.
+
+All eleven new construction/application entrypoints execute. Complete market
+orders and 685 bounded construction continuations precede exclusive adoption.
+Stale revisions, omitted/repeated rows, bad order recovery, premature distribution,
+legacy Apply after adoption and terminal replay reject. A transaction with two
+identical Apply instructions rolls back both instructions and their financial
+bytes. Exactly-once cleanup preserves monotone order/protection IDs and frozen
+funding, invalidates execution generations/delegates, and clears obligations.
+
+Actual final cash is **9,500,000 atoms**; BTC/ETH insurance spends exactly
+**1,001,522 / 300,430 atoms**, matching the independent clipped solution. Retained
+fees, fee carry and unused insurance remain unchanged. All eight positive-cash
+roots withdraw one actual SPL atom, including the unrelated receiver and cross
+creditor. Early resume rejects; four fresh independent source samples over the
+unchanged recovery hold permit owner resume to Custody/source stage 12.
+
+PostgreSQL closes/reopens its writer at partial Apply, after market distribution
+and after recovery/token exits. Each checkpoint reconciles all **148 accounts /
+ten members** over actual finalized RPC. A fresh database refetches the chain and
+reproduces the complete state and **131 financial event bytes** exactly, with zero
+unresolved jobs. Final actual/allocated vault both equal **11,199,993 atoms** and
+surplus is zero. This uses the real store, decoder and reconciler with a fixed
+candidate artifact hash; it does not qualify a larger-population service daemon.
+Both isolated legacy/RC2 clients agree on **1,383 clearing instruction encodings /
+full metas, 75 accounts and 1,444 events**; maker A/B agree on 76/38 instructions
+and 80/40 events respectively.
+
+Successful financial instruction measurements on that ten-root run:
+
+| Transaction | Samples | Actual CU | Wire bytes | Loaded accounts |
+|---|---:|---:|---:|---:|
+| Adopt verified plan | 1 | 44,903 | 718 | 17 |
+| Apply one root | 10 | 82,205–84,277 | 882 | 21 |
+| Complete market distribution | 1 | 56,025 | 718 | 17 |
+| Reconcile one root | 10 | 50,507–51,547 | 825 | 20 |
+| Complete vault/cohort reconciliation | 1 | 44,310 | 718 | 17 |
+
+Those transactions use v0, 1,000,000 requested CU, zero priority price, a 5,000-
+lamport fee and the default heap; peak heap/stack usage is not measured. Successful
+construction peaks at **117,545 CU / 858 bytes / 20 accounts**. Its segment has
+768 outcomes (ten rejects), **48,211,282 CU / 3,850,000 fee lamports**. The segment
+from successful adoption through terminal reconciliation has 53 outcomes (30
+rejects), **2,354,476 CU / 265,000 fee lamports**. Total test storage occupies 75
+verification/plan accounts with **692,277,000 rent lamports**; the entire run,
+including setup, repeated fault cases and source/maker updates, uses **74,448,638
+CU / 7,700,000 fee lamports**. These are measured test costs, not an optimized
+production schedule, larger-cohort bound or G1 affordability acceptance.
+
+Clean `d6669ac` passes 13 scoped native controller/source tests (including complete
+3-/64-root application) and 23 affected indexer tests. Generated SDK, typecheck,
+literal retained/new ABI and 13 wire checks pass in development. Its first signed
+run failed before payout because setup had already allocated a legacy page; the
+fixture was corrected to reuse it. Clean `ca26fcf` then passed the nine-root
+payout/recovery/token path and 118-event fresh replay; the final pin above adds
+cross-creditor coverage. Raw captures remain local at
+`.local/scalable-settlement/runs/p54c-application-cross-creditor/` and the owned
+Surfpool/PostgreSQL processes stopped normally. Default/devnet remain disabled;
+P55/P56 still own live paged membership, larger-cohort activation and its resource
+acceptance. No external review, funded qualification or endurance is claimed.
+
+Reproduce using the exact candidate artifacts above and a new ignored run directory
+(the wrapper starts/stops its own Surfpool and PostgreSQL):
+
+```sh
+source ops/env.sh
+RIVALT_SETTLEMENT_PLAN=1 RIVALT_SETTLEMENT_APPLY=1 RIVALT_PG_PORT=15454 \
+  RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/scalable-settlement/p54c-efa4595 \
+  RIVALT_RUN_DIR=.local/scalable-settlement/runs/p54c-application-repeat \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+The following earlier pins retain distinct native/construction evidence; their
+historical scope statements do not describe the final application acceptance.
 
 
 Clean **`51b4a4fd8f5b7cf63790ea5fdaf8df779493e0b9`** passes 10,920 exact per-root flow/retained-cash/
@@ -62,7 +133,7 @@ The same clean source links a **2,168,808-byte** SBF with SHA-256
 `08eca403915e5c8a35b68b03d29ab92e2c13a585f754a4f3e6fa9f528a616ed5` and no unsafe
 stack-frame diagnostics. It is separately retained at
 `.local/scalable-settlement/p54c-c08aa49/`, not selected for ordinary runtime.
-Financial application remains pending; the construction-only execution below
+At that earlier pin financial application was pending; construction-only execution below
 does not qualify a larger financial population or select a deployment.
 
 The extended signed construction harness is prepared with explicit
@@ -93,8 +164,8 @@ affordability, a dense larger-cohort bound or measured peak heap/stack.
 Legacy and RC2 clients agree on **950 clearing instruction encodings/full metas,
 74 verification accounts and 984 events**; both maker clients also agree. Captures
 are local at `.local/scalable-settlement/runs/p54c-construction-2205ada/`; the owned
-Surfpool is stopped. Apply, financial recovery, token exits, PostgreSQL replay and
-full P54C acceptance remain unfinished. No new financial writer is enabled.
+Surfpool is stopped. That construction-only pin did not qualify Apply, recovery,
+token exits or PostgreSQL; the final application acceptance above supplies them.
 
 Clean **`cadabc2`** adds complete original/applied bookkeeping and root-mutation
 helpers. The same 774 independent graph cases now feed the actual persisted

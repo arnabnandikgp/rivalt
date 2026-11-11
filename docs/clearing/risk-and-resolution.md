@@ -4,8 +4,9 @@
 
 This section specifies the selected **native successor kernel**, not the
 implemented schema-8 default path documented below. P54B now qualifies authenticated
-bounded SBF valuation/rate continuations. P54C still owns conserving rounding and
-application; P56B owns expanded local activation. See the
+bounded SBF valuation/rate continuations. P54C qualifies conserving rounding and
+application through the existing-size source bridge; P56B owns expanded local
+activation. See the
 [account contract](accounts.md#account-scale-successor-contract-p51b) for membership,
 authority and deployment. No payer, keeper or off-chain solver becomes trusted.
 
@@ -264,7 +265,7 @@ word. Mathematical rejection is recorded separately from guard failures. Actual
 signed rate/recovery/resource acceptance is recorded in [validation](../operations/validation.md#authenticated-frozen-and-rate-verification-p54b). Current schema-8 financial accounts, selected binaries and
 enabled capacity are unchanged. This is verification-only acceptance, not complete on-chain settlement.
 
-### Persisted flow and graph primitives (P54C in progress)
+### Persisted flow and graph primitives (P54C)
 
 `scalable::flow_work` consumes a completed, integral-insurance rate evaluation and
 an authenticated frozen row. Its 768-byte checkpoint derives both exact market
@@ -315,9 +316,9 @@ restarts ordering, retaining original floors and insurance. There is no heartbea
 Both complete permutations advance irreversibly to deterministic construction and
 audited circulation. Ready means that verification finished, **not** payout
 authority. All six new entrypoints keep the original financial accounts read-only.
-Adoption, exactly-once application/reconciliation, recovery, token exits and signed
-RPC/WS/SQL acceptance remain unfinished. No selected artifact, financial writer or
-expanded population is activated by this construction checkpoint.
+The separate financial instructions below own adoption, exactly-once application
+and reconciliation. Construction alone never grants payout authority. The selected
+runtime and expanded-population gate remain unchanged.
 
 Application primitives now retain a 368-byte complete-cohort scan: original cash,
 lots/gross and three-word positive/negative claims remain separate from applied
@@ -332,9 +333,9 @@ clears positions/reservations/orders/delegation, preserves both order and protec
 group IDs, advances generations/nonces and leaves an isolated forbidden slot zero.
 It prepares a private candidate before committing any root mutation. Reconciliation
 checks the next scoped revision, frozen funding endpoints, exact generations and
-all dormant book bytes. These helpers are native-tested and **not yet connected to
-a public financial instruction**; exclusive adoption and complete ledger/recovery
-integration remain required before they can be used on-chain.
+all dormant book bytes. The public financial instructions below use these helpers
+after authenticating the adopted source, canonical frozen ordinal, original root
+revision and verified scalar/graph pages.
 
 ### Frozen work, completion and adversarial proposals
 
@@ -928,13 +929,15 @@ stages allow one/two rows without crossing a two-row storage page. Default heap 
 See [validation](../operations/validation.md) for measured full-context limits and
 the distinction between actual financial lifecycles and resource-only scratch cases.
 
-### Exclusive paged application (P54C, awaiting signed qualification)
+### Exclusive paged application (P54C)
 
 The source now exposes five local-qualified instructions: `adopt_settlement_plan`,
 `apply_settlement_margin`, `complete_settlement_application`,
 `reconcile_settlement_margin` and `complete_settlement_plan`. Their presence in the
-IDL is not acceptance of the new deployment. Default/devnet remain disabled.
-The selected runtime is unchanged until signed payout/recovery/SQL qualification.
+IDL alone is not deployment acceptance. Signed payout/recovery/SQL qualification
+is recorded in [validation](../operations/validation.md#conserving-settlement-p54c).
+This separately pinned local candidate does not replace the selected P53B runtime;
+default/devnet and expanded population remain disabled.
 
 Adoption requires the complete audited graph and exact original source revision.
 It atomically moves the legacy source to PagedApply (14) and records its next
@@ -961,6 +964,7 @@ allowing the unchanged source-recovery and owner-resume procedure. None of this
 admits more than the existing 64 financial members; P55/P56 own that change.
 
 Financial events `SettlementMarginApplied` and `SettlementPlanProgress` use u64
-ordinals/IDs and explicit plan stages. Indexer support and signed acceptance must
-land before this candidate is selected. The controller's development checks do
-not establish token exits or PostgreSQL replay.
+ordinals/IDs and explicit plan stages. The indexer checks frozen/applied records
+and reconciles partial application without counting frozen and live cash twice.
+The candidate-specific signed harness verifies token exits and fresh PostgreSQL
+replay; normal runtime promotion remains a separate gated change.

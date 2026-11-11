@@ -21,7 +21,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
-| P54C conserving settlement | In progress | Clean `2205ada` / SBF `c08aa49`: 968 signed outcomes with exact independently checked plan construction; Apply/recovery and token/SQL acceptance remain; no PR or activation yet |
+| P54C conserving settlement | Review | Accepted clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, source recovery and identical 131-event fresh PostgreSQL replay; ready publication above #79 follows; population activation unchanged |
 | P55A–P62 successor implementation | Planned | Membership, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -54,8 +54,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P54C exclusive adoption and exactly-once application,
-then recovery and signed token/SQL acceptance above #79; leave every PR open.
+Next exact action: publish accepted P54C above #79, then implement P55A paged
+membership and safe account lifecycle; leave every PR open.
 
 ## Remediation planning
 
@@ -303,8 +303,7 @@ generated SDK/typecheck and literal extension preserve D90. No PostgreSQL replay
 wallet/browser, payout, larger-population, endurance, devnet or external acceptance
 is claimed here. No access blocker is known. P15B/P16B remain Open and endurance
 Deferred. Hosted checks pass as recorded above; independent external review is
-not inferred. Next exact action:
-begin P54C's conserving flow/round/application work on its child; keep all PRs open.
+not inferred. P54C's successor acceptance is recorded below; all PRs remain open.
 
 ## Integrated quantity work
 
@@ -607,68 +606,42 @@ No implementation blocker remains within this completed scope.
 P45 used this frozen B baseline to scope the subsequently accepted RC2 migration;
 the integrated M13 checkpoint above records its implementation and qualification.
 
-## Conserving settlement in progress
+## Conserving settlement acceptance
 
-P54C branches above ready #79 / `d2f7810`. Native flow work now derives exact
-payments/cash, atom floors and canonical local remainder order. Persisted graph
-work uses bounded declared record accesses and resumes its canonical traversal
-from serialized checkpoints. Clean **`51b4a4f`** checks match 10,920 independent per-root
-flows and 774 complete independent atom-owner cases; 137 fractional insurance
-evaluations reject flow authorization. Graph cases cover 3,639 augmentations,
-with at most 3,478 steps in these fixtures. A separate ordered-set comparison
-covers 90,000 hierarchy updates/queries, including sparse u64 address boundaries.
-Four focused codec/hierarchy tests, pinned SBF metadata compilation and evidence
-policy pass. These are clean native results; metadata compilation is not a linked
-SBF run, measured CU, RPC or larger-cohort acceptance.
+P54C branches above ready #79 / `d2f7810`. It implements authenticated flow/order/
+graph construction, exclusive adoption, exactly-once root application, complete
+market distribution, reconciliation and unchanged source recovery. Partial Apply
+keeps original cash/obligations separate from applied balances. Fees, carry,
+unused insurance, monotone order IDs and isolated boundaries remain protected.
 
-Clean **`ae33d33`** adds persisted exact market ordering (835 valid / 1,197
-invalid orders) and a 384-byte graph constructor. The constructor overwrites dirty
-records, derives all topology and active bits, and matches the canonical graph in
-all 774 native payout cases. Two new codec tests and SBF metadata compilation pass;
-this extension is native-only. D99 records exclusive Apply adoption,
-recoverable order attempts and unchanged recovery/economics.
+Clean verifier **`c6e08f95e694cd70768830f4e45e5bd0b63cec87`** on clean SBF
+**`efa45951e01b9586469b48294de24d3f0f5fd02a`** passes **1,405 signed RPC/WS
+outcomes**, including **68 expected atomic rejections**. Ten actual roots cover
+isolated/cross debtors and creditors, fractional insurance clipping, internal
+makers and an unrelated funded receiver. Independent Fraction/graph expectations
+match final cash and market atom ownership. Eight actual SPL withdrawals and
+sustained source recovery pass. PostgreSQL reopens at partial Apply, distribution
+and recovery; fresh replay reproduces all **131 financial events** byte-for-byte
+and reconciles **148 accounts / ten members**, with actual and allocated vault
+both **11,199,993 atoms**, zero surplus and no unresolved jobs. Both isolated
+Anchor clients agree on 1,383 clearing instructions, 75 accounts and 1,444 events.
 
-Clean **`c08aa49`** binds flows/orders/construction to authenticated
-source/rate/page accounts through six new entrypoints. Three native tests cover
-literal half-atom ownership, 1/7/128-step checkpoints, 65-row physical page crossing,
-duplicate/tie-reversal and incomplete/stale binding refusal, and order-reset
-authority/progress boundaries. Scalar codecs, generated SDK, literal ABI and
-83-entrypoint access inventory agree. Five page-adapter, ten scoped-history and two
-scalar-codec tests pass at the same pin. The linked SBF is 2,168,808 bytes, with no
-unsafe stack-frame diagnostics; its exact hash and separate candidate path are in
-validation. Clean verifier **`2205ada`** passes **968 signed RPC/WS outcomes** with
-35 intended atomic rejections; the new construction segment contributes 489
-outcomes, all six entrypoints and 416 continuations. Independent Fraction/graph
-expectations match every floor, fraction, ordering and terminal atom owner.
-Original financial bytes stay unchanged. New successful calls peak at 114,841 CU /
-858 wire bytes / 20 loaded accounts; legacy/RC2 parity agrees on 950 clearing
-instructions, 74 accounts and 984 events. The owned Surfpool is stopped.
+Earlier clean native pins additionally cover 774 independent atom cases, 10,920
+flows, canonical ordering, graph construction and serialized restarts; `d6669ac`
+passes 13 scoped controller and 23 affected indexer tests. Exact pins, the resolved
+fixture-allocation failure and resource measurements are in
+[validation](operations/validation.md#conserving-settlement-p54c). Full Apply costs
+82,205–84,277 CU in the ten-root fixture; complete qualification is not a larger-
+population affordability claim. Raw captures stay at
+`.local/scalable-settlement/runs/p54c-application-cross-creditor/`; the owned
+Surfpool/PostgreSQL processes stopped normally.
 
-Clean **`cadabc2`** application bookkeeping and root-mutation helpers pass:
-774 independent full-cohort atom cases now exercise the persisted application scan;
-four focused kernel/program tests cover conservation/replay, accrued funding,
-isolated/cross cleanup, monotone order/protection IDs and exhausted counters. SBF
-metadata compilation passes. This newer helper work has no public financial entrypoint;
-the signed construction result above remains separate.
-
-Clean controller **`efa4595`** now exposes exclusive adoption, one-root Apply,
-complete-cohort pool/insurance distribution and full Reconcile/Complete. Development
-native checks cover the controller and protected source binding; its separate
-2,331,160-byte SBF links without oversized-stack diagnostics; no signed financial
-acceptance is claimed yet. The indexer now has explicit scratch-kind/PDA checks and original/applied financial
-projection. Its development one-atom/rejection checks and 21 affected existing
-checks pass. Signed recovery, token exits and fresh PostgreSQL replay remain.
-The first application harness stopped at a duplicate legacy-page initialization
-(already provisioned by setup); the fixture now reuses it. No payout was attempted
-in that run. The owned chain/database stopped and captures remain local.
-Clean `ca26fcf` now passes the full nine-root signed payout/recovery/token path
-and 118-event fresh PostgreSQL replay. One final signed cross-creditor extension
-remains to complete the explicit mode/claim-sign matrix before publication. The selected artifact and admitted population
-are unchanged.
-No P54C PR is opened and no user decision/access blocker is known. Exact next
-action: qualify the application binary and wire exact paged-plan indexer
-reconciliation, then run signed recovery and SQL/token exits. P15B/P16B stay Open and
-24-hour endurance Deferred.
+P54C is accepted for ready publication, not integrated. The selected P53B runtime,
+default/devnet gates and 64-member bridge remain unchanged. P55A/P55B own scalable
+membership/backing; P56B owns expanded activation and its cost gate. No user
+decision or access blocker remains for this PR. P15B/P16B remain Open and continuous
+24-hour endurance Deferred. Next exact action: publish P54C above #79, then begin
+P55A under the existing roadmap.
 
 ## Deployment and operational limits
 

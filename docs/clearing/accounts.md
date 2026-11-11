@@ -236,7 +236,7 @@ seeds, discriminators, signing domains and errors are independently retained.
 The selected runtime artifacts and admitted capacity remain unchanged until
 actual acceptance. Generated clients do not establish deployed qualification.
 
-### Conserving plan and scalar pages (P54C in progress)
+### Conserving plan and scalar pages (P54C)
 
 `SettlementPlan` is a separate **1,181-byte** schema-9 account, seeded by
 `settlement-plan`, venue and epoch LE-u64. After the common prefix it binds the
@@ -245,10 +245,14 @@ slot, order attempt/market, integral insurance consumption, constructed graph
 length/required flow, original/applied cash, market movements and adoption revision.
 Its 960-byte stage-owned checkpoint begins at offset 220; the bump is at 1,180.
 Unused checkpoint tails must be zero. Generated IDL and the literal ABI checker
-specify every ordered field. The financial-application fields remain reserved at
-this construction checkpoint; no Apply instruction is implemented yet.
+specify every ordered field. Application fields become authoritative only after
+exclusive adoption; stages 9/10/11/12 mean Apply/Reconcile/Reconciled/Complete.
+Five financial instructions implement adoption, single-root application, complete
+market distribution, single-root reconciliation and terminal completion. The
+[resolution contract](risk-and-resolution.md#exclusive-paged-application-p54c)
+specifies their write boundaries and original/applied balance split.
 
-The six new entrypoints initialize the plan/storage, accept a frozen row,
+The six construction entrypoints initialize the plan/storage, accept a frozen row,
 begin/reset ordering and continue bounded work. They keep all source financial
 accounts read-only. Plan creation requires both complete rate verification and
 terminal original-budget insurance history with the identical integral result.

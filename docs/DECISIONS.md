@@ -44,8 +44,10 @@ and use its unchanged source-recovery/owner-resume rules. This is a fresh local
 test deployment, not in-place migration or expanded membership. P55 replaces the
 live identity bridge; P56B alone activates a larger cohort. New account/event/SDK
 layouts require literal ABI and signed RPC/WS/PostgreSQL acceptance before P54C
-can be called complete. STATUS/validation distinguish current native primitives
-from this controller's still-required implementation and financial qualification.
+can be called complete. The controller now implements this handover and complete
+financial lifecycle; [validation](operations/validation.md#conserving-settlement-p54c)
+records its ten-root signed acceptance. It does not activate a larger population
+or promote the candidate to the ordinary runtime.
 
 ## D98 — bounded untrusted rate attempts and recoverable verification (11 November 2026)
 
