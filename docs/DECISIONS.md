@@ -38,8 +38,8 @@ for the arithmetic, LCM and comparison cursors. Checkpoint format 1 is separate
 from account schema 9; zero reserved fields and strict scalar bounds reject malformed
 encodings. Only program-owned authenticated work may restore them. Structural
 validity is not proof of execution, and no caller-supplied cursor can authorize
-payout or skipping work. Physical account authentication, atomic persistence and
-signed replay/continuation acceptance remain unfinished P54B responsibilities.
+payout or skipping work. Frozen-cohort authentication, atomic persistence and signed replay/continuation
+acceptance remain unfinished P54B responsibilities.
 The subsequent inactive foundation uses 256-word pages with direct validated word
 access, a complete-row denominator schedule and constant-space valuation totals.
 Its 2,129-byte scratch layout and 320-/288-byte controller checkpoints are recorded

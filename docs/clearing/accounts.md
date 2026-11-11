@@ -14,9 +14,10 @@ The bounded two-slot implementation is not a claim of unlimited market support.
 
 ## Account-scale successor contract (P51B)
 
-**Design and native feasibility only.** Schema 8 above remains the implemented
-contract. D93 selects the following candidate for P54–P56; no instruction, layout,
-IDL, enabled account count or current deployment changes in P51B. The
+**Successor contract; financial activation remains disabled.** Schema 8 above
+remains the active implementation. D93 selects the following candidate for P54–P56;
+P51B changed no instruction, layout, IDL, enabled count or deployment. P54B now
+implements the inactive scratch-page layout described below. The
 [resolution candidate](risk-and-resolution.md#scalable-exact-resolution-candidate-p51b)
 and [backing candidate](accounting.md#incremental-backing-candidate-p51b) are required
 dependencies, not optional later repairs after lifting the registration limit.
@@ -77,7 +78,8 @@ freeze sees either the full entry/exit or its unchanged predecessor.
 ### Versioned layout target and storage ownership
 
 Reserve **account schema 9 / local profile 5** for this successor; this reservation
-does not add a decoder or activate it. All new accounts retain canonical name-based
+does not activate it or change existing financial account schemas. The initial
+scratch layout below has its own typed/native decoder. All new accounts retain canonical name-based
 discriminators and ordered little-endian Borsh fields. Common prefix is
 `schema:u16, revision:u64, venue:Pubkey`; sizes include the eight-byte discriminator.
 No version suffix is added to Rust domain type names. The final generated ABI and
@@ -118,7 +120,7 @@ unfunded allocation is a rejected activation, not an unresolvable admitted debt.
 
 Numeric exhaustion rejects without wrap. With N finite financial roots and retained
 per-root claim bound K, use checked totals sufficient for N*K; u128 is not a proof
-for u64 N. A 256-bit aggregate covers that product (less than 2^151); determinant
+for u64 N. P54B uses three u64 words with an explicit <2^151 bound for those totals; determinant
 factors need up to 302 bits, hence five u64 limbs. Work length/index arithmetic is
 also checked. Existing per-root limits, global allocated custody <=10^15 atoms and
 market gross OI stay unchanged. Funding-index rebasing in P58D must preserve each

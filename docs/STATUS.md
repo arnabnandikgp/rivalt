@@ -265,16 +265,21 @@ with the pinned SBF compiler; this is not a linked program or deployment. Earlie
 clean `98601b3` results remain retained before restacking. Evidence stays at
 `.local/scalable-settlement/p54b-a7adbaf/` and the earlier local paths.
 
-The next local checkpoint adds the direct authenticated account-page adapter,
-complete-row denominator schedule and constant-space valuation totals. Development
-checks pass for the changed code; a clean pinned rerun is next. This remains
-inactive: no public initializer/financial handler, generated ABI acceptance, selected
+Clean **`1bd8e2e67a1e5b5e203e2d7de76000912ea76a44`** adds the direct account-page
+adapter, complete-row denominator schedule and constant-space valuation totals.
+The scoped run passes 120 independent denominator cases, 256 valuations / 3,637
+persisted prefixes, 304 aggregate vectors, 22 rejected cohort/domain cases, six
+codec tests and four native page-loader tests. Scoped formatting, Python/shell,
+evidence checks and pinned SBF metadata compilation pass. Evidence remains at
+`.local/scalable-settlement/p54b-1bd8e2e/`; [validation](operations/validation.md)
+records commands and scope. This remains inactive: no public initializer/financial handler, generated ABI acceptance, selected
 artifact or larger-account acceptance is inferred. The cohesive P54B PR awaits its
 actual signed acceptance. Remaining work is frozen complete membership/source
 binding, owning on-chain control, rate/proposal reset and signed RPC/WS verification
 with full-context CU/wire/stack/rent measurements. P54C still owns Apply and recovery.
-No access blocker is known. Next exact action: pin and verify the new page/valuation/
-denominator checkpoint, then bind it to the authenticated frozen-input controller.
+No access blocker is known. Next exact action: implement authenticated complete
+financial-index traversal and bind the frozen-input controller to these checked
+valuation and denominator cursors.
 
 ## Integrated quantity work
 

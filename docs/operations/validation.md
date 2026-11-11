@@ -2,21 +2,53 @@
 
 ## Persisted scratch foundation (P54B, incomplete)
 
-Clean **`98601b3665abf7fa1e877c63420c65869885c855`** passes five focused Python tests:
-774 exact bounded
-comparisons plus the existing 1,338 arithmetic, 462 LCM and 305 collection vectors.
-The native storage adapter enforces declared next-word permissions and restores
-actual checkpoint bytes at 1/7/128-step boundaries. Four Rust regressions check
-literal encoding, invalid/reserved fields, partial carry, terminal replay and all
-six LCM stages. This is structural/native continuation only; account authentication,
-atomic rollback, complete frozen/rate control and signed resource acceptance remain
-unfinished. Scoped formatting, Python compilation and evidence policy pass. Raw
-logs stay at `.local/scalable-settlement/p54b-98601b3/`. No SBF/RPC/WS/PostgreSQL or
-changed selected program is claimed.
+Clean **`a7adbaf7c1bee16cbc47c304e830f11c393ed507`**, restacked above P54A's
+compiler-guard fix, passes five focused Python tests: 774 exact comparisons plus
+1,338 arithmetic, 462 LCM and 305 collection vectors. The native adapter enforces
+exact next-word permissions and restores checkpoint bytes at 1/7/128-step boundaries.
+Four Rust codec regressions and the page-planner regression pass. Pinned SBF
+metadata compilation passes; no linked program or resource measurement is inferred.
+Logs remain at `.local/scalable-settlement/p54b-a7adbaf/`.
 
-Reproduce with `cargo build --locked -p financial-core --bin scalable-wide-driver`,
-`python3 tests/financial/test_scalable_wide.py` and
-`cargo test --locked -p financial-core --test scalable_checkpoints`.
+Clean **`1bd8e2e67a1e5b5e203e2d7de76000912ea76a44`** adds and verifies the next
+inactive checkpoint:
+
+- **120 complete denominator passes** match independently reduced Python Fractions
+  and LCMs at budgets 1/7/128, with populations through 1,024 and common values
+  crossing the 256-word page boundary. Eight incomplete/count/order/domain cases
+  reject. Native progress refuses a result until the complete row sequence finishes.
+- **256 complete valuations / 3,637 encoded prefixes** match independent integer
+  sums. Tests check root cash, net/gross lots, positive/negative claims, separate
+  pools/insurance/fees and exact final conservation. Fourteen incorrect total,
+  count, ordering and position cases reject without committing the failed scalar
+  prefix. Claims are already-valued inputs: no oracle/funding/account-admission
+  acceptance is inferred.
+- **304** independent <2^151 aggregate domain/carry cases and **six** Rust cursor
+  regressions pass, including literal formats, frozen binding corruption, failed
+  final-row conservation, nested register fences and completed replay rejection.
+- **Four clearing native-loader tests** pass: literal Borsh/discriminator/offset
+  parity for the 2,129-byte page, all 81 corrupted header-byte positions, foreign/
+  wrong-owner/permission/epoch/attempt/revision/length refusals, page-boundary carry,
+  dirty-only revision updates and exhausted/stale revision rejection. They use real
+  Pinocchio account views over native test memory, not signed transactions or VM
+  rollback. The initial missing trait import/mutable-view compile errors were fixed
+  before this clean acceptance; development logs are retained separately.
+- Affected Rust formatting, Python compilation, shell syntax, evidence policy and
+  pinned SBF **metadata** compilation pass. No new selected binary, generated ABI
+  qualification, program initialization, RPC/WS/PostgreSQL or financial activation
+  is claimed. This child branch has no phase PR yet.
+
+Reproduce the new checks with `cargo build --locked -p financial-core --bin scalable-wide-driver --bin scalable-snapshot-driver`,
+`python3 tests/financial/test_cohort_denominator.py`,
+`python3 tests/financial/test_scalable_snapshot.py`,
+`cargo test --locked -p financial-core --test scalable_checkpoints` and
+`cargo test --locked -p clearing --lib --features liquidity-execution-qualification instructions::account_safety::settlement_pages::tests`.
+Logs remain at `.local/scalable-settlement/p54b-1bd8e2e/`; raw evidence is untracked.
+The new independent arithmetic checks join financial CI; broader inherited suites
+were not rerun locally for this inactive checkpoint. Frozen complete membership,
+source binding, the owning on-chain controller, rate/proposal reset and actual
+signed full-context resource/rollback acceptance remain P54B work. P54C owns
+rounding/Apply/recovery; P56B remains the financial expansion gate.
 
 ## Scalable native settlement (P54A)
 
