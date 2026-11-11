@@ -804,7 +804,12 @@ End tracked tree is clean. Raw files remain in
 `.local/scalable-settlement/runs/p55b2-worker-complete`.
 
 P55B2 is open for Review as ready [PR #84](https://github.com/arnabnandikgp/rivalt/pull/84)
-above #83 at `bd7c0df`. Hosted CI for this tip is not yet claimed. Next exact action:
+above #83 at `bd7c0df`. Hosted run 43120447567 at `7487cc3` passed scope/report/shell but failed
+native fixture literals and the generated lock inventory. Clean `1b42a2c` fixes
+only those fixtures/baselines: 14 affected qualification tests, two disabled-default
+activation tests and the 90-entrypoint inventory check pass. The only access-set
+change is the intended writable backing ledger; SBF/financial semantics are unchanged.
+A new hosted result is pending. Next exact action:
 start P56A above #84 without waiting for merge.
 No user decision or access blocker is known. Expanded population and runtime
 promotion remain P56B; automatic default continuation and wallet/UI acceptance

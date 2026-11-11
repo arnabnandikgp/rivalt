@@ -101,6 +101,15 @@ binds only the explicit candidate hashes; no production financial method is repl
 P55B2 is accepted for Review on these pins. No larger population, runtime promotion, endurance or external
 validation follows from these checks.
 
+P55B2 CI correction: hosted run 43120447567 at `7487cc3` caught raw native
+schema-9 fixtures, a rejected-profile list containing the new valid profile 6, and
+an outdated generated lock inventory. Clean `1b42a2c` passes 14 affected native
+qualification checks, both disabled-default activation checks and the regenerated
+90-entrypoint inventory. The reviewed access delta is `check_market_backing`'s
+writable ledger, already implemented/measured by D102. Other changes are IDL hashes.
+Only tests and the bounded inventory change; the accepted program binary and signed
+financial results above remain the same. Hosted rerun is separately observed.
+
 ## Maintained backing arithmetic (P55B1)
 
 Clean **`1715d20ceda111591bc1e8addbfa95ea4208c9f0`** compiles the actual
