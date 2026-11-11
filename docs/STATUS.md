@@ -23,7 +23,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
 | P54C conserving settlement | Review | [Ready PR #80](https://github.com/arnabnandikgp/rivalt/pull/80), above #79; clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, recovery and identical 131-event fresh PostgreSQL replay; population activation unchanged |
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
-| P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; ready publication above #81 pending; selected runtime unchanged |
+| P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B–P62 successor implementation | Planned | Backing, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -715,8 +715,8 @@ Automatic paged default continuation remains explicitly blocked until P56A; no
 success or durable-worker qualification is claimed. Current runtime commands reject
 schema-8 selected artifacts against schema-9 clients before deployment.
 
-No user decision/access blocker is known. Next exact action: publish ready P55A2 above #81, then implement P55B
-maintained backing against its conservative-region contract. P56A retains full UI,
+No user decision/access blocker is known. P55A2 is open as ready PR #82 above #81; CI is pending. Next exact action:
+implement P55B maintained backing against its conservative-region contract. P56A retains full UI,
 durable automatic default and the remaining historical raw-audit adapters; P56B
 retains populated-cohort qualification and runtime promotion.
 
