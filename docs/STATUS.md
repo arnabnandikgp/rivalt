@@ -25,7 +25,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
-| P55B2 on-chain maintained backing | In progress | SBF `bc9f029`; clean progress harness `3c44c0e` passes 402 signed outcomes, two non-resetting 39-step scans and 214-event exact SQL replay; remaining boundary/default acceptance in progress |
+| P55B2 on-chain maintained backing | In progress | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; focused worker capture correction remains |
 | P56A–P62 successor implementation | Planned | Full clients/workers, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -754,72 +754,51 @@ versioned summary storage and atomic mutation hooks, then its signed acceptance.
 
 ## P55B2 candidate checkpoint
 
-The current working tree implements D102 storage and mutation hooks plus minimum
-schema-10/profile-6 SDK, event, worker and indexer migration. Gain authority exists
-only in explicit local qualification builds; default/devnet remain gated. Selected
-runtime artifacts remain schema 8. Four new certificate tests pass (freshness versus
-restart, required versus unseen dependencies and nine binding mutations), alongside
-14 cash/hook tests, one region test, one dependency test, three account layout tests,
-13 scoped journal tests and the explicit ABI comparison. Affected client checks
-initially exposed old profile/layout fixtures; corrected affected files pass.
-The consolidated affected verification passes: 18 cash/certificate, four
-region/layout, 13 scoped journal and 65 client tests across ten files; 15 wire
-regressions, typecheck and all-three-program explicit ABI checks pass. The independent
-Rust/Python backing reference passes again (1,274 contributions / 89,720 prefixes).
-These are pre-build working-tree results; no new binary,
-CU/lock measurement, signed transaction, SQL replay or phase completion is claimed.
-
-Candidate commit `bbd3398` passes native/client checks but its first SBF build is
-rejected: backing-event construction exceeds the 4 KiB frame by 96 bytes (reported
-maximum offset 4,192). No rejected binary was deployed or promoted. The fix builds
-optional ledger/root snapshots in a separate frame after allocating the event.
-
-The frame fix at clean `bc9f029fa0f541a7407384a0bc7715bcee9c0f08` builds all three
-default and qualification programs without an oversized-stack diagnostic. Candidate
-clearing is 2,374,856 bytes / SHA-256
+D102's schema-10/profile-6 candidate stores maintained summaries in existing market
+ledgers and processed epochs in roots, with atomic cash/fill/order/liquidation hooks.
+Default/devnet stay disabled; selected schema-8 artifacts remain unpromoted. Clean
+SBF `bc9f029fa0f541a7407384a0bc7715bcee9c0f08` builds all three default/qualification
+programs without oversized-stack diagnostics. Clearing is 2,374,856 bytes, SHA-256
 `62523299a7f1629dc40e56cd99c6b858a74a247bc5eecca46debab0ec0ab65a9`.
-Artifacts remain isolated at `.local/scalable-settlement/p55b2-frame-fix`; no runtime
-promotion or signed acceptance is claimed. The next harness exercises overlapping
-scan/fill submissions, processed/unprocessed roots, custody changes, final closure
-with payment/rollback, exact wide summary reconstruction and PostgreSQL replay.
+Affected native/client/ABI checks and independent backing arithmetic pass as recorded
+in [validation](operations/validation.md#maintained-backing-integration-p55b2-pending).
 
-Clean harness `3c44c0ef7443b1e4afca341887153f3465d989d1` passes **402 signed outcomes**,
-including six expected rejections. Both eight-member market scans finish in 39
-steps (22.90 / 22.91 seconds) without any reset after their initial epochs, despite
-ongoing source publication, four overlapping independently paid scan/fill pairs and
-six processed cross cash operations. Final closure/payment rolls back together on
-an inadmissible amount, then pays one real funded atom in the same transaction.
-The independent Python audit matches **135 summaries across 98 captured frames**.
-Both isolated Anchor clients agree on 389 clearing instructions, five account
-decodes and 595 clearing events. Actual PostgreSQL replay reproduces **214 events**;
-226 accounts/eight members and the 8,000,000-atom actual/allocated SPL vault reconcile.
-End tracked tree is clean. Raw evidence: `.local/scalable-settlement/runs/p55b2-progress-initial`.
+Clean harness **`cf128c0e9840867a8eff054e845bd46966903ff1`** passes **1,474 signed
+RPC/WS outcomes / 61 expected atomic rejections** on that binary. Both eight-root
+scans finish in 39 steps (22.51 / 22.59 seconds), without reset during in-region
+sampling, four overlapping independently paid scan/fill pairs and six processed
+cross cash actions. Tests cover stale-source refusal without proof erasure, source
+recovery, membership invalidation even after the count is restored, TP/SL and replay,
+actual 1,000-atom debtor repair, explicit flat-only one-atom netting, and consenting
+liquidation with its exact 27-atom funded reward. Repair and liquidation unblock the
+same completed proof without rescanning. Strict post-fee progress and over-size
+liquidation reject. Complete eight-root default clears processed markers, preserves
+independently computed ownership, permits an actual SPL exit and completes sustained
+recovery; old proof authority remains rejected after reactivation.
 
-Measured continuation CU is 32,091–39,321; final closure/payment 81,937–81,973;
-overlapping fills 166,738–167,141. Member scans write the selected ledger/root;
-actual signed lock extraction confirms contention there, without a new writable
-venue membership registry on ordinary fills. This is a small-population overlapping
-workload, not a saturated throughput or external fee result. No complete P55B2
-acceptance is claimed: stale/out-of-region/membership boundaries, bad repair,
-reservations/TP-SL, liquidation/default and worker recovery cases remain.
+The separate Python 16-corner audit matches **269 summaries / 227 RPC frames**.
+Both isolated Anchor clients match 1,457 clearing instructions, five account decodes
+and 1,862 clearing events. PostgreSQL reopens through partial Apply, distribution,
+completion and recovery; fresh replay matches **469 events**, with 227 accounts /
+eight members and actual/allocated vault **7,199,891 atoms**, zero surplus. The
+tracked tree remains clean. Raw files stay in
+`.local/scalable-settlement/runs/p55b2-complete-recovery`.
 
-The expanded `3f8dca7` run verifies TP/SL creation/execution/replay rejection,
-stale-source rejection without proof erasure, source recovery, membership changes
-with restored-count rejection and a fresh 39-step scan. It stops at the next
-fixture: a one-lot trade at price 2 violates the existing 1,000-atom minimum
-notional. That simulation was not broadcast. The replacement uses 500 lots, the
-same minimum notional/risk rules, and an independently derived retained cash bound.
-No expanded-run pass or SQL replay is claimed from this failed attempt.
+Earlier failed attempts remain recorded locally: the initial event construction
+exceeded the SBF frame by 96 bytes and was never deployed; a low-price test violated
+the unchanged 1,000-atom minimum notional; a later section needed sustained source
+recovery after SQL reconciliation. Those harness fixes changed no economic rule.
+The focused worker at `cf128c0` lands **41 durable originals**, completes same-epoch
+coverage/payment and executor lost-ack/SIGKILL recovery, reconciles the eight-million-
+atom vault and reaches fresh SQL replay. Its final independent audit fails because
+its capture omitted certificates. No whole worker-run pass is claimed; the capture
+now includes actual certificate RPC bytes and immediately retains fault evidence.
 
-The next clean harness `716d56c` passes the corrected 500-lot boundary, actual
-1,000-atom debtor repair and same-epoch payment. It stops at the subsequent close
-with OraclePolicy after the intervening PostgreSQL reconciliation outlasts source
-freshness. The section now performs the existing sustained qualification before
-resuming financial actions. No financial/risk rule changes and no full-run pass is
-claimed. A separate candidate-bound actual settlement-worker/SIGKILL probe is added.
-
-Next exact action: finish boundary/default acceptance with normal source recovery,
-then verify the persisted settlement-worker original across executor death. No user decision is blocking this work.
+P55B2 is not yet ready for publication. Next exact action: rerun only the focused
+settlement-worker capture/restart check, then publish the complete phase above #83.
+No user decision or access blocker is known. Expanded population and runtime
+promotion remain P56B; automatic default continuation and wallet/UI acceptance
+remain P56A. P15B/P16B remain Open and 24-hour endurance Deferred.
 
 ## Deployment and operational limits
 

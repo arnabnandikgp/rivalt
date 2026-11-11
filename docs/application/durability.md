@@ -746,7 +746,7 @@ All other account layouts, PDA seeds, discriminators, instruction arguments and
 error numbers remain unchanged against P55B1. `check_market_backing` makes its
 existing selected ledger writable and writes a member root only for a member step.
 Fresh deployments and journal databases are mandatory; selected schema-8 and
-accepted P55A2 schema-9 evidence do not qualify schema 10. See [accounting](accounting.md#on-chain-maintained-proof-p55b2-candidate).
+accepted P55A2 schema-9 evidence do not qualify schema 10. See [accounting](../clearing/accounting.md#on-chain-maintained-proof-p55b2-candidate).
 
 ### Maintained backing candidate journal
 
@@ -756,7 +756,8 @@ snapshot when a member is marked processed. Scoped footer writes authenticate al
 three entities; projection may not update a readonly ledger/root. Ordinary route,
 cash and liquidation snapshots carry the maintained summary and processed epochs.
 RPC reconciliation pins the new exact account sizes and schema; it never infers
-summary effects from an off-chain accounting model. SQL integration is pending.
+summary effects from an off-chain accounting model. Signed normal, partial-default,
+recovery and fresh SQL replay checks are recorded in [validation](../operations/validation.md#maintained-backing-integration-p55b2-pending).
 
 The backing worker separates arithmetic validity, current source availability and
 payment readiness. In-region observations/liability discovery versions do not reset

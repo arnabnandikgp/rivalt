@@ -11,10 +11,8 @@ The changed kernel passes the independent five-method reference again (1,274
 corner contributions and 89,720 summary/restoration prefixes; native only).
 The worker completes an unpayable cohort's scan without attaching a doomed payment.
 
-No new SBF build, signed deployment/progress/payment, resource measurement or
-PostgreSQL replay is yet claimed. The selected runtime remains schema 8. Candidate
-build manifests now read actual source schema/profile constants rather than label
-new binaries as schema 8; this does not bypass the selected runtime hash allowlist.
+The selected runtime remains schema 8. Candidate manifests now read actual source
+schema/profile constants; they do not bypass the selected runtime hash allowlist.
 Candidate `bbd3398` is rejected by the SBF guard: backing-event construction has
 maximum stack offset 4,192, 96 bytes over the allowed frame. It was not deployed.
 Separate snapshot construction frames fix this at clean
@@ -44,8 +42,35 @@ Actual signed messages confirm selected-ledger/root contention without adding a
 writable venue registry to ordinary fills. Raw logs/transactions/SQL captures stay
 at `.local/scalable-settlement/runs/p55b2-progress-initial`. This is eight populated
 roots and bounded overlapping activity, not saturated throughput or public-network
-fee evidence. P55B2 remains incomplete pending stale/region/membership boundaries,
-bad-debtor repair, reservations/TP-SL, liquidation/default and worker recovery checks.
+fee evidence.
+
+The expanded clean harness **`cf128c0e9840867a8eff054e845bd46966903ff1`** passes
+**1,474 signed RPC/WS outcomes / 61 expected atomic rejections** on the same pinned
+SBF. Its two initial scans take 22.51 / 22.59 seconds and never reset under ongoing
+in-region activity. Added acceptance covers stale-source refusal/recovery without
+proof erasure, actual Financial entry/exit with restored-count rejection, TP/SL and
+reservation/replay guards, conservative bad-debtor blocking and actual 1,000-atom
+repair, flat-only one-atom closed-claim netting, and liquidation repair with a literal
+27-atom funded reward. Invalid size and no post-fee deficit improvement reject.
+Complete default and one actual SPL exit pass the independent Fraction/graph
+expectations; sustained source recovery cannot revive pre-default proof authority.
+
+Python's direct 16-corner audit matches **269 summaries across 227 actual frames**.
+Both isolated Anchor clients match 1,457 clearing instructions, five account decodes
+and 1,862 clearing events. SQL checkpoints cover partial Apply, distribution,
+completion and recovery; **469 events** replay identically into a fresh database.
+All **227 accounts / eight Financial roots** reconcile to **7,199,891 actual and
+allocated vault atoms**, zero surplus. End tracked tree is clean. Evidence remains
+at `.local/scalable-settlement/runs/p55b2-complete-recovery`.
+
+Failed harness attempts are retained: `3f8dca7` used a one-lot price-2 trade below
+the unchanged 1,000-atom minimum notional; `716d56c` passed its 500-lot replacement
+but required normal source recovery after the SQL section. No risk rule was relaxed.
+The focused worker run at `cf128c0` lands 41 original transactions and completes
+lost-ack/SIGKILL recovery and SQL checks, but the final independent audit stops on a
+missing certificate capture. Its focused corrected rerun is still required before
+P55B2 acceptance. No larger population, runtime promotion, endurance or external
+validation follows from these checks.
 
 ## Maintained backing arithmetic (P55B1)
 

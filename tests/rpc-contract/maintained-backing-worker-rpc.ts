@@ -41,7 +41,8 @@ try {
     const roots=await financialRoots(h,setup.venue,setup.registry);
     frames.push({label,safety:sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!),
       registry:sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!),roots:await Promise.all(roots.map(root)),
-      ledgers:await Promise.all(setup.ledgers.map(async key=>sdk.getMarketLedgerDecoder().decode((await h.read(key))!)))});
+      ledgers:await Promise.all(setup.ledgers.map(async key=>sdk.getMarketLedgerDecoder().decode((await h.read(key))!))),
+      certificates:await Promise.all(certificates.map(async key=>{const bytes=await h.read(key);return bytes?sdk.getSettlementCertificateDecoder().decode(bytes):null;}))});
     writeFileSync(`${directory}/backing-frames.json`,json(frames));
   };
   const started=performance.now();let interrupted=false,steps=0;
@@ -58,7 +59,8 @@ try {
     if(!interrupted&&current&&current.next>=1n&&!current.complete) {
       const fault=await liquidityQueueFault(runtime,{databaseUrl,rpcUrl,directory,
         executorModule:'tests/rpc-contract/backing-worker-executor.ts'},original.request_id);
-      assert.equal(fault.receipt.status,'finalized');faults.push(fault);interrupted=true;
+      assert.equal(fault.receipt.status,'finalized');faults.push(fault);
+      writeFileSync(`${directory}/worker-faults.json`,json(faults));interrupted=true;
       await runtime.close();runtime=new BackingWorkerRuntime(databaseUrl,'p55b2-application',rpcUrl);await runtime.open();
     } else {
       await eventually(async()=>{await runtime!.queue.step(original.request_id);return runtime!.queue.get(original.request_id);},
@@ -87,6 +89,7 @@ try {
   assert.equal(BigInt(budget[0].spent),originals.reduce((sum,item)=>sum+BigInt(item.transaction.meta.fee),0n));
   assert.equal((await runtime.store.pool.query('SELECT count(*) FROM service_dispatch_access WHERE run_id=$1',[runtime.runId])).rows[0].count,'0');
   await flush();await journal.checkpoint('worker-complete',true);const sql=await journal.finish();
+  writeFileSync(`${directory}/worker-transport.json`,json({revision,build,budget,steps,collected,faults,sql}));
   const independent=JSON.parse(execFileSync('python3',['tests/financial/check_backing_runtime.py',`${directory}/backing-frames.json`],{encoding:'utf8'}));
   const parity=await conformance.finish(directory,[],h.read);
   writeFileSync(`${directory}/result.json`,json({revision,build,checks,originals,outcomes,faults,budget,steps,
