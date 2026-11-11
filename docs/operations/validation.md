@@ -1,5 +1,184 @@
 # Validation and measured limits
 
+## Conserving settlement (P54C)
+
+Clean SBF **`efa45951e01b9586469b48294de24d3f0f5fd02a`** links at
+**2,331,160 bytes**, SHA-256
+`c943fafd89ddd7688e693384acdc650b8284689f1c5822689c38c36998873af0`, with no
+oversized-stack diagnostic. It remains separately stored at
+`.local/scalable-settlement/p54c-efa4595/`; normal runtime selection remains P53B.
+Clean verifier **`c6e08f95e694cd70768830f4e45e5bd0b63cec87`** passes **1,405
+signed deployed RPC/WS outcomes**, including **68 intended atomic rejections**.
+The ten-root cohort has isolated/cross debtors and creditors, both markets,
+internal makers and a healthy receiver holding one atom. Signed positions and
+funding generate the frozen claims; independent Python Fraction/circulation
+expectations determine rates, flows, cash and exact terminal atom owners.
+
+All eleven new construction/application entrypoints execute. Complete market
+orders and 685 bounded construction continuations precede exclusive adoption.
+Stale revisions, omitted/repeated rows, bad order recovery, premature distribution,
+legacy Apply after adoption and terminal replay reject. A transaction with two
+identical Apply instructions rolls back both instructions and their financial
+bytes. Exactly-once cleanup preserves monotone order/protection IDs and frozen
+funding, invalidates execution generations/delegates, and clears obligations.
+
+Actual final cash is **9,500,000 atoms**; BTC/ETH insurance spends exactly
+**1,001,522 / 300,430 atoms**, matching the independent clipped solution. Retained
+fees, fee carry and unused insurance remain unchanged. All eight positive-cash
+roots withdraw one actual SPL atom, including the unrelated receiver and cross
+creditor. Early resume rejects; four fresh independent source samples over the
+unchanged recovery hold permit owner resume to Custody/source stage 12.
+
+PostgreSQL closes/reopens its writer at partial Apply, after market distribution
+and after recovery/token exits. Each checkpoint reconciles all **148 accounts /
+ten members** over actual finalized RPC. A fresh database refetches the chain and
+reproduces the complete state and **131 financial event bytes** exactly, with zero
+unresolved jobs. Final actual/allocated vault both equal **11,199,993 atoms** and
+surplus is zero. This uses the real store, decoder and reconciler with a fixed
+candidate artifact hash; it does not qualify a larger-population service daemon.
+Both isolated legacy/RC2 clients agree on **1,383 clearing instruction encodings /
+full metas, 75 accounts and 1,444 events**; maker A/B agree on 76/38 instructions
+and 80/40 events respectively.
+
+Successful financial instruction measurements on that ten-root run:
+
+| Transaction | Samples | Actual CU | Wire bytes | Loaded accounts |
+|---|---:|---:|---:|---:|
+| Adopt verified plan | 1 | 44,903 | 718 | 17 |
+| Apply one root | 10 | 82,205–84,277 | 882 | 21 |
+| Complete market distribution | 1 | 56,025 | 718 | 17 |
+| Reconcile one root | 10 | 50,507–51,547 | 825 | 20 |
+| Complete vault/cohort reconciliation | 1 | 44,310 | 718 | 17 |
+
+Those transactions use v0, 1,000,000 requested CU, zero priority price, a 5,000-
+lamport fee and the default heap; peak heap/stack usage is not measured. Successful
+construction peaks at **117,545 CU / 858 bytes / 20 accounts**. Its segment has
+768 outcomes (ten rejects), **48,211,282 CU / 3,850,000 fee lamports**. The segment
+from successful adoption through terminal reconciliation has 53 outcomes (30
+rejects), **2,354,476 CU / 265,000 fee lamports**. Total test storage occupies 75
+verification/plan accounts with **692,277,000 rent lamports**; the entire run,
+including setup, repeated fault cases and source/maker updates, uses **74,448,638
+CU / 7,700,000 fee lamports**. These are measured test costs, not an optimized
+production schedule, larger-cohort bound or G1 affordability acceptance.
+
+Clean `d6669ac` passes 13 scoped native controller/source tests (including complete
+3-/64-root application) and 23 affected indexer tests. Generated SDK, typecheck,
+literal retained/new ABI and 13 wire checks pass in development. Its first signed
+run failed before payout because setup had already allocated a legacy page; the
+fixture was corrected to reuse it. Clean `ca26fcf` then passed the nine-root
+payout/recovery/token path and 118-event fresh replay; the final pin above adds
+cross-creditor coverage. Raw captures remain local at
+`.local/scalable-settlement/runs/p54c-application-cross-creditor/` and the owned
+Surfpool/PostgreSQL processes stopped normally. Default/devnet remain disabled;
+P55/P56 still own live paged membership, larger-cohort activation and its resource
+acceptance. No external review, funded qualification or endurance is claimed.
+
+Reproduce using the exact candidate artifacts above and a new ignored run directory
+(the wrapper starts/stops its own Surfpool and PostgreSQL):
+
+```sh
+source ops/env.sh
+RIVALT_SETTLEMENT_PLAN=1 RIVALT_SETTLEMENT_APPLY=1 RIVALT_PG_PORT=15454 \
+  RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/scalable-settlement/p54c-efa4595 \
+  RIVALT_RUN_DIR=.local/scalable-settlement/runs/p54c-application-repeat \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+The following earlier pins retain distinct native/construction evidence; their
+historical scope statements do not describe the final application acceptance.
+
+
+Clean **`51b4a4fd8f5b7cf63790ea5fdaf8df779493e0b9`** passes 10,920 exact per-root flow/retained-cash/
+floor/fraction/order comparisons against the independent Fraction oracle and
+rejects flow authorization for 137 fractional-insurance evaluations. Maximum
+observed flow work is 2,453 word steps/root. A separate 774-case persisted graph
+matrix reproduces independent canonical cash and market atom owners at checkpoint
+budgets 1/7/128: 3,639 augmentations total, maximum 3,478 steps, 352,956 scalar
+record reads and 116,778 writes across the fixtures. Undeclared reads/writes reject;
+each transition accesses at most three records and performs at most four reads/
+writes. At that pin graph construction is still the native P54A implementation, explicitly
+not program-page authentication or financial application.
+
+Two hierarchy tests compare 90,000 updates/queries against an ordered set across
+nine lengths, including sparse u64 boundaries; per-operation bounds remain eleven
+update and 21 successor word steps. Flow and graph codec tests cover immutable
+bindings, invalid domains and substitution of a write cursor for a successor read.
+Pinned SBF metadata compilation and evidence-policy checks pass. This does not
+link or execute a Solana binary. Those native results do not qualify
+on-chain graph construction, payouts, token exits, SQL replay, larger populations,
+CU, heap/stack, latency or affordability. Raw development logs remain at
+`.local/scalable-settlement/p54c-flow-development/`.
+
+Clean **`ae33d3377de817db83c7b578b0b31f7b18378abf`** adds a bounded persisted graph constructor and
+exact market-order cursor. All 774 independent payout cases also compare every
+newly constructed node, arc and adjacency with the retained canonical topology,
+starting from poisoned scratch. Each construction step performs at most three
+record accesses. Exact order verification accepts 835 independent valid sequences
+and rejects 1,197 reversed/tied/duplicate/incomplete sequences; maximum 1,981 word
+steps/cohort in these fixtures. Permutation markers are still native test transport,
+not authenticated program records. Two additional codec tests and SBF metadata
+compilation pass. The separate signed construction checkpoint follows below.
+
+Clean **`c08aa495804a1740e109c7ef24b21f982c1495ed`** adds six public entrypoints, a 1,181-byte
+owned plan and scalar records inside the existing authenticated limb pages. Three
+native controller tests pass: independently derived half-atom tie ownership across
+1/7/128-step restarts, a 65-row physical-page case, duplicate/reversed-order and
+stale/incomplete rate-history rejection, and revision/attempt/64-slot recovery
+boundaries. Each work/row step uses the real PageWindow loader and serialized plan;
+the test transport supplies account bytes, not signed transactions. Five physical
+page-adapter, ten scoped-history and two scalar codec/layout tests pass at that
+pin. Generated SDK, retained D90 plus literal new ABI and
+83-entrypoint inventory agree; existing financial access sets are unchanged.
+The same clean source links a **2,168,808-byte** SBF with SHA-256
+`08eca403915e5c8a35b68b03d29ab92e2c13a585f754a4f3e6fa9f528a616ed5` and no unsafe
+stack-frame diagnostics. It is separately retained at
+`.local/scalable-settlement/p54c-c08aa49/`, not selected for ordinary runtime.
+At that earlier pin financial application was pending; construction-only execution below
+does not qualify a larger financial population or select a deployment.
+
+The extended signed construction harness is prepared with explicit
+`RIVALT_SETTLEMENT_PLAN=1` and that candidate artifact directory. Its native
+`settlement-plan-pages` example transports next-page requests from public RPC
+bytes; it is not an independent financial oracle. The Python Fraction/circulation
+reference independently derives every floor, fractional flag, order and terminal
+atom owner.
+
+Clean verifier **`2205ada0cd198f3c106b425636f4bb204925ef22`** passes **968 signed
+RPC/WS outcomes**, including **35 deliberate atomic rejections**, on that exact
+SBF. The construction extension contributes **489 outcomes / eight rejections**,
+including 416 bounded continuations and all six new entrypoints. Each of the eight
+actual frozen rows matches independently derived flow floors, fractional flags,
+local order and final cash/market atom ownership. Both complete market orders,
+current-revision duplicate rejection, stale replay, real 64-slot foreign recovery,
+construction-reset refusal and terminal replay are exercised. All original
+financial account bytes remain identical through verification and construction.
+
+Successful construction transactions use **33,049–114,841 CU**, at most **858
+wire bytes** and **20 loaded accounts**, with v0 throughout. Their requested limit
+is 1,000,000 CU, zero priority price and the default heap. The extension (including
+allocation and rejected originals) consumes **30,773,527 CU / 2,455,000 fee
+lamports** and adds **339,150,960 rent lamports** for 30 accounts. Total verification
+storage rent is 685,754,280 lamports. These are eight-root observations, not G1
+affordability, a dense larger-cohort bound or measured peak heap/stack.
+
+Legacy and RC2 clients agree on **950 clearing instruction encodings/full metas,
+74 verification accounts and 984 events**; both maker clients also agree. Captures
+are local at `.local/scalable-settlement/runs/p54c-construction-2205ada/`; the owned
+Surfpool is stopped. That construction-only pin did not qualify Apply, recovery,
+token exits or PostgreSQL; the final application acceptance above supplies them.
+
+Clean **`cadabc2`** adds complete original/applied bookkeeping and root-mutation
+helpers. The same 774 independent graph cases now feed the actual persisted
+ApplicationScan and check its returned payouts against the independent atom oracle;
+original rows have zero position quantities in this arithmetic transport. Two
+kernel tests separately cover partial/final conservation, replay, invalid rounding,
+insurance overdraw and checkpoint binding. Two program-helper tests cover actual
+nonzero cross/isolated positions, accrued funding, both monotone order/group IDs,
+generation/nonce/delegate invalidation, dormant-book reconciliation and exhaustion
+without input mutation. Pinned SBF metadata compilation passes. These development
+checks have no signed Apply, source adoption, pool debit or SQL effect. Raw logs
+remain beside the preceding construction evidence with the `cadabc2` pin.
+
 ## Authenticated frozen and rate verification (P54B)
 
 Clean verifier **`22736dc5f870413029394106e5545ff64d6f0dc9`** runs on linked clean
@@ -131,7 +310,9 @@ Qualification-only positive tests now run with their feature; a separate default
 case proves preparation rejects before writing any output. No runtime source,
 IDL, financial gate or accepted SBF artifact changes. Clean correction **`9a223a3`** passes 13 ABI cases, five qualified settlement
 cases, two default cases, exact inventory, D90 extension and evidence-policy
-checks. Hosted rerun is pending; broad suites remain delegated to CI.
+checks. All five hosted jobs pass at **`d2f7810`** in
+[run 43058428703](https://github.com/arnabnandikgp/rivalt/actions/runs/43058428703).
+No additional SBF rebuild or signed financial rerun was needed for this test-only correction.
 
 ## Scalable native settlement (P54A)
 

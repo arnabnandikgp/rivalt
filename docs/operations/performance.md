@@ -129,10 +129,17 @@ programs. Establish a measured capacity envelope and explicit cost scenarios.
 
 `node --import tsx tests/performance/inventory.ts` checks the bounded generated
 [inventory](../../tests/performance/baselines/current-locks.json) against all three
-current IDLs: 69 clearing entrypoints and four each for maker A/B. P54B adds
-16 verification-only entrypoints; the retained 61 access sets are unchanged and
-custody still has 20 declared writers. New verification writes target only its
-scratch records and, during allocation, the rent payer. Dynamic limb pages are
+current IDLs: 80 clearing entrypoints and four each for maker A/B. P54B adds
+16 verification-only entrypoints; P54C adds six construction and five financial
+entrypoints. The retained 61 access sets are unchanged; custody still has 20
+declared writers. Verification writes target scratch and the allocation payer.
+P54C adoption writes resolution/plan; Apply writes root/flow/plan and both market
+exposures; distribution writes both market ledgers/plan; Reconcile writes only
+plan; completion writes resolution/safety/plan. All five read custody/vault. Apply
+therefore serializes within an adopted epoch, and shared account reads still
+conflict with external writers. No increased default throughput is claimed. The
+[ten-root measurements](validation.md#conserving-settlement-p54c) include complete
+construction/application costs, rent, packet sizes and actual CU. Dynamic limb pages are
 validated from the derived per-step plan. The inventory includes
 nested/optional/signer roles. Dynamic remaining accounts, fee payer promotion,
 aliases, lookup resolution and batching must additionally be checked from the

@@ -16,7 +16,7 @@ pub(crate) struct FrozenSource<'a> {
     pub actual_vault: u64,
 }
 impl FrozenSource<'_> {
-    pub(crate) fn validate(&self) -> Result<()> {
+    fn identity(&self, stage: u8) -> Result<()> {
         require!(
             cfg!(feature = "liquidity-execution-qualification")
                 && self.venue.schema_version == SCHEMA_VERSION
@@ -31,7 +31,7 @@ impl FrozenSource<'_> {
                 && self.safety.paused
                 && self.source.schema_version == SCHEMA_VERSION
                 && self.source.venue == self.venue_key
-                && self.source.stage == super::super::resolution::VALUE
+                && self.source.stage == stage
                 && self.source.cursor == 0
                 && self.source.revision > 0
                 && self.source.epoch == self.safety.resolution_epoch
@@ -74,19 +74,24 @@ impl FrozenSource<'_> {
                     && usize::from(market.index) == index
                     && market.config_epoch == self.source.config_epochs[index]
                     && market.funding_index_scaled == self.source.funding[index]
-                    && market.gross_lots == self.source.remaining_gross[index]
                     && ledger.schema_version == SCHEMA_VERSION
                     && ledger.venue == self.venue_key
                     && usize::from(ledger.market_index) == index
                     && ledger.market == self.venue.markets[index]
-                    && ledger.settlement == self.source.pools_before[index]
-                    && ledger.insurance == self.source.insurance_before[index]
                     && ledger.fees == self.source.fees_before[index],
                 ClearingError::Resolution
             );
             crate::instructions::account_trading::market_view(market)?;
         }
-        account_custody::reconciled(self.custody, self.ledgers, self.actual_vault)?;
+        Ok(())
+    }
+    pub(crate) fn validate(&self) -> Result<()> {
+        self.identity(super::super::resolution::VALUE)?;
+        self.balances(
+            self.source.remaining_gross,
+            self.source.pools_before,
+            self.source.insurance_before,
+        )?;
         require!(
             self.custody.allocated_vault == self.source.allocated_before
                 && account_custody::accounted_cash(self.custody, self.ledgers)?
@@ -125,11 +130,14 @@ impl FrozenSource<'_> {
     }
     pub(crate) fn matches(&self, header: &PreparedSettlement) -> Result<()> {
         self.validate()?;
+        self.header_matches(header, self.source.revision)
+    }
+    fn header_matches(&self, header: &PreparedSettlement, revision: u64) -> Result<()> {
         require!(
             header.schema_version == SETTLEMENT_SCHEMA
                 && header.venue == self.venue_key
                 && header.source == self.source_key
-                && header.source_revision == self.source.revision
+                && header.source_revision == revision
                 && header.epoch == self.source.epoch
                 && header.registry_revision == self.registry.revision
                 && header.membership_epoch == self.registry.membership_version
@@ -148,5 +156,52 @@ impl FrozenSource<'_> {
             ClearingError::Resolution
         );
         Ok(())
+    }
+    fn balances(&self, gross: [u64; 2], pools: [u64; 2], insurance: [u64; 2]) -> Result<()> {
+        for market in 0..2 {
+            require!(
+                self.markets[market].gross_lots == gross[market]
+                    && self.ledgers[market].settlement == pools[market]
+                    && self.ledgers[market].insurance == insurance[market],
+                ClearingError::Reconciliation
+            );
+        }
+        account_custody::reconciled(self.custody, self.ledgers, self.actual_vault)?;
+        require!(
+            self.custody.allocated_vault == self.source.allocated_before,
+            ClearingError::Reconciliation
+        );
+        Ok(())
+    }
+    /// During paged Apply the original header remains immutable. Only the owned
+    /// plan's authenticated prefix determines how much original exposure remains.
+    pub(crate) fn adopted(
+        &self,
+        header: &PreparedSettlement,
+        plan: &SettlementPlan,
+        gross: [u64; 2],
+        distributed: bool,
+    ) -> Result<()> {
+        self.identity(PAGED_APPLY)?;
+        self.header_matches(header, header.source_revision)?;
+        require!(
+            plan.adoption_revision > 0
+                && plan.adoption_revision == self.source.revision
+                && header.source_revision.checked_add(1) == Some(plan.adoption_revision),
+            ClearingError::Resolution
+        );
+        let mut insurance = header.insurance;
+        if distributed {
+            for market in 0..2 {
+                insurance[market] = insurance[market]
+                    .checked_sub(plan.insurance_spent[market])
+                    .ok_or(ClearingError::Arithmetic)?;
+            }
+        }
+        self.balances(
+            gross,
+            if distributed { [0; 2] } else { header.pools },
+            insurance,
+        )
     }
 }

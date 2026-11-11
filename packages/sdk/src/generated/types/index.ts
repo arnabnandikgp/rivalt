@@ -29,6 +29,7 @@ export * from "./orderAction.js";
 export * from "./orderBook.js";
 export * from "./orderRecord.js";
 export * from "./orderTerms.js";
+export * from "./planCheckpoint.js";
 export * from "./position.js";
 export * from "./preparationState.js";
 export * from "./priceRegion.js";

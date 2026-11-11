@@ -225,3 +225,58 @@ fn page_revision_exhaustion_rejects_before_writes_and_committed_replay_is_stale(
     let window = PageWindow::load(&venue, 19, one_plan(false), &committed, &mut views).unwrap();
     assert_eq!(window.read(7, 256).unwrap(), 41);
 }
+
+#[test]
+fn scalar_registers_authenticate_individual_tail_lengths_and_deny_padding() {
+    let venue = Address::new_unique();
+    let plan = PagePlan::next(
+        [
+            Some(WordAccess {
+                register: 64,
+                limb: 448,
+                writable: true,
+            }),
+            Some(WordAccess {
+                register: 69,
+                limb: 64,
+                writable: false,
+            }),
+            None,
+        ],
+        2104,
+    )
+    .unwrap();
+    let capacities = [459, 65];
+    let mut backing: Vec<_> = [(64, 1, 203), (69, 0, 65)]
+        .into_iter()
+        .map(|(register, index, words)| {
+            let (address, bytes) = page(venue, register, index, words);
+            TestAccount::new(address, crate::ID, &bytes, register == 64, false)
+        })
+        .collect();
+    let mut views: Vec<_> = backing.iter_mut().map(TestAccount::view).collect();
+    assert!(PageWindow::load(&venue, 19, plan, &versions(2), &mut views).is_err());
+    assert!(
+        PageWindow::load_bounded(&venue, 19, plan, &versions(2), &[460, 65], &mut views).is_err()
+    );
+    assert!(
+        PageWindow::load_bounded(&venue, 19, plan, &versions(2), &[459, 66], &mut views).is_err()
+    );
+    let mut window =
+        PageWindow::load_bounded(&venue, 19, plan, &versions(2), &capacities, &mut views).unwrap();
+    window.write(64, 458, 23).unwrap();
+    assert_eq!(window.read(64, 458).unwrap(), 23);
+    assert!(window.read(64, 459).is_err());
+    assert!(window.write(64, 459, 1).is_err());
+    assert!(window.read(69, 65).is_err());
+    assert!(window.write(69, 64, 1).is_err());
+    assert!(!window.covers([
+        Some(WordAccess {
+            register: 64,
+            limb: 459,
+            writable: false
+        }),
+        None,
+        None
+    ]));
+}

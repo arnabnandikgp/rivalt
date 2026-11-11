@@ -20,6 +20,7 @@ pub(crate) struct PageVersion {
 pub(crate) struct PageWindow<'a> {
     accounts: &'a mut [AccountView],
     plan: PagePlan,
+    capacities: [u64; 3],
     dirty: [bool; 3],
 }
 
@@ -31,12 +32,39 @@ impl<'a> PageWindow<'a> {
         versions: &[PageVersion],
         accounts: &'a mut [AccountView],
     ) -> Result<Self> {
+        Self::load_bounded(
+            venue,
+            epoch,
+            plan,
+            versions,
+            &[plan.capacity(); 3][..plan.requests().len()],
+            accounts,
+        )
+    }
+
+    /// Scalar registers have count-derived record capacities rather than wide
+    /// integer widths. The caller derives each capacity from the owned layout.
+    pub(crate) fn load_bounded(
+        venue: &Address,
+        epoch: u64,
+        plan: PagePlan,
+        versions: &[PageVersion],
+        capacities: &[u64],
+        accounts: &'a mut [AccountView],
+    ) -> Result<Self> {
         let requests = plan.requests();
         require!(
-            accounts.len() == requests.len() && versions.len() == requests.len(),
+            accounts.len() == requests.len()
+                && versions.len() == requests.len()
+                && capacities.len() == requests.len()
+                && capacities
+                    .iter()
+                    .all(|capacity| *capacity > 0 && *capacity <= plan.capacity()),
             ClearingError::Resolution
         );
-        for ((account, request), version) in accounts.iter().zip(requests).zip(versions) {
+        for (((account, request), version), capacity) in
+            accounts.iter().zip(requests).zip(versions).zip(capacities)
+        {
             require!(
                 account.owner() == &crate::ID
                     && !account.executable()
@@ -51,8 +79,7 @@ impl<'a> PageWindow<'a> {
                 bytes[..8] == *SettlementLimbPage::DISCRIMINATOR,
                 ClearingError::Resolution
             );
-            let word_count = plan
-                .capacity()
+            let word_count = capacity
                 .checked_sub(
                     request
                         .index
@@ -87,9 +114,12 @@ impl<'a> PageWindow<'a> {
             .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
             require_keys_eq!(*account.address(), expected, ClearingError::Resolution);
         }
+        let mut capacity_limits = [0; 3];
+        capacity_limits[..capacities.len()].copy_from_slice(capacities);
         Ok(Self {
             accounts,
             plan,
+            capacities: capacity_limits,
             dirty: [false; 3],
         })
     }
@@ -98,8 +128,8 @@ impl<'a> PageWindow<'a> {
     /// a partial step or turns a missing page into implicit zero data.
     pub(crate) fn covers(&self, accesses: [Option<WordAccess>; 3]) -> bool {
         accesses.into_iter().flatten().all(|access| {
-            self.plan
-                .permits(access.register, access.limb, access.writable)
+            self.locate(access.register, access.limb, access.writable)
+                .is_ok()
         })
     }
 
@@ -118,6 +148,9 @@ impl<'a> PageWindow<'a> {
             .iter()
             .position(|request| request.register == register && request.index == limb / PAGE_WORDS)
             .ok_or(financial_core::Error::Bounds)?;
+        if limb >= self.capacities[page] {
+            return Err(financial_core::Error::Bounds);
+        }
         Ok((page, LIMB_WORDS_OFFSET + 8 * (limb % PAGE_WORDS) as usize))
     }
 

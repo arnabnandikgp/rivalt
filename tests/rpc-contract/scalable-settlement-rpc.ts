@@ -6,6 +6,9 @@ import {AccountRole,getAddressEncoder,getProgramDerivedAddress,type Address,type
 import * as sdk from '@rivalt/sdk';
 import {getMintToInstruction} from '@solana-program/token';
 import {qualifySettlementRates} from './scalable-settlement-rates-rpc.js';
+import {qualifySettlementApplication} from './scalable-settlement-application-rpc.js';
+import {openSettlementJournal} from './scalable-settlement-journal.js';
+import {qualifySettlementPlan} from './scalable-settlement-plan-rpc.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
@@ -18,6 +21,7 @@ const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(process.
 const u64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const u32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 const gcd=(left:bigint,right:bigint):bigint=>{while(right!==0n)[left,right]=[right,left%right];return left;};
+let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
   const setup=await liquidityExecutionSetup(h,rpc,{verifyRejections:false});
   const {root,guard,route}=executionTestHelpers(h,setup),cross=setup.roots[0],owner=setup.traderOwner;
@@ -34,6 +38,36 @@ try {
   for(const marketIndex of [0,1] as const)await h.send('P54 seed actual market-specific insurance',[
     sdk.getSeedMarketInsuranceInstruction({...setup.common,reserveAuthority:setup.payer,ledger:setup.ledgers[marketIndex],donor:owner,
       donorToken:setup.traderToken.address,quoteMint:setup.mint.address,marketIndex,amount:[2_000_000n,1_000_000n][marketIndex]})],[owner]);
+  if(process.env.RIVALT_SETTLEMENT_APPLY==='1') {
+    const isolated=setup.roots[1];await setup.sample();
+    await h.send('P54C create actual isolated debtor exposure',[await route({trader:isolated,actor:owner,marketIndex:0,side:0,
+      makers:[setup.instances[0]],lots:[50n]})],[owner]);
+    await h.send('P54C isolate debtor cash before adverse prices',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
+      btc:setup.markets[0],eth:setup.markets[1],owner,margin:isolated,quoteMint:setup.mint.address,userToken:setup.traderToken.address,
+      amount:400_000n,guard:await guard(isolated)})],[owner]);
+    const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner.address,0);
+    const [receiver]=await sdk.deriveMarginAccount(portfolio,2);
+    await h.send('P54C register real isolated receiver',[await sdk.getRegisterMarginInstructionAsync({...setup.common,
+      owner,portfolio,margin:receiver,subaccountIndex:2,mode:1,isolatedMarketIndex:1,role:2})],[owner]);
+    await h.send('P54C fund unrelated healthy receiver cash',[await sdk.getDepositAccountInstructionAsync({...setup.common,
+      owner,margin:receiver,quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:1n})],[owner]);
+    const [creditorPortfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner.address,1);
+    await h.send('P54C create cross creditor portfolio',[await sdk.getCreatePortfolioInstructionAsync({...setup.common,owner,portfolio:creditorPortfolio,index:1})],[owner]);
+    const [creditor]=await sdk.deriveMarginAccount(creditorPortfolio,0);
+    await h.send('P54C register cross creditor',[await sdk.getRegisterMarginInstructionAsync({...setup.common,owner,portfolio:creditorPortfolio,
+      margin:creditor,subaccountIndex:0,mode:0,isolatedMarketIndex:255,role:0})],[owner]);
+    await h.send('P54C mint valueless cross creditor funding',[getMintToInstruction({mint:setup.mint.address,
+      token:setup.traderToken.address,mintAuthority:setup.payer,amount:1_000_000n})]);
+    await h.send('P54C deposit cross creditor collateral',[await sdk.getDepositAccountInstructionAsync({...setup.common,owner,margin:creditor,
+      quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:1_000_000n})],[owner]);
+    for(const marketIndex of [0,1] as const) {
+      await setup.sample();
+      await h.send('P54C create real cross creditor position',[await route({trader:creditor,actor:owner,marketIndex,side:1,
+        makers:[setup.instances[marketIndex*3+1]],lots:[25n]})],[owner]);
+    }
+    // Setup already provisions all 32 legacy pages; ten roots reuse that storage.
+    assert(await h.read(setup.pages[4]));
+  }
   setup.sourcePrices.btc=40_000_000_000n;setup.sourcePrices.eth=2_000_000_000n;await setup.fresh();
   const safety=()=>h.read(setup.safety).then(bytes=>sdk.getVenueSafetyDecoder().decode(bytes!));
   const source=()=>h.read(setup.resolution).then(bytes=>sdk.getResolutionDecoder().decode(bytes!));
@@ -46,6 +80,12 @@ try {
   const rows=await Promise.all(roots.map(async key=>{const value=await root(key);return {key,root:value,cash:value.cash,claims:value.positions.map((position,index)=>
     position.lots*frozen.prices[index]*1_000_000_000n+position.virtualScaled-position.lots*(frozen.funding[index]-position.fundingCheckpointScaled))};}));
   assert(rows.some(row=>row.claims.every(claim=>claim<0n)&&row.cash>0n),'must exercise proportional double debt collection');
+  if(process.env.RIVALT_SETTLEMENT_APPLY==='1') {
+    assert(rows.some(row=>row.root.mode===0&&row.claims.every(claim=>claim>0n)),'actual cross creditor');
+    assert(rows.some(row=>row.root.mode===1&&row.claims.some(claim=>claim<0n)),'actual isolated debtor');
+    assert(rows.some(row=>row.root.mode===1&&row.claims.some(claim=>claim>0n)),'actual isolated creditor');
+    assert(rows.some(row=>row.root.role===2&&row.cash===1n&&row.claims.every(claim=>claim===0n)),'protected healthy receiver');
+  }
   const pda=async(label:string,...suffix:Uint8Array[])=> (await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,
     seeds:[Buffer.from(label),getAddressEncoder().encode(setup.venue),...suffix]}))[0];
   const prepared=await pda('prepared-settlement',u64(frozen.epoch));
@@ -127,15 +167,28 @@ try {
   await reject('completed denominator cannot replay',stale);
   const rateResult=await qualifySettlementRates({h,setup,prepared,epoch:frozen.epoch,rows,rowPages,limbPages,tracked,reject,expectedCommon});
   assert.deepEqual(await readAll(financial),financialBefore,'rate verification and insurance planning never mutate financial ownership');
+  const planResult=process.env.RIVALT_SETTLEMENT_PLAN==='1'?await qualifySettlementPlan({h,setup,prepared,rates:rateResult.rates,
+    epoch:frozen.epoch,rows,rowPages,limbPages,tracked,reject}):undefined;
+  assert.deepEqual(await readAll(financial),financialBefore,'construction never mutates financial ownership');
+  let applicationResult,sqlResult;
+  if(process.env.RIVALT_SETTLEMENT_APPLY==='1') {
+    assert(planResult);await flush();
+    journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)));
+    applicationResult=await qualifySettlementApplication({h,setup,prepared,rates:rateResult.rates,plan:planResult.plan,epoch:frozen.epoch,
+      rowPages,rows,expected:planResult.expected,tracked,reject,checkpoint:async name=>{await flush();await journal!.checkpoint(name);}});
+    await flush();sqlResult=await journal.finish();
+  }
+
   await flush();
   const accountKeys=[{name:'settlementRates',key:rateResult.rates},{name:'preparedSettlement',key:prepared},{name:'memberPage',key:memberPage},
-    ...nodes.map(key=>({name:'memberIndexNode',key})),...rowPages.map(key=>({name:'frozenMarginPage',key})),...limbPages.map(key=>({name:'settlementLimbPage',key}))]
+    ...nodes.map(key=>({name:'memberIndexNode',key})),...rowPages.map(key=>({name:'frozenMarginPage',key})),...limbPages.map(key=>({name:'settlementLimbPage',key})),
+    ...(planResult?[{name:'settlementPlan',key:planResult.plan},...planResult.extras.map(key=>({name:'settlementLimbPage',key}))]:[])]
     .map(entry=>({program:sdk.CLEARING_PROGRAM_ADDRESS,...entry}));
   const parity=await conformance.finish(directory,accountKeys,h.read);
   const rent=await Promise.all(accountKeys.map(async entry=>({name:entry.name,key:entry.key,lamports:String((await rpc.call('getAccountInfo',[entry.key,{encoding:'base64',commitment:'finalized'}])).value.lamports)})));
   const result={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     build:JSON.parse(readFileSync(`${process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR}/build-manifest.json`,'utf8')),checks,parity,rent,
-    count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),rateResult,limitations:['source bridge <=64','no Apply or expanded trading','no PostgreSQL replay in this verification-only probe']};
+    count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),rateResult,planResult,applicationResult,sqlResult,limitations:applicationResult?['source bridge <=64','no expanded trading','internal makers and synthetic prices','candidate-specific SQL harness; normal runtime allowlist unchanged']:['source bridge <=64','no Apply or expanded trading','no PostgreSQL replay in this verification-only probe']};
   writeFileSync(`${directory}/result.json`,serialize(result));console.log(serialize({checks:checks.length,continuations,rateContinuations:rateResult.continuations,rateEvaluations:rateResult.reference.evaluations.length,common:expectedCommon,parity}));
-}finally{await flush();await ws.close();}
+}finally{await journal?.close();await flush();await ws.close();}

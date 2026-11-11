@@ -96,7 +96,18 @@ pub struct RateResult {
     pub residuals: [Magnitude; 2],
     pub losses: [Magnitude; 2],
 }
-fn factor(words: &[u64]) -> Operation {
+/// Exact values exposed only after a complete integral insurance evaluation.
+/// The program still authenticates the original-budget round history and pages.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct VerifiedRateValues {
+    pub(crate) count: u64,
+    pub(crate) common: Magnitude,
+    pub(crate) rates: [Magnitude; 2],
+    pub(crate) rate_denominator: Magnitude,
+    pub(crate) cash_denominator: Magnitude,
+    pub(crate) factor: [u64; 5],
+}
+pub(super) fn factor(words: &[u64]) -> Operation {
     let mut values = [0; 5];
     values[..words.len()].copy_from_slice(words);
     let length = words
@@ -108,7 +119,7 @@ fn factor(words: &[u64]) -> Operation {
         length,
     }
 }
-fn scalar(value: u128) -> [u64; 2] {
+pub(super) fn scalar(value: u128) -> [u64; 2] {
     [value as u64, (value >> 64) as u64]
 }
 fn product(left: ClaimTotal, right: ClaimTotal) -> Result<[u64; 6]> {
@@ -459,6 +470,19 @@ impl RateWork {
             fractional: self.fractional,
             residuals: [self.value(19), self.value(20)],
             losses: [self.value(21), self.value(22)],
+        })
+    }
+    pub fn verified_values(&self) -> Result<VerifiedRateValues> {
+        if !self.is_done() || self.fractional.iter().any(|fraction| *fraction) {
+            return Err(Error::Bounds);
+        }
+        Ok(VerifiedRateValues {
+            count: self.input.count,
+            common: self.input.common,
+            rates: [self.value(3), self.value(4)],
+            rate_denominator: self.value(5),
+            cash_denominator: self.value(6),
+            factor: self.input.factor,
         })
     }
     pub fn accesses(&self) -> Result<[Option<WordAccess>; 3]> {

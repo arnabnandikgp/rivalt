@@ -4,8 +4,9 @@
 
 This section specifies the selected **native successor kernel**, not the
 implemented schema-8 default path documented below. P54B now qualifies authenticated
-bounded SBF valuation/rate continuations. P54C still owns conserving rounding and
-application; P56B owns expanded local activation. See the
+bounded SBF valuation/rate continuations. P54C qualifies conserving rounding and
+application through the existing-size source bridge; P56B owns expanded local
+activation. See the
 [account contract](accounts.md#account-scale-successor-contract-p51b) for membership,
 authority and deployment. No payer, keeper or off-chain solver becomes trusted.
 
@@ -263,6 +264,78 @@ Metadata-only steps use an empty remaining-account plan, which permits no physic
 word. Mathematical rejection is recorded separately from guard failures. Actual
 signed rate/recovery/resource acceptance is recorded in [validation](../operations/validation.md#authenticated-frozen-and-rate-verification-p54b). Current schema-8 financial accounts, selected binaries and
 enabled capacity are unchanged. This is verification-only acceptance, not complete on-chain settlement.
+
+### Persisted flow and graph primitives (P54C)
+
+`scalable::flow_work` consumes a completed, integral-insurance rate evaluation and
+an authenticated frozen row. Its 768-byte checkpoint derives both exact market
+payments and cash, checks retained uncollected cash, derives three atom floors,
+retains exact fractional remainders and orders them descending with kind as the
+stable tie-break. It preserves all verified rate registers and uses only fixed
+scratch registers 25–40; each word step declares at most three accesses. A
+fractional insurance evaluation cannot authorize this flow work. The owner must
+also authenticate the complete insurance-round history; a native result type is
+not on-chain authority.
+
+`scalable::active_work` persists each word of the ordered active hierarchy in a
+64-byte checkpoint, with at most eleven update or 21 successor steps even at the
+u64 address boundary. `scalable::graph_work` persists canonical DFS, path minimum,
+residual updates and complete edge/node audit in 352 bytes. Each transition declares
+at most three scalar records and performs at most four record accesses. Following
+parent arcs replaces the native path vector without changing visitation order.
+Generation marks avoid population-sized clearing after each augmentation. Active
+index updates occur before search resumes; an interrupted pair update cannot make
+an unfinished graph available for Apply.
+
+`scalable::order_work` verifies exact positive-claim remainders and stable-ID
+ties in a 576-byte checkpoint, using scratch registers 41–45. The owner must also
+prove the complete permutation with authenticated per-root attempt/seen markers;
+counting accepted arithmetic rows alone is not a membership proof. Rejected numeric
+order is explicit and never enables construction.
+
+`scalable::graph_build` constructs every edge, balance and adjacency from verified
+flow floors and complete canonical order in a 384-byte checkpoint. It clears the
+used active hierarchy before populating it, overwrites every readable graph record
+and derives all auxiliary capacities; no uploaded edge is accepted. Each step
+accesses at most two records and performs at most three reads/writes. Native
+transport compares every constructed node/arc/adjacency with the retained canonical
+model before independently checking final atom owners. This native comparison is
+not a signed on-chain construction proof. Checkpoint codecs validate structure, exact bindings
+and nested operation types, but cannot authenticate caller-provided progress.
+D99 specifies exclusive plan adoption and recoverable order attempts. The current
+program controller now authenticates the frozen source, completed rate/insurance
+history and canonical scalar pages. It derives each flow in ordinal order, then
+accepts exactly one occurrence of every frozen ordinal in each market order using
+per-root attempt/seen markers. Exact positive remainders and stable-ID ties are
+checked before constructing the graph. Attempts cannot overwrite completed rate
+pages. Invalid order records Rejected; malformed account/epoch/revision access
+fails atomically. Only the order proposer supplies permutation rows; anyone may
+continue arithmetic. Proposer cancellation or 64-slot stalled/rejected recovery
+restarts ordering, retaining original floors and insurance. There is no heartbeat.
+
+Both complete permutations advance irreversibly to deterministic construction and
+audited circulation. Ready means that verification finished, **not** payout
+authority. All six new entrypoints keep the original financial accounts read-only.
+The separate financial instructions below own adoption, exactly-once application
+and reconciliation. Construction alone never grants payout authority. The selected
+runtime and expanded-population gate remain unchanged.
+
+Application primitives now retain a 368-byte complete-cohort scan: original cash,
+lots/gross and three-word positive/negative claims remain separate from applied
+cash and signed market movements. Each row checks canonical ordinal/ID, verified
+fractional increments, exact cash conservation and retained uncollected cash.
+Completion requires all original obligations plus market movements exactly equal
+to their own pool/insurance supply. Partial live balances are never substituted
+for that original scan. Structural checkpoint validity alone supplies no authority.
+
+The root helper rechecks actual whole-account funding/claims and original revision,
+clears positions/reservations/orders/delegation, preserves both order and protective
+group IDs, advances generations/nonces and leaves an isolated forbidden slot zero.
+It prepares a private candidate before committing any root mutation. Reconciliation
+checks the next scoped revision, frozen funding endpoints, exact generations and
+all dormant book bytes. The public financial instructions below use these helpers
+after authenticating the adopted source, canonical frozen ordinal, original root
+revision and verified scalar/graph pages.
 
 ### Frozen work, completion and adversarial proposals
 
@@ -855,3 +928,43 @@ stages allow one/two rows without crossing a two-row storage page. Default heap 
 32 KiB; bounded wide scratch must not be copied onto the 4,096-byte SBF stack.
 See [validation](../operations/validation.md) for measured full-context limits and
 the distinction between actual financial lifecycles and resource-only scratch cases.
+
+### Exclusive paged application (P54C)
+
+The source now exposes five local-qualified instructions: `adopt_settlement_plan`,
+`apply_settlement_margin`, `complete_settlement_application`,
+`reconcile_settlement_margin` and `complete_settlement_plan`. Their presence in the
+IDL alone is not deployment acceptance. Signed payout/recovery/SQL qualification
+is recorded in [validation](../operations/validation.md#conserving-settlement-p54c).
+This separately pinned local candidate does not replace the selected P53B runtime;
+default/devnet and expanded population remain disabled.
+
+Adoption requires the complete audited graph and exact original source revision.
+It atomically moves the legacy source to PagedApply (14) and records its next
+scoped revision in the child plan. The source then stays read-only until final
+completion. Its original totals are not mixed with modified roots. Old solver,
+proposal and graph writers reject the adopted stage; continuation has no timeout
+or fallback to a competing plan.
+
+Plan stages 9/10/11/12 are Apply/Reconcile/Reconciled/Complete. Apply consumes one
+canonical frozen ordinal, its fixed flow page and at most three read-only graph
+pages; the reverse capacities supply the three atom increments. It checks the
+actual original root and updates root, flow applied bit, plan prefix and both
+remaining market exposures atomically. Original cash remaining, applied cash and
+market movements are explicit; the persisted scan retains wide positive/negative
+claim totals. Both order and protection IDs remain monotone, while executable
+orders, reservations and delegates clear and generations/nonces advance once.
+
+Only `complete_settlement_application` may debit both markets' settlement and
+verified insurance expenditure, after all original and final conservation
+identities hold. Fees and unused insurance stay untouched. A separate full root
+reconciliation verifies every payout, cleared obligation and generation. Final
+completion checks the actual vault and populates the legacy Complete header,
+allowing the unchanged source-recovery and owner-resume procedure. None of this
+admits more than the existing 64 financial members; P55/P56 own that change.
+
+Financial events `SettlementMarginApplied` and `SettlementPlanProgress` use u64
+ordinals/IDs and explicit plan stages. The indexer checks frozen/applied records
+and reconciles partial application without counting frozen and live cash twice.
+The candidate-specific signed harness verifies token exits and fresh PostgreSQL
+replay; normal runtime promotion remains a separate gated change.

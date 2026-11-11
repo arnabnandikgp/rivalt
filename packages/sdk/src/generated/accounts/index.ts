@@ -25,6 +25,7 @@ export * from "./resolutionWork.js";
 export * from "./retirementCertificate.js";
 export * from "./settlementCertificate.js";
 export * from "./settlementLimbPage.js";
+export * from "./settlementPlan.js";
 export * from "./settlementRates.js";
 export * from "./venue.js";
 export * from "./venueRegistry.js";

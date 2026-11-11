@@ -1,5 +1,7 @@
 //! Compact canonical residual circulation, with bounded resumable graph steps.
 //! Scalar storage is O(N); wide remainders are reconstructed for order checks.
+pub mod paged;
+
 use super::{
     active::Active,
     number::{zeroed, Arithmetic, Number},

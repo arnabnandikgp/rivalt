@@ -67,7 +67,28 @@ pub struct SnapshotTotals {
     pub positive: [ClaimTotal; 2],
     pub negative: [ClaimTotal; 2],
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SnapshotProgress {
+    pub processed: u64,
+    pub cash: u64,
+    pub gross: [u64; 2],
+    pub lots: [i128; 2],
+    pub positive: [ClaimTotal; 2],
+    pub negative: [ClaimTotal; 2],
+}
 impl SnapshotScan {
+    /// A prefix is bookkeeping only; result() still requires the complete
+    /// cohort and all conservation identities before authorizing completion.
+    pub fn progress(&self) -> SnapshotProgress {
+        SnapshotProgress {
+            processed: self.processed,
+            cash: self.cash,
+            gross: self.gross,
+            lots: self.lots,
+            positive: self.positive,
+            negative: self.negative,
+        }
+    }
     pub fn new(binding: SnapshotBinding) -> Result<Self> {
         if binding.count == 0
             || binding.allocated > MAX_CASH

@@ -2,13 +2,13 @@
 import json
 import sys
 from fractions import Fraction
-from clearing_network_reference import clear_rational_cohort
+from clearing_network_reference import clear_rational_cohort, clear_atom_cohort
 from test_scalable_settlement import independent_input
 
 source = json.load(sys.stdin)
 rows = tuple((int(row['cash']), tuple(map(int, row['claims']))) for row in source['rows'])
 pools, insurance = tuple(map(int, source['pools'])), tuple(map(int, source['insurance']))
-accounts, common, proposals, _ = independent_input(rows, pools, insurance)
+accounts, common, proposals, orders = independent_input(rows, pools, insurance)
 budgets, results = list(insurance), []
 for proposal in proposals:
     oracle = clear_rational_cohort(accounts, pools, tuple(budgets), whole_cash_collection=True)
@@ -32,4 +32,23 @@ for proposal in proposals:
     for market, spent in enumerate(oracle.insurance_spent):
         if spent.denominator != 1:
             budgets[market] = int(spent)
-json.dump({'common': str(common), 'evaluations': results}, sys.stdout)
+atoms = clear_atom_cohort(accounts, pools, insurance)
+benchmark = atoms.benchmark
+flows = []
+for index, account in enumerate(accounts):
+    payments = []
+    for market, claim in enumerate(account.claims):
+        if claim > 0:
+            payments.append(claim * benchmark.rates[market])
+        else:
+            payments.append(benchmark.collections[index][market] + sum(
+                payment for link, payment in zip(benchmark.links, benchmark.link_payments)
+                if link.account_index == index and link.destination_market == market))
+    flows.append((*payments, benchmark.cash_entitlements[index]))
+json.dump({'common': str(common), 'evaluations': results,
+           'plan': {'orders': [[str(value) for value in order] for order in orders],
+                    'cash': list(map(str, atoms.cash)),
+                    'movements': [list(map(str, row)) for row in atoms.claim_cash_movements],
+                    'floors': [[str(int(value)) for value in row] for row in flows],
+                    'fractions': [[value.denominator != 1 for value in row] for row in flows],
+                    'localOrders': [sorted(range(3), key=lambda kind: (-(row[kind] % 1), kind)) for row in flows]}}, sys.stdout)

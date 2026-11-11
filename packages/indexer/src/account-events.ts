@@ -6,6 +6,8 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['SettlementPlanProgress', sdk.SETTLEMENT_PLAN_PROGRESS_EVENT_DISCRIMINATOR, sdk.getSettlementPlanProgressEventDecoder()],
+  ['SettlementMarginApplied', sdk.SETTLEMENT_MARGIN_APPLIED_EVENT_DISCRIMINATOR, sdk.getSettlementMarginAppliedEventDecoder()],
   ['LiquidityRegistryChangedV4', sdk.LIQUIDITY_REGISTRY_CHANGED_EVENT_DISCRIMINATOR, sdk.getLiquidityRegistryChangedEventDecoder()],
   ['LiquidityMakerChangedV4', sdk.LIQUIDITY_MAKER_CHANGED_EVENT_DISCRIMINATOR, sdk.getLiquidityMakerChangedEventDecoder()],
   ['FundingPublisherChangedV4', sdk.FUNDING_PUBLISHER_CHANGED_EVENT_DISCRIMINATOR, sdk.getFundingPublisherChangedEventDecoder()],

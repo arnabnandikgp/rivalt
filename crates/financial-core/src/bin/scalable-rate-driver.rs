@@ -3,7 +3,9 @@ use financial_core::{
     clearing::{
         row::Row,
         scalable::{
+            flow_work::FlowWork,
             normalized::Magnitude,
+            order_work::OrderWork,
             pages::PagePlan,
             rate_work::{RateInput, RateWork},
             snapshot::ClaimTotal,
@@ -102,7 +104,9 @@ fn hex(store: &Store, value: Magnitude) -> String {
 }
 fn execute(text: &str) -> Result<String> {
     let fields: Vec<_> = text.split('|').collect();
-    if fields.len() != 7 || fields[0] != "rates" {
+    if !["rates", "flows", "orders"].contains(&fields[0])
+        || fields.len() != if fields[0] == "orders" { 8 } else { 7 }
+    {
         return Err(Error::Bounds);
     }
     let rows = fields[1]
@@ -163,7 +167,16 @@ fn execute(text: &str) -> Result<String> {
         budgets,
     };
     let mut store = Store {
-        words: vec![vec![u64::MAX; capacity as usize]; 25],
+        words: vec![
+            vec![u64::MAX; capacity as usize];
+            if fields[0] == "flows" {
+                41
+            } else if fields[0] == "orders" {
+                46
+            } else {
+                25
+            }
+        ],
         allowed: [None; 3],
         accesses: std::cell::Cell::new(0),
     };
@@ -238,6 +251,105 @@ fn execute(text: &str) -> Result<String> {
         || work.step(&mut store).is_ok()
     {
         return Err(Error::Invariant);
+    }
+    if fields[0] == "orders" {
+        let binding = work.verified_values()?;
+        let orders: Vec<_> = fields[7].split(':').collect();
+        if orders.len() != 2 {
+            return Err(Error::Bounds);
+        }
+        let mut steps = 0u64;
+        for (market, sequence) in orders.into_iter().enumerate() {
+            let mut order = OrderWork::new(binding, market)?;
+            // Native permutation transport only. The program must replace this
+            // vector with epoch/attempt-authenticated per-root seen markers.
+            let mut seen = vec![false; rows.len()];
+            for ordinal in sequence.split(',').map(decimal::<usize>) {
+                let ordinal = ordinal?;
+                let marked = seen.get_mut(ordinal).ok_or(Error::Bounds)?;
+                if *marked {
+                    return Err(Error::Invariant);
+                }
+                *marked = true;
+                order.accept(
+                    ordinal as u64,
+                    ordinal as u64 * 2,
+                    rows[ordinal].claims[market],
+                )?;
+                while !order.is_done() && !order.is_rejected() && order.position().is_err() {
+                    for _ in 0..budget {
+                        if order.is_done() || order.is_rejected() || order.position().is_ok() {
+                            break;
+                        }
+                        store.allowed = order.accesses()?;
+                        let before = store.accesses.get();
+                        order.step(&mut store)?;
+                        if store.accesses.get() - before > 3 {
+                            return Err(Error::Invariant);
+                        }
+                        steps += 1;
+                    }
+                    order = OrderWork::from_checkpoint(&order.checkpoint(), binding, market)?;
+                }
+                if order.is_rejected() {
+                    return Err(Error::Invariant);
+                }
+                order = OrderWork::from_checkpoint(&order.checkpoint(), binding, market)?;
+            }
+            if !order.is_done()
+                || seen.iter().any(|marked| !*marked)
+                || order.step(&mut store).is_ok()
+                || order.accept(0, 0, 0).is_ok()
+            {
+                return Err(Error::Invariant);
+            }
+        }
+        return Ok(format!("orders|{steps}"));
+    }
+    if fields[0] == "flows" {
+        let binding = work.verified_values()?;
+        let mut outcomes = Vec::new();
+        for (ordinal, row) in rows.iter().enumerate() {
+            let mut flow = FlowWork::new(binding, ordinal as u64, ordinal as u64 * 2, *row)?;
+            if flow.result().is_ok() {
+                return Err(Error::Invariant);
+            }
+            let mut flow_steps = 0;
+            while !flow.is_done() {
+                for _ in 0..budget {
+                    if flow.is_done() {
+                        break;
+                    }
+                    store.allowed = flow.accesses()?;
+                    let before = store.accesses.get();
+                    flow.step(&mut store)?;
+                    if store.accesses.get() - before > 3 {
+                        return Err(Error::Invariant);
+                    }
+                    flow_steps += 1;
+                }
+                flow = FlowWork::from_checkpoint(&flow.checkpoint(), binding)?;
+            }
+            let result = flow.result()?;
+            if flow.step(&mut store).is_ok()
+                || flow.identity() != (ordinal as u64, ordinal as u64 * 2)
+            {
+                return Err(Error::Invariant);
+            }
+            outcomes.push(format!(
+                "{}|{}|{}|{}|{}|{}",
+                result.whole.map(|value| value.to_string()).join(","),
+                result
+                    .fractional
+                    .map(|value| u8::from(value).to_string())
+                    .join(","),
+                result.flows.map(|value| hex(&store, value)).join(","),
+                result.remainders.map(|value| hex(&store, value)).join(","),
+                result.order.map(|value| value.to_string()).join(","),
+                flow_steps
+            ));
+        }
+        return Ok(outcomes.join(";"));
     }
     let result = work.result()?;
     Ok(format!(
