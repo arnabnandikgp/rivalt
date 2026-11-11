@@ -131,7 +131,9 @@ def check_domains():
                     'global:quote_v4': 'global:quote_curve'}
     expected['rust_byte_literals'] = sorted(set(replacements.get(item, item)
                                             for item in expected['rust_byte_literals']) | set(DOMAINS) | DOMAINS_ADDED)
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) - DOMAINS_REMOVED)
+    # P55B1 adds a native arithmetic-checkpoint domain only. No Anchor account,
+    # PDA seed, signed transaction domain or instruction changes in this phase.
+    expected['rust_byte_literals'] = sorted((set(expected['rust_byte_literals']) - DOMAINS_REMOVED) | {'RVBACK01'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 

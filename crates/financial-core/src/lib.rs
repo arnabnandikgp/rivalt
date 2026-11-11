@@ -2,6 +2,7 @@
 //! All quote amounts are atoms unless named `scaled`.
 //! No runtime, oracle, token, or authority assumptions are supplied by this crate.
 pub mod clearing;
+pub mod backing;
 pub mod liquidation;
 pub mod liquidity;
 pub mod margin;
