@@ -1,5 +1,26 @@
 # Validation and measured limits
 
+## Scalable arithmetic checkpoint (P54A, incomplete)
+
+Clean **`47ba74e36c03379560e7ed2eba6392b212c91deb`** builds the native
+`scalable-wide-driver` and passes four focused tests against independent Python
+integers/Fractions: **1,338** resumable arithmetic cases, **462** exact LCM
+extensions and **305** reduced collection rows, plus rejected domains. Resume
+budgets 1/7/128 agree; cases cross the inherited 96-limb size and reach 13,757
+words. Dirty scratch tails are cleared before widening. Each step touches at most
+three words; LCM work follows used input width rather than allocated capacity.
+The affected source format, Python compilation, shell and evidence checks pass.
+The optional whole-workspace format check detects pre-existing formatting outside
+this change; no unrelated files were reformatted.
+
+Reproduce with `cargo build --locked -p financial-core --bin scalable-wide-driver`
+and `python3 tests/financial/test_scalable_wide.py`; the scoped suite joins financial
+CI. This is native arithmetic only. Full cohort rate/insurance verification,
+conserving rounding, practical population completion and P54B's authenticated SBF
+pages are unfinished. No new selected program, runtime transaction, account
+capacity, financial activation or complete P54A PR is qualified by this checkpoint.
+
+
 ## Numeric-bound price policy (P53B)
 
 G5 approval on 11 November selects policy 2: reference/trigger 2–909,090 and

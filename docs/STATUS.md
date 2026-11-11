@@ -221,11 +221,13 @@ and used-width LCM continuation. Population determines capacity; each step touch
 at most three words and no population-sized stack or heap value. No program handler, account layout, selected
 artifact or account-count activation changes. The native driver is only a test seam.
 
-Clean `2f9cb37` passed 1,338 independent Python-integer arithmetic comparisons,
-including overflow/underflow, 1/7/128-step resume budgets, the 96-to-97-limb crossing
-and 13,757-word storage. The extended working tree also passes 462 resumable LCM
-comparisons and 305 collection splits against exact independent Fractions; its clean
-pin is next. Full-cohort rate/insurance equations, exact compact rounding and scaled
+Clean **`47ba74e36c03379560e7ed2eba6392b212c91deb`** passes four focused native
+tests: 1,338 independent Python-integer arithmetic comparisons, 462 resumable LCM
+comparisons and 305 collection splits against exact independent Fractions. They
+cover overflow/underflow, 1/7/128-step resume budgets, the 96-to-97-limb crossing,
+13,757-word storage, stale scratch tails and factor/divisor edges. Scoped formatting,
+Python compilation, shell syntax and evidence checks pass. No P54A PR is opened
+before the cohesive kernel is complete. Full-cohort rate/insurance equations, exact compact rounding and scaled
 completion remain unfinished. No SBF/RPC or full settlement acceptance is inferred.
 Next exact action: implement and independently verify P54A's cohort totals, exact
 rate/flow equations and conserving rounding on these primitives.
