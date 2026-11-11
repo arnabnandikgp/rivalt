@@ -181,6 +181,118 @@ pub mod clearing {
             },
         )
     }
+    pub fn initialize_settlement_rates(
+        ctx: &mut Context<InitializeSettlementRates>,
+        epoch: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [111, 229, 223, 253, 40, 130, 51, 68],
+            false,
+            |ctx, _events| account_safety::settlement::initialize_rates(ctx, epoch),
+        )
+    }
+    pub fn begin_settlement_rate_proposal(
+        ctx: &mut Context<ManageSettlementProposal>,
+        epoch: u64,
+        revision: u64,
+        factor: [u64; 5],
+        lengths: [u64; 2],
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [82, 130, 146, 1, 163, 208, 99, 54],
+            false,
+            |ctx, _events| {
+                account_safety::settlement::begin_rate_proposal(
+                    ctx, epoch, revision, factor, lengths,
+                )
+            },
+        )
+    }
+    pub fn reset_settlement_rate_proposal(
+        ctx: &mut Context<ManageSettlementProposal>,
+        epoch: u64,
+        revision: u64,
+        attempt: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [100, 110, 122, 83, 178, 173, 210, 0],
+            false,
+            |ctx, _events| {
+                account_safety::settlement::reset_rate_proposal(ctx, epoch, revision, attempt)
+            },
+        )
+    }
+    pub fn upload_settlement_rate(
+        ctx: &mut Context<UploadSettlementRate>,
+        epoch: u64,
+        revision: u64,
+        attempt: u64,
+        market: u8,
+        offset: u64,
+        words: Vec<u64>,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [115, 149, 43, 139, 252, 51, 233, 88],
+            false,
+            |ctx, _events| {
+                account_safety::settlement::upload_rate(
+                    ctx, epoch, revision, attempt, market, offset, words,
+                )
+            },
+        )
+    }
+    pub fn prepare_settlement_rate_scratch(
+        ctx: &mut Context<PrepareRateScratch>,
+        epoch: u64,
+        attempt: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [93, 27, 78, 189, 224, 59, 107, 168],
+            false,
+            |ctx, _events| account_safety::settlement::prepare_rate_scratch(ctx, epoch, attempt),
+        )
+    }
+    pub fn accept_settlement_rate_row(
+        ctx: &mut Context<AcceptSettlementRateRow>,
+        epoch: u64,
+        revision: u64,
+        attempt: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [47, 66, 6, 235, 35, 105, 132, 193],
+            false,
+            |ctx, _events| {
+                account_safety::settlement::accept_rate_row(ctx, epoch, revision, attempt)
+            },
+        )
+    }
+    pub fn continue_settlement_rates(
+        ctx: &mut Context<ContinueSettlementRates>,
+        epoch: u64,
+        revision: u64,
+        attempt: u64,
+        steps: u16,
+        revisions: [u64; 3],
+    ) -> Result<()> {
+        let plan =
+            account_safety::settlement::rate_plan(&ctx.accounts.prepared, &ctx.accounts.rates)?;
+        scoped_history::run_pages(
+            ctx,
+            [183, 223, 168, 83, 201, 143, 99, 138],
+            plan,
+            |ctx, _events| {
+                account_safety::settlement::continue_rates(
+                    ctx, epoch, revision, attempt, steps, revisions,
+                )
+            },
+        )
+    }
     pub fn activate_liquidity(ctx: &mut Context<ActivateAccounts>) -> Result<()> {
         scoped_history::run(
             ctx,

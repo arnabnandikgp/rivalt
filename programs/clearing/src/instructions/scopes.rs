@@ -710,3 +710,102 @@ context!(ContinueSettlementDenominator, source.venue, event_authority;
     prepared: Write,
 ];
 []);
+
+context!(InitializeSettlementRates, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Create,
+];
+[]);
+
+context!(ManageSettlementProposal, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Write,
+];
+[]);
+
+context!(UploadSettlementRate, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Write,
+    page: Write,
+];
+[]);
+
+context!(PrepareRateScratch, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    page: Write,
+];
+[]);
+
+context!(AcceptSettlementRateRow, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Write,
+    page: Read,
+];
+[]);
+
+context!(ContinueSettlementRates, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Write,
+];
+[]);

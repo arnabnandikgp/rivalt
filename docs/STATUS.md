@@ -20,7 +20,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
-| P54B authenticated frozen/rate work | In progress — inactive | Signed frozen-source valuation/denominator prefix acceptance passes at `ce146e0` / SBF `38fc788`; rate/proposal/reset verification and complete phase acceptance remain |
+| P54B authenticated frozen/rate work | In progress — inactive | Signed frozen-source valuation/denominator prefix acceptance passes at `ce146e0` / SBF `38fc788`; native rate equations pass at `f1cd4a7`; public proposal/recovery is implemented, signed rate/resource acceptance remains |
 | P54C–P62 successor implementation | Planned | Conserving on-chain application, membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -314,10 +314,15 @@ Pinned SBF metadata/format/policy checks pass. No new on-chain consumer or linke
 program is inferred. Next exact action: implement the authenticated complete-rate
 schedule and proposal/reset handlers without exposing Apply. The complete bounded
 rate schedule and insurance-round controller are now implemented in source.
-Development checks pass 1,185 independent persisted evaluations (including every
-row prefix), 74 hostile proposals and three checkpoint/order/clipping tests.
-These are native results, not new signed program acceptance. The public proposal,
-normalization and recovery handlers remain the exact next action.
+Clean `f1cd4a7` passes 1,185 independent persisted evaluations (including every
+row prefix), 74 hostile proposals, three checkpoint/order/clipping tests and
+pinned SBF metadata compilation. Public proposal, normalization, rate and recovery
+handlers are now implemented; development checks pass five source/layout tests,
+eight scope tests and two page-plan tests. The linked development SBF has no stack
+diagnostics and the literal ABI extension passes. These are not signed rate
+acceptance. Next exact action: pin this candidate, execute actual signed
+rate/clipping/recovery acceptance, and compare all observed prefixes with the
+independent rational reference. No P54B PR or runtime promotion is claimed.
 
 ## Integrated quantity work
 

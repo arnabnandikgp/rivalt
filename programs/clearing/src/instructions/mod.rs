@@ -243,3 +243,33 @@ pub use account_safety::settlement::InitializePreparedSettlement;
 pub use account_safety::settlement::InitializeSettlementLimbPage;
 pub use account_safety::settlement::PreparedSourceIdentity;
 pub use account_safety::settlement::ValuePreparedMember;
+
+pub(crate) use account_safety::settlement::__client_accounts_initializesettlementrates;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_initializesettlementrates;
+pub use account_safety::settlement::InitializeSettlementRates;
+
+pub(crate) use account_safety::settlement::__client_accounts_managesettlementproposal;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_managesettlementproposal;
+pub use account_safety::settlement::ManageSettlementProposal;
+
+pub(crate) use account_safety::settlement::__client_accounts_uploadsettlementrate;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_uploadsettlementrate;
+pub use account_safety::settlement::UploadSettlementRate;
+
+pub(crate) use account_safety::settlement::__client_accounts_prepareratescratch;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_prepareratescratch;
+pub use account_safety::settlement::PrepareRateScratch;
+
+pub(crate) use account_safety::settlement::__client_accounts_acceptsettlementraterow;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_acceptsettlementraterow;
+pub use account_safety::settlement::AcceptSettlementRateRow;
+
+pub(crate) use account_safety::settlement::__client_accounts_continuesettlementrates;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_continuesettlementrates;
+pub use account_safety::settlement::ContinueSettlementRates;

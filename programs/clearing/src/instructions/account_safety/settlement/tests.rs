@@ -398,3 +398,39 @@ fn prepared_and_frozen_row_layout_offsets_are_literal() {
     assert_eq!(&bytes[163..179], &(-8_750_000_000i128).to_le_bytes());
     assert_eq!(&bytes[195..203], &3u64.to_le_bytes());
 }
+
+#[test]
+fn rate_proposal_layout_separates_attempt_budget_and_word_progress() {
+    let mut rates = SettlementRates {
+        schema_version: 9,
+        revision: 7,
+        epoch: 3,
+        attempt: 11,
+        stage: 2,
+        last_progress_slot: 99,
+        factor: [13, 0, 0, 0, 0],
+        lengths: [2, 3],
+        uploaded: [2, 1],
+        ..Default::default()
+    };
+    rates.state.insurance =
+        financial_core::clearing::scalable::insurance_rounds::InsuranceRounds::new([17, 19])
+            .unwrap()
+            .checkpoint();
+    let mut bytes = Vec::new();
+    crate::wire::write_discriminated(&rates, &mut bytes).unwrap();
+    assert_eq!(bytes.len(), 1204);
+    assert_eq!(8 + SettlementRates::INIT_SPACE, 1204);
+    assert_eq!(
+        &bytes[..8],
+        &solana_sha256_hasher::hash(b"account:SettlementRates").to_bytes()[..8]
+    );
+    assert_eq!(&bytes[58..66], &11u64.to_le_bytes());
+    assert_eq!(bytes[66], 2);
+    assert_eq!(&bytes[99..107], &99u64.to_le_bytes());
+    assert_eq!(&bytes[107..115], &13u64.to_le_bytes());
+    assert_eq!(&bytes[147..155], &2u64.to_le_bytes());
+    assert_eq!(&bytes[171..179], &1u64.to_le_bytes());
+    assert_eq!(&bytes[179..243], &rates.state.insurance);
+    assert_eq!(&bytes[243..1203], &[0; 960]);
+}

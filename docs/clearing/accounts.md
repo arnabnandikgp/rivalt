@@ -200,10 +200,36 @@ revision-guarded denominator calls consume frozen rows and perform 1–128 word
 steps with at most three exactly ordered limb pages. Registers 0/1 alternate the
 common denominator; register 2 is scratch and attempt is 0. Missing next pages
 end the current bounded call; they cannot supply implicit zero data. The final
-stage is Proposal, with no implemented path from this controller to Apply.
+denominator stage is Proposal. `SettlementRates` then controls untrusted upload,
+rate verification and insurance clipping; no path from this controller permits Apply.
 
-Scoped history kinds 17–21 are PreparedSettlement, FrozenMarginPage,
-MemberIndexNode, MemberPage and SettlementLimbPage. Their schema is 9; all existing
+`SettlementRates` uses schema 9 and **1,204 bytes**, seeds `settlement-rates`, venue
+and epoch LE-u64. Prefix/epoch end at 58; attempt at 66; stage at 67; proposer at
+99; last progress slot at 107; five-word factor at 147; numerator lengths at 163;
+uploaded word counts at 179; insurance checkpoint at 243; rate checkpoint at 1203;
+then bump. Stages are Await=0, Upload=1, Verify=2, Rejected=3 and Verified=4.
+The original frozen insurance and completed rounds remain separate from attempt
+state. Each new attempt increments a checked u64; page PDA seeds omit attempt so
+retries reuse finite allocation.
+
+Registers 3/4 hold the proposed BTC/ETH numerators. Only the proposal signer may
+upload 1–32 contiguous words, within one page, at the exact next offset. The last
+used word must be nonzero; zero is length zero. Count-derived width and five-word
+factor bounds apply before upload. Registers 5–24 are algorithm-owned scratch;
+any helper may retag an old scratch page for the current attempt exactly once.
+No caller writes denominator registers 0/1 or arbitrary scratch values. Scratch
+tails stay dirty and are excluded by verified normalized lengths.
+
+Every helper may continue a completely uploaded proposal using authenticated
+frozen rows and 1–128 bounded word steps. Arithmetic rejection records Rejected;
+it never spends insurance or consumes an evaluation. A completed fractional round
+updates only the planned budget and returns Await. Verified requires a final
+integral round, with no more than three evaluations. D98 defines reset authority
+and the 64-slot inactivity bound; reset cannot change frozen input or successful
+insurance rounds. Missing/stale/foreign account guards still fail atomically.
+
+Scoped history kinds 17–22 are PreparedSettlement, FrozenMarginPage,
+MemberIndexNode, MemberPage, SettlementLimbPage and SettlementRates. Their schema is 9; all existing
 financial kinds remain 8. The ABI extension is literal in
 [its checker](../../ops/settlement_wire_contract.py); existing instructions/layouts,
 seeds, discriminators, signing domains and errors are independently retained.

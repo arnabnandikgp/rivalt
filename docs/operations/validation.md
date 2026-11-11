@@ -157,6 +157,25 @@ Logs remain at `.local/scalable-settlement/p54b-0ff7c53/`; reproduce with
 This is a prerequisite arithmetic schedule, not complete on-chain rate verification
 or insurance/payout acceptance.
 
+Clean **`f1cd4a7`** passes **1,185** complete persisted rate evaluations against
+independent Fraction/branch equations at 1/7/128-step boundaries. Every incoming
+row prefix, strict greatestness, final market residual/loss identities, insurance
+floor and fractional flag agrees; **74** hostile/domain/non-greatest requests
+reject. Three Rust tests cover checkpoint/input/nested-operation corruption,
+ordered complete membership and the separate original-budget clipping controller,
+including at-most-once market clipping and the required final integral pass.
+Pinned SBF metadata compilation passes. Logs remain at
+`.local/scalable-settlement/p54b-f1cd4a7/`; reproduce with
+`cargo test --locked -p financial-core --test scalable_rate_work`,
+`cargo build --locked -p financial-core --bin scalable-rate-driver` and
+`python3 tests/financial/test_paged_rates.py`. This pin is native rate arithmetic,
+not signed proposal or settlement acceptance.
+
+D98's subsequent public proposal/upload/recovery implementation is under
+qualification. Its source/layout, scoped-history and empty-page-plan development
+checks pass; the development linked SBF has no stack diagnostics. No clean pinned
+signed rate/recovery result or phase completion is inferred from those checks.
+
 ## Scalable native settlement (P54A)
 
 Clean **`47ba74e36c03379560e7ed2eba6392b212c91deb`** builds the native

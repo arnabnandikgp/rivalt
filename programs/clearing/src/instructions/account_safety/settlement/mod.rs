@@ -16,6 +16,8 @@ mod contexts;
 mod denominator;
 pub use denominator::*;
 mod handlers;
+mod rates;
+pub use rates::*;
 mod source;
 pub use contexts::*;
 pub use handlers::*;

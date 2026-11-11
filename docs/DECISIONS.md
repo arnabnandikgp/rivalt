@@ -5,6 +5,41 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D98 — bounded untrusted rate attempts and recoverable verification (11 November 2026)
+
+P54B stores proposal state separately from frozen valuation and financial balances.
+Only the chosen proposer uploads the two canonical numerators; the program owns
+all arithmetic schedules and scratch. Complete-rate equations, greatestness,
+market loss identities and insurance atom division are recomputed from the entire
+frozen cohort. Insurance starts at original reserves, each market may clip once,
+and a final integral evaluation is mandatory within three evaluations. Rejection
+and retry cannot consume reserves or a successful evaluation.
+
+A monotonically increasing attempt tag reuses the same 25 logical registers and
+count-derived page allocation. Registers 0/1 remain the immutable completed common
+denominator; 2 belongs to its old scratch; 3/4 are sequential proposal upload;
+5–24 are bounded evaluation scratch. Retagging an older scratch page grants no
+ability to change a current-attempt word. Normalized metadata excludes dirty tails.
+Only scoped history increments page revisions. New append-only kind 22 identifies
+SettlementRates; all previous discriminators, layouts, domains and errors remain.
+
+Upload ownership prevents different callers from interleaving numerator chunks.
+The proposer can cancel its own incomplete upload; once verification starts,
+permissionless helpers progress the same deterministic plan. Anyone can reset a
+rejected attempt, or an Upload/Verify attempt after **64 slots without actual
+progress**. Upload/row/word operations are finite and no heartbeat endpoint renews
+this window. The 64-slot value is an explicit local liveness policy, not a risk or
+oracle parameter or a guarantee against transaction censorship. Reset retains
+frozen input and successful clipping rounds; verified work cannot reset. No
+timeout accepts an answer, transfers funds or selects a creditor subset.
+
+An authenticated mathematical failure commits a Rejected work status, not a
+financial success. Invalid accounts, missing pages, wrong epoch/attempt/revision
+or malformed upload fail atomically. Financial accounts remain read-only and
+Apply is absent from this controller. Signed/resource qualification is required
+before P54B acceptance; P54C still owns conserving cash/rounding/application,
+P55 live membership, and P56 expanded activation and operational cost gates.
+
 ## D97 — verification-only frozen-source bridge (11 November 2026)
 
 P54B initially authenticates the existing schema-8/profile-4 frozen cohort while

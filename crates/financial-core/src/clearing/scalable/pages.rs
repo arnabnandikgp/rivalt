@@ -21,6 +21,18 @@ pub struct PagePlan {
     capacity: u64,
 }
 impl PagePlan {
+    /// A normalized zero-tail step can advance owned scalar work without any
+    /// physical I/O. Its context must contain no remaining accounts.
+    pub fn metadata_only(capacity: u64) -> Result<Self> {
+        if capacity == 0 {
+            return Err(Error::Bounds);
+        }
+        Ok(Self {
+            requests: [PageRequest::default(); 3],
+            count: 0,
+            capacity,
+        })
+    }
     /// Merge aliases and order by (register,page). The account adapter must
     /// authenticate exactly these expected keys, ownership, epoch/attempt and
     /// revisions; arbitrary extra/writable accounts cannot substitute for them.
@@ -82,6 +94,15 @@ impl PagePlan {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn metadata_only_plan_never_permits_a_physical_word() {
+        assert!(PagePlan::metadata_only(0).is_err());
+        let plan = PagePlan::metadata_only(8).unwrap();
+        assert!(plan.requests().is_empty());
+        assert!(!plan.permits(0, 0, false));
+        assert!(!plan.permits(0, 0, true));
+    }
 
     #[test]
     fn boundary_alias_and_readonly_requests_are_exact() {

@@ -35,8 +35,8 @@ pub fn initialize_limb_page(
     let capacity = required_limbs(accounts.prepared.count)
         .map_err(|_| ProgramError::from(ClearingError::Arithmetic))?;
     require!(
-        accounts.prepared.stage <= DENOMINATOR
-            && register <= 2
+        ((accounts.prepared.stage <= DENOMINATOR && register <= 2)
+            || (accounts.prepared.stage == PROPOSAL && (3..=24).contains(&register)))
             && page_index < capacity.div_ceil(PAGE_WORDS),
         ClearingError::Resolution
     );

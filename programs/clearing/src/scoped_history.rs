@@ -48,13 +48,13 @@ revisioned! {
     11 => ResolutionPage, 12 => ResolutionWork, 13 => RetirementCertificate,
     14 => LiquidityRegistry, 15 => MakerRegistration, 16 => FundingPublisher,
     17 => PreparedSettlement, 18 => FrozenMarginPage, 19 => MemberIndexNode,
-    20 => MemberPage, 21 => SettlementLimbPage,
+    20 => MemberPage, 21 => SettlementLimbPage, 22 => SettlementRates,
 }
 
 fn schema_for_kind(kind: u8) -> Result<u16> {
     match kind {
         0..=16 => Ok(SCHEMA_VERSION),
-        17..=21 => Ok(SETTLEMENT_SCHEMA),
+        17..=22 => Ok(SETTLEMENT_SCHEMA),
         _ => Err(ClearingError::Profile.into()),
     }
 }

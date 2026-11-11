@@ -4,6 +4,8 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {AccountRole,getAddressEncoder,getProgramDerivedAddress,type Address,type Instruction} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
+import {getMintToInstruction} from '@solana-program/token';
+import {qualifySettlementRates} from './scalable-settlement-rates-rpc.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
@@ -26,6 +28,11 @@ try {
   await h.send('P54 withdraw admissible cash before adverse price change',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
     btc:setup.markets[0],eth:setup.markets[1],owner,margin:cross,quoteMint:setup.mint.address,userToken:setup.traderToken.address,
     amount:400_000n,guard:await guard(cross)})],[owner]);
+  await h.send('P54 mint test-only insurance contribution',[getMintToInstruction({mint:setup.mint.address,
+    token:setup.traderToken.address,mintAuthority:setup.payer,amount:3_000_000n})]);
+  for(const marketIndex of [0,1] as const)await h.send('P54 seed actual market-specific insurance',[
+    sdk.getSeedMarketInsuranceInstruction({...setup.common,reserveAuthority:setup.payer,ledger:setup.ledgers[marketIndex],donor:owner,
+      donorToken:setup.traderToken.address,quoteMint:setup.mint.address,marketIndex,amount:[2_000_000n,1_000_000n][marketIndex]})],[owner]);
   setup.sourcePrices.btc=40_000_000_000n;setup.sourcePrices.eth=2_000_000_000n;await setup.fresh();
   const safety=()=>h.read(setup.safety).then(bytes=>sdk.getVenueSafetyDecoder().decode(bytes!));
   const source=()=>h.read(setup.resolution).then(bytes=>sdk.getResolutionDecoder().decode(bytes!));
@@ -117,8 +124,10 @@ try {
   assert.deepEqual(await readAll(financial),financialBefore,'verification never changes financial ownership');
   const stale=sdk.getAcceptDenominatorRowInstruction({...common,revision:(await header()).revision,page:rowPages[0]});
   await reject('completed denominator cannot replay',stale);
+  const rateResult=await qualifySettlementRates({h,setup,prepared,epoch:frozen.epoch,rows,rowPages,limbPages,tracked,reject,expectedCommon});
+  assert.deepEqual(await readAll(financial),financialBefore,'rate verification and insurance planning never mutate financial ownership');
   await flush();
-  const accountKeys=[{name:'preparedSettlement',key:prepared},{name:'memberPage',key:memberPage},
+  const accountKeys=[{name:'settlementRates',key:rateResult.rates},{name:'preparedSettlement',key:prepared},{name:'memberPage',key:memberPage},
     ...nodes.map(key=>({name:'memberIndexNode',key})),...rowPages.map(key=>({name:'frozenMarginPage',key})),...limbPages.map(key=>({name:'settlementLimbPage',key}))]
     .map(entry=>({program:sdk.CLEARING_PROGRAM_ADDRESS,...entry}));
   const parity=await conformance.finish(directory,accountKeys,h.read);
@@ -126,6 +135,6 @@ try {
   const result={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     build:JSON.parse(readFileSync(`${process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR}/build-manifest.json`,'utf8')),checks,parity,rent,
-    count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),limitations:['source bridge <=64','no rate acceptance yet','no Apply or expanded trading','no PostgreSQL replay in this prefix-only probe']};
-  writeFileSync(`${directory}/result.json`,serialize(result));console.log(serialize({checks:checks.length,continuations,common:expectedCommon,parity}));
+    count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),rateResult,limitations:['source bridge <=64','no Apply or expanded trading','no PostgreSQL replay in this verification-only probe']};
+  writeFileSync(`${directory}/result.json`,serialize(result));console.log(serialize({checks:checks.length,continuations,rateContinuations:rateResult.continuations,rateEvaluations:rateResult.reference.evaluations.length,common:expectedCommon,parity}));
 }finally{await flush();await ws.close();}

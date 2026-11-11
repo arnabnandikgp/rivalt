@@ -35,6 +35,7 @@ export * from "./priceRegion.js";
 export * from "./programData.js";
 export * from "./protection.js";
 export * from "./protectiveGroup.js";
+export * from "./rateCheckpoints.js";
 export * from "./resolutionRow.js";
 export * from "./scopedRead.js";
 export * from "./scopedWrite.js";

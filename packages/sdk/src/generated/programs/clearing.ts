@@ -55,6 +55,7 @@ import {
   getRetirementCertificateCodec,
   getSettlementCertificateCodec,
   getSettlementLimbPageCodec,
+  getSettlementRatesCodec,
   getVenueCodec,
   getVenueRegistryCodec,
   getVenueSafetyCodec,
@@ -96,6 +97,8 @@ import {
   type SettlementCertificateArgs,
   type SettlementLimbPage,
   type SettlementLimbPageArgs,
+  type SettlementRates,
+  type SettlementRatesArgs,
   type Venue,
   type VenueArgs,
   type VenueRegistry,
@@ -105,11 +108,13 @@ import {
 } from "../accounts/index.js";
 import {
   getAcceptDenominatorRowInstructionAsync,
+  getAcceptSettlementRateRowInstructionAsync,
   getActivateLiquidityInstructionAsync,
   getAdvanceAccountResolutionInstructionAsync,
   getAdvancePreparedMembershipInstructionAsync,
   getAllocateMarketFeesInstructionAsync,
   getApproveLiquidityInstructionAsync,
+  getBeginSettlementRateProposalInstructionAsync,
   getCheckAccountResolutionOrderInstructionAsync,
   getCheckAccountRetirementInstructionAsync,
   getCheckMarketBackingInstructionAsync,
@@ -117,6 +122,7 @@ import {
   getCollectAccountLossInstructionAsync,
   getConfigureFundingPublisherInstructionAsync,
   getContinueSettlementDenominatorInstructionAsync,
+  getContinueSettlementRatesInstructionAsync,
   getControlLiquidityInstructionAsync,
   getCreatePortfolioInstructionAsync,
   getDepositAccountInstructionAsync,
@@ -138,6 +144,7 @@ import {
   getInitializePreparedMembersInstructionAsync,
   getInitializePreparedSettlementInstructionAsync,
   getInitializeSettlementLimbPageInstructionAsync,
+  getInitializeSettlementRatesInstructionAsync,
   getInitializeVenueRegistryInstructionAsync,
   getLiquidateAccountInstructionAsync,
   getManageAccountOrderInstructionAsync,
@@ -145,6 +152,7 @@ import {
   getOrderAccountResolutionInstructionAsync,
   getPauseVenueInstructionAsync,
   getPayAccountGainInstructionAsync,
+  getPrepareSettlementRateScratchInstructionAsync,
   getProposeAccountResolutionInstructionAsync,
   getPublishFundingReportInstructionAsync,
   getQuarantineLiquidityInstructionAsync,
@@ -153,6 +161,7 @@ import {
   getRegisterLiquidityInstructionAsync,
   getRegisterMarginInstructionAsync,
   getReplenishLiquidityInstructionAsync,
+  getResetSettlementRateProposalInstructionAsync,
   getRetireAccountsInstructionAsync,
   getRoundAccountResolutionInstructionAsync,
   getSealLiquidityInstructionAsync,
@@ -160,6 +169,7 @@ import {
   getSetAccountDelegateInstructionAsync,
   getTransferAccountCustodyInstructionAsync,
   getTransferFundedAccountInstructionAsync,
+  getUploadSettlementRateInstructionAsync,
   getValueAccountResolutionInstructionAsync,
   getValuePreparedMemberInstructionAsync,
   getWithdrawAccountCustodyInstructionAsync,
@@ -167,11 +177,13 @@ import {
   getWithdrawMarketFeesInstructionAsync,
   getWithdrawRetiredReserveInstructionAsync,
   parseAcceptDenominatorRowInstruction,
+  parseAcceptSettlementRateRowInstruction,
   parseActivateLiquidityInstruction,
   parseAdvanceAccountResolutionInstruction,
   parseAdvancePreparedMembershipInstruction,
   parseAllocateMarketFeesInstruction,
   parseApproveLiquidityInstruction,
+  parseBeginSettlementRateProposalInstruction,
   parseCheckAccountResolutionOrderInstruction,
   parseCheckAccountRetirementInstruction,
   parseCheckMarketBackingInstruction,
@@ -179,6 +191,7 @@ import {
   parseCollectAccountLossInstruction,
   parseConfigureFundingPublisherInstruction,
   parseContinueSettlementDenominatorInstruction,
+  parseContinueSettlementRatesInstruction,
   parseControlLiquidityInstruction,
   parseCreatePortfolioInstruction,
   parseDepositAccountInstruction,
@@ -200,6 +213,7 @@ import {
   parseInitializePreparedMembersInstruction,
   parseInitializePreparedSettlementInstruction,
   parseInitializeSettlementLimbPageInstruction,
+  parseInitializeSettlementRatesInstruction,
   parseInitializeVenueRegistryInstruction,
   parseLiquidateAccountInstruction,
   parseManageAccountOrderInstruction,
@@ -207,6 +221,7 @@ import {
   parseOrderAccountResolutionInstruction,
   parsePauseVenueInstruction,
   parsePayAccountGainInstruction,
+  parsePrepareSettlementRateScratchInstruction,
   parseProposeAccountResolutionInstruction,
   parsePublishFundingReportInstruction,
   parseQuarantineLiquidityInstruction,
@@ -215,6 +230,7 @@ import {
   parseRegisterLiquidityInstruction,
   parseRegisterMarginInstruction,
   parseReplenishLiquidityInstruction,
+  parseResetSettlementRateProposalInstruction,
   parseRetireAccountsInstruction,
   parseRoundAccountResolutionInstruction,
   parseSealLiquidityInstruction,
@@ -222,6 +238,7 @@ import {
   parseSetAccountDelegateInstruction,
   parseTransferAccountCustodyInstruction,
   parseTransferFundedAccountInstruction,
+  parseUploadSettlementRateInstruction,
   parseValueAccountResolutionInstruction,
   parseValuePreparedMemberInstruction,
   parseWithdrawAccountCustodyInstruction,
@@ -229,11 +246,13 @@ import {
   parseWithdrawMarketFeesInstruction,
   parseWithdrawRetiredReserveInstruction,
   type AcceptDenominatorRowAsyncInput,
+  type AcceptSettlementRateRowAsyncInput,
   type ActivateLiquidityAsyncInput,
   type AdvanceAccountResolutionAsyncInput,
   type AdvancePreparedMembershipAsyncInput,
   type AllocateMarketFeesAsyncInput,
   type ApproveLiquidityAsyncInput,
+  type BeginSettlementRateProposalAsyncInput,
   type CheckAccountResolutionOrderAsyncInput,
   type CheckAccountRetirementAsyncInput,
   type CheckMarketBackingAsyncInput,
@@ -241,6 +260,7 @@ import {
   type CollectAccountLossAsyncInput,
   type ConfigureFundingPublisherAsyncInput,
   type ContinueSettlementDenominatorAsyncInput,
+  type ContinueSettlementRatesAsyncInput,
   type ControlLiquidityAsyncInput,
   type CreatePortfolioAsyncInput,
   type DepositAccountAsyncInput,
@@ -262,17 +282,20 @@ import {
   type InitializePreparedMembersAsyncInput,
   type InitializePreparedSettlementAsyncInput,
   type InitializeSettlementLimbPageAsyncInput,
+  type InitializeSettlementRatesAsyncInput,
   type InitializeVenueRegistryAsyncInput,
   type LiquidateAccountAsyncInput,
   type ManageAccountOrderAsyncInput,
   type NetAccountClaimsAsyncInput,
   type OrderAccountResolutionAsyncInput,
   type ParsedAcceptDenominatorRowInstruction,
+  type ParsedAcceptSettlementRateRowInstruction,
   type ParsedActivateLiquidityInstruction,
   type ParsedAdvanceAccountResolutionInstruction,
   type ParsedAdvancePreparedMembershipInstruction,
   type ParsedAllocateMarketFeesInstruction,
   type ParsedApproveLiquidityInstruction,
+  type ParsedBeginSettlementRateProposalInstruction,
   type ParsedCheckAccountResolutionOrderInstruction,
   type ParsedCheckAccountRetirementInstruction,
   type ParsedCheckMarketBackingInstruction,
@@ -280,6 +303,7 @@ import {
   type ParsedCollectAccountLossInstruction,
   type ParsedConfigureFundingPublisherInstruction,
   type ParsedContinueSettlementDenominatorInstruction,
+  type ParsedContinueSettlementRatesInstruction,
   type ParsedControlLiquidityInstruction,
   type ParsedCreatePortfolioInstruction,
   type ParsedDepositAccountInstruction,
@@ -301,6 +325,7 @@ import {
   type ParsedInitializePreparedMembersInstruction,
   type ParsedInitializePreparedSettlementInstruction,
   type ParsedInitializeSettlementLimbPageInstruction,
+  type ParsedInitializeSettlementRatesInstruction,
   type ParsedInitializeVenueRegistryInstruction,
   type ParsedLiquidateAccountInstruction,
   type ParsedManageAccountOrderInstruction,
@@ -308,6 +333,7 @@ import {
   type ParsedOrderAccountResolutionInstruction,
   type ParsedPauseVenueInstruction,
   type ParsedPayAccountGainInstruction,
+  type ParsedPrepareSettlementRateScratchInstruction,
   type ParsedProposeAccountResolutionInstruction,
   type ParsedPublishFundingReportInstruction,
   type ParsedQuarantineLiquidityInstruction,
@@ -316,6 +342,7 @@ import {
   type ParsedRegisterLiquidityInstruction,
   type ParsedRegisterMarginInstruction,
   type ParsedReplenishLiquidityInstruction,
+  type ParsedResetSettlementRateProposalInstruction,
   type ParsedRetireAccountsInstruction,
   type ParsedRoundAccountResolutionInstruction,
   type ParsedSealLiquidityInstruction,
@@ -323,6 +350,7 @@ import {
   type ParsedSetAccountDelegateInstruction,
   type ParsedTransferAccountCustodyInstruction,
   type ParsedTransferFundedAccountInstruction,
+  type ParsedUploadSettlementRateInstruction,
   type ParsedValueAccountResolutionInstruction,
   type ParsedValuePreparedMemberInstruction,
   type ParsedWithdrawAccountCustodyInstruction,
@@ -331,6 +359,7 @@ import {
   type ParsedWithdrawRetiredReserveInstruction,
   type PauseVenueAsyncInput,
   type PayAccountGainAsyncInput,
+  type PrepareSettlementRateScratchAsyncInput,
   type ProposeAccountResolutionAsyncInput,
   type PublishFundingReportAsyncInput,
   type QuarantineLiquidityAsyncInput,
@@ -339,6 +368,7 @@ import {
   type RegisterLiquidityAsyncInput,
   type RegisterMarginAsyncInput,
   type ReplenishLiquidityAsyncInput,
+  type ResetSettlementRateProposalAsyncInput,
   type RetireAccountsAsyncInput,
   type RoundAccountResolutionAsyncInput,
   type SealLiquidityAsyncInput,
@@ -346,6 +376,7 @@ import {
   type SetAccountDelegateAsyncInput,
   type TransferAccountCustodyAsyncInput,
   type TransferFundedAccountAsyncInput,
+  type UploadSettlementRateAsyncInput,
   type ValueAccountResolutionAsyncInput,
   type ValuePreparedMemberAsyncInput,
   type WithdrawAccountCustodyAsyncInput,
@@ -400,6 +431,7 @@ export enum ClearingAccount {
   RetirementCertificate,
   SettlementCertificate,
   SettlementLimbPage,
+  SettlementRates,
   Venue,
   VenueRegistry,
   VenueSafety,
@@ -617,6 +649,17 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.SettlementLimbPage;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([204, 43, 2, 23, 22, 100, 234, 137]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.SettlementRates;
   }
   if (
     containsBytes(
@@ -1007,11 +1050,13 @@ export function identifyClearingEvent(
 
 export enum ClearingInstruction {
   AcceptDenominatorRow,
+  AcceptSettlementRateRow,
   ActivateLiquidity,
   AdvanceAccountResolution,
   AdvancePreparedMembership,
   AllocateMarketFees,
   ApproveLiquidity,
+  BeginSettlementRateProposal,
   CheckAccountResolutionOrder,
   CheckAccountRetirement,
   CheckMarketBacking,
@@ -1019,6 +1064,7 @@ export enum ClearingInstruction {
   CollectAccountLoss,
   ConfigureFundingPublisher,
   ContinueSettlementDenominator,
+  ContinueSettlementRates,
   ControlLiquidity,
   CreatePortfolio,
   DepositAccount,
@@ -1040,6 +1086,7 @@ export enum ClearingInstruction {
   InitializePreparedMembers,
   InitializePreparedSettlement,
   InitializeSettlementLimbPage,
+  InitializeSettlementRates,
   InitializeVenueRegistry,
   LiquidateAccount,
   ManageAccountOrder,
@@ -1047,6 +1094,7 @@ export enum ClearingInstruction {
   OrderAccountResolution,
   PauseVenue,
   PayAccountGain,
+  PrepareSettlementRateScratch,
   ProposeAccountResolution,
   PublishFundingReport,
   QuarantineLiquidity,
@@ -1055,6 +1103,7 @@ export enum ClearingInstruction {
   RegisterLiquidity,
   RegisterMargin,
   ReplenishLiquidity,
+  ResetSettlementRateProposal,
   RetireAccounts,
   RoundAccountResolution,
   SealLiquidity,
@@ -1062,6 +1111,7 @@ export enum ClearingInstruction {
   SetAccountDelegate,
   TransferAccountCustody,
   TransferFundedAccount,
+  UploadSettlementRate,
   ValueAccountResolution,
   ValuePreparedMember,
   WithdrawAccountCustody,
@@ -1084,6 +1134,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.AcceptDenominatorRow;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([47, 66, 6, 235, 35, 105, 132, 193]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AcceptSettlementRateRow;
   }
   if (
     containsBytes(
@@ -1139,6 +1200,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ApproveLiquidity;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([82, 130, 146, 1, 163, 208, 99, 54]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.BeginSettlementRateProposal;
   }
   if (
     containsBytes(
@@ -1216,6 +1288,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ContinueSettlementDenominator;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([183, 223, 168, 83, 201, 143, 99, 138]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ContinueSettlementRates;
   }
   if (
     containsBytes(
@@ -1452,6 +1535,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([111, 229, 223, 253, 40, 130, 51, 68]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeSettlementRates;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([65, 159, 220, 107, 114, 82, 191, 244]),
       ),
       0,
@@ -1524,6 +1618,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.PayAccountGain;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([93, 27, 78, 189, 224, 59, 107, 168]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PrepareSettlementRateScratch;
   }
   if (
     containsBytes(
@@ -1617,6 +1722,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([100, 110, 122, 83, 178, 173, 210, 0]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ResetSettlementRateProposal;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([205, 185, 237, 201, 15, 220, 100, 203]),
       ),
       0,
@@ -1689,6 +1805,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.TransferFundedAccount;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([115, 149, 43, 139, 252, 51, 233, 88]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.UploadSettlementRate;
   }
   if (
     containsBytes(
@@ -1769,6 +1896,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.AcceptDenominatorRow;
     } & ParsedAcceptDenominatorRowInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.AcceptSettlementRateRow;
+    } & ParsedAcceptSettlementRateRowInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ActivateLiquidity;
     } & ParsedActivateLiquidityInstruction<TProgram>)
   | ({
@@ -1783,6 +1913,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.ApproveLiquidity;
     } & ParsedApproveLiquidityInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.BeginSettlementRateProposal;
+    } & ParsedBeginSettlementRateProposalInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.CheckAccountResolutionOrder;
     } & ParsedCheckAccountResolutionOrderInstruction<TProgram>)
@@ -1804,6 +1937,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.ContinueSettlementDenominator;
     } & ParsedContinueSettlementDenominatorInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ContinueSettlementRates;
+    } & ParsedContinueSettlementRatesInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ControlLiquidity;
     } & ParsedControlLiquidityInstruction<TProgram>)
@@ -1868,6 +2004,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.InitializeSettlementLimbPage;
     } & ParsedInitializeSettlementLimbPageInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.InitializeSettlementRates;
+    } & ParsedInitializeSettlementRatesInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.InitializeVenueRegistry;
     } & ParsedInitializeVenueRegistryInstruction<TProgram>)
   | ({
@@ -1888,6 +2027,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.PayAccountGain;
     } & ParsedPayAccountGainInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.PrepareSettlementRateScratch;
+    } & ParsedPrepareSettlementRateScratchInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ProposeAccountResolution;
     } & ParsedProposeAccountResolutionInstruction<TProgram>)
@@ -1913,6 +2055,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ReplenishLiquidity;
     } & ParsedReplenishLiquidityInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ResetSettlementRateProposal;
+    } & ParsedResetSettlementRateProposalInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.RetireAccounts;
     } & ParsedRetireAccountsInstruction<TProgram>)
   | ({
@@ -1933,6 +2078,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.TransferFundedAccount;
     } & ParsedTransferFundedAccountInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.UploadSettlementRate;
+    } & ParsedUploadSettlementRateInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ValueAccountResolution;
     } & ParsedValueAccountResolutionInstruction<TProgram>)
@@ -1962,6 +2110,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.AcceptDenominatorRow,
         ...parseAcceptDenominatorRowInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.AcceptSettlementRateRow: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AcceptSettlementRateRow,
+        ...parseAcceptSettlementRateRowInstruction(instruction),
       };
     }
     case ClearingInstruction.ActivateLiquidity: {
@@ -1997,6 +2152,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ApproveLiquidity,
         ...parseApproveLiquidityInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.BeginSettlementRateProposal: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.BeginSettlementRateProposal,
+        ...parseBeginSettlementRateProposalInstruction(instruction),
       };
     }
     case ClearingInstruction.CheckAccountResolutionOrder: {
@@ -2046,6 +2208,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ContinueSettlementDenominator,
         ...parseContinueSettlementDenominatorInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ContinueSettlementRates: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ContinueSettlementRates,
+        ...parseContinueSettlementRatesInstruction(instruction),
       };
     }
     case ClearingInstruction.ControlLiquidity: {
@@ -2195,6 +2364,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeSettlementLimbPageInstruction(instruction),
       };
     }
+    case ClearingInstruction.InitializeSettlementRates: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeSettlementRates,
+        ...parseInitializeSettlementRatesInstruction(instruction),
+      };
+    }
     case ClearingInstruction.InitializeVenueRegistry: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2242,6 +2418,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.PayAccountGain,
         ...parsePayAccountGainInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.PrepareSettlementRateScratch: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PrepareSettlementRateScratch,
+        ...parsePrepareSettlementRateScratchInstruction(instruction),
       };
     }
     case ClearingInstruction.ProposeAccountResolution: {
@@ -2300,6 +2483,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseReplenishLiquidityInstruction(instruction),
       };
     }
+    case ClearingInstruction.ResetSettlementRateProposal: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ResetSettlementRateProposal,
+        ...parseResetSettlementRateProposalInstruction(instruction),
+      };
+    }
     case ClearingInstruction.RetireAccounts: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2347,6 +2537,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.TransferFundedAccount,
         ...parseTransferFundedAccountInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.UploadSettlementRate: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.UploadSettlementRate,
+        ...parseUploadSettlementRateInstruction(instruction),
       };
     }
     case ClearingInstruction.ValueAccountResolution: {
@@ -2447,6 +2644,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<SettlementCertificateArgs, SettlementCertificate>;
   settlementLimbPage: ReturnType<typeof getSettlementLimbPageCodec> &
     SelfFetchFunctions<SettlementLimbPageArgs, SettlementLimbPage>;
+  settlementRates: ReturnType<typeof getSettlementRatesCodec> &
+    SelfFetchFunctions<SettlementRatesArgs, SettlementRates>;
   venue: ReturnType<typeof getVenueCodec> &
     SelfFetchFunctions<VenueArgs, Venue>;
   venueRegistry: ReturnType<typeof getVenueRegistryCodec> &
@@ -2460,6 +2659,11 @@ export type ClearingPluginInstructions = {
     input: AcceptDenominatorRowAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getAcceptDenominatorRowInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  acceptSettlementRateRow: (
+    input: AcceptSettlementRateRowAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAcceptSettlementRateRowInstructionAsync> &
     SelfPlanAndSendFunctions;
   activateLiquidity: (
     input: ActivateLiquidityAsyncInput,
@@ -2485,6 +2689,11 @@ export type ClearingPluginInstructions = {
     input: ApproveLiquidityAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getApproveLiquidityInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  beginSettlementRateProposal: (
+    input: BeginSettlementRateProposalAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getBeginSettlementRateProposalInstructionAsync> &
     SelfPlanAndSendFunctions;
   checkAccountResolutionOrder: (
     input: CheckAccountResolutionOrderAsyncInput,
@@ -2520,6 +2729,11 @@ export type ClearingPluginInstructions = {
     input: ContinueSettlementDenominatorAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getContinueSettlementDenominatorInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  continueSettlementRates: (
+    input: ContinueSettlementRatesAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getContinueSettlementRatesInstructionAsync> &
     SelfPlanAndSendFunctions;
   controlLiquidity: (
     input: ControlLiquidityAsyncInput,
@@ -2626,6 +2840,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeSettlementLimbPageInstructionAsync> &
     SelfPlanAndSendFunctions;
+  initializeSettlementRates: (
+    input: MakeOptional<InitializeSettlementRatesAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeSettlementRatesInstructionAsync> &
+    SelfPlanAndSendFunctions;
   initializeVenueRegistry: (
     input: InitializeVenueRegistryAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -2660,6 +2879,11 @@ export type ClearingPluginInstructions = {
     input: PayAccountGainAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getPayAccountGainInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  prepareSettlementRateScratch: (
+    input: PrepareSettlementRateScratchAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPrepareSettlementRateScratchInstructionAsync> &
     SelfPlanAndSendFunctions;
   proposeAccountResolution: (
     input: ProposeAccountResolutionAsyncInput,
@@ -2701,6 +2925,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getReplenishLiquidityInstructionAsync> &
     SelfPlanAndSendFunctions;
+  resetSettlementRateProposal: (
+    input: ResetSettlementRateProposalAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getResetSettlementRateProposalInstructionAsync> &
+    SelfPlanAndSendFunctions;
   retireAccounts: (
     input: RetireAccountsAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -2735,6 +2964,11 @@ export type ClearingPluginInstructions = {
     input: TransferFundedAccountAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getTransferFundedAccountInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  uploadSettlementRate: (
+    input: UploadSettlementRateAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getUploadSettlementRateInstructionAsync> &
     SelfPlanAndSendFunctions;
   valueAccountResolution: (
     input: ValueAccountResolutionAsyncInput,
@@ -2863,6 +3097,10 @@ export function clearingProgram(
             client,
             getSettlementLimbPageCodec(),
           ),
+          settlementRates: addSelfFetchFunctions(
+            client,
+            getSettlementRatesCodec(),
+          ),
           venue: addSelfFetchFunctions(client, getVenueCodec()),
           venueRegistry: addSelfFetchFunctions(client, getVenueRegistryCodec()),
           venueSafety: addSelfFetchFunctions(client, getVenueSafetyCodec()),
@@ -2872,6 +3110,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getAcceptDenominatorRowInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          acceptSettlementRateRow: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAcceptSettlementRateRowInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -2912,6 +3158,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getApproveLiquidityInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          beginSettlementRateProposal: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getBeginSettlementRateProposalInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -2968,6 +3222,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getContinueSettlementDenominatorInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          continueSettlementRates: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getContinueSettlementRatesInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -3167,6 +3429,17 @@ export function clearingProgram(
                 },
               ),
             ),
+          initializeSettlementRates: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeSettlementRatesInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
+            ),
           initializeVenueRegistry: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -3219,6 +3492,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getPayAccountGainInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          prepareSettlementRateScratch: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPrepareSettlementRateScratchInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -3287,6 +3568,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          resetSettlementRateProposal: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getResetSettlementRateProposalInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           retireAccounts: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -3339,6 +3628,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getTransferFundedAccountInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          uploadSettlementRate: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUploadSettlementRateInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

@@ -255,8 +255,12 @@ budget to clip once. These primitives do not authenticate uploaded numerators:
 the owning handler must verify normalized lengths, frozen row order and current
 attempt, then advance rounds only from a complete `RateWork::result()`.
 Per-root final cash and deterministic atom attribution remain P54C work.
-Public rate/proposal/reset and their actual signed resource acceptance remain
-unfinished. Current schema-8 financial accounts, selected binaries and
+Public upload, rate continuation and proposal/reset handlers now consume these
+owned checkpoints (D98). Numerator normalization follows complete contiguous
+upload with a nonzero final used word; callers cannot upload a cursor or opcode.
+Metadata-only steps use an empty remaining-account plan, which permits no physical
+word. Mathematical rejection is recorded separately from guard failures. Actual
+signed rate/recovery/resource acceptance remains unfinished. Current schema-8 financial accounts, selected binaries and
 enabled capacity are unchanged. This is not acceptance of on-chain settlement.
 
 ### Frozen work, completion and adversarial proposals
