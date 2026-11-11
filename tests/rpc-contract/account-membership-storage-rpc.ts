@@ -1,5 +1,5 @@
-// P55A2 provisioning probe: real rent-funded PDAs and signed atomic rejections.
-// This does not qualify the unfinished financial membership/default integration.
+// P55A2 provisioning/lifecycle probe: rent-funded PDAs and signed financial
+// entry, custody exit and terminal retirement. Default/SQL are separate gates.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
@@ -139,5 +139,5 @@ try {
     allocations:expected.length,readyCapacity:complete.readyCapacity,totalAllocationAndReceiptRent:totalRent,totalContribution,
     financialCollateral:0n,rawAccounts:await snapshot()};
   writeFileSync(`${directory}/result.json`,encode(result));
-  console.log(`P55 storage: ${checks.length} signed outcomes; ${expected.length} physical allocations; 128-root recovery capacity, no financial admission.`);
+  console.log(`P55 storage: ${checks.length} signed outcomes; ${expected.length} physical allocations; 128-root recovery capacity; 71 registrations / two Financial roots / terminal refunds.`);
 } finally {ws.close();}
