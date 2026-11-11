@@ -803,8 +803,16 @@ workload, not a saturated throughput or external fee result. No complete P55B2
 acceptance is claimed: stale/out-of-region/membership boundaries, bad repair,
 reservations/TP-SL, liquidation/default and worker recovery cases remain.
 
-Next exact action: extend the pinned signed workload with those boundary/economic
-cases, then qualify the full changed default/recovery boundary. No user decision is blocking this work.
+The expanded `3f8dca7` run verifies TP/SL creation/execution/replay rejection,
+stale-source rejection without proof erasure, source recovery, membership changes
+with restored-count rejection and a fresh 39-step scan. It stops at the next
+fixture: a one-lot trade at price 2 violates the existing 1,000-atom minimum
+notional. That simulation was not broadcast. The replacement uses 500 lots, the
+same minimum notional/risk rules, and an independently derived retained cash bound.
+No expanded-run pass or SQL replay is claimed from this failed attempt.
+
+Next exact action: run the corrected boundary workload with exact flat netting,
+liquidation repair and complete default/recovery reconciliation. No user decision is blocking this work.
 
 ## Deployment and operational limits
 

@@ -12,6 +12,7 @@ import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {backingStep,financialRoots} from './membership-scan-helper.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
+import {backingResolution} from './maintained-backing-resolution.js';
 import {backingBoundaries} from './maintained-backing-boundaries.js';
 import {verifyBackingBuild} from './backing-artifacts.js';
 import {transactionLocks,conflicts} from '../performance/lock-model.js';
@@ -36,7 +37,7 @@ try {
   const frames:unknown[]=[],concurrentPairs:{scan:string;fill:string}[]=[],progress:unknown[]=[];
   const capture=async(label:string)=>{
     const members=await financialRoots(h,setup.venue,setup.registry);
-    frames.push({label,registry:await registry(),roots:await Promise.all(members.map(root)),
+    frames.push({label,safety:sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!),registry:await registry(),roots:await Promise.all(members.map(root)),
       ledgers:await Promise.all([0,1].map(ledger)),certificates:await Promise.all([0,1].map(proof))});
     writeFileSync(`${directory}/backing-frames.json`,json(frames));
   };
@@ -120,7 +121,12 @@ try {
     progress.push({marketIndex,steps,mutations,epoch,elapsedMs:performance.now()-started,restarts:1,
       classification:'initial epoch only; ongoing in-region source publication and admitted mutations'});
   }
-  const boundaries=await backingBoundaries({h,rpc,setup,certificates,flush,capture,mutate,reject});
+  const context={h,rpc,setup,certificates,flush,capture,mutate,reject};
+  const boundaries=await backingBoundaries(context);
+  await flush();
+  journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)));
+  await journal.checkpoint('maintained-boundaries');
+  const resolution=await backingResolution(context,label=>journal!.checkpoint(label));
   await flush();
   const independent=JSON.parse(execFileSync('python3',['tests/financial/check_backing_runtime.py',`${directory}/backing-frames.json`],{encoding:'utf8'}));
   const parity=await conformance.finish(directory,[
@@ -136,10 +142,9 @@ try {
     assert(!fill.locks.write.includes(setup.registry),'No new writable venue membership registry');
     return {scan,fill,shared};
   });
-  journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)));
-  await journal.checkpoint('maintained-progress');
+  await journal.checkpoint('maintained-progress-and-recovery');
   const sql=await journal.finish();
-  writeFileSync(`${directory}/result.json`,json({revision,build,checks,parity,independent,progress,boundaries,resources,sql,
+  writeFileSync(`${directory}/result.json`,json({revision,build,checks,parity,independent,progress,boundaries,resolution,resources,sql,
     endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     limitations:['eight actual Financial members; larger population remains P56B','overlapping signed requests, not a saturated throughput or public-network fee claim']}));
 }finally {try{await journal?.close();await flush();}finally{ws.close();}}

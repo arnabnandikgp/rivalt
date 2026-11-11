@@ -116,17 +116,20 @@ export async function backingBoundaries({h,rpc,setup,certificates,flush,capture,
   const steps=await scan(0),newEpoch=(await proof(0)).backingEpoch;
   assert(newEpoch>stableEpoch);
   const before=await root(cross),gross=before.positions.reduce((sum,p)=>sum+(p.virtualScaled<0n?-p.virtualScaled:0n),0n);
-  const retained=(gross+999_999_999n)/1_000_000_000n+3n;
+  // 500 lots at price 2 meet the unchanged 1,000-atom minimum notional.
+  // At risk upper=3, debt is 500 atoms and IM is 150; retain those,
+  // the exact ceiling of existing gross fractions, one fee atom and one buffer.
+  const retained=(gross+999_999_999n)/1_000_000_000n+652n;
   await mutate('withdraw only independently admissible flat funded cash',[await withdraw(before.cash-retained)]);
   await setup.sample();
   await mutate('admitted low-price short can make conservative backing bad',[await route({trader:cross,actor:owner,
-    marketIndex:0,side:1,makers:[setup.instances[0]],lots:[1n]})]);
+    marketIndex:0,side:1,makers:[setup.instances[0]],lots:[500n]})]);
   assert.equal((await root(cross)).cash,retained-1n,'Exactly one atom aggregate taker fee');
   const damaged=sdk.decodeBackingSummary((await ledger(0)).backing.summary);
   assert.equal(damaged.bad,1n);assert.equal(damaged.count,8n);assert.equal((await proof(0)).backingEpoch,newEpoch);
   await reject('bad processed debtor withholds otherwise funded gain',[payment(0)],sdk.CLEARING_ERROR__EXIT_COHORT);
   await mutate('actual collateral repairs processed debtor without a rescan',[await sdk.getDepositAccountInstructionAsync({...setup.common,
-    owner,margin:cross,quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:2n})]);
+    owner,margin:cross,quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:1_000n})]);
   assert.equal(sdk.decodeBackingSummary((await ledger(0)).backing.summary).bad,0n);
   const beneficiary=setup.instances[0].capital,benefitBefore=await root(beneficiary);
   await mutate('same complete proof pays after actual repair',[payment(0)]);
@@ -138,5 +141,5 @@ export async function backingBoundaries({h,rpc,setup,certificates,flush,capture,
   await capture('boundaries complete');
   return {staleSourceRejected:true,stalenessResetRejected:true,storedProtectionExecuted:true,
     membershipInvalidations:2,restoredCountRejected:true,restartedSteps:steps,newEpoch,
-    admittedBadDebtor:'1',repairedBadDebtor:'0',repairAtoms:'2',paidAtoms:'1'};
+    admittedBadDebtor:'1',repairedBadDebtor:'0',repairAtoms:'1000',paidAtoms:'1'};
 }

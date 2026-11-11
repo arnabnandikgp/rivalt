@@ -14,7 +14,8 @@ import {qualifySettlementPlan} from './scalable-settlement-plan-rpc.js';
 import {qualifySettlementApplication} from './scalable-settlement-application-rpc.js';
 
 export async function resolveLiquidityCohort(h:CanonicalHarness,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,
-  roots:Address[],reject:(label:string,instruction:Instruction,error?:number)=>Promise<void>) {
+  roots:Address[],reject:(label:string,instruction:Instruction,error?:number)=>Promise<void>,
+  checkpoint:(name:string)=>Promise<void>=async()=>{}) {
   const initial=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
   assert.equal(initial.stage,2);assert.equal(initial.count,BigInt(roots.length));
   assert.deepEqual(roots,await financialRoots(h,setup.venue,setup.registry));
@@ -74,7 +75,7 @@ export async function resolveLiquidityCohort(h:CanonicalHarness,setup:Awaited<Re
   const rates=await qualifySettlementRates({h,setup,prepared,epoch:initial.epoch,rows,rowPages,limbPages,tracked,expectedCommon,hostileChecks:false,reject:rejectCurrent});
   const plan=await qualifySettlementPlan({h,setup,prepared,rates:rates.rates,epoch:initial.epoch,rows,rowPages,limbPages,tracked,reject:rejectCurrent});
   const applied=await qualifySettlementApplication({h,setup,prepared,rates:rates.rates,plan:plan.plan,epoch:initial.epoch,
-    rowPages,rows,expected:plan.expected,tracked,reject:rejectCurrent,checkpoint:async()=>{},stopBeforeExitAndRecovery:true});
+    rowPages,rows,expected:plan.expected,tracked,reject:rejectCurrent,checkpoint,stopBeforeExitAndRecovery:true});
   assert.equal(applied.finalSource.stage,11);
   return {initial,verified:rates.state,rounded:plan.state,plannedCash:plan.expected.cash.map(BigInt),proofs:rates.reference,
     graph:plan.state,frozenInputs:rows,tracked,applied};

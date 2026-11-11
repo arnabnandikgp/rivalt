@@ -18,8 +18,9 @@ def check(frame):
     for selected, ledger in enumerate(frame['ledgers']):
         backing = ledger['backing']
         epoch = int(backing['epoch'])
-        if not epoch or int(backing['membershipEpoch']) != int(registry['membershipEpoch']):
-            continue  # Inactive/stale membership is not payment evidence.
+        if (not epoch or int(backing['membershipEpoch']) != int(registry['membershipEpoch'])
+                or ('safety' in frame and int(backing['safetyEpoch']) != int(frame['safety']['epoch']))):
+            continue  # Inactive/stale safety or membership is not payment evidence.
         processed = [root for root in roots if int(root['backingEpochs'][selected]) == epoch]
         total_q = positive = negative = bad = 0
         required = [0, 0]
