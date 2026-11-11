@@ -15,7 +15,10 @@ No new SBF build, signed deployment/progress/payment, resource measurement or
 PostgreSQL replay is yet claimed. The selected runtime remains schema 8. Candidate
 build manifests now read actual source schema/profile constants rather than label
 new binaries as schema 8; this does not bypass the selected runtime hash allowlist.
-Exact clean pins and signed acceptance will replace this preliminary checkpoint.
+Candidate `bbd3398` is rejected by the SBF guard: backing-event construction has
+maximum stack offset 4,192, 96 bytes over the allowed frame. It was not deployed.
+Separate snapshot construction frames are being rebuilt. Exact successful pins and
+signed acceptance will replace this preliminary checkpoint.
 
 ## Maintained backing arithmetic (P55B1)
 

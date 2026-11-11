@@ -176,13 +176,26 @@ fn scan_certificate(certificate: &mut SettlementCertificate, ledger: &mut Market
 #[inline(never)]
 fn emit_certificate(certificate: &BorshAccount<SettlementCertificate>, ledger: Option<&BorshAccount<MarketLedger>>,
     root: Option<(Address, &MarginAccount)>, events: &mut crate::event_cpi::Payloads, authority: AccountView) -> Result<()> {
-    let event = Box::new(crate::events::AccountBackingChanged {
+    let mut event = Box::new(crate::events::AccountBackingChanged {
         venue: certificate.venue, slot: Clock::get()?.slot, certificate: *certificate.address(),
         state: crate::events::BackingSnapshot::from(&**certificate),
-        ledger: ledger.map(super::super::account_custody::ledger_snapshot),
-        margin: root.map(|(key,_)| key), root_state: root.map(|(_,root)| crate::events::MarginAccountSnapshot::from(root)),
+        ledger: None, margin: None, root_state: None,
     });
+    attach_snapshots(&mut event, ledger, root);
     events.emit(&*event, authority)
+}
+
+// Construct the optional 1 KiB root snapshot in a separate SBF frame, after the
+// event has moved to the heap. Box::new alone leaves construction temporaries on
+// the caller's stack; combining cursor, ledger and root exceeded its 4 KiB frame.
+#[inline(never)]
+fn attach_snapshots(event: &mut crate::events::AccountBackingChanged,
+    ledger: Option<&BorshAccount<MarketLedger>>, root: Option<(Address, &MarginAccount)>) {
+    event.ledger = ledger.map(super::super::account_custody::ledger_snapshot);
+    if let Some((key, root)) = root {
+        event.margin = Some(key);
+        event.root_state = Some(crate::events::MarginAccountSnapshot::from(root));
+    }
 }
 
 #[cfg(test)]

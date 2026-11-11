@@ -769,9 +769,13 @@ Rust/Python backing reference passes again (1,274 contributions / 89,720 prefixe
 These are pre-build working-tree results; no new binary,
 CU/lock measurement, signed transaction, SQL replay or phase completion is claimed.
 
-Next exact action: commit the gated candidate after focused checks, build fresh
-pinned schema-10 binaries, then run maintained-progress/payment/rollback and real
-PostgreSQL acceptance. No user decision is blocking this work.
+Candidate commit `bbd3398` passes native/client checks but its first SBF build is
+rejected: backing-event construction exceeds the 4 KiB frame by 96 bytes (reported
+maximum offset 4,192). No rejected binary was deployed or promoted. The fix builds
+optional ledger/root snapshots in a separate frame after allocating the event.
+
+Next exact action: rebuild that event-frame fix, then run maintained-progress/
+payment/rollback and real PostgreSQL acceptance. No user decision is blocking this work.
 
 ## Deployment and operational limits
 
