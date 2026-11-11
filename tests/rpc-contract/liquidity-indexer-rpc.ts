@@ -16,6 +16,14 @@ const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_R
   deferFinality:true,computeUnitLimit:label=>label.startsWith('P33 route')?800_000:label.startsWith('P32 publisher')?200_000:400_000,
   maxLoadedAccounts:label=>label.startsWith('P32 publisher')?20:label.startsWith('P33 route')||label.startsWith('refresh independent')?32:undefined,
 });
+async function published(indexer:LiquidityIndexer) {
+  const deadline=Date.now()+60_000;
+  do {
+    await indexer.cycle();
+    if(indexer.healthy)return indexer.store.published();
+  } while(Date.now()<deadline);
+  throw new Error('No reconciled publication within 60 seconds');
+}
 let indexer:LiquidityIndexer|undefined,replay:LiquidityIndexer|undefined;
 try {
   const setup=await liquidityExecutionSetup(h,rpc),margin=setup.roots[0],owner=setup.traderOwner;
@@ -34,8 +42,8 @@ try {
   assert(init,'Actual initialization signature');
   const config:LiquidityConfig={rpcUrl:process.env.RIVALT_RPC_URL!,wsUrl:process.env.RIVALT_WS_URL!,databaseUrl,
     runId:'p33-indexer',venue:setup.venue,anchor:init,profile:'liquidity-execution-qualification',pageSize:37};
-  indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
-  const initial=await indexer.store.snapshot();assert.equal(Object.keys(initial.state.liquidity!.makers).length,6);
+  indexer=new LiquidityIndexer(config);await indexer.open();
+  const initial=await published(indexer);assert.equal(Object.keys(initial.state.liquidity!.makers).length,6);
   const legacy=new JournalStore(databaseUrl,config.runId,{schema:3,empty:()=>({sequence:'0',revisions:{}}),apply:()=>{throw new Error('Wrong-schema projection must never run');}});
   try{await assert.rejects(()=>legacy.snapshot(),/Incompatible projection schema/);}finally{await legacy.close();}
   await indexer.close();indexer=undefined;
@@ -45,8 +53,8 @@ try {
   const before=await root(margin);
   await h.send('P33 reverted CPI excludes provisional withdrawal',[withdrawal,withdrawal],[owner],sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);
   assert.deepEqual(await root(margin),before);await flush();
-  indexer=new LiquidityIndexer(config);await indexer.open();await indexer.cycle();
-  const snapshot=await indexer.store.snapshot(),reconciliation=await indexer.reconcile();
+  indexer=new LiquidityIndexer(config);await indexer.open();
+  const snapshot=await published(indexer),reconciliation=await indexer.reconcile();
   await indexer.cycle();assert.deepEqual((await indexer.store.snapshot()).state,snapshot.state);
   const api=accountApi(indexer);
   try {
@@ -59,7 +67,10 @@ try {
   await indexer.store.pool.query('CREATE DATABASE rivalt_p33_replay');
   const replayUrl=new URL(databaseUrl);replayUrl.pathname='/rivalt_p33_replay';
   replay=new LiquidityIndexer({...config,databaseUrl:replayUrl.toString(),runId:'p33-fresh-replay'});
-  await replay.open();await replay.cycle();assert.deepEqual((await replay.store.snapshot()).state,snapshot.state);
+  await replay.open();assert.deepEqual((await published(replay)).state,snapshot.state);
+  const originalEvents=await indexer.store.pool.query('SELECT sequence::text,signature,bytes FROM events WHERE run_id=$1 ORDER BY sequence',[config.runId]);
+  const replayEvents=await replay.store.pool.query('SELECT sequence::text,signature,bytes FROM events WHERE run_id=$1 ORDER BY sequence',[replay.config.runId]);
+  assert.deepEqual(replayEvents.rows,originalEvents.rows,'Fresh replay must retain every original event byte');
   const counts=(await indexer.store.pool.query(`SELECT
     (SELECT count(*) FROM transactions WHERE run_id=$1) AS transactions,
     (SELECT count(*) FROM transactions WHERE run_id=$1 AND failed) AS failed,
@@ -76,6 +87,7 @@ try {
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8')),checks,
     binding:snapshot.binding,counts,reconciliation,state:snapshot.state,metrics:indexer.metrics,replayMetrics:replay.metrics,
+    replayPublished:true,replayedEvents:replayEvents.rows.length,
     scope:'P33 finalized projection slice; durable workers and browser acceptance remain separate',phaseAcceptance:false};
   writeFileSync(`${runDir}/summary.json`,json(summary));console.log(json({stage:'p33-indexer-pass',counts,reconciliation,phaseAcceptance:false}));
 }finally{await replay?.close();await indexer?.close();try{await flush();}finally{ws.close();}}

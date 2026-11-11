@@ -161,8 +161,12 @@ post-fee liquidation and stored-order behavior. They are not SBF/RPC evidence.
 Clean `2136106` builds all SBF artifacts with no unsafe stack diagnostic. Only
 qualified-profile clearing changes (1,538,784 bytes); makers, default clearing
 and fixtures are byte-identical to P49. Candidate SDK hash binding is explicit;
-P49 artifact files remain untouched. Signed publisher/boundary and PostgreSQL
-replay acceptance are next. P53B's G5 calibration and lower-price funding-search coupling remain
+P49 artifact files remain untouched. Clean verifier `55426dc` passes 99 signed publisher outcomes (12 reports) and
+120 indexer-slice outcomes with a matching 72-event projection. The latter
+identified a stale test assumption: one successful recovery cycle does not always
+publish a fresh replay. The scoped harness now waits for published readiness and
+compares every retained event byte; that stronger check is next. No source or
+financial rule changed in this test correction. P53B's G5 calibration and lower-price funding-search coupling remain
 explicit. P15B/P16B and deferred endurance are unchanged.
 
 ## Integrated quantity work
