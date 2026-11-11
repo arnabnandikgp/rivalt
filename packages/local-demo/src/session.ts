@@ -10,7 +10,6 @@ import {getCreateAccountInstruction,getTransferSolInstruction} from '@solana-pro
 import {TOKEN_PROGRAM_ADDRESS,getInitializeAccount3Instruction,getMintToInstruction} from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import {LiquidityIndexer} from '../../indexer/src/liquidity-indexer.js';
-import {ReconciliationAhead} from '../../indexer/src/reconciliation-progress.js';
 import {accountApi} from '../../indexer/src/account-api.js';
 import {AccountRuntime} from '../../services/src/account-runtime.js';
 import {accountServiceApi} from '../../services/src/account-service-api.js';
@@ -149,11 +148,10 @@ try {
   indexer=new LiquidityIndexer(config);await indexer.open();
   // Provisioning sends confirm independently. Its final transactions can become
   // finalized while the initial history scan is in progress. Wait for a coherent
-  // finalized fence before starting producers; every other failure stays fatal.
-  await until(async()=>{try{await indexer!.cycle();return true;}catch(error){
-    if(!(error instanceof ReconciliationAhead))throw error;return false;
-  }},Boolean,'finalized provisioning fence');
-  const {binding}=await indexer.store.snapshot();
+  // published fence before starting producers. A successful bounded recovery
+  // cycle can still be pending; it is not a readiness signal.
+  await until(async()=>{await indexer!.cycle();return indexer!.healthy;},Boolean,'finalized provisioning fence',60000);
+  const {binding}=await indexer.store.published();
   publicConfig={version:4,accountSchema:8 as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,genesis:binding.genesis,anchor,
     anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain};
   writeFileSync(RUNTIME+'/deployment.json',json(publicConfig),{mode:0o600});

@@ -1,10 +1,10 @@
 # Finalized state and durable execution
 
-## Bounded-progress successor contract (P52, in implementation)
+## Bounded-progress successor contract (P52)
 
 P52 separates durable catch-up from reconciled publication, with no change to
 program schemas, financial authority, event bytes or original-signature recovery.
-The implementation is under qualification; STATUS records actual tested revisions.
+STATUS and validation record the qualified revisions and observed operating limits.
 
 Keep two explicit frontiers:
 

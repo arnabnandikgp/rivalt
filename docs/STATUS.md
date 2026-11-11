@@ -16,7 +16,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
-| P52 bounded-progress finalized indexer | In progress | Clean `32988bb` passes 44 focused checks and the small signed live/crash/fresh-replay diagnostic; full >10,000-transaction qualification remains before its ready PR above #73 |
+| P52 bounded-progress finalized indexer | Accepted locally — publication pending | Clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay; ready PR above #73 is next |
 | P53–P62 successor implementation | Planned | Price policy, compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -49,9 +49,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: run full P52 signed backlog/crash/live/fresh-replay qualification
-with the verified fixed-witness implementation, publish its ready PR above #73,
-then continue P53 without waiting for merges.
+Next exact action: publish the accepted P52 change as a ready PR above #73 using
+`gh stack`, leave all PRs open, then start P53's coherent price/order policy.
 
 ## Remediation planning
 
@@ -115,26 +114,31 @@ forward-overwriting an older candidate is insufficient proof. SQL format 3 requi
 a fresh journal, preserving earlier databases/originals. Program artifacts and
 account schema 8 remain unchanged.
 
-Clean **`32988bb94e2223f095d7c3d877a2c7dfca3d7da6`** passes typecheck and 44 focused
-indexer/API/service tests. Its small signed Surfpool/WS/PostgreSQL diagnostic passes:
-three real SIGKILL boundaries, immutable-original recovery during indexing lag,
-conflicting history/publication/format rejection, three advancing reconciled
-publications during continuous writes and identical 183-event fresh SQL replay.
-The fixture has 70 entities/eight margin roots; this is not expanded-account or
-full-backlog acceptance. Details are in [validation](operations/validation.md#bounded-progress-indexer-p52-in-qualification).
+Clean **`fe1c754e985b56e653b03795af8daf2b8ca59e62`** passes full signed
+Surfpool/RPC/WS/PostgreSQL qualification: 10,642 transactions / 4,306 invocations
+at backlog reconciliation, all three real SIGKILL boundaries, WS reconnect,
+identical-original recovery during indexing lag, rejected-history/publication/
+format checks, three advancing publications during 74 continuous delegate updates
+and identical complete state / 4,353-event fresh replay. Seventy entities/eight
+margin roots and 8,000,000 actual/allocated collateral atoms reconcile. The full
+run lasts 306.954 seconds. Program artifacts and account schema remain unchanged.
+[Validation](operations/validation.md#bounded-progress-indexer-p52) records actual
+resource observations, exact commands and limitations; this is not larger-account,
+production-throughput or endurance acceptance.
 
-The diagnostic identified Surfpool account values ahead of their reported finalized
-context. D94 retains the exact captured witness and, when necessary, extends once
-to a fixed post-read slot after that slot finalizes. Every account field must match
-a canonical finalized prefix; freshness and financial checks are unchanged. Earlier
-full attempts proved the large signed traffic and crash/integrity slices but did
-not finish continuous-write/fresh-replay acceptance. They are not substituted for
-the upcoming complete qualification. Raw records remain at their existing ignored
-`.local/indexer-progress/` paths; no earlier evidence or database was deleted.
+The same runtime code at clean `32988bb` passes typecheck, 44 scoped tests and the
+small live diagnostic. The later caller adjustment makes demo startup wait for
+published readiness, not merely a completed recovery cycle; typecheck and 11
+existing demo transport checks pass after this entrypoint-only adjustment. These
+checks do not execute browser startup; no new browser run is inferred. D94's fixed
+witness solves the observed local RPC account/context skew while retaining full
+financial comparisons, canonical finalized history and ten-second freshness.
 
-No P52 PR or phase acceptance is claimed yet. The small diagnostic completed and
-its owned runtime stopped; full qualification is the next action. No access blocker
-is known. P15B/P16B remain Open and 24-hour endurance Deferred.
+Full and diagnostic evidence remain at their original ignored paths under
+`.local/indexer-progress/`. Failed attempts remain retained; none substitute for
+the accepted full run. The owned qualification runtime stopped successfully.
+No P52 PR has been opened yet; publication is next. No access blocker is known.
+P15B/P16B remain Open and 24-hour endurance Deferred.
 
 ## Integrated quantity work
 
