@@ -334,12 +334,12 @@ fn bytes<T: SchemaWrite<anchor_lang::BorshConfig, Src = T>>(value: &T) -> Vec<u8
 #[test]
 fn successor_schema_is_kind_bound_and_raw_page_writes_advance_once() {
     let key = Address::new_unique();
-    for kind in 17..=21 {
+    for kind in 17..=22 {
         assert!(Scope::new().visit(key, kind, 8, 1, Access::Read).is_err());
         assert!(Scope::new().visit(key, kind, 9, 1, Access::Read).is_ok());
     }
     assert!(Scope::new().visit(key, 5, 9, 1, Access::Read).is_err());
-    assert!(Scope::new().visit(key, 22, 9, 1, Access::Read).is_err());
+    assert!(Scope::new().visit(key, 23, 9, 1, Access::Read).is_err());
     let page = SettlementLimbPage {
         schema_version: 9,
         revision: 11,
