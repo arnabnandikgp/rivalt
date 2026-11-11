@@ -1,5 +1,46 @@
 # Validation and measured limits
 
+## Recovery storage provisioning (P55A2 intermediate)
+
+Clean verifier **`81aae9df623bdddff69a73f2ba9f88c80a6fc9bb`** runs
+`ops/account-membership-smoke.sh` against clearing SBF
+**`174b3b2a9659b873b6ac037f9050fee27d3ac31f`**, 2,445,600 bytes, SHA-256
+**`189320a7a9ed4ebf419dd421f8b3aee639775827535f2afa25ac854092cde85f`**.
+It is a fresh local qualification deployment; selected/default/devnet artifacts
+remain unchanged. The pinned SBPFv0 build has no oversized-stack diagnostic.
+
+Actual Surfpool RPC/WS verifies **223 signed outcomes / 11 expected atomic
+rejections**. The independently derived 128-root schedule authenticates **99 real
+allocations**, with immutable payer receipts, before earning any capacity. Cases
+cover authority, zero/overflow/decreasing capacity, stale start/progress/cancel,
+skipped steps, interrupted cancellation/restart, paused writes and actual partial/
+fully donated rent. Funding alone leaves the proof cursor/capacity unchanged.
+Collateral remains zero throughout. Signature WS outcomes match fetched finalized
+results, and both isolated Anchor clients match **220 clearing instructions,
+199 accounts and 214 events**.
+
+Allocation costs **31,491–44,499 CU**, at most **501 bytes / ten loaded accounts**;
+verification **16,120–18,448 CU**, **462 bytes / nine accounts**. These are actual
+v0 transactions at 400,000 requested CU and zero priority fee. Allocation plus
+receipt rent is **1,169,339,800 lamports** (excluding the capacity header); actual
+allocation payer top-ups total **1,035,340,320**, with prior donated lamports
+separately exercised. Whole-probe transaction fees total **1,125,000 lamports**
+and measured CU total **5,817,743**. These are local test costs, not a production
+fee forecast or a claim about complete default recovery cost.
+
+At the same clean verifier pin, eight focused native checks pass: four schedule/
+epoch cases, two hostile actual-account loaders, one scoped raw-create transition
+and the literal layout roundtrip. Typecheck and D90 plus explicit additions ABI
+checks pass. The first run completed its signed provisioning assertions but failed
+the final client check because the harness used PascalCase instead of Anchor's
+camelCase account names; the corrected fresh run above passes. Original captures
+remain at `.local/scalable-settlement/runs/p55a2-storage-174b3b2/` and
+`.../p55a2-storage-parity/`; the owned runtime stopped normally.
+
+This is an intermediate **storage-only** result. It does not complete P55A2,
+activate Financial membership, qualify live-index freeze/default or establish a
+PostgreSQL replay. Those remain required before phase acceptance.
+
 ## Membership foundation (P55A1)
 
 Clean **`b8a19ebf13f32a23461213648de97a8daa4382c0`** passes **38 focused native

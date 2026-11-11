@@ -668,20 +668,25 @@ schema-9 layouts/consumers, Registered/Financial/Retired authority, funded recov
 storage, complete live-index freeze/default and signed entry/exit/race acceptance.
 P55A1 is ready as #81 above #80 and remains open. Hosted scope and financial CI
 pass at `7b0ab07` in run 43086442927; other scoped jobs are correctly skipped.
-Automated review was still pending at the last observation.
+Automated CodeRabbit also reports success; this is not independent financial review.
 No decision/access blocker is known. Next exact action: implement P55A2 above #81
 without waiting for merge; continue through P62's dependencies.
 
 P55A2 is active above exact `7b0ab07`. D100 specifies reusable, pre-funded recovery
-capacity. The local implementation has the count-derived allocation schedule,
-replay/epoch controller, canonical rent/payer verification and provisioning
-entrypoints. Four native capacity cases, two hostile actual-account-loader cases,
-one scoped-history creation case and qualification-feature `cargo check` pass in
-the working tree. They are not a signed deployment or completed lifecycle claim.
+capacity. Clean verifier **`81aae9d`** on clean SBF **`174b3b2`** passes **223 signed
+RPC/WS outcomes**, including **11 expected rejections**, authenticating all **99
+physical allocations** for 128-root storage capacity. Both isolated Anchor clients
+agree on 220 instructions, 199 accounts and 214 events. Allocation/verification
+peak at 44,499/18,448 CU; allocation plus receipt rent is 1,169,339,800 local test
+lamports. Eight focused native cases, typecheck and literal ABI checks pass. The
+first probe's conformance-name error is fixed; raw failed/successful evidence stays
+under `.local/scalable-settlement/`. The owned Surfpool stopped normally. This is
+storage provisioning only: no 128-root financial admission or PostgreSQL/default
+acceptance is claimed, and no selected artifact changed.
 Canonical schema-9 roots, registration/Financial/retirement transitions, live-index
 freeze/default and minimum SDK/indexer consumers still require implementation and
-acceptance. Next exact action: build the provisioning candidate, verify actual
-signed account allocation, then connect the complete P55A2 lifecycle.
+acceptance. Next exact action: connect canonical schema-9 membership and root
+lifecycle to the pre-funded workspace and complete paged default controller.
 
 ## Deployment and operational limits
 
