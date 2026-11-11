@@ -106,6 +106,14 @@ impl NumberCursor {
             arithmetic: Cursor::new(operation, width, left.register, right.register, output)?,
         })
     }
+    pub fn specification(&self) -> (Operation, Magnitude, Magnitude, u32) {
+        (
+            self.arithmetic.specification().0,
+            self.left,
+            self.right,
+            self.arithmetic.specification().4,
+        )
+    }
     pub fn is_done(&self) -> bool {
         self.stage == Stage::Done
     }

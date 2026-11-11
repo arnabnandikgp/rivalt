@@ -7,13 +7,13 @@ use financial_core::clearing::{
 };
 use financial_core::{Error, Result};
 use std::io::{self, BufRead};
-struct Memory {
-    registers: [Vec<u64>; 3],
+struct Memory<const N: usize = 3> {
+    registers: [Vec<u64>; N],
     reads: std::cell::Cell<u64>,
     writes: u64,
     allowed: Vec<financial_core::clearing::scalable::wide::WordAccess>,
 }
-impl LimbStorage for Memory {
+impl<const N: usize> LimbStorage for Memory<N> {
     fn read(&self, register: u32, limb: u64) -> Result<u64> {
         if !self
             .allowed
@@ -78,6 +78,83 @@ fn parse_words(text: &str, width: usize) -> Result<Vec<u64>> {
 }
 fn execute(text: &str) -> Result<String> {
     let fields: Vec<_> = text.split('|').collect();
+    if fields.len() == 5 && fields[0] == "atoms" {
+        use financial_core::clearing::scalable::{
+            atom_division::AtomDivision, normalized::Magnitude,
+        };
+        let width: usize = fields[1].parse().map_err(|_| Error::Bounds)?;
+        let budget: u64 = fields[2].parse().map_err(|_| Error::Bounds)?;
+        if width == 0 || budget == 0 {
+            return Err(Error::Bounds);
+        }
+        let mut numerator = parse_words(fields[3], width)?;
+        let mut denominator = parse_words(fields[4], width)?;
+        let used = |words: &[u64]| {
+            words
+                .iter()
+                .rposition(|word| *word != 0)
+                .map_or(0, |index| index + 1) as u64
+        };
+        let numerator_used = used(&numerator);
+        let denominator_used = used(&denominator);
+        numerator[numerator_used as usize..].fill(u64::MAX);
+        denominator[denominator_used as usize..].fill(u64::MAX);
+        let mut memory: Memory<4> = Memory {
+            registers: [
+                numerator,
+                denominator,
+                vec![u64::MAX; width],
+                vec![u64::MAX; width],
+            ],
+            reads: std::cell::Cell::new(0),
+            writes: 0,
+            allowed: Vec::new(),
+        };
+        let mut cursor = AtomDivision::new(
+            Magnitude {
+                register: 0,
+                used: numerator_used,
+            },
+            Magnitude {
+                register: 1,
+                used: denominator_used,
+            },
+            [2, 3],
+            width as u64,
+        )?;
+        let mut steps = 0;
+        let mut corrections = 0;
+        while !cursor.is_done() {
+            for _ in 0..budget {
+                if cursor.is_done() {
+                    break;
+                }
+                memory.allowed = cursor.accesses()?.into_iter().flatten().collect();
+                let before = memory.reads.get() + memory.writes;
+                cursor.step(&mut memory)?;
+                steps += 1;
+                if memory.reads.get() + memory.writes - before > 3 {
+                    return Err(Error::Invariant);
+                }
+            }
+            let bytes = cursor.checkpoint();
+            corrections = corrections.max(bytes[3]);
+            cursor = AtomDivision::from_checkpoint(&bytes, width as u64)?;
+        }
+        let (quotient, remainder) = cursor.result()?;
+        if cursor.step(&mut memory).is_ok() {
+            return Err(Error::Invariant);
+        }
+        let encoded = memory.registers[remainder.register as usize][..remainder.used as usize]
+            .iter()
+            .rev()
+            .map(|word| format!("{word:016x}"))
+            .collect::<String>();
+        return Ok(format!(
+            "{quotient}|{}|{steps}|{corrections}",
+            if encoded.is_empty() { "0" } else { &encoded }
+        ));
+    }
     if fields.len() == 7 && fields[0] == "normalized" {
         use financial_core::clearing::scalable::normalized::{Magnitude, NumberCursor};
         let width: usize = fields[2].parse().map_err(|_| Error::Bounds)?;
@@ -112,7 +189,7 @@ fn execute(text: &str) -> Result<String> {
         // storage must change the result or fail the exact access guard.
         left[left_used as usize..].fill(u64::MAX);
         right[right_used as usize..].fill(0xBAD0_BAD0_BAD0_BAD0);
-        let mut memory = Memory {
+        let mut memory: Memory = Memory {
             registers: [left, right, vec![0xDEAD_BEEF; width]],
             reads: std::cell::Cell::new(0),
             writes: 0,
@@ -176,7 +253,7 @@ fn execute(text: &str) -> Result<String> {
         }
         let capacity = required_limbs(count)?;
         let width = usize::try_from(capacity).map_err(|_| Error::Bounds)?;
-        let mut memory = Memory {
+        let mut memory: Memory = Memory {
             registers: core::array::from_fn(|_| vec![u64::MAX; width]),
             reads: std::cell::Cell::new(0),
             writes: 0,
@@ -277,7 +354,7 @@ fn execute(text: &str) -> Result<String> {
     let left = parse_words(fields[3], width)?;
     if fields[0] == "cmp" {
         use financial_core::clearing::scalable::comparison::CompareCursor;
-        let mut memory = Memory {
+        let mut memory: Memory = Memory {
             registers: [
                 left,
                 parse_words(fields[4], width)?,
@@ -316,7 +393,7 @@ fn execute(text: &str) -> Result<String> {
             .rposition(|word| *word != 0)
             .map_or(0, |index| index + 1) as u64;
         let divisor = u128::from_str_radix(fields[4], 16).map_err(|_| Error::Bounds)?;
-        let mut memory = Memory {
+        let mut memory: Memory = Memory {
             registers: [left, parse_words("0", width)?, parse_words("0", width)?],
             reads: std::cell::Cell::new(0),
             writes: 0,
@@ -376,7 +453,7 @@ fn execute(text: &str) -> Result<String> {
         },
         _ => return Err(Error::Bounds),
     };
-    let mut memory = Memory {
+    let mut memory: Memory = Memory {
         registers: [left, right, parse_words("0", width)?],
         reads: std::cell::Cell::new(0),
         writes: 0,

@@ -174,6 +174,7 @@ Encodings use little-endian integers and zero reserved/unused opcode bytes:
 | LCM | 224 | Stage, three IDs, used/span/divisor, scan/result lengths and the complete arithmetic checkpoint. Check stage-specific operand bindings, divisor relationships, used+2 span, scan/completion consistency and reserved bytes. |
 | Comparison | 40 | Width, two IDs, remaining high-to-low words and pending/less/equal/greater result. Check range/completion consistency; equal is terminal only after all words. |
 | Normalized magnitude | 192 | Trusted allocation capacity and input used lengths; arithmetic checkpoint and output normalization scan. Source words above used length are virtual zero, never fetched from dirty scratch tails. Output length becomes available only after bounded normalization completes. |
+| Atom division | 384 | Normalized numerator/divisor, two private scratch IDs, exact prefix/quotient/correction count, nested normalized-arithmetic/comparison checkpoints. Quotient is derived on chain, bounded below 2^58, corrected at most twice, and exposed only with a verified remainder strictly below the divisor. |
 | Cohort denominator | 320 | Frozen count, processed ordinal, last stable ID, used common length, alternating common register and nested LCM checkpoint. Check stage/operand bindings and expose the denominator only after every row. |
 | Membership | 544 | Frozen count, path depth/stage, page mask/count and fifteen radix traversal frames. Check complete subtree counts, canonical child path, processed ordinal and terminal replay. Program-owned nodes/pages and a frozen membership epoch are separate required authority. |
 | Valuation totals | 288 | Frozen count/custody/pool/insurance/fee/gross-OI bindings; processed ordinal/last ID; cash, signed quantities and gross totals; separate unsigned positive/negative claim totals. Check complete conservation before accepting the final row. |
@@ -211,7 +212,15 @@ is an error. It performs at most three physical word accesses per step and one
 output-normalization read per step. Some zero-tail operations are metadata-only
 steps; they still consume the controller budget. Capacity limits allocation, never
 forces a scan of all allocated words. This is arithmetic infrastructure, not
-proposal authorization or a completed rate verifier. A result is
+proposal authorization or a completed rate verifier.
+`atom_division::AtomDivision` persists exact division for whole-atom insurance and
+later payouts. It reads a bounded normalized prefix, derives the quotient estimate,
+checks the full product, performs at most two downward corrections, and verifies
+`numerator = quotient*denominator + remainder` with `remainder < denominator`.
+Physical work remains at most three words per step, including comparison and
+normalization; no wide local arrays or repeated whole-width quotient search are
+introduced. Input normalized lengths remain authenticated metadata, not uploaded
+proof. No result is exposed during incomplete arithmetic. A result is
 unavailable until all frozen rows complete. Each arithmetic step still accesses at
 most three words, including across physical page boundaries.
 

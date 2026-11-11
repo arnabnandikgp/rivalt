@@ -307,8 +307,10 @@ not a larger-runtime or PostgreSQL claim, remain open. The next arithmetic layer
 now implements 192-byte normalized magnitude continuations. Clean `999ce4d` passes
 1,440 independent integer cases at budgets 1/7/128, ten invalid domains and two
 codec/alias tests, plus pinned SBF metadata and scoped policy/format checks. No
-on-chain rate path uses it yet. Next exact action: implement persisted exact atom
-division and the complete-rate verifier without exposing Apply.
+on-chain rate path uses it yet. Persisted exact atom division is now implemented with a 384-byte checkpoint;
+development vectors pass, with clean acceptance pending. Next exact action: pin
+and qualify atom division, then implement the authenticated complete-rate schedule
+and proposal/reset handlers without exposing Apply.
 
 ## Integrated quantity work
 
