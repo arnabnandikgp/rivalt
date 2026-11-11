@@ -16,7 +16,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
-| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; bounded per-block coverage, common-fence publication and format-3 storage implemented; clean `4ad0213` passes 42 checks and signed traffic/original recovery; fix crash-injector callback overload, then finish SQL/replay acceptance |
+| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; bounded per-block coverage, common-fence publication and format-3 storage implemented; clean `8931c73` passes full backlog, three SIGKILL boundaries, integrity and original recovery; continuous-write publication still fails, so no PR/acceptance yet |
 | P53–P62 successor implementation | Planned | Price policy, compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -49,9 +49,9 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: run P52’s signed `indexer-progress` Surfpool/WS/PostgreSQL
-qualification on the committed candidate, address failures, then publish its ready
-PR above #73 and continue P53.
+Next exact action: run the small P52 live-capture diagnostic, fix the observed
+publication failure without weakening finality/reconciliation, then complete the
+full qualification, publish its ready PR above #73 and continue P53.
 
 ## Remediation planning
 
@@ -141,7 +141,14 @@ during-commit injector then hangs because its `Pool.connect` wrapper drops the
 callback overload used by its own checkpoint read. PostgreSQL terminates that idle
 transaction after 15 seconds. This is a harness failure, not completed acceptance;
 fix the wrapper and rerun the crash/backlog/live/fresh-replay checks. Raw evidence
-remains in `.local/indexer-progress/4ad0213-20261111-c`. No P52 PR or phase acceptance is claimed. No access blocker is known;
+remains in `.local/indexer-progress/4ad0213-20261111-c`. Clean `8931c73` fixes the
+injector and passes all three SIGKILL boundaries, >10,000 successful unrelated
+transactions / 4,200 clearing invocations, original-signature recovery, malformed
+history/publication/format rejection and bounded backlog catch-up. It then fails
+the stronger requirement for three distinct reconciled publications while a root
+changes continuously. No readiness error is suppressed, and fresh replay has not
+run. A small signed live diagnostic now records captured context/revision versus
+finalized coverage to identify the mismatch without repeating the large load. No P52 PR or phase acceptance is claimed. No access blocker is known;
 the local container service was started for the owned qualification runtime.
 
 ## Integrated quantity work

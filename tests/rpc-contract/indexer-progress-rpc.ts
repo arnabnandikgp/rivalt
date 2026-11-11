@@ -20,6 +20,9 @@ import {fixtureKey} from './harness.js';
 
 const runDir=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATABASE_URL!;
 assert(databaseUrl,'Owned PostgreSQL required');
+const diagnostic=process.env.RIVALT_INDEXER_DIAGNOSTIC==='live';
+assert(process.env.RIVALT_INDEXER_DIAGNOSTIC===undefined||diagnostic,'Unknown diagnostic mode');
+const delegateBatches=diagnostic?3:420,unrelatedCount=diagnostic?100:10_100;
 const started=Date.now(),memory:number[]=[];
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,runDir,{
   deferFinality:true,computeUnitLimit:label=>label.startsWith('P52 delegate')?1_000_000:label.startsWith('P52 fill')?800_000:400_000,
@@ -64,7 +67,7 @@ try {
   }
   // >4096 authentic scoped invocations, including multiple atomic instructions
   // per transaction. Authority changes leave cash/claims untouched.
-  for(let batch=0;batch<420;batch++)await delegates(10);
+  for(let batch=0;batch<delegateBatches;batch++)await delegates(10);
   const beforeRejection=await root(margin);
   const rejectedInstruction=sdk.getSetAccountDelegateInstruction({...setup.common,owner,margin,guard:await guard(margin),
     delegate:setup.updater.address,expirySlot:await setup.slot()+100_000n});
@@ -76,9 +79,9 @@ try {
   const connection=new Connection(config.rpcUrl,'confirmed'),sink=await fixtureKey('p52-unrelated-sink');
   await h.send('P52 fund unrelated transaction sink',[getTransferSolInstruction({source:setup.payer,destination:sink.address,amount:1_000_000n})]);
   const unrelated:string[]=[];
-  for(let offset=0;offset<10_100;offset+=100){
+  for(let offset=0;offset<unrelatedCount;offset+=100){
     const {blockhash}=await connection.getLatestBlockhash('confirmed');
-    const wires=await Promise.all(Array.from({length:Math.min(100,10_100-offset)},async(_,index)=>{
+    const wires=await Promise.all(Array.from({length:Math.min(100,unrelatedCount-offset)},async(_,index)=>{
       const tx=new VersionedTransaction(new TransactionMessage({payerKey:setup.payer.publicKey,recentBlockhash:blockhash,
         instructions:[SystemProgram.transfer({fromPubkey:setup.payer.publicKey,toPubkey:sink.publicKey,lamports:offset+index+1})]}).compileToV0Message());
       await tx.sign([setup.payer]);return {signature:getBase58Decoder().decode(tx.signatures[0]),wire:Buffer.from(tx.serialize()).toString('base64')};
@@ -103,6 +106,7 @@ try {
     assert(Date.now()<finalityDeadline);await delay(100);
   }
   // Original-signature recovery remains available while publication is stale.
+  await delay(Math.max(0,initial.synced_at!.getTime()+10_001-Date.now()));
   const execution=new AccountExecution(databaseUrl,config.runId,config.rpcUrl);
   let pendingOriginal:string;
   try {
@@ -147,7 +151,7 @@ try {
   // from complete RPC history, not rely on retained notifications.
   const reconnects=indexer.metrics.reconnects;indexer.ws!.close();await delay(100);
   await catchUp(indexer,'backlog');assert(indexer.metrics.reconnects>reconnects);
-  assert(cycles.some(value=>value.label==='backlog'&&!value.ready));
+  if(!diagnostic)assert(cycles.some(value=>value.label==='backlog'&&!value.ready));
   const settled=await indexer.store.published(),actual=await root(margin);
   assert.equal(actual.nonce,initialRoot.nonce+BigInt(delegateInstructions));assert.equal(actual.stateVersion,initialRoot.stateVersion+BigInt(delegateInstructions));
   assert.equal(settled.state.roots[margin].nonce,actual.nonce.toString());
@@ -160,7 +164,7 @@ try {
     (SELECT count(*) FROM blocks WHERE run_id=$1) AS blocks,
     (SELECT count(*) FROM outbox WHERE run_id=$1) AS outbox,
     pg_database_size(current_database()) AS database_bytes`,[config.runId])).rows[0];
-  assert(Number(counts.transactions)>10_000);assert(Number(counts.invocations)>4096);
+  assert(Number(counts.transactions)>(diagnostic?100:10_000));assert(Number(counts.invocations)>(diagnostic?30:4096));
   assert.equal(counts.events,settled.state.sequence);assert.equal(counts.events,counts.outbox);
   const retained=await indexer.store.pool.query('SELECT signature FROM transactions WHERE run_id=$1 AND signature=ANY($2)',[config.runId,unrelated]);
   assert.equal(retained.rowCount,unrelated.length);
@@ -199,6 +203,16 @@ try {
   await catchUp(indexer,'after-integrity-checks');
   const api=accountApi(indexer);
   try{const response=await api.inject('/v4/trades?latest=true');assert.equal(response.statusCode,200);assert.equal(response.json().items.length,2);}finally{await api.close();}
+  // Retain capture diagnostics before any live assertion can fail. Observed
+  // account bytes are never changed by this trace; verification stays intact.
+  const capture=(indexer as any).capture.bind(indexer);let captureTrace:any;
+  (indexer as any).capture=async(snapshot:any,minimumSlot:number)=>{
+    const witness=await capture(snapshot,minimumSlot),entry=witness.captured.get(margin);
+    captureTrace={minimumSlot,reportedMax:witness.maxSlot,entities:witness.captured.size,candidateRevision:snapshot.state.revisions[margin].revision,
+      capturedRevision:Buffer.from(entry.value.data[0],'base64').readBigUInt64LE(10).toString(),
+      finalized:await rpc.call('getSlot',[{commitment:'finalized'}]),confirmed:await rpc.call('getSlot',[{commitment:'confirmed'}]),verified:false};
+    const verify=witness.verify;witness.verify=async(state:any)=>{captureTrace.verified=true;return verify(state);};return witness;
+  };
   // Continuous relevant writes fit in one account batch in this local cohort.
   // Account capture must be able to publish an actual common historical fence.
   let producing=true,producerError:unknown,produced=0;
@@ -206,8 +220,10 @@ try {
   const live:{ready:boolean;covered:string|null;nonce:string|null}[]=[],liveDeadline=Date.now()+30_000;
   const publishedNonces=()=>new Set(live.filter(value=>value.ready).map(value=>value.nonce));
   try{while(Date.now()<liveDeadline&&publishedNonces().size<3){
-    await indexer.cycle();const row=await indexer.store.snapshot();
-    live.push({ready:indexer.healthy,covered:row.checkpoint_slot,nonce:row.published_state?.roots[margin].nonce??null});await delay(100);
+    captureTrace=null;await indexer.cycle();const row=await indexer.store.snapshot();
+    live.push({ready:indexer.healthy,covered:row.checkpoint_slot,nonce:row.published_state?.roots[margin].nonce??null});
+    const trace={...live.at(-1),coveredRevision:row.state.revisions[margin].revision,capture:captureTrace};
+    appendFileSync(`${runDir}/live-coverage.jsonl`,JSON.stringify(trace)+'\n');console.log(JSON.stringify({stage:'live-coverage',...trace}));await delay(100);
   }}
   finally{producing=false;await producer;await flush();}
   if(producerError)throw producerError;
@@ -224,7 +240,8 @@ try {
   const summary={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     build:JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR}/build-manifest.json`,'utf8')),
+    phaseAcceptance:!diagnostic,scope:diagnostic?'small live diagnostic only':'full bounded-progress qualification',
     elapsedMs:Date.now()-started,backlogCounts:counts,finalEventCount:events.rows.length,pendingOriginal,delegateInstructions,unrelated:unrelated.length,faults,cycles,live,produced,reconciliation,
     metrics:indexer.metrics,rpcMetrics:indexer.rpc.metrics,replayMetrics:replay.metrics,replayRpcMetrics:replay.rpc.metrics,peakRssBytes:Math.max(...memory),checks,state:final.state};
-  writeFileSync(`${runDir}/summary.json`,json(summary));console.log(json({stage:'p52-progress-pass',counts,delegateInstructions,elapsedMs:summary.elapsedMs}));
+  writeFileSync(`${runDir}/summary.json`,json(summary));console.log(json({stage:diagnostic?'p52-live-diagnostic-pass':'p52-progress-pass',phaseAcceptance:!diagnostic,counts,delegateInstructions,elapsedMs:summary.elapsedMs}));
 }finally{await replay?.close();await indexer?.close();try{await flush();}finally{ws.close();}}
